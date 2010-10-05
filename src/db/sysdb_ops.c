@@ -5143,6 +5143,14 @@ struct tevent_req *sysdb_update_members_send(TALLOC_CTX *mem_ctx,
     }
     state->del_group_iter = 0;
 
+    if (state->add_groups[state->add_group_iter] == NULL &&
+        state->del_groups[state->del_group_iter] == NULL) {
+        /* Nothing to do */
+        tevent_req_done(req);
+        tevent_req_post(req, state->ev);
+        return req;
+    }
+
     ret = sysdb_update_members_step(req);
     if (ret != EOK) {
         /* Nothing to do. Finish up */
