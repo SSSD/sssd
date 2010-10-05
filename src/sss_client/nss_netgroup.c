@@ -261,7 +261,7 @@ enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
     /* no results if not found */
     if ((((uint32_t *)repbuf)[0] == 0) || (replen <= NETGR_METADATA_COUNT)) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        return NSS_STATUS_RETURN;
     }
 
     sss_nss_getnetgrent_data.data = repbuf;
