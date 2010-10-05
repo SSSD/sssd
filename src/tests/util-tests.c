@@ -200,7 +200,7 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
-        { NULL }
+        POPT_TABLEEND
     };
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

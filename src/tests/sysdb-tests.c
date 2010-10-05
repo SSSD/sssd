@@ -2360,7 +2360,7 @@ int main(int argc, const char *argv[]) {
         SSSD_MAIN_OPTS
         {"no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
          _("Do not delete the test database after a test run"), NULL },
-        { NULL }
+        POPT_TABLEEND
     };
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

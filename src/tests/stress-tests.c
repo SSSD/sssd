@@ -214,7 +214,7 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "groups", 'g', POPT_ARG_NONE, &pc_groups, 0,
-                    "Lookup in groups instead of users" },
+                    "Lookup in groups instead of users", NULL },
         { "prefix", '\0', POPT_ARG_STRING, &pc_prefix, 0,
                     "The username prefix", NULL },
         { "start",  '\0', POPT_ARG_INT | POPT_ARGFLAG_SHOW_DEFAULT,
@@ -227,7 +227,7 @@ int main(int argc, const char *argv[])
                     "Fail on not getting the requested NSS data (default: No)",
                     NULL },
         { "verbose", 'v', POPT_ARG_NONE, 0, 'v',
-                    "Be verbose" },
+                    "Be verbose", NULL },
         POPT_TABLEEND
     };
 
