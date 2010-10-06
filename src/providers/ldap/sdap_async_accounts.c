@@ -1854,7 +1854,7 @@ struct sdap_initgr_rfc2307_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
-    char *name;
+    const char *name;
 
     struct sysdb_handle *handle;
     char **ldap_grouplist;
@@ -2097,6 +2097,8 @@ static void sdap_initgr_rfc2307_update_sysdb_groups(struct tevent_req *subreq)
                                 req);
         return;
     }
+
+
 
     subreq = sysdb_update_members_send(state, state->ev, state->handle,
                                        state->dom, state->name,
@@ -2570,6 +2572,17 @@ static void sdap_get_initgr_commit(struct tevent_req *subreq)
     tevent_req_set_callback(subreq, sdap_get_initgr_process, req);
 }
 
+static struct tevent_req *sdap_initgr_rfc2307bis_send(
+        TALLOC_CTX *memctx,
+        struct tevent_context *ev,
+        struct sdap_options *opts,
+        struct sysdb_ctx *sysdb,
+        struct sss_domain_info *dom,
+        struct sdap_handle *sh,
+        const char *base_dn,
+        const char *name,
+        const char *orig_dn);
+static int sdap_initgr_rfc2307bis_recv(struct tevent_req *req);
 static void sdap_get_initgr_process(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -2577,6 +2590,7 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
     struct sdap_get_initgr_state *state = tevent_req_data(req,
                                                struct sdap_get_initgr_state);
     int ret;
+    const char *orig_dn;
 
     DEBUG(9, ("Process user's groups\n"));
 
@@ -2602,6 +2616,26 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
+        ret = sysdb_attrs_get_string(state->orig_user,
+                                     SYSDB_ORIG_DN,
+                                     &orig_dn);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        subreq = sdap_initgr_rfc2307bis_send(
+                state, state->ev, state->opts, state->sysdb, state->dom,
+                state->sh, dp_opt_get_string(state->opts->basic,
+                                             SDAP_GROUP_SEARCH_BASE),
+                state->name, orig_dn);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        talloc_steal(subreq, orig_dn);
+        tevent_req_set_callback(subreq, sdap_get_initgr_done, req);
+        break;
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
         /* TODO: AD uses a different member/memberof schema
@@ -2641,6 +2675,10 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
+
+        ret = sdap_initgr_rfc2307bis_recv(subreq);
+        break;
+
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
 
@@ -3362,3 +3400,978 @@ static errno_t sdap_nested_group_process_recv(struct tevent_req *req)
 
     return EOK;
 }
+
+static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq);
+static struct tevent_req *sdap_initgr_rfc2307bis_send(
+        TALLOC_CTX *memctx,
+        struct tevent_context *ev,
+        struct sdap_options *opts,
+        struct sysdb_ctx *sysdb,
+        struct sss_domain_info *dom,
+        struct sdap_handle *sh,
+        const char *base_dn,
+        const char *name,
+        const char *orig_dn)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sdap_initgr_rfc2307_state *state;
+    const char *filter;
+    const char **attrs;
+
+    req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+    state->sysdb = sysdb;
+    state->dom = dom;
+    state->sh = sh;
+    state->op = NULL;
+    state->name = name;
+
+    ret = build_attrs_from_map(state, opts->group_map,
+                               SDAP_OPTS_GROUP, &attrs);
+    if (ret != EOK) {
+        talloc_free(req);
+        return NULL;
+    }
+
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                             opts->group_map[SDAP_AT_GROUP_MEMBER].name,
+                             orig_dn, opts->group_map[SDAP_OC_GROUP].name);
+    if (!filter) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    DEBUG(6, ("Looking up parent groups for user [%s]\n", orig_dn));
+    subreq = sdap_get_generic_send(state, state->ev, state->opts,
+                                   state->sh, base_dn, LDAP_SCOPE_SUBTREE,
+                                   filter, attrs,
+                                   state->opts->group_map, SDAP_OPTS_GROUP);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_initgr_rfc2307bis_process, req);
+
+    return req;
+
+}
+
+errno_t save_rfc2307bis_user_memberships(struct tevent_req *req);
+struct tevent_req *rfc2307bis_nested_groups_send(
+        TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+        struct sdap_options *opts, struct sysdb_ctx *sysdb,
+        struct sss_domain_info *dom, struct sdap_handle *sh,
+        struct sysdb_attrs **groups, size_t num_groups);
+static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq);
+static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_initgr_rfc2307_state *state;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->ldap_groups_count,
+                                &state->ldap_groups);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->ldap_groups_count == 0) {
+        /* Start a transaction to look up the groups in the sysdb
+         * and update them with LDAP data
+         */
+        ret = save_rfc2307bis_user_memberships(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    subreq = rfc2307bis_nested_groups_send(state, state->ev, state->opts,
+                                           state->sysdb, state->dom,
+                                           state->sh, state->ldap_groups,
+                                           state->ldap_groups_count);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_initgr_rfc2307bis_done, req);
+}
+
+static void sdap_initgr_rfc2307bis_get_sysdb_groups(struct tevent_req *subreq);
+errno_t save_rfc2307bis_user_memberships(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_initgr_rfc2307_state *state =
+            tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+
+    DEBUG(7, ("Save parent groups to sysdb\n"));
+    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
+    if (!subreq) {
+        return EIO;
+    }
+    /* Save this user and their memberships */
+    tevent_req_set_callback(subreq,
+                            sdap_initgr_rfc2307bis_get_sysdb_groups,
+                            req);
+    return EOK;
+}
+
+static errno_t rfc2307bis_sysdb_member_lookup(TALLOC_CTX *mem_ctx,
+                                              struct tevent_context *ev,
+                                              struct sysdb_ctx *sysdb,
+                                              struct sysdb_handle *handle,
+                                              struct sss_domain_info *dom,
+                                              enum sysdb_member_type type,
+                                              const char *domainname,
+                                              const char *name,
+                                              tevent_req_fn fn,
+                                              struct tevent_req *req);
+static void sdap_initgr_rfc2307bis_update_sysdb_groups(
+        struct tevent_req *subreq);
+static void sdap_initgr_rfc2307bis_get_sysdb_groups(struct tevent_req *subreq)
+{
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_initgr_rfc2307_state *state =
+            tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+    int ret;
+
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = rfc2307bis_sysdb_member_lookup(
+            state, state->ev, state->sysdb, state->handle, state->dom,
+            SYSDB_MEMBER_USER, state->dom->name, state->name,
+            sdap_initgr_rfc2307bis_update_sysdb_groups, req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+}
+static errno_t rfc2307bis_sysdb_member_lookup(TALLOC_CTX *mem_ctx,
+                                              struct tevent_context *ev,
+                                              struct sysdb_ctx *sysdb,
+                                              struct sysdb_handle *handle,
+                                              struct sss_domain_info *dom,
+                                              enum sysdb_member_type type,
+                                              const char *domainname,
+                                              const char *name,
+                                              tevent_req_fn fn,
+                                              struct tevent_req *req)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    char *member_dn;
+    char *filter;
+    const char **attrs;
+    struct tevent_req *subreq;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    attrs = talloc_array(tmp_ctx, const char *, 2);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto error;
+    }
+    attrs[0] = SYSDB_NAME;
+    attrs[1] = NULL;
+
+    if (type == SYSDB_MEMBER_USER) {
+        member_dn = sysdb_user_strdn(tmp_ctx, domainname, name);
+    } else if (type == SYSDB_MEMBER_GROUP) {
+        member_dn = sysdb_group_strdn(tmp_ctx, domainname, name);
+    } else {
+        ret = EINVAL;
+        goto error;
+    }
+
+    if (!member_dn) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(member=%s)", member_dn);
+    if (!filter) {
+        ret = ENOMEM;
+        goto error;
+    }
+    talloc_free(member_dn);
+
+    /* Search for all groups for which this user is a direct member */
+    subreq = sysdb_search_groups_send(mem_ctx, ev, sysdb,
+                                      handle, dom,
+                                      filter, attrs);
+    if (!subreq) {
+        ret = EIO;
+        goto error;
+    }
+    talloc_steal(subreq, tmp_ctx);
+
+    tevent_req_set_callback(subreq, fn, req);
+    return EOK;
+
+error:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static void sdap_initgr_rfc2307bis_update_sysdb_groups_done(
+        struct tevent_req *subreq);
+static void sdap_initgr_rfc2307bis_update_sysdb_groups(
+        struct tevent_req *subreq)
+{
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_initgr_rfc2307_state *state =
+            tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+    int ret, i;
+    size_t reply_count;
+    struct ldb_message **replies;
+    char **sysdb_grouplist;
+    const char *tmp_str;
+
+    ret = sysdb_search_groups_recv(subreq, state, &reply_count, &replies);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret == ENOENT) {
+        reply_count = 0;
+    }
+
+    if (reply_count == 0) {
+        DEBUG(6, ("User [%s] is not a direct member of any groups\n",
+                  state->name));
+        sysdb_grouplist = NULL;
+    } else {
+        sysdb_grouplist = talloc_array(state, char *, reply_count+1);
+        if (!sysdb_grouplist) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        for (i = 0; i < reply_count; i++) {
+            tmp_str = ldb_msg_find_attr_as_string(replies[i],
+                                                  SYSDB_NAME,
+                                                  NULL);
+            if (!tmp_str) {
+                /* This should never happen, but if it
+                 * does, just skip it.
+                 */
+                continue;
+            }
+
+            sysdb_grouplist[i] = talloc_strdup(sysdb_grouplist, tmp_str);
+            if (!sysdb_grouplist[i]) {
+                talloc_free(sysdb_grouplist);
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+        }
+        sysdb_grouplist[reply_count] = NULL;
+    }
+
+    if (state->ldap_groups_count == 0) {
+        state->ldap_grouplist = NULL;
+    }
+    else {
+        ret = sysdb_attrs_to_list(state,
+                                  state->ldap_groups, state->ldap_groups_count,
+                                  SYSDB_NAME,
+                                  &state->ldap_grouplist);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+    /* Find the differences between the sysdb and ldap lists
+     * Groups in ldap only must be added to the sysdb;
+     * groups in the sysdb only must be removed.
+     */
+    ret = diff_string_lists(state,
+                            state->ldap_grouplist, sysdb_grouplist,
+                            &state->add_groups, &state->del_groups, NULL);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_update_members_send(state, state->ev, state->handle,
+                                       state->dom, state->name,
+                                       SYSDB_MEMBER_USER,
+                                       state->add_groups, state->del_groups);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_initgr_rfc2307bis_update_sysdb_groups_done,
+                            req);
+}
+
+static void sdap_initgr_rfc2307bis_transaction_done(struct tevent_req *subreq);
+static void sdap_initgr_rfc2307bis_update_sysdb_groups_done(
+        struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_initgr_rfc2307_state *state =
+            tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+
+    ret = sysdb_update_members_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Commit the transaction */
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_initgr_rfc2307bis_transaction_done,
+                            req);
+}
+
+static void sdap_initgr_rfc2307bis_transaction_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = sysdb_transaction_commit_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Processing completed. Return control to sdap_get_initgr_done() */
+    tevent_req_done(req);
+}
+
+static errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req);
+static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = rfc2307bis_nested_groups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* save the user memberships */
+    ret = save_rfc2307bis_user_memberships(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return;
+}
+
+struct sdap_rfc2307bis_nested_ctx {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *dom;
+    struct sdap_handle *sh;
+    struct sysdb_attrs **groups;
+    size_t num_groups;
+
+    size_t group_iter;
+    struct sysdb_attrs **ldap_groups;
+    size_t ldap_groups_count;
+
+    struct sysdb_handle *handle;
+};
+
+static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req);
+struct tevent_req *rfc2307bis_nested_groups_send(
+        TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+        struct sdap_options *opts, struct sysdb_ctx *sysdb,
+        struct sss_domain_info *dom, struct sdap_handle *sh,
+        struct sysdb_attrs **groups, size_t num_groups)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct sdap_rfc2307bis_nested_ctx *state;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_rfc2307bis_nested_ctx);
+    if (!req) return NULL;
+
+    if (num_groups == 0) {
+        /* No parent groups to process */
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    state->ev = ev;
+    state->opts = opts;
+    state->sysdb = sysdb;
+    state->dom = dom;
+    state->sh = sh;
+    state->groups = groups;
+    state->num_groups = num_groups;
+    state->group_iter = 0;
+
+    ret = rfc2307bis_nested_groups_step(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static void rfc2307bis_nested_groups_incomplete_groups_save(
+        struct tevent_req *subreq);
+static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
+{
+    errno_t ret;
+    struct tevent_req *subreq;
+    const char *name;
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    if (debug_level >= 6) {
+        ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                     SYSDB_NAME, &name);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        DEBUG(6, ("Processing group [%s]\n", name));
+    }
+
+    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
+    if (!subreq) {
+        return EIO;
+    }
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_nested_groups_incomplete_groups_save,
+                            req);
+    return EOK;
+}
+
+static void rfc2307bis_nested_groups_incomplete_groups_done(
+        struct tevent_req *subreq);
+static void rfc2307bis_nested_groups_incomplete_groups_save(
+        struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+    const char *name;
+    struct sysdb_attrs **grouplist;
+    char **groupnamelist;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    if (ret != EOK) goto error;
+
+    tmp_ctx = talloc_new(state);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* First, save the group we're processing to the sysdb
+     * sdap_add_incomplete_groups_send will add them if needed
+     */
+    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                 SYSDB_NAME, &name);
+
+    /* sdap_add_incomplete_groups_send expects a list of groups */
+    grouplist = talloc_array(tmp_ctx, struct sysdb_attrs *, 1);
+    if (!grouplist) {
+        ret = ENOMEM;
+        goto error;
+    }
+    grouplist[0] = state->groups[state->group_iter];
+
+    groupnamelist = talloc_array(tmp_ctx, char *, 2);
+    if (!groupnamelist) {
+        ret = ENOMEM;
+        goto error;
+    }
+    groupnamelist[0] = talloc_strdup(groupnamelist, name);
+    if (!groupnamelist[0]) {
+        ret = ENOMEM;
+        goto error;
+    }
+    groupnamelist[1] = NULL;
+
+    DEBUG(6, ("Saving incomplete group [%s] to the sysdb\n",
+              groupnamelist[0]));
+    subreq = sdap_add_incomplete_groups_send(state, state->ev, state->sysdb,
+                                             state->handle, state->dom,
+                                             groupnamelist,
+                                             grouplist,
+                                             1);
+    if (!subreq) {
+        ret = EIO;
+        goto error;
+    }
+
+    talloc_steal(subreq, tmp_ctx);
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_nested_groups_incomplete_groups_done,
+                            req);
+    return;
+
+error:
+    talloc_free(tmp_ctx);
+    tevent_req_error(req, ret);
+}
+
+static void rfc2307bis_nested_groups_get_parents(struct tevent_req *subreq);
+static void rfc2307bis_nested_groups_incomplete_groups_done(
+        struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    ret = sdap_add_incomplete_groups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(7, ("sdap_add_incomplete_groups failed [%d][%s]\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_nested_groups_get_parents,
+                            req);
+}
+
+static void rfc2307bis_nested_groups_process(struct tevent_req *subreq);
+static void rfc2307bis_nested_groups_get_parents(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+    char *filter;
+    const char *orig_dn;
+    const char **attrs;
+    TALLOC_CTX *tmp_ctx;
+
+    ret = sysdb_transaction_commit_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(7, ("sysdb transaction failed [%d][%s]\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Get any parent groups for this group */
+
+    tmp_ctx = talloc_new(state);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                 SYSDB_ORIG_DN,
+                                 &orig_dn);
+    if (ret != EOK) {
+        goto error;
+    }
+
+    ret = build_attrs_from_map(tmp_ctx, state->opts->group_map,
+                               SDAP_OPTS_GROUP, &attrs);
+    if (ret != EOK) {
+        goto error;
+    }
+
+    filter = talloc_asprintf(
+            tmp_ctx, "(&(%s=%s)(objectclass=%s))",
+            state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
+            orig_dn,
+            state->opts->group_map[SDAP_OC_GROUP].name);
+    if (!filter) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    DEBUG(6, ("Looking up parent groups for group [%s]\n", orig_dn));
+    subreq = sdap_get_generic_send(state, state->ev, state->opts,
+                                   state->sh,
+                                   dp_opt_get_string(state->opts->basic,
+                                                     SDAP_GROUP_SEARCH_BASE),
+                                   LDAP_SCOPE_SUBTREE,
+                                   filter, attrs,
+                                   state->opts->group_map, SDAP_OPTS_GROUP);
+    if (!subreq) {
+        ret = EIO;
+        goto error;
+    }
+    talloc_steal(subreq, tmp_ctx);
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_nested_groups_process,
+                            req);
+
+    return;
+
+error:
+    talloc_free(tmp_ctx);
+    tevent_req_error(req, ret);
+}
+
+static errno_t rfc2307bis_nested_groups_update_sysdb(struct tevent_req *req);
+static void rfc2307bis_nested_groups_done(struct tevent_req *subreq);
+static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->ldap_groups_count,
+                                &state->ldap_groups);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->ldap_groups_count == 0) {
+        /* No groups for this user in LDAP
+         * We need to ensure that there are no groups
+         * in the sysdb either.
+         */
+
+        ret = rfc2307bis_nested_groups_update_sysdb(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* Otherwise, recurse into the groups */
+    subreq = rfc2307bis_nested_groups_send(
+            state, state->ev, state->opts, state->sysdb,
+            state->dom, state->sh,
+            state->ldap_groups, state->ldap_groups_count);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    tevent_req_set_callback(subreq, rfc2307bis_nested_groups_done, req);
+}
+
+static errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+static void rfc2307bis_nested_groups_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = rfc2307bis_nested_groups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(6, ("rfc2307bis_nested failed [%d][%s]\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* All of the parent groups have been added
+     * Now add the memberships
+     */
+
+    ret = rfc2307bis_nested_groups_update_sysdb(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return;
+}
+
+static void rfc2307bis_get_sysdb_groups(struct tevent_req *subreq);
+static errno_t rfc2307bis_nested_groups_update_sysdb(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    /* Start a transaction to look up the groups in the sysdb
+     * and update them with LDAP data
+     */
+
+    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
+    if (!subreq) {
+        return EIO;
+    }
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_get_sysdb_groups,
+                            req);
+    return EOK;
+}
+
+static void rfc2307bis_update_sysdb_groups(struct tevent_req *subreq);
+static void rfc2307bis_get_sysdb_groups(struct tevent_req *subreq)
+{
+    errno_t ret;
+    const char *name;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                 SYSDB_NAME, &name);
+
+    ret = rfc2307bis_sysdb_member_lookup(
+            state, state->ev, state->sysdb, state->handle, state->dom,
+            SYSDB_MEMBER_GROUP, state->dom->name, name,
+            rfc2307bis_update_sysdb_groups, req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+}
+
+static void rfc2307bis_update_sysdb_groups_process(struct tevent_req *req);
+static void rfc2307bis_update_sysdb_groups(struct tevent_req *subreq)
+{
+    errno_t ret;
+    unsigned int i;
+    size_t reply_count;
+    struct ldb_message **replies;
+    const char *name;
+    TALLOC_CTX *tmp_ctx;
+    const char *tmp_str;
+    char **sysdb_grouplist;
+    char **ldap_grouplist;
+    char **add_groups;
+    char **del_groups;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    ret = sysdb_search_groups_recv(subreq, state, &reply_count, &replies);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret == ENOENT) {
+        reply_count = 0;
+    }
+
+    tmp_ctx = talloc_new(state);
+    if (!tmp_ctx) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                 SYSDB_NAME, &name);
+    if (ret != EOK) goto error;
+
+    /* Create a list of the groups in the sysdb */
+    if (reply_count == 0) {
+        DEBUG(6, ("Group [%s] is not a direct member of any groups\n",
+                  name));
+        sysdb_grouplist = NULL;
+    } else {
+        sysdb_grouplist = talloc_array(state, char *, reply_count+1);
+        if (!sysdb_grouplist) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        for (i = 0; i < reply_count; i++) {
+            tmp_str = ldb_msg_find_attr_as_string(replies[i],
+                                                  SYSDB_NAME,
+                                                  NULL);
+            if (!tmp_str) {
+                /* This should never happen, but if it
+                 * does, just skip it.
+                 */
+                continue;
+            }
+
+            sysdb_grouplist[i] = talloc_strdup(sysdb_grouplist, tmp_str);
+            if (!sysdb_grouplist[i]) {
+                talloc_free(sysdb_grouplist);
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+        }
+        sysdb_grouplist[reply_count] = NULL;
+    }
+
+    /* Create a list of the groups in LDAP */
+    if (state->ldap_groups_count == 0) {
+        /* No groups for this user in LDAP
+         * We need to ensure that there are no groups
+         * in the sysdb either.
+         */
+
+        ldap_grouplist = NULL;
+    }
+    else {
+        ret = sysdb_attrs_to_list(tmp_ctx,
+                                  state->ldap_groups,
+                                  state->ldap_groups_count,
+                                  SYSDB_NAME,
+                                  &ldap_grouplist);
+        if (ret != EOK) {
+            goto error;
+        }
+    }
+
+    /* Find the differences between the sysdb and ldap lists
+     * Groups in ldap only must be added to the sysdb;
+     * groups in the sysdb only must be removed.
+     */
+    ret = diff_string_lists(tmp_ctx,
+                            ldap_grouplist, sysdb_grouplist,
+                            &add_groups, &del_groups, NULL);
+    if (ret != EOK) {
+        goto error;
+    }
+
+    /* Since all of the groups were created by nested calls,
+     * we don't need to step through sdap_add_incomplete_groups_send
+     * here like we do in sdap_initgr_rfc2307_update_sysdb_groups
+     *
+     * We can just update the memberships and move on
+     */
+    subreq = sysdb_update_members_send(state, state->ev, state->handle,
+                                       state->dom, name,
+                                       SYSDB_MEMBER_GROUP,
+                                       add_groups, del_groups);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    talloc_steal(subreq, tmp_ctx);
+
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_update_sysdb_groups_process,
+                            req);
+
+    return;
+
+error:
+    talloc_free(tmp_ctx);
+    tevent_req_error(req, ret);
+}
+static void rfc2307bis_update_sysdb_groups_done(struct tevent_req *req);
+static void rfc2307bis_update_sysdb_groups_process(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    ret = sysdb_update_members_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Processing of this group is finished */
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    tevent_req_set_callback(subreq,
+                            rfc2307bis_update_sysdb_groups_done,
+                            req);
+}
+
+static void rfc2307bis_update_sysdb_groups_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_rfc2307bis_nested_ctx *state =
+            tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    ret = sysdb_transaction_commit_recv(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Continue processing groups at this level */
+    state->group_iter++;
+    if (state->group_iter < state->num_groups) {
+        ret = rfc2307bis_nested_groups_step(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* All done in this nesting level */
+    tevent_req_done(req);
+}
+
+static int sdap_initgr_rfc2307bis_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
