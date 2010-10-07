@@ -3142,11 +3142,12 @@ struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
                                                struct sysdb_handle *handle,
                                                struct sss_domain_info *domain,
                                                const char *group,
-                                               const char *user)
+                                               const char *member,
+                                               enum sysdb_member_type type)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
-    struct ldb_dn *group_dn, *user_dn;
+    struct ldb_dn *group_dn, *member_dn;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
@@ -3162,13 +3163,24 @@ struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
         ERROR_OUT(ret, ENOMEM, fail);
     }
 
-    user_dn = sysdb_user_dn(handle->ctx, state, domain->name, user);
-    if (!user_dn) {
+    if (type == SYSDB_MEMBER_USER) {
+        member_dn = sysdb_user_dn(handle->ctx, state,
+                                  domain->name,
+                                  member);
+    } else if (type == SYSDB_MEMBER_GROUP) {
+        member_dn = sysdb_group_dn(handle->ctx, state,
+                                   domain->name,
+                                   member);
+    } else {
+        ERROR_OUT(ret, EINVAL, fail);
+    }
+
+    if (!member_dn) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
 
     subreq = sysdb_mod_group_member_send(state, ev, handle,
-                                         user_dn, group_dn,
+                                         member_dn, group_dn,
                                          SYSDB_MOD_ADD);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
@@ -3216,11 +3228,12 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
                                                   struct sysdb_handle *handle,
                                                   struct sss_domain_info *domain,
                                                   const char *group,
-                                                  const char *user)
+                                                  const char *member,
+                                                  enum sysdb_member_type type)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
-    struct ldb_dn *group_dn, *user_dn;
+    struct ldb_dn *group_dn, *member_dn;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
@@ -3236,13 +3249,20 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
         ERROR_OUT(ret, ENOMEM, fail);
     }
 
-    user_dn = sysdb_user_dn(handle->ctx, state, domain->name, user);
-    if (!user_dn) {
+    if (type == SYSDB_MEMBER_USER) {
+        member_dn = sysdb_user_dn(handle->ctx, state, domain->name, member);
+    } else if (type == SYSDB_MEMBER_GROUP) {
+        member_dn = sysdb_group_dn(handle->ctx, state, domain->name, member);
+    } else {
+        ERROR_OUT(ret, EINVAL, fail);
+    }
+
+    if (!member_dn) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
 
     subreq = sysdb_mod_group_member_send(state, ev, handle,
-                                         user_dn, group_dn,
+                                         member_dn, group_dn,
                                          SYSDB_MOD_DEL);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
@@ -5242,10 +5262,12 @@ int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
 }
 
 struct sysdb_update_members_ctx {
-    char *user;
+    char *member;
     struct sss_domain_info *domain;
     struct tevent_context *ev;
     struct sysdb_handle *handle;
+
+    enum sysdb_member_type membertype;
 
     char **add_groups;
     int add_group_iter;
@@ -5274,7 +5296,8 @@ struct tevent_req *sysdb_update_members_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct sysdb_handle *handle,
                                              struct sss_domain_info *domain,
-                                             const char *user,
+                                             const char *member,
+                                             enum sysdb_member_type type,
                                              char **add_groups,
                                              char **del_groups)
 {
@@ -5287,14 +5310,15 @@ struct tevent_req *sysdb_update_members_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->user = talloc_strdup(state, user);
-    if (!state->user) {
+    state->member = talloc_strdup(state, member);
+    if (!state->member) {
         goto error;
     }
 
     state->domain = domain;
     state->ev = ev;
     state->handle = handle;
+    state->membertype = type;
 
     if (add_groups) {
         state->add_groups = dup_string_list(state, (const char**)add_groups);
@@ -5358,7 +5382,7 @@ sysdb_update_members_step(struct tevent_req *req)
                 state, state->ev, state->handle,
                 state->domain,
                 state->add_groups[state->add_group_iter],
-                state->user);
+                state->member, state->membertype);
         if (!subreq) {
             return EIO;
         }
@@ -5372,7 +5396,7 @@ sysdb_update_members_step(struct tevent_req *req)
                 state, state->ev,
                 state->handle, state->domain,
                 state->del_groups[state->del_group_iter],
-                state->user);
+                state->member, state->membertype);
         if (!subreq) {
             return EIO;
         }

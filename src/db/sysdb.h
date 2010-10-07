@@ -529,12 +529,18 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           uint64_t cache_timeout);
 int sysdb_store_group_recv(struct tevent_req *req);
 
+enum sysdb_member_type {
+    SYSDB_MEMBER_USER,
+    SYSDB_MEMBER_GROUP
+};
+
 struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
                                                struct sysdb_handle *handle,
                                                struct sss_domain_info *domain,
                                                const char *group,
-                                               const char *member);
+                                               const char *member,
+                                               enum sysdb_member_type type);
 int sysdb_add_group_member_recv(struct tevent_req *req);
 
 struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
@@ -542,17 +548,19 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
                                                   struct sysdb_handle *handle,
                                                   struct sss_domain_info *domain,
                                                   const char *group,
-                                                  const char *member);
+                                                  const char *member,
+                                                  enum sysdb_member_type type);
 int sysdb_remove_group_member_recv(struct tevent_req *req);
 
 
-struct tevent_req * sysdb_update_members_send(TALLOC_CTX *mem_ctx,
-                                              struct tevent_context *ev,
-                                              struct sysdb_handle *handle,
-                                              struct sss_domain_info *domain,
-                                              const char *user,
-                                              char **add_groups,
-                                              char **del_groups);
+struct tevent_req *sysdb_update_members_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *member,
+                                             enum sysdb_member_type type,
+                                             char **add_groups,
+                                             char **del_groups);
 errno_t sysdb_update_members_recv(struct tevent_req *req);
 
 /* Password caching function.

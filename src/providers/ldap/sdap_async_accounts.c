@@ -2100,6 +2100,7 @@ static void sdap_initgr_rfc2307_update_sysdb_groups(struct tevent_req *subreq)
 
     subreq = sysdb_update_members_send(state, state->ev, state->handle,
                                        state->dom, state->name,
+                                       SYSDB_MEMBER_USER,
                                        state->add_groups, state->del_groups);
     if (!subreq) {
         tevent_req_error(req, EIO);
@@ -2130,6 +2131,7 @@ sdap_initgr_rfc2307_update_sysdb_groups_step(struct tevent_req *subreq)
 
     updatereq = sysdb_update_members_send(state, state->ev, state->handle,
                                        state->dom, state->name,
+                                       SYSDB_MEMBER_USER,
                                        state->add_groups, state->del_groups);
     if (!updatereq) {
         tevent_req_error(req, EIO);
