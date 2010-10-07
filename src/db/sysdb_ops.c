@@ -5274,7 +5274,7 @@ struct tevent_req *sysdb_update_members_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct sysdb_handle *handle,
                                              struct sss_domain_info *domain,
-                                             char *user,
+                                             const char *user,
                                              char **add_groups,
                                              char **del_groups)
 {
