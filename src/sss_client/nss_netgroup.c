@@ -35,12 +35,12 @@
 
 #define MAX_NETGR_NAME_LENGTH 2048
 
-static struct sss_nss_getnetgrent_data {
-    char *name;
-    size_t len;
-    size_t ptr;
-    uint8_t *data;
-} sss_nss_getnetgrent_data;
+#define CLEAR_NETGRENT_DATA(netgrent) do { \
+        free(netgrent->data); \
+        netgrent->data = NULL; \
+        netgrent->idx.position = 0; \
+        netgrent->data_size = 0; \
+} while (0);
 
 /*
  * Replies:
@@ -60,19 +60,6 @@ struct sss_nss_netgr_rep {
     char *buffer;
     size_t buflen;
 };
-
-static void sss_nss_getnetgrent_data_clean(void) {
-    if (sss_nss_getnetgrent_data.name != NULL) {
-        free(sss_nss_getnetgrent_data.name);
-        sss_nss_getnetgrent_data.name = NULL;
-    }
-    if (sss_nss_getnetgrent_data.data != NULL) {
-        free(sss_nss_getnetgrent_data.data);
-        sss_nss_getnetgrent_data.data = NULL;
-    }
-    sss_nss_getnetgrent_data.len = 0;
-    sss_nss_getnetgrent_data.ptr = 0;
-}
 
 static int sss_nss_getnetgr_readrep(struct sss_nss_netgr_rep *pr,
                                     uint8_t *buf, size_t *len)
@@ -203,28 +190,30 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
     enum nss_status nret;
     struct sss_cli_req_data rd;
     int errnop;
+    char *name;
     size_t name_len;
     errno_t ret;
 
     if (!netgroup) return NSS_STATUS_NOTFOUND;
 
     /* make sure we do not have leftovers, and release memory */
-    sss_nss_getnetgrent_data_clean();
+    CLEAR_NETGRENT_DATA(result);
 
     ret = sss_strnlen(netgroup, MAX_NETGR_NAME_LENGTH, &name_len);
     if (ret != 0) return NSS_STATUS_NOTFOUND;
 
-    sss_nss_getnetgrent_data.name = malloc(sizeof(char)*name_len + 1);
-    if (sss_nss_getnetgrent_data.name == NULL) {
+    name = malloc(sizeof(char)*name_len + 1);
+    if (name == NULL) {
         return NSS_STATUS_TRYAGAIN;
     }
-    strncpy(sss_nss_getnetgrent_data.name, netgroup, name_len + 1);
+    strncpy(name, netgroup, name_len + 1);
 
-    rd.data = sss_nss_getnetgrent_data.name;
+    rd.data = name;
     rd.len = name_len + 1;
 
     nret = sss_nss_make_request(SSS_NSS_SETNETGRENT, &rd,
                                 &repbuf, &replen, &errnop);
+    free(name);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
         return nret;
@@ -236,6 +225,7 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
         return NSS_STATUS_NOTFOUND;
     }
 
+    free(repbuf);
     return NSS_STATUS_SUCCESS;
 }
 
@@ -257,13 +247,11 @@ enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
     /* If we're already processing result data, continue to
      * return it.
      */
-    if (sss_nss_getnetgrent_data.data != NULL &&
-        sss_nss_getnetgrent_data.ptr < sss_nss_getnetgrent_data.len) {
+    if (result->data != NULL &&
+        result->idx.position < result->data_size) {
 
-        repbuf = (uint8_t *)sss_nss_getnetgrent_data.data +
-                sss_nss_getnetgrent_data.ptr;
-        replen = sss_nss_getnetgrent_data.len -
-                    sss_nss_getnetgrent_data.ptr;
+        repbuf = (uint8_t *) result->data + result->idx.position;
+        replen = result->data_size - result->idx.position;
 
         netgrrep.result = result;
         netgrrep.buffer = buffer;
@@ -275,13 +263,13 @@ enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
             return NSS_STATUS_TRYAGAIN;
         }
 
-        sss_nss_getnetgrent_data.ptr = sss_nss_getnetgrent_data.len - replen;
+        result->idx.position = result->data_size - replen;
 
         return NSS_STATUS_SUCCESS;
     }
 
     /* Release memory, if any */
-    sss_nss_getnetgrent_data_clean();
+    CLEAR_NETGRENT_DATA(result);
 
     /* retrieve no more than SSS_NSS_MAX_ENTRIES at a time */
     num_entries = SSS_NSS_MAX_ENTRIES;
@@ -300,22 +288,22 @@ enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
         return NSS_STATUS_RETURN;
     }
 
-    sss_nss_getnetgrent_data.data = repbuf;
-    sss_nss_getnetgrent_data.len = replen;
+    result->data = (char *) repbuf;
+    result->data_size = replen;
     /* skip metadata fields */
-    sss_nss_getnetgrent_data.ptr = NETGR_METADATA_COUNT;
+    result->idx.position = NETGR_METADATA_COUNT;
 
     /* call again ourselves, this will return the first result */
     return _nss_sss_getnetgrent_r(result, buffer, buflen, errnop);
 }
 
-enum nss_status _nss_sss_endnetgrent(void)
+enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
 {
     enum nss_status nret;
     int errnop;
 
     /* make sure we do not have leftovers, and release memory */
-    sss_nss_getnetgrent_data_clean();
+    CLEAR_NETGRENT_DATA(result);
 
     nret = sss_nss_make_request(SSS_NSS_ENDNETGRENT,
                                 NULL, NULL, NULL, &errnop);

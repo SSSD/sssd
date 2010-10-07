@@ -57,7 +57,7 @@ struct __netgrent
   {
     char *cursor;
     unsigned long int position;
-  } insertedname; /* added name to union to avoid warning */
+  } idx;  /* added name to union to avoid warning */
   int first;
   struct name_list *known_groups;
   struct name_list *needed_groups;
