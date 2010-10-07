@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <libintl.h>
 #include <limits.h>
