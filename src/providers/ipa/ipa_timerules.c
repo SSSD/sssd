@@ -263,18 +263,18 @@ static int test_bit(unsigned char *bitmap, unsigned int bit)
  */
 static int name_index(const char **name_array, const char *key, int min)
 {
-    int index = 0;
+    int idx = 0;
     const char *one;
 
     if (name_array == NULL) {
         return -1;
     }
 
-    while ((one = name_array[index]) != NULL) {
+    while ((one = name_array[idx]) != NULL) {
         if (strcmp(key,one) == 0) {
-            return index+min;
+            return idx+min;
         }
-        index++;
+        idx++;
     }
 
     return -1;
