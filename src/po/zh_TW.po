@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 1.1.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-08-02 13:47-0400\n"
+"POT-Creation-Date: 2010-10-08 19:22-0400\n"
 "PO-Revision-Date: 2010-03-22 22:00+0800\n"
 "Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
 "Language-Team: Fedora-trans-zh_tw <trans-zh_tw@lists.fedoraproject.org>\n"
@@ -449,12 +449,12 @@ msgid "Cannot load configuration database\n"
 msgstr ""
 
 #: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:377
-#: util/util.h:61
+#: util/util.h:62
 msgid "Debug level"
 msgstr "除錯層級"
 
 #: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:379
-#: util/util.h:65
+#: util/util.h:66
 msgid "Add debug timestamps"
 msgstr "加入除錯時間戳記"
 
@@ -463,7 +463,7 @@ msgstr "加入除錯時間戳記"
 msgid "An open file descriptor for the debug logs"
 msgstr "供除錯日誌使用的開啟檔案描述符"
 
-#: providers/data_provider_be.c:1153
+#: providers/data_provider_be.c:1154
 #, fuzzy
 msgid "Domain of the information provider (mandatory)"
 msgstr "資訊提供者的網域（委任）"
@@ -950,7 +950,7 @@ msgstr "記憶體耗盡\n"
 msgid "%s must be run as root\n"
 msgstr "%s 必須以 root 身分執行\n"
 
-#: util/util.h:63
+#: util/util.h:64
 msgid "Send the debug output to files instead of stderr"
 msgstr "傳送除錯輸出到檔案而不是標準輸出"
 

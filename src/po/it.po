@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-08-02 13:47-0400\n"
+"POT-Creation-Date: 2010-10-08 19:22-0400\n"
 "PO-Revision-Date: 2010-04-08 16:50+0200\n"
 "Last-Translator: Guido Grazioli <guido.grazioli@gmail.com>\n"
 "Language-Team: Italian <trans-it@lists.fedoraproject.org>\n"
@@ -446,12 +446,12 @@ msgid "Cannot load configuration database\n"
 msgstr ""
 
 #: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:377
-#: util/util.h:61
+#: util/util.h:62
 msgid "Debug level"
 msgstr "Livello debug"
 
 #: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:379
-#: util/util.h:65
+#: util/util.h:66
 msgid "Add debug timestamps"
 msgstr "Includi timestamp di debug"
 
@@ -459,7 +459,7 @@ msgstr "Includi timestamp di debug"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descrittore di file aperto per l'output di debug"
 
-#: providers/data_provider_be.c:1153
+#: providers/data_provider_be.c:1154
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del provider di informazioni (obbligatorio)"
 
@@ -960,7 +960,7 @@ msgstr "Memoria esaurita\n"
 msgid "%s must be run as root\n"
 msgstr "%s deve essere eseguito come root\n"
 
-#: util/util.h:63
+#: util/util.h:64
 msgid "Send the debug output to files instead of stderr"
 msgstr "Redirigere l'output di debug su file anzichè stderr"
 
