@@ -381,6 +381,15 @@ struct tevent_req *sdap_save_users_send(TALLOC_CTX *memctx,
     state->handle = NULL;
     state->higher_timestamp = NULL;
 
+    if (num_users == 0) {
+        /* Nothing to do if there are no
+         * users
+         */
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
     subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
