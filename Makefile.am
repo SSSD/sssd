@@ -966,13 +966,14 @@ DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/docbo
 XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
 XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 
-dist_man_MANS = \
+man_MANS = \
     src/man/sss_useradd.8 src/man/sss_userdel.8 src/man/sss_usermod.8 \
     src/man/sss_groupadd.8 src/man/sss_groupdel.8 src/man/sss_groupmod.8 \
     src/man/sssd.8 src/man/sssd.conf.5 src/man/sssd-ldap.5 \
     src/man/sssd-krb5.5 src/man/sssd-ipa.5 src/man/sssd-simple.5 \
     src/man/sssd_krb5_locator_plugin.8 src/man/sss_groupshow.8 \
     src/man/pam_sss.8 src/man/sss_obfuscate.8
+EXTRA_DIST += $(man_MANS:%=%.xml) $(wildcard src/man/include/*.xml)
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
@@ -1081,7 +1082,7 @@ if BUILD_PYTHON_BINDINGS
 	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
 endif
 	rm -Rf doc
-	rm -f $(dist_man_MANS)
+	rm -f $(man_MANS)
 
 CLEANFILES = *.X */*.X */*/*.X
 
