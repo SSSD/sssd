@@ -609,6 +609,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sss_domain_info *dom,
                            struct sysdb_attrs *attrs,
                            bool store_members,
+                           bool populate_members,
                            char **_timestamp)
 {
     struct ldb_message_element *el;
@@ -697,7 +698,19 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
     }
 
-    if (store_members) {
+    if (populate_members) {
+        struct ldb_message_element *el1;
+        ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el1);
+        if (ret != EOK) {
+            goto fail;
+        }
+        ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
+        if (ret != EOK) {
+            goto fail;
+        }
+        el->values = el1->values;
+        el->num_values = el1->num_values;
+    } else if (store_members) {
         ret = sysdb_attrs_get_el(attrs,
                         opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
         if (ret != EOK) {
@@ -808,6 +821,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
                             struct sdap_options *opts,
                             struct sysdb_attrs **groups,
                             int num_groups,
+                            bool populate_members,
                             char **_timestamp)
 {
     TALLOC_CTX *tmpctx;
@@ -848,7 +862,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         /* if 2 pass savemembers = false */
         ret = sdap_save_group(tmpctx, sysdb,
                               opts, dom, groups[i],
-                              (!twopass), &timestamp);
+                              (!twopass), populate_members, &timestamp);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -872,7 +886,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         }
     }
 
-    if (twopass) {
+    if (twopass && !populate_members) {
 
         for (i = 0; i < num_groups; i++) {
 
@@ -988,6 +1002,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     ret = sdap_save_groups(state, state->sysdb,
                            state->dom, state->opts,
                            state->groups, state->count,
+                           false,
                            &state->higher_timestamp);
     if (ret) {
         DEBUG(2, ("Failed to store groups.\n"));
@@ -1355,7 +1370,7 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_initgr_nested_state);
 
     ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                           state->groups, state->groups_cur, NULL);
+                           state->groups, state->groups_cur, false, NULL);
     if (ret) {
         tevent_req_error(req, ret);
         return;
