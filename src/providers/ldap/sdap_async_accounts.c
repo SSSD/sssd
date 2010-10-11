@@ -4,6 +4,7 @@
     Async LDAP Helper routines
 
     Copyright (C) Simo Sorce <ssorce@redhat.com> - 2009
+    Copyright (C) 2010, Ralf Haferkamp <rhafer@suse.de>, Novell Inc.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -917,6 +918,329 @@ done:
 }
 
 
+/* ==Process-Groups======================================================= */
+
+struct sdap_process_group_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+
+    struct sysdb_attrs *group;
+    struct sysdb_attrs **new_members;
+    struct ldb_message_element* sysdb_dns;
+    char **queued_members;
+    const char **attrs;
+    const char *filter;
+    size_t member_idx;
+    size_t queue_idx;
+    size_t count;
+    size_t check_count;
+};
+
+#define GROUPMEMBER_REQ_PARALLEL 50
+static void sdap_process_group_members(struct tevent_req *subreq);
+
+struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
+                                           struct tevent_context *ev,
+                                           struct sss_domain_info *dom,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sdap_options *opts,
+                                           struct sdap_handle *sh,
+                                           struct sysdb_attrs *group)
+{
+    struct ldb_message_element *el;
+    struct sdap_process_group_state *grp_state;
+    struct tevent_req *req = NULL;
+    const char **attrs;
+    char* filter;
+    int queue_len;
+    int ret;
+    int i;
+
+    req = tevent_req_create(memctx, &grp_state,
+                            struct sdap_process_group_state);
+    if (!req) return NULL;
+
+    ret = build_attrs_from_map(grp_state, opts->user_map, SDAP_OPTS_USER, &attrs);
+    if (ret) {
+        goto done;
+    }
+
+    /* FIXME: we ignore nested rfc2307bis groups for now */
+    filter = talloc_asprintf(grp_state, "(objectclass=%s)",
+                             opts->user_map[SDAP_OC_USER].name);
+    if (!filter) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    grp_state->ev = ev;
+    grp_state->opts = opts;
+    grp_state->dom = dom;
+    grp_state->sh = sh;
+    grp_state->sysdb = sysdb;
+    grp_state->group =  group;
+    grp_state->check_count = 0;
+    grp_state->new_members = NULL;
+    grp_state->member_idx = 0;
+    grp_state->queue_idx = 0;
+    grp_state->queued_members = NULL;
+    grp_state->filter = filter;
+    grp_state->attrs = attrs;
+
+    ret = sysdb_attrs_get_el(group,
+                             opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                             &el);
+    if (ret) {
+        goto done;
+    }
+
+    /* Group without members */
+    if (el->num_values == 0) {
+        DEBUG(2, ("No Members. Done!\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    grp_state->sysdb_dns = talloc(grp_state, struct ldb_message_element);
+    if (!grp_state->sysdb_dns) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    grp_state->sysdb_dns->values = talloc_array(grp_state, struct ldb_val,
+                                                el->num_values);
+    if (!grp_state->sysdb_dns->values) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    grp_state->sysdb_dns->num_values = 0;
+    queue_len = 0;
+
+    /*
+     * For each member check if it is already present in sysdb,
+     * if it isn't read it from LDAP
+     */
+    for (i = 0; i < el->num_values; i++) {
+        char *sysdb_dn;
+        DEBUG(7, ("checking member: %s\n", (const char*)el->values[i].data));
+        ret = sdap_find_entry_by_origDN(grp_state->sysdb_dns->values, sysdb,
+                                        dom, (const char *)el->values[i].data,
+                                        &sysdb_dn);
+        if (ret == ENOENT) {
+            if (opts->schema_type != SDAP_SCHEMA_RFC2307BIS) {
+                continue;
+            }
+
+            DEBUG(7, ("member #%d (%s): not found in sysdb, searching LDAP\n",
+                    i, (char *)el->values[i].data));
+
+            /*
+             * Issue at most GROUPMEMBER_REQ_PARALLEL LDAP searches at once.
+             * The rest is sent while the results are being processed.
+             * We limit the number as of request here, as the Server might
+             * enforce limits on the number of pending operations per
+             * connection.
+             */
+            if (grp_state->check_count > GROUPMEMBER_REQ_PARALLEL) {
+                DEBUG(7, (" queueing search for: %s\n",
+                         (char*)el->values[i].data));
+                if (!grp_state->queued_members) {
+                    DEBUG(7,("Allocating queue for %d members\n",
+                            el->num_values - grp_state->check_count));
+                    grp_state->queued_members = talloc_array(grp_state, char *,
+                            el->num_values - grp_state->check_count + 1);
+                    if (!grp_state->queued_members) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+                grp_state->queued_members[queue_len] = (char*)el->values[i].data;
+                queue_len++;
+            } else {
+                struct tevent_req *subreq =
+                            sdap_get_generic_send(grp_state,
+                                                  ev, opts, sh,
+                                                  (char *)el->values[i].data,
+                                                  LDAP_SCOPE_BASE,
+                                                  filter, attrs,
+                                                  opts->user_map,
+                                                  SDAP_OPTS_USER);
+                if (!subreq) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                tevent_req_set_callback(subreq, sdap_process_group_members, req);
+            }
+            grp_state->check_count++;
+        } else {
+            /*
+             * User already cached in sysdb. Remember the sysdb DN for later
+             * use by sdap_save_groups()
+             */
+            DEBUG(7, ("sysdbdn: %s\n", sysdb_dn));
+            grp_state->sysdb_dns->values[grp_state->sysdb_dns->num_values].data =
+                    (uint8_t*)sysdb_dn;
+            grp_state->sysdb_dns->values[grp_state->sysdb_dns->num_values].length =
+                    strlen(sysdb_dn);
+            grp_state->sysdb_dns->num_values++;
+        }
+    }
+    if (queue_len > 0) {
+        grp_state->queued_members[queue_len] = NULL;
+    }
+
+    if (grp_state->check_count == 0) {
+        /*
+         * All group members are already cached in sysdb, we are done
+         * with this group. To avoid redundant sysdb lookups, populate the
+         * "member" attribute of the group entry with the sysdb DNs of
+         * the members.
+         */
+        el->values = talloc_steal(grp_state->group, grp_state->sysdb_dns->values);
+        el->num_values = grp_state->sysdb_dns->num_values;
+        ret = EOK;
+        goto done;
+    } else {
+        grp_state->count = grp_state->check_count;
+        grp_state->new_members = talloc_zero_array(grp_state,
+                                                   struct sysdb_attrs *,
+                                                   grp_state->count + 1);
+        if (!grp_state->new_members) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    return req;
+
+done:
+    if (ret) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req,ev);
+    return req;
+}
+
+static void sdap_process_group_members(struct tevent_req *subreq)
+{
+    struct sysdb_attrs **usr_attrs;
+    size_t count;
+    int ret;
+    struct tevent_req *req =
+                        tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_process_group_state *state =
+                        tevent_req_data(req, struct sdap_process_group_state);
+    struct ldb_message_element *el;
+    struct ldb_dn *dn;
+    char* dn_string;
+
+    state->check_count--;
+    DEBUG(9, ("Members remaining: %d\n", state->check_count));
+
+    ret = sdap_get_generic_recv(subreq, state, &count, &usr_attrs);
+    talloc_zfree(subreq);
+    if (ret) {
+        goto next;
+    }
+    if (count != 1) {
+        ret = EINVAL;
+        DEBUG(7, ("Expected one user entry and got %d\n", count));
+        goto next;
+    }
+    ret = sysdb_attrs_get_el(usr_attrs[0],
+            state->opts->user_map[SDAP_AT_USER_NAME].sys_name, &el);
+    if (el->num_values == 0) {
+        ret = EINVAL;
+    }
+    if (ret) {
+        DEBUG(2, ("Failed to get the member's name\n"));
+        goto next;
+    }
+
+    /*
+     * Convert the just received DN into the corresponding sysdb DN
+     * for later usage by sdap_save_groups()
+     */
+    dn = sysdb_user_dn(state->sysdb, state, state->dom->name,
+                       (char*)el[0].values[0].data);
+    if (!dn) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    dn_string = ldb_dn_alloc_linearized(state->group, dn);
+    if (!dn_string) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+            (uint8_t*)dn_string;
+    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+            strlen(dn_string);
+    state->sysdb_dns->num_values++;
+
+    state->new_members[state->member_idx] = usr_attrs[0];
+    state->member_idx++;
+
+next:
+    if (ret) {
+        DEBUG(7, ("Error reading group member. Skipping\n", ret));
+        state->count--;
+    }
+    /* Are there more searches for uncached users to submit ? */
+    if (state->queued_members && state->queued_members[state->queue_idx]) {
+        subreq = sdap_get_generic_send(state,
+                                       state->ev, state->opts, state->sh,
+                                       state->queued_members[state->queue_idx],
+                                       LDAP_SCOPE_BASE,
+                                       state->filter,
+                                       state->attrs,
+                                       state->opts->user_map,
+                                       SDAP_OPTS_USER);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        tevent_req_set_callback(subreq,
+                                sdap_process_group_members, req);
+        state->queue_idx++;
+    }
+
+    if (state->check_count == 0) {
+        ret = sdap_save_users(state, state->sysdb, state->dom, state->opts,
+                              state->new_members, state->count, NULL);
+        if (ret) {
+            DEBUG(2, ("Failed to store users.\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        /*
+         * To avoid redundant sysdb lookups, populate the "member" attribute
+         * of the group entry with the sysdb DNs of the members.
+         */
+        ret = sysdb_attrs_get_el(state->group,
+                state->opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
+        el->values = talloc_steal(state->group, state->sysdb_dns->values);
+        el->num_values = state->sysdb_dns->num_values;
+        DEBUG(9, ("Processed Group - Done\n"));
+        tevent_req_done(req);
+    }
+}
+
+static int sdap_process_group_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+
 /* ==Search-Groups-with-filter============================================ */
 
 struct sdap_get_groups_state {
@@ -931,9 +1255,11 @@ struct sdap_get_groups_state {
     char *higher_timestamp;
     struct sysdb_attrs **groups;
     size_t count;
+    size_t check_count;
 };
 
 static void sdap_get_groups_process(struct tevent_req *subreq);
+static void sdap_get_groups_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
@@ -978,11 +1304,12 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 
 static void sdap_get_groups_process(struct tevent_req *subreq)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
+    struct tevent_req *req =
+                        tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_get_groups_state *state =
+                        tevent_req_data(req, struct sdap_get_groups_state);
     int ret;
+    int i;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &state->count, &state->groups);
@@ -999,20 +1326,55 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         return;
     }
 
-    ret = sdap_save_groups(state, state->sysdb,
-                           state->dom, state->opts,
-                           state->groups, state->count,
-                           false,
-                           &state->higher_timestamp);
+    state->check_count = state->count;
+
+    for (i = 0; i < state->count; i++) {
+        subreq = sdap_process_group_send(state, state->ev, state->dom,
+                                         state->sysdb, state->opts,
+                                         state->sh, state->groups[i]);
+
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, sdap_get_groups_done, req);
+    }
+}
+
+static void sdap_get_groups_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req =
+                        tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_get_groups_state *state =
+                        tevent_req_data(req, struct sdap_get_groups_state);
+
+    int ret;
+
+    ret = sdap_process_group_recv(subreq);
+    talloc_zfree(subreq);
     if (ret) {
-        DEBUG(2, ("Failed to store groups.\n"));
         tevent_req_error(req, ret);
         return;
     }
 
-    DEBUG(9, ("Saving %d Groups - Done\n", state->count));
+    state->check_count--;
+    DEBUG(9, ("Groups remaining: %d\n", state->check_count));
 
-    tevent_req_done(req);
+
+    if (state->check_count == 0) {
+        DEBUG(9, ("All groups processed\n"));
+
+        ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
+                               state->groups, state->count, true,
+                               &state->higher_timestamp);
+        if (ret) {
+            DEBUG(2, ("Failed to store groups.\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
+        DEBUG(9, ("Saving %d Groups - Done\n", state->count));
+        tevent_req_done(req);
+    }
 }
 
 int sdap_get_groups_recv(struct tevent_req *req,
