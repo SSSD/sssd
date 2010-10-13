@@ -60,6 +60,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     struct sdap_id_ctx *ctx;
     const char *urls;
     const char *dns_service_name;
+    const char *sasl_mech;
     int ret;
 
     /* If we're already set up, just return that */
@@ -98,14 +99,17 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    if (dp_opt_get_bool(ctx->opts->basic, SDAP_KRB5_KINIT)) {
-        ret = sdap_gssapi_init(ctx, ctx->opts->basic,
-                               ctx->be, ctx->service,
-                               &ctx->krb5_service);
-        if (ret !=  EOK) {
-            DEBUG(1, ("sdap_gssapi_init failed [%d][%s].\n",
-                       ret, strerror(ret)));
-            goto done;
+    sasl_mech = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_MECH);
+    if (sasl_mech && strcasecmp(sasl_mech, "GSSAPI") == 0) {
+        if (dp_opt_get_bool(ctx->opts->basic, SDAP_KRB5_KINIT)) {
+            ret = sdap_gssapi_init(ctx, ctx->opts->basic,
+                                   ctx->be, ctx->service,
+                                   &ctx->krb5_service);
+            if (ret !=  EOK) {
+                DEBUG(1, ("sdap_gssapi_init failed [%d][%s].\n",
+                            ret, strerror(ret)));
+                goto done;
+            }
         }
     }
 
