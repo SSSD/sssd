@@ -1149,8 +1149,8 @@ void proxy_get_account_info(struct be_req *breq)
                                ENODEV, "Netgroups are not supported");
         }
 
-        return proxy_reply(breq, DP_ERR_FATAL,
-                           ENOSYS, "Netgroups not implemented");
+        ret = get_netgroup(ctx, sysdb, domain, ar->filter_value);
+        break;
 
     default: /*fail*/
         return proxy_reply(breq, DP_ERR_FATAL,
