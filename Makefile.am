@@ -63,9 +63,6 @@ sssdlibexec_PROGRAMS = \
     ldap_child \
     proxy_child
 
-dist_sssdlibexec_SCRIPTS = \
-    src/config/upgrade_config.py
-
 if HAVE_CHECK
     non_interactive_check_based_tests = \
         sysdb-tests \
@@ -148,7 +145,8 @@ dist_noinst_SCRIPTS = \
     src/config/setup.py \
     src/config/ipachangeconf.py \
     src/config/SSSDConfig.py \
-    src/config/SSSDConfigTest.py
+    src/config/SSSDConfigTest.py \
+    src/config/sssd_upgrade_config.py
 
 dist_noinst_DATA = \
     src/config/testconfigs/sssd-valid.conf \

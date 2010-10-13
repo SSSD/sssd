@@ -31,5 +31,6 @@ setup(
     py_modules=[
     'SSSDConfig',
     'ipachangeconf',
+    'sssd_upgrade_config',
     ],
 )
