@@ -207,6 +207,28 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                   "full groups enumeration!\n", libname));
     }
 
+    ctx->ops.setnetgrent = proxy_dlsym(handle, "_nss_%s_setnetgrent", libname);
+    if (!ctx->ops.setnetgrent) {
+        DEBUG(0, ("Failed to load _nss_%s_setnetgrent, error: %s. "
+                  "The library does not support netgroups.\n", libname,
+                                                               dlerror()));
+    }
+
+    ctx->ops.getnetgrent_r = proxy_dlsym(handle, "_nss_%s_getnetgrent_r",
+                                         libname);
+    if (!ctx->ops.getgrent_r) {
+        DEBUG(0, ("Failed to load _nss_%s_getnetgrent_r, error: %s. "
+                  "The library does not support netgroups.\n", libname,
+                                                               dlerror()));
+    }
+
+    ctx->ops.endnetgrent = proxy_dlsym(handle, "_nss_%s_endnetgrent", libname);
+    if (!ctx->ops.endnetgrent) {
+        DEBUG(0, ("Failed to load _nss_%s_endnetgrent, error: %s. "
+                  "The library does not support netgroups.\n", libname,
+                                                               dlerror()));
+    }
+
     *ops = &proxy_id_ops;
     *pvt_data = ctx;
     ret = EOK;
