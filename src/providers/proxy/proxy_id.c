@@ -1138,6 +1138,20 @@ void proxy_get_account_info(struct be_req *breq)
         ret = get_initgr(breq, ctx, sysdb, domain, ar->filter_value);
         break;
 
+    case BE_REQ_NETGROUP:
+        if (ar->filter_type != BE_FILTER_NAME) {
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               EINVAL, "Invalid filter type");
+        }
+        if (ctx->ops.setnetgrent == NULL || ctx->ops.getnetgrent_r == NULL ||
+            ctx->ops.endnetgrent == NULL) {
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               ENODEV, "Netgroups are not supported");
+        }
+
+        return proxy_reply(breq, DP_ERR_FATAL,
+                           ENOSYS, "Netgroups not implemented");
+
     default: /*fail*/
         return proxy_reply(breq, DP_ERR_FATAL,
                            EINVAL, "Invalid request type");

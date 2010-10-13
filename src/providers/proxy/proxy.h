@@ -40,6 +40,7 @@
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
 #include "proxy.h"
+#include "sss_client/nss_compat.h"
 #include <dhash.h>
 
 struct proxy_nss_ops {
@@ -64,6 +65,11 @@ struct proxy_nss_ops {
                                       long int *start, long int *size,
                                       gid_t **groups, long int limit,
                                       int *errnop);
+    enum nss_status (*setnetgrent)(const char *netgroup,
+                                   struct __netgrent *result);
+    enum nss_status (*getnetgrent_r)(struct __netgrent *result, char *buffer,
+                                     size_t buflen, int *errnop);
+    enum nss_status (*endnetgrent)(struct __netgrent *result);
 };
 
 struct authtok_conv {
