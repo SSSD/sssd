@@ -22,9 +22,9 @@ Requires: libtdb >= 1.1.3
 Requires: sssd-client = %{version}-%{release}
 Requires: cyrus-sasl-gssapi
 Requires: keyutils-libs
-Requires(post): python
+Requires(post): initscripts chkconfig /sbin/ldconfig
 Requires(preun):  initscripts chkconfig
-Requires(postun): /sbin/service
+Requires(postun): initscripts chkconfig /sbin/ldconfig
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -49,7 +49,7 @@ BuildRequires: libtalloc-devel
 BuildRequires: libtevent-devel
 BuildRequires: libtdb-devel
 BuildRequires: libldb-devel
-BuildRequires: libdhash-devel
+BuildRequires: libdhash-devel >= 0.4.2
 BuildRequires: libcollection-devel
 BuildRequires: libini_config-devel
 BuildRequires: dbus-devel
@@ -107,7 +107,9 @@ service.
 make %{?_smp_mflags}
 
 %check
+export CK_TIMEOUT_MULTIPLIER=10
 make %{?_smp_mflags} check
+unset CK_TIMEOUT_MULTIPLIER
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -213,17 +215,17 @@ rm -rf $RPM_BUILD_ROOT
 /sbin/ldconfig
 /sbin/chkconfig --add %{servicename}
 
+if [ $1 -ge 1 ] ; then
+    /sbin/service %{servicename} condrestart 2>&1 > /dev/null
+fi
+
 %preun
 if [ $1 = 0 ]; then
     /sbin/service %{servicename} stop 2>&1 > /dev/null
     /sbin/chkconfig --del %{servicename}
 fi
 
-%postun
-/sbin/ldconfig
-if [ $1 -ge 1 ] ; then
-    /sbin/service %{servicename} condrestart 2>&1 > /dev/null
-fi
+%postun -p /sbin/ldconfig
 
 %post client -p /sbin/ldconfig
 
