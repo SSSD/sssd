@@ -88,7 +88,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
 
     krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
     if (krb5_servers == NULL) {
-        DEBUG(1, ("Missing krb5_kdcip option, using service discovery!\n"));
+        DEBUG(1, ("Missing krb5_server option, using service discovery!\n"));
     }
 
     krb5_realm = dp_opt_get_string(ctx->opts, KRB5_REALM);

@@ -917,7 +917,7 @@ ldap_uri = ldap://ldap.example.com
 ldap_search_base = dc=example,dc=com
 
 auth_provider = krb5
-krb5_kdcip = kerberos.example.com
+krb5_server = kerberos.example.com
 krb5_realm = EXAMPLE.COM
 cache_credentials = true
 

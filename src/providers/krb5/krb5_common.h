@@ -112,6 +112,9 @@ struct remove_info_files_ctx {
 errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom);
 
+errno_t krb5_try_kdcip(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
+                       const char *conf_path, struct dp_option *opts);
+
 errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                          const char *conf_path, struct dp_option **_opts);
 

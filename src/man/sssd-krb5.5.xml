@@ -63,7 +63,7 @@
             for details on the configuration of a SSSD domain.
             <variablelist>
                 <varlistentry>
-                    <term>krb5_kdcip (string)</term>
+                    <term>krb5_server (string)</term>
                     <listitem>
                         <para>
                             Specifies the list of IP addresses or hostnames
@@ -76,6 +76,12 @@
                             If empty, service discovery is enabled -
                             for more information, refer to the
                             <quote>SERVICE DISCOVERY</quote> section.
+                        </para>
+                        <para>
+                            This option was named <quote>krb5_kdcip</quote> in
+                            earlier releases of SSSD. While the legacy name is recognized
+                            for the time being, users are advised to migrate their config
+                            files to use <quote>krb5_server</quote> instead.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -270,7 +276,7 @@
 <programlisting>
     [domain/FOO]
     auth_provider = krb5
-    krb5_kdcip = 192.168.1.1
+    krb5_server = 192.168.1.1
     krb5_realm = EXAMPLE.COM
 </programlisting>
         </para>

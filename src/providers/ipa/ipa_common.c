@@ -129,7 +129,7 @@ struct sdap_attr_map ipa_netgroup_map[] = {
 };
 
 struct dp_option ipa_def_krb5_opts[] = {
-    { "krb5_kdcip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_ccachedir", DP_OPT_STRING, { "/tmp" }, NULL_STRING },
     { "krb5_ccname_template", DP_OPT_STRING, { "FILE:%d/krb5cc_%U_XXXXXX" }, NULL_STRING},
@@ -434,6 +434,14 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          ipa_def_krb5_opts,
                          KRB5_OPTS, &ipa_opts->auth);
     if (ret != EOK) {
+        goto done;
+    }
+
+    /* If there is no KDC, try the deprecated krb5_kdcip option, too */
+    /* FIXME - this can be removed in a future version */
+    ret = krb5_try_kdcip(ipa_opts, cdb, conf_path, ipa_opts->auth);
+    if (ret != EOK) {
+        DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
         goto done;
     }
 

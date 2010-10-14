@@ -77,7 +77,7 @@ class SSSDConfigFile(SSSDChangeConf):
 
         auth_provider = self.findOpts(domain['value'], 'option', 'auth_provider')[1]
         if auth_provider and auth_provider['value'] == 'krb5':
-            server = self.findOpts(domain['value'], 'option', 'krb5_kdcip')[1]
+            server = self.findOpts(domain['value'], 'option', 'krb5_server')[1]
             if not server or "__srv__" in server['value']:
                 domain['value'].insert(0, dns_domain_name)
 
@@ -201,7 +201,7 @@ class SSSDConfigFile(SSSDChangeConf):
                     'ldap_netgroup_uuid' : 'netgroupUUID',
                     'ldap_netgroup_modify_timestamp' : 'netgroupModifyTimestamp',
                    }
-        krb5_kw = { 'krb5_kdcip' : 'krb5KDCIP',
+        krb5_kw = { 'krb5_server' : 'krb5KDCIP',
                     'krb5_realm'  : 'krb5REALM',
                     'krb5_try_simple_upn' : 'krb5try_simple_upn',
                     'krb5_changepw_principal' : 'krb5changepw_principle',

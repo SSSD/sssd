@@ -93,6 +93,7 @@ option_strings = {
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
+    'krb5_server' : _('Kerberos server address'),
     'krb5_realm' : _('Kerberos realm'),
     'krb5_auth_timeout' : _('Authentication timeout'),
 
@@ -122,6 +123,7 @@ option_strings = {
     'ldap_sasl_mech' : _('Specify the sasl mechanism to use'),
     'ldap_sasl_authid' : _('Specify the sasl authorization id to use'),
     'krb5_kdcip' : _('Kerberos server address'),
+    'krb5_server' : _('Kerberos server address'),
     'krb5_realm' : _('Kerberos realm'),
     'ldap_krb5_keytab' : _('Kerberos service keytab'),
     'ldap_krb5_init_creds' : _('Use Kerberos auth for LDAP connection'),

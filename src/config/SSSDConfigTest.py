@@ -541,7 +541,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         backup_list = control_list[:]
         control_list.extend(
-            ['krb5_kdcip',
+            ['krb5_server',
              'krb5_realm',
              'krb5_kpasswd',
              'krb5_ccachedir',
@@ -561,6 +561,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             self.assertTrue(option in options.keys(),
                             "Option [%s] missing" %
                             option)
+
+        control_list.extend(['krb5_kdcip'])
 
         # Ensure that there aren't any unexpected options listed
         for option in options.keys():
@@ -712,6 +714,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Test looking up a specific provider type
         options = domain.list_provider_options('krb5', 'auth')
         control_list = [
+            'krb5_server',
             'krb5_kdcip',
             'krb5_realm',
             'krb5_kpasswd',
@@ -859,7 +862,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         backup_list = control_list[:]
         control_list.extend(
-            ['krb5_kdcip',
+            ['krb5_server',
+             'krb5_kdcip',
              'krb5_realm',
              'krb5_kpasswd',
              'krb5_ccachedir',
