@@ -295,6 +295,11 @@ static int sdap_save_users(TALLOC_CTX *memctx,
     int ret;
     int i;
 
+    if (num_users == 0) {
+        /* Nothing to do if there are no users */
+        return EOK;
+    }
+
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
         return ENOMEM;
