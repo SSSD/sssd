@@ -43,7 +43,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     const char *gecos;
     const char *homedir;
     const char *shell;
-    long int l;
+    unsigned long l;
     uid_t uid;
     gid_t gid;
     struct sysdb_attrs *user_attrs;
@@ -90,18 +90,12 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(attrs,
-                             opts->user_map[SDAP_AT_USER_UID].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
+    ret = sysdb_attrs_get_ulong(attrs,
+                                opts->user_map[SDAP_AT_USER_UID].sys_name,
+                                &l);
+    if (ret != EOK) {
         DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
                   name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
-    errno = 0;
-    l = strtol((const char *)el->values[0].data, NULL, 0);
-    if (errno) {
         ret = EINVAL;
         goto fail;
     }
@@ -115,18 +109,12 @@ static int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_el(attrs,
-                             opts->user_map[SDAP_AT_USER_GID].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
+    ret = sysdb_attrs_get_ulong(attrs,
+                                opts->user_map[SDAP_AT_USER_GID].sys_name,
+                                &l);
+    if (ret != EOK) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                   name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
-    errno = 0;
-    l = strtol((const char *)el->values[0].data, NULL, 0);
-    if (errno) {
         ret = EINVAL;
         goto fail;
     }
@@ -621,7 +609,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
-    long int l;
+    unsigned long l;
     gid_t gid;
     int ret;
     char *timestamp = NULL;
@@ -635,18 +623,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
     name = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(attrs,
-                          opts->group_map[SDAP_AT_GROUP_GID].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
+    ret = sysdb_attrs_get_ulong(attrs,
+                                opts->group_map[SDAP_AT_GROUP_GID].sys_name,
+                                &l);
+    if (ret != EOK) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                   name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
-    errno = 0;
-    l = strtol((const char *)el->values[0].data, NULL, 0);
-    if (errno) {
         ret = EINVAL;
         goto fail;
     }
