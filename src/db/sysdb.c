@@ -170,6 +170,33 @@ int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
     return EOK;
 }
 
+int sysdb_attrs_get_ulong(struct sysdb_attrs *attrs, const char *name,
+                          unsigned long *value)
+{
+    struct ldb_message_element *el;
+    int ret;
+    char *endptr;
+    unsigned long val;
+
+    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    if (ret) {
+        return ret;
+    }
+
+    if (el->num_values != 1) {
+        return ERANGE;
+    }
+
+    errno = 0;
+    val = strtoul((const char *) el->values[0].data, &endptr, 0);
+    if (errno || *endptr) {
+        return EINVAL;
+    }
+
+    *value = val;
+    return EOK;
+}
+
 int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
                                  TALLOC_CTX *mem_ctx, const char ***string)
 {
