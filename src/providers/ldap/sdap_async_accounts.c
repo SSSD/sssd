@@ -1132,7 +1132,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
                                 struct ldb_message_element *memberel)
 {
     struct ldb_message *msg;
-    bool in_transaction;
+    bool in_transaction = false;
     char *member_name;
     char *strdn;
     int ret;
