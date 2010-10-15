@@ -326,9 +326,10 @@ static int test_add_group_member(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_add_group_member(data, data->ctx->sysdb,
+    ret = sysdb_add_group_member(data->ctx->sysdb,
                                  data->ctx->domain,
-                                 data->groupname, username);
+                                 data->groupname, username,
+                                 SYSDB_MEMBER_USER);
     return ret;
 }
 
@@ -342,9 +343,10 @@ static int test_remove_group_member(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_remove_group_member(data, data->ctx->sysdb,
+    ret = sysdb_remove_group_member(data->ctx->sysdb,
                                     data->ctx->domain,
-                                    data->groupname, username);
+                                    data->groupname, username,
+                                    SYSDB_MEMBER_USER);
     return ret;
 }
 
@@ -2217,6 +2219,7 @@ START_TEST (test_sysdb_update_members)
     add_groups[2] = NULL;
 
     ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain, user,
+                               SYSDB_MEMBER_USER,
                                (const char **)add_groups, NULL);
     fail_unless(ret == EOK, "Could not add groups");
     talloc_zfree(add_groups);
@@ -2230,6 +2233,7 @@ START_TEST (test_sysdb_update_members)
     add_groups[1] = NULL;
 
     ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain, user,
+                               SYSDB_MEMBER_USER,
                                (const char **)add_groups,
                                (const char **)del_groups);
     fail_unless(ret == EOK, "Group replace failed");
@@ -2243,7 +2247,8 @@ START_TEST (test_sysdb_update_members)
     del_groups[2] = NULL;
 
     ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain,
-                               user, NULL,
+                               user, SYSDB_MEMBER_USER,
+                               NULL,
                                (const char **)del_groups);
     fail_unless(ret == EOK, "Could not remove groups");
 

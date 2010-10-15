@@ -2023,6 +2023,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     }
 
     ret = sysdb_update_members(state->sysdb, state->dom, state->name,
+                               SYSDB_MEMBER_USER,
                                (const char **)add_groups,
                                (const char **)del_groups);
     if (ret != EOK) {

@@ -1529,54 +1529,96 @@ done:
 /* =Add-User-to-Group(Native/Legacy)====================================== */
 
 
-int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *ctx,
+int sysdb_add_group_member(struct sysdb_ctx *ctx,
                            struct sss_domain_info *domain,
                            const char *group,
-                           const char *user)
+                           const char *member,
+                           enum sysdb_member_type type)
 {
-    struct ldb_dn *group_dn, *user_dn;
+    struct ldb_dn *group_dn;
+    struct ldb_dn *member_dn;
     int ret;
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
 
-    group_dn = sysdb_group_dn(ctx, mem_ctx, domain->name, group);
+    group_dn = sysdb_group_dn(ctx, tmp_ctx, domain->name, group);
     if (!group_dn) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
-    user_dn = sysdb_user_dn(ctx, mem_ctx, domain->name, user);
-    if (!user_dn) {
-        return ENOMEM;
+    if (type == SYSDB_MEMBER_USER) {
+        member_dn = sysdb_user_dn(ctx, tmp_ctx, domain->name, member);
+        if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else if (type == SYSDB_MEMBER_GROUP) {
+        member_dn = sysdb_group_dn(ctx, tmp_ctx, domain->name, member);
+        if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        ret = EINVAL;
+        goto done;
     }
 
-    ret = sysdb_mod_group_member(mem_ctx, ctx,
-                                 user_dn, group_dn, SYSDB_MOD_ADD);
+    ret = sysdb_mod_group_member(tmp_ctx, ctx,
+                                 member_dn, group_dn,
+                                 SYSDB_MOD_ADD);
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
 /* =Remove-member-from-Group(Native/Legacy)=============================== */
 
 
-int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *ctx,
+int sysdb_remove_group_member(struct sysdb_ctx *ctx,
                               struct sss_domain_info *domain,
                               const char *group,
-                              const char *user)
+                              const char *member,
+                              enum sysdb_member_type type)
 {
-    struct ldb_dn *group_dn, *user_dn;
+    struct ldb_dn *group_dn;
+    struct ldb_dn *member_dn;
     int ret;
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
 
-    group_dn = sysdb_group_dn(ctx, mem_ctx, domain->name, group);
+    group_dn = sysdb_group_dn(ctx, tmp_ctx, domain->name, group);
     if (!group_dn) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
-    user_dn = sysdb_user_dn(ctx, mem_ctx, domain->name, user);
-    if (!user_dn) {
-        return ENOMEM;
+    if (type == SYSDB_MEMBER_USER) {
+        member_dn = sysdb_user_dn(ctx, tmp_ctx, domain->name, member);
+        if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else if (type == SYSDB_MEMBER_GROUP) {
+        member_dn = sysdb_group_dn(ctx, tmp_ctx, domain->name, member);
+        if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        ret = EINVAL;
+        goto done;
     }
-
-    ret = sysdb_mod_group_member(mem_ctx, ctx,
-                                 user_dn, group_dn, SYSDB_MOD_DEL);
+    ret = sysdb_mod_group_member(tmp_ctx, ctx,
+                                 member_dn, group_dn,
+                                 SYSDB_MOD_DEL);
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -2529,7 +2571,8 @@ done:
 
 errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *domain,
-                             const char *user,
+                             const char *member,
+                             enum sysdb_member_type type,
                              const char **add_groups,
                              const char **del_groups)
 {
@@ -2550,11 +2593,12 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
     if (add_groups) {
         /* Add the user to all add_groups */
         for (i = 0; add_groups[i]; i++) {
-            ret = sysdb_add_group_member(tmp_ctx, sysdb, domain,
-                                         add_groups[i], user);
+            ret = sysdb_add_group_member(sysdb, domain,
+                                         add_groups[i], member,
+                                         type);
             if (ret != EOK) {
-                DEBUG(1, ("Could not add user [%s] to group [%s]. "
-                          "Skipping.\n", user, add_groups[i]));
+                DEBUG(1, ("Could not add member [%s] to group [%s]. "
+                          "Skipping.\n", member, add_groups[i]));
                 /* Continue on, we should try to finish the rest */
             }
         }
@@ -2563,11 +2607,12 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
     if (del_groups) {
         /* Remove the user from all del_groups */
         for (i = 0; del_groups[i]; i++) {
-            ret = sysdb_remove_group_member(tmp_ctx, sysdb, domain,
-                                            del_groups[i], user);
+            ret = sysdb_remove_group_member(sysdb, domain,
+                                            del_groups[i], member,
+                                            type);
             if (ret != EOK) {
-                DEBUG(1, ("Could not remove user [%s] from group [%s]. "
-                          "Skipping\n", user, del_groups[i]));
+                DEBUG(1, ("Could not remove member [%s] from group [%s]. "
+                          "Skipping\n", member, del_groups[i]));
                 /* Continue on, we should try to finish the rest */
             }
         }

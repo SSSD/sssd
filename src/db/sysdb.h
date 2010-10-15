@@ -527,20 +527,27 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
                       struct sysdb_attrs *attrs,
                       uint64_t cache_timeout);
 
-int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *ctx,
+enum sysdb_member_type {
+    SYSDB_MEMBER_USER,
+    SYSDB_MEMBER_GROUP
+};
+
+int sysdb_add_group_member(struct sysdb_ctx *ctx,
                            struct sss_domain_info *domain,
                            const char *group,
-                           const char *user);
+                           const char *member,
+                           enum sysdb_member_type type);
 
-int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *ctx,
+int sysdb_remove_group_member(struct sysdb_ctx *ctx,
                               struct sss_domain_info *domain,
                               const char *group,
-                              const char *user);
+                              const char *member,
+                              enum sysdb_member_type type);
+
 errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *domain,
-                             const char *user,
+                             const char *member,
+                             enum sysdb_member_type type,
                              const char **add_groups,
                              const char **del_groups);
 
