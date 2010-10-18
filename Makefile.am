@@ -979,7 +979,7 @@ man_MANS = \
     src/man/sssd-krb5.5 src/man/sssd-ipa.5 src/man/sssd-simple.5 \
     src/man/sssd_krb5_locator_plugin.8 src/man/sss_groupshow.8 \
     src/man/pam_sss.8 src/man/sss_obfuscate.8
-EXTRA_DIST += $(man_MANS:%=%.xml) $(wildcard src/man/include/*.xml)
+EXTRA_DIST += $(man_MANS:%=%.xml) $(wildcard $(srcdir)/src/man/include/*.xml)
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
