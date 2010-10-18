@@ -57,7 +57,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     const char *gecos;
     const char *homedir;
     const char *shell;
-    long int l;
+    unsigned long l;
     uid_t uid;
     gid_t gid;
     struct sysdb_attrs *user_attrs;
@@ -111,18 +111,12 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(state->attrs,
-                             opts->user_map[SDAP_AT_USER_UID].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
+    ret = sysdb_attrs_get_ulong(attrs,
+                                opts->user_map[SDAP_AT_USER_UID].sys_name,
+                                &l);
+    if (ret != EOK) {
         DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
                   state->name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
-    errno = 0;
-    l = strtol((const char *)el->values[0].data, NULL, 0);
-    if (errno) {
         ret = EINVAL;
         goto fail;
     }
@@ -136,18 +130,12 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_el(state->attrs,
-                             opts->user_map[SDAP_AT_USER_GID].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
+    ret = sysdb_attrs_get_ulong(attrs,
+                                opts->user_map[SDAP_AT_USER_GID].sys_name,
+                                &l);
+    if (ret != EOK) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                   state->name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
-    errno = 0;
-    l = strtol((const char *)el->values[0].data, NULL, 0);
-    if (errno) {
         ret = EINVAL;
         goto fail;
     }
@@ -830,7 +818,7 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     struct sdap_save_group_state *state;
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
-    long int l;
+    unsigned long l;
     gid_t gid;
     int ret;
 
@@ -852,18 +840,12 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     }
     state->name = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(attrs,
-                          opts->group_map[SDAP_AT_GROUP_GID].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
+    ret = sysdb_attrs_get_ulong(attrs,
+                                opts->group_map[SDAP_AT_GROUP_GID].sys_name,
+                                &l);
+    if (ret != EOK) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                   state->name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
-    errno = 0;
-    l = strtol((const char *)el->values[0].data, NULL, 0);
-    if (errno) {
         ret = EINVAL;
         goto fail;
     }

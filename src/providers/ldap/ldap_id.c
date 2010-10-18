@@ -201,7 +201,7 @@ static void users_get_done(struct tevent_req *subreq)
 
         case BE_FILTER_IDNUM:
             errno = 0;
-            uid = (uid_t)strtol(state->name, &endptr, 0);
+            uid = (uid_t) strtoul(state->name, &endptr, 0);
             if (errno || *endptr || (state->name == endptr)) {
                 tevent_req_error(req, errno);
                 return;
@@ -422,7 +422,7 @@ static void groups_get_done(struct tevent_req *subreq)
 
         case BE_FILTER_IDNUM:
             errno = 0;
-            gid = (gid_t)strtol(state->name, &endptr, 0);
+            gid = (gid_t) strtoul(state->name, &endptr, 0);
             if (errno || *endptr || (state->name == endptr)) {
                 tevent_req_error(req, errno);
                 return;
