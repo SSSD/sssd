@@ -132,8 +132,11 @@ int open_debug_file_ex(const char *filename, FILE **filep)
     if (debug_file && !filep) fclose(debug_file);
 
     old_umask = umask(0177);
+    errno = 0;
     f = fopen(logpath, "a");
     if (f == NULL) {
+        sss_log(SSS_LOG_EMERG, "Could not open file [%s]. Error: [%d][%s]\n",
+                               logpath, errno, strerror(errno));
         free(logpath);
         return EIO;
     }

@@ -504,8 +504,8 @@ sysdb_tests_LDADD = \
     libsss_test_common.la
 
 strtonum_tests_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
     src/tests/strtonum-tests.c \
-    src/util/debug.c \
     src/util/strtonum.c
 strtonum_tests_CFLAGS = \
     $(AM_CFLAGS) \
