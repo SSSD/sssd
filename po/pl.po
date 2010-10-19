@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-10-18 13:14-0400\n"
-"PO-Revision-Date: 2010-07-15 16:47+0200\n"
+"PO-Revision-Date: 2010-10-19 06:19+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "Language: pl\n"
@@ -608,9 +608,8 @@ msgstr "Błąd podczas ustawiania lokalizacji\n"
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
-#, fuzzy
 msgid "Specify group to add to\n"
-msgstr "Proszę podać grupę do dodania\n"
+msgstr "Proszę podać grupę, do której dodać\n"
 
 #: src/tools/sss_useradd.c:108
 msgid "Specify user to add\n"
@@ -753,9 +752,8 @@ msgid "Groups to remove this group from"
 msgstr "Grupy, z których usunąć tę grupę"
 
 #: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
-#, fuzzy
 msgid "Specify group to remove from\n"
-msgstr "Proszę podać grupę do zmodyfikowania\n"
+msgstr "Proszę podać grupę, z której usunąć\n"
 
 #: src/tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
