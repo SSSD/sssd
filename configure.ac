@@ -142,6 +142,8 @@ if test x$HAVE_MANPAGES != x; then
     CHECK_STYLESHEET([$SGML_CATALOG_FILES],
                      [http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
                      [Docbook XSL templates])
+    AC_CHECK_PROG([PO4A],[po4a],[po4a],[no])
+    AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 fi
 
 if test x$HAVE_PYTHON_BINDINGS != x; then
@@ -184,6 +186,6 @@ AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the bu
 AC_SUBST([abs_builddir], $abs_build_dir)
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
-                 src/sysv/systemd/sssd.service po/Makefile.in])
+                 src/sysv/systemd/sssd.service po/Makefile.in src/man/Makefile])
 AC_OUTPUT
 

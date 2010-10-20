@@ -73,6 +73,7 @@ BuildRequires: bind-utils
 BuildRequires: keyutils-libs-devel
 BuildRequires: libnl-devel
 BuildRequires: nscd
+BuildRequires: po4a
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -118,6 +119,7 @@ use with ldap_default_authtok_type = obfuscated_password.
     --disable-rpath
 
 make %{?_smp_mflags}
+make translated-manpages
 
 %check
 export CK_TIMEOUT_MULTIPLIER=10

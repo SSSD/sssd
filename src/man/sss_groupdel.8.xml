@@ -13,7 +13,7 @@
 
     <refnamediv id='name'>
         <refname>sss_groupdel</refname>
-        <refpurpose>create a new group</refpurpose>
+        <refpurpose>delete a group</refpurpose>
     </refnamediv>
 
     <refsynopsisdiv id='synopsis'>
