@@ -50,6 +50,7 @@
 #define IPA_CN "cn"
 #define IPA_MEMBER_SERVICE "memberService"
 #define IPA_SERVICE_CATEGORY "serviceCategory"
+#define IPA_TRUE_VALUE "TRUE"
 
 #define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,%s"
 #define IPA_HBAC_BASE_TMPL "cn=hbac,%s"
@@ -1085,7 +1086,8 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
 
     state->hbac_filter = talloc_asprintf(state,
                                          "(&(objectclass=ipaHBACRule)"
-                                           "(|(%s=%s)(%s=%s)",
+                                         "(%s=%s)(|(%s=%s)(%s=%s)",
+                                         IPA_ENABLED_FLAG, IPA_TRUE_VALUE,
                                          IPA_HOST_CATEGORY, "all",
                                          IPA_MEMBER_HOST, host_dn);
     if (state->hbac_filter == NULL) {
