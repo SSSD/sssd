@@ -48,6 +48,15 @@ errno_t deref_string_to_val(const char *str, int *val)
 
 /* ==Connect-to-LDAP-Server=============================================== */
 
+struct sdap_rebind_proc_params {
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+    bool use_start_tls;
+};
+
+static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
+                            ber_int_t msgid, void *params);
+
 struct sdap_connect_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
@@ -81,6 +90,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     bool ldap_referrals;
     const char *ldap_deref;
     int ldap_deref_val;
+    struct sdap_rebind_proc_params *rebind_proc_params;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -148,6 +158,27 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         DEBUG(1, ("Failed to set referral chasing to %s\n",
                   (ldap_referrals ? "LDAP_OPT_ON" : "LDAP_OPT_OFF")));
         goto fail;
+    }
+
+    if (ldap_referrals) {
+        rebind_proc_params = talloc_zero(state->sh,
+                                         struct sdap_rebind_proc_params);
+        if (rebind_proc_params == NULL) {
+            DEBUG(1, ("talloc_zero failed.\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        rebind_proc_params->opts = opts;
+        rebind_proc_params->sh = state->sh;
+        rebind_proc_params->use_start_tls = use_start_tls;
+
+        lret = ldap_set_rebind_proc(state->sh->ldap, sdap_rebind_proc,
+                                    rebind_proc_params);
+        if (lret != LDAP_SUCCESS) {
+            DEBUG(1, ("ldap_set_rebind_proc failed.\n"));
+            goto fail;
+        }
     }
 
     /* Set alias dereferencing */
@@ -1427,3 +1458,165 @@ int sdap_cli_connect_recv_ext(struct tevent_req *req,
     return EOK;
 }
 
+static int synchronous_tls_setup(LDAP *ldap)
+{
+    int lret;
+    int optret;
+    int ldaperr;
+    int msgid;
+    char *errmsg = NULL;
+    LDAPMessage *result;
+
+    DEBUG(4, ("Executing START TLS\n"));
+
+    lret = ldap_start_tls(ldap, NULL, NULL, &msgid);
+    if (lret != LDAP_SUCCESS) {
+        optret = ldap_get_option(ldap, SDAP_DIAGNOSTIC_MESSAGE, (void*)&errmsg);
+        if (optret == LDAP_SUCCESS) {
+            DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
+                      ldap_err2string(lret), errmsg));
+            sss_log(SSS_LOG_ERR, "Could not start TLS. %s", errmsg);
+            ldap_memfree(errmsg);
+        } else {
+            DEBUG(3, ("ldap_start_tls failed: [%s]\n", ldap_err2string(lret)));
+            sss_log(SSS_LOG_ERR, "Could not start TLS. "
+                                 "Check for certificate issues.");
+        }
+        return lret;
+    }
+
+    lret = ldap_result(ldap, msgid, 1, NULL, &result);
+    if (lret != LDAP_RES_EXTENDED) {
+        DEBUG(2, ("Unexpected ldap_result, expected [%d] got [%d].\n",
+                  LDAP_RES_EXTENDED, lret));
+        return LDAP_PARAM_ERROR;
+    }
+
+    lret = ldap_parse_result(ldap, result, &ldaperr, NULL, &errmsg, NULL, NULL,
+                             0);
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(2, ("ldap_parse_result failed (%d) [%d][%s]\n", msgid, lret,
+                  ldap_err2string(lret)));
+        return lret;
+    }
+
+    DEBUG(3, ("START TLS result: %s(%d), %s\n",
+              ldap_err2string(ldaperr), ldaperr, errmsg));
+    ldap_memfree(errmsg);
+
+    if (ldap_tls_inplace(ldap)) {
+        DEBUG(9, ("SSL/TLS handler already in place.\n"));
+        return LDAP_SUCCESS;
+    }
+
+    lret = ldap_install_tls(ldap);
+    if (lret != LDAP_SUCCESS) {
+
+        optret = ldap_get_option(ldap, SDAP_DIAGNOSTIC_MESSAGE, (void*)&errmsg);
+        if (optret == LDAP_SUCCESS) {
+            DEBUG(3, ("ldap_install_tls failed: [%s] [%s]\n",
+                      ldap_err2string(lret), errmsg));
+            sss_log(SSS_LOG_ERR, "Could not start TLS encryption. %s", errmsg);
+            ldap_memfree(errmsg);
+        } else {
+            DEBUG(3, ("ldap_install_tls failed: [%s]\n",
+                      ldap_err2string(lret)));
+            sss_log(SSS_LOG_ERR, "Could not start TLS encryption. "
+                                 "Check for certificate issues.");
+        }
+
+        return lret;
+    }
+
+    return LDAP_SUCCESS;
+}
+
+static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
+                            ber_int_t msgid, void *params)
+{
+    struct sdap_rebind_proc_params *p = talloc_get_type(params,
+                                                struct sdap_rebind_proc_params);
+    const char *sasl_mech;
+    const char *user_dn;
+    struct berval password = {0, NULL};
+    LDAPControl **request_controls = NULL;
+    LDAPControl *ctrls[2] = { NULL, NULL };
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sasl_bind_state *sasl_bind_state;
+    int ret;
+
+    if (p->use_start_tls) {
+        ret = synchronous_tls_setup(ldap);
+        if (ret != EOK) {
+            DEBUG(1, ("synchronous_tls_setup failed.\n"));
+            return ret;
+        }
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return LDAP_NO_MEMORY;
+    }
+
+    sasl_mech = dp_opt_get_string(p->opts->basic, SDAP_SASL_MECH);
+
+    if (sasl_mech == NULL) {
+        ret = sdap_control_create(p->sh, LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                                  0, NULL, 0, &ctrls[0]);
+        if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
+            DEBUG(1, ("sdap_control_create failed to create "
+                      "Password Policy control.\n"));
+            goto done;
+        }
+        request_controls = ctrls;
+
+        user_dn = dp_opt_get_string(p->opts->basic, SDAP_DEFAULT_BIND_DN);
+        if (user_dn != NULL) {
+            ret = sdap_auth_get_authtok(tmp_ctx,
+                                        dp_opt_get_string(p->opts->basic,
+                                                     SDAP_DEFAULT_AUTHTOK_TYPE),
+                                        dp_opt_get_blob(p->opts->basic,
+                                                        SDAP_DEFAULT_AUTHTOK),
+                                        &password);
+            if (ret != EOK) {
+                DEBUG(1, ("sdap_auth_get_authtok failed.\n"));
+                ret = LDAP_LOCAL_ERROR;
+                goto done;
+            }
+        }
+
+        ret = ldap_sasl_bind_s(ldap, user_dn, LDAP_SASL_SIMPLE, &password,
+                               request_controls, NULL, NULL);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(1, ("ldap_sasl_bind_s failed (%d)[%s]\n", ret,
+                      ldap_err2string(ret)));
+        }
+    } else {
+        sasl_bind_state = talloc_zero(tmp_ctx, struct sasl_bind_state);
+        if (sasl_bind_state == NULL) {
+            DEBUG(1, ("talloc_zero failed.\n"));
+            ret = LDAP_NO_MEMORY;
+            goto done;
+        }
+        sasl_bind_state->sasl_user = dp_opt_get_string(p->opts->basic,
+                                                      SDAP_SASL_AUTHID);
+        ret = ldap_sasl_interactive_bind_s(ldap, NULL,
+                                           sasl_mech, NULL, NULL,
+                                           LDAP_SASL_QUIET,
+                                           (*sdap_sasl_interact),
+                                           sasl_bind_state);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(1, ("ldap_sasl_interactive_bind_s failed (%d)[%s]\n", ret,
+                      ldap_err2string(ret)));
+        }
+    }
+
+    DEBUG(7, ("%s bind to [%s].\n",
+             (ret == LDAP_SUCCESS ? "Successfully" : "Failed to"), url));
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
