@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 
 #include "providers/ipa/ipa_common.h"
+#include "providers/ldap/sdap_async_private.h"
 
 struct dp_option ipa_basic_opts[] = {
     { "ipa_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -75,7 +76,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_krb5_ticket_lifetime", DP_OPT_NUMBER, { .number = (24 * 60 * 60) }, NULL_NUMBER },
     { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_netgroup_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER }
+    { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER },
+    { "ldap_deref", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_attr_map ipa_attr_map[] = {
@@ -357,6 +359,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   ipa_opts->id->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_NETGROUP_SEARCH_BASE)));
+    }
+
+    value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);
+    if (value != NULL) {
+        ret = deref_string_to_val(value, &i);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to verify ldap_deref option.\n"));
+            goto done;
+        }
     }
 
     ret = sdap_get_map(ipa_opts->id, cdb, conf_path,

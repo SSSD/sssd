@@ -71,7 +71,8 @@ struct dp_option default_basic_opts[] = {
     { "ldap_krb5_ticket_lifetime", DP_OPT_NUMBER, { .number = (24 * 60 * 60) }, NULL_NUMBER },
     { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_netgroup_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER }
+    { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER },
+    { "ldap_deref", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_attr_map generic_attr_map[] = {
@@ -188,6 +189,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
     int ret;
     int account_cache_expiration;
     int offline_credentials_expiration;
+    const char *ldap_deref;
+    int ldap_deref_val;
 
     opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
@@ -293,6 +296,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
+    ldap_deref = dp_opt_get_string(opts->basic, SDAP_DEREF);
+    if (ldap_deref != NULL) {
+        ret = deref_string_to_val(ldap_deref, &ldap_deref_val);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to verify ldap_deref option.\n"));
+            goto done;
+        }
+    }
 
 #ifndef HAVE_LDAP_CONNCB
     bool ldap_referrals;

@@ -990,6 +990,41 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_deref (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies how alias dereferencing is done when
+                            performing a search. The following options are
+                            allowed:
+                        </para>
+                        <para>
+                            <emphasis>never</emphasis>: Aliases are never
+                            dereferenced.
+                        </para>
+                        <para>
+                            <emphasis>searching</emphasis>: Aliases are
+                            dereferenced in subordinates of the base object,
+                            but not in locating the base object of the search.
+                        </para>
+                        <para>
+                            <emphasis>finding</emphasis>: Aliases are only
+                            dereferenced when locating the base object of the
+                            search.
+                        </para>
+                        <para>
+                            <emphasis>always</emphasis>: Aliases are
+                            dereferenced both in searching and in locating the
+                            base object of the search.
+                        </para>
+                        <para>
+                            Default: Empty (this is handled as
+                            <emphasis>never</emphasis> by the LDAP client
+                            libraries)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

@@ -178,6 +178,7 @@ enum sdap_basic_opt {
     SDAP_ACCESS_FILTER,
     SDAP_NETGROUP_SEARCH_BASE,
     SDAP_NESTING_LEVEL,
+    SDAP_DEREF,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

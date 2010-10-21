@@ -129,6 +129,7 @@ option_strings = {
     'ldap_krb5_init_creds' : _('Use Kerberos auth for LDAP connection'),
     'ldap_referrals' : _('Follow LDAP referrals'),
     'ldap_krb5_ticket_lifetime' : _('Lifetime of TGT for LDAP connection'),
+    'ldap_deref' : _('How to dereference aliases'),
 
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),

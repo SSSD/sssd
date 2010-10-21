@@ -28,6 +28,24 @@
 
 #define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
 
+errno_t deref_string_to_val(const char *str, int *val)
+{
+    if (strcasecmp(str, "never") == 0) {
+        *val = LDAP_DEREF_NEVER;
+    } else if (strcasecmp(str, "searching") == 0) {
+        *val = LDAP_DEREF_SEARCHING;
+    } else if (strcasecmp(str, "finding") == 0) {
+        *val = LDAP_DEREF_FINDING;
+    } else if (strcasecmp(str, "always") == 0) {
+        *val = LDAP_DEREF_ALWAYS;
+    } else {
+        DEBUG(1, ("Illegal deref option [%s].\n", str));
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
 /* ==Connect-to-LDAP-Server=============================================== */
 
 struct sdap_connect_state {
@@ -61,6 +79,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     int msgid;
     char *errmsg = NULL;
     bool ldap_referrals;
+    const char *ldap_deref;
+    int ldap_deref_val;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -128,6 +148,23 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         DEBUG(1, ("Failed to set referral chasing to %s\n",
                   (ldap_referrals ? "LDAP_OPT_ON" : "LDAP_OPT_OFF")));
         goto fail;
+    }
+
+    /* Set alias dereferencing */
+    ldap_deref = dp_opt_get_string(opts->basic, SDAP_DEREF);
+    if (ldap_deref != NULL) {
+        ret = deref_string_to_val(ldap_deref, &ldap_deref_val);
+        if (ret != EOK) {
+            DEBUG(1, ("deref_string_to_val failed.\n"));
+            goto fail;
+        }
+
+        lret = ldap_set_option(state->sh->ldap, LDAP_OPT_DEREF, &ldap_deref_val);
+        if (lret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("Failed to set deref option to %d\n", ldap_deref_val));
+            goto fail;
+        }
+
     }
 
     ret = setup_ldap_connection_callbacks(state->sh, state->ev);
