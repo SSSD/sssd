@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-10-18 13:14-0400\n"
-"PO-Revision-Date: 2010-07-18 10:13+0300\n"
+"PO-Revision-Date: 2010-10-21 19:46+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
-"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: uk\n"
 "X-Generator: Lokalize 1.1\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -612,9 +612,8 @@ msgstr "Помилка під час спроби встановити лока�
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
-#, fuzzy
 msgid "Specify group to add to\n"
-msgstr "Вкажіть групу, яку слід додати\n"
+msgstr "Вкажіть групу для додавання\n"
 
 #: src/tools/sss_useradd.c:108
 msgid "Specify user to add\n"
@@ -759,9 +758,8 @@ msgid "Groups to remove this group from"
 msgstr "Групи, з яких слід вилучити цю групу"
 
 #: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
-#, fuzzy
 msgid "Specify group to remove from\n"
-msgstr "Вкажіть групу, запис якої слід змінити\n"
+msgstr "Вкажіть групу, запис якої слід вилучити\n"
 
 #: src/tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
