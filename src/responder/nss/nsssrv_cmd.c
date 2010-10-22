@@ -1301,7 +1301,7 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
 
     DEBUG(4, ("Requesting info for all accounts\n"));
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
@@ -2630,7 +2630,7 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
 
     DEBUG(4, ("Requesting info for all groups\n"));
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
