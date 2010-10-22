@@ -238,7 +238,7 @@ static void sdap_connect_done(struct sdap_op *op,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_connect_state *state = tevent_req_data(req,
                                           struct sdap_connect_state);
-    char *errmsg;
+    char *errmsg = NULL;
     char *tlserr;
     int ret;
     int optret;
@@ -260,6 +260,7 @@ static void sdap_connect_done(struct sdap_op *op,
 
     DEBUG(3, ("START TLS result: %s(%d), %s\n",
               ldap_err2string(state->result), state->result, errmsg));
+    ldap_memfree(errmsg);
 
     if (ldap_tls_inplace(state->sh->ldap)) {
         DEBUG(9, ("SSL/TLS handler already in place.\n"));
@@ -420,7 +421,7 @@ static void simple_bind_done(struct sdap_op *op,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
-    char *errmsg;
+    char *errmsg = NULL;
     int ret;
     LDAPControl **response_controls;
     int c;
@@ -502,6 +503,7 @@ static void simple_bind_done(struct sdap_op *op,
     ret = LDAP_SUCCESS;
 done:
     ldap_controls_free(response_controls);
+    ldap_memfree(errmsg);
 
     if (ret == LDAP_SUCCESS) {
         tevent_req_done(req);

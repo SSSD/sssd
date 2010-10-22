@@ -863,7 +863,7 @@ static void sdap_get_generic_done(struct sdap_op *op,
     struct sdap_get_generic_state *state = tevent_req_data(req,
                                             struct sdap_get_generic_state);
     struct sysdb_attrs *attrs;
-    char *errmsg;
+    char *errmsg = NULL;
     int result;
     int ret;
 
@@ -917,6 +917,7 @@ static void sdap_get_generic_done(struct sdap_op *op,
             DEBUG(2, ("Unexpected result from ldap: %s(%d), %s\n",
                       ldap_err2string(result), result, errmsg));
         }
+        ldap_memfree(errmsg);
 
         tevent_req_done(req);
         return;
