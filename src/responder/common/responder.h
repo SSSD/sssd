@@ -146,6 +146,8 @@ struct cli_protocol_version *register_cli_protocol_version(void);
 typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
 
+void handle_requests_after_reconnect(void);
+
 int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          sss_dp_callback_t callback, void *callback_ctx,
                          int timeout, const char *domain,

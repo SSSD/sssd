@@ -39,6 +39,7 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
+#include "responder/common/responder.h"
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
@@ -143,7 +144,10 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                 DATA_PROVIDER_VERSION,
                                 "NSS");
         /* all fine */
-        if (ret == EOK) return;
+        if (ret == EOK) {
+            handle_requests_after_reconnect();
+            return;
+        }
     }
 
     /* Failed to reconnect */
