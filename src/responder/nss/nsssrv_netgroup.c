@@ -595,7 +595,7 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
 
     DEBUG(4, ("Requesting netgroup data\n"));
 
-    cmdctx = talloc(client, struct nss_cmd_ctx);
+    cmdctx = talloc_zero(client, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
