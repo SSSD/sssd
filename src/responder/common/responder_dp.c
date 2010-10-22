@@ -107,6 +107,25 @@ static int sss_dp_req_destructor(void *ptr)
     return 0;
 }
 
+static bool reconnect_handler(hash_entry_t *item, void *user_data)
+{
+    struct sss_dp_req *sdp_req = talloc_get_type(item->value.ptr,
+                                                 struct sss_dp_req);
+
+    return (talloc_free(sdp_req) == EOK ? true : false);
+}
+
+void handle_requests_after_reconnect(void)
+{
+    int ret;
+
+    ret = hash_iterate(dp_requests, reconnect_handler, NULL);
+    if (ret != HASH_SUCCESS) {
+        DEBUG(1, ("hash_iterate failed, "
+                  "not all request might be handled after reconnect.\n"));
+    }
+}
+
 static void sdp_req_timeout(struct tevent_context *ev,
                             struct tevent_timer *te,
                             struct timeval t, void *ptr)
