@@ -95,12 +95,12 @@ static int sss_dp_req_destructor(void *ptr)
 
     cb = sdp_req->cb_list;
     while (cb) {
+        next = cb->next;
+        /* It is the responsibility of the callback to free cb */
         cb->callback(sdp_req->err_maj,
                      sdp_req->err_min,
                      sdp_req->err_msg,
                      cb->callback_ctx);
-        next = cb->next;
-        talloc_free(cb);
         cb = next;
     }
 
