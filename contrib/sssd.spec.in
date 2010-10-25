@@ -201,6 +201,8 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
 
+%lang(cs)       %{_mandir}/cs/man[58]/*
+
 %files client
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
