@@ -31,6 +31,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
 #include "proxy.h"
@@ -2822,8 +2823,7 @@ static void proxy_get_account_info(struct be_req *breq)
                                    EINVAL, "Invalid attr type");
             } else {
                 char *endptr;
-                errno = 0;
-                uid = (uid_t) strtoul(ar->filter_value, &endptr, 0);
+                uid = (uid_t) strtouint32(ar->filter_value, &endptr, 0);
                 if (errno || *endptr || (ar->filter_value == endptr)) {
                     return proxy_reply(breq, DP_ERR_FATAL,
                                        EINVAL, "Invalid attr type");
@@ -2877,8 +2877,7 @@ static void proxy_get_account_info(struct be_req *breq)
                                    EINVAL, "Invalid attr type");
             } else {
                 char *endptr;
-                errno = 0;
-                gid = (gid_t) strtoul(ar->filter_value, &endptr, 0);
+                gid = (gid_t) strtouint32(ar->filter_value, &endptr, 0);
                 if (errno || *endptr || (ar->filter_value == endptr)) {
                     return proxy_reply(breq, DP_ERR_FATAL,
                                        EINVAL, "Invalid attr type");

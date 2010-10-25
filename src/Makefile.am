@@ -634,6 +634,7 @@ ipa_timerules_tests_LDADD = \
 
 find_uid_tests_SOURCES = \
     tests/find_uid-tests.c \
+    util/strtonum.c \
     util/find_uid.c \
     $(SSSD_DEBUG_OBJ)
 find_uid_tests_CFLAGS = \
