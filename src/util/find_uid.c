@@ -38,6 +38,7 @@
 
 #include "dhash.h"
 #include "util/util.h"
+#include "util/strtonum.h"
 
 #define INITIAL_TABLE_SIZE 64
 #define PATHLEN (NAME_MAX + 14)
@@ -63,7 +64,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     char *p;
     char *e;
     char *endptr;
-    unsigned long num=0;
+    uint32_t num=0;
     errno_t error;
 
     ret = snprintf(path, PATHLEN, "/proc/%d/status", pid);
@@ -131,8 +132,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         } else {
             *e = '\0';
         }
-        errno = 0;
-        num = strtoul(p, &endptr, 10);
+        num = strtouint32(p, &endptr, 10);
         error = errno;
         if (error != 0) {
             DEBUG(1, ("strtol failed [%s].\n", strerror(error)));

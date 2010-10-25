@@ -38,15 +38,15 @@
 
 #define CHECK_RESULT(expected, actual) \
     do { \
-        fail_unless(result == expected, "Expected %ld, got %ld", \
-                                        expected, result); \
+        fail_unless(actual == expected, "Expected %ld, got %ld", \
+                                        expected, actual); \
     } while(0)
 
 #define CHECK_ERRNO(expected, actual) \
     do { \
-        fail_unless(error == ERANGE, "Expected errno %d[%s], got %d[%s]", \
-                                     ERANGE, strerror(ERANGE), \
-                                     error, strerror(ERANGE)); \
+        fail_unless(actual == expected, "Expected errno %d[%s], got %d[%s]", \
+                                        expected, strerror(expected), \
+                                        actual, strerror(actual)); \
     } while(0)
 
 #define CHECK_ENDPTR(expected, actual) \
@@ -146,7 +146,7 @@ START_TEST (test_strtoint32_pos_integer_overflow_base_10)
 
     CHECK_ERRNO(ERANGE, error);
     CHECK_ZERO_ENDPTR(endptr);
-    CHECK_RESULT(expected, actual);
+    CHECK_RESULT(expected, result);
 }
 END_TEST
 
@@ -163,7 +163,7 @@ START_TEST (test_strtoint32_pos_integer_underflow_base_10)
 
     CHECK_ERRNO(ERANGE, error);
     CHECK_ZERO_ENDPTR(endptr);
-    CHECK_RESULT(expected, actual);
+    CHECK_RESULT(expected, result);
 }
 END_TEST
 
@@ -265,14 +265,14 @@ START_TEST (test_strtouint32_neg_integer_base_10)
 {
     uint32_t result;
     const char *input = "-123";
-    uint32_t expected = -123;
+    uint32_t expected = UINT32_MAX;
     char *endptr;
     errno_t error;
 
     result = strtouint32(input, &endptr, 10);
     error = errno;
 
-    EXPECT_UNSET_ERRNO(error);
+    CHECK_ERRNO(ERANGE, error);
     CHECK_ZERO_ENDPTR(endptr);
     CHECK_RESULT(expected, result);
 }
@@ -309,7 +309,7 @@ START_TEST (test_strtouint32_pos_integer_overflow_base_10)
 
     CHECK_ERRNO(ERANGE, error);
     CHECK_ZERO_ENDPTR(endptr);
-    CHECK_RESULT(expected, actual);
+    CHECK_RESULT(expected, result);
 }
 END_TEST
 
