@@ -43,7 +43,6 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     const char *gecos;
     const char *homedir;
     const char *shell;
-    unsigned long l;
     uid_t uid;
     gid_t gid;
     struct sysdb_attrs *user_attrs;
@@ -90,16 +89,15 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_ulong(attrs,
-                                opts->user_map[SDAP_AT_USER_UID].sys_name,
-                                &l);
+    ret = sysdb_attrs_get_uint32_t(attrs,
+                                   opts->user_map[SDAP_AT_USER_UID].sys_name,
+                                   &uid);
     if (ret != EOK) {
         DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
                   name, dom->name));
         ret = EINVAL;
         goto fail;
     }
-    uid = l;
 
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
@@ -109,16 +107,15 @@ static int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_ulong(attrs,
-                                opts->user_map[SDAP_AT_USER_GID].sys_name,
-                                &l);
+    ret = sysdb_attrs_get_uint32_t(attrs,
+                                   opts->user_map[SDAP_AT_USER_GID].sys_name,
+                                   &gid);
     if (ret != EOK) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                   name, dom->name));
         ret = EINVAL;
         goto fail;
     }
-    gid = l;
 
     /* check that the gid is valid for this domain */
     if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
@@ -609,7 +606,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
-    unsigned long l;
     gid_t gid;
     int ret;
     char *timestamp = NULL;
@@ -623,16 +619,15 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
     name = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_ulong(attrs,
-                                opts->group_map[SDAP_AT_GROUP_GID].sys_name,
-                                &l);
+    ret = sysdb_attrs_get_uint32_t(attrs,
+                                   opts->group_map[SDAP_AT_GROUP_GID].sys_name,
+                                   &gid);
     if (ret != EOK) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                   name, dom->name));
         ret = EINVAL;
         goto fail;
     }
-    gid = l;
 
     /* check that the gid is valid for this domain */
     if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
@@ -1792,9 +1787,9 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             }
 
             if (strcmp(name, missing[i]) == 0) {
-                ret = sysdb_attrs_get_ulong(ldap_groups[ai],
-                                            SYSDB_GIDNUM,
-                                            (unsigned long *) &gid);
+                ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
+                                               SYSDB_GIDNUM,
+                                               &gid);
                 if (ret) {
                     DEBUG(1, ("The GID attribute is missing or malformed\n"));
                     goto fail;

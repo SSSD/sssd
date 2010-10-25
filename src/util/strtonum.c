@@ -51,7 +51,7 @@ int32_t strtoint32(const char *nptr, char **endptr, int base)
 /* strtouint32 */
 uint32_t strtouint32(const char *nptr, char **endptr, int base)
 {
-    long long ret = 0;
+    unsigned long long ret = 0;
     errno = 0;
     ret = strtoull(nptr, endptr, base);
 

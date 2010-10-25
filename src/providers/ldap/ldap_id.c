@@ -27,6 +27,7 @@
 #include <sys/time.h>
 
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
@@ -219,10 +220,9 @@ static void users_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_IDNUM:
-            errno = 0;
-            uid = (uid_t) strtoul(state->name, &endptr, 0);
+            uid = (uid_t) strtouint32(state->name, &endptr, 0);
             if (errno || *endptr || (state->name == endptr)) {
-                tevent_req_error(req, errno);
+                tevent_req_error(req, errno ? errno : EINVAL);
                 return;
             }
 
@@ -445,10 +445,9 @@ static void groups_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_IDNUM:
-            errno = 0;
-            gid = (gid_t) strtoul(state->name, &endptr, 0);
+            gid = (gid_t) strtouint32(state->name, &endptr, 0);
             if (errno || *endptr || (state->name == endptr)) {
-                tevent_req_error(req, errno);
+                tevent_req_error(req, errno ? errno : EINVAL);
                 return;
             }
 

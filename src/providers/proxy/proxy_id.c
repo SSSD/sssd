@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/strtonum.h"
 #include "providers/proxy/proxy.h"
 
 /* =Getpwnam-wrapper======================================================*/
@@ -1077,8 +1078,7 @@ void proxy_get_account_info(struct be_req *breq)
                                    EINVAL, "Invalid attr type");
             } else {
                 char *endptr;
-                errno = 0;
-                uid = (uid_t) strtoul(ar->filter_value, &endptr, 0);
+                uid = (uid_t) strtouint32(ar->filter_value, &endptr, 0);
                 if (errno || *endptr || (ar->filter_value == endptr)) {
                     return proxy_reply(breq, DP_ERR_FATAL,
                                        EINVAL, "Invalid attr type");
@@ -1107,8 +1107,7 @@ void proxy_get_account_info(struct be_req *breq)
                                    EINVAL, "Invalid attr type");
             } else {
                 char *endptr;
-                errno = 0;
-                gid = (gid_t) strtoul(ar->filter_value, &endptr, 0);
+                gid = (gid_t) strtouint32(ar->filter_value, &endptr, 0);
                 if (errno || *endptr || (ar->filter_value == endptr)) {
                     return proxy_reply(breq, DP_ERR_FATAL,
                                        EINVAL, "Invalid attr type");
