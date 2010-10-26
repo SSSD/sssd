@@ -12,6 +12,10 @@ They are now available in major distribution development branches.
 
 If you want to build them from source download the latest samba master branch.
 
+Additionally the ding-libs are needed. These used to be included in the sssd
+release but are now a separate project. The lastest ding-libs release can be
+downloaded from https://fedorahosted.org/sssd/wiki/Releases#DING-LIBSReleases .
+
 To install all of the dependencies in Fedora before building sssd:
 yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
     dbus-devel libxslt-devel docbook-style-xsl krb5-devel \
@@ -19,9 +23,12 @@ yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
     libtevent-devel libtdb libtdb-devel libtalloc libtalloc-devel \
     libldb libldb-devel cvs popt-devel c-ares-devel
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-How to build everything in one go (Preferred approach)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ding-libs are available in Fedora 14 and later version:
+yum install  libcollection-devel  libdhash-devel  libini_config-devel \
+     libpath_utils-devel  libref_array-devel
+
+How to build:
+~~~~~~~~~~~~~
 From the root of the source, run:
 autoreconf -i -f && \
 ./configure && \
@@ -32,35 +39,6 @@ autoreconf -i -f && \
 mkdir parallelbuilddir && cd parallelbuilddir && \
 ../configure && \
 make
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-How to build components individually
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Internal Library Requirements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sssd provides several required libraries within its source tree:
-collection
-ini_config
-dhash
-refarray
-path_utils
-
-Compiling sssd internal libraries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd common;
-autoreconf -i -f && \
-./configure --disable-static --enable-shared && \
-make;
-popd
-
-Compiling sssd with system installed libraries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd src; \
-autoreconf -i -f && \
-./configure && \
-make; \
-popd
 
 Now you have to copy libnss_sss* into /lib (or /lib64) and add the 'sss' target
 to nsswitch.conf passwd database
@@ -79,4 +57,4 @@ Now you can call pam_test_client:
 ./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
 
 ~~~~~
-Simo and Steve (Last updated for 1.1.0)
+Simo and Steve (Last updated for 1.4.1)
