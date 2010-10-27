@@ -803,7 +803,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     kr->kpasswd_srv = NULL;
     subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
                                     krb5_ctx->service->name);
-    if (req == NULL) {
+    if (subreq == NULL) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         ret = ENOMEM;
         goto done;
@@ -844,7 +844,7 @@ static void krb5_resolve_kdc_done(struct tevent_req *subreq)
             kr->krb5_ctx->kpasswd_service != NULL) {
             subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
                                             kr->krb5_ctx->kpasswd_service->name);
-            if (req == NULL) {
+            if (subreq == NULL) {
                 DEBUG(1, ("be_resolve_server_send failed.\n"));
                 ret = ENOMEM;
                 goto failed;
