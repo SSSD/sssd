@@ -80,6 +80,7 @@
 #define CONFDB_DEFAULT_PAM_FAILED_LOGIN_ATTEMPTS 0
 #define CONFDB_PAM_FAILED_LOGIN_DELAY "offline_failed_login_delay"
 #define CONFDB_DEFAULT_PAM_FAILED_LOGIN_DELAY 5
+#define CONFDB_PAM_VERBOSITY "pam_verbosity"
 
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"

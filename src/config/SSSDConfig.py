@@ -63,6 +63,7 @@ option_strings = {
     'offline_credentials_expiration' : _('How long to allow cached logins between online logins (days)'),
     'offline_failed_login_attempts' : _('How many failed logins attempts are allowed when offline'),
     'offline_failed_login_delay' : _('How long (minutes) to deny login after offline_failed_login_attempts has been reached'),
+    'pam_verbosity' : _('What kind of messages are displayed to the user during authentication'),
 
     # [provider]
     'id_provider' : _('Identity provider'),

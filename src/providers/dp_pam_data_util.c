@@ -163,6 +163,7 @@ int pam_add_response(struct pam_data *pd, enum response_type type,
     new->len = len;
     new->data = talloc_memdup(pd, data, len);
     if (new->data == NULL) return ENOMEM;
+    new->do_not_send_to_client = false;
     new->next = pd->resp_list;
     pd->resp_list = new;
 

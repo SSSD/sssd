@@ -159,6 +159,7 @@ struct response_data {
     int32_t type;
     int32_t len;
     uint8_t *data;
+    bool do_not_send_to_client;
     struct response_data *next;
 };
 

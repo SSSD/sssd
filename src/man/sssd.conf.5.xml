@@ -409,6 +409,37 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>pam_verbosity (integer)</term>
+                    <listitem>
+                        <para>
+                            Controls what kind of messages are shown to the user
+                            during authentication. The higher the number to more
+                            messages are displayed.
+                        </para>
+                        <para>
+                             Currently sssd supports the following values:
+                        </para>
+                        <para>
+                             <emphasis>0</emphasis>: do not show any message
+                        </para>
+                        <para>
+                             <emphasis>1</emphasis>: show only important
+                             messages
+                        </para>
+                        <para>
+                             <emphasis>2</emphasis>: show informational messages
+                        </para>
+                        <para>
+                             <emphasis>3</emphasis>: show all messages and debug
+                             information
+                        </para>
+                        <para>
+                            Default: 1
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
     </refsect1>

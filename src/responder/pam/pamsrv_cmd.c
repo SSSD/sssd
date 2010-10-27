@@ -31,6 +31,15 @@
 #include "responder/pam/pamsrv.h"
 #include "db/sysdb.h"
 
+enum pam_verbosity {
+    PAM_VERBOSITY_NO_MESSAGES = 0,
+    PAM_VERBOSITY_IMPORTANT,
+    PAM_VERBOSITY_INFO,
+    PAM_VERBOSITY_DEBUG
+};
+
+#define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
+
 static void pam_reply(struct pam_auth_req *preq);
 
 static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_t *body, size_t blen, size_t *c) {
@@ -319,6 +328,59 @@ fail:
     return ret;
 }
 
+static errno_t filter_responses(struct response_data *resp_list,
+                                int pam_verbosity)
+{
+    struct response_data *resp;
+    uint32_t user_info_type;
+    int64_t expire_date;
+
+    resp = resp_list;
+
+    while(resp != NULL) {
+        if (resp->type == SSS_PAM_USER_INFO) {
+            if (resp->len < sizeof(uint32_t)) {
+                DEBUG(1, ("User info entry is too short.\n"));
+                return EINVAL;
+            }
+
+            if (pam_verbosity == PAM_VERBOSITY_NO_MESSAGES) {
+                resp->do_not_send_to_client = true;
+                resp = resp->next;
+                continue;
+            }
+
+            memcpy(&user_info_type, resp->data, sizeof(uint32_t));
+
+            resp->do_not_send_to_client = false;
+            switch (user_info_type) {
+                case SSS_PAM_USER_INFO_OFFLINE_AUTH:
+                    if (resp->len != sizeof(uint32_t) + sizeof(int64_t)) {
+                        DEBUG(1, ("User info offline auth entry is "
+                                  "too short.\n"));
+                        return EINVAL;
+                    }
+                    memcpy(&expire_date, resp->data + sizeof(uint32_t),
+                           sizeof(int64_t));
+                    if ((expire_date == 0 &&
+                         pam_verbosity < PAM_VERBOSITY_INFO) ||
+                        (expire_date > 0 &&
+                         pam_verbosity < PAM_VERBOSITY_IMPORTANT)) {
+                        resp->do_not_send_to_client = true;
+                    }
+
+                    break;
+                default:
+                    DEBUG(7, ("User info type [%d] not filtered.\n"));
+            }
+        }
+
+        resp = resp->next;
+    }
+
+    return EOK;
+}
+
 static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
                             struct timeval tv, void *pvt)
 {
@@ -352,9 +414,12 @@ static void pam_reply(struct pam_auth_req *preq)
     uint32_t user_info_type;
     time_t exp_date = -1;
     time_t delay_until = -1;
+    int pam_verbosity = 0;
 
     pd = preq->pd;
     cctx = preq->cctx;
+    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
 
     DEBUG(4, ("pam_reply get called.\n"));
 
@@ -375,9 +440,6 @@ static void pam_reply(struct pam_auth_req *preq)
                                   "domain [%s]!\n", preq->domain->name));
                         goto done;
                     }
-
-                    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx,
-                                           struct pam_ctx);
 
                     ret = sysdb_cache_auth(preq, sysdb,
                                            preq->domain, pd->user,
@@ -453,6 +515,19 @@ static void pam_reply(struct pam_auth_req *preq)
         goto done;
     }
 
+    ret = confdb_get_int(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
+                         &pam_verbosity);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to read PAM verbosity, not fatal.\n"));
+        pam_verbosity = 0;
+    }
+
+    ret = filter_responses(pd->resp_list, pam_verbosity);
+    if (ret != EOK) {
+        DEBUG(1, ("filter_responses failed, not fatal.\n"));
+    }
+
     if (pd->domain != NULL) {
         pam_add_response(pd, SSS_PAM_DOMAIN_NAME, strlen(pd->domain)+1,
                          (uint8_t *) pd->domain);
@@ -462,8 +537,10 @@ static void pam_reply(struct pam_auth_req *preq)
     resp_size = 0;
     resp = pd->resp_list;
     while(resp != NULL) {
-        resp_c++;
-        resp_size += resp->len;
+        if (!resp->do_not_send_to_client) {
+            resp_c++;
+            resp_size += resp->len;
+        }
         resp = resp->next;
     }
 
@@ -487,12 +564,14 @@ static void pam_reply(struct pam_auth_req *preq)
 
     resp = pd->resp_list;
     while(resp != NULL) {
-        memcpy(&body[p], &resp->type, sizeof(int32_t));
-        p += sizeof(int32_t);
-        memcpy(&body[p], &resp->len, sizeof(int32_t));
-        p += sizeof(int32_t);
-        memcpy(&body[p], resp->data, resp->len);
-        p += resp->len;
+        if (!resp->do_not_send_to_client) {
+            memcpy(&body[p], &resp->type, sizeof(int32_t));
+            p += sizeof(int32_t);
+            memcpy(&body[p], &resp->len, sizeof(int32_t));
+            p += sizeof(int32_t);
+            memcpy(&body[p], resp->data, resp->len);
+            p += resp->len;
+        }
 
         resp = resp->next;
     }
