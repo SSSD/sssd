@@ -74,4 +74,12 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
 errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                                            struct be_ctx *be_ctx,
                                            struct tevent_context *ev);
+
+/* krb5_access.c */
+struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct be_ctx *be_ctx,
+                                    struct pam_data *pd,
+                                    struct krb5_ctx *krb5_ctx);
+int krb5_access_recv(struct tevent_req *req, bool *access_allowed);
 #endif /* __KRB5_AUTH_H__ */

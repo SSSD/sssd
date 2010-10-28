@@ -823,6 +823,7 @@ libsss_krb5_la_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_delayed_online_authentication.c \
     src/providers/krb5/krb5_auth.c \
+    src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_init.c \
     src/util/sss_krb5.c
@@ -868,7 +869,8 @@ libsss_ipa_la_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_delayed_online_authentication.c \
     src/providers/krb5/krb5_common.c \
-    src/providers/krb5/krb5_auth.c
+    src/providers/krb5/krb5_auth.c \
+    src/providers/krb5/krb5_access.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \

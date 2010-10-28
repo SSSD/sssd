@@ -189,3 +189,10 @@ int sssm_krb5_chpass_init(struct be_ctx *bectx,
 {
     return sssm_krb5_auth_init(bectx, ops, pvt_auth_data);
 }
+
+int sssm_krb5_access_init(struct be_ctx *bectx,
+                          struct bet_ops **ops,
+                          void **pvt_auth_data)
+{
+    return sssm_krb5_auth_init(bectx, ops, pvt_auth_data);
+}
