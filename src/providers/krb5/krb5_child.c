@@ -930,7 +930,7 @@ static int krb5_cleanup(void *ptr)
     return EOK;
 }
 
-static int krb5_setup(struct krb5_req *kr, uint32_t offline)
+static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr = 0;
 
@@ -1120,9 +1120,9 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
-    ret = krb5_setup(kr, offline);
+    ret = krb5_child_setup(kr, offline);
     if (ret != EOK) {
-        DEBUG(1, ("krb5_setup failed.\n"));
+        DEBUG(1, ("krb5_child_setup failed.\n"));
         goto fail;
     }
 

@@ -311,9 +311,8 @@ static int krb5_cleanup(void *ptr)
     return EOK;
 }
 
-static errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
-                          struct krb5_ctx *krb5_ctx,
-                          struct krb5child_req **krb5_req)
+errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
+                   struct krb5_ctx *krb5_ctx, struct krb5child_req **krb5_req)
 {
     struct krb5child_req *kr = NULL;
 
