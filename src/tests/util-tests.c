@@ -175,6 +175,73 @@ START_TEST(test_diff_string_lists)
 }
 END_TEST
 
+
+START_TEST(test_sss_filter_sanitize)
+{
+    errno_t ret;
+    char *sanitized = NULL;
+
+    TALLOC_CTX *test_ctx = talloc_new(NULL);
+    fail_if (test_ctx == NULL, "Out of memory");
+
+    const char no_specials[] = "username";
+    ret = sss_filter_sanitize(test_ctx, no_specials, &sanitized);
+    fail_unless(ret == EOK, "no_specials error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(no_specials, sanitized)==0,
+                "Expected [%s], got [%s]",
+                no_specials, sanitized);
+
+    const char has_asterisk[] = "*username";
+    const char has_asterisk_expected[] = "\\2ausername";
+    ret = sss_filter_sanitize(test_ctx, has_asterisk, &sanitized);
+    fail_unless(ret == EOK, "has_asterisk error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_asterisk_expected, sanitized)==0,
+                "Expected [%s], got [%s]",
+                has_asterisk_expected, sanitized);
+
+    const char has_lparen[] = "user(name";
+    const char has_lparen_expected[] = "user\\28name";
+    ret = sss_filter_sanitize(test_ctx, has_lparen, &sanitized);
+    fail_unless(ret == EOK, "has_lparen error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_lparen_expected, sanitized)==0,
+                "Expected [%s], got [%s]",
+                has_lparen_expected, sanitized);
+
+    const char has_rparen[] = "user)name";
+    const char has_rparen_expected[] = "user\\29name";
+    ret = sss_filter_sanitize(test_ctx, has_rparen, &sanitized);
+    fail_unless(ret == EOK, "has_rparen error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_rparen_expected, sanitized)==0,
+                "Expected [%s], got [%s]",
+                has_rparen_expected, sanitized);
+
+    const char has_backslash[] = "username\\";
+    const char has_backslash_expected[] = "username\\5c";
+    ret = sss_filter_sanitize(test_ctx, has_backslash, &sanitized);
+    fail_unless(ret == EOK, "has_backslash error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_backslash_expected, sanitized)==0,
+                "Expected [%s], got [%s]",
+                has_backslash_expected, sanitized);
+
+    const char has_all[] = "\\(user)*name";
+    const char has_all_expected[] = "\\5c\\28user\\29\\2aname";
+    ret = sss_filter_sanitize(test_ctx, has_all, &sanitized);
+    fail_unless(ret == EOK, "has_all error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_all_expected, sanitized)==0,
+                "Expected [%s], got [%s]",
+                has_all_expected, sanitized);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -182,6 +249,7 @@ Suite *util_suite(void)
     TCase *tc_util = tcase_create("util");
 
     tcase_add_test (tc_util, test_diff_string_lists);
+    tcase_add_test (tc_util, test_sss_filter_sanitize);
     tcase_set_timeout(tc_util, 60);
 
     suite_add_tcase (s, tc_util);

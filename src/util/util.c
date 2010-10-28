@@ -515,3 +515,55 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
     talloc_free(internal_ctx);
     return ret;
 }
+
+errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
+                            const char *input,
+                            char **sanitized)
+{
+    char *output;
+    size_t i = 0;
+    size_t j = 0;
+
+    /* Assume the worst-case. We'll resize it later, once */
+    output = talloc_array(mem_ctx, char, strlen(input) * 3 + 1);
+    if (!output) {
+        return ENOMEM;
+    }
+
+    while (input[i]) {
+        switch(input[i]) {
+        case '*':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = 'a';
+            break;
+        case '(':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = '8';
+            break;
+        case ')':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = '9';
+            break;
+        case '\\':
+            output[j++] = '\\';
+            output[j++] = '5';
+            output[j++] = 'c';
+            break;
+        default:
+            output[j++] = input[i];
+        }
+
+        i++;
+    }
+    output[j] = '\0';
+    *sanitized = talloc_realloc(mem_ctx, output, char, j+1);
+    if (!*sanitized) {
+        talloc_free(output);
+        return ENOMEM;
+    }
+
+    return EOK;
+}

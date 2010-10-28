@@ -366,4 +366,15 @@ errno_t diff_string_lists(TALLOC_CTX *memctx,
                           char ***string1_only,
                           char ***string2_only,
                           char ***both_strings);
+
+/* Sanitize an input string (e.g. a username) for use in
+ * an LDAP/LDB filter
+ * Returns a newly-constructed string attached to mem_ctx
+ * It will fail only on an out of memory condition, where it
+ * will return ENOMEM.
+ */
+errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
+                            const char *input,
+                            char **sanitized);
+
 #endif /* __SSSD_UTIL_H__ */
