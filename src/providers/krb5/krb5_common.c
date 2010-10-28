@@ -653,3 +653,28 @@ errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
 
     return EOK;
 }
+
+errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                            const char *username, const char **_upn)
+{
+    const char *realm;
+    char *upn;
+
+    realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(1, ("Missing Kerberos realm.\n"));
+        return ENOENT;
+    }
+
+    /* NOTE: this is a hack, works only in some environments */
+    upn = talloc_asprintf(mem_ctx, "%s@%s",  username, realm);
+    if (upn == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        return ENOMEM;
+    }
+
+    DEBUG(9, ("Using simple UPN [%s].\n", upn));
+
+    *_upn = upn;
+    return EOK;
+}

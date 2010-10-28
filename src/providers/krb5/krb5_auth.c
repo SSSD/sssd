@@ -716,14 +716,11 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     case 1:
         kr->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
         if (kr->upn == NULL) {
-            /* NOTE: this is a hack, works only in some environments */
-            kr->upn = talloc_asprintf(kr, "%s@%s", pd->user, realm);
-            if (kr->upn == NULL) {
-                DEBUG(1, ("failed to build simple upn.\n"));
-                ret = ENOMEM;
+            ret = krb5_get_simple_upn(state, krb5_ctx, pd->user, &kr->upn);
+            if (ret != EOK) {
+                DEBUG(1, ("krb5_get_simple_upn failed.\n"));
                 goto done;
             }
-            DEBUG(9, ("Using simple UPN [%s].\n", kr->upn));
         }
 
         kr->homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,
