@@ -735,6 +735,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     struct tevent_req *subreq = NULL;
     struct hbac_get_host_info_state *state;
     struct sdap_handle *sdap_handle;
+    char *host;
     int ret;
     int i;
 
@@ -763,14 +764,20 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         goto fail;
     }
     for (i = 0; hostnames[i] != NULL; i++) {
+        ret = sss_filter_sanitize(state->host_filter, hostnames[i], &host);
+        if (ret != EOK) {
+            goto fail;
+        }
+
         state->host_filter = talloc_asprintf_append(state->host_filter,
                                              "(&(objectclass=ipaHost)"
                                              "(|(fqdn=%s)(serverhostname=%s)))",
-                                             hostnames[i], hostnames[i]);
+                                             host, host);
         if (state->host_filter == NULL) {
             ret = ENOMEM;
             goto fail;
         }
+        talloc_zfree(host);
     }
     state->host_filter = talloc_asprintf_append(state->host_filter, ")");
     if (state->host_filter == NULL) {
@@ -1028,6 +1035,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     struct tevent_req *subreq = NULL;
     struct hbac_get_rules_state *state;
     struct sdap_handle *sdap_handle;
+    char *host_dn_clean;
     int ret;
     int i;
 
@@ -1084,16 +1092,23 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->hbac_attrs[16] = SYSDB_ORIG_DN;
     state->hbac_attrs[17] = NULL;
 
+    ret = sss_filter_sanitize(state, host_dn, &host_dn_clean);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     state->hbac_filter = talloc_asprintf(state,
                                          "(&(objectclass=ipaHBACRule)"
                                          "(%s=%s)(|(%s=%s)(%s=%s)",
                                          IPA_ENABLED_FLAG, IPA_TRUE_VALUE,
                                          IPA_HOST_CATEGORY, "all",
-                                         IPA_MEMBER_HOST, host_dn);
+                                         IPA_MEMBER_HOST, host_dn_clean);
     if (state->hbac_filter == NULL) {
         ret = ENOMEM;
         goto fail;
     }
+    talloc_zfree(host_dn_clean);
+
     for (i = 0; memberof[i] != NULL; i++) {
         state->hbac_filter = talloc_asprintf_append(state->hbac_filter,
                                                     "(%s=%s)",
