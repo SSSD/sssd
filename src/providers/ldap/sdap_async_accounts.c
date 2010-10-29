@@ -2590,6 +2590,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
     errno_t ret;
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
+    char *member_dn;
     char *filter;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     size_t count;
@@ -2636,10 +2637,15 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
 
         } while (has_key);
 
+        ret = sss_filter_sanitize(state, state->member_dn, &member_dn);
+        if (ret != EOK) {
+            goto error;
+        }
+
         /* Check for the specified origDN in the sysdb */
         filter = talloc_asprintf(NULL, "(%s=%s)",
                                  SYSDB_ORIG_DN,
-                                 state->member_dn);
+                                 member_dn);
         if (!filter) {
             ret = ENOMEM;
             goto error;
@@ -2657,11 +2663,13 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
 
             filter = talloc_asprintf(NULL, "(%s=%s)",
                                      SYSDB_ORIG_DN,
-                                     state->member_dn);
+                                     member_dn);
             if (!filter) {
                 ret = ENOMEM;
                 goto error;
             }
+            talloc_zfree(member_dn);
+
             ret = sysdb_search_groups(state, state->sysdb, state->domain,
                                       filter, attrs, &count, &msgs);
             talloc_zfree(filter);
@@ -2710,6 +2718,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
 
             return EAGAIN;
         }
+        talloc_zfree(member_dn);
 
         /* We found a user with this origDN in the sysdb */
 
