@@ -30,6 +30,7 @@
 
 #include "util/sss_krb5.h"
 #include "providers/dp_backend.h"
+#include "providers/child_common.h"
 #include "providers/krb5/krb5_common.h"
 
 #define CCACHE_ENV_NAME "KRB5CCNAME"
@@ -37,14 +38,8 @@
 #define ILLEGAL_PATH_PATTERN "//|/\\./|/\\.\\./"
 
 struct krb5child_req {
-    pid_t child_pid;
-    int read_from_child_fd;
-    int write_to_child_fd;
-
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
-
-    struct tevent_timer *timeout_handler;
 
     const char *ccname;
     const char *old_ccname;
@@ -57,6 +52,7 @@ struct krb5child_req {
     struct fo_server *kpasswd_srv;
     bool active_ccache_present;
     bool valid_tgt_present;
+    bool run_as_user;
 };
 
 errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
@@ -70,6 +66,12 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct pam_data *pd,
                                   struct krb5_ctx *krb5_ctx);
 int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err);
+
+struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct krb5child_req *kr);
+int handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                      uint8_t **buf, ssize_t *len);
 
 errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                                                   struct pam_data *pd,
