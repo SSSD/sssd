@@ -697,4 +697,7 @@ errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
                                struct ldb_result *res,
                                struct sysdb_netgroup_ctx ***entries);
 
+errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
+                          char **sanitized);
+
 #endif /* __SYS_DB_H__ */

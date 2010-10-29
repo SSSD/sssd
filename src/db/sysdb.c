@@ -25,6 +25,30 @@
 #include "confdb/confdb.h"
 #include <time.h>
 
+errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
+                          char **sanitized)
+{
+    struct ldb_val val;
+    errno_t ret = EOK;
+
+    val.data = (uint8_t *)talloc_strdup(mem_ctx, input);
+    if (!val.data) {
+        return ENOMEM;
+    }
+
+    /* We can't include the trailing NULL because it would
+     * be escaped and result in an unterminated string
+     */
+    val.length = strlen(input);
+
+    *sanitized = ldb_dn_escape_value(mem_ctx, val);
+    if (!*sanitized) {
+        ret = ENOMEM;
+    }
+
+    talloc_free(val.data);
+    return ret;
+}
 
 struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
                                        const char *domain,
