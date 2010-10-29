@@ -379,8 +379,10 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     }
 
     if (kerr == 0) {
-        if(kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+        if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
             pam_status = PAM_SUCCESS;
+            ret = EOK;
+        } else if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
             ret = EOK;
         } else {
             if (kr->ccname == NULL) {
@@ -828,6 +830,39 @@ sendresponse:
     return ret;
 }
 
+static errno_t kuserok_child(int fd, struct krb5_req *kr)
+{
+    krb5_boolean access_allowed;
+    int status;
+    int ret;
+    krb5_error_code kerr;
+
+    /* krb5_kuserok tries to verify that kr->pd->user is a locally known
+     * account, so we have to unset _SSS_LOOPS to make getpwnam() work. */
+    ret = unsetenv("_SSS_LOOPS");
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to unset _SSS_LOOPS, "
+                  "krb5_kuserok will most certainly fail.\n"));
+    }
+
+    kerr = krb5_set_default_realm(kr->ctx, kr->krb5_ctx->realm);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_set_default_realm failed, "
+                  "krb5_kuserok may fail.\n"));
+    }
+
+    access_allowed = krb5_kuserok(kr->ctx, kr->princ, kr->pd->user);
+
+    status = access_allowed ? 0 : 1;
+
+    ret = sendresponse(fd, 0, status, kr);
+    if (ret != EOK) {
+        DEBUG(1, ("sendresponse failed.\n"));
+    }
+
+    return ret;
+}
+
 static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
 {
     int ret;
@@ -867,24 +902,32 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     if (kr->upn == NULL) return ENOMEM;
     p += len;
 
-    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-    if ((p + len ) > size) return EINVAL;
-    kr->ccname = talloc_strndup(pd, (char *)(buf + p), len);
-    if (kr->ccname == NULL) return ENOMEM;
-    p += len;
+    if (pd->cmd == SSS_PAM_AUTHENTICATE ||
+        pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || pd->cmd == SSS_PAM_CHAUTHTOK) {
+        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+        if ((p + len ) > size) return EINVAL;
+        kr->ccname = talloc_strndup(pd, (char *)(buf + p), len);
+        if (kr->ccname == NULL) return ENOMEM;
+        p += len;
 
-    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-    if ((p + len ) > size) return EINVAL;
-    kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
-    if (kr->keytab == NULL) return ENOMEM;
-    p += len;
+        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+        if ((p + len ) > size) return EINVAL;
+        kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
+        if (kr->keytab == NULL) return ENOMEM;
+        p += len;
 
-    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-    if ((p + len) > size) return EINVAL;
-    pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
-    if (pd->authtok == NULL) return ENOMEM;
-    pd->authtok_size = len + 1;
-    p += len;
+        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+        if ((p + len) > size) return EINVAL;
+        pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
+        if (pd->authtok == NULL) return ENOMEM;
+        pd->authtok_size = len + 1;
+        p += len;
+    } else {
+        kr->ccname = NULL;
+        kr->keytab = NULL;
+        pd->authtok = NULL;
+        pd->authtok_size = 0;
+    }
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
@@ -897,6 +940,16 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     } else {
         pd->newauthtok = NULL;
         pd->newauthtok_size = 0;
+    }
+
+    if (pd->cmd == SSS_PAM_ACCT_MGMT) {
+        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+        if ((p + len ) > size) return EINVAL;
+        pd->user = talloc_strndup(pd, (char *)(buf + p), len);
+        if (pd->user == NULL) return ENOMEM;
+        p += len;
+    } else {
+        pd->user = NULL;
     }
 
     return EOK;
@@ -958,6 +1011,9 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
             kr->child_req = changepw_child;
+            break;
+        case SSS_PAM_ACCT_MGMT:
+            kr->child_req = kuserok_child;
             break;
         default:
             DEBUG(1, ("PAM command [%d] not supported.\n", kr->pd->cmd));
