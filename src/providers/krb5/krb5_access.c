@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_common.h"
 
 struct krb5_access_state {
     struct tevent_context *ev;
@@ -31,11 +32,12 @@ struct krb5_access_state {
 
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
-    const char *upn;
+    struct krb5child_req *kr;
 
     bool access_allowed;
 };
 
+static void krb5_access_child_done(struct tevent_req *subreq);
 struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct be_ctx *be_ctx,
@@ -44,7 +46,10 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
 {
     struct krb5_access_state *state;
     struct tevent_req *req;
+    struct tevent_req *subreq;
     int ret;
+    const char **attrs;
+    struct ldb_result *res;
 
     req = tevent_req_create(mem_ctx, &state, struct krb5_access_state);
     if (req == NULL) {
@@ -56,8 +61,13 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     state->be_ctx = be_ctx;
     state->pd = pd;
     state->krb5_ctx = krb5_ctx;
-    state->upn = NULL;
     state->access_allowed = false;
+
+    ret = krb5_setup(state, pd, krb5_ctx, &state->kr);
+    if (ret != EOK) {
+        DEBUG(1, ("krb5_setup failed.\n"));
+        goto done;
+    }
 
     if (pd->cmd != SSS_PAM_ACCT_MGMT) {
         DEBUG(1, ("Unexpected pam task.\n"));
@@ -65,8 +75,76 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->access_allowed = true;
-    ret = EOK;
+    attrs = talloc_array(state, const char *, 4);
+    if (attrs == NULL) {
+        DEBUG(1, ("talloc_array failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attrs[0] = SYSDB_UPN;
+    attrs[1] = SYSDB_UIDNUM;
+    attrs[2] = SYSDB_GIDNUM;
+    attrs[3] = NULL;
+
+    ret = sysdb_get_user_attr(state, be_ctx->sysdb, be_ctx->domain,
+                              state->pd->user, attrs, &res);
+    if (ret) {
+        DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
+        goto done;
+    }
+
+    switch (res->count) {
+    case 0:
+        DEBUG(5, ("No attributes for user [%s] found.\n", pd->user));
+        ret = ENOENT;
+        goto done;
+        break;
+    case 1:
+        state->kr->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN,
+                                                     NULL);
+        if (state->kr->upn == NULL) {
+            ret = krb5_get_simple_upn(state, krb5_ctx, pd->user,
+                                      &state->kr->upn);
+            if (ret != EOK) {
+                DEBUG(1, ("krb5_get_simple_upn failed.\n"));
+                goto done;
+            }
+        }
+
+        state->kr->uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM,
+                                                     0);
+        if (state->kr->uid == 0) {
+            DEBUG(4, ("UID for user [%s] not known.\n", pd->user));
+            ret = ENOENT;
+            goto done;
+        }
+
+        state->kr->gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM,
+                                                     0);
+        if (state->kr->gid == 0) {
+            DEBUG(4, ("GID for user [%s] not known.\n", pd->user));
+            ret = ENOENT;
+            goto done;
+        }
+
+        break;
+    default:
+        DEBUG(1, ("User search for [%s] returned > 1 results!\n", pd->user));
+        ret = EINVAL;
+        goto done;
+        break;
+    }
+
+    subreq = handle_child_send(state, state->ev, state->kr);
+    if (subreq == NULL) {
+        DEBUG(1, ("handle_child_send failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, krb5_access_child_done, req);
+    return req;
 
 done:
     if (ret == EOK) {
@@ -76,6 +154,45 @@ done:
     }
     tevent_req_post(req, state->ev);
     return req;
+}
+
+static void krb5_access_child_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct krb5_access_state *state = tevent_req_data(req,
+                                                      struct krb5_access_state);
+    int ret;
+    uint8_t *buf = NULL;
+    ssize_t len = -1;
+    int32_t msg_status;
+
+    ret = handle_child_recv(subreq, state, &buf, &len);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        DEBUG(1, ("child failed [%d][%s].\n", ret, strerror(ret)));
+        goto fail;
+    }
+
+    if ((size_t) len != sizeof(int32_t)) {
+        DEBUG(1, ("message has the wrong size.\n"));
+        ret = EINVAL;
+        goto fail;
+    }
+
+    SAFEALIGN_COPY_INT32(&msg_status, buf, NULL);
+
+    if (msg_status == EOK) {
+        state->access_allowed = true;
+    } else {
+        state->access_allowed = false;
+    }
+
+    tevent_req_done(req);
+    return;
+
+fail:
+    tevent_req_error(req, ret);
+    return;
 }
 
 int krb5_access_recv(struct tevent_req *req, bool *access_allowed)
