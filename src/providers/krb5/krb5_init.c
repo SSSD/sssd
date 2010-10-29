@@ -82,6 +82,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         DEBUG(1, ("talloc failed.\n"));
         return ENOMEM;
     }
+    krb5_options->auth_ctx = ctx;
 
     ctx->action = INIT_PW;
     ctx->opts = krb5_options->opts;
@@ -178,7 +179,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     return EOK;
 
 fail:
-    talloc_free(ctx);
+    talloc_zfree(krb5_options->auth_ctx);
     return ret;
 }
 
