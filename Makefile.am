@@ -933,7 +933,9 @@ proxy_child_LDADD = \
     $(SSSD_LIBS)
 
 memberof_la_SOURCES = \
-    src/ldb_modules/memberof.c
+    $(SSSD_DEBUG_OBJ) \
+    src/ldb_modules/memberof.c \
+    src/util/util.c
 memberof_la_CFLAGS = \
     $(AM_CFLAGS)
 memberof_la_LIBADD = $(LDB_LIBS) $(DHASH_LIBS)

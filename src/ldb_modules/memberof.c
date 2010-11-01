@@ -1167,9 +1167,11 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
     struct ldb_request *search;
     char *expression;
     const char *dn;
+    char *clean_dn;
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
     int ret;
+    errno_t sret;
 
     if (ldb_dn_is_special(req->op.del.dn)) {
         /* do not manipulate our control entries */
@@ -1206,13 +1208,21 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
         talloc_free(ctx);
         return LDB_ERR_OPERATIONS_ERROR;
     }
+
+    sret = sss_filter_sanitize(del_ctx, dn, &clean_dn);
+    if (sret != 0) {
+        talloc_free(ctx);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
     expression = talloc_asprintf(del_ctx,
                                  "(|(distinguishedName=%s)(%s=%s))",
-                                 dn, DB_MEMBER, dn);
+                                 clean_dn, DB_MEMBER, clean_dn);
     if (!expression) {
         talloc_free(ctx);
         return LDB_ERR_OPERATIONS_ERROR;
     }
+    talloc_zfree(clean_dn);
 
     ret = ldb_build_search_req(&search, ldb, del_ctx,
                                NULL, LDB_SCOPE_SUBTREE,
@@ -1586,6 +1596,7 @@ static int mbof_del_execute_op(struct mbof_del_operation *delop)
     struct ldb_request *search;
     char *expression;
     const char *dn;
+    char *clean_dn;
     static const char *attrs[] = { DB_OC, DB_NAME,
                                    DB_MEMBER, DB_MEMBEROF, NULL };
     int ret;
@@ -1599,12 +1610,19 @@ static int mbof_del_execute_op(struct mbof_del_operation *delop)
     if (!dn) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
+
+    ret = sss_filter_sanitize(del_ctx, dn, &clean_dn);
+    if (ret != 0) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
     expression = talloc_asprintf(del_ctx,
                                  "(|(distinguishedName=%s)(%s=%s))",
-                                 dn, DB_MEMBER, dn);
+                                 clean_dn, DB_MEMBER, clean_dn);
     if (!expression) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
+    talloc_zfree(clean_dn);
 
     ret = ldb_build_search_req(&search, ldb, delop,
                                NULL, LDB_SCOPE_SUBTREE,
