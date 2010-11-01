@@ -603,7 +603,7 @@ struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    dp_opt_get_string(state->opts->basic,
-                                                     SDAP_SEARCH_BASE),
+                                                     SDAP_NETGROUP_SEARCH_BASE),
                                    LDAP_SCOPE_SUBTREE,
                                    state->filter, state->attrs,
                                    state->opts->netgroup_map,
