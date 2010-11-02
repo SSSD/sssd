@@ -1426,7 +1426,7 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
         return nss_cmd_setpwent_ext(cctx, true);
     }
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
@@ -2725,7 +2725,7 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
         return nss_cmd_setgrent_ext(cctx, true);
     }
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
