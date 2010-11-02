@@ -404,6 +404,109 @@ int sdap_set_rootdse_supported_lists(struct sysdb_attrs *rootdse,
 
 }
 
+static char *get_single_value_as_string(TALLOC_CTX *mem_ctx,
+                                        struct ldb_message_element *el)
+{
+    char *str = NULL;
+
+    if (el->num_values == 0) {
+        DEBUG(3, ("Missing value.\n"));
+    } else if (el->num_values == 1) {
+        str = talloc_strndup(mem_ctx, (char *) el->values[0].data,
+                             el->values[0].length);
+        if (str == NULL) {
+            DEBUG(1, ("talloc_strndup failed.\n"));
+        }
+    } else {
+        DEBUG(3, ("More than one value found.\n"));
+    }
+
+    return str;
+}
+
+static char *get_naming_context(TALLOC_CTX *mem_ctx,
+                                struct sysdb_attrs *rootdse)
+{
+    struct ldb_message_element *nc = NULL;
+    struct ldb_message_element *dnc = NULL;
+    int i;
+    char *naming_context = NULL;
+
+    for (i = 0; i < rootdse->num; i++) {
+        if (strcasecmp(rootdse->a[i].name,
+                       SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS) == 0) {
+            nc = &rootdse->a[i];
+        } else if (strcasecmp(rootdse->a[i].name,
+                              SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT) == 0) {
+            dnc = &rootdse->a[i];
+        }
+    }
+
+    if (dnc == NULL && nc == NULL) {
+        DEBUG(3, ("No attributes [%s] or [%s] found in rootDSE.\n",
+                  SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS,
+                  SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT));
+    } else {
+        if (dnc != NULL) {
+            DEBUG(5, ("Using value from [%s] as naming context.\n",
+                      SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT));
+            naming_context = get_single_value_as_string(mem_ctx, dnc);
+        }
+
+        if (naming_context == NULL && nc != NULL) {
+            DEBUG(5, ("Using value from [%s] as naming context.\n",
+                      SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS));
+            naming_context = get_single_value_as_string(mem_ctx, nc);
+        }
+    }
+
+    return naming_context;
+}
+
+errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
+                                             struct sdap_handle *sh,
+                                             struct sdap_options *opts)
+{
+    int ret;
+    char *naming_context = NULL;
+    const int search_base_options[] = { SDAP_SEARCH_BASE,
+                                        SDAP_USER_SEARCH_BASE,
+                                        SDAP_GROUP_SEARCH_BASE,
+                                        SDAP_NETGROUP_SEARCH_BASE,
+                                        -1 };
+    int o;
+
+
+    for (o = 0; search_base_options[o] != -1; o++) {
+        if (dp_opt_get_string(opts->basic, search_base_options[o]) == NULL) {
+            if (naming_context == NULL) {
+                naming_context = get_naming_context(opts->basic, rootdse);
+                if (naming_context == NULL) {
+                    DEBUG(1, ("get_naming_context failed.\n"));
+                    ret = EINVAL;
+                    goto done;
+                }
+            }
+
+            DEBUG(3, ("Setting option [%s] to [%s].\n",
+                      opts->basic[search_base_options[o]].opt_name,
+                      naming_context));
+            ret = dp_opt_set_string(opts->basic, search_base_options[o],
+                                    naming_context);
+            if (ret != EOK) {
+                DEBUG(1, ("dp_opt_set_string failed.\n"));
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(naming_context);
+    return ret;
+}
+
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
                          size_t size, const char ***_attrs)

@@ -1277,6 +1277,14 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
         return;
     }
 
+    ret = sdap_set_config_options_with_rootdse(rootdse, state->sh,
+                                               state->opts);
+    if (ret) {
+        DEBUG(1, ("sdap_set_config_options_with_rootdse failed.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (sasl_mech && state->use_rootdse) {

@@ -648,7 +648,7 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
     const char *attrs[] = {
 	    "*",
 	    "altServer",
-	    "namingContexts",
+	    SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS,
 	    "supportedControl",
 	    "supportedExtension",
 	    "supportedFeatures",

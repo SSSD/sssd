@@ -127,6 +127,7 @@ struct sdap_ppolicy_data {
 
 #define SYSDB_PWD_ATTRIBUTE "pwdAttribute"
 
+#define SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS "namingContexts"
 #define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
 
 enum sdap_result {
@@ -319,4 +320,8 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
 
 int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
                         struct berval *value, int dupval, LDAPControl **ctrlp);
+
+errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
+                                             struct sdap_handle *sh,
+                                             struct sdap_options *opts);
 #endif /* _SDAP_H_ */
