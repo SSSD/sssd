@@ -127,6 +127,8 @@ struct sdap_ppolicy_data {
 
 #define SYSDB_PWD_ATTRIBUTE "pwdAttribute"
 
+#define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
+
 enum sdap_result {
     SDAP_SUCCESS,
     SDAP_NOT_FOUND,

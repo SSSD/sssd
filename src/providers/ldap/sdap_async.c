@@ -654,6 +654,7 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 	    "supportedFeatures",
 	    "supportedLDAPVersion",
 	    "supportedSASLMechanisms",
+            SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT,
 	    NULL
     };
 
