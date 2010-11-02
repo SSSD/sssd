@@ -34,7 +34,7 @@ int ldap_child_debug_fd = -1;
 
 struct dp_option default_basic_opts[] = {
     { "ldap_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_search_base", DP_OPT_STRING, { "dc=example,dc=com" }, NULL_STRING },
+    { "ldap_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
@@ -185,12 +185,18 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_netgroup_map;
     struct sdap_options *opts;
     char *schema;
+    const char *search_base;
     const char *pwd_policy;
     int ret;
     int account_cache_expiration;
     int offline_credentials_expiration;
     const char *ldap_deref;
     int ldap_deref_val;
+    int o;
+    const int search_base_options[] = { SDAP_USER_SEARCH_BASE,
+                                        SDAP_GROUP_SEARCH_BASE,
+                                        SDAP_NETGROUP_SEARCH_BASE,
+                                        -1 };
 
     opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
@@ -203,41 +209,25 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* set user/group/netgroup search bases if they are not */
-    if (NULL == dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_BASE)) {
-        ret = dp_opt_set_string(opts->basic, SDAP_USER_SEARCH_BASE,
-                                dp_opt_get_string(opts->basic,
-                                                  SDAP_SEARCH_BASE));
-        if (ret != EOK) {
-            goto done;
+    search_base = dp_opt_get_string(opts->basic, SDAP_SEARCH_BASE);
+    if (search_base != NULL) {
+        /* set user/group/netgroup search bases if they are not */
+        for (o = 0; search_base_options[o] != -1; o++) {
+            if (NULL == dp_opt_get_string(opts->basic, search_base_options[o])) {
+                ret = dp_opt_set_string(opts->basic, search_base_options[o],
+                                        search_base);
+                if (ret != EOK) {
+                    goto done;
+                }
+                DEBUG(6, ("Option %s set to %s\n",
+                          opts->basic[search_base_options[o]].opt_name,
+                          dp_opt_get_string(opts->basic,
+                                            search_base_options[o])));
+            }
         }
-        DEBUG(6, ("Option %s set to %s\n",
-                  opts->basic[SDAP_USER_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_BASE)));
-    }
-
-    if (NULL == dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_BASE)) {
-        ret = dp_opt_set_string(opts->basic, SDAP_GROUP_SEARCH_BASE,
-                                dp_opt_get_string(opts->basic,
-                                                  SDAP_SEARCH_BASE));
-        if (ret != EOK) {
-            goto done;
-        }
-        DEBUG(6, ("Option %s set to %s\n",
-                  opts->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_BASE)));
-    }
-
-    if (NULL == dp_opt_get_string(opts->basic, SDAP_NETGROUP_SEARCH_BASE)) {
-        ret = dp_opt_set_string(opts->basic, SDAP_NETGROUP_SEARCH_BASE,
-                                dp_opt_get_string(opts->basic,
-                                                  SDAP_SEARCH_BASE));
-        if (ret != EOK) {
-            goto done;
-        }
-        DEBUG(6, ("Option %s set to %s\n",
-                  opts->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(opts->basic, SDAP_NETGROUP_SEARCH_BASE)));
+    } else {
+        DEBUG(5, ("Search base not set, trying to discover it later when "
+                  "connecting to the LDAP server.\n"));
     }
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);

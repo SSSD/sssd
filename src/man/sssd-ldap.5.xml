@@ -76,6 +76,17 @@
                             The default base DN to use for
                             performing LDAP user operations.
                         </para>
+                        <para>
+                            Default: If not set the value of the
+                            defaultNamingContext or namingContexts attribute
+                            from the RootDSE of the LDAP server is
+                            used. If defaultNamingContext does not exists or
+                            has an empty value namingContexts is used.
+                            The namingContexts attribute must have a
+                            single value with the DN of the search base of the
+                            LDAP server to make this work. Multiple values are
+                            are not supported.
+                        </para>
                     </listitem>
                 </varlistentry>
 
@@ -1045,7 +1056,9 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
+                            <emphasis>ldap_search_base</emphasis> or the value
+                            of the defaultNamingContext or namingContexts
+                            attribute of the RootDSE of the LDAP server.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1059,7 +1072,9 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
+                            <emphasis>ldap_search_base</emphasis> or the value
+                            of the defaultNamingContext or namingContexts
+                            attribute of the RootDSE of the LDAP server.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1073,7 +1088,9 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
+                            <emphasis>ldap_search_base</emphasis> or the value
+                            of the defaultNamingContext or namingContexts
+                            attribute of the RootDSE of the LDAP server.
                         </para>
                     </listitem>
                 </varlistentry>
