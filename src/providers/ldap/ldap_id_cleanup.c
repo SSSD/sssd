@@ -363,10 +363,11 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                           struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmpctx;
-    const char *attrs[] = { SYSDB_NAME, NULL };
+    const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter;
     const char *dn;
+    gid_t gid;
     struct ldb_message **msgs;
     size_t count;
     struct ldb_message **u_msgs;
@@ -411,7 +412,19 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             goto done;
         }
 
-        subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF, dn);
+        gid = (gid_t) ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
+        if (!gid) {
+            DEBUG(2, ("Entry has no GID\n"));
+            ret = EIO;
+            goto done;
+        }
+
+        /* Search for users that are members of this group, or
+         * that have this group as their primary GID
+         */
+        subfilter = talloc_asprintf(tmpctx, "(|(%s=%s)(%s=%lu))",
+                                    SYSDB_MEMBEROF, dn,
+                                    SYSDB_GIDNUM, (long unsigned) gid);
         if (!subfilter) {
             DEBUG(2, ("Failed to build filter\n"));
             ret = ENOMEM;
