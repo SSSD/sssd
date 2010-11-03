@@ -525,7 +525,7 @@ static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct cleanup_groups_state *state;
-    static const char *attrs[] = { SYSDB_NAME, NULL };
+    static const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter;
 
@@ -598,6 +598,7 @@ static void cleanup_groups_check_users(struct tevent_req *req)
     struct tevent_req *subreq;
     const char *subfilter;
     const char *dn;
+    gid_t gid;
 
     dn = ldb_dn_get_linearized(state->msgs[state->cur]->dn);
     if (!dn) {
@@ -605,8 +606,19 @@ static void cleanup_groups_check_users(struct tevent_req *req)
         return;
     }
 
-    subfilter = talloc_asprintf(state, "(%s=%s)",
-                                SYSDB_MEMBEROF, dn);
+    gid = (gid_t) ldb_msg_find_attr_as_uint(state->msgs[state->cur],
+                                            SYSDB_GIDNUM, 0);
+    if (!gid) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    /* Search for users that are members of this group, or
+     * that have this group as their primary GID
+     */
+    subfilter = talloc_asprintf(state, "(|(%s=%s)(%s=%lu))",
+                                SYSDB_MEMBEROF, dn,
+                                SYSDB_GIDNUM, (unsigned long) gid);
     if (!subfilter) {
         DEBUG(2, ("Failed to build filter\n"));
         tevent_req_error(req, ENOMEM);
