@@ -184,7 +184,8 @@ int monitor_common_rotate_logs(DBusMessage *message,
 
     ret = rotate_debug_files();
     if (ret) {
-        sss_log(SSS_LOG_ALERT, "Could not rotate debug files!\n");
+        sss_log(SSS_LOG_ALERT, "Could not rotate debug files! [%d][%s]\n",
+                               ret, strerror(ret));
         return ret;
     }
 
