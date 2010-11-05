@@ -364,7 +364,7 @@ enum user_info_type {
                                             * @param Time when the cached
                                             * password will expire in seconds
                                             * since the UNIX Epoch as returned
-                                            * by time(2) as long long. A value
+                                            * by time(2) as int64_t. A value
                                             * of zero indicates that the
                                             * cached password will never
                                             * expire. */
@@ -375,8 +375,8 @@ enum user_info_type {
                                              * @param Time when an
                                              * authentication is allowed again
                                              * in seconds since the UNIX Epoch
-                                             * as returned by time(2) as long
-                                             * long. */
+                                             * as returned by time(2) as
+                                             * int64_t. */
     SSS_PAM_USER_INFO_OFFLINE_CHPASS, /**< * Tell the user that it is not
                                        * possible to change the password while
                                        * the system is offline. This message

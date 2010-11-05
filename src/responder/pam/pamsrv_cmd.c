@@ -507,21 +507,21 @@ static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
     uint32_t resp_type;
     size_t resp_len;
     uint8_t *resp;
-    long long dummy;
+    int64_t dummy;
 
     switch (ret) {
         case EOK:
             preq->pd->pam_status = PAM_SUCCESS;
 
             resp_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
-            resp_len = sizeof(uint32_t) + sizeof(long long);
+            resp_len = sizeof(uint32_t) + sizeof(int64_t);
             resp = talloc_size(preq->pd, resp_len);
             if (resp == NULL) {
                 DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
             } else {
                 memcpy(resp, &resp_type, sizeof(uint32_t));
-                dummy = (long long) expire_date;
-                memcpy(resp+sizeof(uint32_t), &dummy, sizeof(long long));
+                dummy = (int64_t) expire_date;
+                memcpy(resp+sizeof(uint32_t), &dummy, sizeof(int64_t));
                 ret = pam_add_response(preq->pd, SSS_PAM_USER_INFO, resp_len,
                                        (const uint8_t *) resp);
                 if (ret != EOK) {
@@ -539,14 +539,14 @@ static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
             preq->pd->pam_status = PAM_PERM_DENIED;
             if (delayed_until >= 0) {
                 resp_type = SSS_PAM_USER_INFO_OFFLINE_AUTH_DELAYED;
-                resp_len = sizeof(uint32_t) + sizeof(long long);
+                resp_len = sizeof(uint32_t) + sizeof(int64_t);
                 resp = talloc_size(preq->pd, resp_len);
                 if (resp == NULL) {
                     DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
                 } else {
                     memcpy(resp, &resp_type, sizeof(uint32_t));
-                    dummy = (long long) delayed_until;
-                    memcpy(resp+sizeof(uint32_t), &dummy, sizeof(long long));
+                    dummy = (int64_t) delayed_until;
+                    memcpy(resp+sizeof(uint32_t), &dummy, sizeof(int64_t));
                     ret = pam_add_response(preq->pd, SSS_PAM_USER_INFO, resp_len,
                                            (const uint8_t *) resp);
                     if (ret != EOK) {

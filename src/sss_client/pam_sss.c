@@ -567,19 +567,19 @@ static int user_info_offline_auth(pam_handle_t *pamh, size_t buflen,
                                   uint8_t *buf)
 {
     int ret;
-    long long expire_date;
+    int64_t expire_date;
     struct tm tm;
     char expire_str[128];
     char user_msg[256];
 
     expire_str[0] = '\0';
 
-    if (buflen != sizeof(uint32_t) + sizeof(long long)) {
+    if (buflen != sizeof(uint32_t) + sizeof(int64_t)) {
         D(("User info response data has the wrong size"));
         return PAM_BUF_ERR;
     }
 
-    memcpy(&expire_date, buf + sizeof(uint32_t), sizeof(long long));
+    memcpy(&expire_date, buf + sizeof(uint32_t), sizeof(int64_t));
 
     if (expire_date > 0) {
         if (localtime_r((time_t *) &expire_date, &tm) != NULL) {
@@ -690,19 +690,19 @@ static int user_info_offline_auth_delayed(pam_handle_t *pamh, size_t buflen,
                                   uint8_t *buf)
 {
     int ret;
-    long long delayed_until;
+    int64_t delayed_until;
     struct tm tm;
     char delay_str[128];
     char user_msg[256];
 
     delay_str[0] = '\0';
 
-    if (buflen != sizeof(uint32_t) + sizeof(long long)) {
+    if (buflen != sizeof(uint32_t) + sizeof(int64_t)) {
         D(("User info response data has the wrong size"));
         return PAM_BUF_ERR;
     }
 
-    memcpy(&delayed_until, buf + sizeof(uint32_t), sizeof(long long));
+    memcpy(&delayed_until, buf + sizeof(uint32_t), sizeof(int64_t));
 
     if (delayed_until <= 0) {
         D(("User info response data has an invalid value"));
