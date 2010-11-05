@@ -2714,6 +2714,148 @@ START_TEST(test_sysdb_remove_netgroup_member)
 }
 END_TEST
 
+START_TEST(test_odd_characters)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct ldb_message *msg;
+    struct ldb_val *val;
+    const char odd_username[] = "*(odd)\\user,name";
+    const char odd_groupname[] = "*(odd\\*)\\group,name";
+    const char odd_netgroupname[] = "*(odd\\*)\\netgroup,name";
+    const char *received_user;
+    const char *received_group;
+    static const char *user_attrs[] = SYSDB_PW_ATTRS;
+    static const char *netgr_attrs[] = SYSDB_NETGR_ATTRS;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    /* ===== Groups ===== */
+
+    /* Add */
+    ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
+                                     odd_groupname, 20000);
+    fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* Retrieve */
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                                    odd_groupname, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_group_by_name error [%d][%s]",
+                            ret, strerror(ret));
+    talloc_zfree(msg);
+
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                         odd_groupname, &res);
+    fail_unless(ret == EOK, "sysdb_getgrnam error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+    received_group = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    fail_unless(strcmp(received_group, odd_groupname) == 0,
+                "Expected [%s], got [%s]",
+                odd_groupname, received_group);
+    talloc_free(res);
+
+
+    /* ===== Users ===== */
+
+    /* Add */
+    ret = sysdb_add_basic_user(test_ctx,
+                               test_ctx->sysdb,
+                               test_ctx->domain,
+                               odd_username,
+                               10000, 10000,
+                               "","","");
+    fail_unless(ret == EOK, "sysdb_add_fake_user error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* Retrieve */
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                                    odd_username, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_name error [%d][%s]",
+                            ret, strerror(ret));
+    val = ldb_dn_get_component_val(msg->dn, 0);
+    fail_unless(strcmp((char *)val->data, odd_username)==0,
+                "Expected [%s] got [%s]\n",
+                odd_username, (char *)val->data);
+    talloc_zfree(msg);
+
+    /* Add to the group */
+    ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->domain,
+                                 odd_groupname, odd_username,
+                                 SYSDB_MEMBER_USER);
+    fail_unless(ret == EOK, "sysdb_add_group_member error [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                         odd_username, &res);
+    fail_unless(ret == EOK, "sysdb_getpwnam error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+    received_user = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    fail_unless(strcmp(received_user, odd_username) == 0,
+                "Expected [%s], got [%s]",
+                odd_username, received_user);
+    talloc_zfree(res);
+
+    /* Attributes */
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                              odd_username, user_attrs, &res);
+    fail_unless(ret == EOK, "sysdb_get_user_attr error [%d][%s]",
+                            ret, strerror(ret));
+    talloc_free(res);
+
+    /* Delete User */
+    ret = sysdb_delete_user(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                            odd_username, 10000);
+    fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
+                            ret, strerror(ret));
+
+
+    /* Delete Group */
+    ret = sysdb_delete_group(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                             odd_groupname, 20000);
+    fail_unless(ret == EOK, "sysdb_delete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* ===== Netgroups ===== */
+    /* Add */
+    ret = sysdb_add_netgroup(test_ctx->sysdb, test_ctx->domain,
+                             odd_netgroupname, "No description",
+                             NULL, 30);
+    fail_unless(ret == EOK, "sysdb_add_netgroup error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* Retrieve */
+    ret = sysdb_getnetgr(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                         odd_netgroupname, &res);
+    fail_unless(ret == EOK, "sysdb_getnetgr error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+    talloc_zfree(res);
+
+    ret = sysdb_get_netgroup_attr(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                                  odd_netgroupname, netgr_attrs, &res);
+    fail_unless(ret == EOK, "sysdb_get_netgroup_attr error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+    talloc_zfree(res);
+
+    /* ===== Arbitrary Entries ===== */
+
+    talloc_free(test_ctx);
+}
+END_TEST
 
 Suite *create_sysdb_suite(void)
 {
@@ -2835,6 +2977,9 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_attrs_replace_name);
 
     tcase_add_test(tc_sysdb, test_sysdb_attrs_to_list);
+
+    /* Test unusual characters */
+    tcase_add_test(tc_sysdb, test_odd_characters);
 
 /* ===== NETGROUP TESTS ===== */
 
