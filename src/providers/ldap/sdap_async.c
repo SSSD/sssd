@@ -646,16 +646,16 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
     struct tevent_req *req, *subreq;
     struct sdap_get_rootdse_state *state;
     const char *attrs[] = {
-	    "*",
-	    "altServer",
-	    SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS,
-	    "supportedControl",
-	    "supportedExtension",
-	    "supportedFeatures",
-	    "supportedLDAPVersion",
-	    "supportedSASLMechanisms",
+            "*",
+            "altServer",
+            SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS,
+            "supportedControl",
+            "supportedExtension",
+            "supportedFeatures",
+            "supportedLDAPVersion",
+            "supportedSASLMechanisms",
             SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT,
-	    NULL
+            NULL
     };
 
     DEBUG(9, ("Getting rootdse\n"));

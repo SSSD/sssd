@@ -474,11 +474,11 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                         SDAP_GROUP_SEARCH_BASE,
                                         SDAP_NETGROUP_SEARCH_BASE,
                                         -1 };
-    int o;
+    size_t c;
 
 
-    for (o = 0; search_base_options[o] != -1; o++) {
-        if (dp_opt_get_string(opts->basic, search_base_options[o]) == NULL) {
+    for (c = 0; search_base_options[c] != -1; c++) {
+        if (dp_opt_get_string(opts->basic, search_base_options[c]) == NULL) {
             if (naming_context == NULL) {
                 naming_context = get_naming_context(opts->basic, rootdse);
                 if (naming_context == NULL) {
@@ -489,9 +489,9 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
             }
 
             DEBUG(3, ("Setting option [%s] to [%s].\n",
-                      opts->basic[search_base_options[o]].opt_name,
+                      opts->basic[search_base_options[c]].opt_name,
                       naming_context));
-            ret = dp_opt_set_string(opts->basic, search_base_options[o],
+            ret = dp_opt_set_string(opts->basic, search_base_options[c],
                                     naming_context);
             if (ret != EOK) {
                 DEBUG(1, ("dp_opt_set_string failed.\n"));

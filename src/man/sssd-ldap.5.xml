@@ -1056,9 +1056,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>ldap_search_base</emphasis> or the value
-                            of the defaultNamingContext or namingContexts
-                            attribute of the RootDSE of the LDAP server.
+                            <emphasis>ldap_search_base</emphasis>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1072,9 +1070,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>ldap_search_base</emphasis> or the value
-                            of the defaultNamingContext or namingContexts
-                            attribute of the RootDSE of the LDAP server.
+                            <emphasis>ldap_search_base</emphasis>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1088,9 +1084,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: the value of
-                            <emphasis>ldap_search_base</emphasis> or the value
-                            of the defaultNamingContext or namingContexts
-                            attribute of the RootDSE of the LDAP server.
+                            <emphasis>ldap_search_base</emphasis>
                         </para>
                     </listitem>
                 </varlistentry>
