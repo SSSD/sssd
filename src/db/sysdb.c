@@ -54,33 +54,109 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
                                        const char *domain,
                                        const char *subtree_name)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
-                          subtree_name, domain);
+    errno_t ret;
+    char *clean_subtree;
+    struct ldb_dn *dn = NULL;
+
+    ret = sysdb_dn_sanitize(NULL, subtree_name, &clean_subtree);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        clean_subtree, domain);
+    talloc_free(clean_subtree);
+
+    return dn;
 }
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
                                 const char *domain, const char *object_name,
                                 const char *subtree_name)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM, object_name,
-                          subtree_name, domain);
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    char *clean_name;
+    char *clean_subtree;
+    struct ldb_dn *dn = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return NULL;
+    }
+
+    ret = sysdb_dn_sanitize(tmp_ctx, object_name, &clean_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_dn_sanitize(tmp_ctx, subtree_name, &clean_subtree);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM, clean_name,
+                        clean_subtree, domain);
+
+done:
+    talloc_free(tmp_ctx);
+    return dn;
 }
 
 struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
                              const char *domain, const char *name)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_USER, name, domain);
+    errno_t ret;
+    char *clean_name;
+    struct ldb_dn *dn;
+
+    ret = sysdb_dn_sanitize(NULL, name, &clean_name);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_USER,
+                        clean_name, domain);
+    talloc_free(clean_name);
+
+    return dn;
 }
 
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain, const char *name)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_GROUP, name, domain);
+    errno_t ret;
+    char *clean_name;
+    struct ldb_dn *dn;
+
+    ret = sysdb_dn_sanitize(NULL, name, &clean_name);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_GROUP,
+                        clean_name, domain);
+    talloc_free(clean_name);
+
+    return dn;
 }
 
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *ctx, void *memctx,
                                  const char *domain, const char *name)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP, name, domain);
+    errno_t ret;
+    char *clean_name;
+    struct ldb_dn *dn;
+
+    ret = sysdb_dn_sanitize(NULL, name, &clean_name);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP,
+                        clean_name, domain);
+    talloc_free(clean_name);
+
+    return dn;
 }
 
 struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *ctx, void *memctx,
