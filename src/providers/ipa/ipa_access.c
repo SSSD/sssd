@@ -757,7 +757,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->current_item = 0;
     state->hbac_host_info = NULL;
 
-    state->host_filter = talloc_asprintf(state, "(|");
+    state->host_filter = talloc_asprintf(state, "(&(objectclass=ipaHost)(|");
     if (state->host_filter == NULL) {
         DEBUG(1, ("Failed to create filter.\n"));
         ret = ENOMEM;
@@ -770,16 +770,17 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         }
 
         state->host_filter = talloc_asprintf_append(state->host_filter,
-                                             "(&(objectclass=ipaHost)"
-                                             "(|(fqdn=%s)(serverhostname=%s)))",
-                                             host, host);
+                                         "(%s=%s)(%s=%s)",
+                                         IPA_HOST_FQDN, host,
+                                         IPA_HOST_SERVERHOSTNAME, host);
+
         if (state->host_filter == NULL) {
             ret = ENOMEM;
             goto fail;
         }
         talloc_zfree(host);
     }
-    state->host_filter = talloc_asprintf_append(state->host_filter, ")");
+    state->host_filter = talloc_asprintf_append(state->host_filter, "))");
     if (state->host_filter == NULL) {
         ret = ENOMEM;
         goto fail;
