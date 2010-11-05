@@ -324,7 +324,7 @@ int set_seuser(const char *login_name, const char *seuser_name)
     }
 
     ret = semanage_commit(handle);
-    if (ret != 0) {
+    if (ret < 0) {
         DEBUG(1, ("Cannot commit SELinux transaction\n"));
         ret = EIO;
         goto done;
@@ -394,7 +394,7 @@ int del_seuser(const char *login_name)
     }
 
     ret = semanage_commit(handle);
-    if (ret != 0) {
+    if (ret < 0) {
         DEBUG(1, ("Cannot commit SELinux transaction\n"));
         ret = EIO;
         goto done;
