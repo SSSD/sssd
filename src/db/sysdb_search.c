@@ -37,6 +37,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
+    char *sanitized_name;
     int ret;
 
     if (!domain) {
@@ -55,8 +56,14 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmpctx, name, &sanitized_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, SYSDB_PWNAM_FILTER, name);
+                     LDB_SCOPE_SUBTREE, attrs, SYSDB_PWNAM_FILTER,
+                     sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -206,6 +213,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmpctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *fmt_filter;
+    char *sanitized_name;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     int ret;
@@ -233,8 +241,14 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmpctx, name, &sanitized_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, fmt_filter, name);
+                     LDB_SCOPE_SUBTREE, attrs, fmt_filter,
+                     sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -472,6 +486,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmpctx;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
+    char *sanitized_name;
     int ret;
 
     if (!domain) {
@@ -490,9 +505,14 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmpctx, name, &sanitized_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
-                     SYSDB_PWNAM_FILTER, name);
+                     SYSDB_PWNAM_FILTER, sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -769,6 +789,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
     static const char *attrs[] = SYSDB_NETGR_ATTRS;
     struct ldb_dn *base_dn;
     struct ldb_result *result;
+    char *sanitized_netgroup;
     char *netgroup_dn;
     int lret;
     errno_t ret;
@@ -790,8 +811,13 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmp_ctx, netgroup, &sanitized_netgroup);
+    if (ret != EOK) {
+        goto done;
+    }
+
     netgroup_dn = talloc_asprintf(tmp_ctx, SYSDB_TMPL_NETGROUP,
-                                  netgroup, domain->name);
+                                  sanitized_netgroup, domain->name);
     if (!netgroup_dn) {
         ret = ENOMEM;
         goto done;
@@ -800,7 +826,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
     lret = ldb_search(ctx->ldb, tmp_ctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attrs,
                      SYSDB_NETGR_TRIPLES_FILTER,
-                     netgroup, netgroup_dn);
+                     sanitized_netgroup, netgroup_dn);
     ret = sysdb_error_to_errno(lret);
     if (ret != EOK) {
         goto done;
@@ -824,6 +850,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmpctx;
     struct ldb_dn *base_dn;
     struct ldb_result *result;
+    char *sanitized_netgroup;
     int ret;
 
     if (!domain) {
@@ -842,9 +869,15 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmpctx, netgrname, &sanitized_netgroup);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = ldb_search(ctx->ldb, tmpctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
-                     SYSDB_NETGR_FILTER, netgrname);
+                     SYSDB_NETGR_FILTER,
+                     sanitized_netgroup);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
