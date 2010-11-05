@@ -114,6 +114,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct ldb_result *res;
     const char *basedn;
+    char *clean_username;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_access_req_ctx);
     if (req == NULL) {
@@ -204,17 +205,24 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     talloc_zfree(res);
 
     /* Construct the filter */
+
+    ret = sss_filter_sanitize(state, state->username, &clean_username);
+    if (ret != EOK) {
+        goto failed;
+    }
+
     state->filter = talloc_asprintf(
         state,
         "(&(%s=%s)(objectclass=%s)%s)",
         state->sdap_ctx->opts->user_map[SDAP_AT_USER_NAME].name,
-        state->username,
+        clean_username,
         state->sdap_ctx->opts->user_map[SDAP_OC_USER].name,
         state->access_ctx->filter);
     if (state->filter == NULL) {
         DEBUG(0, ("Could not construct access filter\n"));
         goto failed;
     }
+    talloc_zfree(clean_username);
 
     DEBUG(6, ("Checking filter against LDAP\n"));
 

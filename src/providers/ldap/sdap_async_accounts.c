@@ -1857,6 +1857,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     struct sdap_initgr_rfc2307_state *state;
     const char *filter;
     const char **attrs;
+    char *clean_name;
     errno_t ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307_state);
@@ -1881,13 +1882,21 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    ret = sss_filter_sanitize(state, name, &clean_name);
+    if (ret != EOK) {
+        talloc_free(req);
+        return NULL;
+    }
+
     filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
-                             name, opts->group_map[SDAP_OC_GROUP].name);
+                             clean_name,
+                             opts->group_map[SDAP_OC_GROUP].name);
     if (!filter) {
         talloc_zfree(req);
         return NULL;
     }
+    talloc_zfree(clean_name);
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
                                    state->sh, base_dn, LDAP_SCOPE_SUBTREE,
@@ -3124,6 +3133,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     struct sdap_initgr_rfc2307_state *state;
     const char *filter;
     const char **attrs;
+    char *clean_orig_dn;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307_state);
     if (!req) return NULL;
@@ -3143,13 +3153,21 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         return NULL;
     }
 
+    ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
+    if (ret != EOK) {
+        talloc_free(req);
+        return NULL;
+    }
+
     filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
-                             orig_dn, opts->group_map[SDAP_OC_GROUP].name);
+                             clean_orig_dn,
+                             opts->group_map[SDAP_OC_GROUP].name);
     if (!filter) {
         talloc_zfree(req);
         return NULL;
     }
+    talloc_zfree(clean_orig_dn);
 
     DEBUG(6, ("Looking up parent groups for user [%s]\n", orig_dn));
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
@@ -3455,6 +3473,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     char *filter;
     const char *orig_dn;
     const char **attrs;
+    char *clean_orig_dn;
     struct sdap_rfc2307bis_nested_ctx *state =
             tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
 
@@ -3529,15 +3548,21 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto error;
     }
 
+    ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
+    if (ret != EOK) {
+        goto error;
+    }
+
     filter = talloc_asprintf(
             tmp_ctx, "(&(%s=%s)(objectclass=%s))",
             state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
-            orig_dn,
+            clean_orig_dn,
             state->opts->group_map[SDAP_OC_GROUP].name);
     if (!filter) {
         ret = ENOMEM;
         goto error;
     }
+    talloc_zfree(clean_orig_dn);
 
     DEBUG(6, ("Looking up parent groups for group [%s]\n", orig_dn));
     subreq = sdap_get_generic_send(state, state->ev, state->opts,

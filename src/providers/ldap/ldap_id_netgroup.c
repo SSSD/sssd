@@ -59,6 +59,7 @@ struct tevent_req *netgroup_get_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct netgroup_get_state *state;
+    char *clean_name;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct netgroup_get_state);
@@ -79,15 +80,21 @@ struct tevent_req *netgroup_get_send(TALLOC_CTX *memctx,
     state->domain = state->ctx->be->domain;
     state->name = name;
 
+    ret = sss_filter_sanitize(state, name, &clean_name);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
                             ctx->opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
-                            name,
+                            clean_name,
                             ctx->opts->netgroup_map[SDAP_OC_NETGROUP].name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
         ret = ENOMEM;
         goto fail;
     }
+    talloc_zfree(clean_name);
 
     ret = build_attrs_from_map(state, ctx->opts->netgroup_map,
                                SDAP_OPTS_NETGROUP, &state->attrs);

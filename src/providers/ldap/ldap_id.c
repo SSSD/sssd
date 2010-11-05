@@ -64,6 +64,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct users_get_state *state;
     const char *attr_name;
+    char *clean_name;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct users_get_state);
@@ -97,14 +98,20 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    ret = sss_filter_sanitize(state, name, &clean_name);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                                    attr_name, name,
+                                    attr_name, clean_name,
                                     ctx->opts->user_map[SDAP_OC_USER].name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
         ret = ENOMEM;
         goto fail;
     }
+    talloc_zfree(clean_name);
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->user_map,
@@ -290,6 +297,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct groups_get_state *state;
     const char *attr_name;
+    char *clean_name;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
@@ -323,14 +331,20 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    ret = sss_filter_sanitize(state, name, &clean_name);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                                    attr_name, name,
+                                    attr_name, clean_name,
                                     ctx->opts->group_map[SDAP_OC_GROUP].name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
         ret = ENOMEM;
         goto fail;
     }
+    talloc_zfree(clean_name);
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->group_map,
