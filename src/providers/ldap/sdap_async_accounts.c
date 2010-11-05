@@ -1915,6 +1915,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     struct ldb_message_element *groups;
     size_t count;
     const char *attrs[2];
+    char *clean_dn;
     int ret;
     int i;
 
@@ -1967,14 +1968,23 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
 
         /* Get a list of the groups by groupname only */
         for (i=0; i < groups->num_values; i++) {
+            ret = sysdb_dn_sanitize(state,
+                                    (const char *)groups->values[i].data,
+                                    &clean_dn);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+
             ret = sysdb_group_dn_name(state->sysdb,
                                       sysdb_grouplist,
-                                      (const char *)groups->values[i].data,
+                                      clean_dn,
                                       &sysdb_grouplist[i]);
             if (ret != EOK) {
                 tevent_req_error(req, ENOMEM);
                 return;
             }
+            talloc_zfree(clean_dn);
         }
         sysdb_grouplist[groups->num_values] = NULL;
     }
