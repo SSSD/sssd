@@ -40,7 +40,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
     { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
+    { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 errno_t check_and_export_options(struct dp_option *opts,
@@ -49,6 +50,8 @@ errno_t check_and_export_options(struct dp_option *opts,
     int ret;
     const char *realm;
     const char *dummy;
+    char *str;
+    krb5_deltat lifetime;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -64,6 +67,25 @@ errno_t check_and_export_options(struct dp_option *opts,
     if (ret != EOK) {
         DEBUG(2, ("setenv %s failed, authentication might fail.\n",
                   SSSD_KRB5_REALM));
+    }
+
+    str = dp_opt_get_string(opts, KRB5_RENEWABLE_LIFETIME);
+    if (str == NULL) {
+        DEBUG(5, ("No renewable lifetime configured.\n"));
+    } else {
+        ret = krb5_string_to_deltat(str, &lifetime);
+        if (ret != 0) {
+            DEBUG(1, ("Invalid value [%s] for krb5_renewable_lifetime.\n",
+                      str));
+            return EINVAL;
+        }
+
+        ret = setenv(SSSD_KRB5_RENEWABLE_LIFETIME, str, 1);
+        if (ret != EOK) {
+            DEBUG(2, ("setenv [%s] failed.\n",
+                      SSSD_KRB5_RENEWABLE_LIFETIME));
+            return ret;
+        }
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);

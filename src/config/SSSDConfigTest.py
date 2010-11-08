@@ -549,7 +549,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_keytab',
              'krb5_validate',
              'krb5_store_password_if_offline',
-             'krb5_auth_timeout'])
+             'krb5_auth_timeout',
+             'krb5_renewable_lifetime'])
 
         options = domain.list_options()
 
@@ -723,7 +724,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'krb5_keytab',
             'krb5_validate',
             'krb5_store_password_if_offline',
-            'krb5_auth_timeout']
+            'krb5_auth_timeout',
+            'krb5_renewable_lifetime']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -871,7 +873,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_keytab',
              'krb5_validate',
              'krb5_store_password_if_offline',
-             'krb5_auth_timeout'])
+             'krb5_auth_timeout',
+             'krb5_renewable_lifetime'])
 
         options = domain.list_options()
 

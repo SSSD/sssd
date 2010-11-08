@@ -104,6 +104,7 @@ option_strings = {
     'krb5_keytab' : _("Location of the keytab to validate credentials"),
     'krb5_validate' : _("Enable credential validation"),
     'krb5_store_password_if_offline' : _("Store password if offline for later online authentication"),
+    'krb5_renewable_lifetime' : _("Renewable lifetime of the TGT"),
 
     # [provider/krb5/chpass]
     'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),

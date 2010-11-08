@@ -1084,6 +1084,8 @@ static int krb5_cleanup(void *ptr)
 static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr = 0;
+    char *lifetime_str;
+    krb5_deltat lifetime;
 
     kr->krb5_ctx = talloc_zero(kr, struct krb5_child_ctx);
     if (kr->krb5_ctx == NULL) {
@@ -1162,9 +1164,23 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         goto failed;
     }
 
+    lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);
+    if (lifetime_str == NULL) {
+        DEBUG(7, ("Cannot read [%s] from environment.\n",
+                  SSSD_KRB5_RENEWABLE_LIFETIME));
+    } else {
+        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
+        if (kerr != 0) {
+            DEBUG(1, ("krb5_string_to_deltat failed for [%s].\n",
+                      lifetime_str));
+            KRB5_DEBUG(1, kerr);
+            goto failed;
+        }
+        krb5_get_init_creds_opt_set_renew_life(kr->options, lifetime);
+    }
+
 /* TODO: set options, e.g.
  *  krb5_get_init_creds_opt_set_tkt_life
- *  krb5_get_init_creds_opt_set_renew_life
  *  krb5_get_init_creds_opt_set_forwardable
  *  krb5_get_init_creds_opt_set_proxiable
  *  krb5_get_init_creds_opt_set_etype_list

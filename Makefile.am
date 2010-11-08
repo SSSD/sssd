@@ -531,6 +531,7 @@ krb5_utils_tests_CFLAGS = \
 krb5_utils_tests_LDADD = \
     $(SSSD_LIBS)\
     $(CARES_LIBS) \
+    $(KRB5_LIBS) \
     $(CHECK_LIBS) \
     libsss_test_common.la
 
