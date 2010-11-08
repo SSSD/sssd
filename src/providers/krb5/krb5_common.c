@@ -41,7 +41,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 errno_t check_and_export_options(struct dp_option *opts,
@@ -84,6 +85,25 @@ errno_t check_and_export_options(struct dp_option *opts,
         if (ret != EOK) {
             DEBUG(2, ("setenv [%s] failed.\n",
                       SSSD_KRB5_RENEWABLE_LIFETIME));
+            return ret;
+        }
+    }
+
+    str = dp_opt_get_string(opts, KRB5_LIFETIME);
+    if (str == NULL) {
+        DEBUG(5, ("No TGT lifetime configured.\n"));
+    } else {
+        ret = krb5_string_to_deltat(str, &lifetime);
+        if (ret != 0) {
+            DEBUG(1, ("Invalid value [%s] for krb5_lifetime.\n",
+                      str));
+            return EINVAL;
+        }
+
+        ret = setenv(SSSD_KRB5_LIFETIME, str, 1);
+        if (ret != EOK) {
+            DEBUG(2, ("setenv [%s] failed.\n",
+                      SSSD_KRB5_LIFETIME));
             return ret;
         }
     }

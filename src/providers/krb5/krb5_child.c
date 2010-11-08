@@ -1179,8 +1179,22 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         krb5_get_init_creds_opt_set_renew_life(kr->options, lifetime);
     }
 
+    lifetime_str = getenv(SSSD_KRB5_LIFETIME);
+    if (lifetime_str == NULL) {
+        DEBUG(7, ("Cannot read [%s] from environment.\n",
+                  SSSD_KRB5_LIFETIME));
+    } else {
+        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
+        if (kerr != 0) {
+            DEBUG(1, ("krb5_string_to_deltat failed for [%s].\n",
+                      lifetime_str));
+            KRB5_DEBUG(1, kerr);
+            goto failed;
+        }
+        krb5_get_init_creds_opt_set_tkt_life(kr->options, lifetime);
+    }
+
 /* TODO: set options, e.g.
- *  krb5_get_init_creds_opt_set_tkt_life
  *  krb5_get_init_creds_opt_set_forwardable
  *  krb5_get_init_creds_opt_set_proxiable
  *  krb5_get_init_creds_opt_set_etype_list

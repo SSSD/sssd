@@ -300,6 +300,38 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_lifetime (string)</term>
+                    <listitem>
+                        <para>
+                            Request ticket with a with a lifetime given by an
+                            integer immediately followed by one of the following
+                            delimiters:
+                        </para>
+                        <para>
+                            <emphasis>s</emphasis> seconds
+                        </para>
+                        <para>
+                            <emphasis>m</emphasis> minutes
+                        </para>
+                        <para>
+                            <emphasis>h</emphasis> hours
+                        </para>
+                        <para>
+                            <emphasis>d</emphasis> days.
+                        </para>
+                        <para>
+                            Please note that it is not possible to mix units.
+                            If you want to set the lifetime to one and a half
+                            hours please use '90m' instead of '1h30m'.
+                        </para>
+                        <para>
+                            Default: not set, i.e. the default ticket lifetime
+                            configured on the KDC.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
