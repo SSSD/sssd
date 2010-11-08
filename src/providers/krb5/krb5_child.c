@@ -620,6 +620,12 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     char *changepw_princ = NULL;
     krb5_prompter_fct prompter = sss_krb5_prompter;
 
+    if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_PASSWORD) {
+        pam_status = PAM_CRED_INSUFFICIENT;
+        kerr = KRB5KRB_ERR_GENERIC;
+        goto sendresponse;
+    }
+
     pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
                               kr->pd->authtok_size);
     if (pass_str == NULL) {
@@ -759,6 +765,12 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     char *pass_str = NULL;
     char *changepw_princ = NULL;
     int pam_status = PAM_SYSTEM_ERR;
+
+    if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_PASSWORD) {
+        pam_status = PAM_CRED_INSUFFICIENT;
+        kerr = KRB5KRB_ERR_GENERIC;
+        goto sendresponse;
+    }
 
     pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
                               kr->pd->authtok_size);
