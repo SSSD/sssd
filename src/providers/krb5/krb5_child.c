@@ -863,6 +863,89 @@ static errno_t kuserok_child(int fd, struct krb5_req *kr)
     return ret;
 }
 
+static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
+{
+    int ret;
+    int status = PAM_AUTHTOK_ERR;
+    int kerr;
+    char *ccname;
+    krb5_ccache ccache = NULL;
+
+    if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_CCFILE) {
+        DEBUG(1, ("Unsupported authtok type for TGT renewal [%d].\n",
+                  kr->pd->authtok_type));
+        goto done;
+    }
+
+    ccname = talloc_strndup(kr, (char *) kr->pd->authtok, kr->pd->authtok_size);
+    if (ccname == NULL) {
+        DEBUG(1, ("talloc_strndup failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_cc_resolve(kr->ctx, ccname, &ccache);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    kerr = krb5_get_renewed_creds(kr->ctx, kr->creds, kr->princ, ccache, NULL);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    if (kr->validate) {
+        kerr = validate_tgt(kr);
+        if (kerr != 0) {
+            KRB5_DEBUG(1, kerr);
+            goto done;
+        }
+
+    } else {
+        DEBUG(9, ("TGT validation is disabled.\n"));
+    }
+
+    if (kr->validate) {
+        /* We drop root privileges which were needed to read the keytab file
+         * for the validation of the credentials or for FAST here to run the
+         * ccache I/O operations with user privileges. */
+        ret = become_user(kr->uid, kr->gid);
+        if (ret != EOK) {
+            DEBUG(1, ("become_user failed.\n"));
+            goto done;
+        }
+    }
+
+    kerr = krb5_cc_initialize(kr->ctx, ccache, kr->princ);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    kerr = krb5_cc_store_cred(kr->ctx, ccache, kr->creds);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    status = PAM_SUCCESS;
+
+done:
+    krb5_free_cred_contents(kr->ctx, kr->creds);
+
+    if (ccache != NULL) {
+        krb5_cc_close(kr->ctx, ccache);
+    }
+
+    ret = sendresponse(fd, 0, status, kr);
+    if (ret != EOK) {
+        DEBUG(1, ("sendresponse failed.\n"));
+    }
+
+    return ret;
+}
+
 static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
 {
     int ret;
@@ -903,6 +986,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     p += len;
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE ||
+        pd->cmd == SSS_CMD_RENEW ||
         pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || pd->cmd == SSS_PAM_CHAUTHTOK) {
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
         if ((p + len ) > size) return EINVAL;
@@ -1016,6 +1100,9 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
             break;
         case SSS_PAM_ACCT_MGMT:
             kr->child_req = kuserok_child;
+            break;
+        case SSS_CMD_RENEW:
+            kr->child_req = renew_tgt_child;
             break;
         default:
             DEBUG(1, ("PAM command [%d] not supported.\n", kr->pd->cmd));

@@ -181,7 +181,9 @@ enum sss_cli_command {
                                         * operation where the PAM_PRELIM_CHECK
                                         * flag is set, see pam_sm_chauthtok(3)
                                         * for details */
-
+    SSS_CMD_RENEW            = 0x00F8, /**< Renew a credential with a limited
+                                        * lifetime, e.g. a Kerberos Ticket
+                                        * Granting Ticket (TGT) */
 };
 
 /**
@@ -227,6 +229,10 @@ enum sss_authtok_type {
                                           * available */
     SSS_AUTHTOK_TYPE_PASSWORD =  0x0001, /**< Authentication token is a
                                           * password, it may or may no contain
+                                          * a trailing \\0 */
+    SSS_AUTHTOK_TYPE_CCFILE =    0x0002, /**< Authentication token is a path to
+                                          * a Kerberos credential cache file,
+                                          * it may or may no contain
                                           * a trailing \\0 */
 };
 
