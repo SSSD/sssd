@@ -39,6 +39,9 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
+#define TIME_T_MAX LONG_MAX
+#define int64_to_time_t(val) ((time_t)((val) < TIME_T_MAX ? val : TIME_T_MAX))
+
 static errno_t safe_remove_old_ccache_file(const char *old_ccache_file,
                                            const char *new_ccache_file)
 {
@@ -688,6 +691,10 @@ static void krb5_child_done(struct tevent_req *subreq)
     int32_t msg_status;
     int32_t msg_type;
     int32_t msg_len;
+    int64_t time_data;
+    struct tgt_times tgtt;
+
+    memset(&tgtt, 0, sizeof(tgtt));
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -749,6 +756,20 @@ static void krb5_child_done(struct tevent_req *subreq)
                 ret = ENOMEM;
                 goto done;
             }
+        }
+
+        if (msg_type == SSS_KRB5_INFO_TGT_LIFETIME &&
+            msg_len == 4*sizeof(int64_t)) {
+            SAFEALIGN_COPY_INT64(&time_data, buf+p, NULL);
+            tgtt.authtime = int64_to_time_t(time_data);
+            SAFEALIGN_COPY_INT64(&time_data, buf+p+sizeof(int64_t), NULL);
+            tgtt.starttime = int64_to_time_t(time_data);
+            SAFEALIGN_COPY_INT64(&time_data, buf+p+2*sizeof(int64_t), NULL);
+            tgtt.endtime = int64_to_time_t(time_data);
+            SAFEALIGN_COPY_INT64(&time_data, buf+p+3*sizeof(int64_t), NULL);
+            tgtt.renew_till = int64_to_time_t(time_data);
+            DEBUG(7, ("TGT times are [%d][%d][%d][%d].\n", tgtt.authtime,
+                      tgtt.starttime, tgtt.endtime, tgtt.renew_till));
         }
 
         ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);

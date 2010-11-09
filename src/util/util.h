@@ -185,6 +185,12 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     safealign_memcpy(dest, &CV_MACRO_val, sizeof(type), pctr); \
 } while(0)
 
+#define SAFEALIGN_COPY_INT64(dest, src, pctr) \
+    safealign_memcpy(dest, src, sizeof(int64_t), pctr)
+
+#define SAFEALIGN_SET_INT64(dest, value, pctr) \
+    SAFEALIGN_SET_VALUE(dest, value, int64_t, pctr)
+
 #define SAFEALIGN_COPY_UINT32(dest, src, pctr) \
     safealign_memcpy(dest, src, sizeof(uint32_t), pctr)
 

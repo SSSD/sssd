@@ -456,6 +456,25 @@ static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
     return EOK;
 }
 
+static errno_t add_ticket_times_to_response(struct krb5_req *kr)
+{
+    int ret;
+    int64_t t[4];
+
+    t[0] = (int64_t) kr->creds->times.authtime;
+    t[1] = (int64_t) kr->creds->times.starttime;
+    t[2] = (int64_t) kr->creds->times.endtime;
+    t[3] = (int64_t) kr->creds->times.renew_till;
+
+    ret = pam_add_response(kr->pd, SSS_KRB5_INFO_TGT_LIFETIME,
+                           4*sizeof(int64_t), (uint8_t *) t);
+    if (ret != EOK) {
+        DEBUG(1, ("pack_response_packet failed.\n"));
+    }
+
+    return ret;
+}
+
 static krb5_error_code validate_tgt(struct krb5_req *kr)
 {
     krb5_error_code kerr;
@@ -593,6 +612,11 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
+    }
+
+    ret = add_ticket_times_to_response(kr);
+    if (ret != EOK) {
+        DEBUG(1, ("add_ticket_times_to_response failed.\n"));
     }
 
     kerr = 0;
@@ -939,6 +963,11 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
+    }
+
+    ret = add_ticket_times_to_response(kr);
+    if (ret != EOK) {
+        DEBUG(1, ("add_ticket_times_to_response failed.\n"));
     }
 
     status = PAM_SUCCESS;
