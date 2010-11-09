@@ -916,6 +916,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
         if (kr->keytab == NULL) return ENOMEM;
         p += len;
 
+        SAFEALIGN_COPY_UINT32_CHECK(&pd->authtok_type, buf + p, size, &p);
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
         if ((p + len) > size) return EINVAL;
         pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
@@ -930,6 +931,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     }
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+        SAFEALIGN_COPY_UINT32_CHECK(&pd->newauthtok_type, buf + p, size, &p);
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
         if ((p + len) > size) return EINVAL;
