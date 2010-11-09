@@ -373,6 +373,8 @@ static errno_t filter_responses(struct response_data *resp_list,
                 default:
                     DEBUG(7, ("User info type [%d] not filtered.\n"));
             }
+        } else if (resp->type & SSS_SERVER_INFO) {
+            resp->do_not_send_to_client = true;
         }
 
         resp = resp->next;

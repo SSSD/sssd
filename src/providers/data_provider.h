@@ -193,6 +193,14 @@ struct pam_data {
 };
 
 /* from dp_auth_util.c */
+#define SSS_SERVER_INFO 0x80000000
+
+#define SSS_KRB5_INFO 0x40000000
+#define SSS_LDAP_INFO 0x20000000
+#define SSS_PROXY_INFO 0x10000000
+
+#define SSS_KRB5_INFO_TGT_LIFETIME (SSS_SERVER_INFO|SSS_KRB5_INFO|0x01)
+
 errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *old_pd,
                       struct pam_data **new_pd);
 void pam_print_data(int l, struct pam_data *pd);
