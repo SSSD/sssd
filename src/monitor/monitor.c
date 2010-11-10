@@ -2167,7 +2167,7 @@ int main(int argc, const char *argv[])
     uid = getuid();
     if (uid != 0) {
         DEBUG(1, ("Running under %d, must be root\n", uid));
-        ERROR("sssd must be run as root\n");
+        sss_log(SSS_LOG_ALERT, "sssd must be run as root");
         return 8;
     }
 
@@ -2202,9 +2202,10 @@ int main(int argc, const char *argv[])
     ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL);
     if (ret == EOK) {
         DEBUG(0, ("WARNING: nscd appears to be running\n"));
-        ERROR("nscd socket was detected.  As nscd caching capabilities "
-              "may conflict with SSSD, it is recommended to not run "
-              "nscd in parallel with SSSD\n");
+        sss_log(SSS_LOG_NOTICE,
+                "nscd socket was detected.  As nscd caching capabilities "
+                "may conflict with SSSD, it is recommended to not run "
+                "nscd in parallel with SSSD");
     }
 
     /* Parse config file, fail if cannot be done */
@@ -2212,12 +2213,13 @@ int main(int argc, const char *argv[])
     if (ret != EOK) {
         if (ret == EPERM) {
             DEBUG(1, ("Cannot read configuration file %s\n", config_file));
-            ERROR("Cannot read config file %s, please check if permissions "
-                  "are 0600 and the file is owned by root.root\n", config_file);
+            sss_log(SSS_LOG_ALERT,
+                    "Cannot read config file %s, please check if permissions "
+                    "are 0600 and the file is owned by root.root", config_file);
         } else {
             DEBUG(1, ("Error loading configuration database: [%d]: %s",
                       ret, strerror(ret)));
-            ERROR("Cannot load configuration database\n");
+            sss_log(SSS_LOG_ALERT, "Cannot load configuration database");
         }
         return 4;
     }
