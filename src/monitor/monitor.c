@@ -1145,15 +1145,74 @@ static void monitor_quit(struct tevent_context *ev,
                          void *siginfo,
                          void *private_data)
 {
+    struct mt_ctx *mt_ctx = talloc_get_type(private_data, struct mt_ctx);
+    struct mt_svc *svc;
+    pid_t pid;
+    int status;
+    errno_t error;
+
     DEBUG(8, ("Received shutdown command\n"));
-    monitor_cleanup();
+
+    DEBUG(0, ("Monitor received %s: terminating children\n",
+              strsignal(signum)));
+
+    /* Kill all of our known children manually */
+    DLIST_FOR_EACH(svc, mt_ctx->svc_list) {
+        if (svc->pid == 0) {
+            /* The local provider has no PID */
+            continue;
+        }
+
+        DEBUG(1, ("Terminating [%s]\n", svc->name));
+        kill(svc->pid, SIGTERM);
+
+        do {
+            errno = 0;
+            pid = waitpid(svc->pid, &status, 0);
+            if (pid == -1) {
+                /* An error occurred while waiting */
+                error = errno;
+                if (error != EINTR) {
+                    DEBUG(0, ("[%d][%s] while waiting for [%s]\n",
+                              error, strerror(error), svc->name));
+                    /* Forcibly kill this child */
+                    kill(svc->pid, SIGKILL);
+                    break;
+                }
+            } else {
+                error = 0;
+                if WIFEXITED(status) {
+                    DEBUG(1, ("Child [%s] exited gracefully\n", svc->name));
+                } else if WIFSIGNALED(status) {
+                    DEBUG(1, ("Child [%s] terminated with a signal\n", svc->name));
+                } else {
+                    DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
+                    /* Forcibly kill this child */
+                    kill(svc->pid, SIGKILL);
+                }
+            }
+        } while (error == EINTR);
+    }
 
 #if HAVE_GETPGRP
+    /* Kill any remaining children in our process group, just in case
+     * we have any leftover children we don't expect. For example, if
+     * a krb5_child or ldap_child is running at the same moment.
+     */
+    error = 0;
     if (getpgrp() == getpid()) {
-        DEBUG(0,("%s: killing children\n", strsignal(signum)));
         kill(-getpgrp(), SIGTERM);
+        do {
+            errno = 0;
+            pid = waitpid(0, &status, 0);
+            if (pid == -1) {
+                error = errno;
+            }
+        } while (error == EINTR || pid > 0);
     }
 #endif
+
+    monitor_cleanup();
 
     exit(0);
 }
