@@ -34,6 +34,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
                  struct sdap_attr_map **_map)
 {
     struct sdap_attr_map *map;
+    char *name;
     int i, ret;
 
     map = talloc_array(memctx, struct sdap_attr_map, num_entries);
@@ -50,8 +51,26 @@ int sdap_get_map(TALLOC_CTX *memctx,
         ret = confdb_get_string(cdb, map, conf_path,
                                 map[i].opt_name,
                                 map[i].def_name,
-                                &map[i].name);
-        if ((ret != EOK) || (map[i].def_name && !map[i].name)) {
+                                &name);
+        if (ret != EOK) {
+            DEBUG(0, ("Failed to retrieve value for %s\n", map[i].opt_name));
+            talloc_zfree(map);
+            return EINVAL;
+        }
+
+        if (name) {
+            ret = sss_filter_sanitize(map, name, &map[i].name);
+            if (ret != EOK) {
+                DEBUG(1, ("Could not sanitize attribute [%s]\n", name));
+                talloc_zfree(map);
+                return EINVAL;
+            }
+            talloc_zfree(name);
+        } else {
+            map[i].name = NULL;
+        }
+
+        if (map[i].def_name && !map[i].name) {
             DEBUG(0, ("Failed to retrieve value for %s\n", map[i].opt_name));
             if (ret != EOK) {
                 talloc_zfree(map);
