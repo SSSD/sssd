@@ -80,6 +80,11 @@ errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                                            struct be_ctx *be_ctx,
                                            struct tevent_context *ev);
 
+errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
+                       struct tevent_context *ev, time_t renew_intv);
+errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
+                               struct tgt_times *tgtt, struct pam_data *pd);
+
 /* krb5_access.c */
 struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,

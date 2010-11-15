@@ -56,6 +56,7 @@ enum krb5_opts {
     KRB5_STORE_PASSWORD_IF_OFFLINE,
     KRB5_RENEWABLE_LIFETIME,
     KRB5_LIFETIME,
+    KRB5_RENEW_INTERVAL,
 
     KRB5_OPTS
 };
@@ -77,6 +78,7 @@ struct krb5_service {
 
 struct fo_service;
 struct deferred_auth_ctx;
+struct renew_tgt_ctx;
 
 struct krb5_ctx {
     /* opts taken from kinit */
@@ -111,6 +113,7 @@ struct krb5_ctx {
     pcre *illegal_path_re;
 
     struct deferred_auth_ctx *deferred_auth_ctx;
+    struct renew_tgt_ctx *renew_tgt_ctx;
 };
 
 struct remove_info_files_ctx {

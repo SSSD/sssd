@@ -210,6 +210,7 @@ static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_CMD_RENEW:
             return talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                                    struct krb5_ctx);
             break;
@@ -327,6 +328,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK:
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
@@ -786,6 +788,19 @@ static void krb5_child_done(struct tevent_req *subreq)
         }
     }
 
+    if (msg_status == PAM_SUCCESS &&
+        dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0 &&
+        (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_CMD_RENEW ||
+         pd->cmd == SSS_PAM_CHAUTHTOK) &&
+        tgtt.renew_till > tgtt.endtime && kr->ccname != NULL) {
+        DEBUG(7, ("Adding [%s] for automatic renewal.\n", kr->ccname));
+        ret = add_tgt_to_renew_table(kr->krb5_ctx, kr->ccname, &tgtt, pd);
+        if (ret != EOK) {
+            DEBUG(1, ("add_tgt_to_renew_table failed, "
+                      "automatic renewal not possible.\n"));
+        }
+    }
+
     /* If the child request failed, but did not return an offline error code,
      * return with the status */
     if (msg_status != PAM_SUCCESS && msg_status != PAM_AUTHINFO_UNAVAIL &&
@@ -891,6 +906,7 @@ static struct tevent_req *krb5_next_server(struct tevent_req *req)
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_CMD_RENEW:
             fo_set_port_status(state->kr->srv, PORT_NOT_WORKING);
             next_req = krb5_next_kdc(req);
             break;
@@ -975,6 +991,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
 
         switch(pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
+            case SSS_CMD_RENEW:
             case SSS_PAM_CHAUTHTOK_PRELIM:
                 password = talloc_size(state, pd->authtok_size + 1);
                 if (password != NULL) {
@@ -1077,6 +1094,7 @@ void krb5_pam_handler(struct be_req *be_req)
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK_PRELIM:
         case SSS_PAM_CHAUTHTOK:
             req = krb5_auth_send(be_req, be_req->be_ctx->ev, be_req->be_ctx, pd,

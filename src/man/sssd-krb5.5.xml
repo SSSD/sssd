@@ -332,6 +332,24 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_renew_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            The time in seconds between two checks if the TGT
+                            should be renewed. TGTs are renewed if about half
+                            of their lifetime is exceeded.
+                        </para>
+                        <para>
+                             If this option is not set or 0 the automatic
+                             renewal is disabled.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

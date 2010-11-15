@@ -104,6 +104,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     buf->size = 6*sizeof(uint32_t) + strlen(kr->upn);
 
     if (kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
+        kr->pd->cmd == SSS_CMD_RENEW ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         buf->size += 4*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
@@ -137,6 +138,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     safealign_memcpy(&buf->data[rp], kr->upn, strlen(kr->upn), &rp);
 
     if (kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
+        kr->pd->cmd == SSS_CMD_RENEW ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(kr->ccname), &rp);

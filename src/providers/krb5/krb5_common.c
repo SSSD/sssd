@@ -42,7 +42,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER }
 };
 
 errno_t check_and_export_options(struct dp_option *opts,

@@ -56,6 +56,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     const char *errstr;
     int errval;
     int errpos;
+    time_t renew_intv;
 
     if (krb5_options == NULL) {
         krb5_options = talloc_zero(bectx, struct krb5_options);
@@ -124,6 +125,15 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         ret = init_delayed_online_authentication(ctx, bectx, bectx->ev);
         if (ret != EOK) {
             DEBUG(1, ("init_delayed_online_authentication failed.\n"));
+            goto fail;
+        }
+    }
+
+    renew_intv = dp_opt_get_int(ctx->opts, KRB5_RENEW_INTERVAL);
+    if (renew_intv > 0) {
+        ret = init_renew_tgt(ctx, bectx, bectx->ev, renew_intv);
+        if (ret != EOK) {
+            DEBUG(1, ("init_renew_tgt failed.\n"));
             goto fail;
         }
     }
