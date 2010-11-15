@@ -297,7 +297,7 @@ static Suite *files_suite(void)
     return s;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
     int number_failed;
     int opt;

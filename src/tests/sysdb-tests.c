@@ -2720,7 +2720,7 @@ START_TEST(test_odd_characters)
     struct sysdb_test_ctx *test_ctx;
     struct ldb_result *res;
     struct ldb_message *msg;
-    struct ldb_val *val;
+    const struct ldb_val *val;
     const char odd_username[] = "*(odd)\\user,name";
     const char odd_groupname[] = "*(odd\\*)\\group,name";
     const char odd_netgroupname[] = "*(odd\\*)\\netgroup,name";
