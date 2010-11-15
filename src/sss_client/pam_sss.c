@@ -310,7 +310,8 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
     int ret;
     int state = SSS_PAM_CONV_STD;
     struct pam_conv *conv;
-    struct pam_message *mesg[1];
+    const struct pam_message *mesg[1];
+    struct pam_message *pam_msg;
     struct pam_response *resp=NULL;
 
     if ((msg_style == PAM_TEXT_INFO || msg_style == PAM_ERROR_MSG) &&
@@ -330,22 +331,24 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
     if (ret != PAM_SUCCESS) return ret;
 
     do {
-        mesg[0] = malloc(sizeof(struct pam_message));
-        if (mesg[0] == NULL) {
+        pam_msg = malloc(sizeof(struct pam_message));
+        if (pam_msg == NULL) {
             D(("Malloc failed."));
             return PAM_SYSTEM_ERR;
         }
 
-        mesg[0]->msg_style = msg_style;
+        pam_msg->msg_style = msg_style;
         if (state == SSS_PAM_CONV_REENTER) {
-            mesg[0]->msg = reenter_msg;
+            pam_msg->msg = reenter_msg;
         } else {
-            mesg[0]->msg = msg;
+            pam_msg->msg = msg;
         }
 
-        ret=conv->conv(1, (const struct pam_message **) mesg, &resp,
+        mesg[0] = (const struct pam_message *) pam_msg;
+
+        ret=conv->conv(1, mesg, &resp,
                        conv->appdata_ptr);
-        free(mesg[0]);
+        free(pam_msg);
         if (ret != PAM_SUCCESS) {
             D(("Conversation failure: %s.",  pam_strerror(pamh,ret)));
             return ret;
