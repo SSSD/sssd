@@ -2023,8 +2023,8 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
 
     ret = sysdb_update_members(state->sysdb, state->dom, state->name,
                                SYSDB_MEMBER_USER,
-                               (const char **)add_groups,
-                               (const char **)del_groups);
+                               (const char *const *)add_groups,
+                               (const char *const *)del_groups);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -3350,8 +3350,8 @@ errno_t save_rfc2307bis_user_memberships(
 
     ret = sysdb_update_members(state->sysdb, state->dom, state->name,
                                SYSDB_MEMBER_USER,
-                               (const char **)add_groups,
-                               (const char **)del_groups);
+                               (const char *const *)add_groups,
+                               (const char *const *)del_groups);
     if (ret != EOK) {
         goto error;
     }
@@ -3821,8 +3821,8 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
 
     ret = sysdb_update_members(state->sysdb, state->dom, name,
                                SYSDB_MEMBER_GROUP,
-                               (const char **)add_groups,
-                               (const char **)del_groups);
+                               (const char *const *)add_groups,
+                               (const char *const *)del_groups);
     if (ret != EOK) {
         goto error;
     }

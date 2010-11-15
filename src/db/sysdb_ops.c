@@ -2573,8 +2573,8 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *domain,
                              const char *member,
                              enum sysdb_member_type type,
-                             const char **add_groups,
-                             const char **del_groups)
+                             const char *const *add_groups,
+                             const char *const *del_groups)
 {
     errno_t ret;
     int i;

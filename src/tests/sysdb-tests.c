@@ -2220,7 +2220,7 @@ START_TEST (test_sysdb_update_members)
 
     ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain, user,
                                SYSDB_MEMBER_USER,
-                               (const char **)add_groups, NULL);
+                               (const char *const *)add_groups, NULL);
     fail_unless(ret == EOK, "Could not add groups");
     talloc_zfree(add_groups);
 
@@ -2234,8 +2234,8 @@ START_TEST (test_sysdb_update_members)
 
     ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain, user,
                                SYSDB_MEMBER_USER,
-                               (const char **)add_groups,
-                               (const char **)del_groups);
+                               (const char *const *)add_groups,
+                               (const char *const *)del_groups);
     fail_unless(ret == EOK, "Group replace failed");
     talloc_zfree(add_groups);
     talloc_zfree(del_groups);
@@ -2249,7 +2249,7 @@ START_TEST (test_sysdb_update_members)
     ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain,
                                user, SYSDB_MEMBER_USER,
                                NULL,
-                               (const char **)del_groups);
+                               (const char *const *)del_groups);
     fail_unless(ret == EOK, "Could not remove groups");
 
     talloc_zfree(test_ctx);
