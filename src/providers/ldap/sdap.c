@@ -530,10 +530,10 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
                          size_t size, const char ***_attrs)
 {
-    char **attrs;
+    const char **attrs;
     int i, j;
 
-    attrs = talloc_array(memctx, char *, size + 1);
+    attrs = talloc_array(memctx, const char *, size + 1);
     if (!attrs) return ENOMEM;
 
     /* first attribute is "objectclass" not the specifc one */
@@ -549,7 +549,7 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
     }
     attrs[j] = NULL;
 
-    *_attrs = (const char **)attrs;
+    *_attrs = attrs;
 
     return EOK;
 }
