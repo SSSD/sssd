@@ -637,7 +637,7 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                       uint8_t **repbuf, size_t *replen,
                       int *errnop)
 {
-    enum nss_status ret;
+    enum sss_status ret;
     char *envval;
 
     /* avoid looping in the nss daemon */
