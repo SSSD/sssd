@@ -205,7 +205,7 @@ int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
 int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,
-                                    const char **list);
+                                    const char *const *list);
 int sysdb_attrs_users_from_ldb_vals(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,

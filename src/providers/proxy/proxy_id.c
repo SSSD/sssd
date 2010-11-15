@@ -502,9 +502,9 @@ again:
                 ret = ENOMEM;
                 goto done;
             }
-            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  dom->name,
-                                                  (const char **)grp->gr_mem);
+            ret = sysdb_attrs_users_from_str_list(
+                    members, SYSDB_MEMBER, dom->name,
+                    (const char *const *)grp->gr_mem);
             if (ret) {
                 goto done;
             }
@@ -653,9 +653,9 @@ again:
                 ret = ENOMEM;
                 goto done;
             }
-            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  dom->name,
-                                                  (const char **)grp->gr_mem);
+            ret = sysdb_attrs_users_from_str_list(
+                    members, SYSDB_MEMBER, dom->name,
+                    (const char *const *)grp->gr_mem);
             if (ret) {
                 goto done;
             }
@@ -808,9 +808,9 @@ again:
                 ret = ENOMEM;
                 goto done;
             }
-            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  dom->name,
-                                                  (const char **)grp->gr_mem);
+            ret = sysdb_attrs_users_from_str_list(
+                    members, SYSDB_MEMBER, dom->name,
+                    (const char *const *)grp->gr_mem);
             if (ret) {
                 goto done;
             }

@@ -466,7 +466,7 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
 int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,
-                                    const char **list)
+                                    const char *const *list)
 {
     struct ldb_message_element *el = NULL;
     struct ldb_val *vals;
