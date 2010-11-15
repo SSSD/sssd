@@ -128,7 +128,7 @@ int confdb_create_base(struct confdb_ctx *cdb)
 
 static int confdb_create_ldif(TALLOC_CTX *mem_ctx,
                               struct collection_item *sssd_config,
-                              char **config_ldif)
+                              const char **config_ldif)
 {
     int ret, i, j;
     char *ldif;
@@ -260,7 +260,7 @@ static int confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
     free_section_list(sections);
 
-    *config_ldif = ldif;
+    *config_ldif = (const char *)ldif;
     talloc_free(tmp_ctx);
     return EOK;
 
@@ -276,7 +276,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     struct collection_item *sssd_config = NULL;
     struct collection_item *error_list = NULL;
     struct collection_item *item = NULL;
-    char *config_ldif;
+    const char *config_ldif;
     struct ldb_ldif *ldif;
     TALLOC_CTX *tmp_ctx;
     char *lasttimestr, timestr[21];
@@ -395,7 +395,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 
     DEBUG(7, ("LDIF file to import: \n%s", config_ldif));
 
-    while ((ldif = ldb_ldif_read_string(cdb->ldb, (const char **)&config_ldif))) {
+    while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
             DEBUG(0, ("Failed to initialize DB (%d,[%s]), aborting!\n",
