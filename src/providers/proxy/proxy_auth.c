@@ -718,23 +718,30 @@ static void proxy_child_done(struct tevent_req *req)
 
     ret = proxy_child_recv(req, client_ctx, &pd);
     talloc_zfree(req);
-    if (ret != EOK) {
-        /* Pam child failed */
-        client_ctx->auth_ctx->running--;
-        proxy_reply(client_ctx->be_req, DP_ERR_FATAL, ret,
-                    "PAM child failed");
 
-        /* Start the next auth in the queue, if any */
-        imm = tevent_create_immediate(client_ctx->be_req->be_ctx->ev);
-        if (imm == NULL) {
-            DEBUG(1, ("tevent_create_immediate failed.\n"));
-            return;
-        }
-
+    /* Start the next auth in the queue, if any */
+    client_ctx->auth_ctx->running--;
+    imm = tevent_create_immediate(client_ctx->be_req->be_ctx->ev);
+    if (imm == NULL) {
+        DEBUG(1, ("tevent_create_immediate failed.\n"));
+        /* We'll still finish the current request, but we're
+         * likely to have problems if there are queued events
+         * if we've gotten into this state.
+         * Hopefully this is impossible, since freeing req
+         * above should guarantee that we have enough memory
+         * to create this immediate event.
+         */
+    } else {
         tevent_schedule_immediate(imm,
                                   client_ctx->be_req->be_ctx->ev,
                                   run_proxy_child_queue,
                                   client_ctx->auth_ctx);
+    }
+
+    if (ret != EOK) {
+        /* Pam child failed */
+        proxy_reply(client_ctx->be_req, DP_ERR_FATAL, ret,
+                    "PAM child failed");
         return;
     }
 
