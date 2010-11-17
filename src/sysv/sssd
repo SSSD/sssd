@@ -48,8 +48,17 @@ start() {
 
 stop() {
     echo -n $"Stopping $prog: "
+    pid=`cat $PID_FILE`
+
     killproc -p $PID_FILE $SSSD -TERM
     RETVAL=$?
+
+    # Wait until the monitor exits
+    while (checkpid $pid)
+    do
+        usleep 100000
+    done
+
     echo
     [ "$RETVAL" = 0 ] && rm -f $LOCK_FILE
     return $RETVAL
