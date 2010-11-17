@@ -295,6 +295,7 @@ krb5_error_code check_for_valid_tgt(const char *ccname, const char *realm,
     server_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
     if (server_name == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));
+        krberr = ENOMEM;
         goto done;
     }
 
