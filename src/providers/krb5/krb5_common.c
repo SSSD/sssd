@@ -46,14 +46,65 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER }
 };
 
+errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
+                                  const char *env_name)
+{
+    int ret;
+    char *str;
+    krb5_deltat lifetime;
+    bool free_str = false;
+
+    str = dp_opt_get_string(opts, opt_id);
+    if (str == NULL || *str == '\0') {
+        DEBUG(5, ("No lifetime configured.\n"));
+        return EOK;
+    }
+
+    if (isdigit(str[strlen(str)-1])) {
+        str = talloc_asprintf(opts, "%ss", str);
+        if (str == NULL) {
+            DEBUG(1, ("talloc_asprintf failed\n"));
+            return ENOMEM;
+        }
+        free_str = true;
+
+        ret = dp_opt_set_string(opts, opt_id, str);
+        if (ret != EOK) {
+            DEBUG(1, ("dp_opt_set_string failed\n"));
+            goto done;
+        }
+    }
+
+    ret = krb5_string_to_deltat(str, &lifetime);
+    if (ret != 0) {
+        DEBUG(1, ("Invalid value [%s] for a lifetime.\n", str));
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = setenv(env_name, str, 1);
+    if (ret != EOK) {
+        DEBUG(2, ("setenv [%s] failed.\n", env_name));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (free_str) {
+        talloc_free(str);
+    }
+
+    return ret;
+}
+
+
 errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom)
 {
     int ret;
     const char *realm;
     const char *dummy;
-    char *str;
-    krb5_deltat lifetime;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -71,42 +122,20 @@ errno_t check_and_export_options(struct dp_option *opts,
                   SSSD_KRB5_REALM));
     }
 
-    str = dp_opt_get_string(opts, KRB5_RENEWABLE_LIFETIME);
-    if (str == NULL) {
-        DEBUG(5, ("No renewable lifetime configured.\n"));
-    } else {
-        ret = krb5_string_to_deltat(str, &lifetime);
-        if (ret != 0) {
-            DEBUG(1, ("Invalid value [%s] for krb5_renewable_lifetime.\n",
-                      str));
-            return EINVAL;
-        }
-
-        ret = setenv(SSSD_KRB5_RENEWABLE_LIFETIME, str, 1);
-        if (ret != EOK) {
-            DEBUG(2, ("setenv [%s] failed.\n",
-                      SSSD_KRB5_RENEWABLE_LIFETIME));
-            return ret;
-        }
+    ret = check_and_export_lifetime(opts, KRB5_RENEWABLE_LIFETIME,
+                                    SSSD_KRB5_RENEWABLE_LIFETIME);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to check value of krb5_renewable_lifetime. [%d][%s]\n",
+                  ret, strerror(ret)));
+        return ret;
     }
 
-    str = dp_opt_get_string(opts, KRB5_LIFETIME);
-    if (str == NULL) {
-        DEBUG(5, ("No TGT lifetime configured.\n"));
-    } else {
-        ret = krb5_string_to_deltat(str, &lifetime);
-        if (ret != 0) {
-            DEBUG(1, ("Invalid value [%s] for krb5_lifetime.\n",
-                      str));
-            return EINVAL;
-        }
-
-        ret = setenv(SSSD_KRB5_LIFETIME, str, 1);
-        if (ret != EOK) {
-            DEBUG(2, ("setenv [%s] failed.\n",
-                      SSSD_KRB5_LIFETIME));
-            return ret;
-        }
+    ret = check_and_export_lifetime(opts, KRB5_LIFETIME,
+                                    SSSD_KRB5_LIFETIME);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to check value of krb5_lifetime. [%d][%s]\n",
+                  ret, strerror(ret)));
+        return ret;
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);

@@ -289,6 +289,10 @@
                             <emphasis>d</emphasis> days.
                         </para>
                         <para>
+                            If there is no delimiter <emphasis>s</emphasis> is
+                            assumed.
+                        </para>
+                        <para>
                             Please note that it is not possible to mix units.
                             If you want to set the renewable lifetime to one
                             and a half hours please use '90m' instead of
@@ -319,6 +323,10 @@
                         </para>
                         <para>
                             <emphasis>d</emphasis> days.
+                        </para>
+                        <para>
+                            If there is no delimiter <emphasis>s</emphasis> is
+                            assumed.
                         </para>
                         <para>
                             Please note that it is not possible to mix units.
