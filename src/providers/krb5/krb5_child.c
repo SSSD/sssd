@@ -171,7 +171,8 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
 }
 
 
-static krb5_error_code create_empty_cred(struct krb5_req *kr, krb5_creds **_cred)
+static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
+                                         krb5_creds **_cred)
 {
     krb5_error_code kerr;
     krb5_creds *cred = NULL;
@@ -183,15 +184,15 @@ static krb5_error_code create_empty_cred(struct krb5_req *kr, krb5_creds **_cred
         return ENOMEM;
     }
 
-    kerr = krb5_copy_principal(kr->ctx, kr->princ, &cred->client);
+    kerr = krb5_copy_principal(ctx, princ, &cred->client);
     if (kerr != 0) {
         DEBUG(1, ("krb5_copy_principal failed.\n"));
         goto done;
     }
 
-    krb5_realm = krb5_princ_realm(kr->ctx, kr->princ);
+    krb5_realm = krb5_princ_realm(ctx, princ);
 
-    kerr = krb5_build_principal_ext(kr->ctx, &cred->server,
+    kerr = krb5_build_principal_ext(ctx, &cred->server,
                                     krb5_realm->length, krb5_realm->data,
                                     KRB5_TGS_NAME_SIZE, KRB5_TGS_NAME,
                                     krb5_realm->length, krb5_realm->data, 0);
@@ -203,7 +204,7 @@ static krb5_error_code create_empty_cred(struct krb5_req *kr, krb5_creds **_cred
 done:
     if (kerr != 0) {
         if (cred != NULL && cred->client != NULL) {
-            krb5_free_principal(kr->ctx, cred->client);
+            krb5_free_principal(ctx, cred->client);
         }
 
         free(cred);
@@ -214,7 +215,9 @@ done:
     return kerr;
 }
 
-static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds)
+static krb5_error_code create_ccache_file(krb5_context ctx,
+                                          krb5_principal princ,
+                                          char *ccname, krb5_creds *creds)
 {
     krb5_error_code kerr;
     krb5_ccache tmp_cc = NULL;
@@ -224,11 +227,12 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
     char *dummy;
     char *tmp_ccname;
     krb5_creds *l_cred;
+    TALLOC_CTX *tmp_ctx = NULL;
 
-    if (strncmp(kr->ccname, "FILE:", 5) == 0) {
-        cc_file_name = kr->ccname + 5;
+    if (strncmp(ccname, "FILE:", 5) == 0) {
+        cc_file_name = ccname + 5;
     } else {
-        cc_file_name = kr->ccname;
+        cc_file_name = ccname;
     }
 
     if (cc_file_name[0] != '/') {
@@ -236,27 +240,36 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
         return EINVAL;
     }
 
+    tmp_ctx = talloc_new(tmp_ctx);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
     dummy = strrchr(cc_file_name, '/');
-    tmp_ccname = talloc_strndup(kr, cc_file_name, (size_t) (dummy-cc_file_name));
+    tmp_ccname = talloc_strndup(tmp_ctx, cc_file_name,
+                                (size_t) (dummy-cc_file_name));
     if (tmp_ccname == NULL) {
         DEBUG(1, ("talloc_strdup failed.\n"));
-        return ENOMEM;
+        kerr = ENOMEM;
+        goto done;
     }
     tmp_ccname = talloc_asprintf_append(tmp_ccname, "/.krb5cc_dummy_XXXXXX");
 
     fd = mkstemp(tmp_ccname);
     if (fd == -1) {
         DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+        kerr = errno;
+        goto done;
     }
 
-    kerr = krb5_cc_resolve(kr->ctx, tmp_ccname, &tmp_cc);
+    kerr = krb5_cc_resolve(ctx, tmp_ccname, &tmp_cc);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
     }
 
-    kerr = krb5_cc_initialize(kr->ctx, tmp_cc, kr->princ);
+    kerr = krb5_cc_initialize(ctx, tmp_cc, princ);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
@@ -267,7 +280,7 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
     }
 
     if (creds == NULL) {
-        kerr = create_empty_cred(kr, &l_cred);
+        kerr = create_empty_cred(ctx, princ, &l_cred);
         if (kerr != 0) {
             KRB5_DEBUG(1, kerr);
             goto done;
@@ -276,13 +289,13 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
         l_cred = creds;
     }
 
-    kerr = krb5_cc_store_cred(kr->ctx, tmp_cc, l_cred);
+    kerr = krb5_cc_store_cred(ctx, tmp_cc, l_cred);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
     }
 
-    kerr = krb5_cc_close(kr->ctx, tmp_cc);
+    kerr = krb5_cc_close(ctx, tmp_cc);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
@@ -309,8 +322,11 @@ done:
         close(fd);
     }
     if (kerr != 0 && tmp_cc != NULL) {
-        krb5_cc_destroy(kr->ctx, tmp_cc);
+        krb5_cc_destroy(ctx, tmp_cc);
     }
+
+    talloc_free(tmp_ctx);
+
     return kerr;
 }
 
@@ -608,7 +624,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         DEBUG(9, ("TGT validation is disabled.\n"));
     }
 
-    kerr = create_ccache_file(kr, kr->creds);
+    kerr = create_ccache_file(kr->ctx, kr->princ, kr->ccname, kr->creds);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
@@ -992,7 +1008,7 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
     int ret;
     int pam_status = PAM_SUCCESS;
 
-    ret = create_ccache_file(kr, NULL);
+    ret = create_ccache_file(kr->ctx, kr->princ, kr->ccname, NULL);
     if (ret != 0) {
         KRB5_DEBUG(1, ret);
         pam_status = PAM_SYSTEM_ERR;
