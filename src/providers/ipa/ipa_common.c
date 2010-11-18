@@ -146,7 +146,8 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER }
+    { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
+    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 int ipa_get_options(TALLOC_CTX *memctx,

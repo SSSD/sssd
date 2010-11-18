@@ -361,3 +361,51 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
     return 0;
 #endif
 }
+
+errno_t check_fast(const char *str, bool *use_fast)
+{
+#if HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS
+    if (strcasecmp(str, "never") == 0 ) {
+        *use_fast = false;
+    } else if (strcasecmp(str, "try") == 0 || strcasecmp(str, "demand") == 0) {
+        *use_fast = true;
+    } else {
+        sss_log(SSS_LOG_ALERT, "Unsupported value [%s] for option krb5_use_fast,"
+                               "please use never, try, or demand.\n");
+        return EINVAL;
+    }
+
+    return EOK;
+#else
+    sss_log(SSS_LOG_ALERT, "This build of sssd done not support FAST. "
+                           "Please remove option krb5_use_fast.\n");
+    return EINVAL;
+#endif
+}
+
+krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_ccache_name(
+                                                   krb5_context context,
+                                                   krb5_get_init_creds_opt *opt,
+                                                   const char *fast_ccache_name)
+{
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
+    return krb5_get_init_creds_opt_set_fast_ccache_name(context, opt,
+                                                        fast_ccache_name);
+#else
+    DEBUG(5, ("krb5_get_init_creds_opt_set_fast_ccache_name not available.\n"));
+    return 0;
+#endif
+}
+
+krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_flags(
+                                                   krb5_context context,
+                                                   krb5_get_init_creds_opt *opt,
+                                                   krb5_flags flags)
+{
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS
+    return krb5_get_init_creds_opt_set_fast_flags(context, opt, flags);
+#else
+    DEBUG(5, ("krb5_get_init_creds_opt_set_fast_flags not available.\n"));
+    return 0;
+#endif
+}

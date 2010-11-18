@@ -138,7 +138,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         }
     }
 
-    ret = check_and_export_options(ctx->opts, bectx->domain);
+    ret = check_and_export_options(ctx->opts, bectx->domain, ctx);
     if (ret != EOK) {
         DEBUG(1, ("check_and_export_options failed.\n"));
         goto fail;

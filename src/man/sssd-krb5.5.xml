@@ -358,6 +358,41 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_use_fast (string)</term>
+                    <listitem>
+                        <para>
+                            Enables flexible authentication secure tunneling
+                            (FAST) for Kerberos pre-authentication. The
+                            following options are supported:
+                        </para>
+                        <para>
+                            <emphasis>never</emphasis> use FAST, this is
+                            equivalent to not set this option at all.
+                        </para>
+                        <para>
+                            <emphasis>try</emphasis> to use FAST, if the server
+                            does not support fast continue without.
+                        </para>
+                        <para>
+                            <emphasis>demand</emphasis> to use FAST, fail if the
+                            server does not require fast.
+                        </para>
+                        <para>
+                            Default: not set, i.e. FAST is not used.
+                        </para>
+                        <para>
+                            Please note that a keytab is required to use fast.
+                        </para>
+                        <para>
+                            Please note also that sssd supports fast only with
+                            MIT Kerberos version 1.8 and above. If sssd used
+                            used with an older version using this option is a
+                            configuration error.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

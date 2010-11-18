@@ -37,6 +37,7 @@
 #define SSSD_KRB5_REALM "SSSD_KRB5_REALM"
 #define SSSD_KRB5_RENEWABLE_LIFETIME "SSSD_KRB5_RENEWABLE_LIFETIME"
 #define SSSD_KRB5_LIFETIME "SSSD_KRB5_LIFETIME"
+#define SSSD_KRB5_USE_FAST "SSSD_KRB5_USE_FAST"
 
 #define KDCINFO_TMPL PUBCONF_PATH"/kdcinfo.%s"
 #define KPASSWDINFO_TMPL PUBCONF_PATH"/kpasswdinfo.%s"
@@ -57,6 +58,7 @@ enum krb5_opts {
     KRB5_RENEWABLE_LIFETIME,
     KRB5_LIFETIME,
     KRB5_RENEW_INTERVAL,
+    KRB5_USE_FAST,
 
     KRB5_OPTS
 };
@@ -114,6 +116,7 @@ struct krb5_ctx {
 
     struct deferred_auth_ctx *deferred_auth_ctx;
     struct renew_tgt_ctx *renew_tgt_ctx;
+    bool use_fast;
 };
 
 struct remove_info_files_ctx {
@@ -124,7 +127,8 @@ struct remove_info_files_ctx {
 };
 
 errno_t check_and_export_options(struct dp_option *opts,
-                                 struct sss_domain_info *dom);
+                                 struct sss_domain_info *dom,
+                                 struct krb5_ctx *krb5_ctx);
 
 errno_t krb5_try_kdcip(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                        const char *conf_path, struct dp_option *opts);

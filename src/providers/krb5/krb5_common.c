@@ -43,7 +43,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER }
+    { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
+    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
@@ -100,11 +101,13 @@ done:
 
 
 errno_t check_and_export_options(struct dp_option *opts,
-                                 struct sss_domain_info *dom)
+                                 struct sss_domain_info *dom,
+                                 struct krb5_ctx *krb5_ctx)
 {
     int ret;
     const char *realm;
     const char *dummy;
+    char *use_fast_str;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -136,6 +139,23 @@ errno_t check_and_export_options(struct dp_option *opts,
         DEBUG(1, ("Failed to check value of krb5_lifetime. [%d][%s]\n",
                   ret, strerror(ret)));
         return ret;
+    }
+
+
+    use_fast_str = dp_opt_get_string(opts, KRB5_USE_FAST);
+    if (use_fast_str != NULL) {
+        ret = check_fast(use_fast_str, &krb5_ctx->use_fast);
+        if (ret != EOK) {
+            DEBUG(1, ("check_fast failed.\n"));
+            return ret;
+        }
+
+        if (krb5_ctx->use_fast) {
+            ret = setenv(SSSD_KRB5_USE_FAST, use_fast_str, 1);
+            if (ret != EOK) {
+                DEBUG(2, ("setenv [%s] failed.\n", SSSD_KRB5_USE_FAST));
+            }
+        }
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);

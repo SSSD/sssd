@@ -289,7 +289,8 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         }
     }
 
-    ret = check_and_export_options(krb5_auth_ctx->opts, bectx->domain);
+    ret = check_and_export_options(krb5_auth_ctx->opts, bectx->domain,
+                                   krb5_auth_ctx);
     if (ret != EOK) {
         DEBUG(1, ("check_and_export_opts failed.\n"));
         goto done;

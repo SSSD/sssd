@@ -32,6 +32,8 @@
 #include <krb5.h>
 #endif
 
+#include "util/util.h"
+
 const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,
                                                    krb5_error_code);
 
@@ -67,4 +69,16 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
                                                    krb5_get_init_creds_opt *opt,
                                                    krb5_expire_callback_func cb,
                                                    void *data);
+
+errno_t check_fast(const char *str, bool *use_fast);
+
+krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_ccache_name(
+                                                  krb5_context context,
+                                                  krb5_get_init_creds_opt *opt,
+                                                  const char *fast_ccache_name);
+
+krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_flags(
+                                                   krb5_context context,
+                                                   krb5_get_init_creds_opt *opt,
+                                                   krb5_flags flags);
 #endif /* __SSS_KRB5_H__ */

@@ -90,6 +90,7 @@ struct krb5_req {
     char *ccname;
     char *keytab;
     bool validate;
+    char *fast_ccname;
 
     const char *upn;
     uid_t uid;
@@ -491,6 +492,85 @@ static errno_t add_ticket_times_to_response(struct krb5_req *kr)
     return ret;
 }
 
+static krb5_error_code find_principal_in_keytab(krb5_context ctx,
+                                                krb5_keytab keytab,
+                                                const char *realm,
+                                                krb5_principal *princ)
+{
+    krb5_error_code kerr;
+    krb5_error_code kt_err;
+    krb5_error_code kerr_d;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+    bool principal_found = false;
+
+    memset(&cursor, 0, sizeof(cursor));
+    kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_kt_start_seq_get failed.\n"));
+        KRB5_DEBUG(1, kerr);
+        return kerr;
+    }
+
+    /* We look for the first entry from our realm or take the last one */
+    memset(&entry, 0, sizeof(entry));
+    while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
+        if (krb5_princ_realm(ctx, entry.principal)->length == strlen(realm) &&
+            strncmp(krb5_princ_realm(ctx, entry.principal)->data, realm,
+                    krb5_princ_realm(ctx, entry.principal)->length) == 0) {
+            DEBUG(9, ("Found keytab entry with the realm of the credential.\n"));
+            principal_found = true;
+            break;
+        }
+
+        kerr = krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr != 0) {
+            DEBUG(1, ("Failed to free keytab entry.\n"));
+        }
+        memset(&entry, 0, sizeof(entry));
+    }
+
+    /* Close the keytab here.  Even though we're using cursors, the file
+     * handle is stored in the krb5_keytab structure, and it gets
+     * overwritten by other keytab calls, creating a leak. */
+    kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_kt_end_seq_get failed.\n"));
+        goto done;
+    }
+
+    if (!principal_found) {
+        kerr = KRB5_KT_NOTFOUND;
+        DEBUG(1, ("No principal from realm [%s] found in keytab.\n", realm));
+        goto done;
+    }
+
+    /* check if we got any errors from krb5_kt_next_entry */
+    if (kt_err != 0 && kt_err != KRB5_KT_END) {
+        DEBUG(1, ("Error while reading keytab.\n"));
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    kerr = krb5_copy_principal(ctx, entry.principal, princ);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_copy_principal failed.\n"));
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    kerr = 0;
+
+done:
+    kerr_d = krb5_free_keytab_entry_contents(ctx, &entry);
+    if (kerr_d != 0) {
+        DEBUG(1, ("Failed to free keytab entry.\n"));
+        KRB5_DEBUG(1, kerr_d);
+    }
+
+    return kerr;
+}
+
 static krb5_error_code validate_tgt(struct krb5_req *kr)
 {
     krb5_error_code kerr;
@@ -584,6 +664,43 @@ done:
 
 }
 
+static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
+                                                    krb5_principal princ,
+                                                    krb5_keytab keytab,
+                                                    char *ccname)
+{
+    krb5_error_code kerr = 0;
+    krb5_creds creds;
+    krb5_get_init_creds_opt options;
+
+    memset(&creds, 0, sizeof(creds));
+    memset(&options, 0, sizeof(options));
+
+    krb5_get_init_creds_opt_set_address_list(&options, NULL);
+    krb5_get_init_creds_opt_set_forwardable(&options, 0);
+    krb5_get_init_creds_opt_set_proxiable(&options, 0);
+
+    kerr = krb5_get_init_creds_keytab(ctx, &creds, princ, keytab, 0, NULL,
+                                      &options);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        return kerr;
+    }
+
+    kerr = create_ccache_file(ctx, princ, ccname, &creds);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+    kerr = 0;
+
+done:
+    krb5_free_cred_contents(ctx, &creds);
+
+    return kerr;
+
+}
+
 static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         char *password)
 {
@@ -612,16 +729,19 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
             return kerr;
         }
 
+    } else {
+        DEBUG(9, ("TGT validation is disabled.\n"));
+    }
+
+    if (kr->validate || kr->fast_ccname != NULL) {
         /* We drop root privileges which were needed to read the keytab file
-         * for the validation validation of the credentials here to run the
+         * for the validation of the credentials or for FAST here to run the
          * ccache I/O operations with user privileges. */
         ret = become_user(kr->uid, kr->gid);
         if (ret != EOK) {
             DEBUG(1, ("become_user failed.\n"));
             return ret;
         }
-    } else {
-        DEBUG(9, ("TGT validation is disabled.\n"));
     }
 
     kerr = create_ccache_file(kr->ctx, kr->princ, kr->ccname, kr->creds);
@@ -958,7 +1078,7 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
         DEBUG(9, ("TGT validation is disabled.\n"));
     }
 
-    if (kr->validate) {
+    if (kr->validate || kr->fast_ccname != NULL) {
         /* We drop root privileges which were needed to read the keytab file
          * for the validation of the credentials or for FAST here to run the
          * ccache I/O operations with user privileges. */
@@ -1126,10 +1246,153 @@ static int krb5_cleanup(void *ptr)
     return EOK;
 }
 
+static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
+                                     krb5_principal server_principal,
+                                     krb5_principal client_principal,
+                                     krb5_ticket_times *tgtt)
+{
+    krb5_error_code krberr;
+    krb5_ccache ccache = NULL;
+    krb5_creds mcred;
+    krb5_creds cred;
+
+    krberr = krb5_cc_resolve(ctx, ccname, &ccache);
+    if (krberr != 0) {
+        DEBUG(1, ("krb5_cc_resolve failed.\n"));
+        goto done;
+    }
+
+    memset(&mcred, 0, sizeof(mcred));
+    memset(&cred, 0, sizeof(mcred));
+
+    mcred.server = server_principal;
+    mcred.client = client_principal;
+
+    krberr = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcred, &cred);
+    if (krberr != 0) {
+        DEBUG(1, ("krb5_cc_retrieve_cred failed.\n"));
+        krberr = 0;
+        goto done;
+    }
+
+    tgtt->authtime = cred.times.authtime;
+    tgtt->starttime = cred.times.starttime;
+    tgtt->endtime = cred.times.endtime;
+    tgtt->renew_till = cred.times.renew_till;
+
+    krb5_free_cred_contents(ctx, &cred);
+
+    krberr = 0;
+
+done:
+    if (ccache != NULL) {
+        krb5_cc_close(ctx, ccache);
+    }
+
+    return krberr;
+}
+
+static krb5_error_code check_fast_ccache(krb5_context ctx, const char *realm,
+                                         const char *keytab_name,
+                                         TALLOC_CTX *mem_ctx,
+                                         char **fast_ccname)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    krb5_error_code kerr;
+    char *ccname;
+    char *server_name;
+    krb5_ticket_times tgtt;
+    krb5_keytab keytab = NULL;
+    krb5_principal client_princ = NULL;
+    krb5_principal server_princ = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        kerr = ENOMEM;
+        goto done;
+    }
+
+    ccname = talloc_asprintf(tmp_ctx, "FILE:%s/fast_ccache_%s", DB_PATH, realm);
+    if (ccname == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        kerr = ENOMEM;
+        goto done;
+    }
+
+    if (keytab_name != NULL) {
+        kerr = krb5_kt_resolve(ctx, keytab_name, &keytab);
+    } else {
+        kerr = krb5_kt_default(ctx, &keytab);
+    }
+    if (kerr) {
+        DEBUG(0, ("Failed to read keytab file [%s].\n",
+                  keytab_name != NULL ? keytab_name : "(default)"));
+        goto done;
+    }
+
+    kerr = find_principal_in_keytab(ctx, keytab, realm, &client_princ);
+    if (kerr != 0) {
+        DEBUG(1, ("find_principal_in_keytab failed.\n"));
+        goto done;
+    }
+
+    server_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
+    if (server_name == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        kerr = ENOMEM;
+        goto done;
+    }
+
+    kerr = krb5_parse_name(ctx, server_name, &server_princ);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_parse_name failed.\n"));
+        goto done;
+    }
+
+    memset(&tgtt, 0, sizeof(tgtt));
+    kerr = get_tgt_times(ctx, ccname, server_princ, client_princ, &tgtt);
+    if (kerr == 0) {
+        if (tgtt.endtime > time(NULL)) {
+            DEBUG(5, ("FAST TGT is still valid.\n"));
+            goto done;
+        }
+    }
+
+    kerr = get_and_save_tgt_with_keytab(ctx, client_princ, keytab, ccname);
+    if (kerr != 0) {
+        DEBUG(1, ("get_and_save_tgt_with_keytab failed.\n"));
+        goto done;
+    }
+
+
+    kerr = 0;
+
+done:
+    if (client_princ != NULL) {
+        krb5_free_principal(ctx, client_princ);
+    }
+    if (server_princ != NULL) {
+        krb5_free_principal(ctx, server_princ);
+    }
+
+    if (kerr == 0) {
+        *fast_ccname = talloc_steal(mem_ctx, ccname);
+    }
+    talloc_free(tmp_ctx);
+
+    if (keytab != NULL) {
+        krb5_kt_close(ctx, keytab);
+    }
+
+    return kerr;
+}
+
 static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr = 0;
     char *lifetime_str;
+    char *use_fast_str;
     krb5_deltat lifetime;
 
     kr->krb5_ctx = talloc_zero(kr, struct krb5_child_ctx);
@@ -1237,6 +1500,48 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
             goto failed;
         }
         krb5_get_init_creds_opt_set_tkt_life(kr->options, lifetime);
+    }
+
+    if (!offline) {
+        use_fast_str = getenv(SSSD_KRB5_USE_FAST);
+        if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
+            DEBUG(9, ("Not using FAST.\n"));
+        } else if (strcasecmp(use_fast_str, "try") == 0 ||
+                   strcasecmp(use_fast_str, "demand") == 0) {
+            kerr = check_fast_ccache(kr->ctx, kr->krb5_ctx->realm, kr->keytab,
+                                     kr, &kr->fast_ccname);
+            if (kerr != 0) {
+                DEBUG(1, ("check_fast_ccache failed.\n"));
+                KRB5_DEBUG(1, kerr);
+                goto failed;
+            }
+
+            kerr = sss_krb5_get_init_creds_opt_set_fast_ccache_name(kr->ctx,
+                                                                    kr->options,
+                                                                    kr->fast_ccname);
+            if (kerr != 0) {
+                DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_ccache_name "
+                          "failed.\n"));
+                KRB5_DEBUG(1, kerr);
+                goto failed;
+            }
+
+            if (strcasecmp(use_fast_str, "demand") == 0) {
+                kerr = sss_krb5_get_init_creds_opt_set_fast_flags(kr->ctx,
+                                                                  kr->options,
+                                                                  KRB5_FAST_REQUIRED);
+                if (kerr != 0) {
+                    DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_flags "
+                              "failed.\n"));
+                    KRB5_DEBUG(1, kerr);
+                    goto failed;
+                }
+            }
+        } else {
+            DEBUG(1, ("Unsupported value [%s] for krb5_use_fast.\n"));
+            kerr = EINVAL;
+            goto failed;
+        }
     }
 
 /* TODO: set options, e.g.
