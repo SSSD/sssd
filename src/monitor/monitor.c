@@ -1266,6 +1266,27 @@ static void signal_offline(struct tevent_context *ev,
     }
 }
 
+static void signal_offline_reset(struct tevent_context *ev,
+                                 struct tevent_signal *se,
+                                 int signum,
+                                 int count,
+                                 void *siginfo,
+                                 void *private_data)
+{
+    struct mt_ctx *monitor;
+    struct mt_svc *cur_svc;
+
+    monitor = talloc_get_type(private_data, struct mt_ctx);
+
+    DEBUG(8, ("Signaling providers to reset offline immediately.\n"));
+
+    for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
+        if (cur_svc->provider) {
+            service_signal_reset_offline(cur_svc);
+        }
+    }
+}
+
 int read_config_file(const char *config_file)
 {
     int ret;
@@ -1906,6 +1927,14 @@ int monitor_process_init(struct mt_ctx *ctx,
     BlockSignals(false, SIGUSR1);
     tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
                             signal_offline, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Handle SIGUSR2 (tell all providers to go reset offline) */
+    BlockSignals(false, SIGUSR2);
+    tes = tevent_add_signal(ctx->ev, ctx, SIGUSR2, 0,
+                            signal_offline_reset, ctx);
     if (tes == NULL) {
         return EIO;
     }
