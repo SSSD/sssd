@@ -567,8 +567,7 @@ static void auth_resolve_done(struct tevent_req *subreq)
     if (ret) {
         /* all servers have been tried and none
          * was found good, go offline */
-        state->result = SDAP_UNAVAIL;
-        tevent_req_done(req);
+        tevent_req_error(req, ETIMEDOUT);
         return;
     }
 
@@ -667,9 +666,13 @@ int auth_recv(struct tevent_req *req,
     if (tevent_req_is_error(req, &tstate, &err)) {
         switch (tstate) {
         case TEVENT_REQ_USER_ERROR:
-            if (err == ETIMEDOUT) *result = SDAP_UNAVAIL;
-            else *result = SDAP_ERROR;
-            return err;
+            if (err == ETIMEDOUT) {
+                *result = SDAP_UNAVAIL;
+                return EOK;
+            } else {
+                *result = SDAP_ERROR;
+                return err;
+            }
         default:
             *result = SDAP_ERROR;
             return EIO;
@@ -877,6 +880,11 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         break;
     case SDAP_AUTH_FAILED:
         state->pd->pam_status = PAM_AUTH_ERR;
+        break;
+    case SDAP_UNAVAIL:
+        state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        be_mark_offline(state->breq->be_ctx);
+        dp_err = DP_ERR_OFFLINE;
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
