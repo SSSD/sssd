@@ -118,6 +118,41 @@
         </variablelist>
     </refsect1>
 
+    <refsect1>
+        <title>Signals</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>SIGTERM/SIGINT</term>
+                <listitem>
+                    <para>
+                        Informs the SSSD to gracefully terminate all of its
+                        child processes and then shut down the monitor.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>SIGHUP</term>
+                <listitem>
+                    <para>
+                        Tells the SSSD to stop writing to its current debug
+                        file descriptors and to close and reopen them. This is
+                        meant to facilitate log rolling with programs like
+                        logrotate.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>SIGUSR1</term>
+                <listitem>
+                    <para>
+                        Tells the SSSD to simulate offline operation for one
+                        minute. This is mostly useful for testing purposes.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
     <refsect1 id='see_also'>
         <title>SEE ALSO</title>
         <para>
