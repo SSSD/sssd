@@ -228,7 +228,7 @@ static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
     return EOK;
 }
 
-static char *dp_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnum)
+static char *dp_pam_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnum)
 {
     switch (dp_err_type) {
     case DP_ERR_OK:
@@ -238,20 +238,20 @@ static char *dp_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnum)
     case DP_ERR_OFFLINE:
         return talloc_asprintf(memctx,
                                "Provider is Offline (%s)",
-                               strerror(errnum));
+                               pam_strerror(NULL, errnum));
         break;
 
     case DP_ERR_TIMEOUT:
         return talloc_asprintf(memctx,
                                "Request timed out (%s)",
-                               strerror(errnum));
+                               pam_strerror(NULL, errnum));
         break;
 
     case DP_ERR_FATAL:
     default:
         return talloc_asprintf(memctx,
                                "Internal Error (%s)",
-                               strerror(errnum));
+                               pam_strerror(NULL, errnum));
         break;
     }
 
@@ -284,7 +284,7 @@ static void acctinfo_callback(struct be_req *req,
         if (errstr) {
             err_msg = errstr;
         } else {
-            err_msg = dp_err_to_string(req, dp_err_type, errnum);
+            err_msg = dp_pam_err_to_string(req, dp_err_type, errnum);
         }
         if (!err_msg) {
             DEBUG(1, ("Failed to set err_msg, Out of memory?\n"));
@@ -492,7 +492,7 @@ static void be_pam_handler_callback(struct be_req *req,
 
     DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_err_to_string(req, dp_err_type, errnum)));
+              dp_pam_err_to_string(req, dp_err_type, errnum)));
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
