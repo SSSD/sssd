@@ -172,4 +172,5 @@ struct hostent *fo_get_server_hostent(struct fo_server *server);
 
 int fo_is_srv_lookup(struct fo_server *s);
 
+void fo_reset_services(struct fo_ctx *fo_ctx);
 #endif /* !__FAIL_OVER_H__ */

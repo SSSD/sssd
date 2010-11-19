@@ -1329,3 +1329,20 @@ fo_get_server_hostent(struct fo_server *server)
     }
     return server->common->hostent;
 }
+
+void fo_reset_services(struct fo_ctx *fo_ctx)
+{
+    struct fo_service *service;
+    struct fo_server *server;
+
+    DLIST_FOR_EACH(service, fo_ctx->service_list) {
+        DLIST_FOR_EACH(server, service->server_list) {
+            fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
+            fo_set_port_status(server, PORT_NEUTRAL);
+            if (server->srv_data != NULL) {
+                set_srv_data_status(server->srv_data, SRV_NOT_RESOLVED);
+            }
+        }
+    }
+}
+

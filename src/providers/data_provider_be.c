@@ -173,10 +173,9 @@ void be_mark_offline(struct be_ctx *ctx)
     be_run_offline_cb(ctx);
 }
 
-void be_reset_offline(struct be_ctx *ctx)
+static void be_reset_offline(struct be_ctx *ctx)
 {
-    DEBUG(8, ("Going back online!\n"));
-
+    ctx->offstat.went_offline = 0;
     ctx->offstat.offline = false;
     be_run_online_cb(ctx);
 }
@@ -728,6 +727,114 @@ static int client_registration(DBusMessage *message,
     return EOK;
 }
 
+static errno_t be_file_check_online_request(struct be_req *req)
+{
+    int ret;
+
+    req->be_ctx->offstat.went_offline = time(NULL);
+    reset_fo(req->be_ctx);
+
+    ret = be_file_request(req->be_ctx,
+              req->be_ctx->bet_info[BET_ID].bet_ops->check_online, req);
+    if (ret != EOK) {
+        DEBUG(1, ("be_file_request failed.\n"));
+    }
+
+    return ret;
+}
+
+static void check_online_callback(struct be_req *req, int dp_err_type,
+                                  int errnum, const char *errstr)
+{
+    int ret;
+
+    DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
+              dp_err_type, errnum, errstr?errstr:"<NULL>",
+              dp_pam_err_to_string(req, dp_err_type, errnum)));
+
+    req->be_ctx->check_online_ref_count--;
+
+    if (dp_err_type != DP_ERR_OK && req->be_ctx->check_online_ref_count > 0) {
+        ret = be_file_check_online_request(req);
+        if (ret != EOK) {
+            DEBUG(1, ("be_file_check_online_request failed.\n"));
+            goto done;
+        }
+        return;
+    }
+
+done:
+    req->be_ctx->check_online_ref_count = 0;
+    if (dp_err_type != DP_ERR_OFFLINE) {
+        if (dp_err_type != DP_ERR_OK) {
+            reset_fo(req->be_ctx);
+        }
+        be_reset_offline(req->be_ctx);
+    }
+
+    talloc_free(req);
+
+    return;
+}
+
+static void check_if_online(struct be_ctx *ctx)
+{
+    int ret;
+    struct be_req *be_req = NULL;
+
+    if (ctx->offstat.offline == false) {
+        DEBUG(8, ("Backend is already online, nothing to do.\n"));
+        return;
+    }
+
+    /* Make sure nobody tries to go online while we are checking */
+    ctx->offstat.went_offline = time(NULL);
+
+    DEBUG(8, ("Trying to go back online!\n"));
+
+    ctx->check_online_ref_count++;
+
+    if (ctx->check_online_ref_count != 1) {
+        DEBUG(8, ("There is an online check already running.\n"));
+        return;
+    }
+
+    if (ctx->bet_info[BET_ID].bet_ops->check_online == NULL) {
+        DEBUG(8, ("ID providers does not provide a check_online method.\n"));
+        goto failed;
+    }
+
+    be_req = talloc_zero(ctx, struct be_req);
+    if (be_req == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        goto failed;
+    }
+
+    be_req->be_ctx = ctx;
+    be_req->fn = check_online_callback;
+
+    ret = be_file_check_online_request(be_req);
+    if (ret != EOK) {
+        DEBUG(1, ("be_file_check_online_request failed.\n"));
+        goto failed;
+    }
+
+    return;
+
+failed:
+    ctx->check_online_ref_count--;
+    DEBUG(1, ("Failed to run a check_online test.\n"));
+
+    talloc_free(be_req);
+
+    if (ctx->check_online_ref_count == 0) {
+        reset_fo(ctx);
+        be_reset_offline(ctx);
+    }
+
+    return;
+}
+
 static void init_timeout(struct tevent_context *ev,
                          struct tevent_timer *te,
                          struct timeval t, void *ptr)
@@ -1228,7 +1335,11 @@ int main(int argc, const char *argv[])
 static int data_provider_res_init(DBusMessage *message,
                                   struct sbus_connection *conn)
 {
+    struct be_ctx *be_ctx;
+    be_ctx = talloc_get_type(sbus_conn_get_private_data(conn), struct be_ctx);
+
     resolv_reread_configuration();
+    check_if_online(be_ctx);
 
     return monitor_common_res_init(message, conn);
 }
@@ -1247,6 +1358,6 @@ static int data_provider_reset_offline(DBusMessage *message,
 {
     struct be_ctx *be_ctx;
     be_ctx = talloc_get_type(sbus_conn_get_private_data(conn), struct be_ctx);
-    be_reset_offline(be_ctx);
+    check_if_online(be_ctx);
     return monitor_common_pong(message, conn);
 }

@@ -54,7 +54,8 @@ static void proxy_auth_shutdown(struct be_req *req)
 
 struct bet_ops proxy_id_ops = {
     .handler = proxy_get_account_info,
-    .finalize = proxy_shutdown
+    .finalize = proxy_shutdown,
+    .check_online = NULL
 };
 
 struct bet_ops proxy_auth_ops = {

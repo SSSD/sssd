@@ -111,6 +111,8 @@ struct be_ctx {
 
     struct loaded_be loaded_be[BET_MAX];
     struct bet_info bet_info[BET_MAX];
+
+    size_t check_online_ref_count;
 };
 
 struct bet_ops {
@@ -193,4 +195,5 @@ void be_fo_try_next_server(struct be_ctx *ctx, const char *service_name);
 int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name);
 
+void reset_fo(struct be_ctx *be_ctx);
 #endif /* __DP_BACKEND_H___ */

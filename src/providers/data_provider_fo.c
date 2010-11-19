@@ -512,3 +512,8 @@ int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
     return EOK;
 }
 
+void reset_fo(struct be_ctx *be_ctx)
+{
+    fo_reset_services(be_ctx->be_fo->fo_ctx);
+}
+
