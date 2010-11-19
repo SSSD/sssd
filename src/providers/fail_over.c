@@ -318,7 +318,7 @@ get_server_status(struct fo_server *server)
             DEBUG(4, ("Reseting the server status of '%s'\n",
                       SERVER_NAME(server)));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
-            server->last_status_change.tv_sec = 0;
+            server->common->last_status_change.tv_sec = 0;
         }
     }
 
