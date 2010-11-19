@@ -36,8 +36,8 @@
         </para>
         <para>
             LDAP back end supports id, auth, access and chpass providers. If you want
-            to authenticate against an LDAP server either TLS/SSL, LDAPS, or
-            LDAP+GSSAPI is required. <command>sssd</command> <emphasis>does
+            to authenticate against an LDAP server either TLS/SSL or LDAPS
+            is required. <command>sssd</command> <emphasis>does
             not</emphasis> support authentication over an unencrypted channel.
             If the LDAP server is used only as an identity provider, an encrypted
             channel is not needed. Please refer to <quote>ldap_access_filter</quote>
