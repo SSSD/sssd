@@ -400,7 +400,7 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                   network_change_cb change_cb, void *cb_data,
                   struct netlink_ctx **_nlctx)
 {
-    if (nlctx) *nlctx = NULL;
+    if (_nlctx) *_nlctx = NULL;
     return EOK;
 }
 #endif
