@@ -194,17 +194,20 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
     rd.len = strlen(user) +1;
     rd.data = user;
 
+    sss_nss_lock();
+
     nret = sss_nss_make_request(SSS_NSS_INITGR, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
+        goto out;
     }
 
     /* no results if not found */
     num_ret = ((uint32_t *)repbuf)[0];
     if (num_ret == 0) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
     }
     max_ret = num_ret;
 
@@ -223,7 +226,8 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
         if (!newgroups) {
             *errnop = ENOMEM;
             free(repbuf);
-            return NSS_STATUS_TRYAGAIN;
+            nret = NSS_STATUS_TRYAGAIN;
+            goto out;
         }
         *groups = newgroups;
         *size = newsize;
@@ -236,7 +240,11 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
     }
 
     free(repbuf);
-    return NSS_STATUS_SUCCESS;
+    nret = NSS_STATUS_SUCCESS;
+
+out:
+    sss_nss_unlock();
+    return nret;
 }
 
 
@@ -256,10 +264,12 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     rd.len = strlen(name) + 1;
     rd.data = name;
 
+    sss_nss_lock();
+
     nret = sss_nss_make_request(SSS_NSS_GETGRNAM, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
+        goto out;
     }
 
     grrep.result = result;
@@ -269,14 +279,16 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     /* no results if not found */
     if (((uint32_t *)repbuf)[0] == 0) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
     }
 
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
         free(repbuf);
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
     len = replen - 8;
@@ -284,10 +296,15 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     free(repbuf);
     if (ret) {
         *errnop = ret;
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
-    return NSS_STATUS_SUCCESS;
+    nret = NSS_STATUS_SUCCESS;
+
+out:
+    sss_nss_unlock();
+    return nret;
 }
 
 enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
@@ -308,10 +325,12 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     rd.len = sizeof(uint32_t);
     rd.data = &group_gid;
 
+    sss_nss_lock();
+
     nret = sss_nss_make_request(SSS_NSS_GETGRGID, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
+        goto out;
     }
 
     grrep.result = result;
@@ -321,14 +340,16 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     /* no results if not found */
     if (((uint32_t *)repbuf)[0] == 0) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
     }
 
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
         free(repbuf);
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
     len = replen - 8;
@@ -336,16 +357,23 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     free(repbuf);
     if (ret) {
         *errnop = ret;
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
-    return NSS_STATUS_SUCCESS;
+    nret = NSS_STATUS_SUCCESS;
+
+out:
+    sss_nss_unlock();
+    return nret;
 }
 
 enum nss_status _nss_sss_setgrent(void)
 {
     enum nss_status nret;
     int errnop;
+
+    sss_nss_lock();
 
     /* make sure we do not have leftovers, and release memory */
     sss_nss_getgrent_data_clean();
@@ -354,14 +382,15 @@ enum nss_status _nss_sss_setgrent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
-        return nret;
     }
 
-    return NSS_STATUS_SUCCESS;
+    sss_nss_unlock();
+    return nret;
 }
 
-enum nss_status _nss_sss_getgrent_r(struct group *result,
-                                    char *buffer, size_t buflen, int *errnop)
+static enum nss_status internal_getgrent_r(struct group *result,
+                                           char *buffer, size_t buflen,
+                                           int *errnop)
 {
     struct sss_cli_req_data rd;
     struct sss_nss_gr_rep grrep;
@@ -424,13 +453,27 @@ enum nss_status _nss_sss_getgrent_r(struct group *result,
     sss_nss_getgrent_data.ptr = 8; /* skip metadata fields */
 
     /* call again ourselves, this will return the first result */
-    return _nss_sss_getgrent_r(result, buffer, buflen, errnop);
+    return internal_getgrent_r(result, buffer, buflen, errnop);
+}
+
+enum nss_status _nss_sss_getgrent_r(struct group *result,
+                                    char *buffer, size_t buflen, int *errnop)
+{
+    enum nss_status nret;
+
+    sss_nss_lock();
+    nret = internal_getgrent_r(result, buffer, buflen, errnop);
+    sss_nss_unlock();
+
+    return nret;
 }
 
 enum nss_status _nss_sss_endgrent(void)
 {
     enum nss_status nret;
     int errnop;
+
+    sss_nss_lock();
 
     /* make sure we do not have leftovers, and release memory */
     sss_nss_getgrent_data_clean();
@@ -439,8 +482,8 @@ enum nss_status _nss_sss_endgrent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
-        return nret;
     }
 
-    return NSS_STATUS_SUCCESS;
+    sss_nss_unlock();
+    return nret;
 }

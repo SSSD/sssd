@@ -49,6 +49,12 @@ AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
 m4_include([src/build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
 
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([[#include <pthread.h>]],
+        [[pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;]])],
+    [AC_DEFINE([HAVE_PTHREAD], [1], [Pthread mutexes available.])],
+    [AC_MSG_WARN([Pthread library not found! Clients will not be thread safe...])])
+
 #Check for PAM headers
 AC_CHECK_HEADERS([security/pam_appl.h security/pam_misc.h security/pam_modules.h],
     [AC_CHECK_LIB(pam, pam_get_item, [ PAM_LIBS="-lpam" ], [AC_MSG_ERROR([PAM must support pam_get_item])])],

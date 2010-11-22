@@ -196,15 +196,21 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
 
     if (!netgroup) return NSS_STATUS_NOTFOUND;
 
+    sss_nss_lock();
+
     /* make sure we do not have leftovers, and release memory */
     CLEAR_NETGRENT_DATA(result);
 
     ret = sss_strnlen(netgroup, MAX_NETGR_NAME_LENGTH, &name_len);
-    if (ret != 0) return NSS_STATUS_NOTFOUND;
+    if (ret != 0) {
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
+    }
 
     name = malloc(sizeof(char)*name_len + 1);
     if (name == NULL) {
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
     strncpy(name, netgroup, name_len + 1);
 
@@ -216,22 +222,27 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
     free(name);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
-        return nret;
+        goto out;
     }
 
     /* no results if not found */
     if ((((uint32_t *)repbuf)[0] == 0) || (replen < NETGR_METADATA_COUNT)) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
     }
 
     free(repbuf);
-    return NSS_STATUS_SUCCESS;
+    nret = NSS_STATUS_SUCCESS;
+
+out:
+    sss_nss_unlock();
+    return nret;
 }
 
-enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
-                       char *buffer, size_t buflen,
-                       int *errnop)
+static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
+                                              char *buffer, size_t buflen,
+                                              int *errnop)
 {
     struct sss_cli_req_data rd;
     struct sss_nss_netgr_rep netgrrep;
@@ -294,13 +305,28 @@ enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
     result->idx.position = NETGR_METADATA_COUNT;
 
     /* call again ourselves, this will return the first result */
-    return _nss_sss_getnetgrent_r(result, buffer, buflen, errnop);
+    return internal_getnetgrent_r(result, buffer, buflen, errnop);
+}
+
+enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
+                       char *buffer, size_t buflen,
+                       int *errnop)
+{
+    enum nss_status nret;
+
+    sss_nss_lock();
+    nret = internal_getnetgrent_r(result, buffer, buflen, errnop);
+    sss_nss_unlock();
+
+    return nret;
 }
 
 enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
 {
     enum nss_status nret;
     int errnop;
+
+    sss_nss_lock();
 
     /* make sure we do not have leftovers, and release memory */
     CLEAR_NETGRENT_DATA(result);
@@ -309,8 +335,8 @@ enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
-        return nret;
     }
 
-    return NSS_STATUS_SUCCESS;
+    sss_nss_unlock();
+    return nret;
 }

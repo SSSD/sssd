@@ -480,3 +480,8 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
  * _len will return the result
  */
 errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len);
+
+void sss_nss_lock(void);
+void sss_nss_unlock(void);
+void sss_pam_lock(void);
+void sss_pam_unlock(void);

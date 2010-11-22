@@ -189,10 +189,12 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     rd.len = strlen(name) + 1;
     rd.data = name;
 
+    sss_nss_lock();
+
     nret = sss_nss_make_request(SSS_NSS_GETPWNAM, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
+        goto out;
     }
 
     pwrep.result = result;
@@ -202,14 +204,16 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     /* no results if not found */
     if (((uint32_t *)repbuf)[0] == 0) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
     }
 
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
         free(repbuf);
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
     len = replen - 8;
@@ -217,10 +221,15 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     free(repbuf);
     if (ret) {
         *errnop = ret;
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
-    return NSS_STATUS_SUCCESS;
+    nret = NSS_STATUS_SUCCESS;
+
+out:
+    sss_nss_unlock();
+    return nret;
 }
 
 enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
@@ -241,10 +250,12 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     rd.len = sizeof(uint32_t);
     rd.data = &user_uid;
 
+    sss_nss_lock();
+
     nret = sss_nss_make_request(SSS_NSS_GETPWUID, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
+        goto out;
     }
 
     pwrep.result = result;
@@ -254,14 +265,16 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     /* no results if not found */
     if (((uint32_t *)repbuf)[0] == 0) {
         free(repbuf);
-        return NSS_STATUS_NOTFOUND;
+        nret = NSS_STATUS_NOTFOUND;
+        goto out;
     }
 
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
         free(repbuf);
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
     len = replen - 8;
@@ -269,16 +282,23 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     free(repbuf);
     if (ret) {
         *errnop = ret;
-        return NSS_STATUS_TRYAGAIN;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
     }
 
-    return NSS_STATUS_SUCCESS;
+    nret = NSS_STATUS_SUCCESS;
+
+out:
+    sss_nss_unlock();
+    return nret;
 }
 
 enum nss_status _nss_sss_setpwent(void)
 {
     enum nss_status nret;
     int errnop;
+
+    sss_nss_lock();
 
     /* make sure we do not have leftovers, and release memory */
     sss_nss_getpwent_data_clean();
@@ -287,15 +307,15 @@ enum nss_status _nss_sss_setpwent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
-        return nret;
     }
 
-    return NSS_STATUS_SUCCESS;
+    sss_nss_unlock();
+    return nret;
 }
 
-enum nss_status _nss_sss_getpwent_r(struct passwd *result,
-                                    char *buffer, size_t buflen,
-                                    int *errnop)
+static enum nss_status internal_getpwent_r(struct passwd *result,
+                                           char *buffer, size_t buflen,
+                                           int *errnop)
 {
     struct sss_cli_req_data rd;
     struct sss_nss_pw_rep pwrep;
@@ -356,13 +376,28 @@ enum nss_status _nss_sss_getpwent_r(struct passwd *result,
     sss_nss_getpwent_data.ptr = 8; /* skip metadata fields */
 
     /* call again ourselves, this will return the first result */
-    return _nss_sss_getpwent_r(result, buffer, buflen, errnop);
+    return internal_getpwent_r(result, buffer, buflen, errnop);
+}
+
+enum nss_status _nss_sss_getpwent_r(struct passwd *result,
+                                    char *buffer, size_t buflen,
+                                    int *errnop)
+{
+    enum nss_status nret;
+
+    sss_nss_lock();
+    nret = internal_getpwent_r(result, buffer, buflen, errnop);
+    sss_nss_unlock();
+
+    return nret;
 }
 
 enum nss_status _nss_sss_endpwent(void)
 {
     enum nss_status nret;
     int errnop;
+
+    sss_nss_lock();
 
     /* make sure we do not have leftovers, and release memory */
     sss_nss_getpwent_data_clean();
@@ -371,8 +406,8 @@ enum nss_status _nss_sss_endpwent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
-        return nret;
     }
 
-    return NSS_STATUS_SUCCESS;
+    sss_nss_unlock();
+    return nret;
 }

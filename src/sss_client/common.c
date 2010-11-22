@@ -45,6 +45,10 @@
 #include "config.h"
 #include "sss_cli.h"
 
+#if HAVE_PTHREAD
+#include <pthread.h>
+#endif
+
 /* common functions */
 
 int sss_cli_sd = -1; /* the sss client socket descriptor */
@@ -686,50 +690,67 @@ int sss_pam_make_request(enum sss_cli_command cmd,
     char *envval;
     struct stat stat_buf;
 
+    sss_pam_lock();
+
     /* avoid looping in the pam daemon */
     envval = getenv("_SSS_LOOPS");
     if (envval && strcmp(envval, "NO") == 0) {
-        return PAM_SERVICE_ERR;
+        ret = PAM_SERVICE_ERR;
+        goto out;
     }
 
     /* only root shall use the privileged pipe */
     if (getuid() == 0 && getgid() == 0) {
         ret = stat(SSS_PAM_PRIV_SOCKET_NAME, &stat_buf);
-        if (ret != 0) return PAM_SERVICE_ERR;
+        if (ret != 0) {
+            ret = PAM_SERVICE_ERR;
+            goto out;
+        }
         if ( ! (stat_buf.st_uid == 0 &&
                 stat_buf.st_gid == 0 &&
                 S_ISSOCK(stat_buf.st_mode) &&
                 (stat_buf.st_mode & ~S_IFMT) == 0600 )) {
             *errnop = ESSS_BAD_PRIV_SOCKET;
-            return PAM_SERVICE_ERR;
+            ret = PAM_SERVICE_ERR;
+            goto out;
         }
 
         ret = sss_cli_check_socket(errnop, SSS_PAM_PRIV_SOCKET_NAME);
     } else {
         ret = stat(SSS_PAM_SOCKET_NAME, &stat_buf);
-        if (ret != 0) return PAM_SERVICE_ERR;
+        if (ret != 0) {
+            ret = PAM_SERVICE_ERR;
+            goto out;
+        }
         if ( ! (stat_buf.st_uid == 0 &&
                 stat_buf.st_gid == 0 &&
                 S_ISSOCK(stat_buf.st_mode) &&
                 (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
             *errnop = ESSS_BAD_PUB_SOCKET;
-            return PAM_SERVICE_ERR;
+            ret = PAM_SERVICE_ERR;
+            goto out;
         }
 
         ret = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
     }
     if (ret != NSS_STATUS_SUCCESS) {
-        return PAM_SERVICE_ERR;
+        ret = PAM_SERVICE_ERR;
+        goto out;
     }
 
     ret = check_server_cred(sss_cli_sd);
     if (ret != 0) {
         sss_cli_close_socket();
         *errnop = ret;
-        return PAM_SERVICE_ERR;
+        ret = PAM_SERVICE_ERR;
+        goto out;
     }
 
-    return sss_nss_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    ret = sss_nss_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+
+out:
+    sss_pam_unlock();
+    return ret;
 }
 
 
@@ -790,3 +811,34 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 
     return 0;
 }
+
+#if HAVE_PTHREAD
+static pthread_mutex_t sss_nss_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t sss_pam_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void sss_nss_lock(void)
+{
+    pthread_mutex_lock(&sss_nss_mutex);
+}
+void sss_nss_unlock(void)
+{
+    pthread_mutex_unlock(&sss_nss_mutex);
+}
+void sss_pam_lock(void)
+{
+    pthread_mutex_lock(&sss_pam_mutex);
+}
+void sss_pam_unlock(void)
+{
+    pthread_mutex_unlock(&sss_pam_mutex);
+}
+
+#else
+
+/* sorry no mutexes available */
+void sss_nss_lock(void) { return; }
+void sss_nss_unlock(void) { return; }
+void sss_pam_lock(void) { return; }
+void sss_pam_unlock(void) { return; }
+#endif
+
