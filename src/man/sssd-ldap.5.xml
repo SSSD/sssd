@@ -370,7 +370,8 @@
                     <term>ldap_user_shadow_expire (string)</term>
                     <listitem>
                         <para>
-                            When using ldap_pwd_policy=shadow, this parameter
+                            When using ldap_pwd_policy=shadow or
+                            ldap_account_expire_policy=shadow, this parameter
                             contains the name of an LDAP attribute corresponding
                             to its
                             <citerefentry>
@@ -1021,6 +1022,58 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: Empty
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_account_expire_policy (string)</term>
+                    <listitem>
+                        <para>
+                            With this option a client side evaluation of
+                            access control attributes can be enabled.
+                        </para>
+                        <para>
+                            Please note that it is always recommended to
+                            use server side access control, i.e. the LDAP
+                            server should deny the bind request with a
+                            suitable error code even if the password is
+                            correct.
+                        </para>
+                        <para>
+                            The following values are allowed:
+                        </para>
+                        <para>
+                            <emphasis>shadow</emphasis>: use the value of
+                            ldap_user_shadow_expire to determine if the account
+                            is expired.
+                        </para>
+                        <para>
+                            Default: Empty
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_access_order (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of access control options.
+                            Allowed values are:
+                        </para>
+                        <para>
+                            <emphasis>filter</emphasis>: use ldap_access_filter
+                        </para>
+                        <para>
+                            <emphasis>expire</emphasis>: use
+                            ldap_account_expire_policy
+                        </para>
+                        <para>
+                            Default: filter
+                        </para>
+                        <para>
+                             Please note that it is a configuration error if a
+                             value is used more than once.
                         </para>
                     </listitem>
                 </varlistentry>

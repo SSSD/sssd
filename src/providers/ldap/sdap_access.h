@@ -27,11 +27,24 @@
 
 #include "providers/dp_backend.h"
 
-#define SYSDB_LDAP_ACCESS "ldap_access_allow"
+#define SYSDB_LDAP_ACCESS_FILTER "ldap_access_filter_allow"
+
+#define LDAP_ACCESS_FILTER_NAME "filter"
+#define LDAP_ACCESS_EXPIRE_NAME "expire"
+
+#define LDAP_ACCOUNT_EXPIRE_SHADOW "shadow"
+
+enum ldap_access_rule {
+    LDAP_ACCESS_EMPTY = -1,
+    LDAP_ACCESS_FILTER = 0,
+    LDAP_ACCESS_EXPIRE,
+    LDAP_ACCESS_LAST
+};
 
 struct sdap_access_ctx {
     struct sdap_id_ctx *id_ctx;
     const char *filter;
+    int access_rule[LDAP_ACCESS_LAST + 1];
 };
 
 void ldap_pam_access_handler(struct be_req *breq);

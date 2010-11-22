@@ -160,6 +160,8 @@ option_strings = {
 
     # [provider/ldap/access]
     'ldap_access_filter' : _('LDAP filter to determine access privileges'),
+    'ldap_account_expire_policy' : _('Which attributes shall be used to evaluate if an account is expired'),
+    'ldap_access_order' : _('Which rules should be used to evaluate access control'),
 
     # [provider/simple/access]
     'simple_allow_users' : _('Comma separated list of allowed users'),

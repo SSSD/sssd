@@ -182,6 +182,8 @@ enum sdap_basic_opt {
     SDAP_NETGROUP_SEARCH_BASE,
     SDAP_NESTING_LEVEL,
     SDAP_DEREF,
+    SDAP_ACCOUNT_EXPIRE_POLICY,
+    SDAP_ACCESS_ORDER,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

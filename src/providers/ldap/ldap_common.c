@@ -72,7 +72,9 @@ struct dp_option default_basic_opts[] = {
     { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_netgroup_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER },
-    { "ldap_deref", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "ldap_deref", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_account_expire_policy", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_access_order", DP_OPT_STRING, { "filter" }, NULL_STRING }
 };
 
 struct sdap_attr_map generic_attr_map[] = {

@@ -54,6 +54,31 @@ struct bet_ops sdap_access_ops = {
     .finalize = sdap_shutdown
 };
 
+/* Please use this only for short lists */
+errno_t check_order_list_for_duplicates(char **list, size_t len,
+                                        bool case_sensitive)
+{
+    size_t c;
+    size_t d;
+    int cmp;
+
+    for (c = 0; list[c] != NULL; c++) {
+        for (d = c + 1; list[d] != NULL; d++) {
+            if (case_sensitive) {
+                cmp = strcmp(list[c], list[d]);
+            } else {
+                cmp = strcasecmp(list[c], list[d]);
+            }
+            if (cmp == 0) {
+                DEBUG(1, ("Duplicate string [%s] found.\n", list[c]));
+                return EINVAL;
+            }
+        }
+    }
+
+    return EOK;
+}
+
 int sssm_ldap_id_init(struct be_ctx *bectx,
                       struct bet_ops **ops,
                       void **pvt_data)
@@ -225,6 +250,11 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
     int ret;
     struct sdap_access_ctx *access_ctx;
     const char *filter;
+    const char *order;
+    char **order_list;
+    int order_list_len;
+    size_t c;
+    const char *dummy;
 
     access_ctx = talloc_zero(bectx, struct sdap_access_ctx);
     if(access_ctx == NULL) {
@@ -238,31 +268,91 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         goto done;
     }
 
-    filter = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
-                                            SDAP_ACCESS_FILTER);
-    if (filter == NULL) {
-        /* It's okay if this is NULL. In that case we will simply act
-         * like the 'deny' provider.
-         */
-        DEBUG(0, ("Warning: access_provider=ldap set, "
-                  "but no ldap_access_filter configured. "
-                  "All domain users will be denied access.\n"));
+    order = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
+                               SDAP_ACCESS_ORDER);
+    if (order == NULL) {
+        DEBUG(1, ("ldap_access_order not given, using 'filter'.\n"));
+        order = "filter";
     }
-    else {
-        if (filter[0] == '(') {
-            /* This filter is wrapped in parentheses.
-             * Pass it as-is to the openldap libraries.
-             */
-            access_ctx->filter = filter;
-        }
-        else {
-            /* Add parentheses around the filter */
-            access_ctx->filter = talloc_asprintf(access_ctx, "(%s)", filter);
-            if (access_ctx->filter == NULL) {
-                ret = ENOMEM;
-                goto done;
+
+    ret = split_on_separator(access_ctx, order, ',', true, &order_list,
+                             &order_list_len);
+    if (ret != EOK) {
+        DEBUG(1, ("split_on_separator failed.\n"));
+        goto done;
+    }
+
+    ret = check_order_list_for_duplicates(order_list, order_list_len, false);
+    if (ret != EOK) {
+        DEBUG(1, ("check_order_list_for_duplicates failed.\n"));
+        goto done;
+    }
+
+    if (order_list_len -1 > LDAP_ACCESS_LAST) {
+        DEBUG(1, ("Currently only [%d] different access rules are supported.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (c = 0; order_list[c] != NULL; c++) {
+        if (strcasecmp(order_list[c], LDAP_ACCESS_FILTER_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_FILTER;
+
+            filter = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
+                                                    SDAP_ACCESS_FILTER);
+            if (filter == NULL) {
+                /* It's okay if this is NULL. In that case we will simply act
+                 * like the 'deny' provider.
+                 */
+                DEBUG(0, ("Warning: LDAP access rule 'filter' is set, "
+                          "but no ldap_access_filter configured. "
+                          "All domain users will be denied access.\n"));
             }
+            else {
+                if (filter[0] == '(') {
+                    /* This filter is wrapped in parentheses.
+                     * Pass it as-is to the openldap libraries.
+                     */
+                    access_ctx->filter = filter;
+                }
+                else {
+                    /* Add parentheses around the filter */
+                    access_ctx->filter = talloc_asprintf(access_ctx, "(%s)", filter);
+                    if (access_ctx->filter == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+            }
+
+        } else if (strcasecmp(order_list[c], LDAP_ACCESS_EXPIRE_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE;
+
+            dummy = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
+                                       SDAP_ACCOUNT_EXPIRE_POLICY);
+            if (dummy == NULL) {
+                DEBUG(0, ("Warning: LDAP access rule 'expire' is set, "
+                          "but no ldap_account_expire_policy configured. "
+                          "All domain users will be denied access.\n"));
+            } else {
+                if (strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_SHADOW) != 0) {
+                    DEBUG(1, ("Unsupported LDAP account expire policy [%s].\n",
+                              dummy));
+                    ret = EINVAL;
+                    goto done;
+                }
+            }
+        } else {
+            DEBUG(1, ("Unexpected access rule name [%s].\n", order_list[c]));
+            ret = EINVAL;
+            goto done;
         }
+    }
+    access_ctx->access_rule[c] = LDAP_ACCESS_EMPTY;
+    if (c == 0) {
+        DEBUG(0, ("Warning: access_provider=ldap set, "
+                  "but ldap_access_order is empty. "
+                  "All domain users will be denied access.\n"));
     }
 
     *ops = &sdap_access_ops;
