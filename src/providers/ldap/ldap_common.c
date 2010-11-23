@@ -738,3 +738,37 @@ done:
     talloc_zfree(tmp_ctx);
     return ret;
 }
+
+errno_t string_to_shadowpw_days(const char *s, long *d)
+{
+    long l;
+    char *endptr;
+
+    if (s == NULL || *s == '\0') {
+        *d = -1;
+        return EOK;
+    }
+
+    errno = 0;
+    l = strtol(s, &endptr, 10);
+    if (errno != 0) {
+        DEBUG(1, ("strtol failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    if (*endptr != '\0') {
+        DEBUG(1, ("Input string [%s] is invalid.\n", s));
+        return EINVAL;
+    }
+
+    if (*d < -1) {
+        DEBUG(1, ("Input string contains not allowed negative value [%d].\n",
+                  *d));
+        return EINVAL;
+    }
+
+    *d = l;
+
+    return EOK;
+}
+

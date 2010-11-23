@@ -232,39 +232,6 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
     return EOK;
 }
 
-static errno_t string_to_shadowpw_days(const char *s, long *d)
-{
-    long l;
-    char *endptr;
-
-    if (s == NULL || *s == '\0') {
-        *d = -1;
-        return EOK;
-    }
-
-    errno = 0;
-    l = strtol(s, &endptr, 10);
-    if (errno != 0) {
-        DEBUG(1, ("strtol failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
-    }
-
-    if (*endptr != '\0') {
-        DEBUG(1, ("Input string [%s] is invalid.\n", s));
-        return EINVAL;
-    }
-
-    if (*d < -1) {
-        DEBUG(1, ("Input string contains not allowed negative value [%d].\n",
-                  *d));
-        return EINVAL;
-    }
-
-    *d = l;
-
-    return EOK;
-}
-
 static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
                                                const struct ldb_message *msg,
                                                struct dp_option *opts,
