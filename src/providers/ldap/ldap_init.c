@@ -32,7 +32,8 @@ static void sdap_shutdown(struct be_req *req);
 /* Id Handler */
 struct bet_ops sdap_id_ops = {
     .handler = sdap_account_info_handler,
-    .finalize = sdap_shutdown
+    .finalize = sdap_shutdown,
+    .check_online = sdap_check_online
 };
 
 /* Auth Handler */

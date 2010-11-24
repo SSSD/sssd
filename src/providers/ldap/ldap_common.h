@@ -67,6 +67,7 @@ struct sdap_auth_ctx {
     struct sdap_service *service;
 };
 
+void sdap_check_online(struct be_req *breq);
 /* id */
 void sdap_account_info_handler(struct be_req *breq);
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx);

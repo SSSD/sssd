@@ -650,7 +650,48 @@ int groups_by_user_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
+static void sdap_check_online_done(struct tevent_req *req);
+void sdap_check_online(struct be_req *be_req)
+{
+    struct sdap_id_ctx *ctx;
+    struct tevent_req *req;
 
+    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                          struct sdap_id_ctx);
+
+    req = sdap_cli_connect_send(be_req, be_req->be_ctx->ev, ctx->opts,
+                                be_req->be_ctx, ctx->service, false);
+    if (req == NULL) {
+        DEBUG(1, ("sdap_cli_connect_send failed.\n"));
+        goto done;
+    }
+    tevent_req_set_callback(req, sdap_check_online_done, be_req);
+
+    return;
+done:
+    sdap_handler_done(be_req, DP_ERR_FATAL, 0, NULL);
+}
+
+static void sdap_check_online_done(struct tevent_req *req)
+{
+    struct be_req *be_req = tevent_req_callback_data(req, struct be_req);
+    int ret;
+    int dp_err = DP_ERR_FATAL;
+    bool can_retry;
+
+    ret = sdap_cli_connect_recv_ext(req, NULL, &can_retry, NULL);
+    talloc_zfree(req);
+
+    if (ret != EOK) {
+        if (!can_retry) {
+            dp_err = DP_ERR_OFFLINE;
+        }
+    } else {
+        dp_err = DP_ERR_OK;
+    }
+
+    sdap_handler_done(be_req, dp_err, 0, NULL);
+}
 
 /* =Get-Account-Info-Call================================================= */
 
