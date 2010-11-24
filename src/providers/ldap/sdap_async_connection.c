@@ -1137,6 +1137,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     ret = be_resolve_server_recv(subreq, &state->srv);
     talloc_zfree(subreq);
     if (ret) {
+        state->srv = NULL;
         /* all servers have been tried and none
          * was found good, go offline */
         tevent_req_error(req, EIO);
