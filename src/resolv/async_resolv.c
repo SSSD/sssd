@@ -330,10 +330,12 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
     options.timeout = ctx->timeout * 1000;
+    options.lookups = discard_const("fb");
     options.tries = 1;
     ret = ares_init_options(&new_channel, &options,
                             ARES_OPT_SOCK_STATE_CB |
                             ARES_OPT_TIMEOUTMS |
+                            ARES_OPT_LOOKUPS |
                             ARES_OPT_TRIES);
     if (ret != ARES_SUCCESS) {
         DEBUG(1, ("Failed to initialize ares channel: %s\n",
