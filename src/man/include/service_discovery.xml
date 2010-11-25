@@ -31,6 +31,13 @@
             manual page for more defails.
         </para>
     </refsect2>
+    <refsect2 id='search_protocol'>
+        <title>The protocol</title>
+        <para>
+            The queries usually specify _tcp as the protocol. Exceptions
+            are documented in respective option description.
+        </para>
+    </refsect2>
     <refsect2 id='reference'>
         <title>See Also</title>
         <para>

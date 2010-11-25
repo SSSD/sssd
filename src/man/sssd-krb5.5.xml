@@ -86,6 +86,11 @@
                             <quote>SERVICE DISCOVERY</quote> section.
                         </para>
                         <para>
+                            When using service discovery for KDC or kpasswd servers,
+                            SSSD first searches for DNS entries that specify _udp as
+                            the protocol and falls back to _tcp if none are found.
+                        </para>
+                        <para>
                             This option was named <quote>krb5_kdcip</quote> in
                             earlier releases of SSSD. While the legacy name is recognized
                             for the time being, users are advised to migrate their config

@@ -502,8 +502,8 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
 {
     struct fo_server *server;
 
-    DEBUG(3, ("Adding new SRV server in domain '%s', to service '%s'\n",
-              dns_domain ? dns_domain : "unknown", service->name));
+    DEBUG(3, ("Adding new SRV server in domain '%s', to service '%s' using %s\n",
+              dns_domain ? dns_domain : "unknown", service->name, proto));
 
     DLIST_FOR_EACH(server, service->server_list) {
         if (server->user_data != user_data)

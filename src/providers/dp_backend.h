@@ -157,6 +157,12 @@ int be_add_offline_cb(TALLOC_CTX *mem_ctx,
 void be_run_offline_cb(struct be_ctx *be);
 
 /* from data_provider_fo.c */
+enum be_fo_protocol {
+    BE_FO_PROTO_TCP,
+    BE_FO_PROTO_UDP,
+    BE_FO_PROTO_SENTINEL
+};
+
 typedef void (be_svc_callback_fn_t)(void *, struct fo_server *);
 
 int be_init_failover(struct be_ctx *ctx);
@@ -167,8 +173,8 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
                                be_svc_callback_fn_t *fn, void *private_data);
 int be_fo_get_server_count(struct be_ctx *ctx, const char *service_name);
 int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
-                         const char *query_service, const char *proto,
-                         void *user_data);
+                         const char *query_service, enum be_fo_protocol proto,
+                         bool proto_fallback, void *user_data);
 int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
                      const char *server, int port, void *user_data);
 

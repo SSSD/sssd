@@ -54,6 +54,8 @@ struct be_failover_ctx {
     struct be_svc_data *svcs;
 };
 
+static const char *proto_table[] = { FO_PROTO_TCP, FO_PROTO_UDP, NULL };
+
 int be_fo_is_srv_identifier(const char *server)
 {
     return server && strcasecmp(server, BE_SRV_IDENTIFIER) == 0;
@@ -258,12 +260,13 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
 }
 
 int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
-                         const char *query_service, const char *proto,
-                         void *user_data)
+                         const char *query_service, enum be_fo_protocol proto,
+                         bool proto_fallback, void *user_data)
 {
     struct be_svc_data *svc;
     char *domain;
     int ret;
+    int i;
 
     svc = be_fo_find_svc_data(ctx, service_name);
     if (NULL == svc) {
@@ -279,11 +282,27 @@ int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
         return ret;
     }
 
+    /* Add the first protocol as the primary lookup */
     ret = fo_add_srv_server(svc->fo_service, query_service,
-                            domain, proto, user_data);
+                            domain, proto_table[proto], user_data);
     if (ret && ret != EEXIST) {
         DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
         return ret;
+    }
+
+    if (proto_fallback) {
+        i = (proto + 1) % BE_FO_PROTO_SENTINEL;
+        /* All the rest as fallback */
+        while (i != proto) {
+            ret = fo_add_srv_server(svc->fo_service, query_service,
+                                    domain, proto_table[i], user_data);
+            if (ret && ret != EEXIST) {
+                DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
+                return ret;
+            }
+
+            i = (i + 1) % BE_FO_PROTO_SENTINEL;
+        }
     }
 
     return EOK;

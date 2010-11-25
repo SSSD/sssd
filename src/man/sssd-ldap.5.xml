@@ -902,6 +902,11 @@
                             for more information, refer to the
                             <quote>SERVICE DISCOVERY</quote> section.
                         </para>
+                        <para>
+                            When using service discovery for KDC or kpasswd servers,
+                            SSSD first searches for DNS entries that specify _udp as
+                            the protocol and falls back to _tcp if none are found.
+                        </para>
                     </listitem>
                 </varlistentry>
 
