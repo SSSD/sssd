@@ -81,17 +81,17 @@ struct dp_option default_basic_opts[] = {
 
 struct sdap_attr_map generic_attr_map[] = {
     { "ldap_entry_usn", NULL, SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", NULL, SYSDB_USN, NULL }
+    { "ldap_rootdse_last_usn", NULL, SYSDB_HIGH_USN, NULL }
 };
 
 struct sdap_attr_map gen_ipa_attr_map[] = {
-    { "ldap_entry_usn", "entryUSN", SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", "lastUSN", SYSDB_HIGH_USN, NULL }
+    { "ldap_entry_usn", SDAP_IPA_USN, SYSDB_USN, NULL },
+    { "ldap_rootdse_last_usn", SDAP_IPA_LAST_USN, SYSDB_HIGH_USN, NULL }
 };
 
 struct sdap_attr_map gen_ad_attr_map[] = {
-    { "ldap_entry_usn", "uSNChanged", SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", "highestCommittedUSN", SYSDB_HIGH_USN, NULL }
+    { "ldap_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
+    { "ldap_rootdse_last_usn", SDAP_AD_LAST_USN, SYSDB_HIGH_USN, NULL }
 };
 
 struct sdap_attr_map rfc2307_user_map[] = {

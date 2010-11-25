@@ -495,7 +495,6 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                         -1 };
     size_t c;
 
-
     for (c = 0; search_base_options[c] != -1; c++) {
         if (dp_opt_get_string(opts->basic, search_base_options[c]) == NULL) {
             if (naming_context == NULL) {
@@ -524,6 +523,89 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
 done:
     talloc_free(naming_context);
     return ret;
+}
+
+int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
+                                      const char *server,
+                                      struct sysdb_attrs *rootdse,
+                                      struct sdap_options *opts,
+                                      struct sdap_server_opts **srv_opts)
+{
+    struct sdap_server_opts *so;
+    struct {
+        const char *last_name;
+        const char *entry_name;
+    } usn_attrs[] = { { SDAP_IPA_LAST_USN, SDAP_IPA_USN },
+                      { SDAP_AD_LAST_USN, SDAP_AD_USN },
+                      { NULL, NULL } };
+    const char *last_usn_name;
+    const char *last_usn_value;
+    int ret;
+    int i;
+
+    so = talloc_zero(memctx, struct sdap_server_opts);
+    if (!so) {
+        return ENOMEM;
+    }
+    so->server_id = talloc_strdup(so, server);
+    if (!so->server_id) {
+        talloc_zfree(so);
+        return ENOMEM;
+    }
+
+    last_usn_name = opts->gen_map[SDAP_AT_LAST_USN].name;
+    if (last_usn_name) {
+        ret = sysdb_attrs_get_string(rootdse,
+                                      last_usn_name, &last_usn_value);
+        if (ret != EOK) {
+            switch (ret) {
+            case ENOENT:
+                DEBUG(1, ("%s configured but not found in rootdse!\n",
+                          opts->gen_map[SDAP_AT_LAST_USN].opt_name));
+                break;
+            case ERANGE:
+                DEBUG(1, ("Multiple values of %s found in rootdse!\n",
+                          opts->gen_map[SDAP_AT_LAST_USN].opt_name));
+                break;
+            default:
+                DEBUG(1, ("Unkown error (%d) checking rootdse!\n", ret));
+            }
+        } else {
+            const char *entry_usn_name;
+            entry_usn_name = opts->gen_map[SDAP_AT_ENTRY_USN].name;
+            if (!entry_usn_name) {
+                DEBUG(1, ("%s found in rootdse but %s is not set!\n",
+                          last_usn_name,
+                          opts->gen_map[SDAP_AT_ENTRY_USN].opt_name));
+            } else {
+                so->supports_usn = true;
+            }
+        }
+    } else {
+        /* no usn option configure, let's try to autodetect. */
+        for (i = 0; usn_attrs[i].last_name; i++) {
+            ret = sysdb_attrs_get_string(rootdse,
+                                         usn_attrs[i].last_name,
+                                         &last_usn_value);
+            if (ret == EOK) {
+                /* Fixate discovered configuration */
+                opts->gen_map[SDAP_AT_LAST_USN].name =
+                    talloc_strdup(opts->gen_map, usn_attrs[i].last_name);
+                opts->gen_map[SDAP_AT_ENTRY_USN].name =
+                    talloc_strdup(opts->gen_map, usn_attrs[i].entry_name);
+                so->supports_usn = true;
+                last_usn_name = usn_attrs[i].last_name;
+                break;
+            }
+        }
+    }
+
+    if (!last_usn_name) {
+        DEBUG(5, ("No known USN scheme is supported by this server\n!"));
+    }
+
+    *srv_opts = so;
+    return EOK;
 }
 
 int build_attrs_from_map(TALLOC_CTX *memctx,

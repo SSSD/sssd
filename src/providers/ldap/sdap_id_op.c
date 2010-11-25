@@ -494,15 +494,16 @@ done:
 /* Subrequest callback for connection completion */
 static void sdap_id_op_connect_done(struct tevent_req *subreq)
 {
-    struct sdap_id_conn_data *conn_data = tevent_req_callback_data(subreq,
-                                                                   struct sdap_id_conn_data);
+    struct sdap_id_conn_data *conn_data =
+                tevent_req_callback_data(subreq, struct sdap_id_conn_data);
     struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
+    struct sdap_server_opts *srv_opts;
     bool can_retry = false;
     bool is_offline = false;
     int ret;
 
-    ret = sdap_cli_connect_recv_ext(subreq, conn_data, &can_retry,
-                                    &conn_data->sh);
+    ret = sdap_cli_connect_recv(subreq, conn_data, &can_retry,
+                                &conn_data->sh, &srv_opts);
     conn_data->connect_req = NULL;
     talloc_zfree(subreq);
 

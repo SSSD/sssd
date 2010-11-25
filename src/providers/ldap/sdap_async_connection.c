@@ -1063,6 +1063,8 @@ struct sdap_cli_connect_state {
     struct sdap_handle *sh;
 
     struct fo_server *srv;
+
+    struct sdap_server_opts *srv_opts;
 };
 
 static int sdap_cli_resolve_next(struct tevent_req *req);
@@ -1094,6 +1096,7 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
     state->service = service;
     state->be = be;
     state->srv = NULL;
+    state->srv_opts = NULL;
     state->be = be;
     state->use_rootdse = !skip_rootdse;
 
@@ -1286,6 +1289,15 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
         return;
     }
 
+    ret = sdap_get_server_opts_from_rootdse(state,
+                                            state->service->uri, rootdse,
+                                            state->opts, &state->srv_opts);
+    if (ret) {
+        DEBUG(1, ("sdap_get_server_opts_from_rootdse failed.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (sasl_mech && state->use_rootdse) {
@@ -1416,15 +1428,9 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
 
 int sdap_cli_connect_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,
-                          struct sdap_handle **gsh)
-{
-    return sdap_cli_connect_recv_ext(req, memctx, NULL, gsh);
-}
-
-int sdap_cli_connect_recv_ext(struct tevent_req *req,
-                              TALLOC_CTX *memctx,
-                              bool *can_retry,
-                              struct sdap_handle **gsh)
+                          bool *can_retry,
+                          struct sdap_handle **gsh,
+                          struct sdap_server_opts **srv_opts)
 {
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
@@ -1462,6 +1468,10 @@ int sdap_cli_connect_recv_ext(struct tevent_req *req,
         }
     } else {
         talloc_zfree(state->sh);
+    }
+
+    if (srv_opts) {
+        *srv_opts = talloc_steal(memctx, state->srv_opts);
     }
 
     return EOK;

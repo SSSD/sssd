@@ -130,6 +130,11 @@ struct sdap_ppolicy_data {
 #define SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS "namingContexts"
 #define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
 
+#define SDAP_IPA_USN "entryUSN"
+#define SDAP_IPA_LAST_USN "lastUSN"
+#define SDAP_AD_USN "uSNChanged"
+#define SDAP_AD_LAST_USN "highestCommittedUSN"
+
 enum sdap_result {
     SDAP_SUCCESS,
     SDAP_NOT_FOUND,
@@ -280,6 +285,13 @@ struct sdap_options {
     struct ldb_dn *groups_base;
 };
 
+struct sdap_server_opts {
+    char *server_id;
+    bool supports_usn;
+    char *max_user_value;
+    char *max_group_value;
+};
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
@@ -328,4 +340,9 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                              struct sdap_handle *sh,
                                              struct sdap_options *opts);
+int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
+                                      const char *server,
+                                      struct sysdb_attrs *rootdse,
+                                      struct sdap_options *opts,
+                                      struct sdap_server_opts **srv_opts);
 #endif /* _SDAP_H_ */

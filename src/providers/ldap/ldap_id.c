@@ -673,7 +673,7 @@ static void sdap_check_online_done(struct tevent_req *req)
     int dp_err = DP_ERR_FATAL;
     bool can_retry;
 
-    ret = sdap_cli_connect_recv_ext(req, NULL, &can_retry, NULL);
+    ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, NULL);
     talloc_zfree(req);
 
     if (ret != EOK) {

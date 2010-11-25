@@ -118,7 +118,7 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     char *search_base;
     const char **attrs;
 
-    ret = sdap_cli_connect_recv(subreq, state, &state->sh);
+    ret = sdap_cli_connect_recv(subreq, state, NULL, &state->sh, NULL);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(1, ("sdap_auth request failed.\n"));
