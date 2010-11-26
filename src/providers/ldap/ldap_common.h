@@ -43,8 +43,6 @@ struct sdap_id_ctx {
     struct fo_service *fo_service;
     struct sdap_service *service;
 
-    /* what rootDSE returns */
-    struct sysdb_attrs *rootDSE;
     /* If using GSSAPI */
     struct krb5_service *krb5_service;
 

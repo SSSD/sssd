@@ -64,8 +64,6 @@ struct sdap_id_conn_data {
     struct sdap_id_conn_data *prev, *next;
     /* sdap handle */
     struct sdap_handle *sh;
-    /* what rootDSE returns */
-    struct sysdb_attrs *rootDSE;
     /* connection request */
     struct tevent_req *connect_req;
     /* timer for connection expiration */
@@ -766,10 +764,4 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
 struct sdap_handle *sdap_id_op_handle(struct sdap_id_op *op)
 {
     return op && op->conn_data ? op->conn_data->sh : NULL;
-}
-
-/* Begin to connect to LDAP server */
-const struct sysdb_attrs *sdap_id_op_rootDSE(struct sdap_id_op *op)
-{
-    return op && op->conn_data ? op->conn_data->rootDSE : NULL;
 }
