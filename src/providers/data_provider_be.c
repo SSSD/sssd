@@ -403,6 +403,9 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         } else if (strncmp(filter, "idnumber=", 9) == 0) {
             filter_type = BE_FILTER_IDNUM;
             filter_val = &filter[9];
+        } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
+            filter_type = BE_FILTER_ENUM;
+            filter_val = NULL;
         } else {
             err_maj = DP_ERR_FATAL;
             err_min = EINVAL;

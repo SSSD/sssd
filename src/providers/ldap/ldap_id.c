@@ -210,13 +210,10 @@ static void users_get_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT) {
-        if (strchr(state->name, '*')) {
-            /* it was an enumeration */
+        switch (state->filter_type) {
+        case BE_FILTER_ENUM:
             tevent_req_error(req, ret);
             return;
-        }
-
-        switch (state->filter_type) {
         case BE_FILTER_NAME:
             ret = sysdb_delete_user(state, state->sysdb,
                                     state->domain, state->name, 0);
@@ -442,13 +439,10 @@ static void groups_get_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT) {
-        if (strchr(state->name, '*')) {
-            /* it was an enumeration */
+        switch (state->filter_type) {
+        case BE_FILTER_ENUM:
             tevent_req_error(req, ret);
             return;
-        }
-
-        switch (state->filter_type) {
         case BE_FILTER_NAME:
             ret = sysdb_delete_group(state, state->sysdb,
                                      state->domain, state->name, 0);
@@ -723,7 +717,7 @@ void sdap_account_info_handler(struct be_req *breq)
     case BE_REQ_USER: /* user */
 
         /* skip enumerations on demand */
-        if (strcmp(ar->filter_value, "*") == 0) {
+        if (ar->filter_type == BE_FILTER_ENUM) {
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
@@ -741,7 +735,7 @@ void sdap_account_info_handler(struct be_req *breq)
 
     case BE_REQ_GROUP: /* group */
 
-        if (strcmp(ar->filter_value, "*") == 0) {
+        if (ar->filter_type == BE_FILTER_ENUM) {
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
@@ -767,11 +761,6 @@ void sdap_account_info_handler(struct be_req *breq)
         if (ar->attr_type != BE_ATTR_CORE) {
             ret = EINVAL;
             err = "Invalid attr type";
-            break;
-        }
-        if (strchr(ar->filter_value, '*')) {
-            ret = EINVAL;
-            err = "Invalid filter value";
             break;
         }
         req = groups_by_user_send(breq, breq->be_ctx->ev, ctx,

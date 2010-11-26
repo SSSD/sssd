@@ -50,6 +50,8 @@ typedef int errno_t;
 
 #define _(STRING) gettext (STRING)
 
+#define ENUM_INDICATOR "*"
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;

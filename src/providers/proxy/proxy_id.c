@@ -1045,6 +1045,7 @@ void proxy_get_account_info(struct be_req *breq)
     uid_t uid;
     gid_t gid;
     int ret;
+    char *endptr;
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
@@ -1064,27 +1065,21 @@ void proxy_get_account_info(struct be_req *breq)
     switch (ar->entry_type & 0xFFF) {
     case BE_REQ_USER: /* user */
         switch (ar->filter_type) {
+        case BE_FILTER_ENUM:
+            ret = enum_users(breq, ctx, sysdb, domain);
+            break;
+
         case BE_FILTER_NAME:
-            if (strchr(ar->filter_value, '*')) {
-                ret = enum_users(breq, ctx, sysdb, domain);
-            } else {
-                ret = get_pw_name(breq, ctx, sysdb, domain, ar->filter_value);
-            }
+            ret = get_pw_name(breq, ctx, sysdb, domain, ar->filter_value);
             break;
 
         case BE_FILTER_IDNUM:
-            if (strchr(ar->filter_value, '*')) {
+            uid = (uid_t) strtouint32(ar->filter_value, &endptr, 0);
+            if (errno || *endptr || (ar->filter_value == endptr)) {
                 return proxy_reply(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
-            } else {
-                char *endptr;
-                uid = (uid_t) strtouint32(ar->filter_value, &endptr, 0);
-                if (errno || *endptr || (ar->filter_value == endptr)) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       EINVAL, "Invalid attr type");
-                }
-                ret = get_pw_uid(breq, ctx, sysdb, domain, uid);
             }
+            ret = get_pw_uid(breq, ctx, sysdb, domain, uid);
             break;
         default:
             return proxy_reply(breq, DP_ERR_FATAL,
@@ -1094,26 +1089,19 @@ void proxy_get_account_info(struct be_req *breq)
 
     case BE_REQ_GROUP: /* group */
         switch (ar->filter_type) {
+        case BE_FILTER_ENUM:
+            ret = enum_groups(breq, ctx, sysdb, domain);
+            break;
         case BE_FILTER_NAME:
-            if (strchr(ar->filter_value, '*')) {
-                ret = enum_groups(breq, ctx, sysdb, domain);
-            } else {
-                ret = get_gr_name(breq, ctx, sysdb, domain, ar->filter_value);
-            }
+            ret = get_gr_name(breq, ctx, sysdb, domain, ar->filter_value);
             break;
         case BE_FILTER_IDNUM:
-            if (strchr(ar->filter_value, '*')) {
+            gid = (gid_t) strtouint32(ar->filter_value, &endptr, 0);
+            if (errno || *endptr || (ar->filter_value == endptr)) {
                 return proxy_reply(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
-            } else {
-                char *endptr;
-                gid = (gid_t) strtouint32(ar->filter_value, &endptr, 0);
-                if (errno || *endptr || (ar->filter_value == endptr)) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       EINVAL, "Invalid attr type");
-                }
-                ret = get_gr_gid(breq, ctx, sysdb, domain, gid);
             }
+            ret = get_gr_gid(breq, ctx, sysdb, domain, gid);
             break;
         default:
             return proxy_reply(breq, DP_ERR_FATAL,
@@ -1125,10 +1113,6 @@ void proxy_get_account_info(struct be_req *breq)
         if (ar->filter_type != BE_FILTER_NAME) {
             return proxy_reply(breq, DP_ERR_FATAL,
                                EINVAL, "Invalid filter type");
-        }
-        if (strchr(ar->filter_value, '*')) {
-            return proxy_reply(breq, DP_ERR_FATAL,
-                               EINVAL, "Invalid filter value");
         }
         if (ctx->ops.initgroups_dyn == NULL) {
             return proxy_reply(breq, DP_ERR_FATAL,

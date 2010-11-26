@@ -329,7 +329,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
         filter = talloc_asprintf(tmp_ctx, "idnumber=%u", opt_id);
         key.str = talloc_asprintf(tmp_ctx, "%d%d@%s", type, opt_id, domain);
     } else {
-        filter = talloc_strdup(tmp_ctx, "name=*");
+        filter = talloc_strdup(tmp_ctx, ENUM_INDICATOR);
         key.str = talloc_asprintf(tmp_ctx, "%d*@%s", type, domain);
     }
     if (!filter || !key.str) {
