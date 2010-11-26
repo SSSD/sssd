@@ -22,6 +22,7 @@
 #define LDAP_DEPRECATED 1
 #include "util/util.h"
 #include "confdb/confdb.h"
+#include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
 
 /* =Retrieve-Options====================================================== */
@@ -540,6 +541,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                       { NULL, NULL } };
     const char *last_usn_name;
     const char *last_usn_value;
+    const char *entry_usn_name;
     int ret;
     int i;
 
@@ -554,6 +556,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     }
 
     last_usn_name = opts->gen_map[SDAP_AT_LAST_USN].name;
+    entry_usn_name = opts->gen_map[SDAP_AT_ENTRY_USN].name;
     if (last_usn_name) {
         ret = sysdb_attrs_get_string(rootdse,
                                       last_usn_name, &last_usn_value);
@@ -571,8 +574,6 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                 DEBUG(1, ("Unkown error (%d) checking rootdse!\n", ret));
             }
         } else {
-            const char *entry_usn_name;
-            entry_usn_name = opts->gen_map[SDAP_AT_ENTRY_USN].name;
             if (!entry_usn_name) {
                 DEBUG(1, ("%s found in rootdse but %s is not set!\n",
                           last_usn_name,
@@ -601,12 +602,52 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     }
 
     if (!last_usn_name) {
-        DEBUG(5, ("No known USN scheme is supported by this server\n!"));
+        DEBUG(5, ("No known USN scheme is supported by this server!\n"));
+        if (!entry_usn_name) {
+            DEBUG(5, ("Will use modification timestamp as usn!\n"));
+            opts->gen_map[SDAP_AT_ENTRY_USN].name =
+                talloc_strdup(opts->gen_map, "modifyTimestamp");
+        }
+    }
+
+    if (!opts->user_map[SDAP_AT_USER_USN].name) {
+        opts->user_map[SDAP_AT_USER_USN].name =
+                    talloc_strdup(opts->user_map,
+                                  opts->gen_map[SDAP_AT_ENTRY_USN].name);
+    }
+    if (!opts->group_map[SDAP_AT_GROUP_USN].name) {
+        opts->group_map[SDAP_AT_GROUP_USN].name =
+                    talloc_strdup(opts->group_map,
+                                  opts->gen_map[SDAP_AT_ENTRY_USN].name);
     }
 
     *srv_opts = so;
     return EOK;
 }
+
+void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
+                            struct sdap_server_opts **srv_opts)
+{
+    if (!id_ctx || !srv_opts || !*srv_opts) {
+        return;
+    }
+
+    if (!id_ctx->srv_opts) {
+        id_ctx->srv_opts = talloc_move(id_ctx, srv_opts);
+        return;
+    }
+
+    /* discard if same as previous so we do not reset max usn values
+     * unnecessarily */
+    if (strcmp(id_ctx->srv_opts->server_id, (*srv_opts)->server_id) == 0) {
+        talloc_zfree(*srv_opts);
+        return;
+    }
+
+    talloc_zfree(id_ctx->srv_opts);
+    id_ctx->srv_opts = talloc_move(id_ctx, srv_opts);
+}
+
 
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
@@ -632,6 +673,17 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
     attrs[j] = NULL;
 
     *_attrs = attrs;
+
+    return EOK;
+}
+
+int append_attrs_to_array(const char **attrs, size_t size, const char *attr)
+{
+    attrs = talloc_realloc(NULL, attrs, const char *, size + 2);
+    if (!attrs) return ENOMEM;
+
+    attrs[size] = attr;
+    attrs[size + 1] = NULL;
 
     return EOK;
 }

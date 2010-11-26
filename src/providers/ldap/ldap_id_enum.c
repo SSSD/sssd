@@ -426,16 +426,15 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->op = op;
 
-    if (ctx->max_user_timestamp && !purge) {
-
+    if (ctx->srv_opts && ctx->srv_opts->max_user_value && !purge) {
         state->filter = talloc_asprintf(state,
                                "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
                                ctx->opts->user_map[SDAP_AT_USER_NAME].name,
                                ctx->opts->user_map[SDAP_OC_USER].name,
-                               ctx->opts->user_map[SDAP_AT_USER_MODSTAMP].name,
-                               ctx->max_user_timestamp,
-                               ctx->opts->user_map[SDAP_AT_USER_MODSTAMP].name,
-                               ctx->max_user_timestamp);
+                               ctx->opts->user_map[SDAP_AT_USER_USN].name,
+                               ctx->srv_opts->max_user_value,
+                               ctx->opts->user_map[SDAP_AT_USER_USN].name,
+                               ctx->srv_opts->max_user_value);
     } else {
         state->filter = talloc_asprintf(state,
                                "(&(%s=*)(objectclass=%s))",
@@ -479,23 +478,23 @@ static void enum_users_op_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct enum_users_state *state = tevent_req_data(req,
                                                      struct enum_users_state);
-    char *timestamp;
+    char *usn_value;
     int ret;
 
-    ret = sdap_get_users_recv(subreq, state, &timestamp);
+    ret = sdap_get_users_recv(subreq, state, &usn_value);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
 
-    if (timestamp) {
-        talloc_zfree(state->ctx->max_user_timestamp);
-        state->ctx->max_user_timestamp = talloc_steal(state->ctx, timestamp);
+    if (usn_value) {
+        talloc_zfree(state->ctx->srv_opts->max_user_value);
+        state->ctx->srv_opts->max_user_value = talloc_steal(state->ctx, usn_value);
     }
 
-    DEBUG(4, ("Users higher timestamp: [%s]\n",
-              state->ctx->max_user_timestamp));
+    DEBUG(4, ("Users higher USN value: [%s]\n",
+              state->ctx->srv_opts->max_user_value));
 
     tevent_req_done(req);
 }
@@ -530,16 +529,15 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->op = op;
 
-    if (ctx->max_group_timestamp && !purge) {
-
+    if (ctx->srv_opts && ctx->srv_opts->max_group_value && !purge) {
         state->filter = talloc_asprintf(state,
                               "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
                               ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
                               ctx->opts->group_map[SDAP_OC_GROUP].name,
-                              ctx->opts->group_map[SDAP_AT_GROUP_MODSTAMP].name,
-                              ctx->max_group_timestamp,
-                              ctx->opts->group_map[SDAP_AT_GROUP_MODSTAMP].name,
-                              ctx->max_group_timestamp);
+                              ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
+                              ctx->srv_opts->max_group_value,
+                              ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
+                              ctx->srv_opts->max_group_value);
     } else {
         state->filter = talloc_asprintf(state,
                               "(&(%s=*)(objectclass=%s))",
@@ -582,23 +580,24 @@ static void enum_groups_op_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct enum_groups_state *state = tevent_req_data(req,
                                                  struct enum_groups_state);
-    char *timestamp;
+    char *usn_value;
     int ret;
 
-    ret = sdap_get_groups_recv(subreq, state, &timestamp);
+    ret = sdap_get_groups_recv(subreq, state, &usn_value);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
 
-    if (timestamp) {
-        talloc_zfree(state->ctx->max_group_timestamp);
-        state->ctx->max_group_timestamp = talloc_steal(state->ctx, timestamp);
+    if (usn_value) {
+        talloc_zfree(state->ctx->srv_opts->max_group_value);
+        state->ctx->srv_opts->max_group_value =
+                                        talloc_steal(state->ctx, usn_value);
     }
 
-    DEBUG(4, ("Groups higher timestamp: [%s]\n",
-              state->ctx->max_group_timestamp));
+    DEBUG(4, ("Groups higher USN value: [%s]\n",
+              state->ctx->srv_opts->max_group_value));
 
     tevent_req_done(req);
 }

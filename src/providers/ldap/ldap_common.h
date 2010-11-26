@@ -54,8 +54,7 @@ struct sdap_id_ctx {
     /* cleanup loop timer */
     struct timeval last_purge;
 
-    char *max_user_timestamp;
-    char *max_group_timestamp;
+    struct sdap_server_opts *srv_opts;
 };
 
 struct sdap_auth_ctx {

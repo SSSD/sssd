@@ -34,7 +34,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
                           struct sss_domain_info *dom,
                           struct sysdb_attrs *attrs,
                           bool is_initgr,
-                          char **_timestamp)
+                          char **_usn_value)
 {
     struct ldb_message_element *el;
     int ret;
@@ -50,7 +50,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     int i;
     char *val = NULL;
     int cache_timeout;
-    char *timestamp = NULL;
+    char *usn_value = NULL;
 
     DEBUG(9, ("Save user\n"));
 
@@ -181,8 +181,25 @@ static int sdap_save_user(TALLOC_CTX *memctx,
         if (ret) {
             goto fail;
         }
-        timestamp = talloc_strdup(memctx, (const char*)el->values[0].data);
-        if (!timestamp) {
+    }
+
+    ret = sysdb_attrs_get_el(attrs,
+                      opts->user_map[SDAP_AT_USER_USN].sys_name, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original USN value is not available for [%s].\n",
+                  name));
+    } else {
+        ret = sysdb_attrs_add_string(user_attrs,
+                          opts->user_map[SDAP_AT_USER_USN].sys_name,
+                          (const char*)el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+        usn_value = talloc_strdup(memctx, (const char*)el->values[0].data);
+        if (!usn_value) {
             ret = ENOMEM;
             goto fail;
         }
@@ -252,8 +269,8 @@ static int sdap_save_user(TALLOC_CTX *memctx,
                            user_attrs, cache_timeout);
     if (ret) goto fail;
 
-    if (_timestamp) {
-        *_timestamp = timestamp;
+    if (_usn_value) {
+        *_usn_value = usn_value;
     }
 
     return EOK;
@@ -272,11 +289,11 @@ static int sdap_save_users(TALLOC_CTX *memctx,
                            struct sdap_options *opts,
                            struct sysdb_attrs **users,
                            int num_users,
-                           char **_timestamp)
+                           char **_usn_value)
 {
     TALLOC_CTX *tmpctx;
-    char *higher_timestamp = NULL;
-    char *timestamp;
+    char *higher_usn = NULL;
+    char *usn_value;
     int ret;
     int i;
 
@@ -296,10 +313,10 @@ static int sdap_save_users(TALLOC_CTX *memctx,
     }
 
     for (i = 0; i < num_users; i++) {
-        timestamp = NULL;
+        usn_value = NULL;
 
         ret = sdap_save_user(tmpctx, sysdb, opts, dom,
-                             users[i], false, &timestamp);
+                             users[i], false, &usn_value);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -309,16 +326,17 @@ static int sdap_save_users(TALLOC_CTX *memctx,
             DEBUG(9, ("User %d processed!\n", i));
         }
 
-        if (timestamp) {
-            if (higher_timestamp) {
-                if (strcmp(timestamp, higher_timestamp) > 0) {
-                    talloc_zfree(higher_timestamp);
-                    higher_timestamp = timestamp;
+        if (usn_value) {
+            if (higher_usn) {
+                if ((strlen(usn_value) > strlen(higher_usn)) ||
+                    (strcmp(usn_value, higher_usn) > 0)) {
+                    talloc_zfree(higher_usn);
+                    higher_usn = usn_value;
                 } else {
-                    talloc_zfree(timestamp);
+                    talloc_zfree(usn_value);
                 }
             } else {
-                higher_timestamp = timestamp;
+                higher_usn = usn_value;
             }
         }
     }
@@ -329,8 +347,8 @@ static int sdap_save_users(TALLOC_CTX *memctx,
         goto done;
     }
 
-    if (_timestamp) {
-        *_timestamp = talloc_steal(memctx, higher_timestamp);
+    if (_usn_value) {
+        *_usn_value = talloc_steal(memctx, higher_usn);
     }
 
 done:
@@ -350,7 +368,7 @@ struct sdap_get_users_state {
     const char **attrs;
     const char *filter;
 
-    char *higher_timestamp;
+    char *higher_usn;
     struct sysdb_attrs **users;
     size_t count;
 };
@@ -379,7 +397,7 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->sysdb = sysdb;
     state->filter = filter;
     state->attrs = attrs;
-    state->higher_timestamp = NULL;
+    state->higher_usn = NULL;
     state->users =  NULL;
     state->count = 0;
 
@@ -424,7 +442,7 @@ static void sdap_get_users_process(struct tevent_req *subreq)
     ret = sdap_save_users(state, state->sysdb,
                           state->dom, state->opts,
                           state->users, state->count,
-                          &state->higher_timestamp);
+                          &state->higher_usn);
     if (ret) {
         DEBUG(2, ("Failed to store users.\n"));
         tevent_req_error(req, ret);
@@ -437,15 +455,15 @@ static void sdap_get_users_process(struct tevent_req *subreq)
 }
 
 int sdap_get_users_recv(struct tevent_req *req,
-                        TALLOC_CTX *mem_ctx, char **timestamp)
+                        TALLOC_CTX *mem_ctx, char **usn_value)
 {
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (timestamp) {
-        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
+    if (usn_value) {
+        *usn_value = talloc_steal(mem_ctx, state->higher_usn);
     }
 
     return EOK;
@@ -601,14 +619,14 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sysdb_attrs *attrs,
                            bool store_members,
                            bool populate_members,
-                           char **_timestamp)
+                           char **_usn_value)
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
     gid_t gid;
     int ret;
-    char *timestamp = NULL;
+    char *usn_value = NULL;
 
     ret = sysdb_attrs_get_el(attrs,
                           opts->group_map[SDAP_AT_GROUP_NAME].sys_name, &el);
@@ -674,8 +692,25 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         if (ret) {
             goto fail;
         }
-        timestamp = talloc_strdup(memctx, (const char*)el->values[0].data);
-        if (!timestamp) {
+    }
+
+    ret = sysdb_attrs_get_el(attrs,
+                      opts->group_map[SDAP_AT_GROUP_USN].sys_name, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original USN value is not available for [%s].\n",
+                  name));
+    } else {
+        ret = sysdb_attrs_add_string(group_attrs,
+                          opts->group_map[SDAP_AT_GROUP_USN].sys_name,
+                          (const char*)el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+        usn_value = talloc_strdup(memctx, (const char*)el->values[0].data);
+        if (!usn_value) {
             ret = ENOMEM;
             goto fail;
         }
@@ -721,8 +756,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                            SDAP_ENTRY_CACHE_TIMEOUT));
     if (ret) goto fail;
 
-    if (_timestamp) {
-        *_timestamp = timestamp;
+    if (_usn_value) {
+        *_usn_value = usn_value;
     }
 
     return EOK;
@@ -805,11 +840,11 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
                             struct sysdb_attrs **groups,
                             int num_groups,
                             bool populate_members,
-                            char **_timestamp)
+                            char **_usn_value)
 {
     TALLOC_CTX *tmpctx;
-    char *higher_timestamp = NULL;
-    char *timestamp;
+    char *higher_usn = NULL;
+    char *usn_value;
     bool twopass;
     int ret;
     int i;
@@ -840,12 +875,12 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
     }
 
     for (i = 0; i < num_groups; i++) {
-        timestamp = NULL;
+        usn_value = NULL;
 
         /* if 2 pass savemembers = false */
         ret = sdap_save_group(tmpctx, sysdb,
                               opts, dom, groups[i],
-                              (!twopass), populate_members, &timestamp);
+                              (!twopass), populate_members, &usn_value);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -855,16 +890,17 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
             DEBUG(9, ("Group %d processed!\n", i));
         }
 
-        if (timestamp) {
-            if (higher_timestamp) {
-                if (strcmp(timestamp, higher_timestamp) > 0) {
-                    talloc_zfree(higher_timestamp);
-                    higher_timestamp = timestamp;
+        if (usn_value) {
+            if (higher_usn) {
+                if ((strlen(usn_value) > strlen(higher_usn)) ||
+                    (strcmp(usn_value, higher_usn) > 0)) {
+                    talloc_zfree(higher_usn);
+                    higher_usn = usn_value;
                 } else {
-                    talloc_zfree(timestamp);
+                    talloc_zfree(usn_value);
                 }
             } else {
-                higher_timestamp = timestamp;
+                higher_usn = usn_value;
             }
         }
     }
@@ -890,8 +926,8 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    if (_timestamp) {
-        *_timestamp = talloc_steal(memctx, higher_timestamp);
+    if (_usn_value) {
+        *_usn_value = talloc_steal(memctx, higher_usn);
     }
 
 done:
@@ -1431,7 +1467,7 @@ struct sdap_get_groups_state {
     const char **attrs;
     const char *filter;
 
-    char *higher_timestamp;
+    char *higher_usn;
     struct sysdb_attrs **groups;
     size_t count;
     size_t check_count;
@@ -1465,7 +1501,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->sysdb = sysdb;
     state->filter = filter;
     state->attrs = attrs;
-    state->higher_timestamp = NULL;
+    state->higher_usn = NULL;
     state->groups =  NULL;
     state->count = 0;
 
@@ -1604,7 +1640,7 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
 
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
                                state->groups, state->count, true,
-                               &state->higher_timestamp);
+                               &state->higher_usn);
         if (ret) {
             DEBUG(2, ("Failed to store groups.\n"));
             tevent_req_error(req, ret);
@@ -1616,15 +1652,15 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
 }
 
 int sdap_get_groups_recv(struct tevent_req *req,
-                         TALLOC_CTX *mem_ctx, char **timestamp)
+                         TALLOC_CTX *mem_ctx, char **usn_value)
 {
     struct sdap_get_groups_state *state = tevent_req_data(req,
                                             struct sdap_get_groups_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (timestamp) {
-        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
+    if (usn_value) {
+        *usn_value = talloc_steal(mem_ctx, state->higher_usn);
     }
 
     return EOK;
@@ -1676,7 +1712,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
      * place for the groups to add them.
      */
     ret = sdap_save_users(state, state->sysdb, state->dom, state->opts,
-                          users, count, &state->higher_timestamp);
+                          users, count, &state->higher_usn);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -1702,7 +1738,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
     talloc_zfree(values);
 
     ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                           groups, count, false, &state->higher_timestamp);
+                           groups, count, false, &state->higher_usn);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;

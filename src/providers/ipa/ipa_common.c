@@ -103,6 +103,7 @@ struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
     { "ldap_user_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
+    { "ldap_user_entry_usn", NULL, SYSDB_USN, NULL },
     { "ldap_user_shadow_last_change", "shadowLastChange", SYSDB_SHADOWPW_LASTCHANGE, NULL },
     { "ldap_user_shadow_min", "shadowMin", SYSDB_SHADOWPW_MIN, NULL },
     { "ldap_user_shadow_max", "shadowMax", SYSDB_SHADOWPW_MAX, NULL },
@@ -122,7 +123,8 @@ struct sdap_attr_map ipa_group_map[] = {
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
     { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
-    { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+    { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
+    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL }
 };
 
 struct sdap_attr_map ipa_netgroup_map[] = {

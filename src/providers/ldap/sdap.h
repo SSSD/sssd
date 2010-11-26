@@ -218,6 +218,7 @@ enum sdap_user_attrs {
     SDAP_AT_USER_MEMBEROF,
     SDAP_AT_USER_UUID,
     SDAP_AT_USER_MODSTAMP,
+    SDAP_AT_USER_USN,
     SDAP_AT_SP_LSTCHG,
     SDAP_AT_SP_MIN,
     SDAP_AT_SP_MAX,
@@ -244,6 +245,7 @@ enum sdap_group_attrs {
     SDAP_AT_GROUP_MEMBER,
     SDAP_AT_GROUP_UUID,
     SDAP_AT_GROUP_MODSTAMP,
+    SDAP_AT_GROUP_USN,
 
     SDAP_OPTS_GROUP /* attrs counter */
 };
@@ -292,6 +294,8 @@ struct sdap_server_opts {
     char *max_group_value;
 };
 
+struct sdap_id_ctx;
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
@@ -333,6 +337,7 @@ bool sdap_check_sup_list(struct sup_list *l, const char *val);
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
                          size_t size, const char ***_attrs);
+int append_attrs_to_array(const char **attrs, size_t size, const char *attr);
 
 int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
                         struct berval *value, int dupval, LDAPControl **ctrlp);
@@ -345,4 +350,6 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                                       struct sysdb_attrs *rootdse,
                                       struct sdap_options *opts,
                                       struct sdap_server_opts **srv_opts);
+void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
+                            struct sdap_server_opts **srv_opts);
 #endif /* _SDAP_H_ */
