@@ -25,9 +25,7 @@
 #ifndef _SDAP_ID_OP_H_
 #define _SDAP_ID_OP_H_
 
-#include "providers/ldap/sdap.h"
-#include <talloc.h>
-#include <tevent.h>
+struct sdap_id_ctx;
 
 /* LDAP async connection cache */
 struct sdap_id_conn_cache;
@@ -39,9 +37,7 @@ struct sdap_id_op;
 
 /* Create a connection cache */
 int sdap_id_conn_cache_create(TALLOC_CTX *memctx,
-                              struct be_ctx *be,
-                              struct sdap_options *opts,
-                              struct sdap_service *service,
+                              struct sdap_id_ctx *id_ctx,
                               struct sdap_id_conn_cache** conn_cache_out);
 
 /* Create an operation object */

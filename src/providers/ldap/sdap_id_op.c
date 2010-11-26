@@ -22,15 +22,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "providers/ldap/sdap_id_op.h"
+#include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
-#include "util/util.h"
+#include "providers/ldap/sdap_id_op.h"
 
 /* LDAP async connection cache */
 struct sdap_id_conn_cache {
-    struct be_ctx *be;
-    struct sdap_options *opts;
-    struct sdap_service *service;
+    struct sdap_id_ctx *id_ctx;
 
     /* list of all open connections */
     struct sdap_id_conn_data *connections;
@@ -78,13 +76,6 @@ struct sdap_id_conn_data {
     struct sdap_id_op *ops;
 };
 
-/* state of connect request */
-struct sdap_id_op_connect_state {
-    struct sdap_id_op *op;
-    int dp_error;
-    int result;
-};
-
 static void sdap_id_conn_cache_be_offline_cb(void *pvt);
 
 static void sdap_id_release_conn_data(struct sdap_id_conn_data *conn_data);
@@ -108,9 +99,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq);
 
 /* Create a connection cache */
 int sdap_id_conn_cache_create(TALLOC_CTX *memctx,
-                              struct be_ctx *be,
-                              struct sdap_options *opts,
-                              struct sdap_service *service,
+                              struct sdap_id_ctx *id_ctx,
                               struct sdap_id_conn_cache** conn_cache_out)
 {
     int ret;
@@ -121,11 +110,9 @@ int sdap_id_conn_cache_create(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    conn_cache->be = be;
-    conn_cache->opts = opts;
-    conn_cache->service = service;
+    conn_cache->id_ctx = id_ctx;
 
-    ret = be_add_offline_cb(conn_cache, be,
+    ret = be_add_offline_cb(conn_cache, id_ctx->be,
                             sdap_id_conn_cache_be_offline_cb, conn_cache,
                             NULL);
     if (ret != EOK) {
@@ -213,7 +200,8 @@ static bool sdap_can_reuse_connection(struct sdap_id_conn_data *conn_data)
         return false;
     }
 
-    timeout = dp_opt_get_int(conn_data->conn_cache->opts->basic, SDAP_OPT_TIMEOUT);
+    timeout = dp_opt_get_int(conn_data->conn_cache->id_ctx->opts->basic,
+                             SDAP_OPT_TIMEOUT);
     return !sdap_is_connection_expired(conn_data, timeout);
 }
 
@@ -230,7 +218,8 @@ static int sdap_id_conn_data_set_expire_timer(struct sdap_id_conn_data *conn_dat
         return EOK;
     }
 
-    timeout = dp_opt_get_int(conn_data->conn_cache->opts->basic, SDAP_OPT_TIMEOUT);
+    timeout = dp_opt_get_int(conn_data->conn_cache->id_ctx->opts->basic,
+                             SDAP_OPT_TIMEOUT);
     if (timeout > 0) {
         tv.tv_sec -= timeout;
     }
@@ -241,11 +230,11 @@ static int sdap_id_conn_data_set_expire_timer(struct sdap_id_conn_data *conn_dat
 
     talloc_zfree(conn_data->expire_timer);
 
-    conn_data->expire_timer = tevent_add_timer(conn_data->conn_cache->be->ev,
-                                               conn_data,
-                                               tv,
-                                               sdap_id_conn_data_expire_handler,
-                                               conn_data);
+    conn_data->expire_timer =
+                        tevent_add_timer(conn_data->conn_cache->id_ctx->be->ev,
+                                         conn_data, tv,
+                                         sdap_id_conn_data_expire_handler,
+                                         conn_data);
     if (!conn_data->expire_timer) {
         return ENOMEM;
     }
@@ -333,13 +322,27 @@ static bool sdap_id_op_can_reconnect(struct sdap_id_op *op)
     /* we allow 2 retries for failover server configured:
      *   - one for connection broken during request execution
      *   - one for the following (probably failed) reconnect attempt */
-    int max_retries = 2 * be_fo_get_server_count(op->conn_cache->be, op->conn_cache->service->name) - 1;
+    int max_retries;
+    int count;
+
+    count = be_fo_get_server_count(op->conn_cache->id_ctx->be,
+                                   op->conn_cache->id_ctx->service->name);
+    max_retries = 2 * count -1;
     if (max_retries < 1) {
         max_retries = 1;
     }
 
     return op->reconnect_retry_count < max_retries;
 }
+
+/* state of connect request */
+struct sdap_id_op_connect_state {
+    struct sdap_id_ctx *id_ctx;
+    struct tevent_context *ev;
+    struct sdap_id_op *op;
+    int dp_error;
+    int result;
+};
 
 /* Destructor for operation connection request */
 static int sdap_id_op_connect_state_destroy(void *pvt)
@@ -384,6 +387,8 @@ struct tevent_req *sdap_id_op_connect_send(struct sdap_id_op *op,
 
     talloc_set_destructor((void*)state, sdap_id_op_connect_state_destroy);
 
+    state->id_ctx = op->conn_cache->id_ctx;
+    state->ev = state->id_ctx->be->ev;
     state->op = op;
     op->connect_req = req;
 
@@ -406,7 +411,7 @@ done:
     } else if (op->conn_data && !op->conn_data->connect_req) {
         /* Connection is already established */
         tevent_req_done(req);
-        tevent_req_post(req, op->conn_cache->be->ev);
+        tevent_req_post(req, state->ev);
     }
 
     if (ret_out) {
@@ -419,7 +424,8 @@ done:
 /* Begin a connection retry to LDAP server */
 static int sdap_id_op_connect_step(struct tevent_req *req)
 {
-    struct sdap_id_op_connect_state *state = tevent_req_data(req, struct sdap_id_op_connect_state);
+    struct sdap_id_op_connect_state *state =
+                    tevent_req_data(req, struct sdap_id_op_connect_state);
     struct sdap_id_op *op = state->op;
     struct sdap_id_conn_cache *conn_cache = op->conn_cache;
 
@@ -458,9 +464,10 @@ static int sdap_id_op_connect_step(struct tevent_req *req)
     talloc_set_destructor(conn_data, sdap_id_conn_data_destroy);
 
     conn_data->conn_cache = conn_cache;
-    subreq = sdap_cli_connect_send(conn_data, conn_cache->be->ev,
-                                   conn_cache->opts, conn_cache->be,
-                                   conn_cache->service, false);
+    subreq = sdap_cli_connect_send(conn_data, state->ev,
+                                   state->id_ctx->opts,
+                                   state->id_ctx->be,
+                                   state->id_ctx->service, false);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -516,7 +523,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
         /* be is going offline as there is no more servers to try */
         DEBUG(1, ("Failed to connect, going offline (%d [%s])\n",
                   ret, strerror(ret)));
-        be_mark_offline(conn_data->conn_cache->be);
+        be_mark_offline(conn_data->conn_cache->id_ctx->be);
         is_offline = true;
     }
 
@@ -575,7 +582,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
 
             if (can_retry) {
                 /* determining whether retry is possible */
-                if (be_is_offline(conn_cache->be)) {
+                if (be_is_offline(conn_cache->id_ctx->be)) {
                     /* be is offline, no retry possible */
                     if (ret == EOK) {
                         DEBUG(9, ("skipping automatic retry on op #%d as be is offline\n", notify_count));
@@ -624,12 +631,14 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
         conn_data->notify_lock--;
     }
 
-    if (ret == EOK && conn_data->sh->connected && !be_is_offline(conn_cache->be)) {
+    if ((ret == EOK) &&
+        conn_data->sh->connected &&
+        !be_is_offline(conn_cache->id_ctx->be)) {
         DEBUG(9, ("caching successful connection after %d notifies\n", notify_count));
         conn_cache->cached_connection = conn_data;
 
         /* Run any post-connection routines */
-        be_run_online_cb(conn_cache->be);
+        be_run_online_cb(conn_cache->id_ctx->be);
 
     } else {
         if (conn_cache->cached_connection == conn_data) {
@@ -709,13 +718,14 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
         op->conn_cache->cached_connection = NULL;
 
         DEBUG(5, ("communication error on cached connection, moving to next server\n"));
-        be_fo_try_next_server(op->conn_cache->be, op->conn_cache->service->name);
+        be_fo_try_next_server(op->conn_cache->id_ctx->be,
+                              op->conn_cache->id_ctx->service->name);
     }
 
     int dp_err;
     if (retval == EOK) {
         dp_err = DP_ERR_OK;
-    } else if (be_is_offline(op->conn_cache->be)) {
+    } else if (be_is_offline(op->conn_cache->id_ctx->be)) {
         /* if backend is already offline, just report offline, do not duplicate errors */
         dp_err = DP_ERR_OFFLINE;
         retval = EAGAIN;
