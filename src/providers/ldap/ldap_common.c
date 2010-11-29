@@ -74,7 +74,9 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER },
     { "ldap_deref", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_account_expire_policy", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_access_order", DP_OPT_STRING, { "filter" }, NULL_STRING }
+    { "ldap_access_order", DP_OPT_STRING, { "filter" }, NULL_STRING },
+    { "ldap_chpass_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_attr_map generic_attr_map[] = {
@@ -688,6 +690,12 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     /* now for each URI add a new server to the failover service */
     for (i = 0; list[i]; i++) {
         if (be_fo_is_srv_identifier(list[i])) {
+            if (!dns_service_name) {
+                DEBUG(0, ("Missing DNS service name for service [%s].\n",
+                          service_name));
+                ret = EINVAL;
+                goto done;
+            }
             srv_user_data = talloc_strdup(service, dns_service_name);
             if (!srv_user_data) {
                 ret = ENOMEM;

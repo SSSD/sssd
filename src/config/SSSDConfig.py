@@ -163,6 +163,10 @@ option_strings = {
     'ldap_account_expire_policy' : _('Which attributes shall be used to evaluate if an account is expired'),
     'ldap_access_order' : _('Which rules should be used to evaluate access control'),
 
+    # [provider/ldap/chpass]
+    'ldap_chpass_uri' : _('URI of an LDAP server where password changes are allowed'),
+    'ldap_chpass_dns_service_name' : _('DNS service name for LDAP password change server'),
+
     # [provider/simple/access]
     'simple_allow_users' : _('Comma separated list of allowed users'),
     'simple_deny_users' : _('Comma separated list of prohibited users'),

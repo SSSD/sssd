@@ -450,6 +450,7 @@ struct auth_state {
     struct sdap_auth_ctx *ctx;
     const char *username;
     struct dp_opt_blob password;
+    struct sdap_service *sdap_service;
 
     struct sdap_handle *sh;
 
@@ -470,7 +471,8 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
                                     struct tevent_context *ev,
                                     struct sdap_auth_ctx *ctx,
                                     const char *username,
-                                    struct dp_opt_blob password)
+                                    struct dp_opt_blob password,
+                                    bool try_chpass_service)
 {
     struct tevent_req *req;
     struct auth_state *state;
@@ -490,6 +492,12 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->username = username;
     state->password = password;
     state->srv = NULL;
+    if (try_chpass_service && ctx->chpass_service != NULL &&
+        ctx->chpass_service->name != NULL) {
+        state->sdap_service = ctx->chpass_service;
+    } else {
+        state->sdap_service = ctx->service;
+    }
 
     if (!auth_get_server(req)) goto fail;
 
@@ -511,7 +519,7 @@ static struct tevent_req *auth_get_server(struct tevent_req *req)
     next_req = be_resolve_server_send(state,
                                       state->ev,
                                       state->ctx->be,
-                                      state->ctx->service->name);
+                                      state->sdap_service->name);
     if (!next_req) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         return NULL;
@@ -539,7 +547,7 @@ static void auth_resolve_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
-                               state->ctx->service->uri, true);
+                               state->sdap_service->uri, true);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -743,7 +751,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     authtok.data = (uint8_t *)state->password;
     authtok.length = strlen(state->password);
     subreq = auth_send(breq, breq->be_ctx->ev,
-                       ctx, state->username, authtok);
+                       ctx, state->username, authtok, true);
     if (!subreq) goto done;
 
     tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
@@ -950,7 +958,8 @@ void sdap_pam_auth_handler(struct be_req *breq)
         state->password.length = pd->authtok_size;
 
         subreq = auth_send(breq, breq->be_ctx->ev, ctx,
-                           state->username, state->password);
+                           state->username, state->password,
+                           pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ? true : false);
         if (!subreq) goto done;
 
         tevent_req_set_callback(subreq, sdap_pam_auth_done, state);

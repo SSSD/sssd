@@ -65,6 +65,7 @@ struct sdap_auth_ctx {
     struct sdap_options *opts;
     struct fo_service *fo_service;
     struct sdap_service *service;
+    struct sdap_service *chpass_service;
 };
 
 void sdap_check_online(struct be_req *breq);

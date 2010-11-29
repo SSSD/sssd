@@ -70,6 +70,26 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_chpass_uri (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the list of URIs of the LDAP servers to
+                            which SSSD should connect in the order of preference
+                            to change the password of a user. Refer to the
+                            <quote>FAILOVER</quote> section for more information
+                            on failover and server redundancy.
+                        </para>
+                        <para>
+                            To enable service discovery
+                            ldap_chpass_dns_service_name must be set.
+                        </para>
+                        <para>
+                            Default: empty, i.e. ldap_uri is used.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_search_base (string)</term>
                     <listitem>
                         <para>
@@ -983,6 +1003,20 @@
                         </para>
                         <para>
                             Default: ldap
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_chpass_dns_service_name (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the service name to use to find an LDAP
+                            server which allows password changes when service
+                            discovery is enabled.
+                        </para>
+                        <para>
+                            Default: not set, i.e. service discovery is disabled
                         </para>
                     </listitem>
                 </varlistentry>

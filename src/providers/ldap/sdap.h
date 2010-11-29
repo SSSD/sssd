@@ -184,6 +184,8 @@ enum sdap_basic_opt {
     SDAP_DEREF,
     SDAP_ACCOUNT_EXPIRE_POLICY,
     SDAP_ACCESS_ORDER,
+    SDAP_CHPASS_URI,
+    SDAP_CHPASS_DNS_SERVICE_NAME,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

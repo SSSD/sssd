@@ -212,6 +212,27 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
+    dns_service_name = dp_opt_get_string(ctx->opts->basic,
+                                         SDAP_CHPASS_DNS_SERVICE_NAME);
+    if (dns_service_name) {
+        DEBUG(7, ("Service name for chpass discovery set to %s\n",
+                  dns_service_name));
+    }
+
+    urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_URI);
+    if (!urls && !dns_service_name) {
+        DEBUG(9, ("ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
+                  "using ldap_uri.\n"));
+        ctx->chpass_service = NULL;
+    } else {
+        ret = sdap_service_init(ctx, ctx->be, "LDAP_CHPASS", dns_service_name,
+                                urls, &ctx->chpass_service);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to initialize failover service!\n"));
+            goto done;
+        }
+    }
+
     ret = setup_tls_config(ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
