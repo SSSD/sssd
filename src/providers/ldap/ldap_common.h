@@ -60,7 +60,6 @@ struct sdap_id_ctx {
 struct sdap_auth_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;
-    struct fo_service *fo_service;
     struct sdap_service *service;
     struct sdap_service *chpass_service;
 };
