@@ -1769,6 +1769,36 @@ int monitor_process_init(struct mt_ctx *ctx,
     int num_providers;
     int ret;
 
+    /* Set up an event handler for a SIGHUP */
+    tes = tevent_add_signal(ctx->ev, ctx, SIGHUP, 0,
+                            monitor_hup, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGINT */
+    BlockSignals(false, SIGINT);
+    tes = tevent_add_signal(ctx->ev, ctx, SIGINT, 0,
+                            monitor_quit, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGTERM */
+    tes = tevent_add_signal(ctx->ev, ctx, SIGTERM, 0,
+                            monitor_quit, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Handle SIGUSR1 (tell all providers to go offline) */
+    BlockSignals(false, SIGUSR1);
+    tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
+                            signal_offline, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
 #if 0
     This feature is incomplete and can leave the SSSD in a bad state if the
     config file is changed while the SSSD is running.
@@ -1845,35 +1875,6 @@ int monitor_process_init(struct mt_ctx *ctx,
 
     /* now start checking for global events */
     set_global_checker(ctx);
-
-    /* Set up an event handler for a SIGHUP */
-    tes = tevent_add_signal(ctx->ev, ctx, SIGHUP, 0,
-                            monitor_hup, ctx);
-    if (tes == NULL) {
-        return EIO;
-    }
-
-    /* Set up an event handler for a SIGINT */
-    tes = tevent_add_signal(ctx->ev, ctx, SIGINT, 0,
-                            monitor_quit, ctx);
-    if (tes == NULL) {
-        return EIO;
-    }
-
-    /* Set up an event handler for a SIGTERM */
-    tes = tevent_add_signal(ctx->ev, ctx, SIGTERM, 0,
-                            monitor_quit, ctx);
-    if (tes == NULL) {
-        return EIO;
-    }
-
-    /* Handle SIGUSR1 (tell all providers to go offline) */
-    BlockSignals(false, SIGUSR1);
-    tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
-                            signal_offline, ctx);
-    if (tes == NULL) {
-        return EIO;
-    }
 
     return EOK;
 }
