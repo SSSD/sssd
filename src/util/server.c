@@ -232,6 +232,25 @@ void sig_term(int sig)
     exit(0);
 }
 
+static void default_quit(struct tevent_context *ev,
+                         struct tevent_signal *se,
+                         int signum,
+                         int count,
+                         void *siginfo,
+                         void *private_data)
+{
+#if HAVE_GETPGRP
+    static int done_sigterm;
+    if (done_sigterm == 0 && getpgrp() == getpid()) {
+        DEBUG(0,("SIGTERM: killing children\n"));
+        done_sigterm = 1;
+        kill(-getpgrp(), SIGTERM);
+    }
+#endif
+    sss_log(SSS_LOG_INFO, "Shutting down");
+    exit(0);
+}
+
 #ifndef HAVE_PRCTL
 static void sig_segv_abrt(int sig)
 {
@@ -277,7 +296,6 @@ static void setup_signals(void)
 	BlockSignals(false, SIGTERM);
 
 	CatchSignal(SIGHUP, sig_hup);
-	CatchSignal(SIGTERM, sig_term);
 
 #ifndef HAVE_PRCTL
         /* If prctl is not defined on the system, try to handle
@@ -390,6 +408,20 @@ int server_setup(const char *name, int flags,
     if (event_ctx == NULL) {
         DEBUG(0,("The event context initialiaziton failed\n"));
         return 1;
+    }
+
+    /* Set up an event handler for a SIGINT */
+    tes = tevent_add_signal(event_ctx, event_ctx, SIGINT, 0,
+                            default_quit, NULL);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGTERM */
+    tes = tevent_add_signal(event_ctx, event_ctx, SIGTERM, 0,
+                            default_quit, NULL);
+    if (tes == NULL) {
+        return EIO;
     }
 
     ctx = talloc(event_ctx, struct main_context);
