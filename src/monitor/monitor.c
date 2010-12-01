@@ -2250,6 +2250,10 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
+    if (!opt_daemon && !opt_interactive) {
+        opt_daemon = 1;
+    }
+
     poptFreeContext(pc);
 
     uid = getuid();
