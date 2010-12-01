@@ -1150,6 +1150,8 @@ static void monitor_quit(struct tevent_context *ev,
     pid_t pid;
     int status;
     errno_t error;
+    int kret;
+    bool killed;
 
     DEBUG(8, ("Received shutdown command\n"));
 
@@ -1163,35 +1165,49 @@ static void monitor_quit(struct tevent_context *ev,
             continue;
         }
 
-        DEBUG(1, ("Terminating [%s]\n", svc->name));
-        kill(svc->pid, SIGTERM);
-
+        killed = false;
+        DEBUG(1, ("Terminating [%s][%d]\n", svc->name, svc->pid));
         do {
             errno = 0;
-            pid = waitpid(svc->pid, &status, 0);
-            if (pid == -1) {
-                /* An error occurred while waiting */
+            kret = kill(svc->pid, SIGTERM);
+            if (kret < 0) {
                 error = errno;
-                if (error != EINTR) {
-                    DEBUG(0, ("[%d][%s] while waiting for [%s]\n",
-                              error, strerror(error), svc->name));
-                    /* Forcibly kill this child */
-                    kill(svc->pid, SIGKILL);
-                    break;
-                }
-            } else {
-                error = 0;
-                if WIFEXITED(status) {
-                    DEBUG(1, ("Child [%s] exited gracefully\n", svc->name));
-                } else if WIFSIGNALED(status) {
-                    DEBUG(1, ("Child [%s] terminated with a signal\n", svc->name));
-                } else {
-                    DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
-                    /* Forcibly kill this child */
-                    kill(svc->pid, SIGKILL);
-                }
+                DEBUG(1, ("Couldn't kill [%s][%d]: [%s]\n",
+                          svc->name, svc->pid, strerror(error)));
             }
-        } while (error == EINTR);
+
+            do {
+                errno = 0;
+                pid = waitpid(svc->pid, &status, WNOHANG);
+                if (pid == -1) {
+                    /* An error occurred while waiting */
+                    error = errno;
+                    if (error != EINTR) {
+                        DEBUG(0, ("[%d][%s] while waiting for [%s]\n",
+                                  error, strerror(error), svc->name));
+                        /* Forcibly kill this child */
+                        kill(svc->pid, SIGKILL);
+                        break;
+                    }
+                } else if (pid != 0) {
+                    error = 0;
+                    if WIFEXITED(status) {
+                        DEBUG(1, ("Child [%s] exited gracefully\n", svc->name));
+                    } else if WIFSIGNALED(status) {
+                        DEBUG(1, ("Child [%s] terminated with a signal\n", svc->name));
+                    } else {
+                        DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
+                        /* Forcibly kill this child */
+                        kill(svc->pid, SIGKILL);
+                    }
+                    killed = true;
+                }
+            } while (error == EINTR);
+            if (!killed) {
+                /* Sleep 10ms and try again */
+                usleep(10000);
+            }
+        } while (!killed);
     }
 
 #if HAVE_GETPGRP
