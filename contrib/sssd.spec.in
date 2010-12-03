@@ -90,6 +90,19 @@ License: LGPLv3+
 Provides the libraries needed by the PAM and NSS stacks to connect to the SSSD
 service.
 
+%package tools
+Summary: Userspace tools for use with the SSSD
+Group: Applications/System
+License: GPLv3+
+Requires: sssd = %{version}-%{release}
+
+%description tools
+Provides userspace tools for manipulating users, groups, and nested groups in
+SSSD when using id_provider = local in /etc/sssd/sssd.conf.
+
+Also provides a userspace tool for generating an obfuscated LDAP password for
+use with ldap_default_authtok_type = obfuscated_password.
+
 %prep
 %setup -q
 
@@ -161,14 +174,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %{_initrddir}/%{name}
 %{_sbindir}/sssd
-%{_sbindir}/sss_useradd
-%{_sbindir}/sss_userdel
-%{_sbindir}/sss_usermod
-%{_sbindir}/sss_groupadd
-%{_sbindir}/sss_groupdel
-%{_sbindir}/sss_groupmod
-%{_sbindir}/sss_groupshow
-%{_sbindir}/sss_obfuscate
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so
@@ -191,14 +196,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man8/sssd.8*
-%{_mandir}/man8/sss_groupadd.8*
-%{_mandir}/man8/sss_groupdel.8*
-%{_mandir}/man8/sss_groupmod.8*
-%{_mandir}/man8/sss_groupshow.8*
-%{_mandir}/man8/sss_useradd.8*
-%{_mandir}/man8/sss_userdel.8*
-%{_mandir}/man8/sss_usermod.8*
-%{_mandir}/man8/sss_obfuscate.8*
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
 
@@ -210,6 +207,26 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
+
+%files tools
+%defattr(-,root,root,-)
+%doc COPYING
+%{_sbindir}/sss_useradd
+%{_sbindir}/sss_userdel
+%{_sbindir}/sss_usermod
+%{_sbindir}/sss_groupadd
+%{_sbindir}/sss_groupdel
+%{_sbindir}/sss_groupmod
+%{_sbindir}/sss_groupshow
+%{_sbindir}/sss_obfuscate
+%{_mandir}/man8/sss_groupadd.8*
+%{_mandir}/man8/sss_groupdel.8*
+%{_mandir}/man8/sss_groupmod.8*
+%{_mandir}/man8/sss_groupshow.8*
+%{_mandir}/man8/sss_useradd.8*
+%{_mandir}/man8/sss_userdel.8*
+%{_mandir}/man8/sss_usermod.8*
+%{_mandir}/man8/sss_obfuscate.8*
 
 %post
 /sbin/ldconfig
