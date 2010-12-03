@@ -408,7 +408,7 @@ sssd_be_LDFLAGS = \
 
 if BUILD_PYTHON_BINDINGS
 sss_obfuscate_pythondir = $(sbindir)
-sss_obfuscate_python_PYTHON = \
+dist_sss_obfuscate_python_SCRIPTS = \
 	src/tools/sss_obfuscate
 endif
 
