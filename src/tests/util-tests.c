@@ -241,6 +241,19 @@ START_TEST(test_sss_filter_sanitize)
 }
 END_TEST
 
+START_TEST(test_size_t_overflow)
+{
+    fail_unless(!SIZE_T_OVERFLOW(1, 1), "unexpected overflow");
+    fail_unless(!SIZE_T_OVERFLOW(SIZE_T_MAX, 0), "unexpected overflow");
+    fail_unless(!SIZE_T_OVERFLOW(SIZE_T_MAX-10, 10), "unexpected overflow");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, 1), "overflow not detected");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, SIZE_T_MAX),
+                "overflow not detected");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, ULLONG_MAX),
+                "overflow not detected");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, -10), "overflow not detected");
+}
+END_TEST
 
 Suite *util_suite(void)
 {
@@ -250,6 +263,7 @@ Suite *util_suite(void)
 
     tcase_add_test (tc_util, test_diff_string_lists);
     tcase_add_test (tc_util, test_sss_filter_sanitize);
+    tcase_add_test (tc_util, test_size_t_overflow);
     tcase_set_timeout(tc_util, 60);
 
     suite_add_tcase (s, tc_util);

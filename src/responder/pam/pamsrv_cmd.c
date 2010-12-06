@@ -42,18 +42,15 @@ enum pam_verbosity {
 
 static void pam_reply(struct pam_auth_req *preq);
 
-static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_t *body, size_t blen, size_t *c) {
-    uint32_t data_size;
+static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok,
+                           size_t data_size, uint8_t *body, size_t blen,
+                           size_t *c) {
 
-    if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
-
-    memcpy(&data_size, &body[*c], sizeof(uint32_t));
-    *c += sizeof(uint32_t);
-    if (data_size < sizeof(uint32_t) || (*c)+(data_size) > blen) return EINVAL;
+    if (data_size < sizeof(uint32_t) || *c+data_size > blen ||
+        SIZE_T_OVERFLOW(*c, data_size)) return EINVAL;
     *size = data_size - sizeof(uint32_t);
 
-    memcpy(type, &body[*c], sizeof(uint32_t));
-    *c += sizeof(uint32_t);
+    SAFEALIGN_COPY_UINT32_CHECK(type, &body[*c], blen, c);
 
     *tok = body+(*c);
 
@@ -62,15 +59,11 @@ static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_
     return EOK;
 }
 
-static int extract_string(char **var, uint8_t *body, size_t blen, size_t *c) {
-    uint32_t size;
+static int extract_string(char **var, size_t size, uint8_t *body, size_t blen,
+                          size_t *c) {
     uint8_t *str;
 
-    if (blen-(*c) < sizeof(uint32_t)+1) return EINVAL;
-
-    memcpy(&size, &body[*c], sizeof(uint32_t));
-    *c += sizeof(uint32_t);
-    if (*c+size > blen) return EINVAL;
+    if (*c+size > blen || SIZE_T_OVERFLOW(*c, size)) return EINVAL;
 
     str = body+(*c);
 
@@ -83,16 +76,13 @@ static int extract_string(char **var, uint8_t *body, size_t blen, size_t *c) {
     return EOK;
 }
 
-static int extract_uint32_t(uint32_t *var, uint8_t *body, size_t blen, size_t *c) {
-    uint32_t size;
+static int extract_uint32_t(uint32_t *var, size_t size, uint8_t *body,
+                            size_t blen, size_t *c) {
 
-    if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
+    if (size != sizeof(uint32_t) || *c+size > blen || SIZE_T_OVERFLOW(*c, size))
+        return EINVAL;
 
-    memcpy(&size, &body[*c], sizeof(uint32_t));
-    *c += sizeof(uint32_t);
-
-    memcpy(var, &body[*c], sizeof(uint32_t));
-    *c += sizeof(uint32_t);
+    SAFEALIGN_COPY_UINT32_CHECK(var, &body[*c], blen, c);
 
     return EOK;
 }
@@ -117,59 +107,66 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
 
     c = sizeof(uint32_t);
     do {
-        memcpy(&type, &body[c], sizeof(uint32_t));
-        c += sizeof(uint32_t);
-        if (c > blen) return EINVAL;
+        SAFEALIGN_COPY_UINT32_CHECK(&type, &body[c], blen, &c);
 
-        switch(type) {
-            case SSS_PAM_ITEM_USER:
-                ret = extract_string(&pam_user, body, blen, &c);
-                if (ret != EOK) return ret;
+        if (type == SSS_END_OF_PAM_REQUEST) {
+            if (c != blen) return EINVAL;
+        } else {
+            SAFEALIGN_COPY_UINT32_CHECK(&size, &body[c], blen, &c);
+            /* the uint32_t end maker SSS_END_OF_PAM_REQUEST does not count to
+             * the remaining buffer */
+            if (size > (blen - c - sizeof(uint32_t))) {
+                DEBUG(1, ("Invalid data size.\n"));
+                return EINVAL;
+            }
 
-                ret = sss_parse_name(pd, snctx, pam_user,
-                                     &pd->domain, &pd->user);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_SERVICE:
-                ret = extract_string(&pd->service, body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_TTY:
-                ret = extract_string(&pd->tty, body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_RUSER:
-                ret = extract_string(&pd->ruser, body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_RHOST:
-                ret = extract_string(&pd->rhost, body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_CLI_PID:
-                ret = extract_uint32_t(&pd->cli_pid,
-                                       body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_AUTHTOK:
-                ret = extract_authtok(&pd->authtok_type, &pd->authtok_size,
-                                      &pd->authtok, body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_PAM_ITEM_NEWAUTHTOK:
-                ret = extract_authtok(&pd->newauthtok_type,
-                                      &pd->newauthtok_size,
-                                      &pd->newauthtok, body, blen, &c);
-                if (ret != EOK) return ret;
-                break;
-            case SSS_END_OF_PAM_REQUEST:
-                if (c != blen) return EINVAL;
-                break;
-            default:
-                DEBUG(1,("Ignoring unknown data type [%d].\n", type));
-                size = ((uint32_t *)&body[c])[0];
-                c += size+sizeof(uint32_t);
+            switch(type) {
+                case SSS_PAM_ITEM_USER:
+                    ret = extract_string(&pam_user, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+
+                    ret = sss_parse_name(pd, snctx, pam_user,
+                                         &pd->domain, &pd->user);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_SERVICE:
+                    ret = extract_string(&pd->service, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_TTY:
+                    ret = extract_string(&pd->tty, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_RUSER:
+                    ret = extract_string(&pd->ruser, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_RHOST:
+                    ret = extract_string(&pd->rhost, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_CLI_PID:
+                    ret = extract_uint32_t(&pd->cli_pid, size,
+                                           body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_AUTHTOK:
+                    ret = extract_authtok(&pd->authtok_type, &pd->authtok_size,
+                                          &pd->authtok, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_NEWAUTHTOK:
+                    ret = extract_authtok(&pd->newauthtok_type,
+                                          &pd->newauthtok_size,
+                                          &pd->newauthtok, size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                default:
+                    DEBUG(1,("Ignoring unknown data type [%d].\n", type));
+                    c += size;
+            }
         }
+
     } while(c < blen);
 
     if (pd->user == NULL || *pd->user == '\0') return EINVAL;
@@ -240,6 +237,7 @@ static int pam_parse_in_data(struct sss_names_ctx *snctx,
 
     start += sizeof(uint32_t);
     pd->authtok_size = (int) body[start];
+    if (pd->authtok_size >= blen) return EINVAL;
 
     start += sizeof(uint32_t);
     end = start + pd->authtok_size;
@@ -259,6 +257,7 @@ static int pam_parse_in_data(struct sss_names_ctx *snctx,
 
     start += sizeof(uint32_t);
     pd->newauthtok_size = (int) body[start];
+    if (pd->newauthtok_size >= blen) return EINVAL;
 
     start += sizeof(uint32_t);
     end = start + pd->newauthtok_size;
