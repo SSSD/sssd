@@ -29,7 +29,6 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_access.h"
-#include "providers/ipa/ipa_timerules.h"
 
 #define OBJECTCLASS "objectclass"
 #define IPA_MEMBEROF "memberOf"
@@ -1349,63 +1348,6 @@ enum check_result check_service(struct hbac_ctx *hbac_ctx,
     return RULE_NOT_APPLICABLE;
 }
 
-enum check_result check_access_time(struct time_rules_ctx *tr_ctx,
-                                    struct sysdb_attrs *rule_attrs)
-{
-    int ret;
-    int i;
-    TALLOC_CTX *tmp_ctx = NULL;
-    struct ldb_message_element *el;
-    char *rule;
-    time_t now;
-    bool result;
-
-    now = time(NULL);
-    if (now == (time_t) -1) {
-        DEBUG(1, ("time failed [%d][%s].\n", errno, strerror(errno)));
-        return RULE_ERROR;
-    }
-
-    ret = sysdb_attrs_get_el(rule_attrs, IPA_ACCESS_TIME, &el);
-    if (ret != EOK) {
-        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-        return RULE_ERROR;
-    }
-    if (el->num_values == 0) {
-        DEBUG(9, ("No access time specified, assuming rule applies.\n"));
-        return RULE_APPLICABLE;
-    } else {
-        tmp_ctx = talloc_new(NULL);
-        if (tmp_ctx == NULL) {
-            DEBUG(1, ("talloc_new failed.\n"));
-            return RULE_ERROR;
-        }
-
-        for (i = 0; i < el->num_values; i++) {
-            rule = talloc_strndup(tmp_ctx, (const char *) el->values[i].data,
-                                  el->values[i].length);
-            ret = check_time_rule(tmp_ctx, tr_ctx, rule, now, &result);
-            if (ret != EOK) {
-                DEBUG(1, ("check_time_rule failed.\n"));
-                ret = RULE_ERROR;
-                goto done;
-            }
-
-            if (result) {
-                DEBUG(9, ("Current time [%d] matches rule [%s].\n", now, rule));
-                ret = RULE_APPLICABLE;
-                goto done;
-            }
-        }
-    }
-
-    ret = RULE_NOT_APPLICABLE;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 enum check_result check_user(struct hbac_ctx *hbac_ctx,
                              struct sysdb_attrs *rule_attrs)
 {
@@ -1639,11 +1581,6 @@ static errno_t check_if_rule_applies(struct hbac_ctx *hbac_ctx,
     }
 
     ret = check_user(hbac_ctx, rule_attrs);
-    if (ret != RULE_APPLICABLE) {
-        goto not_applicable;
-    }
-
-    ret = check_access_time(hbac_ctx->tr_ctx, rule_attrs);
     if (ret != RULE_APPLICABLE) {
         goto not_applicable;
     }
