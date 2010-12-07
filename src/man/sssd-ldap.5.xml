@@ -909,7 +909,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_kdcip (string)</term>
+                    <term>krb5_server (string)</term>
                     <listitem>
                         <para>
                             Specifies the list of IP addresses or hostnames
@@ -927,6 +927,12 @@
                             When using service discovery for KDC or kpasswd servers,
                             SSSD first searches for DNS entries that specify _udp as
                             the protocol and falls back to _tcp if none are found.
+                        </para>
+                        <para>
+                            This option was named <quote>krb5_kdcip</quote> in
+                            earlier releases of SSSD. While the legacy name is recognized
+                            for the time being, users are advised to migrate their config
+                            files to use <quote>krb5_server</quote> instead.
                         </para>
                     </listitem>
                 </varlistentry>

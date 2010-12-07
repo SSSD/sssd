@@ -67,7 +67,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
-    { "krb5_kdcip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
@@ -460,7 +460,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
 
     /* If there is no KDC, try the deprecated krb5_kdcip option, too */
     /* FIXME - this can be removed in a future version */
-    ret = krb5_try_kdcip(ipa_opts, cdb, conf_path, ipa_opts->auth);
+    ret = krb5_try_kdcip(ipa_opts, cdb, conf_path, ipa_opts->auth, KRB5_KDC);
     if (ret != EOK) {
         DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
         goto done;

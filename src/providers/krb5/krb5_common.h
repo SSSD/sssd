@@ -131,7 +131,8 @@ errno_t check_and_export_options(struct dp_option *opts,
                                  struct krb5_ctx *krb5_ctx);
 
 errno_t krb5_try_kdcip(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
-                       const char *conf_path, struct dp_option *opts);
+                       const char *conf_path, struct dp_option *opts,
+                       int opt_id);
 
 errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                          const char *conf_path, struct dp_option **_opts);

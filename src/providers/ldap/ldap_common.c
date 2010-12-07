@@ -62,7 +62,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
-    { "krb5_kdcip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" }, NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
@@ -381,6 +381,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
+    /* If there is no KDC, try the deprecated krb5_kdcip option, too */
+    /* FIXME - this can be removed in a future version */
+    ret = krb5_try_kdcip(memctx, cdb, conf_path, opts->basic, SDAP_KRB5_KDC);
+    if (ret != EOK) {
+        DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
+        goto done;
+    }
+
     ret = EOK;
     *_opts = opts;
 
@@ -601,9 +609,9 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     const char *krb5_realm;
     struct krb5_service *service = NULL;
 
-    krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDCIP);
+    krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDC);
     if (krb5_servers == NULL) {
-        DEBUG(1, ("Missing krb5_kdcip option, using service discovery!\n"));
+        DEBUG(1, ("Missing krb5_server option, using service discovery!\n"));
     }
 
     krb5_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
