@@ -859,6 +859,7 @@ static void sdap_kinit_done(struct tevent_req *subreq)
         return;
     } else {
         if (kerr == KRB5_KDC_UNREACH) {
+            fo_set_port_status(state->kdc_srv, PORT_NOT_WORKING);
             nextreq = sdap_kinit_next_kdc(req);
             if (!nextreq) {
                 tevent_req_error(req, ENOMEM);
