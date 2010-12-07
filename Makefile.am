@@ -70,7 +70,6 @@ if HAVE_CHECK
         resolv-tests \
         krb5-utils-tests \
         check_and_open-tests \
-        ipa_timerules-tests \
         files-tests \
         refcount-tests \
         fail_over-tests \
@@ -343,7 +342,6 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_id_op.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_access.h \
-    src/providers/ipa/ipa_timerules.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/proxy/proxy.h \
@@ -618,23 +616,6 @@ fail_over_tests_LDADD = \
     $(CARES_LIBS) \
     libsss_test_common.la
 
-ipa_timerules_tests_SOURCES = \
-    src/providers/ipa/ipa_timerules.c \
-    src/tests/ipa_timerules-tests.c \
-    $(SSSD_DEBUG_OBJ)
-ipa_timerules_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(POPT_CFLAGS) \
-    $(TALLOC_CFLAGS) \
-    $(PCRE_CFLAGS) \
-    $(CHECK_CFLAGS)
-ipa_timerules_tests_LDADD = \
-    $(POPT_LIBS) \
-    $(PCRE_LIBS) \
-    $(TALLOC_LIBS) \
-    $(CHECK_LIBS) \
-    libsss_test_common.la
-
 find_uid_tests_SOURCES = \
     src/tests/find_uid-tests.c \
     src/util/find_uid.c \
@@ -850,7 +831,6 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_utils.c \
     src/providers/ipa/ipa_auth.c \
     src/providers/ipa/ipa_access.c \
-    src/providers/ipa/ipa_timerules.c \
     src/providers/ipa/ipa_dyndns.c \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
