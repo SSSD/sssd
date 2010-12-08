@@ -41,7 +41,6 @@
 #define IPA_SOURCE_HOST "sourceHost"
 #define IPA_SOURCE_HOST_CATEGORY "sourceHostCategory"
 #define IPA_EXTERNAL_HOST "externalHost"
-#define IPA_ACCESS_TIME "accessTime"
 #define IPA_UNIQUE_ID "ipauniqueid"
 #define IPA_ENABLED_FLAG "ipaenabledflag"
 #define IPA_MEMBER_HOST "memberHost"
@@ -1067,7 +1066,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->hbac_attrs = talloc_array(state, const char *, 18);
+    state->hbac_attrs = talloc_array(state, const char *, 17);
     if (state->hbac_attrs == NULL) {
         DEBUG(1, ("Failed to allocate HBAC attribute list.\n"));
         ret = ENOMEM;
@@ -1080,17 +1079,16 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->hbac_attrs[4] = IPA_SOURCE_HOST;
     state->hbac_attrs[5] = IPA_SOURCE_HOST_CATEGORY;
     state->hbac_attrs[6] = IPA_EXTERNAL_HOST;
-    state->hbac_attrs[7] = IPA_ACCESS_TIME;
-    state->hbac_attrs[8] = IPA_UNIQUE_ID;
-    state->hbac_attrs[9] = IPA_ENABLED_FLAG;
-    state->hbac_attrs[10] = IPA_CN;
-    state->hbac_attrs[11] = OBJECTCLASS;
-    state->hbac_attrs[12] = IPA_MEMBER_HOST;
-    state->hbac_attrs[13] = IPA_HOST_CATEGORY;
-    state->hbac_attrs[14] = IPA_MEMBER_SERVICE;
-    state->hbac_attrs[15] = IPA_SERVICE_CATEGORY;
-    state->hbac_attrs[16] = SYSDB_ORIG_DN;
-    state->hbac_attrs[17] = NULL;
+    state->hbac_attrs[7] = IPA_UNIQUE_ID;
+    state->hbac_attrs[8] = IPA_ENABLED_FLAG;
+    state->hbac_attrs[9] = IPA_CN;
+    state->hbac_attrs[10] = OBJECTCLASS;
+    state->hbac_attrs[11] = IPA_MEMBER_HOST;
+    state->hbac_attrs[12] = IPA_HOST_CATEGORY;
+    state->hbac_attrs[13] = IPA_MEMBER_SERVICE;
+    state->hbac_attrs[14] = IPA_SERVICE_CATEGORY;
+    state->hbac_attrs[15] = SYSDB_ORIG_DN;
+    state->hbac_attrs[16] = NULL;
 
     ret = sss_filter_sanitize(state, host_dn, &host_dn_clean);
     if (ret != EOK) {
