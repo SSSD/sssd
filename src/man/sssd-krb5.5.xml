@@ -272,7 +272,7 @@
                     <term>krb5_renewable_lifetime (string)</term>
                     <listitem>
                         <para>
-                            Request a renewable ticket with a with a total
+                            Request a renewable ticket with a total
                             lifetime given by an integer immediately followed
                             by one of the following delimiters:
                         </para>
