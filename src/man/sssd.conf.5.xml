@@ -513,6 +513,11 @@
                             processing.
                         </para>
                         <para>
+                            While the first enumeration is running, requests
+                            for the complete user or group lists may return
+                            no results until it completes.
+                        </para>
+                        <para>
                             Further, enabling enumeration may increase the time
                             necessary to detect network disconnection, as
                             longer timeouts are required to ensure that

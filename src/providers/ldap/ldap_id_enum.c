@@ -134,12 +134,26 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
     uint64_t err;
     struct timeval tv;
     int delay;
+    errno_t ret;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* On error schedule starting from now, not the last run */
         tv = tevent_timeval_current();
     } else {
         tv = ctx->last_enum;
+
+        /* Ok, we've completed an enumeration. Save this to the
+         * sysdb so we can postpone starting up the enumeration
+         * process on the next SSSD service restart (to avoid
+         * slowing down system boot-up
+         */
+        ret = sysdb_set_enumerated(ctx->be->sysdb,
+                                   ctx->be->domain,
+                                   true);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not mark domain as having enumerated.\n"));
+            /* This error is non-fatal, so continue */
+        }
     }
     talloc_zfree(req);
 
