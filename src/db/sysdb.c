@@ -1863,3 +1863,145 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
     *_list = list;
     return EOK;
 }
+
+errno_t sysdb_has_enumerated(struct sysdb_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             bool *has_enumerated)
+{
+    errno_t ret;
+    int lret;
+    struct ldb_dn *base_dn;
+    struct ldb_result *res;
+    const char *attributes[2] = {SYSDB_HAS_ENUMERATED,
+                                 NULL};
+    TALLOC_CTX *tmpctx;
+
+
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmpctx, ctx->ldb,
+                             SYSDB_DOM_BASE,
+                             dom->name);
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
+                      LDB_SCOPE_BASE, attributes, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* This entry has not been populated in LDB
+         * This is a common case, as unlike LDAP,
+         * LDB does not need to have all of its parent
+         * objects actually exist.
+         * This object in the sysdb exists mostly just
+         * to contain this attribute.
+         */
+        *has_enumerated = false;
+        ret = EOK;
+        goto done;
+    } else if (res->count != 1) {
+        DEBUG(0, ("Corrupted database. "
+                  "More than one entry for base search.\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    /* Object existed. Return the stored value */
+    *has_enumerated = ldb_msg_find_attr_as_bool(res->msgs[0],
+                                                SYSDB_HAS_ENUMERATED,
+                                                false);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmpctx);
+    return ret;
+}
+
+errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             bool enumerated)
+{
+    errno_t ret;
+    int lret;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct ldb_result *res;
+    struct ldb_dn *dn;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
+                        SYSDB_DOM_BASE,
+                        dom->name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(ctx->ldb, tmp_ctx, &res,
+                      dn, LDB_SCOPE_BASE,
+                      NULL, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = dn;
+
+    if (res->count == 0) {
+        lret = ldb_msg_add_string(msg, "cn", dom->name);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    } else if (res->count != 1) {
+        DEBUG(0, ("Got more than one reply for base search!\n"));
+        ret = EIO;
+        goto done;
+    } else {
+        lret = ldb_msg_add_empty(msg, SYSDB_HAS_ENUMERATED,
+                                 LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    }
+    lret = ldb_msg_add_fmt(msg, SYSDB_HAS_ENUMERATED, "%s",
+                           enumerated?"TRUE":"FALSE");
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count) {
+        lret = ldb_modify(ctx->ldb, msg);
+    } else {
+        lret = ldb_add(ctx->ldb, msg);
+    }
+
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

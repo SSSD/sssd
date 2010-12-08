@@ -122,6 +122,8 @@
 #define SYSDB_NETGR_FILTER "(&("SYSDB_NC")("SYSDB_NAME"=%s))"
 #define SYSDB_NETGR_TRIPLES_FILTER "(|("SYSDB_NAME"=%s)("SYSDB_MEMBEROF"=%s))"
 
+#define SYSDB_HAS_ENUMERATED "has_enumerated"
+
 #define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
                             SYSDB_CACHE_EXPIRE, \
                             SYSDB_INITGR_EXPIRE, \
@@ -699,5 +701,13 @@ errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
                           char **sanitized);
+
+errno_t sysdb_has_enumerated(struct sysdb_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             bool *has_enumerated);
+
+errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             bool enumerated);
 
 #endif /* __SYS_DB_H__ */
