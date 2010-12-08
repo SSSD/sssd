@@ -81,4 +81,11 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_flags(
                                                    krb5_context context,
                                                    krb5_get_init_creds_opt *opt,
                                                    krb5_flags flags);
+
+#if HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS
+#define SSS_KRB5_FAST_REQUIRED KRB5_FAST_REQUIRED
+#else
+#define SSS_KRB5_FAST_REQUIRED 0
+#endif
+
 #endif /* __SSS_KRB5_H__ */

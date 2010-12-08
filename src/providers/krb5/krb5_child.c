@@ -1528,8 +1528,8 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 
             if (strcasecmp(use_fast_str, "demand") == 0) {
                 kerr = sss_krb5_get_init_creds_opt_set_fast_flags(kr->ctx,
-                                                                  kr->options,
-                                                                  KRB5_FAST_REQUIRED);
+                                                        kr->options,
+                                                        SSS_KRB5_FAST_REQUIRED);
                 if (kerr != 0) {
                     DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_flags "
                               "failed.\n"));
