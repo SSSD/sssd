@@ -36,21 +36,30 @@
         </para>
         <para>
             The simple access provider grants or denies access based on an
-            access or deny list of user names. Here to following rules apply:
+            access or deny list of user or group names. The following rules
+            apply:
             <itemizedlist>
                 <listitem>
-                    <para>If both lists are empty, access is granted</para>
+                    <para>If all lists are empty, access is granted</para>
                 </listitem>
                 <listitem>
-                    <para>If simple_allow_users is set, only users from this
-                        list are allowed access.</para>
-                    <para>This setting supersedes the simple_deny_users list
-                        (which would be redundant).</para>
+                    <para>
+                        If any list is provided, the order of evaluation is
+                        allow,deny. This means that any matching deny rule
+                        will supersede any matched allow rule.
+                    </para>
                 </listitem>
                 <listitem>
-                    <para>If the simple_allow_users list is empty, users are
-                        allowed access unless they appear in the
-                        simple_deny_users list</para>
+                    <para>
+                        If either or both "allow" lists are provided, all
+                        users are denied unless they appear in the list.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        If only "deny" lists are provided, all users are
+                        granted access unless they appear in the list.
+                    </para>
                 </listitem>
             </itemizedlist>
         </para>
@@ -69,8 +78,8 @@
                     <term>simple_allow_users (string)</term>
                     <listitem>
                         <para>
-                            Comma separated list of users who are allowed to log
-                            in.
+                            Comma separated list of users who are allowed to
+                            log in.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -79,8 +88,29 @@
                     <term>simple_deny_users (string)</term>
                     <listitem>
                         <para>
-                            Comma separated list of users who are rejected if
-                            simple_allow_users is not set.
+                            Comma separated list of users who are explicitly
+                            denied access.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>simple_allow_groups (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of groups that are allowed to
+                            log in. This applies only to groups within this
+                            SSSD domain. Local groups are not evaluated.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>simple_deny_groups (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of groups that are explicitly
+                            denied access. This applies only to groups within
+                            this SSSD domain. Local groups are not evaluated.
                         </para>
                     </listitem>
                 </varlistentry>

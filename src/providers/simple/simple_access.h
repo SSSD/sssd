@@ -27,8 +27,13 @@
 #include "util/util.h"
 
 struct simple_ctx {
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
     char **allow_users;
     char **deny_users;
+    char **allow_groups;
+    char **deny_groups;
 };
 
 errno_t simple_access_check(struct simple_ctx *ctx, const char *username,

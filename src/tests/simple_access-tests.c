@@ -113,8 +113,8 @@ START_TEST(test_both_set)
 
     ret = simple_access_check(ctx, "u1", &access_granted);
     fail_unless(ret == EOK, "access_simple_check failed.");
-    fail_unless(access_granted == true, "Access denied "
-                                        "while user is in allow list.");
+    fail_unless(access_granted == false, "Access granted "
+                                         "while user is in deny list.");
 
     ret = simple_access_check(ctx, "u3", &access_granted);
     fail_unless(ret == EOK, "access_simple_check failed.");
