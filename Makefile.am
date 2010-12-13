@@ -807,6 +807,7 @@ libsss_krb5_la_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_delayed_online_authentication.c \
     src/providers/krb5/krb5_renew_tgt.c \
+    src/providers/krb5/krb5_wait_queue.c \
     src/providers/krb5/krb5_auth.c \
     src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_child_handler.c \
@@ -854,6 +855,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_delayed_online_authentication.c \
     src/providers/krb5/krb5_renew_tgt.c \
+    src/providers/krb5/krb5_wait_queue.c \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_auth.c \
     src/providers/krb5/krb5_access.c \

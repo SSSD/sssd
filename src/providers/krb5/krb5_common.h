@@ -117,6 +117,8 @@ struct krb5_ctx {
     struct deferred_auth_ctx *deferred_auth_ctx;
     struct renew_tgt_ctx *renew_tgt_ctx;
     bool use_fast;
+
+    hash_table_t *wait_queue_hash;
 };
 
 struct remove_info_files_ctx {

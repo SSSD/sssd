@@ -66,6 +66,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct pam_data *pd,
                                   struct krb5_ctx *krb5_ctx);
 int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err);
+void krb5_auth_done(struct tevent_req *req);
 
 struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
                                      struct tevent_context *ev,
@@ -93,4 +94,9 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
                                     struct pam_data *pd,
                                     struct krb5_ctx *krb5_ctx);
 int krb5_access_recv(struct tevent_req *req, bool *access_allowed);
+
+/* krb5_wait_queue.c */
+errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
+                          struct krb5_ctx *krb5_ctx);
+void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username);
 #endif /* __KRB5_AUTH_H__ */
