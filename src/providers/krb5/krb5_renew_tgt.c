@@ -40,6 +40,7 @@ struct renew_tgt_ctx {
 };
 
 struct renew_data {
+    const char *ccfile;
     time_t start_time;
     time_t lifetime;
     time_t start_renew_at;
@@ -50,6 +51,7 @@ struct auth_data {
     struct be_ctx *be_ctx;
     struct krb5_ctx *krb5_ctx;
     struct pam_data *pd;
+    struct renew_data *renew_data;
     hash_table_t *table;
     hash_key_t key;
 };
@@ -86,6 +88,10 @@ static void renew_tgt_done(struct tevent_req *req)
     talloc_free(req);
     if (ret) {
         DEBUG(1, ("krb5_auth request failed.\n"));
+        if (auth_data->renew_data != NULL) {
+            DEBUG(5, ("Giving back pam data.\n"));
+            talloc_steal(auth_data->renew_data, auth_data->pd);
+        }
     } else {
         switch (pam_status) {
             case PAM_SUCCESS:
@@ -97,6 +103,10 @@ static void renew_tgt_done(struct tevent_req *req)
                 DEBUG(4, ("Cannot renewed TGT for user [%s] while offline, "
                           "will retry later.\n",
                           auth_data->pd->user));
+                if (auth_data->renew_data != NULL) {
+                    DEBUG(5, ("Giving back pam data.\n"));
+                    talloc_steal(auth_data->renew_data, auth_data->pd);
+                }
                 break;
             default:
                 DEBUG(1, ("Failed to renew TGT for user [%s].\n",
@@ -132,17 +142,18 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
 
     for (c = 0; c < count; c++) {
         renew_data = talloc_get_type(entries[c].value.ptr, struct renew_data);
-        DEBUG(9, ("Checking [%s] for renewal at [%.24s].\n", entries[c].key.str,
+        DEBUG(9, ("Checking [%s] for renewal at [%.24s].\n", renew_data->ccfile,
                   ctime(&renew_data->start_renew_at)));
         if (renew_data->start_renew_at < now) {
             auth_data = talloc_zero(renew_tgt_ctx, struct auth_data);
             if (auth_data == NULL) {
                 DEBUG(1, ("talloc_zero failed.\n"));
             } else {
-                auth_data->pd = renew_data->pd;
+                auth_data->pd = talloc_steal(auth_data, renew_data->pd);
                 auth_data->krb5_ctx = renew_tgt_ctx->krb5_ctx;
                 auth_data->be_ctx = renew_tgt_ctx->be_ctx;
                 auth_data->table = renew_tgt_ctx->tgt_table;
+                auth_data->renew_data = renew_data;
                 auth_data->key.type = entries[c].key.type;
                 auth_data->key.str = talloc_strdup(auth_data,
                                                    entries[c].key.str);
@@ -160,7 +171,7 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
             }
 
             if (auth_data == NULL || te == NULL) {
-                DEBUG(1, ("Failed to renew TGT in [%s].\n", entries[c].key.str));
+                DEBUG(1, ("Failed to renew TGT in [%s].\n", renew_data->ccfile));
                 ret = hash_delete(renew_tgt_ctx->tgt_table, &entries[c].key);
                 if (ret != HASH_SUCCESS) {
                     DEBUG(1, ("hash_delete failed.\n"));
@@ -242,6 +253,19 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
     return;
 }
 
+static void renew_del_cb(hash_entry_t *entry, hash_destroy_enum type, void *pvt)
+{
+    struct renew_data *renew_data;
+
+    if (entry->value.type == HASH_VALUE_PTR) {
+        renew_data = talloc_get_type(entry->value.ptr, struct renew_data);
+        talloc_zfree(renew_data);
+        return;
+    }
+
+    DEBUG(1, ("Unexpected value type [%d].\n", entry->value.type));
+}
+
 errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
                        struct tevent_context *ev, time_t renew_intv)
 {
@@ -254,8 +278,9 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ret = sss_hash_create(krb5_ctx->renew_tgt_ctx, INITIAL_TGT_TABLE_SIZE,
-                          &krb5_ctx->renew_tgt_ctx->tgt_table);
+    ret = sss_hash_create_ex(krb5_ctx->renew_tgt_ctx, INITIAL_TGT_TABLE_SIZE,
+                             &krb5_ctx->renew_tgt_ctx->tgt_table, 0, 0, 0, 0,
+                             renew_del_cb, NULL);
     if (ret != EOK) {
         DEBUG(1, ("sss_hash_create failed.\n"));
         goto fail;
@@ -287,9 +312,9 @@ fail:
 }
 
 errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
-                               struct tgt_times *tgtt, struct pam_data *pd)
+                               struct tgt_times *tgtt, struct pam_data *pd,
+                               const char *upn)
 {
-    char *key_str = NULL;
     int ret;
     hash_key_t key;
     hash_value_t value;
@@ -307,24 +332,32 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
         return EINVAL;
     }
 
+    if (upn == NULL) {
+        DEBUG(1, ("Missing user principal name.\n"));
+        return EINVAL;
+    }
+
+    /* hash_enter copies the content of the hash string, so it is safe to use
+     * discard_const_p here. */
     key.type = HASH_KEY_STRING;
+    key.str = discard_const_p(char, upn);
+
+    renew_data = talloc_zero(krb5_ctx->renew_tgt_ctx, struct renew_data);
+    if (renew_data == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
     if (ccfile[0] == '/') {
-        key_str = talloc_asprintf(NULL, "FILE:%s", ccfile);
-        if (key_str == NULL) {
-            DEBUG(1, ("talloc_asprintf doneed.\n"));
+        renew_data->ccfile = talloc_asprintf(renew_data, "FILE:%s", ccfile);
+        if (renew_data->ccfile == NULL) {
+            DEBUG(1, ("talloc_asprintf failed.\n"));
             ret = ENOMEM;
             goto done;
         }
     } else {
-        key_str = talloc_strdup(NULL, ccfile);
-    }
-    key.str = key_str;
-
-    renew_data = talloc_zero(krb5_ctx->renew_tgt_ctx, struct renew_data);
-    if (renew_data == NULL) {
-        DEBUG(1, ("talloc_zero doneed.\n"));
-        ret = ENOMEM;
-        goto done;
+        renew_data->ccfile = talloc_strdup(renew_data, ccfile);
     }
 
     renew_data->start_time = tgtt->starttime;
@@ -334,7 +367,7 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
 
     ret = copy_pam_data(renew_data, pd, &renew_data->pd);
     if (ret != EOK) {
-        DEBUG(1, ("copy_pam_data doneed.\n"));
+        DEBUG(1, ("copy_pam_data failed.\n"));
         goto done;
     }
 
@@ -345,7 +378,8 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
     }
 
     talloc_zfree(renew_data->pd->authtok);
-    renew_data->pd->authtok = (uint8_t *) talloc_strdup(renew_data->pd, key.str);
+    renew_data->pd->authtok = (uint8_t *) talloc_strdup(renew_data->pd,
+                                                        renew_data->ccfile);
     if (renew_data->pd->authtok == NULL) {
         DEBUG(1, ("talloc_strdup failed.\n"));
         ret = ENOMEM;
@@ -366,13 +400,12 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
         goto done;
     }
 
-    DEBUG(7, ("Added [%s] for renewal at [%.24s].\n", key_str,
+    DEBUG(7, ("Added [%s] for renewal at [%.24s].\n", renew_data->ccfile,
                                            ctime(&renew_data->start_renew_at)));
 
     ret = EOK;
 
 done:
-    talloc_free(key_str);
     if (ret != EOK) {
         talloc_free(renew_data);
     }

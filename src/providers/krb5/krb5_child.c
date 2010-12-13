@@ -1046,12 +1046,14 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
     if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_CCFILE) {
         DEBUG(1, ("Unsupported authtok type for TGT renewal [%d].\n",
                   kr->pd->authtok_type));
+        kerr = EINVAL;
         goto done;
     }
 
     ccname = talloc_strndup(kr, (char *) kr->pd->authtok, kr->pd->authtok_size);
     if (ccname == NULL) {
         DEBUG(1, ("talloc_strndup failed.\n"));
+        kerr = ENOMEM;
         goto done;
     }
 
@@ -1064,6 +1066,9 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
     kerr = krb5_get_renewed_creds(kr->ctx, kr->creds, kr->princ, ccache, NULL);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
+        if (kerr == KRB5_KDC_UNREACH) {
+            status = PAM_AUTHINFO_UNAVAIL;
+        }
         goto done;
     }
 
@@ -1085,6 +1090,7 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
         ret = become_user(kr->uid, kr->gid);
         if (ret != EOK) {
             DEBUG(1, ("become_user failed.\n"));
+            kerr = ret;
             goto done;
         }
     }
@@ -1107,6 +1113,7 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
     }
 
     status = PAM_SUCCESS;
+    kerr = 0;
 
 done:
     krb5_free_cred_contents(kr->ctx, kr->creds);
@@ -1115,7 +1122,7 @@ done:
         krb5_cc_close(kr->ctx, ccache);
     }
 
-    ret = sendresponse(fd, 0, status, kr);
+    ret = sendresponse(fd, kerr, status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }
@@ -1424,7 +1431,13 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
             kr->child_req = kuserok_child;
             break;
         case SSS_CMD_RENEW:
-            kr->child_req = renew_tgt_child;
+            if (!offline) {
+                kr->child_req = renew_tgt_child;
+            } else {
+                DEBUG(1, ("Cannot renew TGT while offline.\n"));
+                kerr = KRB5_KDC_UNREACH;
+                goto failed;
+            }
             break;
         default:
             DEBUG(1, ("PAM command [%d] not supported.\n", kr->pd->cmd));

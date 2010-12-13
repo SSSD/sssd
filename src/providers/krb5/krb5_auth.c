@@ -161,6 +161,8 @@ static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
+    DEBUG(9, ("Save ccname [%s] for user [%s].\n", ccname, name));
+
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
         return ENOMEM;
@@ -349,8 +351,10 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     }
 
     if (be_is_offline(be_ctx) &&
-        (pd->cmd == SSS_PAM_CHAUTHTOK || pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
-        DEBUG(9, ("Password changes are not possible while offline.\n"));
+        (pd->cmd == SSS_PAM_CHAUTHTOK || pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
+         pd->cmd == SSS_CMD_RENEW)) {
+        DEBUG(9, ("Password changes and ticket renewal are not possible "
+                  "while offline.\n"));
         state->pam_status = PAM_AUTHINFO_UNAVAIL;
         state->dp_err = DP_ERR_OFFLINE;
         ret = EOK;
@@ -582,8 +586,10 @@ static void krb5_find_ccache_step(struct tevent_req *req)
      * is true:
      * - it doesn't exist (kr->ccname == NULL)
      * - the backend is online and the current ccache file is not used, i.e
-     *   the related user is currently not logged in
-     *   (!kr->is_offline && !kr->active_ccache_present)
+     *   the related user is currently not logged in and it is not a renewal
+     *   request
+     *   (!kr->is_offline && !kr->active_ccache_present &&
+     *    pd->cmd != SSS_CMD_RENEW)
      * - the backend is offline and the current cache file not used and
      *   it does not contain a valid tgt
      *   (kr->is_offline &&
@@ -592,7 +598,8 @@ static void krb5_find_ccache_step(struct tevent_req *req)
     if (kr->ccname == NULL ||
         (kr->is_offline && !kr->active_ccache_present &&
             !kr->valid_tgt_present) ||
-        (!kr->is_offline && !kr->active_ccache_present)) {
+        (!kr->is_offline && !kr->active_ccache_present &&
+         pd->cmd != SSS_CMD_RENEW)) {
             DEBUG(9, ("Recreating  ccache file.\n"));
             kr->ccname = expand_ccname_template(kr, kr,
                                           dp_opt_get_cstring(kr->krb5_ctx->opts,
@@ -790,19 +797,6 @@ static void krb5_child_done(struct tevent_req *subreq)
         }
     }
 
-    if (msg_status == PAM_SUCCESS &&
-        dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0 &&
-        (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_CMD_RENEW ||
-         pd->cmd == SSS_PAM_CHAUTHTOK) &&
-        tgtt.renew_till > tgtt.endtime && kr->ccname != NULL) {
-        DEBUG(7, ("Adding [%s] for automatic renewal.\n", kr->ccname));
-        ret = add_tgt_to_renew_table(kr->krb5_ctx, kr->ccname, &tgtt, pd);
-        if (ret != EOK) {
-            DEBUG(1, ("add_tgt_to_renew_table failed, "
-                      "automatic renewal not possible.\n"));
-        }
-    }
-
     /* If the child request failed, but did not return an offline error code,
      * return with the status */
     if (msg_status != PAM_SUCCESS && msg_status != PAM_AUTHINFO_UNAVAIL &&
@@ -889,7 +883,22 @@ static void krb5_child_done(struct tevent_req *subreq)
         goto done;
     }
 
+    if (msg_status == PAM_SUCCESS &&
+        dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0 &&
+        (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_CMD_RENEW ||
+         pd->cmd == SSS_PAM_CHAUTHTOK) &&
+        tgtt.renew_till > tgtt.endtime && kr->ccname != NULL) {
+        DEBUG(7, ("Adding [%s] for automatic renewal.\n", kr->ccname));
+        ret = add_tgt_to_renew_table(kr->krb5_ctx, kr->ccname, &tgtt, pd,
+                                     kr->upn);
+        if (ret != EOK) {
+            DEBUG(1, ("add_tgt_to_renew_table failed, "
+                      "automatic renewal not possible.\n"));
+        }
+    }
+
     krb5_save_ccname_done(req);
+
     return;
 
 done:
