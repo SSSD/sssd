@@ -78,6 +78,7 @@ setup_test(void)
         fail("Could not init resolv context");
     }
 
+    memset(&fopts, 0, sizeof(fopts));
     fopts.retry_timeout = 30;
     fopts.family_order  = IPV4_FIRST;
 
