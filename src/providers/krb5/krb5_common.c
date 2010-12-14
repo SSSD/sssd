@@ -85,6 +85,7 @@ errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
 
     ret = setenv(env_name, str, 1);
     if (ret != EOK) {
+        ret = errno;
         DEBUG(2, ("setenv [%s] failed.\n", env_name));
         goto done;
     }
