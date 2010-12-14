@@ -511,7 +511,8 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
 
         if (fo_is_srv_lookup(server)) {
             if (((dns_domain == NULL && server->srv_data->dns_domain == NULL) ||
-                  strcasecmp(server->srv_data->dns_domain, dns_domain) == 0) &&
+                 (dns_domain != NULL && server->srv_data->dns_domain != NULL &&
+                  strcasecmp(server->srv_data->dns_domain, dns_domain) == 0)) &&
                 strcasecmp(server->srv_data->proto, proto) == 0) {
                 return EEXIST;
             }
