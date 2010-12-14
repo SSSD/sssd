@@ -783,9 +783,9 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
         return EINVAL;
     }
 
-    if (*d < -1) {
+    if (l < 0) {
         DEBUG(1, ("Input string contains not allowed negative value [%d].\n",
-                  *d));
+                  l));
         return EINVAL;
     }
 
