@@ -1170,6 +1170,7 @@ resolve_get_domain_send(TALLOC_CTX *mem_ctx,
 
     ret = gethostname(state->hostname, HOST_NAME_MAX);
     if (ret) {
+        ret = errno;
         DEBUG(2, ("gethostname() failed: [%d]: %s\n",ret, strerror(ret)));
         return NULL;
     }
