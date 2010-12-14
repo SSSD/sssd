@@ -505,6 +505,7 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
 
     case HASH_ERROR_NO_MEMORY:
         ret = ENOMEM;
+        break;
     default:
         ret = EIO;
     }
