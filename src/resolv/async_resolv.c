@@ -571,6 +571,8 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
             DEBUG(4, ("Trying to resolve %s record of '%s'\n",
                       state->family == AF_INET ? "A" : "AAAA",
                       state->name));
+            schedule_timeout_watcher(state->resolv_ctx->ev_ctx,
+                                     state->resolv_ctx);
             ares_gethostbyname(state->resolv_ctx->channel, state->name,
                                state->family, resolv_gethostbyname_next_done,
                                req);
@@ -599,6 +601,8 @@ resolv_gethostbyname_next_done(void *arg, int status, int timeouts, struct hoste
                            state->family, resolv_gethostbyname_next_done, req);
         return;
     }
+
+    unschedule_timeout_watcher(state->resolv_ctx);
 
     if (hostent != NULL) {
         state->hostent = resolv_copy_hostent(req, hostent);
