@@ -848,6 +848,13 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         return EOK;
     }
 
+    if (!dom) {
+        /* Ensure that we don't try to check a provider without a domain,
+         * since this will cause a NULL-dereference below.
+         */
+        preq->check_provider = false;
+    }
+
     if (preq->check_provider) {
 
         /* dont loop forever :-) */
