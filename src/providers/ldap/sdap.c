@@ -268,9 +268,14 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
 {
     char *str;
     int lerrno;
+    int ret;
 
     lerrno = 0;
-    ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+    ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("ldap_set_option failed [%s], ignored.\n",
+                  ldap_err2string(ret)));
+    }
 
     str = ldap_get_dn(sh->ldap, sm->msg);
     if (!str) {
