@@ -1202,6 +1202,7 @@ static void monitor_quit(struct tevent_context *ev,
                           svc->name, svc->pid, strerror(error)));
             }
 
+            error = 0;
             do {
                 errno = 0;
                 pid = waitpid(svc->pid, &status, WNOHANG);
