@@ -104,7 +104,11 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     bool store;
 
     lerrno = 0;
-    ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+    ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("ldap_set_option failed [%s], ignored.\n",
+                  ldap_err2string(ret)));
+    }
 
     attrs = sysdb_new_attrs(memctx);
     if (!attrs) return ENOMEM;
