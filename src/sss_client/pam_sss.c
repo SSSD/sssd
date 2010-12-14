@@ -1506,7 +1506,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             retry = true;
             retries--;
 
-            flags &= !FLAGS_USE_FIRST_PASS;
+            flags &= ~FLAGS_USE_FIRST_PASS;
             ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
             if (ret != PAM_SUCCESS) {
                 D(("Failed to unset PAM_AUTHTOK [%s]",
