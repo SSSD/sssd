@@ -230,7 +230,6 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     struct ldb_result *res;
     const char *username = NULL;
     const char *password = NULL;
-    char *newauthtok = NULL;
     char *new_hash = NULL;
     char *authtok = NULL;
     struct pam_data *pd = preq->pd;
@@ -352,8 +351,6 @@ done:
         memset(authtok, 0, pd->authtok_size);
     if (pd->newauthtok != NULL)
         memset(pd->newauthtok, 0, pd->newauthtok_size);
-    if (newauthtok != NULL)
-        memset(newauthtok, 0, pd->newauthtok_size);
 
     prepare_reply(lreq);
     return EOK;
