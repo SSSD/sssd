@@ -170,11 +170,13 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
  */
 
 static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
-                                        uint8_t **buf, int *len,
+                                        uint8_t **_buf, int *_len,
                                         int *errnop)
 {
     uint32_t header[4];
     size_t datarecv;
+    uint8_t *buf;
+    int len;
 
     header[0] = SSS_NSS_HEADER_SIZE; /* unitl we know the real lenght */
     header[1] = 0;
@@ -182,8 +184,8 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
     header[3] = 0;
 
     datarecv = 0;
-    *buf = NULL;
-    *len = 0;
+    buf = NULL;
+    len = 0;
     *errnop = 0;
 
     while (datarecv < header[0]) {
@@ -237,7 +239,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
         } else {
             bufrecv = datarecv - SSS_NSS_HEADER_SIZE;
             res = read(sss_cli_sd,
-                       (char *)(*buf) + bufrecv,
+                       (char *) buf + bufrecv,
                        header[0] - datarecv);
         }
         error = errno;
@@ -262,7 +264,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
 
         datarecv += res;
 
-        if (datarecv == SSS_NSS_HEADER_SIZE && *len == 0) {
+        if (datarecv == SSS_NSS_HEADER_SIZE && len == 0) {
             /* at this point recv buf is not yet
              * allocated and the header has just
              * been read, do checks and proceed */
@@ -283,9 +285,9 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
                 return NSS_STATUS_UNAVAIL;
             }
             if (header[0] > SSS_NSS_HEADER_SIZE) {
-                *len = header[0] - SSS_NSS_HEADER_SIZE;
-                *buf = malloc(*len);
-                if (!*buf) {
+                len = header[0] - SSS_NSS_HEADER_SIZE;
+                buf = malloc(len);
+                if (!buf) {
                     sss_cli_close_socket();
                     *errnop =  ENOMEM;
                     return NSS_STATUS_UNAVAIL;
@@ -293,6 +295,9 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
             }
         }
     }
+
+    *_len = len;
+    *_buf = buf;
 
     return NSS_STATUS_SUCCESS;
 }
