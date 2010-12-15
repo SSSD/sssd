@@ -357,6 +357,16 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
                         unsigned long count,
                         hash_table_t **tbl);
 
+errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
+                           unsigned long count,
+                           hash_table_t **tbl,
+                           unsigned int directory_bits,
+                           unsigned int segment_bits,
+                           unsigned long min_load_factor,
+                           unsigned long max_load_factor,
+                           hash_delete_callback *delete_callback,
+                           void *delete_private_data);
+
 /* Copy a NULL-terminated string list
  * Returns NULL on out of memory error or invalid input
  */

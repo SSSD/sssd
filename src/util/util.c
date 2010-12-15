@@ -473,9 +473,15 @@ static void hash_talloc_free(void *ptr, void *pvt)
     talloc_free(ptr);
 }
 
-errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
-                        unsigned long count,
-                        hash_table_t **tbl)
+errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
+                           unsigned long count,
+                           hash_table_t **tbl,
+                           unsigned int directory_bits,
+                           unsigned int segment_bits,
+                           unsigned long min_load_factor,
+                           unsigned long max_load_factor,
+                           hash_delete_callback *delete_callback,
+                           void *delete_private_data)
 {
     errno_t ret;
     hash_table_t *table;
@@ -487,9 +493,10 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    hret = hash_create_ex(count, &table, 0, 0, 0, 0,
-                          hash_talloc, hash_talloc_free,
-                          internal_ctx, NULL, NULL);
+    hret = hash_create_ex(count, &table, directory_bits, segment_bits,
+                          min_load_factor, max_load_factor,
+                          hash_talloc, hash_talloc_free, internal_ctx,
+                          delete_callback, delete_private_data);
     switch (hret) {
     case HASH_SUCCESS:
         /* Steal the table pointer onto the mem_ctx,
@@ -515,6 +522,12 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
 
     talloc_free(internal_ctx);
     return ret;
+}
+
+errno_t sss_hash_create(TALLOC_CTX *mem_ctx, unsigned long count,
+                        hash_table_t **tbl)
+{
+    return sss_hash_create_ex(mem_ctx, count, tbl, 0, 0, 0, 0, NULL, NULL);
 }
 
 errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
