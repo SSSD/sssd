@@ -86,6 +86,7 @@ struct proxy_id_ctx {
     struct be_ctx *be;
     int entry_cache_timeout;
     struct proxy_nss_ops ops;
+    void *handle;
 };
 
 struct proxy_auth_ctx {

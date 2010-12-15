@@ -93,7 +93,6 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     struct proxy_id_ctx *ctx;
     char *libname;
     char *libpath;
-    void *handle;
     int ret;
 
     ctx = talloc_zero(bectx, struct proxy_id_ctx);
@@ -121,86 +120,92 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    handle = dlopen(libpath, RTLD_NOW);
-    if (!handle) {
+    ctx->handle = dlopen(libpath, RTLD_NOW);
+    if (!ctx->handle) {
         DEBUG(0, ("Unable to load %s module with path, error: %s\n",
                   libpath, dlerror()));
         ret = ELIBACC;
         goto done;
     }
 
-    ctx->ops.getpwnam_r = proxy_dlsym(handle, "_nss_%s_getpwnam_r", libname);
+    ctx->ops.getpwnam_r = proxy_dlsym(ctx->handle, "_nss_%s_getpwnam_r",
+                                      libname);
     if (!ctx->ops.getpwnam_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getpwuid_r = proxy_dlsym(handle, "_nss_%s_getpwuid_r", libname);
+    ctx->ops.getpwuid_r = proxy_dlsym(ctx->handle, "_nss_%s_getpwuid_r",
+                                      libname);
     if (!ctx->ops.getpwuid_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.setpwent = proxy_dlsym(handle, "_nss_%s_setpwent", libname);
+    ctx->ops.setpwent = proxy_dlsym(ctx->handle, "_nss_%s_setpwent", libname);
     if (!ctx->ops.setpwent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getpwent_r = proxy_dlsym(handle, "_nss_%s_getpwent_r", libname);
+    ctx->ops.getpwent_r = proxy_dlsym(ctx->handle, "_nss_%s_getpwent_r",
+                                      libname);
     if (!ctx->ops.getpwent_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.endpwent = proxy_dlsym(handle, "_nss_%s_endpwent", libname);
+    ctx->ops.endpwent = proxy_dlsym(ctx->handle, "_nss_%s_endpwent", libname);
     if (!ctx->ops.endpwent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getgrnam_r = proxy_dlsym(handle, "_nss_%s_getgrnam_r", libname);
+    ctx->ops.getgrnam_r = proxy_dlsym(ctx->handle, "_nss_%s_getgrnam_r",
+                                      libname);
     if (!ctx->ops.getgrnam_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getgrgid_r = proxy_dlsym(handle, "_nss_%s_getgrgid_r", libname);
+    ctx->ops.getgrgid_r = proxy_dlsym(ctx->handle, "_nss_%s_getgrgid_r",
+                                      libname);
     if (!ctx->ops.getgrgid_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.setgrent = proxy_dlsym(handle, "_nss_%s_setgrent", libname);
+    ctx->ops.setgrent = proxy_dlsym(ctx->handle, "_nss_%s_setgrent", libname);
     if (!ctx->ops.setgrent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getgrent_r = proxy_dlsym(handle, "_nss_%s_getgrent_r", libname);
+    ctx->ops.getgrent_r = proxy_dlsym(ctx->handle, "_nss_%s_getgrent_r",
+                                      libname);
     if (!ctx->ops.getgrent_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.endgrent = proxy_dlsym(handle, "_nss_%s_endgrent", libname);
+    ctx->ops.endgrent = proxy_dlsym(ctx->handle, "_nss_%s_endgrent", libname);
     if (!ctx->ops.endgrent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.initgroups_dyn = proxy_dlsym(handle, "_nss_%s_initgroups_dyn",
-                                                  libname);
+    ctx->ops.initgroups_dyn = proxy_dlsym(ctx->handle, "_nss_%s_initgroups_dyn",
+                                          libname);
     if (!ctx->ops.initgroups_dyn) {
         DEBUG(1, ("The '%s' library does not provides the "
                   "_nss_XXX_initgroups_dyn function!\n"
@@ -208,14 +213,15 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                   "full groups enumeration!\n", libname));
     }
 
-    ctx->ops.setnetgrent = proxy_dlsym(handle, "_nss_%s_setnetgrent", libname);
+    ctx->ops.setnetgrent = proxy_dlsym(ctx->handle, "_nss_%s_setnetgrent",
+                                       libname);
     if (!ctx->ops.setnetgrent) {
         DEBUG(0, ("Failed to load _nss_%s_setnetgrent, error: %s. "
                   "The library does not support netgroups.\n", libname,
                                                                dlerror()));
     }
 
-    ctx->ops.getnetgrent_r = proxy_dlsym(handle, "_nss_%s_getnetgrent_r",
+    ctx->ops.getnetgrent_r = proxy_dlsym(ctx->handle, "_nss_%s_getnetgrent_r",
                                          libname);
     if (!ctx->ops.getgrent_r) {
         DEBUG(0, ("Failed to load _nss_%s_getnetgrent_r, error: %s. "
@@ -223,7 +229,8 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                                                dlerror()));
     }
 
-    ctx->ops.endnetgrent = proxy_dlsym(handle, "_nss_%s_endnetgrent", libname);
+    ctx->ops.endnetgrent = proxy_dlsym(ctx->handle, "_nss_%s_endnetgrent",
+                                       libname);
     if (!ctx->ops.endnetgrent) {
         DEBUG(0, ("Failed to load _nss_%s_endnetgrent, error: %s. "
                   "The library does not support netgroups.\n", libname,
