@@ -274,6 +274,7 @@ int main(int argc, const char *argv[])
 
     /* Reap the children in a handler asynchronously so we can
      * somehow protect against too many processes */
+    memset(&action, 0, sizeof(action));
     action.sa_handler = child_handler;
     sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGCHLD);
