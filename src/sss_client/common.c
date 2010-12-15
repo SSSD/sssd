@@ -175,8 +175,9 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
 {
     uint32_t header[4];
     size_t datarecv;
-    uint8_t *buf;
+    uint8_t *buf = NULL;
     int len;
+    int ret;
 
     header[0] = SSS_NSS_HEADER_SIZE; /* unitl we know the real lenght */
     header[1] = 0;
@@ -228,7 +229,8 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
         }
         if (*errnop) {
             sss_cli_close_socket();
-            return NSS_STATUS_UNAVAIL;
+            ret = NSS_STATUS_UNAVAIL;
+            goto failed;
         }
 
         errno = 0;
@@ -259,7 +261,8 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
 
             sss_cli_close_socket();
             *errnop = errno;
-            return NSS_STATUS_UNAVAIL;
+            ret = NSS_STATUS_UNAVAIL;
+            goto failed;
         }
 
         datarecv += res;
@@ -273,24 +276,28 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
                 sss_cli_close_socket();
                 *errnop = header[2];
                 if (*errnop == EAGAIN) {
-                    return NSS_STATUS_TRYAGAIN;
+                    ret = NSS_STATUS_TRYAGAIN;
+                    goto failed;
                 } else {
-                    return NSS_STATUS_UNAVAIL;
+                    ret = NSS_STATUS_UNAVAIL;
+                    goto failed;
                 }
             }
             if (header[1] != cmd) {
                 /* wrong command id */
                 sss_cli_close_socket();
                 *errnop = EBADMSG;
-                return NSS_STATUS_UNAVAIL;
+                ret = NSS_STATUS_UNAVAIL;
+                goto failed;
             }
             if (header[0] > SSS_NSS_HEADER_SIZE) {
                 len = header[0] - SSS_NSS_HEADER_SIZE;
                 buf = malloc(len);
                 if (!buf) {
                     sss_cli_close_socket();
-                    *errnop =  ENOMEM;
-                    return NSS_STATUS_UNAVAIL;
+                    *errnop = ENOMEM;
+                    ret = NSS_STATUS_UNAVAIL;
+                    goto failed;
                 }
             }
         }
@@ -300,6 +307,10 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
     *_buf = buf;
 
     return NSS_STATUS_SUCCESS;
+
+failed:
+    free(buf);
+    return ret;
 }
 
 /* this function will check command codes match and returned length is ok */
