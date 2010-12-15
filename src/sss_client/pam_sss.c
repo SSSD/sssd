@@ -305,7 +305,7 @@ enum {
 static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                                const char *msg,
                                const char *reenter_msg,
-                               char **answer)
+                               char **_answer)
 {
     int ret;
     int state = SSS_PAM_CONV_STD;
@@ -313,13 +313,14 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
     const struct pam_message *mesg[1];
     struct pam_message *pam_msg;
     struct pam_response *resp=NULL;
+    char *answer = NULL;
 
     if ((msg_style == PAM_TEXT_INFO || msg_style == PAM_ERROR_MSG) &&
         msg == NULL) return PAM_SYSTEM_ERR;
 
     if ((msg_style == PAM_PROMPT_ECHO_OFF ||
          msg_style == PAM_PROMPT_ECHO_ON) &&
-        (msg == NULL || answer == NULL)) return PAM_SYSTEM_ERR;
+        (msg == NULL || _answer == NULL)) return PAM_SYSTEM_ERR;
 
     if (msg_style == PAM_TEXT_INFO || msg_style == PAM_ERROR_MSG) {
         logger(pamh, LOG_INFO, "User %s message: %s",
@@ -334,7 +335,8 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
         pam_msg = malloc(sizeof(struct pam_message));
         if (pam_msg == NULL) {
             D(("Malloc failed."));
-            return PAM_SYSTEM_ERR;
+            ret = PAM_SYSTEM_ERR;
+            goto failed;
         }
 
         pam_msg->msg_style = msg_style;
@@ -351,48 +353,52 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
         free(pam_msg);
         if (ret != PAM_SUCCESS) {
             D(("Conversation failure: %s.",  pam_strerror(pamh,ret)));
-            return ret;
+            goto failed;
         }
 
         if (msg_style == PAM_PROMPT_ECHO_OFF ||
             msg_style == PAM_PROMPT_ECHO_ON) {
             if (resp == NULL) {
                 D(("response expected, but resp==NULL"));
-                return PAM_SYSTEM_ERR;
+                ret = PAM_SYSTEM_ERR;
+                goto failed;
             }
 
             if (state == SSS_PAM_CONV_REENTER) {
-                if (null_strcmp(*answer, resp[0].resp) != 0) {
+                if (null_strcmp(answer, resp[0].resp) != 0) {
                     logger(pamh, LOG_NOTICE, "Passwords do not match.");
                     _pam_overwrite((void *)resp[0].resp);
                     free(resp[0].resp);
-                    if (*answer != NULL) {
-                        _pam_overwrite((void *)*answer);
-                        free(*answer);
-                        *answer = NULL;
+                    if (answer != NULL) {
+                        _pam_overwrite((void *) answer);
+                        free(answer);
+                        answer = NULL;
                     }
                     ret = do_pam_conversation(pamh, PAM_ERROR_MSG,
                                               _("Passwords do not match"),
                                               NULL, NULL);
                     if (ret != PAM_SUCCESS) {
                         D(("do_pam_conversation failed."));
-                        return PAM_SYSTEM_ERR;
+                        ret = PAM_SYSTEM_ERR;
+                        goto failed;
                     }
-                    return PAM_CRED_ERR;
+                    ret = PAM_CRED_ERR;
+                    goto failed;
                 }
                 _pam_overwrite((void *)resp[0].resp);
                 free(resp[0].resp);
             } else {
                 if (resp[0].resp == NULL) {
                     D(("Empty password"));
-                    *answer = NULL;
+                    answer = NULL;
                 } else {
-                    *answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
+                    answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
                     _pam_overwrite((void *)resp[0].resp);
                     free(resp[0].resp);
-                    if(*answer == NULL) {
+                    if(answer == NULL) {
                         D(("strndup failed"));
-                        return PAM_BUF_ERR;
+                        ret = PAM_BUF_ERR;
+                        goto failed;
                     }
                 }
             }
@@ -407,7 +413,13 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
         }
     } while (state != SSS_PAM_CONV_DONE);
 
+    *_answer = answer;
     return PAM_SUCCESS;
+
+failed:
+    free(answer);
+    return ret;
+
 }
 
 static errno_t display_pw_reset_message(pam_handle_t *pamh,
