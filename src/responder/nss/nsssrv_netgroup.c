@@ -55,6 +55,31 @@ static errno_t get_netgroup_entry(struct nss_ctx *nctx,
     return EIO;
 }
 
+static int netgr_hash_remove (TALLOC_CTX *ctx);
+static errno_t set_netgroup_entry(struct nss_ctx *nctx,
+                                  char *name,
+                                  struct getent_ctx *netgr)
+{
+    hash_key_t key;
+    hash_value_t value;
+    int hret;
+
+    /* Add this entry to the hash table */
+    key.type = HASH_KEY_STRING;
+    key.str = name;
+    value.type = HASH_VALUE_PTR;
+    value.ptr = netgr;
+    hret = hash_enter(nctx->netgroups, &key, &value);
+    if (hret != EOK) {
+        DEBUG(0, ("Unable to add hash table entry for [%s]", key.str));
+        DEBUG(4, ("Hash error [%d][%s]", hret, hash_error_string(hret)));
+        return EIO;
+    }
+    talloc_set_destructor((TALLOC_CTX *) netgr, netgr_hash_remove);
+
+    return EOK;
+}
+
 static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
                                            const char *rawname,
                                            struct nss_cmd_ctx *cmdctx);
@@ -135,11 +160,8 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct tevent_req *req;
     struct setnetgrent_ctx *state;
-    int hret;
     struct nss_dom_ctx *dctx;
     struct setent_step_ctx *step_ctx;
-    hash_key_t key;
-    hash_value_t value;
 
     struct cli_ctx *client = cmdctx->cctx;
     struct nss_ctx *nctx =
@@ -248,19 +270,12 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
             goto error;
         }
 
-        /* Add this entry to the hash table */
-        key.type = HASH_KEY_STRING;
-        key.str = client->netgr_name;
-        value.type = HASH_VALUE_PTR;
-        value.ptr = state->netgr;
-        hret = hash_enter(nctx->netgroups, &key, &value);
-        if (hret != EOK) {
-            DEBUG(0, ("Unable to add hash table entry for [%s]", key.str));
-            DEBUG(4, ("Hash error [%d][%s]", hret, hash_error_string(hret)));
+        ret = set_netgroup_entry(nctx, client->netgr_name, state->netgr);
+        if (ret != EOK) {
+            DEBUG(1, ("set_netgroup_entry failed.\n"));
             talloc_free(state->netgr);
             goto error;
         }
-        talloc_set_destructor((TALLOC_CTX *)state->netgr, netgr_hash_remove);
 
         /* Perform lookup */
         step_ctx = talloc_zero(state->netgr, struct setent_step_ctx);
@@ -318,154 +333,174 @@ static void setnetgrent_result_timeout(struct tevent_context *ev,
                                        struct tevent_timer *te,
                                        struct timeval current_time,
                                        void *pvt);
+
+/* Set up a lifetime timer for this result object
+ * We don't want this result object to outlive the
+ * entry cache refresh timeout
+ */
+static void set_netgr_lifetime(uint32_t lifetime,
+                               struct setent_step_ctx *step_ctx,
+                               struct getent_ctx *netgr)
+{
+    struct timeval tv;
+    struct tevent_timer *te;
+
+    tv = tevent_timeval_current_ofs(lifetime, 0);
+    te = tevent_add_timer(step_ctx->nctx->rctx->ev,
+                          step_ctx->nctx->gctx, tv,
+                          setnetgrent_result_timeout,
+                          netgr);
+    if (!te) {
+        DEBUG(0, ("Could not set up life timer for setnetgrent result object. "
+                  "Entries may become stale.\n"));
+    }
+}
+
 static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 {
     errno_t ret;
     struct sss_domain_info *dom = step_ctx->dctx->domain;
     struct getent_ctx *netgr;
     struct sysdb_ctx *sysdb;
-    struct timeval tv;
-    struct tevent_timer *te;
 
     /* Check each domain for this netgroup name */
     while (dom) {
         /* if it is a domainless search, skip domains that require fully
-          * qualified names instead */
-         while (dom && step_ctx->check_next && dom->fqnames) {
-             dom = dom->next;
-         }
+         * qualified names instead */
+        while (dom && step_ctx->check_next && dom->fqnames) {
+            dom = dom->next;
+        }
 
-         /* No domains left to search */
-         if (!dom) break;
+        /* No domains left to search */
+        if (!dom) break;
 
-         if (dom != step_ctx->dctx->domain) {
-             /* make sure we reset the check_provider flag when we check
-              * a new domain */
-             step_ctx->dctx->check_provider =
-                     NEED_CHECK_PROVIDER(dom->provider);
-         }
+        if (dom != step_ctx->dctx->domain) {
+            /* make sure we reset the check_provider flag when we check
+             * a new domain */
+            step_ctx->dctx->check_provider =
+                    NEED_CHECK_PROVIDER(dom->provider);
+        }
 
-         /* make sure to update the dctx if we changed domain */
-         step_ctx->dctx->domain = dom;
+        /* make sure to update the dctx if we changed domain */
+        step_ctx->dctx->domain = dom;
 
-         /* verify this netgroup has not yet been negatively cached */
-         ret = sss_ncache_check_netgr(step_ctx->nctx->ncache,
-                                      step_ctx->nctx->neg_timeout,
-                                      dom->name, step_ctx->name);
+        /* verify this netgroup has not yet been negatively cached */
+        ret = sss_ncache_check_netgr(step_ctx->nctx->ncache,
+                                     step_ctx->nctx->neg_timeout,
+                                     dom->name, step_ctx->name);
 
-         /* if neg cached, return we didn't find it */
-         if (ret == EEXIST) {
-             DEBUG(2, ("Netgroup [%s] does not exist! (negative cache)\n",
-                       step_ctx->name));
-             /* if a multidomain search, try with next */
-             if (step_ctx->check_next) {
-                 dom = dom->next;
-                 continue;
-             }
-         }
+        /* if neg cached, return we didn't find it */
+        if (ret == EEXIST) {
+            DEBUG(2, ("Netgroup [%s] does not exist! (negative cache)\n",
+                      step_ctx->name));
+            /* if a multidomain search, try with next */
+            if (step_ctx->check_next) {
+                dom = dom->next;
+                continue;
+            }
+        }
 
-         DEBUG(4, ("Requesting info for [%s@%s]\n",
-                   step_ctx->name, dom->name));
-         ret = sysdb_get_ctx_from_list(step_ctx->rctx->db_list, dom, &sysdb);
-         if (ret != EOK) {
-             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-             return EIO;
-         }
+        DEBUG(4, ("Requesting info for [%s@%s]\n",
+                  step_ctx->name, dom->name));
+        ret = sysdb_get_ctx_from_list(step_ctx->rctx->db_list, dom, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            return EIO;
+        }
 
-         /* Look up the netgroup in the cache */
-         ret = sysdb_getnetgr(step_ctx->dctx, sysdb, dom,
-                              step_ctx->name,
-                              &step_ctx->dctx->res);
-         if (ret == ENOENT) {
-             /* This netgroup was not found in this domain */
-             if (!step_ctx->dctx->check_provider) {
-                 if (step_ctx->check_next) {
-                     dom = dom->next;
-                     continue;
-                 }
-                 else break;
-             }
-             ret = EOK;
-         }
+        /* Look up the netgroup in the cache */
+        ret = sysdb_getnetgr(step_ctx->dctx, sysdb, dom,
+                             step_ctx->name,
+                             &step_ctx->dctx->res);
+        if (ret == ENOENT) {
+            /* This netgroup was not found in this domain */
+            if (!step_ctx->dctx->check_provider) {
+                if (step_ctx->check_next) {
+                    dom = dom->next;
+                    continue;
+                }
+                else break;
+            }
+            ret = EOK;
+        }
 
-         if (ret != EOK) {
-             DEBUG(1, ("Failed to make request to our cache!\n"));
-             return EIO;
-         }
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to make request to our cache!\n"));
+            return EIO;
+        }
 
-         ret = get_netgroup_entry(step_ctx->nctx, step_ctx->name,
-                                  &netgr);
-         if (ret != EOK) {
-             /* Something really bad happened! */
-             DEBUG(0, ("Netgroup entry was lost!\n"));
-             return ret;
-         }
+        ret = get_netgroup_entry(step_ctx->nctx, step_ctx->name,
+                                 &netgr);
+        if (ret != EOK) {
+            /* Something really bad happened! */
+            DEBUG(0, ("Netgroup entry was lost!\n"));
+            return ret;
+        }
 
-         /* Convert the result to a list of entries */
-         ret = sysdb_netgr_to_entries(netgr, step_ctx->dctx->res,
-                                      &netgr->entries);
-         if (ret == ENOENT) {
-             /* This netgroup was not found in this domain */
-             if (!step_ctx->dctx->check_provider) {
-                 if (step_ctx->check_next) {
-                     dom = dom->next;
-                     continue;
-                 }
-                 else break;
-             }
-             ret = EOK;
-         }
+        /* Convert the result to a list of entries */
+        ret = sysdb_netgr_to_entries(netgr, step_ctx->dctx->res,
+                                     &netgr->entries);
+        if (ret == ENOENT) {
+            /* This netgroup was not found in this domain */
+            if (!step_ctx->dctx->check_provider) {
+                if (step_ctx->check_next) {
+                    dom = dom->next;
+                    continue;
+                }
+                else break;
+            }
+            ret = EOK;
+        }
 
-         if (ret != EOK) {
-             DEBUG(1, ("Failed to convert results into entries\n"));
-             return EIO;
-         }
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to convert results into entries\n"));
+            return EIO;
+        }
 
-         /* if this is a caching provider (or if we haven't checked the cache
-          * yet) then verify that the cache is uptodate */
-         if (step_ctx->dctx->check_provider) {
-             ret = check_cache(step_ctx->dctx,
-                               step_ctx->nctx,
-                               step_ctx->dctx->res,
-                               SSS_DP_NETGR,
-                               step_ctx->name, 0,
-                               lookup_netgr_dp_callback,
-                               step_ctx);
-             if (ret != EOK) {
-                 /* May return EAGAIN legitimately to indicate that
-                  * we need to reenter the mainloop
-                  */
-                 return ret;
-             }
-         }
+        /* if this is a caching provider (or if we haven't checked the cache
+         * yet) then verify that the cache is uptodate */
+        if (step_ctx->dctx->check_provider) {
+            ret = check_cache(step_ctx->dctx,
+                              step_ctx->nctx,
+                              step_ctx->dctx->res,
+                              SSS_DP_NETGR,
+                              step_ctx->name, 0,
+                              lookup_netgr_dp_callback,
+                              step_ctx);
+            if (ret != EOK) {
+                /* May return EAGAIN legitimately to indicate that
+                 * we need to reenter the mainloop
+                 */
+                return ret;
+            }
+        }
 
-         /* Results found */
-         DEBUG(6, ("Returning info for netgroup [%s@%s]\n",
-                   step_ctx->name, dom->name));
-         netgr->ready = true;
-
-         /* Set up a lifetime timer for this result object
-          * We don't want this result object to outlive the
-          * entry cache refresh timeout
-          */
-         tv = tevent_timeval_current_ofs(dom->entry_cache_timeout, 0);
-         te = tevent_add_timer(step_ctx->nctx->rctx->ev,
-                               step_ctx->nctx->gctx, tv,
-                               setnetgrent_result_timeout,
-                               netgr);
-         if (!te) {
-             DEBUG(0, ("Could not set up life timer for setnetgrent result object. "
-                       "Entries may become stale.\n"));
-         }
-
-         return EOK;
+        /* Results found */
+        DEBUG(6, ("Returning info for netgroup [%s@%s]\n",
+                  step_ctx->name, dom->name));
+        netgr->ready = true;
+        set_netgr_lifetime(dom->entry_cache_timeout, step_ctx, netgr);
+        return EOK;
     }
 
     /* If we've gotten here, then no domain contained this netgroup */
     DEBUG(2, ("No matching domain found for [%s], fail!\n",
               step_ctx->name));
-    netgr->ready = true;
-    netgr->entries = NULL;
+
+    netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
+    if (netgr == NULL) {
+        DEBUG(1, ("talloc_zero failed, ignored.\n"));
+    } else {
+        netgr->ready = true;
+        netgr->entries = NULL;
+
+        ret = set_netgroup_entry(step_ctx->nctx, step_ctx->name, netgr);
+        if (ret != EOK) {
+            DEBUG(1, ("set_netgroup_entry failed, ignored.\n"));
+        }
+        set_netgr_lifetime(dom->entry_cache_timeout, step_ctx, netgr);
+    }
+
     return ENOENT;
 }
 
