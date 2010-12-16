@@ -176,7 +176,7 @@ static errno_t set_local_and_remote_host_info(TALLOC_CTX *mem_ctx,
     int ret;
     struct hbac_host_info *hhi;
     struct ldb_message_element *el;
-    TALLOC_CTX *tmp_ctx;
+    TALLOC_CTX *tmp_ctx = NULL;
 
     if (local_hostname == NULL || *local_hostname == '\0') {
         DEBUG(1, ("Missing local hostname.\n"));
