@@ -45,18 +45,46 @@
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 
-static void set_nonblocking(int fd)
+static errno_t set_nonblocking(int fd)
 {
-    unsigned v;
+    int v;
+    int ferr;
+    errno_t error;
+
+    /* Get the current flags for this file descriptor */
     v = fcntl(fd, F_GETFL, 0);
-    fcntl(fd, F_SETFL, v | O_NONBLOCK);
+
+    errno = 0;
+    /* Set the non-blocking flag on this fd */
+    ferr = fcntl(fd, F_SETFL, v | O_NONBLOCK);
+    if (ferr < 0) {
+        error = errno;
+        DEBUG(0, ("Unable to set fd non-blocking: [%d][%s]\n",
+                  error, strerror(error)));
+        return error;
+    }
+    return EOK;
 }
 
-static void set_close_on_exec(int fd)
+static errno_t set_close_on_exec(int fd)
 {
-    unsigned v;
+    int v;
+    int ferr;
+    errno_t error;
+
+    /* Get the current flags for this file descriptor */
     v = fcntl(fd, F_GETFD, 0);
-    fcntl(fd, F_SETFD, v | FD_CLOEXEC);
+
+    errno = 0;
+    /* Set the close-on-exec flags on this fd */
+    ferr = fcntl(fd, F_SETFD, v | FD_CLOEXEC);
+    if (ferr < 0) {
+        error = errno;
+        DEBUG(0, ("Unable to set fd close-on-exec: [%d][%s]\n",
+                  error, strerror(error)));
+        return error;
+    }
+    return EOK;
 }
 
 static int client_destructor(struct cli_ctx *ctx)
@@ -415,6 +443,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
 static int set_unix_socket(struct resp_ctx *rctx)
 {
     struct sockaddr_un addr;
+    errno_t ret;
 
 /* for future use */
 #if 0
@@ -462,8 +491,15 @@ static int set_unix_socket(struct resp_ctx *rctx)
          * It must be readable and writable by anybody on the system. */
         umask(0111);
 
-        set_nonblocking(rctx->lfd);
-        set_close_on_exec(rctx->lfd);
+        ret = set_nonblocking(rctx->lfd);
+        if (ret != EOK) {
+            goto failed;
+        }
+
+        ret = set_close_on_exec(rctx->lfd);
+        if (ret != EOK) {
+            goto failed;
+        }
 
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
@@ -500,8 +536,15 @@ static int set_unix_socket(struct resp_ctx *rctx)
 
         umask(0177);
 
-        set_nonblocking(rctx->priv_lfd);
-        set_close_on_exec(rctx->priv_lfd);
+        ret = set_nonblocking(rctx->priv_lfd);
+        if (ret != EOK) {
+            goto failed;
+        }
+
+        ret = set_close_on_exec(rctx->priv_lfd);
+        if (ret != EOK) {
+            goto failed;
+        }
 
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
