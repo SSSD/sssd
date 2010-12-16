@@ -152,7 +152,14 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
             found = true;
         }
         free(kt_principal);
-        krb5_free_keytab_entry_contents(context, &entry);
+        krberr = krb5_free_keytab_entry_contents(context, &entry);
+        if (krberr) {
+            /* This should never happen. The API docs for this function
+             * specify only success for this function
+             */
+            DEBUG(1,("Could not free keytab entry contents\n"));
+            /* This is non-fatal, so we'll continue here */
+        }
 
         if (found) {
             break;
