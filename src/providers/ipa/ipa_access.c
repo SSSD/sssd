@@ -1701,7 +1701,12 @@ void ipa_access_handler(struct be_req *be_req)
     return;
 
 fail:
-    ipa_access_reply(hbac_ctx, pam_status);
+    if (hbac_ctx) {
+        /* Return an proper error */
+        ipa_access_reply(hbac_ctx, pam_status);
+    } else {
+        be_req->fn(be_req, DP_ERR_FATAL, pam_status, NULL);
+    }
 }
 
 static int hbac_retry(struct hbac_ctx *hbac_ctx)
