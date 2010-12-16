@@ -2180,11 +2180,14 @@ START_TEST (test_sysdb_attrs_to_list)
     TALLOC_CTX *test_ctx = talloc_new(NULL);
 
     attrs_list[0] = sysdb_new_attrs(test_ctx);
-    sysdb_attrs_add_string(attrs_list[0], "test_attr", "attr1");
+    ret = sysdb_attrs_add_string(attrs_list[0], "test_attr", "attr1");
+    fail_if(ret, "Add string failed");
     attrs_list[1] = sysdb_new_attrs(test_ctx);
-    sysdb_attrs_add_string(attrs_list[1], "test_attr", "attr2");
+    ret = sysdb_attrs_add_string(attrs_list[1], "test_attr", "attr2");
+    fail_if(ret, "Add string failed");
     attrs_list[2] = sysdb_new_attrs(test_ctx);
-    sysdb_attrs_add_string(attrs_list[2], "nottest_attr", "attr3");
+    ret = sysdb_attrs_add_string(attrs_list[2], "nottest_attr", "attr3");
+    fail_if(ret, "Add string failed");
 
     ret = sysdb_attrs_to_list(test_ctx, attrs_list, 3,
                               "test_attr", &list);
