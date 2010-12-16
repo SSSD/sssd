@@ -413,7 +413,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
         }
     } while (state != SSS_PAM_CONV_DONE);
 
-    if(answer) *_answer = answer;
+    if (_answer) *_answer = answer;
     return PAM_SUCCESS;
 
 failed:
