@@ -107,7 +107,7 @@ int pidfile(const char *path, const char *name)
     ssize_t len;
     ssize_t size;
     ssize_t written;
-    ssize_t pidlen = sizeof(pid_str - 1);
+    ssize_t pidlen = sizeof(pid_str) - 1;
 
     file = talloc_asprintf(NULL, "%s/%s.pid", path, name);
     if (!file) {
