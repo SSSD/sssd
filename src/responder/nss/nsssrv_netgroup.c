@@ -498,7 +498,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         if (ret != EOK) {
             DEBUG(1, ("set_netgroup_entry failed, ignored.\n"));
         }
-        set_netgr_lifetime(dom->entry_cache_timeout, step_ctx, netgr);
+        set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
     }
 
     return ENOENT;
