@@ -1182,11 +1182,11 @@ void krb5_auth_done(struct tevent_req *req)
     }
 
     krb5_ctx = get_krb5_ctx(be_req);
-    if (krb5_ctx == NULL) {
+    if (krb5_ctx != NULL) {
+        check_wait_queue(krb5_ctx, pd->user);
+    } else {
         DEBUG(1, ("Kerberos context not available.\n"));
     }
-
-    check_wait_queue(krb5_ctx, pd->user);
 
     krb_reply(be_req, dp_err, pd->pam_status);
 }
