@@ -166,6 +166,7 @@ option_strings = {
     'ldap_user_shadow_inactive' : _('shadowInactive attribute'),
     'ldap_user_shadow_expire' : _('shadowExpire attribute'),
     'ldap_user_shadow_flag' : _('shadowFlag attribute'),
+    'ldap_user_authorized_service' : _('Attribute listing authorized PAM services'),
     'ldap_user_krb_last_pwd_change' : _('krbLastPwdChange attribute'),
     'ldap_user_krb_password_expiration' : _('krbPasswordExpiration attribute'),
     'ldap_pwd_attribute' : _('Attribute indicating that server side password policies are active'),

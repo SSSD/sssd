@@ -78,6 +78,8 @@
 #define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
 #define SYSDB_INITGR_EXPIRE "initgrExpireTimestamp"
 
+#define SYSDB_AUTHORIZED_SERVICE "authorizedService"
+
 #define SYSDB_NETGROUP_TRIPLE "netgroupTriple"
 #define SYSDB_ORIG_NETGROUP_MEMBER "originalMemberNisNetgroup"
 #define SYSDB_NETGROUP_MEMBER "memberNisNetgroup"

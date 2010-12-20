@@ -72,6 +72,17 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                              struct sdap_access_ctx *access_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry);
+static errno_t sdap_access_service_recv(struct tevent_req *req,
+                                        int *pam_status);
+static void sdap_access_service_done(struct tevent_req *subreq);
+
+static struct tevent_req *sdap_access_service_send(
+        TALLOC_CTX *mem_ctx,
+        struct tevent_context *ev,
+        struct sdap_access_ctx *access_ctx,
+        struct pam_data *pd,
+        struct ldb_message *user_entry);
+
 static void sdap_account_expired_done(struct tevent_req *subreq);
 
 static void sdap_access_done(struct tevent_req *req);
@@ -235,6 +246,19 @@ static errno_t select_next_rule(struct tevent_req *req)
 
             tevent_req_set_callback(subreq, sdap_account_expired_done, req);
             return EOK;
+
+        case LDAP_ACCESS_SERVICE:
+            subreq = sdap_access_service_send(state, state->ev,
+                                              state->access_ctx,
+                                              state->pd,
+                                              state->user_entry);
+            if (subreq == NULL) {
+                DEBUG(1, ("sdap_access_service_send failed.\n"));
+                return ENOMEM;
+            }
+            tevent_req_set_callback(subreq, sdap_access_service_done, req);
+            return EOK;
+
         default:
             DEBUG(1, ("Unexpected access rule type. Access denied.\n"));
     }
@@ -746,6 +770,117 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
             tevent_req_data(req, struct sdap_access_req_ctx);
 
     ret = sdap_access_filter_recv(subreq, &state->pam_status);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(1, ("Error retrieving access check result.\n"));
+        state->pam_status = PAM_SYSTEM_ERR;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    next_access_rule(req);
+
+    return;
+}
+
+
+struct sdap_access_service_ctx {
+    int pam_status;
+};
+
+static struct tevent_req *sdap_access_service_send(
+        TALLOC_CTX *mem_ctx,
+        struct tevent_context *ev,
+        struct sdap_access_ctx *access_ctx,
+        struct pam_data *pd,
+        struct ldb_message *user_entry)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct sdap_access_service_ctx *state;
+    struct ldb_message_element *el;
+    unsigned int i;
+    char *service;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_access_service_ctx);
+    if (!req) {
+        return NULL;
+    }
+
+    state->pam_status = PAM_PERM_DENIED;
+
+    el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_SERVICE);
+    if (!el || el->num_values == 0) {
+        DEBUG(1, ("Missing authorized services. Access denied\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    for (i = 0; i < el->num_values; i++) {
+        service = (char *)el->values[i].data;
+        if (service[0] == '!' &&
+                strcasecmp(pd->service, service+1) == 0) {
+            /* This service is explicitly denied */
+            state->pam_status = PAM_PERM_DENIED;
+            DEBUG(4, ("Access denied by [%s]\n", service));
+            /* A denial trumps all. Break here */
+            break;
+
+        } else if (strcasecmp(pd->service, service) == 0) {
+            /* This service is explicitly allowed */
+            state->pam_status = PAM_SUCCESS;
+            DEBUG(4, ("Access granted for [%s]\n", service));
+            /* We still need to loop through to make sure
+             * that it's not also explicitly denied
+             */
+        } else if (strcmp("*", service) == 0) {
+            /* This user has access to all services */
+            state->pam_status = PAM_SUCCESS;
+            DEBUG(4, ("Access granted to all services\n"));
+            /* We still need to loop through to make sure
+             * that it's not also explicitly denied
+             */
+        }
+    }
+
+    if (state->pam_status != PAM_SUCCESS) {
+        DEBUG(4, ("No matching service rule found\n"));
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t sdap_access_service_recv(struct tevent_req *req,
+                                        int *pam_status)
+{
+    struct sdap_access_service_ctx *state =
+            tevent_req_data(req, struct sdap_access_service_ctx);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *pam_status = state->pam_status;
+
+    return EOK;
+}
+
+static void sdap_access_service_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_access_req_ctx *state =
+            tevent_req_data(req, struct sdap_access_req_ctx);
+
+    ret = sdap_access_service_recv(subreq, &state->pam_status);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(1, ("Error retrieving access check result.\n"));

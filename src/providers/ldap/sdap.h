@@ -229,6 +229,7 @@ enum sdap_user_attrs {
     SDAP_AT_KP_LASTCHANGE,
     SDAP_AT_KP_EXPIRATION,
     SDAP_AT_PWD_ATTRIBUTE,
+    SDAP_AT_AUTH_SVC,
 
     SDAP_OPTS_USER /* attrs counter */
 };
