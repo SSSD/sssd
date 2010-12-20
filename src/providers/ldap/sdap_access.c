@@ -56,7 +56,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct be_ctx *be_ctx,
                                            struct sdap_access_ctx *access_ctx,
-                                           const char *username);
+                                           struct pam_data *pd);
 
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
@@ -91,7 +91,7 @@ void sdap_pam_access_handler(struct be_req *breq)
                            breq->be_ctx->ev,
                            breq->be_ctx,
                            access_ctx,
-                           pd->user);
+                           pd);
     if (req == NULL) {
         DEBUG(1, ("Unable to start sdap_access request\n"));
         sdap_access_reply(breq, PAM_SYSTEM_ERR);
@@ -102,7 +102,7 @@ void sdap_pam_access_handler(struct be_req *breq)
 }
 
 struct sdap_access_req_ctx {
-    const char *username;
+    struct pam_data *pd;
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
     struct be_ctx *be_ctx;
@@ -116,7 +116,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct be_ctx *be_ctx,
                                            struct sdap_access_ctx *access_ctx,
-                                           const char *username)
+                                           struct pam_data *pd)
 {
     errno_t ret;
     struct sdap_access_req_ctx *state;
@@ -131,13 +131,13 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     }
 
     state->be_ctx = be_ctx;
-    state->username = username;
+    state->pd = pd;
     state->pam_status = PAM_SYSTEM_ERR;
     state->ev = ev;
     state->access_ctx = access_ctx;
     state->current_rule = 0;
 
-    DEBUG(6, ("Performing access check for user [%s]\n", username));
+    DEBUG(6, ("Performing access check for user [%s]\n", pd->user));
 
     if (access_ctx->access_rule[0] == LDAP_ACCESS_EMPTY) {
         DEBUG(3, ("No access rules defined, access denied.\n"));
@@ -148,7 +148,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
 
     /* Get original user DN */
     ret = sysdb_get_user_attr(state, be_ctx->sysdb, be_ctx->domain,
-                              username, attrs,
+                              pd->user, attrs,
                               &res);
     if (ret != EOK) {
         if (ret == ENOENT) {
@@ -209,9 +209,11 @@ static errno_t select_next_rule(struct tevent_req *req)
         case LDAP_ACCESS_EMPTY:
             return ENOENT;
             break;
+
         case LDAP_ACCESS_FILTER:
             subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
-                                             state->access_ctx, state->username,
+                                             state->access_ctx,
+                                             state->pd->user,
                                              state->user_entry);
             if (subreq == NULL) {
                 DEBUG(1, ("sdap_access_filter_send failed.\n"));
@@ -220,10 +222,11 @@ static errno_t select_next_rule(struct tevent_req *req)
 
             tevent_req_set_callback(subreq, sdap_access_filter_done, req);
             return EOK;
+
         case LDAP_ACCESS_EXPIRE:
             subreq = sdap_account_expired_send(state, state->ev, state->be_ctx,
                                                state->access_ctx,
-                                               state->username,
+                                               state->pd->user,
                                                state->user_entry);
             if (subreq == NULL) {
                 DEBUG(1, ("sdap_account_expired_send failed.\n"));
