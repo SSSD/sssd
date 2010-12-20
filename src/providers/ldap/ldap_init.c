@@ -178,37 +178,47 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
                         struct bet_ops **ops,
                         void **pvt_data)
 {
+    void *data;
+    struct sdap_id_ctx *id_ctx;
     struct sdap_auth_ctx *ctx;
-    const char *urls;
-    const char *dns_service_name;
     int ret;
 
-    ctx = talloc(bectx, struct sdap_auth_ctx);
-    if (!ctx) return ENOMEM;
+    ret = sssm_ldap_id_init(bectx, ops, &data);
+    if (ret == EOK) {
+        id_ctx = talloc_get_type(data, struct sdap_id_ctx);
 
-    ctx->be = bectx;
+        ctx = talloc(bectx, struct sdap_auth_ctx);
+        if (!ctx) return ENOMEM;
 
-    ret = ldap_get_options(ctx, bectx->cdb,
-                           bectx->conf_path, &ctx->opts);
+        ctx->be = bectx;
+        ctx->opts = id_ctx->opts;
+        ctx->service = id_ctx->service;
+        ctx->chpass_service = NULL;
+
+        *ops = &sdap_auth_ops;
+        *pvt_data = ctx;
+    }
+
+    return ret;
+}
+
+int sssm_ldap_chpass_init(struct be_ctx *bectx,
+                          struct bet_ops **ops,
+                          void **pvt_data)
+{
+    int ret;
+    void *data;
+    struct sdap_auth_ctx *ctx = NULL;
+    const char *urls;
+    const char *dns_service_name;
+
+    ret = sssm_ldap_auth_init(bectx, ops, &data);
     if (ret != EOK) {
+        DEBUG(1, ("sssm_ldap_auth_init failed.\n"));
         goto done;
     }
 
-    dns_service_name = dp_opt_get_string(ctx->opts->basic,
-                                         SDAP_DNS_SERVICE_NAME);
-    DEBUG(7, ("Service name for discovery set to %s\n", dns_service_name));
-
-    urls = dp_opt_get_string(ctx->opts->basic, SDAP_URI);
-    if (!urls) {
-        DEBUG(1, ("Missing ldap_uri, will use service discovery\n"));
-    }
-
-    ret = sdap_service_init(ctx, ctx->be, "LDAP", dns_service_name,
-                            urls, &ctx->service);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to initialize failover service!\n"));
-        goto done;
-    }
+    ctx = talloc_get_type(data, struct sdap_auth_ctx);
 
     dns_service_name = dp_opt_get_string(ctx->opts->basic,
                                          SDAP_CHPASS_DNS_SERVICE_NAME);
@@ -231,14 +241,8 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
         }
     }
 
-    ret = setup_tls_config(ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
-                  ret, strerror(ret)));
-        goto done;
-    }
 
-    *ops = &sdap_auth_ops;
+    *ops = &sdap_chpass_ops;
     *pvt_data = ctx;
     ret = EOK;
 
@@ -246,19 +250,6 @@ done:
     if (ret != EOK) {
         talloc_free(ctx);
     }
-    return ret;
-}
-
-int sssm_ldap_chpass_init(struct be_ctx *bectx,
-                          struct bet_ops **ops,
-                          void **pvt_data)
-{
-    int ret;
-
-    ret = sssm_ldap_auth_init(bectx, ops, pvt_data);
-
-    *ops = &sdap_chpass_ops;
-
     return ret;
 }
 
