@@ -51,6 +51,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     char *val = NULL;
     int cache_timeout;
     char *usn_value = NULL;
+    size_t c;
 
     DEBUG(9, ("Save user\n"));
 
@@ -235,18 +236,20 @@ static int sdap_save_user(TALLOC_CTX *memctx,
             goto fail;
         }
         if (el->num_values > 0) {
-            DEBUG(9, ("Adding [%s]=[%s] to user attributes.\n",
-                      opts->user_map[i].sys_name,
-                      (const char*) el->values[0].data));
-            val = talloc_strdup(user_attrs, (const char*) el->values[0].data);
-            if (val == NULL) {
-                ret = ENOMEM;
-                goto fail;
-            }
-            ret = sysdb_attrs_add_string(user_attrs,
-                                         opts->user_map[i].sys_name, val);
-            if (ret) {
-                goto fail;
+            for (c = 0; c < el->num_values; c++) {
+                DEBUG(9, ("Adding [%s]=[%s] to user attributes.\n",
+                          opts->user_map[i].sys_name,
+                          (const char*) el->values[c].data));
+                val = talloc_strdup(user_attrs, (const char*) el->values[c].data);
+                if (val == NULL) {
+                    ret = ENOMEM;
+                    goto fail;
+                }
+                ret = sysdb_attrs_add_string(user_attrs,
+                                             opts->user_map[i].sys_name, val);
+                if (ret) {
+                    goto fail;
+                }
             }
         }
     }
