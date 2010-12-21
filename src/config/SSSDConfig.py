@@ -172,6 +172,8 @@ option_strings = {
     'ldap_user_krb_last_pwd_change' : _('krbLastPwdChange attribute'),
     'ldap_user_krb_password_expiration' : _('krbPasswordExpiration attribute'),
     'ldap_pwd_attribute' : _('Attribute indicating that server side password policies are active'),
+    'ldap_user_ad_account_expires' : _('accountExpires attribute of AD'),
+    'ldap_user_ad_user_account_control' : _('userAccountControl attribute of AD'),
 
     'ldap_group_search_base' : _('Base DN for group lookups'),
     # not used # 'ldap_group_search_scope' : _('Scope of group lookups'),

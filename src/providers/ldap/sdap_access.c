@@ -340,6 +340,84 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
     return EOK;
 }
 
+#define UAC_ACCOUNTDISABLE 0x00000002
+#define AD_NEVER_EXP 0x7fffffffffffffffLL
+#define AD_TO_UNIX_TIME_CONST 11644473600LL
+#define AD_DISABLE_MESSAGE "The user account is disabled on the AD server"
+#define AD_EXPIRED_MESSAGE "The user account is expired on the AD server"
+
+static bool ad_account_expired(uint64_t expiration_time)
+{
+    time_t now;
+    int err;
+    uint64_t nt_now;
+
+    if (expiration_time == 0 || expiration_time == AD_NEVER_EXP) {
+        return false;
+    }
+
+    now = time(NULL);
+    if (now == ((time_t) -1)) {
+        err = errno;
+        DEBUG(1, ("time failed [%d][%s].\n", err, strerror(err)));
+        return true;
+    }
+
+    /* NT timestamps start at 1601-01-01 and use a 100ns base */
+    nt_now = (now + AD_TO_UNIX_TIME_CONST) * 1000 * 1000 * 10;
+
+    if (nt_now > expiration_time) {
+        return true;
+    }
+
+    return false;
+}
+
+static errno_t sdap_account_expired_ad(struct pam_data *pd,
+                                       struct ldb_message *user_entry,
+                                       int *pam_status)
+{
+    uint32_t uac;
+    uint64_t expiration_time;
+    int ret;
+
+    DEBUG(6, ("Performing AD access check for user [%s]\n", pd->user));
+
+    uac = ldb_msg_find_attr_as_uint(user_entry, SYSDB_AD_USER_ACCOUNT_CONTROL,
+                                    0);
+    DEBUG(9, ("User account control for user [%s] is [%X].\n",
+              pd->user, uac));
+
+    expiration_time = ldb_msg_find_attr_as_uint64(user_entry,
+                                                  SYSDB_AD_ACCOUNT_EXPIRES, 0);
+    DEBUG(9, ("Expiration time for user [%s] is [%lld].\n",
+              pd->user, expiration_time));
+
+    if (uac & UAC_ACCOUNTDISABLE) {
+        *pam_status = PAM_PERM_DENIED;
+
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(AD_DISABLE_MESSAGE),
+                               (const uint8_t *) AD_DISABLE_MESSAGE);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
+    } else if (ad_account_expired(expiration_time)) {
+        *pam_status = PAM_ACCT_EXPIRED;
+
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(AD_EXPIRED_MESSAGE),
+                               (const uint8_t *) AD_EXPIRED_MESSAGE);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
+    } else {
+        *pam_status = PAM_SUCCESS;
+    }
+
+    return EOK;
+}
+
 struct sdap_account_expired_req_ctx {
     int pam_status;
 };
@@ -377,6 +455,13 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                               &state->pam_status);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_shadow failed.\n"));
+                goto done;
+            }
+        } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_AD) == 0) {
+            ret = sdap_account_expired_ad(pd, user_entry,
+                                          &state->pam_status);
+            if (ret != EOK) {
+                DEBUG(1, ("sdap_account_expired_ad failed.\n"));
                 goto done;
             }
         } else {

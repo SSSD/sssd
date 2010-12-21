@@ -436,6 +436,34 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_ad_account_expires (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=ad, this
+                            parameter contains the name of an LDAP attribute
+                            storing the expiration time of the account.
+                        </para>
+                        <para>
+                            Default: accountExpires
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_ad_user_account_control (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=ad, this
+                            parameter contains the name of an LDAP attribute
+                            storing the user account control bit field.
+                        </para>
+                        <para>
+                            Default: userAccountControl
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_principal (string)</term>
                     <listitem>
                         <para>
@@ -1126,6 +1154,13 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             <emphasis>shadow</emphasis>: use the value of
                             ldap_user_shadow_expire to determine if the account
                             is expired.
+                        </para>
+                        <para>
+                            <emphasis>ad</emphasis>: use the value of the 32bit
+                            field ldap_user_ad_user_account_control and allow
+                            access if the second bit is not set. If the
+                            attribute is missing access is granted. Also the
+                            expiration time of the account is checked.
                         </para>
                         <para>
                             Default: Empty

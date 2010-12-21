@@ -34,6 +34,7 @@
 #define LDAP_ACCESS_SERVICE_NAME "authorized_service"
 
 #define LDAP_ACCOUNT_EXPIRE_SHADOW "shadow"
+#define LDAP_ACCOUNT_EXPIRE_AD "ad"
 
 enum ldap_access_rule {
     LDAP_ACCESS_EMPTY = -1,
