@@ -347,6 +347,7 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
             } else {
                 if (strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_SHADOW) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_AD) != 0 &&
+                    strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_NDS) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_RHDS) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_IPA) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_389DS) != 0) {

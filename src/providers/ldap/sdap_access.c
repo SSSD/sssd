@@ -22,6 +22,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _XOPEN_SOURCE 500 /* for strptime() */
+#include <time.h>
+#undef _XOPEN_SOURCE
 #include <sys/param.h>
 #include <security/pam_modules.h>
 #include <talloc.h>
@@ -470,6 +473,174 @@ static errno_t sdap_account_expired_rhds(struct pam_data *pd,
     return EOK;
 }
 
+#define NDS_DISABLE_MSG "The user account is disabled on the server"
+#define NDS_EXPIRED_MSG "The user account is expired"
+#define NDS_TIME_MAP_MSG "The user account is not allowed at this time"
+
+static bool nds_check_expired(const char *exp_time_str)
+{
+    char *end;
+    struct tm tm;
+    time_t expire_time;
+    time_t now;
+
+    if (exp_time_str == NULL) {
+        DEBUG(9, ("ndsLoginExpirationTime is not set, access granted.\n"));
+        return false;
+    }
+
+    memset(&tm, 0, sizeof(tm));
+
+    end = strptime(exp_time_str, "%Y%m%d%H%M%SZ", &tm);
+    if (end == NULL) {
+        DEBUG(1, ("NDS expire date [%s] invalid.\n", exp_time_str));
+        return true;
+    }
+    if (*end != '\0') {
+        DEBUG(1, ("NDS expire date [%s] contains extra characters.\n",
+                  exp_time_str));
+        return true;
+    }
+
+    expire_time = mktime(&tm);
+    if (expire_time == -1) {
+        DEBUG(1, ("mktime failed to convert [%s].\n", exp_time_str));
+        return true;
+    }
+
+    tzset();
+    expire_time -= timezone;
+    now = time(NULL);
+    DEBUG(9, ("Time info: tzname[0] [%s] tzname[1] [%s] timezone [%d] "
+              "daylight [%d] now [%d] expire_time [%d].\n", tzname[0],
+              tzname[1], timezone, daylight, now, expire_time));
+
+    if (difftime(now, expire_time) > 0.0) {
+        DEBUG(4, ("NDS account expired.\n"));
+        return true;
+    }
+
+    return false;
+}
+
+/* There is no real documentation of the byte string value of
+ * loginAllowedTimeMap, but some good example code in
+ * http://http://developer.novell.com/documentation/samplecode/extjndi_sample/CheckBind.java.html
+ */
+static bool nds_check_time_map(const struct ldb_val *time_map)
+{
+    time_t now;
+    struct tm *tm_now;
+    size_t map_index;
+    div_t q;
+    uint8_t mask = 0;
+
+    if (time_map == NULL) {
+        DEBUG(9, ("loginAllowedTimeMap is missing, access granted.\n"));
+        return false;
+    }
+
+    if (time_map->length != 42) {
+        DEBUG(4, ("Allowed time map has the wrong size, "
+                  "got [%d], expected 42.\n", time_map->length));
+        return true;
+    }
+
+    now = time(NULL);
+    tm_now = gmtime(&now);
+
+    map_index = tm_now->tm_wday * 48 + tm_now->tm_hour * 2 +
+                (tm_now->tm_min < 30 ? 0 : 1);
+
+    if (map_index > 335) {
+        DEBUG(1, ("Unexpected index value [%d] for time map.\n", index));
+        return true;
+    }
+
+    q = div(map_index, 8);
+
+    if (q.quot > 41 || q.quot < 0 || q.rem > 7 || q.rem < 0) {
+        DEBUG(1, ("Unexpected result of div(), [%d][%d][%d].\n",
+                  index, q.quot, q.rem));
+        return true;
+    }
+
+    if (q.rem > 0) {
+        mask = 1 << q.rem;
+    }
+
+    if (time_map->data[q.quot] & mask) {
+        DEBUG(4, ("Access allowed by time map.\n"));
+        return false;
+    }
+
+    return true;
+}
+
+static errno_t sdap_account_expired_nds(struct pam_data *pd,
+                                         struct ldb_message *user_entry,
+                                         int *pam_status)
+{
+    bool locked = true;
+    int ret;
+    const char *exp_time_str;
+    const struct ldb_val *time_map;
+
+    DEBUG(6, ("Performing NDS access check for user [%s]\n", pd->user));
+
+    locked = ldb_msg_find_attr_as_bool(user_entry, SYSDB_NDS_LOGIN_DISABLED,
+                                       false);
+    DEBUG(9, ("Account for user [%s] is%s disabled.\n", pd->user,
+              locked ? "" : " not"));
+
+    if (locked) {
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(NDS_DISABLE_MSG),
+                               (const uint8_t *) NDS_DISABLE_MSG);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
+    } else {
+        exp_time_str = ldb_msg_find_attr_as_string(user_entry,
+                                                SYSDB_NDS_LOGIN_EXPIRATION_TIME,
+                                                NULL);
+        locked = nds_check_expired(exp_time_str);
+
+        DEBUG(9, ("Account for user [%s] is%s expired.\n", pd->user,
+                  locked ? "" : " not"));
+
+        if (locked) {
+            ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                                   sizeof(NDS_EXPIRED_MSG),
+                                   (const uint8_t *) NDS_EXPIRED_MSG);
+            if (ret != EOK) {
+                DEBUG(1, ("pam_add_response failed.\n"));
+            }
+        } else {
+            time_map = ldb_msg_find_ldb_val(user_entry,
+                                            SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP);
+
+            locked = nds_check_time_map(time_map);
+
+            DEBUG(9, ("Account for user [%s] is%s locked at this time.\n",
+                      pd->user, locked ? "" : " not"));
+
+            if (locked) {
+                ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                                       sizeof(NDS_TIME_MAP_MSG),
+                                       (const uint8_t *) NDS_TIME_MAP_MSG);
+                if (ret != EOK) {
+                    DEBUG(1, ("pam_add_response failed.\n"));
+                }
+            }
+        }
+    }
+
+    *pam_status = locked ? PAM_PERM_DENIED : PAM_SUCCESS;
+
+    return EOK;
+}
+
 struct sdap_account_expired_req_ctx {
     int pam_status;
 };
@@ -523,6 +694,12 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                             &state->pam_status);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_rhds failed.\n"));
+                goto done;
+            }
+        } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_NDS) == 0) {
+            ret = sdap_account_expired_nds(pd, user_entry, &state->pam_status);
+            if (ret != EOK) {
+                DEBUG(1, ("sdap_account_expired_nds failed.\n"));
                 goto done;
             }
         } else {

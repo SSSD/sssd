@@ -493,6 +493,47 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_nds_login_disabled (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=nds, this
+                            attribute determines if access is allowed or not.
+                        </para>
+                        <para>
+                            Default: loginDisabled
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_nds_login_expiration_time (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=nds, this
+                            attribute determines until which date access is
+                            granted.
+                        </para>
+                        <para>
+                            Default: loginDisabled
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_nds_login_allowed_time_map (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=nds, this
+                            attribute determines the hours of a day in a week
+                            when access is granted.
+                        </para>
+                        <para>
+                            Default: loginAllowedTimeMap
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_principal (string)</term>
                     <listitem>
                         <para>
@@ -1294,6 +1335,15 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             <emphasis>389ds</emphasis>:
                             use the value of ldap_ns_account_lock to check if
                             access is allowed or not.
+                        </para>
+                        <para>
+                            <emphasis>nds</emphasis>: the values of
+                            ldap_user_nds_login_allowed_time_map,
+                            ldap_user_nds_login_disabled and
+                            ldap_user_nds_login_expiration_time are used to
+                            check if access is allowed. If both attributes are
+                            missing access is granted.
+                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
                         </para>
                         <para>
                             Default: Empty

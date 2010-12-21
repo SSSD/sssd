@@ -190,6 +190,9 @@ option_strings = {
     'ldap_user_ad_account_expires' : _('accountExpires attribute of AD'),
     'ldap_user_ad_user_account_control' : _('userAccountControl attribute of AD'),
     'ldap_ns_account_lock' : _('nsAccountLock attribute'),
+    'ldap_user_nds_login_disabled' : _('loginDisabled attribute of NDS'),
+    'ldap_user_nds_login_expiration_time' : _('loginExpirationTime attribute of NDS'),
+    'ldap_user_nds_login_allowed_time_map' : _('loginAllowedTimeMap attribute of NDS'),
 
     'ldap_group_search_base' : _('Base DN for group lookups'),
     # not used # 'ldap_group_search_scope' : _('Scope of group lookups'),

@@ -123,6 +123,9 @@ struct sdap_ppolicy_data {
 
 #define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
 #define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
+#define SYSDB_NDS_LOGIN_DISABLED "ndsLoginDisabled"
+#define SYSDB_NDS_LOGIN_EXPIRATION_TIME "ndsLoginExpirationTime"
+#define SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP "ndsLoginAllowedTimeMap"
 
 #define SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS "namingContexts"
 #define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
@@ -239,6 +242,9 @@ enum sdap_user_attrs {
     SDAP_AT_AD_USER_ACCOUNT_CONTROL,
     SDAP_AT_NS_ACCOUNT_LOCK,
     SDAP_AT_AUTHORIZED_HOST,
+    SDAP_AT_NDS_LOGIN_DISABLED,
+    SDAP_AT_NDS_LOGIN_EXPIRATION_TIME,
+    SDAP_AT_NDS_LOGIN_ALLOWED_TIME_MAP,
 
     SDAP_OPTS_USER /* attrs counter */
 };
