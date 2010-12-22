@@ -108,6 +108,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     struct be_conn *iter;
     struct pam_ctx *pctx;
     int ret, max_retries;
+    int id_timeout;
 
     pctx = talloc_zero(mem_ctx, struct pam_ctx);
     if (!pctx) {
@@ -152,6 +153,14 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                          CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
                          &pctx->neg_timeout);
     if (ret != EOK) goto done;
+
+    /* Set up the PAM identity timeout */
+    ret = confdb_get_int(cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_ID_TIMEOUT, 5,
+                         &id_timeout);
+    if (ret != EOK) goto done;
+
+    pctx->id_timeout = (size_t)id_timeout;
 
     ret = sss_ncache_init(pctx, &pctx->ncache);
     if (ret != EOK) {

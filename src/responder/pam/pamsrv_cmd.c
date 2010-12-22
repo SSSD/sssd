@@ -790,14 +790,12 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         /* make sure to update the preq if we changed domain */
         preq->domain = dom;
 
-        /* TODO: check negative cache ? */
-
-        /* Always try to refresh the cache first on authentication */
-        if (preq->check_provider &&
-            (preq->pd->cmd == SSS_PAM_AUTHENTICATE ||
-             preq->pd->cmd == SSS_PAM_SETCRED)) {
-
-            /* call provider first */
+        /* Refresh the user's cache entry on any PAM query
+         * We put a timeout in the client context so that we limit
+         * the number of updates within a reasonable timeout
+         */
+        if (preq->check_provider && cctx->pam_timeout < time(NULL)) {
+            /* Call provider first */
             break;
         }
 
@@ -909,12 +907,17 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
 {
     struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
     int ret;
+    struct pam_ctx *pctx =
+            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     if (err_maj) {
         DEBUG(2, ("Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
+
+    /* Make sure we don't go to the ID provider too often */
+    preq->cctx->pam_timeout = time(NULL) + pctx->id_timeout;
 
     ret = pam_check_user_search(preq);
     if (ret == EOK) {

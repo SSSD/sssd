@@ -64,6 +64,7 @@ option_strings = {
     'offline_failed_login_attempts' : _('How many failed logins attempts are allowed when offline'),
     'offline_failed_login_delay' : _('How long (minutes) to deny login after offline_failed_login_attempts has been reached'),
     'pam_verbosity' : _('What kind of messages are displayed to the user during authentication'),
+    'pam_id_timeout' : _('How many seconds to keep identity information cached for PAM requests'),
 
     # [provider]
     'id_provider' : _('Identity provider'),

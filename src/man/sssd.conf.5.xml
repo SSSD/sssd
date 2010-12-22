@@ -440,6 +440,28 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                  <term>pam_id_timeout (integer)</term>
+                  <listitem>
+                    <para>
+                      For any PAM request while SSSD is online, the SSSD will
+                      attempt to immediately update the cached identity
+                      information for the user in order to ensure that
+                      authentication takes place with the latest information.
+                    </para>
+                    <para>
+                      A complete PAM conversation may perform multiple PAM
+                      requests, such as account management and session
+                      opening. This option controls (on a
+                      per-client-application basis) how long (in seconds) we
+                      can cache the identity information to avoid excessive
+                      round-trips to the identity provider.
+                    </para>
+                    <para>
+                      Default: 5
+                    </para>
+                  </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
     </refsect1>
