@@ -358,6 +358,8 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
             }
         } else if (strcasecmp(order_list[c], LDAP_ACCESS_SERVICE_NAME) == 0) {
             access_ctx->access_rule[c] = LDAP_ACCESS_SERVICE;
+        } else if (strcasecmp(order_list[c], LDAP_ACCESS_HOST_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_HOST;
         } else {
             DEBUG(1, ("Unexpected access rule name [%s].\n", order_list[c]));
             ret = EINVAL;

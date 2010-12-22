@@ -587,6 +587,26 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_authorized_host (string)</term>
+                    <listitem>
+                        <para>
+                            If access_provider=ldap and
+                            ldap_access_order=host, SSSD will use the presence
+                            of the host attribute in the user's LDAP entry to
+                            determine access privilege.
+                        </para>
+                        <para>
+                            An explicit deny (!host) is resolved first. Second,
+                            SSSD searches for explicit allow (host) and finally
+                            for allow_all (*).
+                        </para>
+                        <para>
+                            Default: host
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_group_object_class (string)</term>
                     <listitem>
                         <para>
@@ -1247,6 +1267,10 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             <emphasis>authorized_service</emphasis>: use
                             the authorizedService attribute to determine
                             access
+                        </para>
+                        <para>
+                            <emphasis>host</emphasis>: use the host attribute
+                            to determine access
                         </para>
                         <para>
                             Default: filter

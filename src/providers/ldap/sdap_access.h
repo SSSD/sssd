@@ -32,6 +32,7 @@
 #define LDAP_ACCESS_FILTER_NAME "filter"
 #define LDAP_ACCESS_EXPIRE_NAME "expire"
 #define LDAP_ACCESS_SERVICE_NAME "authorized_service"
+#define LDAP_ACCESS_HOST_NAME "host"
 
 #define LDAP_ACCOUNT_EXPIRE_SHADOW "shadow"
 #define LDAP_ACCOUNT_EXPIRE_AD "ad"
@@ -44,6 +45,7 @@ enum ldap_access_rule {
     LDAP_ACCESS_FILTER = 0,
     LDAP_ACCESS_EXPIRE,
     LDAP_ACCESS_SERVICE,
+    LDAP_ACCESS_HOST,
     LDAP_ACCESS_LAST
 };
 
