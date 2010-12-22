@@ -464,6 +464,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_ns_account_lock (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=rhds or
+                            equivalent, this parameter determines if access is
+                            allowed or not.
+                        </para>
+                        <para>
+                            Default: nsAccountLock
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_principal (string)</term>
                     <listitem>
                         <para>
@@ -1161,6 +1175,12 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             access if the second bit is not set. If the
                             attribute is missing access is granted. Also the
                             expiration time of the account is checked.
+                        </para>
+                        <para>
+                            <emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>,
+                            <emphasis>389ds</emphasis>:
+                            use the value of ldap_ns_account_lock to check if
+                            access is allowed or not.
                         </para>
                         <para>
                             Default: Empty

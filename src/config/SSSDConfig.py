@@ -174,6 +174,7 @@ option_strings = {
     'ldap_pwd_attribute' : _('Attribute indicating that server side password policies are active'),
     'ldap_user_ad_account_expires' : _('accountExpires attribute of AD'),
     'ldap_user_ad_user_account_control' : _('userAccountControl attribute of AD'),
+    'ldap_ns_account_lock' : _('nsAccountLock attribute'),
 
     'ldap_group_search_base' : _('Base DN for group lookups'),
     # not used # 'ldap_group_search_scope' : _('Scope of group lookups'),

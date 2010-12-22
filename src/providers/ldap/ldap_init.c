@@ -346,7 +346,10 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                           "All domain users will be denied access.\n"));
             } else {
                 if (strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_SHADOW) != 0 &&
-                    strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_AD) != 0) {
+                    strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_AD) != 0 &&
+                    strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_RHDS) != 0 &&
+                    strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_IPA) != 0 &&
+                    strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_389DS) != 0) {
                     DEBUG(1, ("Unsupported LDAP account expire policy [%s].\n",
                               dummy));
                     ret = EINVAL;

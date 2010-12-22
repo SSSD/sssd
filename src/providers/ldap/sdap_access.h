@@ -35,6 +35,9 @@
 
 #define LDAP_ACCOUNT_EXPIRE_SHADOW "shadow"
 #define LDAP_ACCOUNT_EXPIRE_AD "ad"
+#define LDAP_ACCOUNT_EXPIRE_RHDS "rhds"
+#define LDAP_ACCOUNT_EXPIRE_IPA "ipa"
+#define LDAP_ACCOUNT_EXPIRE_389DS "389ds"
 
 enum ldap_access_rule {
     LDAP_ACCESS_EMPTY = -1,

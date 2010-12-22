@@ -418,6 +418,35 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
     return EOK;
 }
 
+#define RHDS_LOCK_MSG "The user account is locked on the server"
+
+static errno_t sdap_account_expired_rhds(struct pam_data *pd,
+                                         struct ldb_message *user_entry,
+                                         int *pam_status)
+{
+    bool locked;
+    int ret;
+
+    DEBUG(6, ("Performing RHDS access check for user [%s]\n", pd->user));
+
+    locked = ldb_msg_find_attr_as_bool(user_entry, SYSDB_NS_ACCOUNT_LOCK, false);
+    DEBUG(9, ("Account for user [%s] is%s locked.\n", pd->user,
+              locked ? "" : " not" ));
+
+    if (locked) {
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(RHDS_LOCK_MSG),
+                               (const uint8_t *) RHDS_LOCK_MSG);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
+    }
+
+    *pam_status = locked ? PAM_PERM_DENIED : PAM_SUCCESS;
+
+    return EOK;
+}
+
 struct sdap_account_expired_req_ctx {
     int pam_status;
 };
@@ -462,6 +491,15 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                           &state->pam_status);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_ad failed.\n"));
+                goto done;
+            }
+        } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_RHDS) == 0 ||
+                   strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_IPA) == 0 ||
+                   strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_389DS) == 0) {
+            ret = sdap_account_expired_rhds(pd, user_entry,
+                                            &state->pam_status);
+            if (ret != EOK) {
+                DEBUG(1, ("sdap_account_expired_rhds failed.\n"));
                 goto done;
             }
         } else {

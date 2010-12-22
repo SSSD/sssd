@@ -122,6 +122,8 @@ struct sdap_ppolicy_data {
 #define SYSDB_SHADOWPW_EXPIRE "shadowExpire"
 #define SYSDB_SHADOWPW_FLAG "shadowFlag"
 
+#define SYSDB_NS_ACCOUNT_LOCK "nsAccountLock"
+
 #define SYSDB_KRBPW_LASTCHANGE "krbLastPwdChange"
 #define SYSDB_KRBPW_EXPIRATION "krbPasswordExpiration"
 
@@ -236,6 +238,7 @@ enum sdap_user_attrs {
     SDAP_AT_AUTH_SVC,
     SDAP_AT_AD_ACCOUNT_EXPIRES,
     SDAP_AT_AD_USER_ACCOUNT_CONTROL,
+    SDAP_AT_NS_ACCOUNT_LOCK,
 
     SDAP_OPTS_USER /* attrs counter */
 };
