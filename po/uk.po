@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-10-18 13:14-0400\n"
+"POT-Creation-Date: 2010-12-22 13:25-0500\n"
 "PO-Revision-Date: 2010-10-21 19:46+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: uk\n"
 "X-Generator: Lokalize 1.1\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -108,455 +108,622 @@ msgstr ""
 "Тривалість (у хвилинах) заборони входу після досягнення значення "
 "offline_failed_login_attempts"
 
-#: src/config/SSSDConfig.py:68
+#: src/config/SSSDConfig.py:66
+msgid "What kind of messages are displayed to the user during authentication"
+msgstr ""
+
+#: src/config/SSSDConfig.py:67
+msgid "How many seconds to keep identity information cached for PAM requests"
+msgstr ""
+
+#: src/config/SSSDConfig.py:70
 msgid "Identity provider"
 msgstr "Служба профілів"
 
-#: src/config/SSSDConfig.py:69
+#: src/config/SSSDConfig.py:71
 msgid "Authentication provider"
 msgstr "Служба розпізнавання"
 
-#: src/config/SSSDConfig.py:70
+#: src/config/SSSDConfig.py:72
 msgid "Access control provider"
 msgstr "Служба керування доступом"
 
-#: src/config/SSSDConfig.py:71
+#: src/config/SSSDConfig.py:73
 msgid "Password change provider"
 msgstr "Служба зміни паролів"
 
-#: src/config/SSSDConfig.py:74
+#: src/config/SSSDConfig.py:76
 msgid "Minimum user ID"
 msgstr "Мін. ідентифікатор користувача"
 
-#: src/config/SSSDConfig.py:75
+#: src/config/SSSDConfig.py:77
 msgid "Maximum user ID"
 msgstr "Макс. ідентифікатор користувача"
 
-#: src/config/SSSDConfig.py:76
-msgid "Ping timeout before restarting domain"
-msgstr "Час очікування відповіді на пінг перед перезапуском домену"
-
-#: src/config/SSSDConfig.py:77
+#: src/config/SSSDConfig.py:78
 msgid "Enable enumerating all users/groups"
 msgstr "Увімкнути нумерацію всіх користувачів/груп"
 
-#: src/config/SSSDConfig.py:78
+#: src/config/SSSDConfig.py:79
 msgid "Cache credentials for offline login"
 msgstr "Кешувати реєстраційні дані для автономного входу"
 
-#: src/config/SSSDConfig.py:79
+#: src/config/SSSDConfig.py:80
 msgid "Store password hashes"
 msgstr "Зберігати хеші паролів"
 
-#: src/config/SSSDConfig.py:80
+#: src/config/SSSDConfig.py:81
 msgid "Display users/groups in fully-qualified form"
 msgstr "Показувати записи користувачів/груп повністю"
 
-#: src/config/SSSDConfig.py:81
+#: src/config/SSSDConfig.py:82
 msgid "Entry cache timeout length (seconds)"
 msgstr "Тривалість кешування записів (у секундах)"
 
-#: src/config/SSSDConfig.py:82
+#: src/config/SSSDConfig.py:83
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
 "Обмежити або надавати перевагу певному сімейству адрес під час виконання "
 "пошуків DNS"
 
-#: src/config/SSSDConfig.py:83
+#: src/config/SSSDConfig.py:84
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Тривалість зберігання кешованих записів після останнього успішного входу (у "
 "днях)"
 
-#: src/config/SSSDConfig.py:84
+#: src/config/SSSDConfig.py:85
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
 "Тривалість очікування на відповідь від DNS під час визначення адрес серверів "
 "(у секундах)"
 
-#: src/config/SSSDConfig.py:85
+#: src/config/SSSDConfig.py:86
 msgid "The domain part of service discovery DNS query"
 msgstr "Частина запиту щодо виявлення служби DNS, пов’язана з доменом"
 
-#: src/config/SSSDConfig.py:88
+#: src/config/SSSDConfig.py:89
 msgid "IPA domain"
 msgstr "Домен IPA"
 
-#: src/config/SSSDConfig.py:89
+#: src/config/SSSDConfig.py:90
 msgid "IPA server address"
 msgstr "Адреса сервера IPA"
 
-#: src/config/SSSDConfig.py:90
+#: src/config/SSSDConfig.py:91
 msgid "IPA client hostname"
 msgstr "Назва вузла клієнта IPA"
 
-#: src/config/SSSDConfig.py:91
+#: src/config/SSSDConfig.py:92
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 "Визначає, чи слід автоматично оновлювати запис DNS клієнтського вузла у "
 "FreeIPA"
 
-#: src/config/SSSDConfig.py:92
+#: src/config/SSSDConfig.py:93
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 "Інтерфейс, чию адресу IP має бути використано для динамічних оновлень DNS"
 
-#: src/config/SSSDConfig.py:95 src/config/SSSDConfig.py:124
+#: src/config/SSSDConfig.py:96 src/config/SSSDConfig.py:97
 msgid "Kerberos server address"
 msgstr "Адреса сервера Kerberos"
 
-#: src/config/SSSDConfig.py:96 src/config/SSSDConfig.py:125
+#: src/config/SSSDConfig.py:98
 msgid "Kerberos realm"
 msgstr "Область Kerberos"
 
-#: src/config/SSSDConfig.py:97
+#: src/config/SSSDConfig.py:99
 msgid "Authentication timeout"
 msgstr "Час очікування на розпізнавання"
 
-#: src/config/SSSDConfig.py:100
+#: src/config/SSSDConfig.py:102
 msgid "Directory to store credential caches"
 msgstr "Каталог, де зберігатиметься кеш реєстраційних даних"
 
-#: src/config/SSSDConfig.py:101
+#: src/config/SSSDConfig.py:103
 msgid "Location of the user's credential cache"
 msgstr "Адреса кешу реєстраційних даних користувача"
 
-#: src/config/SSSDConfig.py:102
+#: src/config/SSSDConfig.py:104
 msgid "Location of the keytab to validate credentials"
 msgstr "Адреса таблиці ключів для перевірки реєстраційних даних"
 
-#: src/config/SSSDConfig.py:103
+#: src/config/SSSDConfig.py:105
 msgid "Enable credential validation"
 msgstr "Увімкнути перевірку реєстраційних даних"
 
-#: src/config/SSSDConfig.py:104
+#: src/config/SSSDConfig.py:106
 msgid "Store password if offline for later online authentication"
 msgstr "Зберігати пароль у автономному режимі для розпізнавання у мережі"
 
 #: src/config/SSSDConfig.py:107
+msgid "Renewable lifetime of the TGT"
+msgstr ""
+
+#: src/config/SSSDConfig.py:108
+msgid "Lifetime of the TGT"
+msgstr ""
+
+#: src/config/SSSDConfig.py:109
+msgid "Time between two checks for renewal"
+msgstr ""
+
+#: src/config/SSSDConfig.py:110
+msgid "Enables FAST"
+msgstr ""
+
+#: src/config/SSSDConfig.py:113
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 "Сервер, на якому запущено службу зміни паролів, якщо такий не вдасться "
 "виявити у KDC"
 
-#: src/config/SSSDConfig.py:110
+#: src/config/SSSDConfig.py:116
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, адреса URI сервера LDAP"
 
-#: src/config/SSSDConfig.py:111
+#: src/config/SSSDConfig.py:117
 msgid "The default base DN"
 msgstr "Типова базова назва домену"
 
-#: src/config/SSSDConfig.py:112
+#: src/config/SSSDConfig.py:118
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "Тип схеми, використаний на сервері LDAP, rfc2307"
 
-#: src/config/SSSDConfig.py:113
+#: src/config/SSSDConfig.py:119
 msgid "The default bind DN"
 msgstr "Типова назва домену прив’язки"
 
-#: src/config/SSSDConfig.py:114
+#: src/config/SSSDConfig.py:120
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Тип розпізнавання для типової назви сервера прив’язки"
 
-#: src/config/SSSDConfig.py:115
+#: src/config/SSSDConfig.py:121
 msgid "The authentication token of the default bind DN"
 msgstr "Лексема розпізнавання типової назви сервера прив’язки"
 
-#: src/config/SSSDConfig.py:116
+#: src/config/SSSDConfig.py:122
 msgid "Length of time to attempt connection"
 msgstr "Проміжок часу між спробами встановлення з’єднання"
 
-#: src/config/SSSDConfig.py:117
+#: src/config/SSSDConfig.py:123
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Проміжок часу між спробами виконання синхронних операцій LDAP"
 
-#: src/config/SSSDConfig.py:118
+#: src/config/SSSDConfig.py:124
 msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 "Проміжок часу між повторними спробами встановлення з’єднання у автономному "
 "режимі"
 
-#: src/config/SSSDConfig.py:119
+#: src/config/SSSDConfig.py:125
+msgid "Use only the upper case for realm names"
+msgstr ""
+
+#: src/config/SSSDConfig.py:126
 msgid "File that contains CA certificates"
 msgstr "Файл, що містить сертифікати CA"
 
-#: src/config/SSSDConfig.py:120
+#: src/config/SSSDConfig.py:127
 msgid "Path to CA certificate directory"
 msgstr "Шлях до каталогу сертифікатів CA"
 
-#: src/config/SSSDConfig.py:121
+#: src/config/SSSDConfig.py:128
 msgid "Require TLS certificate verification"
 msgstr "Потрібна перевірка сертифіката TLS"
 
-#: src/config/SSSDConfig.py:122
+#: src/config/SSSDConfig.py:129
 msgid "Specify the sasl mechanism to use"
 msgstr "Вкажіть механізм SASL, який слід використовувати"
 
-#: src/config/SSSDConfig.py:123
+#: src/config/SSSDConfig.py:130
 msgid "Specify the sasl authorization id to use"
 msgstr "Вкажіть ідентифікатор уповноваження SASL, який слід використовувати"
 
-#: src/config/SSSDConfig.py:126
+#: src/config/SSSDConfig.py:131
 msgid "Kerberos service keytab"
 msgstr "Таблиця ключів служби Kerberos"
 
-#: src/config/SSSDConfig.py:127
+#: src/config/SSSDConfig.py:132
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Розпізнавання Kerberos для з’єднання LDAP"
 
-#: src/config/SSSDConfig.py:128
+#: src/config/SSSDConfig.py:133
 msgid "Follow LDAP referrals"
 msgstr "Переходити за посиланнями LDAP"
 
-#: src/config/SSSDConfig.py:129
+#: src/config/SSSDConfig.py:134
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Строк дії TGT для з’єднання LDAP"
 
-#: src/config/SSSDConfig.py:132
-msgid "Length of time to wait for a search request"
-msgstr "Тривалість очікування на дані запиту пошуку"
-
-#: src/config/SSSDConfig.py:133
-msgid "Length of time between enumeration updates"
-msgstr "Проміжок часу між оновленнями нумерації"
-
-#: src/config/SSSDConfig.py:134
-msgid "Require TLS for ID lookups"
-msgstr "Вимагати TLS для пошуків ідентифікаторів"
-
 #: src/config/SSSDConfig.py:135
-msgid "Base DN for user lookups"
-msgstr "Базова назва домену для пошуків користувачів"
+msgid "How to dereference aliases"
+msgstr ""
 
 #: src/config/SSSDConfig.py:136
-msgid "Scope of user lookups"
-msgstr "Діапазон пошуків користувачів"
-
-#: src/config/SSSDConfig.py:137
-msgid "Filter for user lookups"
+#, fuzzy
+msgid "Service name for DNS service lookups"
 msgstr "Фільтр пошуку користувачів"
 
 #: src/config/SSSDConfig.py:138
+#, fuzzy
+msgid "entryUSN attribute"
+msgstr "Атрибут UID"
+
+#: src/config/SSSDConfig.py:139
+#, fuzzy
+msgid "lastUSN attribute"
+msgstr "Атрибут UID"
+
+#: src/config/SSSDConfig.py:142
+msgid "Length of time to wait for a search request"
+msgstr "Тривалість очікування на дані запиту пошуку"
+
+#: src/config/SSSDConfig.py:143
+msgid "Length of time between enumeration updates"
+msgstr "Проміжок часу між оновленнями нумерації"
+
+#: src/config/SSSDConfig.py:144
+#, fuzzy
+msgid "Length of time between cache cleanups"
+msgstr "Проміжок часу між оновленнями нумерації"
+
+#: src/config/SSSDConfig.py:145
+msgid "Require TLS for ID lookups"
+msgstr "Вимагати TLS для пошуків ідентифікаторів"
+
+#: src/config/SSSDConfig.py:146
+msgid "Base DN for user lookups"
+msgstr "Базова назва домену для пошуків користувачів"
+
+#: src/config/SSSDConfig.py:147
+msgid "Scope of user lookups"
+msgstr "Діапазон пошуків користувачів"
+
+#: src/config/SSSDConfig.py:148
+msgid "Filter for user lookups"
+msgstr "Фільтр пошуку користувачів"
+
+#: src/config/SSSDConfig.py:149
 msgid "Objectclass for users"
 msgstr "Клас об’єктів для користувачів"
 
-#: src/config/SSSDConfig.py:139
+#: src/config/SSSDConfig.py:150
 msgid "Username attribute"
 msgstr "Атрибут імені користувача"
 
-#: src/config/SSSDConfig.py:140
+#: src/config/SSSDConfig.py:152
 msgid "UID attribute"
 msgstr "Атрибут UID"
 
-#: src/config/SSSDConfig.py:141
+#: src/config/SSSDConfig.py:153
 msgid "Primary GID attribute"
 msgstr "Головний атрибут GID"
 
-#: src/config/SSSDConfig.py:142
+#: src/config/SSSDConfig.py:154
 msgid "GECOS attribute"
 msgstr "Атрибут GECOS"
 
-#: src/config/SSSDConfig.py:143
+#: src/config/SSSDConfig.py:155
 msgid "Home directory attribute"
 msgstr "Атрибут домашнього каталогу"
 
-#: src/config/SSSDConfig.py:144
+#: src/config/SSSDConfig.py:156
 msgid "Shell attribute"
 msgstr "Атрибут оболонки"
 
-#: src/config/SSSDConfig.py:145
+#: src/config/SSSDConfig.py:157
 msgid "UUID attribute"
 msgstr "Атрибут UUID"
 
-#: src/config/SSSDConfig.py:146
+#: src/config/SSSDConfig.py:158
 msgid "User principal attribute (for Kerberos)"
 msgstr "Атрибут реєстраційного запису користувача (для Kerberos)"
 
-#: src/config/SSSDConfig.py:147
+#: src/config/SSSDConfig.py:159
 msgid "Full Name"
 msgstr "Повне ім'я"
 
-#: src/config/SSSDConfig.py:148
+#: src/config/SSSDConfig.py:160
 msgid "memberOf attribute"
 msgstr "Атрибут memberOf"
 
-#: src/config/SSSDConfig.py:149
+#: src/config/SSSDConfig.py:161
 msgid "Modification time attribute"
 msgstr "Атрибут часу зміни"
 
-#: src/config/SSSDConfig.py:152
+#: src/config/SSSDConfig.py:163
+msgid "shadowLastChange attribute"
+msgstr ""
+
+#: src/config/SSSDConfig.py:164
+#, fuzzy
+msgid "shadowMin attribute"
+msgstr "Атрибут імені користувача"
+
+#: src/config/SSSDConfig.py:165
+#, fuzzy
+msgid "shadowMax attribute"
+msgstr "Атрибут імені користувача"
+
+#: src/config/SSSDConfig.py:166
+#, fuzzy
+msgid "shadowWarning attribute"
+msgstr "Атрибут імені користувача"
+
+#: src/config/SSSDConfig.py:167
+#, fuzzy
+msgid "shadowInactive attribute"
+msgstr "Атрибут імені користувача"
+
+#: src/config/SSSDConfig.py:168
+#, fuzzy
+msgid "shadowExpire attribute"
+msgstr "Атрибут імені користувача"
+
+#: src/config/SSSDConfig.py:169
+#, fuzzy
+msgid "shadowFlag attribute"
+msgstr "Атрибут оболонки"
+
+#: src/config/SSSDConfig.py:170
+msgid "Attribute listing authorized PAM services"
+msgstr ""
+
+#: src/config/SSSDConfig.py:171
+msgid "krbLastPwdChange attribute"
+msgstr ""
+
+#: src/config/SSSDConfig.py:172
+#, fuzzy
+msgid "krbPasswordExpiration attribute"
+msgstr "Атрибут часу зміни"
+
+#: src/config/SSSDConfig.py:173
+msgid "Attribute indicating that server side password policies are active"
+msgstr ""
+
+#: src/config/SSSDConfig.py:175
+#, fuzzy
+msgid "Base DN for group lookups"
+msgstr "Базова назва домену для пошуків користувачів"
+
+#: src/config/SSSDConfig.py:178
+#, fuzzy
+msgid "Objectclass for groups"
+msgstr "Клас об’єктів для користувачів"
+
+#: src/config/SSSDConfig.py:179
+#, fuzzy
+msgid "Group name"
+msgstr "Групи"
+
+#: src/config/SSSDConfig.py:180
+#, fuzzy
+msgid "Group password"
+msgstr "Групи"
+
+#: src/config/SSSDConfig.py:181
+#, fuzzy
+msgid "GID attribute"
+msgstr "Атрибут UID"
+
+#: src/config/SSSDConfig.py:182
+#, fuzzy
+msgid "Group member attribute"
+msgstr "Атрибут memberOf"
+
+#: src/config/SSSDConfig.py:183
+#, fuzzy
+msgid "Group UUID attribute"
+msgstr "Атрибут UUID"
+
+#: src/config/SSSDConfig.py:184
+#, fuzzy
+msgid "Modification time attribute for groups"
+msgstr "Атрибут часу зміни"
+
+#: src/config/SSSDConfig.py:186
+msgid "Maximum nesting level SSSd will follow"
+msgstr ""
+
+#: src/config/SSSDConfig.py:188
+#, fuzzy
+msgid "Base DN for netgroup lookups"
+msgstr "Базова назва домену для пошуків користувачів"
+
+#: src/config/SSSDConfig.py:189
+#, fuzzy
+msgid "Objectclass for netgroups"
+msgstr "Клас об’єктів для користувачів"
+
+#: src/config/SSSDConfig.py:190
+msgid "Netgroup name"
+msgstr ""
+
+#: src/config/SSSDConfig.py:191
+#, fuzzy
+msgid "Netgroups members attribute"
+msgstr "Атрибут memberOf"
+
+#: src/config/SSSDConfig.py:192
+#, fuzzy
+msgid "Netgroup triple attribute"
+msgstr "Атрибут часу зміни"
+
+#: src/config/SSSDConfig.py:193
+#, fuzzy
+msgid "Netgroup UUID attribute"
+msgstr "Атрибут UUID"
+
+#: src/config/SSSDConfig.py:194
+#, fuzzy
+msgid "Modification time attribute for netgroups"
+msgstr "Атрибут часу зміни"
+
+#: src/config/SSSDConfig.py:197
 msgid "Policy to evaluate the password expiration"
 msgstr "Правила оцінки завершення строку дії пароля"
 
-#: src/config/SSSDConfig.py:155
+#: src/config/SSSDConfig.py:200
 msgid "LDAP filter to determine access privileges"
 msgstr "Фільтр LDAP для визначення прав доступу"
 
-#: src/config/SSSDConfig.py:158
+#: src/config/SSSDConfig.py:201
+msgid "Which attributes shall be used to evaluate if an account is expired"
+msgstr ""
+
+#: src/config/SSSDConfig.py:202
+msgid "Which rules should be used to evaluate access control"
+msgstr ""
+
+#: src/config/SSSDConfig.py:205
+msgid "URI of an LDAP server where password changes are allowed"
+msgstr ""
+
+#: src/config/SSSDConfig.py:206
+msgid "DNS service name for LDAP password change server"
+msgstr ""
+
+#: src/config/SSSDConfig.py:209
 msgid "Comma separated list of allowed users"
 msgstr "Відокремлений комами список дозволених користувачів"
 
-#: src/config/SSSDConfig.py:159
+#: src/config/SSSDConfig.py:210
 msgid "Comma separated list of prohibited users"
 msgstr "Відокремлений комами список заборонених користувачів"
 
-#: src/config/SSSDConfig.py:162
+#: src/config/SSSDConfig.py:213
 msgid "Default shell, /bin/bash"
 msgstr "Типова оболонка, /bin/bash"
 
-#: src/config/SSSDConfig.py:163
+#: src/config/SSSDConfig.py:214
 msgid "Base for home directories"
 msgstr "Базова адреса домашніх каталогів"
 
-#: src/config/SSSDConfig.py:166
+#: src/config/SSSDConfig.py:217
 msgid "The name of the NSS library to use"
 msgstr "Назва бібліотеки NSS, яку слід використовувати"
 
-#: src/config/SSSDConfig.py:169
+#: src/config/SSSDConfig.py:220
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: src/monitor/monitor.c:2140
+#: src/monitor/monitor.c:2245
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2142
+#: src/monitor/monitor.c:2247
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2144
+#: src/monitor/monitor.c:2249
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2170
-msgid "sssd must be run as root\n"
-msgstr "sssd слід запускати від імені користувача root\n"
-
-#: src/monitor/monitor.c:2205
-msgid ""
-"nscd socket was detected.  As nscd caching capabilities may conflict with "
-"SSSD, it is recommended to not run nscd in parallel with SSSD\n"
-msgstr ""
-"Було виявлено сокет nscd. Можливості з кешування nscd можуть конфліктувати з "
-"SSSD. Не рекомендуємо вам користуватися nscd паралельно з SSSD\n"
-
-#: src/monitor/monitor.c:2215
-#, c-format
-msgid ""
-"Cannot read config file %s, please check if permissions are 0600 and the "
-"file is owned by root.root\n"
-msgstr ""
-"Не вдалося прочитати файл налаштувань %s, будь ласка, перевірте, чи "
-"встановлено для цього файла права доступу 0600 і чи є парою власник-група "
-"файла root.root\n"
-
-#: src/monitor/monitor.c:2220
-msgid "Cannot load configuration database\n"
-msgstr "Не вдалося завантажити базу даних налаштувань\n"
-
-#: src/providers/krb5/krb5_child.c:1043 src/providers/ldap/ldap_child.c:359
-#: src/util/util.h:63
+#: src/providers/krb5/krb5_child.c:1593 src/providers/ldap/ldap_child.c:359
+#: src/util/util.h:65
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:1045 src/providers/ldap/ldap_child.c:361
-#: src/util/util.h:67
+#: src/providers/krb5/krb5_child.c:1595 src/providers/ldap/ldap_child.c:361
+#: src/util/util.h:69
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:1047 src/providers/ldap/ldap_child.c:363
+#: src/providers/krb5/krb5_child.c:1597 src/providers/ldap/ldap_child.c:363
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:1165
+#: src/providers/data_provider_be.c:1275
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
-#: src/sss_client/common.c:742
+#: src/sss_client/common.c:779
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "У привілейованого сокета помилковий власник або права доступу."
 
-#: src/sss_client/common.c:745
+#: src/sss_client/common.c:782
 msgid "Public socket has wrong ownership or permissions."
 msgstr "У відкритого сокета помилковий власник або права доступу."
 
-#: src/sss_client/common.c:748
+#: src/sss_client/common.c:785
 msgid "Unexpected format of the server credential message."
 msgstr "Некоректний формат повідомлення щодо реєстраційних даних сервера."
 
-#: src/sss_client/common.c:751
+#: src/sss_client/common.c:788
 msgid "SSSD is not run by root."
 msgstr "SSSD запущено не від імені користувача root."
 
-#: src/sss_client/common.c:756
+#: src/sss_client/common.c:793
 msgid "An error occurred, but no description can be found."
 msgstr "Сталася помилка, але не вдалося знайти її опису."
 
-#: src/sss_client/common.c:762
+#: src/sss_client/common.c:799
 msgid "Unexpected error while looking for an error description"
 msgstr "Неочікувана помилка під час пошуку опису помилки"
 
-#: src/sss_client/pam_sss.c:372
+#: src/sss_client/pam_sss.c:378
 msgid "Passwords do not match"
 msgstr "Паролі не збігаються"
 
-#: src/sss_client/pam_sss.c:556
+#: src/sss_client/pam_sss.c:571
 msgid "Password reset by root is not supported."
 msgstr "Підтримки скидання пароля користувачем root не передбачено."
 
-#: src/sss_client/pam_sss.c:597
+#: src/sss_client/pam_sss.c:612
 msgid "Authenticated with cached credentials"
 msgstr "Розпізнано за реєстраційними даними з кешу"
 
-#: src/sss_client/pam_sss.c:598
+#: src/sss_client/pam_sss.c:613
 msgid ", your cached password will expire at: "
 msgstr ", строк дії вашого кешованого пароля завершиться: "
 
-#: src/sss_client/pam_sss.c:628
+#: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr "Строк дії вашого пароля вичерпано. Залишилося %d резервних входи."
 
-#: src/sss_client/pam_sss.c:674
+#: src/sss_client/pam_sss.c:689
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr "Строк дії вашого пароля завершиться за %d %s."
 
-#: src/sss_client/pam_sss.c:723
+#: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
 msgstr "Розпізнавання заборонено до: "
 
-#: src/sss_client/pam_sss.c:750
+#: src/sss_client/pam_sss.c:765
 msgid "System is offline, password change not possible"
 msgstr "Система працює у автономному режимі, зміна пароля неможлива"
 
-#: src/sss_client/pam_sss.c:780 src/sss_client/pam_sss.c:793
+#: src/sss_client/pam_sss.c:795 src/sss_client/pam_sss.c:808
 msgid "Password change failed. "
 msgstr "Спроба зміни пароля зазнала невдачі. "
 
-#: src/sss_client/pam_sss.c:783 src/sss_client/pam_sss.c:794
+#: src/sss_client/pam_sss.c:798 src/sss_client/pam_sss.c:809
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
-#: src/sss_client/pam_sss.c:1197
+#: src/sss_client/pam_sss.c:1212
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: src/sss_client/pam_sss.c:1198
+#: src/sss_client/pam_sss.c:1213
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: src/sss_client/pam_sss.c:1280
+#: src/sss_client/pam_sss.c:1295
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:1312
+#: src/sss_client/pam_sss.c:1327
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: src/sss_client/pam_sss.c:1458
+#: src/sss_client/pam_sss.c:1473
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
@@ -988,9 +1155,34 @@ msgstr "Не вистачає пам'яті\n"
 msgid "%s must be run as root\n"
 msgstr "%s слід виконувати від імені користувача root\n"
 
-#: src/util/util.h:65
+#: src/util/util.h:67
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
+
+#~ msgid "Ping timeout before restarting domain"
+#~ msgstr "Час очікування відповіді на пінг перед перезапуском домену"
+
+#~ msgid "sssd must be run as root\n"
+#~ msgstr "sssd слід запускати від імені користувача root\n"
+
+#~ msgid ""
+#~ "nscd socket was detected.  As nscd caching capabilities may conflict with "
+#~ "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
+#~ msgstr ""
+#~ "Було виявлено сокет nscd. Можливості з кешування nscd можуть "
+#~ "конфліктувати з SSSD. Не рекомендуємо вам користуватися nscd паралельно з "
+#~ "SSSD\n"
+
+#~ msgid ""
+#~ "Cannot read config file %s, please check if permissions are 0600 and the "
+#~ "file is owned by root.root\n"
+#~ msgstr ""
+#~ "Не вдалося прочитати файл налаштувань %s, будь ласка, перевірте, чи "
+#~ "встановлено для цього файла права доступу 0600 і чи є парою власник-група "
+#~ "файла root.root\n"
+
+#~ msgid "Cannot load configuration database\n"
+#~ msgstr "Не вдалося завантажити базу даних налаштувань\n"
 
 #~ msgid "The principal of the change password service"
 #~ msgstr "Реєстраційний запис служби зміни паролів"
