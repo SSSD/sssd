@@ -752,6 +752,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
+    preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
+
     ret = pam_check_user_search(preq);
     if (ret == EOK) {
         pam_dom_forwarder(preq);
