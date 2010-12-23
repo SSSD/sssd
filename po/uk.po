@@ -7,14 +7,14 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-12-22 13:25-0500\n"
-"PO-Revision-Date: 2010-10-21 19:46+0300\n"
+"PO-Revision-Date: 2010-12-23 17:43+0200\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.1\n"
+"X-Generator: Lokalize 1.2\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
@@ -110,11 +110,13 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:66
 msgid "What kind of messages are displayed to the user during authentication"
-msgstr ""
+msgstr "Тип повідомлень, які буде показано користувачеві під час розпізнавання"
 
 #: src/config/SSSDConfig.py:67
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr ""
+"Тривалість (у секундах) зберігання даних щодо розпізнавання у кеші для "
+"запитів PAM"
 
 #: src/config/SSSDConfig.py:70
 msgid "Identity provider"
@@ -240,19 +242,19 @@ msgstr "Зберігати пароль у автономному режимі �
 
 #: src/config/SSSDConfig.py:107
 msgid "Renewable lifetime of the TGT"
-msgstr ""
+msgstr "Поновлюваний строк дії TGT"
 
 #: src/config/SSSDConfig.py:108
 msgid "Lifetime of the TGT"
-msgstr ""
+msgstr "Строк дії TGT"
 
 #: src/config/SSSDConfig.py:109
 msgid "Time between two checks for renewal"
-msgstr ""
+msgstr "Граничний час між двома перевірками для поновлення"
 
 #: src/config/SSSDConfig.py:110
 msgid "Enables FAST"
-msgstr ""
+msgstr "Вмикає FAST"
 
 #: src/config/SSSDConfig.py:113
 msgid "Server where the change password service is running if not on the KDC"
@@ -300,7 +302,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:125
 msgid "Use only the upper case for realm names"
-msgstr ""
+msgstr "Використовувати для назв областей лише великі літери"
 
 #: src/config/SSSDConfig.py:126
 msgid "File that contains CA certificates"
@@ -340,22 +342,19 @@ msgstr "Строк дії TGT для з’єднання LDAP"
 
 #: src/config/SSSDConfig.py:135
 msgid "How to dereference aliases"
-msgstr ""
+msgstr "Спосіб розіменування псевдонімів"
 
 #: src/config/SSSDConfig.py:136
-#, fuzzy
 msgid "Service name for DNS service lookups"
-msgstr "Фільтр пошуку користувачів"
+msgstr "Назва служби для пошуків за допомогою служби DNS"
 
 #: src/config/SSSDConfig.py:138
-#, fuzzy
 msgid "entryUSN attribute"
-msgstr "Атрибут UID"
+msgstr "Атрибут entryUSN"
 
 #: src/config/SSSDConfig.py:139
-#, fuzzy
 msgid "lastUSN attribute"
-msgstr "Атрибут UID"
+msgstr "Атрибут lastUSN"
 
 #: src/config/SSSDConfig.py:142
 msgid "Length of time to wait for a search request"
@@ -366,9 +365,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Проміжок часу між оновленнями нумерації"
 
 #: src/config/SSSDConfig.py:144
-#, fuzzy
 msgid "Length of time between cache cleanups"
-msgstr "Проміжок часу між оновленнями нумерації"
+msgstr "Проміжок часу між спорожненнями кешу"
 
 #: src/config/SSSDConfig.py:145
 msgid "Require TLS for ID lookups"
@@ -436,132 +434,112 @@ msgstr "Атрибут часу зміни"
 
 #: src/config/SSSDConfig.py:163
 msgid "shadowLastChange attribute"
-msgstr ""
+msgstr "Атрибут shadowLastChange"
 
 #: src/config/SSSDConfig.py:164
-#, fuzzy
 msgid "shadowMin attribute"
-msgstr "Атрибут імені користувача"
+msgstr "Атрибут shadowMin"
 
 #: src/config/SSSDConfig.py:165
-#, fuzzy
 msgid "shadowMax attribute"
-msgstr "Атрибут імені користувача"
+msgstr "Атрибут shadowMax"
 
 #: src/config/SSSDConfig.py:166
-#, fuzzy
 msgid "shadowWarning attribute"
-msgstr "Атрибут імені користувача"
+msgstr "Атрибут shadowWarning"
 
 #: src/config/SSSDConfig.py:167
-#, fuzzy
 msgid "shadowInactive attribute"
-msgstr "Атрибут імені користувача"
+msgstr "Атрибут shadowInactive"
 
 #: src/config/SSSDConfig.py:168
-#, fuzzy
 msgid "shadowExpire attribute"
-msgstr "Атрибут імені користувача"
+msgstr "Атрибут shadowExpire"
 
 #: src/config/SSSDConfig.py:169
-#, fuzzy
 msgid "shadowFlag attribute"
-msgstr "Атрибут оболонки"
+msgstr "Атрибут shadowFlag"
 
 #: src/config/SSSDConfig.py:170
 msgid "Attribute listing authorized PAM services"
-msgstr ""
+msgstr "Атрибути зі списком уповноважених служб PAM"
 
 #: src/config/SSSDConfig.py:171
 msgid "krbLastPwdChange attribute"
-msgstr ""
+msgstr "Атрибут krbLastPwdChange"
 
 #: src/config/SSSDConfig.py:172
-#, fuzzy
 msgid "krbPasswordExpiration attribute"
-msgstr "Атрибут часу зміни"
+msgstr "Атрибут krbPasswordExpiration"
 
 #: src/config/SSSDConfig.py:173
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
+"Атрибут, що відповідає за активізацію правил обробки паролів на боці сервера"
 
 #: src/config/SSSDConfig.py:175
-#, fuzzy
 msgid "Base DN for group lookups"
-msgstr "Базова назва домену для пошуків користувачів"
+msgstr "Базова назва домену для пошуків груп"
 
 #: src/config/SSSDConfig.py:178
-#, fuzzy
 msgid "Objectclass for groups"
-msgstr "Клас об’єктів для користувачів"
+msgstr "Клас об’єктів для груп"
 
 #: src/config/SSSDConfig.py:179
-#, fuzzy
 msgid "Group name"
-msgstr "Групи"
+msgstr "Назва групи"
 
 #: src/config/SSSDConfig.py:180
-#, fuzzy
 msgid "Group password"
-msgstr "Групи"
+msgstr "Пароль групи"
 
 #: src/config/SSSDConfig.py:181
-#, fuzzy
 msgid "GID attribute"
-msgstr "Атрибут UID"
+msgstr "Атрибут GID"
 
 #: src/config/SSSDConfig.py:182
-#, fuzzy
 msgid "Group member attribute"
-msgstr "Атрибут memberOf"
+msgstr "Атрибут членства у групі"
 
 #: src/config/SSSDConfig.py:183
-#, fuzzy
 msgid "Group UUID attribute"
-msgstr "Атрибут UUID"
+msgstr "Атрибут UUID групи"
 
 #: src/config/SSSDConfig.py:184
-#, fuzzy
 msgid "Modification time attribute for groups"
-msgstr "Атрибут часу зміни"
+msgstr "Атрибут часу зміни для груп"
 
 #: src/config/SSSDConfig.py:186
 msgid "Maximum nesting level SSSd will follow"
-msgstr ""
+msgstr "Максимальний рівень вкладеності, який використовуватиме SSSD"
 
 #: src/config/SSSDConfig.py:188
-#, fuzzy
 msgid "Base DN for netgroup lookups"
-msgstr "Базова назва домену для пошуків користувачів"
+msgstr "Базова назва домену для пошуків груп у мережі"
 
 #: src/config/SSSDConfig.py:189
-#, fuzzy
 msgid "Objectclass for netgroups"
-msgstr "Клас об’єктів для користувачів"
+msgstr "Клас об’єктів для груп у мережі"
 
 #: src/config/SSSDConfig.py:190
 msgid "Netgroup name"
-msgstr ""
+msgstr "Назва мережевої групи"
 
 #: src/config/SSSDConfig.py:191
-#, fuzzy
 msgid "Netgroups members attribute"
-msgstr "Атрибут memberOf"
+msgstr "Атрибут членства у групах у мережі"
 
 #: src/config/SSSDConfig.py:192
-#, fuzzy
 msgid "Netgroup triple attribute"
-msgstr "Атрибут часу зміни"
+msgstr "Атрибут трійки груп у мережі"
 
 #: src/config/SSSDConfig.py:193
-#, fuzzy
 msgid "Netgroup UUID attribute"
-msgstr "Атрибут UUID"
+msgstr "Атрибут UUID груп у мережі"
 
 #: src/config/SSSDConfig.py:194
-#, fuzzy
 msgid "Modification time attribute for netgroups"
-msgstr "Атрибут часу зміни"
+msgstr "Атрибут часу зміни для мережевих груп"
 
 #: src/config/SSSDConfig.py:197
 msgid "Policy to evaluate the password expiration"
@@ -574,18 +552,20 @@ msgstr "Фільтр LDAP для визначення прав доступу"
 #: src/config/SSSDConfig.py:201
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
+"Атрибути які слід використовувати для визначення чинності облікового запису"
 
 #: src/config/SSSDConfig.py:202
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
+"Правила, які має бути використано для визначення достатності прав доступу"
 
 #: src/config/SSSDConfig.py:205
 msgid "URI of an LDAP server where password changes are allowed"
-msgstr ""
+msgstr "Адреса на сервері LDAP, для якої можливі зміни паролів"
 
 #: src/config/SSSDConfig.py:206
 msgid "DNS service name for LDAP password change server"
-msgstr ""
+msgstr "Назва у службі DNS сервера зміни паролів LDAP"
 
 #: src/config/SSSDConfig.py:209
 msgid "Comma separated list of allowed users"
