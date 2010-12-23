@@ -82,19 +82,6 @@ update-po:
 	cd $(srcdir) && \
 	$(PO4A) $(PO4A_BUILD_OPTS) --force $(PO4A_CONFIG)
 
-# Generate translated manual pages
-translate: man.stamp
-	if [ -z $$recursion ]; then \
-		for lang in $(LINGUAS); do \
-			if [ -d $$lang ]; then \
-				sources=$$(ls $$lang/*.xml); \
-				manpages=$$(echo $$sources | $(SED) 's/\.xml//'); \
-				$(MAKE) recursion=1 man_MANS="$$manpages"; \
-			fi \
-		done \
-	fi
-
-
 dist-hook: man.stamp
 	if [ -f man.stamp ]; then \
 		cp man.stamp $(distdir); \
@@ -113,11 +100,6 @@ dist-hook: man.stamp
 	fi
 
 
-clean-local: clean-local-@USE_NLS@
-distclean-local: clean-local-@USE_NLS@
-mostlyclean-local: clean-local-@USE_NLS@
-maintainer-clean-local: clean-local-@USE_NLS@
-
 clean-local-no:
 clean-local-yes:
 	for lang in $(LINGUAS); do \
@@ -127,6 +109,37 @@ clean-local-yes:
 	done
 	rm -f $(man_MANS)
 	rm -f man.stamp
+
+else
+
+man.stamp: $(XML_DOC)
+	touch $@
+
+clean-local-no:
+clean-local-yes:
+	rm -f $(man_MANS)
+	rm -f man.stamp
+
+endif
+
+clean-local: clean-local-@USE_NLS@
+distclean-local: clean-local-@USE_NLS@
+mostlyclean-local: clean-local-@USE_NLS@
+maintainer-clean-local: clean-local-@USE_NLS@
+
+# Generate translated manual pages
+all-local: all-local-@USE_NLS@
+all-local-no:
+all-local-yes: man.stamp
+	if [ -z $$recursion ]; then \
+		for lang in $(LINGUAS); do \
+			if [ -d $$lang ]; then \
+				sources=$$(ls $$lang/*.xml); \
+				manpages=$$(echo $$sources | $(SED) 's/\.xml//'); \
+				$(MAKE) recursion=1 man_MANS="$$manpages"; \
+			fi \
+		done \
+	fi
 
 install-data-local: install-data-local-@USE_NLS@
 install-data-local-no:
@@ -153,8 +166,3 @@ uninstall-local-yes:
 				man_MANS="$$manpages"; \
 		fi \
 	done
-
-else
-translate:
-	@echo No po4a, skipping translations
-endif

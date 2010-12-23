@@ -119,7 +119,6 @@ use with ldap_default_authtok_type = obfuscated_password.
     --disable-rpath
 
 make %{?_smp_mflags}
-make translated-manpages
 
 %check
 export CK_TIMEOUT_MULTIPLIER=10

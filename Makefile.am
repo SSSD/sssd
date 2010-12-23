@@ -964,9 +964,6 @@ update-po:
 	$(MAKE) -C src/man update-po
 	$(MAKE) -C po update-po
 
-translated-manpages:
-	$(MAKE) -C src/man translate
-
 #######################
 # Installation Extras #
 #######################
