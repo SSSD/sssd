@@ -1386,7 +1386,8 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
         if (n <= 0 && (cctx->pwent_dom_idx+1 < pctx->num)) {
             cctx->pwent_dom_idx++;
             pdom = &pctx->doms[cctx->pwent_dom_idx];
-            n = pdom->res->count - cctx->pwent_cur;
+            n = pdom->res->count;
+            cctx->pwent_cur = 0;
         }
 
         if (!n) break;
@@ -2564,10 +2565,11 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
         gdom = &gctx->doms[cctx->grent_dom_idx];
 
         n = gdom->res->count - cctx->grent_cur;
-        if (n <= 0 && (cctx->grent_cur+1 < gctx->num)) {
+        if (n <= 0 && (cctx->grent_dom_idx+1 < gctx->num)) {
             cctx->grent_dom_idx++;
             gdom = &gctx->doms[cctx->grent_dom_idx];
-            n = gdom->res->count - cctx->grent_cur;
+            n = gdom->res->count;
+            cctx->grent_cur = 0;
         }
 
         if (!n) break;
