@@ -1342,7 +1342,7 @@ void fo_reset_services(struct fo_ctx *fo_ctx)
             fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
             fo_set_port_status(server, PORT_NEUTRAL);
             if (server->srv_data != NULL) {
-                set_srv_data_status(server->srv_data, SRV_NOT_RESOLVED);
+                set_srv_data_status(server->srv_data, SRV_NEUTRAL);
             }
         }
     }
