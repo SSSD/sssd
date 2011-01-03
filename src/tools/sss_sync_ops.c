@@ -29,8 +29,8 @@
 /* Default settings for user attributes */
 #define DFL_SHELL_VAL      "/bin/bash"
 #define DFL_BASEDIR_VAL    "/home"
-#define DFL_CREATE_HOMEDIR "TRUE"
-#define DFL_REMOVE_HOMEDIR "TRUE"
+#define DFL_CREATE_HOMEDIR true
+#define DFL_REMOVE_HOMEDIR true
 #define DFL_UMASK          077
 #define DFL_SKEL_DIR       "/etc/skel"
 #define DFL_MAIL_DIR       "/var/spool/mail"
