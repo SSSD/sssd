@@ -46,7 +46,7 @@
 enum srv_lookup_status {
     SRV_NEUTRAL,        /* We didn't try this SRV lookup yet */
     SRV_RESOLVED,       /* This SRV lookup is resolved       */
-    SRV_NOT_RESOLVED,   /* Could not resolve this SRV lookup */
+    SRV_RESOLVE_ERROR,   /* Could not resolve this SRV lookup */
     SRV_EXPIRED         /* Need to refresh the SRV query     */
 };
 
@@ -168,7 +168,7 @@ str_srv_data_status(enum srv_lookup_status status)
         return "neutral";
     case SRV_RESOLVED:
         return "resolved";
-    case SRV_NOT_RESOLVED:
+    case SRV_RESOLVE_ERROR:
         return "not resolved";
     case SRV_EXPIRED:
         return "expired";
@@ -273,7 +273,7 @@ get_srv_data_status(struct srv_data *data)
             data->srv_lookup_status = SRV_EXPIRED;
             data->last_status_change.tv_sec = 0;
             break;
-        case SRV_NOT_RESOLVED:
+        case SRV_RESOLVE_ERROR:
             data->srv_lookup_status = SRV_NEUTRAL;
             data->last_status_change.tv_sec = 0;
             break;
@@ -979,7 +979,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         /* we know the DNS domain, just do the lookup */
         resolve_srv_cont(req);
         break;
-    case SRV_NOT_RESOLVED: /* query could not be resolved but don't retry yet */
+    case SRV_RESOLVE_ERROR: /* query could not be resolved but don't retry yet */
         ret = EIO;
         goto done;
     case SRV_RESOLVED:  /* The query is resolved and valid. Return. */
@@ -1122,7 +1122,7 @@ resolve_srv_done(struct tevent_req *subreq)
 
 fail:
     state->out = state->meta;
-    set_srv_data_status(state->meta->srv_data, SRV_NOT_RESOLVED);
+    set_srv_data_status(state->meta->srv_data, SRV_RESOLVE_ERROR);
     tevent_req_error(req, ret);
 }
 
