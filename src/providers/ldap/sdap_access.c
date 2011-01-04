@@ -796,6 +796,12 @@ struct sdap_access_service_ctx {
     int pam_status;
 };
 
+#define AUTHR_SRV_MISSING_MSG "Authorized service attribute missing, " \
+                              "access denied"
+#define AUTHR_SRV_DENY_MSG "Access denied by authorized service attribute"
+#define AUTHR_SRV_NO_MATCH_MSG "Authorized service attribute has " \
+                               "no matching rule, access denied"
+
 static struct tevent_req *sdap_access_service_send(
         TALLOC_CTX *mem_ctx,
         struct tevent_context *ev,
@@ -820,6 +826,14 @@ static struct tevent_req *sdap_access_service_send(
     el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_SERVICE);
     if (!el || el->num_values == 0) {
         DEBUG(1, ("Missing authorized services. Access denied\n"));
+
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(AUTHR_SRV_MISSING_MSG),
+                               (const uint8_t *) AUTHR_SRV_MISSING_MSG);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
+
         ret = EOK;
         goto done;
     }
@@ -831,8 +845,17 @@ static struct tevent_req *sdap_access_service_send(
             /* This service is explicitly denied */
             state->pam_status = PAM_PERM_DENIED;
             DEBUG(4, ("Access denied by [%s]\n", service));
+
+            ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                                   sizeof(AUTHR_SRV_DENY_MSG),
+                                   (const uint8_t *) AUTHR_SRV_DENY_MSG);
+            if (ret != EOK) {
+                DEBUG(1, ("pam_add_response failed.\n"));
+            }
+
             /* A denial trumps all. Break here */
-            break;
+            ret = EOK;
+            goto done;
 
         } else if (strcasecmp(pd->service, service) == 0) {
             /* This service is explicitly allowed */
@@ -853,6 +876,13 @@ static struct tevent_req *sdap_access_service_send(
 
     if (state->pam_status != PAM_SUCCESS) {
         DEBUG(4, ("No matching service rule found\n"));
+    }
+
+    ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                           sizeof(AUTHR_SRV_NO_MATCH_MSG),
+                           (const uint8_t *) AUTHR_SRV_NO_MATCH_MSG);
+    if (ret != EOK) {
+        DEBUG(1, ("pam_add_response failed.\n"));
     }
 
     ret = EOK;
