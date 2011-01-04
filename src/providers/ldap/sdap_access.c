@@ -70,7 +70,7 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_ctx *be_ctx,
                                              struct sdap_access_ctx *access_ctx,
-                                             const char *username,
+                                             struct pam_data *pd,
                                              struct ldb_message *user_entry);
 static errno_t sdap_access_service_recv(struct tevent_req *req,
                                         int *pam_status);
@@ -237,7 +237,7 @@ static errno_t select_next_rule(struct tevent_req *req)
         case LDAP_ACCESS_EXPIRE:
             subreq = sdap_account_expired_send(state, state->ev, state->be_ctx,
                                                state->access_ctx,
-                                               state->pd->user,
+                                               state->pd,
                                                state->user_entry);
             if (subreq == NULL) {
                 DEBUG(1, ("sdap_account_expired_send failed.\n"));
@@ -297,8 +297,9 @@ static void next_access_rule(struct tevent_req *req)
     return;
 }
 
+#define SHADOW_EXPIRE_MSG "Account expired according to shadow attributes"
 
-static errno_t sdap_account_expired_shadow(const char *username,
+static errno_t sdap_account_expired_shadow(struct pam_data *pd,
                                            struct ldb_message *user_entry,
                                            int *pam_status)
 {
@@ -307,7 +308,7 @@ static errno_t sdap_account_expired_shadow(const char *username,
     long sp_expire;
     long today;
 
-    DEBUG(6, ("Performing access shadow check for user [%s]\n", username));
+    DEBUG(6, ("Performing access shadow check for user [%s]\n", pd->user));
 
     val = ldb_msg_find_attr_as_string(user_entry, SYSDB_SHADOWPW_EXPIRE, NULL);
     if (val == NULL) {
@@ -325,6 +326,13 @@ static errno_t sdap_account_expired_shadow(const char *username,
     today = (long) (time(NULL) / (60 * 60 * 24));
     if (sp_expire > 0 && today > sp_expire) {
         *pam_status = PAM_ACCT_EXPIRED;
+
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(SHADOW_EXPIRE_MSG),
+                               (const uint8_t *) SHADOW_EXPIRE_MSG);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
     } else {
         *pam_status = PAM_SUCCESS;
     }
@@ -340,7 +348,7 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_ctx *be_ctx,
                                              struct sdap_access_ctx *access_ctx,
-                                             const char *username,
+                                             struct pam_data *pd,
                                              struct ldb_message *user_entry)
 {
     struct tevent_req *req;
@@ -365,7 +373,7 @@ static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
         goto done;
     } else {
         if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_SHADOW) == 0) {
-            ret = sdap_account_expired_shadow(username, user_entry,
+            ret = sdap_account_expired_shadow(pd, user_entry,
                                               &state->pam_status);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_shadow failed.\n"));
