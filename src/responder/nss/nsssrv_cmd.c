@@ -981,8 +981,6 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     struct setent_ctx *state;
     struct sss_domain_info *dom;
     struct setent_step_ctx *step_ctx;
-    bool enum_cached = false;
-    time_t now = time(NULL);
 
     DEBUG(4, ("Received setpwent request\n"));
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
@@ -999,13 +997,6 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
 
     state->nctx = nctx;
     state->client = client;
-
-    /* do not query backends if we have a recent enumeration */
-    if (nctx->enum_cache_timeout) {
-        if (nctx->last_user_enum + nctx->enum_cache_timeout > now) {
-            enum_cached = true;
-        }
-    }
 
     state->dctx = talloc_zero(state, struct nss_dom_ctx);
     if (!state->dctx) {
@@ -1080,7 +1071,6 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     step_ctx->nctx = state->nctx;
     step_ctx->getent_ctx = state->getent_ctx;
     step_ctx->rctx = client->rctx;
-    step_ctx->enum_cached = enum_cached;
     step_ctx->returned_to_mainloop = false;
 
     ret = nss_cmd_setpwent_step(step_ctx);
@@ -1134,11 +1124,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
         if (dom != dctx->domain) {
             /* make sure we reset the check_provider flag when we check
              * a new domain */
-            if (step_ctx->enum_cached) {
-                dctx->check_provider = false;
-            } else {
-                dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
-            }
+            dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
         }
 
         /* make sure to update the dctx if we changed domain */
@@ -2250,8 +2236,6 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     struct setent_ctx *state;
     struct sss_domain_info *dom;
     struct setent_step_ctx *step_ctx;
-    bool enum_cached = false;
-    time_t now = time(NULL);
 
     DEBUG(4, ("Received setgrent request\n"));
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
@@ -2268,13 +2252,6 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
 
     state->nctx = nctx;
     state->client = client;
-
-    /* do not query backends if we have a recent enumeration */
-    if (nctx->enum_cache_timeout) {
-        if (nctx->last_user_enum + nctx->enum_cache_timeout > now) {
-            enum_cached = true;
-        }
-    }
 
     state->dctx = talloc_zero(state, struct nss_dom_ctx);
     if (!state->dctx) {
@@ -2349,7 +2326,6 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     step_ctx->nctx = state->nctx;
     step_ctx->getent_ctx = state->getent_ctx;
     step_ctx->rctx = client->rctx;
-    step_ctx->enum_cached = enum_cached;
     step_ctx->returned_to_mainloop = false;
 
     ret = nss_cmd_setgrent_step(step_ctx);
@@ -2403,11 +2379,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         if (dom != dctx->domain) {
             /* make sure we reset the check_provider flag when we check
              * a new domain */
-            if (step_ctx->enum_cached) {
-                dctx->check_provider = false;
-            } else {
-                dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
-            }
+            dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
         }
 
         /* make sure to update the dctx if we changed domain */

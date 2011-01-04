@@ -49,8 +49,6 @@ struct nss_ctx {
     int cache_refresh_percent;
 
     int enum_cache_timeout;
-    time_t last_user_enum;
-    time_t last_group_enum;
 
     struct getent_ctx *pctx;
     struct getent_ctx *gctx;
