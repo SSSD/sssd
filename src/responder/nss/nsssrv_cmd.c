@@ -1081,9 +1081,14 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     step_ctx->getent_ctx = state->getent_ctx;
     step_ctx->rctx = client->rctx;
     step_ctx->enum_cached = enum_cached;
+    step_ctx->returned_to_mainloop = false;
 
     ret = nss_cmd_setpwent_step(step_ctx);
-    if (ret != EOK) goto error;
+    if (ret != EOK && ret != EAGAIN) goto error;
+
+    if (ret == EOK) {
+        tevent_req_post(req, client->rctx->ev);
+    }
 
     return req;
 
@@ -1099,6 +1104,11 @@ static void setpwent_result_timeout(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval current_time,
                                     void *pvt);
+
+/* nss_cmd_setpwent_step returns
+ *   EOK if everything is done and the request needs to be posted explicitly
+ *   EAGAIN if the caller can safely return to the main loop
+ */
 static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
 {
     errno_t ret;
@@ -1145,6 +1155,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
+            step_ctx->returned_to_mainloop = true;
             /* Only do this once per provider */
             dctx->check_provider = false;
             timeout = SSS_CLI_SOCKET_TIMEOUT;
@@ -1154,7 +1165,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
                                        timeout, dom->name, true,
                                        SSS_DP_USER, NULL, 0);
             if (ret == EOK) {
-                return ret;
+                return EAGAIN;
             } else {
                 DEBUG(2, ("Enum Cache refresh for domain [%s] failed."
                           " Trying to return what we have in cache!\n",
@@ -1218,7 +1229,12 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
         nctx->pctx->reqs = nctx->pctx->reqs->next;
         talloc_free(req);
     }
-    return EOK;
+
+    if (step_ctx->returned_to_mainloop) {
+        return EAGAIN;
+    } else {
+        return EOK;
+    }
 }
 
 static void setpwent_result_timeout(struct tevent_context *ev,
@@ -1253,7 +1269,7 @@ static void nss_cmd_setpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = nss_cmd_setpwent_step(step_ctx);
-    if (ret) {
+    if (ret != EOK && ret != EAGAIN) {
         /* Notify any waiting processes of failure */
         while(step_ctx->nctx->pctx->reqs) {
             tevent_req_error(pctx->reqs->req, ret);
@@ -2334,9 +2350,14 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     step_ctx->getent_ctx = state->getent_ctx;
     step_ctx->rctx = client->rctx;
     step_ctx->enum_cached = enum_cached;
+    step_ctx->returned_to_mainloop = false;
 
     ret = nss_cmd_setgrent_step(step_ctx);
-    if (ret != EOK) goto error;
+    if (ret != EOK && ret != EAGAIN) goto error;
+
+    if (ret == EOK) {
+        tevent_req_post(req, client->rctx->ev);
+    }
 
     return req;
 
@@ -2352,6 +2373,11 @@ static void setgrent_result_timeout(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval current_time,
                                     void *pvt);
+
+/* nss_cmd_setgrent_step returns
+ *   EOK if everything is done and the request needs to be posted explicitly
+ *   EAGAIN if the caller can safely return to the main loop
+ */
 static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
 {
     errno_t ret;
@@ -2398,6 +2424,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
+            step_ctx->returned_to_mainloop = true;
             /* Only do this once per provider */
             dctx->check_provider = false;
             timeout = SSS_CLI_SOCKET_TIMEOUT;
@@ -2407,7 +2434,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
                                        timeout, dom->name, true,
                                        SSS_DP_GROUP, NULL, 0);
             if (ret == EOK) {
-                return ret;
+                return EAGAIN;
             } else {
                 DEBUG(2, ("Enum Cache refresh for domain [%s] failed."
                           " Trying to return what we have in cache!\n",
@@ -2471,7 +2498,13 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         nctx->gctx->reqs = nctx->gctx->reqs->next;
         talloc_free(req);
     }
-    return EOK;
+
+    if (step_ctx->returned_to_mainloop) {
+        return EAGAIN;
+    } else {
+        return EOK;
+    }
+
 }
 
 static void setgrent_result_timeout(struct tevent_context *ev,
@@ -2506,7 +2539,7 @@ static void nss_cmd_setgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = nss_cmd_setgrent_step(step_ctx);
-    if (ret) {
+    if (ret != EOK && ret != EAGAIN) {
         /* Notify any waiting processes of failure */
         while(step_ctx->nctx->gctx->reqs) {
             tevent_req_error(gctx->reqs->req, ret);

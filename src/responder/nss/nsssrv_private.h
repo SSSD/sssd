@@ -87,6 +87,8 @@ struct setent_step_ctx {
     bool enum_cached;
     bool check_next;
 
+    bool returned_to_mainloop;
+
     /* Netgroup-specific */
     char *name;
 };
