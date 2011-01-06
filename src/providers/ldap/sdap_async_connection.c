@@ -24,7 +24,6 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async_private.h"
-#include "util/crypto/sss_crypto.h"
 
 #define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
 
@@ -970,25 +969,12 @@ static int sdap_auth_get_authtok(TALLOC_CTX *mem_ctx,
                                  struct dp_opt_blob authtok,
                                  struct berval *pw)
 {
-    char *cleartext;
-    int ret;
-
     if (!authtok_type) return EOK;
     if (!pw) return EINVAL;
 
     if (strcasecmp(authtok_type,"password") == 0) {
         pw->bv_len = authtok.length;
         pw->bv_val = (char *) authtok.data;
-    } else if (strcasecmp(authtok_type,"obfuscated_password") == 0) {
-        ret = sss_password_decrypt(mem_ctx, (char *) authtok.data, &cleartext);
-        if (ret != EOK) {
-            DEBUG(1, ("Cannot convert the obfuscated "
-                      "password back to cleartext\n"));
-            return ret;
-        }
-
-        pw->bv_len = strlen(cleartext);
-        pw->bv_val = (char *) cleartext;
     } else {
         DEBUG(1, ("Authentication token type [%s] is not supported\n",
                   authtok_type));

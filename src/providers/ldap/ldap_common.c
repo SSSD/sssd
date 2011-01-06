@@ -28,6 +28,7 @@
 #include "providers/krb5/krb5_common.h"
 
 #include "util/sss_krb5.h"
+#include "util/crypto/sss_crypto.h"
 
 /* a fd the child process would log into */
 int ldap_child_debug_fd = -1;
@@ -203,6 +204,9 @@ int ldap_get_options(TALLOC_CTX *memctx,
     const char *ldap_deref;
     int ldap_deref_val;
     int o;
+    const char *authtok_type;
+    struct dp_opt_blob authtok_blob;
+    char *cleartext;
     const int search_base_options[] = { SDAP_USER_SEARCH_BASE,
                                         SDAP_GROUP_SEARCH_BASE,
                                         SDAP_NETGROUP_SEARCH_BASE,
@@ -389,6 +393,43 @@ int ldap_get_options(TALLOC_CTX *memctx,
     if (ret != EOK) {
         DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
         goto done;
+    }
+
+    authtok_type = dp_opt_get_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE);
+    if (authtok_type != NULL &&
+        strcasecmp(authtok_type,"obfuscated_password") == 0) {
+        DEBUG(9, ("Found obfuscated password, "
+                  "trying to convert to cleartext.\n"));
+
+        authtok_blob = dp_opt_get_blob(opts->basic, SDAP_DEFAULT_AUTHTOK);
+        if (authtok_blob.data == NULL || authtok_blob.length == 0) {
+            DEBUG(1, ("Missing obfuscated password string.\n"));
+            return EINVAL;
+        }
+
+        ret = sss_password_decrypt(memctx, (char *) authtok_blob.data,
+                                   &cleartext);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot convert the obfuscated "
+                      "password back to cleartext\n"));
+            return ret;
+        }
+
+        authtok_blob.data = (uint8_t *) cleartext;
+        authtok_blob.length = strlen(cleartext);
+        ret = dp_opt_set_blob(opts->basic, SDAP_DEFAULT_AUTHTOK, authtok_blob);
+        talloc_free(cleartext);
+        if (ret != EOK) {
+            DEBUG(1, ("dp_opt_set_string failed.\n"));
+            return ret;
+        }
+
+        ret = dp_opt_set_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE,
+                                "password");
+        if (ret != EOK) {
+            DEBUG(1, ("dp_opt_set_string failed.\n"));
+            return ret;
+        }
     }
 
     ret = EOK;
