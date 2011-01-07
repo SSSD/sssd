@@ -265,7 +265,11 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_entry(tmpctx, ctx, basedn, LDB_SCOPE_ONELEVEL, filter,
+    /* Use SUBTREE scope here, not ONELEVEL
+     * There is a bug in LDB that makes ONELEVEL searches extremely
+     * slow (it ignores indexing)
+     */
+    ret = sysdb_search_entry(tmpctx, ctx, basedn, LDB_SCOPE_SUBTREE, filter,
                              attrs?attrs:def_attrs, &msgs_count, &msgs);
     if (ret) {
         goto done;
@@ -359,7 +363,11 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_entry(tmpctx, ctx, basedn, LDB_SCOPE_ONELEVEL, filter,
+    /* Use SUBTREE scope here, not ONELEVEL
+     * There is a bug in LDB that makes ONELEVEL searches extremely
+     * slow (it ignores indexing)
+     */
+    ret = sysdb_search_entry(tmpctx, ctx, basedn, LDB_SCOPE_SUBTREE, filter,
                              attrs?attrs:def_attrs, &msgs_count, &msgs);
     if (ret) {
         goto done;
