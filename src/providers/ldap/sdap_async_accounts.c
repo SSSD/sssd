@@ -959,6 +959,8 @@ struct sdap_process_group_state {
     size_t queue_idx;
     size_t count;
     size_t check_count;
+
+    bool enumeration;
 };
 
 #define GROUPMEMBER_REQ_PARALLEL 50
@@ -976,7 +978,8 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
                                            struct sysdb_ctx *sysdb,
                                            struct sdap_options *opts,
                                            struct sdap_handle *sh,
-                                           struct sysdb_attrs *group)
+                                           struct sysdb_attrs *group,
+                                           bool enumeration)
 {
     struct ldb_message_element *el;
     struct sdap_process_group_state *grp_state;
@@ -1016,6 +1019,7 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
     grp_state->queue_len = 0;
     grp_state->filter = filter;
     grp_state->attrs = attrs;
+    grp_state->enumeration = enumeration;
 
     ret = sysdb_attrs_get_el(group,
                              opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
@@ -1112,15 +1116,23 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
                 strlen(strdn);
             state->sysdb_dns->num_values++;
         } else if (ret == ENOENT) {
-            /* The user is not in sysdb, need to add it */
-            DEBUG(7, ("Searching LDAP for missing user entry\n"));
-            ret = sdap_process_missing_member_2307bis(req,
-                                                      member_dn,
-                                                      memberel->num_values);
-            if (ret != EOK) {
-                DEBUG(1, ("Error processing missing member #%d (%s):\n",
-                          i, member_dn));
-                return ret;
+            if (!state->enumeration) {
+                /* The user is not in sysdb, need to add it
+                 * We don't need to do this if we're in an enumeration,
+                 * because all real members should all be populated
+                 * already by the first pass of the enumeration.
+                 * Also, we don't want to be holding the sysdb
+                 * transaction while we're performing LDAP lookups.
+                 */
+                DEBUG(7, ("Searching LDAP for missing user entry\n"));
+                ret = sdap_process_missing_member_2307bis(req,
+                                                          member_dn,
+                                                          memberel->num_values);
+                if (ret != EOK) {
+                    DEBUG(1, ("Error processing missing member #%d (%s):\n",
+                              i, member_dn));
+                    return ret;
+                }
             }
         } else {
             DEBUG(1, ("Error checking cache for member #%d (%s):\n",
@@ -1540,6 +1552,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                         tevent_req_data(req, struct sdap_get_groups_state);
     int ret;
     int i;
+    bool enumeration = false;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &state->count, &state->groups);
@@ -1600,15 +1613,24 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     default:
         /* Enumeration */
+        enumeration = true;
         break;
     }
 
     state->check_count = state->count;
 
+    ret = sysdb_transaction_start(state->sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to start transaction\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     for (i = 0; i < state->count; i++) {
         subreq = sdap_process_group_send(state, state->ev, state->dom,
                                          state->sysdb, state->opts,
-                                         state->sh, state->groups[i]);
+                                         state->sh, state->groups[i],
+                                         enumeration);
 
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
@@ -1626,10 +1648,15 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
                         tevent_req_data(req, struct sdap_get_groups_state);
 
     int ret;
+    errno_t sysret;
 
     ret = sdap_process_group_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
+        sysret = sysdb_transaction_cancel(state->sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Could not cancel sysdb transaction\n"));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -1650,7 +1677,13 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
             return;
         }
         DEBUG(9, ("Saving %d Groups - Done\n", state->count));
-        tevent_req_done(req);
+        sysret = sysdb_transaction_commit(state->sysdb);
+        if (sysret != EOK) {
+            DEBUG(0, ("Couldn't commit transaction\n"));
+            tevent_req_error(req, sysret);
+        } else {
+            tevent_req_done(req);
+        }
     }
 }
 
