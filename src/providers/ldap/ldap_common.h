@@ -142,4 +142,17 @@ int setup_child(struct sdap_id_ctx *ctx);
 
 
 errno_t string_to_shadowpw_days(const char *s, long *d);
+
+errno_t get_sysdb_attr_name(TALLOC_CTX *mem_ctx,
+                            struct sdap_attr_map *map,
+                            size_t map_size,
+                            const char *ldap_name,
+                            char **sysdb_name);
+
+errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
+                           struct sdap_attr_map *map,
+                           size_t map_size,
+                           const char **expected_attrs,
+                           struct sysdb_attrs *recvd_attrs,
+                           char ***missing_attrs);
 #endif /* _LDAP_COMMON_H_ */

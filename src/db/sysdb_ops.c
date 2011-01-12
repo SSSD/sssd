@@ -1362,12 +1362,15 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
                      const char *homedir,
                      const char *shell,
                      struct sysdb_attrs *attrs,
+                     char **remove_attrs,
                      uint64_t cache_timeout)
 {
     TALLOC_CTX *tmpctx;
     struct ldb_message *msg;
     time_t now;
     int ret;
+    errno_t sret = EOK;
+    bool in_transaction = false;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -1378,6 +1381,11 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
         if (ret) goto done;
     }
+
+    ret = sysdb_transaction_start(ctx);
+    if (ret != EOK) goto done;
+
+    in_transaction = true;
 
     ret = sysdb_search_user_by_name(tmpctx, ctx,
                                     domain, name, NULL, &msg);
@@ -1443,8 +1451,33 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_set_user_attr(tmpctx, ctx,
                               domain, name, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) goto done;
+
+    if (remove_attrs) {
+        ret = sysdb_remove_attrs(ctx, domain, name,
+                                    SYSDB_MEMBER_USER,
+                                    remove_attrs);
+        if (ret != EOK) {
+            DEBUG(4, ("Could not remove missing attributes\n"));
+        }
+    }
 
 done:
+    if (in_transaction) {
+        if (ret == EOK) {
+            sret = sysdb_transaction_commit(ctx);
+            if (sret != EOK) {
+                DEBUG(2, ("Could not commit transaction\n"));
+            }
+        }
+
+        if (ret != EOK || sret != EOK){
+            sret = sysdb_transaction_cancel(ctx);
+            if (sret != EOK) {
+                DEBUG(2, ("Could not cancel transaction\n"));
+            }
+        }
+    }
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
@@ -2763,6 +2796,91 @@ errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
 done:
     if (ret) {
         DEBUG(3, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_free(msg);
+    return ret;
+}
+
+errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
+                           const char *name,
+                           enum sysdb_member_type type,
+                           char **remove_attrs)
+{
+    errno_t ret;
+    errno_t sret = EOK;
+    bool in_transaction = false;
+    struct ldb_message *msg;
+    int lret;
+    size_t i;
+
+    msg = ldb_msg_new(NULL);
+    if (!msg) return ENOMEM;
+
+    if (type == SYSDB_MEMBER_USER) {
+        msg->dn = sysdb_user_dn(sysdb, msg, domain->name, name);
+        if (!msg->dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else if (type == SYSDB_MEMBER_GROUP) {
+        msg->dn = sysdb_group_dn(sysdb, msg, domain->name, name);
+        if (!msg->dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) goto done;
+
+    in_transaction = true;
+
+    for (i = 0; remove_attrs[i]; i++) {
+        DEBUG(8, ("Removing attribute [%s] from [%s]\n",
+                  remove_attrs[i], name));
+        lret = ldb_msg_add_empty(msg, remove_attrs[i],
+                                 LDB_FLAG_MOD_DELETE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
+        /* We need to do individual modifies so that we can
+         * skip unknown attributes. Otherwise, any nonexistent
+         * attribute in the sysdb will cause other removals to
+         * fail.
+         */
+        lret = ldb_modify(sysdb->ldb, msg);
+        if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
+        /* Remove this attribute and move on to the next one */
+        ldb_msg_remove_attr(msg, remove_attrs[i]);
+    }
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        if (ret == EOK) {
+            sret = sysdb_transaction_commit(sysdb);
+            if (sret != EOK) {
+                DEBUG(2, ("Could not commit transaction\n"));
+            }
+        }
+
+        if (ret != EOK || sret != EOK){
+            sret = sysdb_transaction_cancel(sysdb);
+            if (sret != EOK) {
+                DEBUG(2, ("Could not cancel transaction\n"));
+            }
+        }
     }
     talloc_free(msg);
     return ret;

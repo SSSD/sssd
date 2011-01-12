@@ -105,7 +105,8 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
                                pwd->pw_gecos,
                                pwd->pw_dir,
                                pwd->pw_shell,
-                               NULL, ctx->entry_cache_timeout);
+                               NULL, NULL,
+                               ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -219,7 +220,8 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
                                pwd->pw_gecos,
                                pwd->pw_dir,
                                pwd->pw_shell,
-                               NULL, ctx->entry_cache_timeout);
+                               NULL, NULL,
+                               ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -358,7 +360,8 @@ again:
                                pwd->pw_gecos,
                                pwd->pw_dir,
                                pwd->pw_shell,
-                               NULL, ctx->entry_cache_timeout);
+                               NULL, NULL,
+                               ctx->entry_cache_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -933,7 +936,8 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
                                pwd->pw_gecos,
                                pwd->pw_dir,
                                pwd->pw_shell,
-                               NULL, ctx->entry_cache_timeout);
+                               NULL, NULL,
+                               ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }

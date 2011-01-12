@@ -521,6 +521,7 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
                      const char *homedir,
                      const char *shell,
                      struct sysdb_attrs *attrs,
+                     char **remove_attrs,
                      uint64_t cache_timeout);
 
 int sysdb_store_group(TALLOC_CTX *mem_ctx,
@@ -711,5 +712,11 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *ctx,
 errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
                              struct sss_domain_info *dom,
                              bool enumerated);
+
+errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
+                           const char *name,
+                           enum sysdb_member_type type,
+                           char **remove_attrs);
 
 #endif /* __SYS_DB_H__ */

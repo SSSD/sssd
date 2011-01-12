@@ -210,7 +210,7 @@ static int test_store_user(struct test_data *data)
                            data->ctx->domain, data->username, "x",
                            data->uid, 0, gecos, homedir,
                            data->shell ? data->shell : "/bin/bash",
-                           NULL, -1);
+                           NULL, NULL, -1);
     return ret;
 }
 

@@ -872,3 +872,120 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
     return EOK;
 }
 
+errno_t get_sysdb_attr_name(TALLOC_CTX *mem_ctx,
+                            struct sdap_attr_map *map,
+                            size_t map_size,
+                            const char *ldap_name,
+                            char **sysdb_name)
+{
+    size_t i;
+
+    for (i = 0; i < map_size; i++) {
+        /* Skip map entries with no name (may depend on
+         * schema selected)
+         */
+        if (!map[i].name) continue;
+
+        /* Check if it is a mapped attribute */
+        if(strcasecmp(ldap_name, map[i].name) == 0) break;
+    }
+
+    if (i < map_size) {
+        /* We found a mapped name, return that */
+        *sysdb_name = talloc_strdup(mem_ctx, map[i].sys_name);
+    } else {
+        /* Not mapped, use the same name */
+        *sysdb_name = talloc_strdup(mem_ctx, ldap_name);
+    }
+
+    if (!*sysdb_name) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
+                           struct sdap_attr_map *map,
+                           size_t map_size,
+                           const char **expected_attrs,
+                           struct sysdb_attrs *recvd_attrs,
+                           char ***missing_attrs)
+{
+    errno_t ret;
+    size_t attr_count = 0;
+    size_t i, j, k;
+    char **missing = NULL;
+    char *sysdb_name;
+    TALLOC_CTX *tmp_ctx;
+
+    if (!expected_attrs || !recvd_attrs || !missing_attrs) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* Count the expected attrs */
+    while(expected_attrs[attr_count]) attr_count++;
+
+    /* Allocate the maximum possible values for missing_attrs, to
+     * be on the safe side
+     */
+    missing = talloc_array(tmp_ctx, char *, attr_count);
+    if (!missing) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    k = 0;
+    /* Check for each expected attribute */
+    for (i = 0; i < attr_count; i++) {
+        ret = get_sysdb_attr_name(tmp_ctx, map, map_size,
+                                  expected_attrs[i],
+                                  &sysdb_name);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        /* objectClass is a special-case and we need to
+         * check for it explicitly.
+         */
+        if (strcasecmp(sysdb_name, "objectClass") == 0) {
+            talloc_free(sysdb_name);
+            continue;
+        }
+
+        for (j = 0; j < recvd_attrs->num; j++) {
+            /* Check whether this expected attribute appeared in the
+             * received attributes and had a non-zero number of
+             * values.
+             */
+            if ((strcasecmp(recvd_attrs->a[j].name, sysdb_name) == 0) &&
+                (recvd_attrs->a[j].num_values > 0)) {
+                break;
+            }
+        }
+
+        if (j < recvd_attrs->num) {
+            /* Attribute was found, therefore not missing */
+            talloc_free(sysdb_name);
+        } else {
+            /* Attribute could not be found. Add to the missing list */
+            missing[k] = talloc_steal(missing, sysdb_name);
+            k++;
+        }
+    }
+
+    /* Terminate the list */
+    missing[k] = NULL;
+
+    ret = EOK;
+    *missing_attrs = talloc_steal(mem_ctx, missing);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

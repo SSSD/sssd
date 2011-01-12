@@ -34,6 +34,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
                           struct sdap_options *opts,
                           struct sss_domain_info *dom,
                           struct sysdb_attrs *attrs,
+                          const char **ldap_attrs,
                           bool is_initgr,
                           char **_usn_value)
 {
@@ -53,6 +54,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     int cache_timeout;
     char *usn_value = NULL;
     size_t c;
+    char **missing = NULL;
 
     DEBUG(9, ("Save user\n"));
 
@@ -266,12 +268,28 @@ static int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
+    /* Make sure that any attributes we requested from LDAP that we
+     * did not receive are also removed from the sysdb
+     */
+    ret = list_missing_attrs(NULL, opts->user_map, SDAP_OPTS_USER,
+                             ldap_attrs, attrs, &missing);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* Remove missing attributes */
+    if (missing && !missing[0]) {
+        /* Nothing to remove */
+        talloc_zfree(missing);
+    }
+
     DEBUG(6, ("Storing info for user %s\n", name));
 
     ret = sysdb_store_user(memctx, ctx, dom,
                            name, pwd, uid, gid, gecos, homedir, shell,
-                           user_attrs, cache_timeout);
+                           user_attrs, missing, cache_timeout);
     if (ret) goto fail;
+    talloc_zfree(missing);
 
     if (_usn_value) {
         *_usn_value = usn_value;
@@ -281,6 +299,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
 
 fail:
     DEBUG(2, ("Failed to save user %s\n", name));
+    talloc_free(missing);
     return ret;
 }
 
@@ -289,6 +308,7 @@ fail:
 
 static int sdap_save_users(TALLOC_CTX *memctx,
                            struct sysdb_ctx *sysdb,
+                           const char **attrs,
                            struct sss_domain_info *dom,
                            struct sdap_options *opts,
                            struct sysdb_attrs **users,
@@ -320,7 +340,8 @@ static int sdap_save_users(TALLOC_CTX *memctx,
         usn_value = NULL;
 
         ret = sdap_save_user(tmpctx, sysdb, opts, dom,
-                             users[i], false, &usn_value);
+                             users[i], attrs, false,
+                             &usn_value);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -446,6 +467,7 @@ static void sdap_get_users_process(struct tevent_req *subreq)
     }
 
     ret = sdap_save_users(state, state->sysdb,
+                          state->attrs,
                           state->dom, state->opts,
                           state->users, state->count,
                           &state->higher_usn);
@@ -1449,7 +1471,8 @@ next:
     }
 
     if (state->check_count == 0) {
-        ret = sdap_save_users(state, state->sysdb, state->dom, state->opts,
+        ret = sdap_save_users(state, state->sysdb, state->attrs,
+                              state->dom, state->opts,
                               state->new_members, state->count, NULL);
         if (ret) {
             DEBUG(2, ("Failed to store users.\n"));
@@ -1770,7 +1793,8 @@ static void sdap_nested_done(struct tevent_req *subreq)
     /* Save all of the users first so that they are in
      * place for the groups to add them.
      */
-    ret = sdap_save_users(state, state->sysdb, state->dom, state->opts,
+    ret = sdap_save_users(state, state->sysdb, state->attrs,
+                          state->dom, state->opts,
                           users, count, &state->higher_usn);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -2320,6 +2344,7 @@ struct sdap_get_initgr_state {
     struct sdap_id_ctx *id_ctx;
     const char *name;
     const char **grp_attrs;
+    const char **ldap_attrs;
 
     struct sysdb_attrs *orig_user;
 };
@@ -2338,7 +2363,6 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     struct sdap_get_initgr_state *state;
     const char *base_dn;
     char *filter;
-    const char **attrs;
     int ret;
 
     DEBUG(9, ("Retrieving info for initgroups call\n"));
@@ -2373,7 +2397,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     }
 
     ret = build_attrs_from_map(state, state->opts->user_map,
-                               SDAP_OPTS_USER, &attrs);
+                               SDAP_OPTS_USER, &state->ldap_attrs);
     if (ret) {
         talloc_zfree(req);
         return NULL;
@@ -2382,7 +2406,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     subreq = sdap_get_generic_send(state, state->ev,
                                    state->opts, state->sh,
                                    base_dn, LDAP_SCOPE_SUBTREE,
-                                   filter, attrs,
+                                   filter, state->ldap_attrs,
                                    state->opts->user_map, SDAP_OPTS_USER,
                                    dp_opt_get_int(state->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT));
@@ -2443,7 +2467,8 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     ret = sdap_save_user(state, state->sysdb,
                          state->opts, state->dom,
-                         state->orig_user, true, NULL);
+                         state->orig_user, state->ldap_attrs,
+                         true, NULL);
     if (ret) {
         sysdb_transaction_cancel(state->sysdb);
         tevent_req_error(req, ret);
