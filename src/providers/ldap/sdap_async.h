@@ -44,7 +44,8 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct sdap_options *opts,
                                        struct sdap_handle *sh,
                                        const char **attrs,
-                                       const char *wildcard);
+                                       const char *wildcard,
+                                       int timeout);
 int sdap_get_users_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx, char **timestamp);
 
@@ -55,7 +56,8 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct sdap_options *opts,
                                        struct sdap_handle *sh,
                                        const char **attrs,
-                                       const char *wildcard);
+                                       const char *wildcard,
+                                       int timeout);
 int sdap_get_groups_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, char **timestamp);
 
@@ -66,7 +68,8 @@ struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
                                            struct sdap_options *opts,
                                            struct sdap_handle *sh,
                                            const char **attrs,
-                                           const char *wildcard);
+                                           const char *wildcard,
+                                           int timeout);
 int sdap_get_netgroups_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx, char **timestamp,
                             size_t *reply_count,
@@ -142,7 +145,8 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          const char *filter,
                                          const char **attrs,
                                          struct sdap_attr_map *map,
-                                         int map_num_attrs);
+                                         int map_num_attrs,
+                                         int timeout);
 int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);

@@ -671,7 +671,9 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_send(state, ev, opts, sh,
                                    "", LDAP_SCOPE_BASE,
-                                   "(objectclass=*)", attrs, NULL, 0);
+                                   "(objectclass=*)", attrs, NULL, 0,
+                                   dp_opt_get_int(state->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT));
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -770,7 +772,8 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          const char *filter,
                                          const char **attrs,
                                          struct sdap_attr_map *map,
-                                         int map_num_attrs)
+                                         int map_num_attrs,
+                                         int timeout)
 {
     struct tevent_req *req = NULL;
     struct sdap_get_generic_state *state = NULL;
@@ -839,9 +842,7 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_generic_done, req,
-                      dp_opt_get_int(state->opts->basic,
-                                     SDAP_SEARCH_TIMEOUT),
+                      sdap_get_generic_done, req, timeout,
                       &state->op);
     if (ret != EOK) {
         DEBUG(1, ("Failed to set up operation!\n"));

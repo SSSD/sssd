@@ -153,7 +153,9 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
 
     subreq = sdap_get_generic_send(state, state->ev, state->sdap_auth_ctx->opts,
                                    state->sh, search_base, LDAP_SCOPE_SUBTREE,
-                                   IPA_CONFIG_FILTER, attrs, NULL, 0);
+                                   IPA_CONFIG_FILTER, attrs, NULL, 0,
+                                   dp_opt_get_int(state->sdap_auth_ctx->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

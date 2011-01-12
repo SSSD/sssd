@@ -535,14 +535,17 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
         goto fail;
     }
     subreq = sdap_get_generic_send(state,
-                                   hbac_ctx_ev(state->hbac_ctx),
-                                   hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
-                                   sdap_handle,
-                                   state->services_search_base,
-                                   LDAP_SCOPE_SUB,
-                                   state->services_filter,
-                                   state->services_attrs,
-                                   NULL, 0);
+                        hbac_ctx_ev(state->hbac_ctx),
+                        hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
+                        sdap_handle,
+                        state->services_search_base,
+                        LDAP_SCOPE_SUB,
+                        state->services_filter,
+                        state->services_attrs,
+                        NULL, 0,
+                        dp_opt_get_int(
+                             hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts->basic,
+                             SDAP_SEARCH_TIMEOUT));
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -830,13 +833,16 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         goto fail;
     }
     subreq = sdap_get_generic_send(state, hbac_ctx_ev(state->hbac_ctx),
-                                   hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
-                                   sdap_handle,
-                                   state->host_search_base,
-                                   LDAP_SCOPE_SUB,
-                                   state->host_filter,
-                                   state->host_attrs,
-                                   NULL, 0);
+                        hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
+                        sdap_handle,
+                        state->host_search_base,
+                        LDAP_SCOPE_SUB,
+                        state->host_filter,
+                        state->host_attrs,
+                        NULL, 0,
+                        dp_opt_get_int(
+                             hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts->basic,
+                             SDAP_SEARCH_TIMEOUT));
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -1148,13 +1154,16 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
         goto fail;
     }
     subreq = sdap_get_generic_send(state, hbac_ctx_ev(state->hbac_ctx),
-                                   hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
-                                   sdap_handle,
-                                   state->hbac_search_base,
-                                   LDAP_SCOPE_SUB,
-                                   state->hbac_filter,
-                                   state->hbac_attrs,
-                                   NULL, 0);
+                        hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
+                        sdap_handle,
+                        state->hbac_search_base,
+                        LDAP_SCOPE_SUB,
+                        state->hbac_filter,
+                        state->hbac_attrs,
+                        NULL, 0,
+                        dp_opt_get_int(
+                             hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts->basic,
+                             SDAP_SEARCH_TIMEOUT));
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));

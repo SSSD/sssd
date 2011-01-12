@@ -38,6 +38,7 @@ struct netgroup_get_state {
     struct sss_domain_info *domain;
 
     const char *name;
+    int timeout;
 
     char *filter;
     const char **attrs;
@@ -79,6 +80,7 @@ struct tevent_req *netgroup_get_send(TALLOC_CTX *memctx,
     state->sysdb = ctx->be->sysdb;
     state->domain = state->ctx->be->domain;
     state->name = name;
+    state->timeout = dp_opt_get_int(ctx->opts->basic, SDAP_SEARCH_TIMEOUT);
 
     ret = sss_filter_sanitize(state, name, &clean_name);
     if (ret != EOK) {
@@ -151,7 +153,8 @@ static void netgroup_get_connect_done(struct tevent_req *subreq)
                                      state->domain, state->sysdb,
                                      state->ctx->opts,
                                      sdap_id_op_handle(state->op),
-                                     state->attrs, state->filter);
+                                     state->attrs, state->filter,
+                                     state->timeout);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
