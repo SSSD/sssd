@@ -140,6 +140,7 @@ option_strings = {
 
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),
+    'ldap_enumeration_search_timeout' : _('Length of time to wait for a enumeration request'),
     'ldap_enumeration_refresh_timeout' : _('Length of time between enumeration updates'),
     'ldap_purge_cache_timeout' : _('Length of time between cache cleanups'),
     'ldap_id_use_start_tls' : _('Require TLS for ID lookups'),

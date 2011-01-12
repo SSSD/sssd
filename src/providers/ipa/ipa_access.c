@@ -545,7 +545,7 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
                         NULL, 0,
                         dp_opt_get_int(
                              hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts->basic,
-                             SDAP_SEARCH_TIMEOUT));
+                             SDAP_ENUM_SEARCH_TIMEOUT));
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -842,7 +842,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
                         NULL, 0,
                         dp_opt_get_int(
                              hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts->basic,
-                             SDAP_SEARCH_TIMEOUT));
+                             SDAP_ENUM_SEARCH_TIMEOUT));
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -1163,7 +1163,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
                         NULL, 0,
                         dp_opt_get_int(
                              hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts->basic,
-                             SDAP_SEARCH_TIMEOUT));
+                             SDAP_ENUM_SEARCH_TIMEOUT));
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));

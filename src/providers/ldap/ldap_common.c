@@ -39,7 +39,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
-    { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_tls_reqcert", DP_OPT_STRING, { "hard" }, NULL_STRING },
@@ -77,7 +77,8 @@ struct dp_option default_basic_opts[] = {
     { "ldap_account_expire_policy", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_access_order", DP_OPT_STRING, { "filter" }, NULL_STRING },
     { "ldap_chpass_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_enumeration_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER }
 };
 
 struct sdap_attr_map generic_attr_map[] = {

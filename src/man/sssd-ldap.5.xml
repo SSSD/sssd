@@ -718,14 +718,32 @@
                     <term>ldap_search_timeout (integer)</term>
                     <listitem>
                         <para>
-                            Specifies the timeout (in seconds) that ldap searches
+                            Specifies the timeout (in seconds) that ldap
+                            searches are allowed to run before they are
+                            cancelled and cached results are returned (and
+                            offline mode is entered)
+                        </para>
+                        <para>
+                            Note: this option is subject to change in future
+                            versions of the SSSD. It will likely be replaced at
+                            some point by a series of timeouts for specific
+                            lookup types.
+                        </para>
+                        <para>
+                            Default: 6
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_enumeration_search_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout (in seconds) that ldap
+                            searches for user and group enumerations
                             are allowed to run before they are cancelled and
                             cached results are returned (and offline mode is
                             entered)
-
-                            Note: this option is subject to change in future versions
-                            of the SSSD. It will likely be replaced at some point by
-                            a series of timeouts for specific lookup types.
                         </para>
                         <para>
                             Default: 60

@@ -191,6 +191,7 @@ enum sdap_basic_opt {
     SDAP_ACCESS_ORDER,
     SDAP_CHPASS_URI,
     SDAP_CHPASS_DNS_SERVICE_NAME,
+    SDAP_ENUM_SEARCH_TIMEOUT,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
