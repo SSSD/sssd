@@ -2275,9 +2275,12 @@ int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
 
     ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb,
                                         domain, name, NULL, &msg);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(6, ("sysdb_search_netgroup_by_name failed: %d (%s)\n",
                    ret, strerror(ret)));
+        goto done;
+    } else if (ret == ENOENT) {
+        DEBUG(6, ("Netgroup does not exist, nothing to delete\n"));
         goto done;
     }
 

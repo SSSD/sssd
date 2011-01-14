@@ -201,14 +201,10 @@ static void netgroup_get_done(struct tevent_req *subreq)
 
     if (ret == ENOENT) {
         ret = sysdb_delete_netgroup(state->sysdb, state->domain, state->name);
-        if (ret) {
+        if (ret != EOK && ret != ENOENT) {
             tevent_req_error(req, ret);
             return;
         }
-
-        state->dp_error = DP_ERR_OK;
-        tevent_req_error(req, ENOENT);
-        return;
     }
 
     state->dp_error = DP_ERR_OK;
