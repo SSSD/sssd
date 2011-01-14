@@ -493,6 +493,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     } else {
         netgr->ready = true;
         netgr->entries = NULL;
+        netgr->lookup_table = step_ctx->nctx->netgroups;
 
         ret = set_netgroup_entry(step_ctx->nctx, step_ctx->name, netgr);
         if (ret != EOK) {
