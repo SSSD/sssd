@@ -129,8 +129,8 @@
                             </para>
                             <para>
                                 PLEASE NOTE: the support for non-unique named
-                                subpatterns is not available on all plattforms
-                                (e.g. RHEL5 and SLES10). Only plattforms with
+                                subpatterns is not available on all platforms
+                                (e.g. RHEL5 and SLES10). Only platforms with
                                 libpcre version 7 or higher can support non-unique
                                 named subpatterns.
                             </para>
@@ -332,7 +332,7 @@
                     <listitem>
                         <para>
                             Exclude certain users from being fetched from the sss
-                            NSS database. This is particulary useful for system
+                            NSS database. This is particularly useful for system
                             accounts. This option can also be set per-domain or
                             include fully-qualified names to filter only users from
                             the particular domain.
@@ -864,7 +864,7 @@
                     <listitem>
                         <para>
                             Indicate if a home directory should be created by default for new users.
-                            Can be overriden on command line.
+                            Can be overridden on command line.
                         </para>
                         <para>
                             Default: TRUE
@@ -876,7 +876,7 @@
                     <listitem>
                         <para>
                             Indicate if a home directory should be removed by default for deleted users.
-                            Can be overriden on command line.
+                            Can be overridden on command line.
                         </para>
                         <para>
                             Default: TRUE

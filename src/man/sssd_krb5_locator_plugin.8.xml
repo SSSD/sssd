@@ -50,7 +50,7 @@
                 <manvolnum>8</manvolnum>
             </citerefentry>
             puts the Realm and the name or IP address of the KDC into the
-            enviroment variables SSSD_KRB5_REALM and SSSD_KRB5_KDC respectively.
+            environment variables SSSD_KRB5_REALM and SSSD_KRB5_KDC respectively.
             When <command>sssd_krb5_locator_plugin</command> is called by the
             kerberos libraries it reads and evaluates these variable and returns
             them to the libraries.
@@ -66,7 +66,7 @@
             Kerberos setup.
         </para>
         <para>
-            If the enviroment variable SSSD_KRB5_LOCATOR_DEBUG is set to any
+            If the environment variable SSSD_KRB5_LOCATOR_DEBUG is set to any
             value debug messages will be sent to stderr.
         </para>
     </refsect1>
