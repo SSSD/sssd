@@ -284,7 +284,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
 
     /* Add the first protocol as the primary lookup */
     ret = fo_add_srv_server(svc->fo_service, query_service,
-                            domain, proto_table[proto], user_data);
+                            domain, ctx->domain->name,
+                            proto_table[proto], user_data);
     if (ret && ret != EEXIST) {
         DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
         return ret;
@@ -295,7 +296,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
         /* All the rest as fallback */
         while (i != proto) {
             ret = fo_add_srv_server(svc->fo_service, query_service,
-                                    domain, proto_table[i], user_data);
+                                    domain, ctx->domain->name,
+                                    proto_table[i], user_data);
             if (ret && ret != EEXIST) {
                 DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
                 return ret;

@@ -98,6 +98,8 @@ struct server_common {
 
 struct srv_data {
     char *dns_domain;
+    char *discovery_domain;
+    char *sssd_domain;
     char *proto;
     char *srv;
 
@@ -498,7 +500,8 @@ create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
 
 int
 fo_add_srv_server(struct fo_service *service, const char *srv,
-                  const char *dns_domain, const char *proto, void *user_data)
+                  const char *dns_domain, const char *sssd_domain,
+                  const char *proto, void *user_data)
 {
     struct fo_server *server;
 
@@ -539,10 +542,17 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
         return ENOMEM;
 
     if (dns_domain) {
-        server->srv_data->dns_domain = talloc_strdup(server->srv_data, dns_domain);
-        if (server->srv_data->dns_domain == NULL)
+        server->srv_data->discovery_domain = talloc_strdup(server->srv_data, dns_domain);
+        if (server->srv_data->discovery_domain == NULL)
             return ENOMEM;
+        server->srv_data->dns_domain =
+                server->srv_data->discovery_domain;
     }
+
+    server->srv_data->sssd_domain =
+            talloc_strdup(server->srv_data, sssd_domain);
+    if (server->srv_data->sssd_domain == NULL)
+        return ENOMEM;
 
     server->srv_data->meta = server;
     server->srv_data->srv_lookup_status = DEFAULT_SRV_STATUS;
@@ -1063,8 +1073,38 @@ resolve_srv_done(struct tevent_req *subreq)
                              &resolv_status, NULL, &reply_list);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(1, ("SRV query failed %s\n",
+        DEBUG(1, ("SRV query failed: [%s]\n",
                   resolv_strerror(resolv_status)));
+        if (resolv_status == ARES_ENOTFOUND &&
+                state->meta->srv_data->dns_domain !=
+                    state->meta->srv_data->discovery_domain &&
+                state->meta->srv_data->dns_domain !=
+                    state->meta->srv_data->sssd_domain) {
+            /* The domain name could not be identified
+             * If the domain wasn't specified in the config
+             * file, also check whether the SSSD domain
+             * works.
+             *
+             * Programming note: It is safe to compare
+             * pointers here, because we're not copying
+             * the data, we're just reassigning the pointer
+             * for the active domain.
+             */
+            talloc_free(state->meta->srv_data->dns_domain);
+            state->meta->srv_data->dns_domain =
+                    state->meta->srv_data->sssd_domain;
+            resolve_srv_cont(req);
+            return;
+        }
+
+        /* We need to make sure we reset this to NULL
+         * so that if we go online later, we re-check
+         * the DNS domain
+         */
+        if (!state->meta->srv_data->discovery_domain) {
+            state->meta->srv_data->dns_domain = NULL;
+        }
+
         fo_set_port_status(state->meta, PORT_NOT_WORKING);
         goto fail;
     }
