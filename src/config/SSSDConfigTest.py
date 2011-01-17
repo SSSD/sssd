@@ -963,9 +963,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
     def testGetOption(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
-        # Positive Test - Ensure that we can get a valid option
-        self.assertEqual(domain.get_option('debug_level'), 0)
-
         # Negative Test - Try to get valid option that is not set
         self.assertRaises(SSSDConfig.NoOptionError, domain.get_option, 'max_id')
 
