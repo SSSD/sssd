@@ -240,15 +240,14 @@ AC_DEFUN([WITH_SEMANAGE],
 AC_DEFUN([WITH_LIBNL],
   [ AC_ARG_WITH([libnl],
                 [AC_HELP_STRING([--with-libnl],
-                                [Whether to build with libnetlink support [yes]]
+                                [Whether to build with libnetlink support [AUTO]]
                                )
                 ],
                 [],
                 with_libnl=yes
                )
     if test x"$with_libnl" = xyes; then
-        HAVE_LIBNL=1
-        AC_SUBST(HAVE_LIBNL)
-        AC_DEFINE_UNQUOTED(HAVE_LIBNL, 1, [Build with libnetlink support])
+        BUILD_LIBNL=1
+        AC_SUBST(BUILD_LIBNL)
     fi
   ])

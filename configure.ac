@@ -161,7 +161,7 @@ if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
     AM_CHECK_SEMANAGE
 fi
 
-if test x$HAVE_LIBNL != x; then
+if test x$BUILD_LIBNL != x; then
     AM_CHECK_LIBNL
 fi
 

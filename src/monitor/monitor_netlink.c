@@ -49,20 +49,11 @@
 #define SOL_NETLINK 270
 #endif
 
-#ifdef HAVE_LIBNL_OLDER_THAN_1_1
-#define nlw_get_fd nl_handle_get_fd
-#define nlw_recvmsgs_default nl_recvmsgs_def
-#define nlw_get_pid nl_handle_get_pid
-#define nlw_object_match nl_object_match
-#define NLW_OK NL_PROCEED
-#define OBJ_CAST(ptr)           ((struct nl_object *) (ptr))
-#else
 #define nlw_get_fd nl_socket_get_fd
 #define nlw_recvmsgs_default nl_recvmsgs_default
 #define nlw_get_pid nl_socket_get_local_port
 #define nlw_object_match nl_object_match_filter
 #define NLW_OK NL_OK
-#endif
 
 struct netlink_ctx {
 #ifdef HAVE_LIBNL
@@ -182,19 +173,6 @@ static int nlw_group_subscribe(struct nl_handle *nlh)
  * Callbacks for validating and receiving messages
  *******************************************************************/
 
-#ifdef HAVE_LIBNL_OLDER_THAN_1_1
-static int event_msg_recv(struct sockaddr_nl *nla, struct nlmsghdr *hdr,
-                          void *arg)
-{
-    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
-
-    if (!nlw_accept_message(ctx->nlh, nla, hdr)) {
-        return NL_SKIP;
-    }
-
-    return NLW_OK;
-}
-#else
 static int event_msg_recv(struct nl_msg *msg, void *arg)
 {
     struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
@@ -218,24 +196,14 @@ static int event_msg_recv(struct nl_msg *msg, void *arg)
 
     return NLW_OK;
 }
-#endif
 
 static void link_msg_handler(struct nl_object *obj, void *arg);
 
-#ifdef HAVE_LIBNL_OLDER_THAN_1_1
-static int event_msg_ready(struct sockaddr_nl *nla, struct nlmsghdr *hdr,
-                           void *arg)
-{
-    nl_msg_parse(hdr, &link_msg_handler, arg);
-    return NLW_OK;
-}
-#else
 static int event_msg_ready(struct nl_msg *msg, void *arg)
 {
     nl_msg_parse(msg, &link_msg_handler, arg);
     return NLW_OK;
 }
-#endif
 
 static int nlw_set_callbacks(struct nl_handle *nlh, void *data)
 {
