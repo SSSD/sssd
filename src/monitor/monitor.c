@@ -2310,11 +2310,12 @@ int main(int argc, const char *argv[])
     /* Warn if nscd seems to be running */
     ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL);
     if (ret == EOK) {
-        DEBUG(0, ("WARNING: nscd appears to be running\n"));
         sss_log(SSS_LOG_NOTICE,
-                "nscd socket was detected.  As nscd caching capabilities "
-                "may conflict with SSSD, it is recommended to not run "
-                "nscd in parallel with SSSD");
+                "nscd socket was detected.  Nscd caching capabilities "
+                "may conflict with SSSD for users and groups. It is "
+                "recommended not to run nscd in parallel with SSSD, unless "
+                "nscd is configured not to cache the passwd, group and "
+                "netgroup nsswitch maps.");
     }
 
     /* Parse config file, fail if cannot be done */
