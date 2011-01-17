@@ -21,6 +21,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
+ * READ ME:
+ *
+ * Please note that password obfuscation does not improve security in any
+ * way. It is just a mechanism to make the password human-unreadable. If you
+ * need to secure passwords in your application, you should probably take a
+ * look at storing passwords in NSS-backed database.
+ */
+
 #include "config.h"
 
 #include <prerror.h>
@@ -74,31 +83,63 @@ static struct crypto_mech_data *get_crypto_mech_data(enum obfmethod meth)
     return &cmdata[meth];
 }
 
-static int generate_random_key(TALLOC_CTX *mem_ctx, size_t keylen,
-                               unsigned char **_key)
+static int generate_random_key(TALLOC_CTX *mem_ctx,
+                               PK11SlotInfo *slot,
+                               struct crypto_mech_data *mech_props,
+                               SECItem **_key)
 {
-    unsigned char *randkey;
     SECStatus sret;
+    SECItem      *randkeydata;
+    SECItem      *key;
+    PK11SymKey   *randkey;
     int ret;
 
-    randkey = talloc_size(mem_ctx, keylen);
+    randkey = PK11_KeyGen(slot, mech_props->cipher,
+                          NULL, mech_props->keylen, NULL);
     if (randkey == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    sret = PK11_GenerateRandom(randkey, keylen);
-    if (sret != SECSuccess) {
-        DEBUG(1, ("Unable to generate random data (err %d)\n",
+        DEBUG(1, ("Failure to generate key (err %d)\n",
                   PR_GetError()));
         ret = EIO;
         goto done;
     }
 
-    *_key = randkey;
+    sret = PK11_ExtractKeyValue(randkey);
+    if (sret != SECSuccess) {
+        DEBUG(1, ("Failure to extract key value (err %d)\n",
+                  PR_GetError()));
+        ret = EIO;
+        goto done;
+    }
+
+    randkeydata = PK11_GetKeyData(randkey);
+    if (randkey == NULL) {
+        DEBUG(1, ("Failure to get key data (err %d)\n",
+                  PR_GetError()));
+        ret = EIO;
+        goto done;
+    }
+
+    /* randkeydata is valid until randkey is. Copy with talloc to
+     * get a nice memory hierarchy symmetrical in encrypt
+     * and decrypt case */
+    key = talloc_zero(mem_ctx, SECItem);
+    if (!key) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    key->data = talloc_memdup(key, randkeydata->data, randkeydata->len);
+    if (!key->data) {
+        ret = ENOMEM;
+        goto done;
+    }
+    key->len = randkeydata->len;
+
+    *_key = key;
     ret = EOK;
 done:
-    if (ret != EOK) talloc_zfree(randkey);
+    if (ret != EOK) talloc_zfree(key);
+    PK11_FreeSymKey(randkey);
     return ret;
 }
 
@@ -112,15 +153,11 @@ static int sss_nss_crypto_ctx_destructor(struct sss_nss_crypto_ctx *cctx)
     return EOK;
 }
 
-static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
-                                    struct crypto_mech_data *mech_props,
-                                    bool encrypt,
-                                    unsigned char *ivbuf,
-                                    unsigned char *keybuf,
-                                    struct sss_nss_crypto_ctx **_cctx)
+static int nss_ctx_init(TALLOC_CTX *mem_ctx,
+                        struct crypto_mech_data *mech_props,
+                        struct sss_nss_crypto_ctx **_cctx)
 {
     struct sss_nss_crypto_ctx *cctx;
-    CK_ATTRIBUTE_TYPE   op;
     int ret;
 
     cctx = talloc_zero(mem_ctx, struct sss_nss_crypto_ctx);
@@ -129,18 +166,6 @@ static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
     }
     talloc_set_destructor(cctx, sss_nss_crypto_ctx_destructor);
 
-    cctx->iv = talloc_zero(cctx, SECItem);
-    cctx->key = talloc_zero(cctx, SECItem);
-    if (!cctx->iv || !cctx->key) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    MAKE_SECITEM(ivbuf, mech_props->bsize, cctx->iv);
-    MAKE_SECITEM(keybuf, mech_props->keylen, cctx->key);
-
-    op = encrypt ? CKA_ENCRYPT : CKA_DECRYPT;
-
     cctx->slot = PK11_GetBestSlot(mech_props->cipher, NULL);
     if (cctx->slot == NULL) {
         DEBUG(1, ("Unable to find security device (err %d)\n",
@@ -148,6 +173,23 @@ static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
         ret = EIO;
         goto done;
     }
+
+    ret = EOK;
+    *_cctx = cctx;
+done:
+    if (ret) talloc_zfree(cctx);
+    return ret;
+}
+
+static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
+                                    struct crypto_mech_data *mech_props,
+                                    bool encrypt,
+                                    struct sss_nss_crypto_ctx *cctx)
+{
+    CK_ATTRIBUTE_TYPE   op;
+    int ret;
+
+    op = encrypt ? CKA_ENCRYPT : CKA_DECRYPT;
 
     /* turn the raw key into a key object */
     cctx->keyobj = PK11_ImportSymKey(cctx->slot, mech_props->cipher,
@@ -179,9 +221,7 @@ static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = EOK;
-    *_cctx = cctx;
 done:
-    if (ret) talloc_zfree(cctx);
     return ret;
 }
 
@@ -226,8 +266,6 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     struct crypto_mech_data *mech_props;
     struct sss_nss_crypto_ctx *cctx;
 
-    unsigned char *keybuf;
-    unsigned char *ivbuf;
     unsigned char *plaintext;
 
     unsigned char *cryptotext;
@@ -258,22 +296,28 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         goto done;
     }
 
+    ret = nss_ctx_init(tmp_ctx, mech_props, &cctx);
+    if (ret) {
+        DEBUG(1, ("Cannot initialize NSS context\n"));
+        goto done;
+    }
+
     /* generate random encryption and IV key */
-    ret = generate_random_key(tmp_ctx, mech_props->keylen, &keybuf);
+    ret = generate_random_key(cctx, cctx->slot, mech_props, &cctx->key);
     if (ret != EOK) {
         DEBUG(1, ("Could not generate encryption key\n"));
         goto done;
     }
 
-    ret = generate_random_key(tmp_ctx, mech_props->bsize, &ivbuf);
+    ret = generate_random_key(cctx, cctx->slot, mech_props, &cctx->iv);
     if (ret != EOK) {
         DEBUG(1, ("Could not generate initialization vector\n"));
         goto done;
     }
 
-    ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, true,
-                                   ivbuf, keybuf, &cctx);
+    ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, true, cctx);
     if (ret) {
+        DEBUG(1, ("Cannot initialize NSS context properties\n"));
         goto done;
     }
 
@@ -440,8 +484,23 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     }
     safealign_memcpy(cryptotext, obfbuf+p, ctsize, &p);
 
-    ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, false,
-                                   ivbuf, keybuf, &cctx);
+    ret = nss_ctx_init(tmp_ctx, mech_props, &cctx);
+    if (ret) {
+        DEBUG(1, ("Cannot initialize NSS context\n"));
+        goto done;
+    }
+
+    cctx->iv = talloc_zero(cctx, SECItem);
+    cctx->key = talloc_zero(cctx, SECItem);
+    if (!cctx->iv || !cctx->key) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    MAKE_SECITEM(ivbuf, mech_props->bsize, cctx->iv);
+    MAKE_SECITEM(keybuf, mech_props->keylen, cctx->key);
+
+    ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, false, cctx);
     if (ret) {
         goto done;
     }
