@@ -60,7 +60,7 @@ struct hbac_ctx {
     const char *user_dn;
     size_t groups_count;
     const char **groups;
-    char *ldap_basedn;
+    char *hbac_search_base;
     struct sysdb_attrs **hbac_services_list;
     size_t hbac_services_count;
 };

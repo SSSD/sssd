@@ -91,6 +91,7 @@ option_strings = {
     'ipa_hostname' : _('IPA client hostname'),
     'ipa_dyndns_update' : _("Whether to automatically update the client's DNS entry in FreeIPA"),
     'ipa_dyndns_iface' : _("The interface whose IP should be used for dynamic DNS updates"),
+    'ipa_hbac_search_base' : _("Search base for HBAC related objects"),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

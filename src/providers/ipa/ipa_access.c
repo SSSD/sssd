@@ -60,6 +60,30 @@
 #define HBAC_HOSTS_SUBDIR "hbac_hosts"
 #define HBAC_SERVICES_SUBDIR "hbac_services"
 
+static char *get_hbac_search_base(TALLOC_CTX *mem_ctx,
+                                  struct dp_option *ipa_options)
+{
+    char *base;
+    int ret;
+
+    base = dp_opt_get_string(ipa_options, IPA_HBAC_SEARCH_BASE);
+    if (base != NULL) {
+        return talloc_strdup(mem_ctx, base);
+    }
+
+    DEBUG(9, ("ipa_hbac_search_base not available, trying base DN.\n"));
+
+    ret = domain_to_basedn(mem_ctx,
+                           dp_opt_get_string(ipa_options, IPA_DOMAIN),
+                           &base);
+    if (ret != EOK) {
+        DEBUG(1, ("domain_to_basedn failed.\n"));
+        return NULL;
+    }
+
+    return base;
+}
+
 static errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
                                 struct ldb_message **msgs,
                                 struct sysdb_attrs ***attrs)
@@ -441,11 +465,9 @@ done:
 
 struct hbac_get_service_data_state {
     struct hbac_ctx *hbac_ctx;
-    const char *basedn;
     bool offline;
 
     char *services_filter;
-    char *services_search_base;
     const char **services_attrs;
     struct sysdb_attrs **services_reply_list;
     size_t services_reply_count;
@@ -456,8 +478,7 @@ struct hbac_get_service_data_state {
 static void hbac_services_get_done(struct tevent_req *subreq);
 
 struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
-                                              struct hbac_ctx *hbac_ctx,
-                                              const char *basedn)
+                                              struct hbac_ctx *hbac_ctx)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
@@ -472,20 +493,11 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
     }
 
     state->hbac_ctx = hbac_ctx;
-    state->basedn = basedn;
 
     state->services_reply_list = NULL;
     state->services_reply_count = 0;
 
     state->current_item = 0;
-
-    state->services_search_base = talloc_asprintf(state, IPA_SERVICES_BASE_TMPL,
-                                              basedn);
-    if (state->services_search_base == NULL) {
-        DEBUG(1, ("Failed to create service search base.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
 
     state->services_attrs = talloc_array(state, const char *, 7);
     if (state->services_attrs == NULL) {
@@ -538,7 +550,7 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
                         hbac_ctx_ev(state->hbac_ctx),
                         hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
                         sdap_handle,
-                        state->services_search_base,
+                        state->hbac_ctx->hbac_search_base,
                         LDAP_SCOPE_SUB,
                         state->services_filter,
                         state->services_attrs,
@@ -715,7 +727,6 @@ struct hbac_get_host_info_state {
     struct hbac_ctx *hbac_ctx;
 
     char *host_filter;
-    char *host_search_base;
     const char **host_attrs;
 
     struct sysdb_attrs **host_reply_list;
@@ -729,7 +740,6 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
                                                   struct hbac_ctx *hbac_ctx,
-                                                  const char *basedn,
                                                   const char **hostnames)
 {
     struct tevent_req *req = NULL;
@@ -740,8 +750,8 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     int ret;
     int i;
 
-    if (hostnames == NULL || basedn == NULL) {
-        DEBUG(1, ("Missing hostnames or domain.\n"));
+    if (hostnames == NULL) {
+        DEBUG(1, ("Missing hostnames.\n"));
         return NULL;
     }
 
@@ -787,14 +797,6 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->host_search_base = talloc_asprintf(state, IPA_HOST_BASE_TMPL,
-                                              basedn);
-    if (state->host_search_base == NULL) {
-        DEBUG(1, ("Failed to create host search base.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
     state->host_attrs = talloc_array(state, const char *, 8);
     if (state->host_attrs == NULL) {
         DEBUG(1, ("Failed to allocate host attribute list.\n"));
@@ -835,7 +837,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     subreq = sdap_get_generic_send(state, hbac_ctx_ev(state->hbac_ctx),
                         hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
                         sdap_handle,
-                        state->host_search_base,
+                        state->hbac_ctx->hbac_search_base,
                         LDAP_SCOPE_SUB,
                         state->host_filter,
                         state->host_attrs,
@@ -1019,7 +1021,6 @@ struct hbac_get_rules_state {
     const char *host_dn;
     const char **memberof;
     char *hbac_filter;
-    char *hbac_search_base;
     const char **hbac_attrs;
 
     struct ldb_message *old_rules;
@@ -1032,7 +1033,6 @@ static void hbac_rule_get_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
                                               struct hbac_ctx *hbac_ctx,
-                                              const char *basedn,
                                               const char *host_dn,
                                               const char **memberof)
 {
@@ -1044,8 +1044,8 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     int ret;
     int i;
 
-    if (host_dn == NULL || basedn == NULL) {
-        DEBUG(1, ("Missing host_dn or domain.\n"));
+    if (host_dn == NULL) {
+        DEBUG(1, ("Missing host_dn.\n"));
         return NULL;
     }
 
@@ -1063,14 +1063,6 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->hbac_reply_list = NULL;
     state->hbac_reply_count = 0;
     state->current_item = 0;
-
-    state->hbac_search_base = talloc_asprintf(state, IPA_HBAC_BASE_TMPL,
-                                              basedn);
-    if (state->hbac_search_base == NULL) {
-        DEBUG(1, ("Failed to create HBAC search base.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
 
     state->hbac_attrs = talloc_array(state, const char *, 17);
     if (state->hbac_attrs == NULL) {
@@ -1156,7 +1148,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     subreq = sdap_get_generic_send(state, hbac_ctx_ev(state->hbac_ctx),
                         hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
                         sdap_handle,
-                        state->hbac_search_base,
+                        state->hbac_ctx->hbac_search_base,
                         LDAP_SCOPE_SUB,
                         state->hbac_filter,
                         state->hbac_attrs,
@@ -1682,11 +1674,10 @@ void ipa_access_handler(struct be_req *be_req)
     hbac_ctx->sdap_ctx = ipa_access_ctx->sdap_ctx;
     hbac_ctx->ipa_options = ipa_access_ctx->ipa_options;
     hbac_ctx->tr_ctx = ipa_access_ctx->tr_ctx;
-    ret = domain_to_basedn(hbac_ctx,
-                           dp_opt_get_string(hbac_ctx->ipa_options, IPA_DOMAIN),
-                           &hbac_ctx->ldap_basedn);
-    if (ret != EOK) {
-        DEBUG(1, ("domain_to_basedn failed.\n"));
+    hbac_ctx->hbac_search_base = get_hbac_search_base(hbac_ctx,
+                                                      hbac_ctx->ipa_options);
+    if (hbac_ctx->hbac_search_base == NULL) {
+        DEBUG(1, ("No HBAC search base found.\n"));
         goto fail;
     }
 
@@ -1818,9 +1809,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
         pd->rhost = discard_const_p(char, hostlist[0]);
     }
 
-    subreq = hbac_get_host_info_send(hbac_ctx, hbac_ctx,
-                                     hbac_ctx->ldap_basedn,
-                                     hostlist);
+    subreq = hbac_get_host_info_send(hbac_ctx, hbac_ctx, hostlist);
     if (!subreq) {
         DEBUG(1, ("hbac_get_host_info_send failed.\n"));
         return ENOMEM;
@@ -1866,8 +1855,7 @@ static void hbac_get_host_info_done(struct tevent_req *req)
         pam_status = PAM_PERM_DENIED;
         goto fail;
     }
-    req = hbac_get_rules_send(hbac_ctx, hbac_ctx,
-                              hbac_ctx->ldap_basedn, local_hhi->dn,
+    req = hbac_get_rules_send(hbac_ctx, hbac_ctx, local_hhi->dn,
                               local_hhi->memberof);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_rules_send failed.\n"));
@@ -1898,8 +1886,7 @@ static void hbac_get_rules_done(struct tevent_req *req)
         return;
     }
 
-    req = hbac_get_service_data_send(hbac_ctx, hbac_ctx,
-                                     hbac_ctx->ldap_basedn);
+    req = hbac_get_service_data_send(hbac_ctx, hbac_ctx);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_service_data_send failed.\n"));
         goto failed;

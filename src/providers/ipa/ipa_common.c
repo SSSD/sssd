@@ -34,7 +34,8 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_hostname", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ipa_dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING}
+    { "ipa_dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING},
+    { "ipa_hbac_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING}
 };
 
 struct dp_option ipa_def_ldap_opts[] = {
