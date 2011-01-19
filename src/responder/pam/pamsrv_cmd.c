@@ -39,6 +39,7 @@ enum pam_verbosity {
 };
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
+#define DEFAULT_PAM_PWD_EXPIRATION_WARNING 7
 
 static void pam_reply(struct pam_auth_req *preq);
 
@@ -327,12 +328,43 @@ fail:
     return ret;
 }
 
-static errno_t filter_responses(struct response_data *resp_list,
-                                int pam_verbosity)
+static errno_t filter_responses(struct confdb_ctx *cdb,
+                                struct response_data *resp_list)
 {
+    int ret;
     struct response_data *resp;
     uint32_t user_info_type;
     int64_t expire_date;
+    uint32_t expire_warn;
+    TALLOC_CTX *tmp_ctx;
+    int pam_verbosity;
+    int pam_expiration_warning;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
+                         &pam_verbosity);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to read PAM verbosity, not fatal.\n"));
+        pam_verbosity = 0;
+    }
+
+
+    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_PWD_EXPIRATION_WARNING,
+                         DEFAULT_PAM_PWD_EXPIRATION_WARNING,
+                         &pam_expiration_warning);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to read PAM expiration warning, not fatal.\n"));
+        pam_expiration_warning = DEFAULT_PAM_PWD_EXPIRATION_WARNING;
+    }
+
+    talloc_free(tmp_ctx);
 
     resp = resp_list;
 
@@ -368,6 +400,18 @@ static errno_t filter_responses(struct response_data *resp_list,
                         resp->do_not_send_to_client = true;
                     }
 
+                    break;
+                case SSS_PAM_USER_INFO_EXPIRE_WARN:
+                    if (resp->len != 2 * sizeof(uint32_t)) {
+                        DEBUG(1, ("User info expire warning entry is "
+                                  "too short.\n"));
+                        return EINVAL;
+                    }
+                    memcpy(&expire_warn, resp->data + sizeof(uint32_t),
+                           sizeof(uint32_t));
+                    if(expire_warn > pam_expiration_warning * (60 * 60 * 24)) {
+                        resp->do_not_send_to_client = true;
+                    }
                     break;
                 default:
                     DEBUG(7, ("User info type [%d] not filtered.\n"));
@@ -415,7 +459,6 @@ static void pam_reply(struct pam_auth_req *preq)
     uint32_t user_info_type;
     time_t exp_date = -1;
     time_t delay_until = -1;
-    int pam_verbosity = 0;
 
     pd = preq->pd;
     cctx = preq->cctx;
@@ -516,15 +559,7 @@ static void pam_reply(struct pam_auth_req *preq)
         goto done;
     }
 
-    ret = confdb_get_int(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
-                         CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
-                         &pam_verbosity);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to read PAM verbosity, not fatal.\n"));
-        pam_verbosity = 0;
-    }
-
-    ret = filter_responses(pd->resp_list, pam_verbosity);
+    ret = filter_responses(pctx->rctx->cdb, pd->resp_list);
     if (ret != EOK) {
         DEBUG(1, ("filter_responses failed, not fatal.\n"));
     }

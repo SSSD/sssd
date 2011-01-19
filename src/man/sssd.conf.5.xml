@@ -462,6 +462,24 @@
                     </para>
                   </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                  <term>pam_pwd_expiration_warning (integer)</term>
+                  <listitem>
+                    <para>
+                      Display a warning N days before the password expires.
+                    </para>
+                    <para>
+                      Please note that the backend server has to provide
+                      information about the expiration time of the password.
+                      If this information is missing, sssd cannot display a
+                      warning.
+                    </para>
+                    <para>
+                      Default: 7
+                    </para>
+                  </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
     </refsect1>
