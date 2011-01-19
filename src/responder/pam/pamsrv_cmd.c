@@ -897,7 +897,9 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
                                    pam_check_user_dp_callback, preq,
                                    SSS_CLI_SOCKET_TIMEOUT/2,
-                                   dom->name, false, SSS_DP_USER, name, 0);
+                                   dom->name, false,
+                                   SSS_DP_INITGROUPS,
+                                   name, 0);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
                       ret, strerror(ret)));
