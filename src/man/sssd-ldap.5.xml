@@ -910,6 +910,47 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_tls_cert (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the file that contains the certificate
+                            for the client's key.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_tls_key (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the file that contains the client's key.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_tls_cipher_suite (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies acceptable cipher suites.  Typically this
+                            is a colon sperated list.  See 
+                            <citerefentry><refentrytitle>ldap.conf</refentrytitle>
+                            <manvolnum>5</manvolnum></citerefentry> for format.
+                        </para>
+                        <para>
+                            Default: use OpenLDAP defaults, typically in
+                            <filename>/etc/openldap/ldap.conf</filename>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_id_use_start_tls (boolean)</term>
                     <listitem>
                         <para>

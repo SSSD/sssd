@@ -350,6 +350,33 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         }
     }
 
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CERT);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_KEY);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CIPHER_SUITE);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            return EIO;
+        }
+    }
+
     return EOK;
 }
 
