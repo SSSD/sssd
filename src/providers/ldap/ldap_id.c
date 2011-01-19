@@ -588,11 +588,12 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sdap_get_initgr_send(state, state->ev,
-                                  state->ctx->be->domain,
-                                  state->ctx->be->sysdb,
-                                  state->ctx->opts, sdap_id_op_handle(state->op),
-                                  state->name, state->attrs);
+    subreq = sdap_get_initgr_send(state,
+                                  state->ev,
+                                  sdap_id_op_handle(state->op),
+                                  state->ctx,
+                                  state->name,
+                                  state->attrs);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

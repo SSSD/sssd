@@ -2302,6 +2302,7 @@ struct sdap_get_initgr_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    struct sdap_id_ctx *id_ctx;
     const char *name;
     const char **grp_attrs;
 
@@ -2313,10 +2314,8 @@ static void sdap_get_initgr_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
-                                        struct sss_domain_info *dom,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sdap_options *opts,
                                         struct sdap_handle *sh,
+                                        struct sdap_id_ctx *id_ctx,
                                         const char *name,
                                         const char **grp_attrs)
 {
@@ -2333,10 +2332,11 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->ev = ev;
-    state->opts = opts;
-    state->sysdb = sysdb;
-    state->dom = dom;
+    state->opts = id_ctx->opts;
+    state->sysdb = id_ctx->be->sysdb;
+    state->dom = id_ctx->be->domain;
     state->sh = sh;
+    state->id_ctx = id_ctx;
     state->name = name;
     state->grp_attrs = grp_attrs;
     state->orig_user = NULL;
@@ -2504,6 +2504,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 }
 
 static int sdap_initgr_rfc2307bis_recv(struct tevent_req *req);
+static void sdap_get_initgr_pgid(struct tevent_req *req);
 static void sdap_get_initgr_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -2511,6 +2512,8 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     struct sdap_get_initgr_state *state = tevent_req_data(req,
                                                struct sdap_get_initgr_state);
     int ret;
+    gid_t primary_gid;
+    char *gid;
 
     DEBUG(9, ("Initgroups done\n"));
 
@@ -2538,6 +2541,46 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     if (ret) {
         DEBUG(9, ("Error in initgroups: [%d][%s]\n",
                   ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* We also need to update the user's primary group, since
+     * the user may not be an explicit member of that group
+     */
+    ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM, &primary_gid);
+    if (ret != EOK) {
+        DEBUG(6, ("Could not find user's primary GID\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    gid = talloc_asprintf(state, "%lu", (unsigned long)primary_gid);
+    if (gid == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    subreq = groups_get_send(req, state->ev, state->id_ctx, gid,
+                             BE_FILTER_IDNUM, BE_ATTR_ALL);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_get_initgr_pgid, req);
+
+    tevent_req_done(req);
+}
+
+static void sdap_get_initgr_pgid(struct tevent_req *subreq)
+{
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    errno_t ret;
+
+    ret = groups_get_recv(subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }

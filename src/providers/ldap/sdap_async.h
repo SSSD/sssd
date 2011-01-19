@@ -106,10 +106,8 @@ int sdap_auth_recv(struct tevent_req *req,
 
 struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
-                                        struct sss_domain_info *dom,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sdap_options *opts,
                                         struct sdap_handle *sh,
+                                        struct sdap_id_ctx *id_ctx,
                                         const char *name,
                                         const char **grp_attrs);
 int sdap_get_initgr_recv(struct tevent_req *req);
