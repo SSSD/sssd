@@ -351,7 +351,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
                          &pam_verbosity);
     if (ret != EOK) {
         DEBUG(1, ("Failed to read PAM verbosity, not fatal.\n"));
-        pam_verbosity = 0;
+        pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
 
