@@ -998,7 +998,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
                     &result, NULL,
                     &pw_expire_type, &pw_expire_data);
     talloc_zfree(req);
-    if (ret) {
+    if (ret != EOK) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_FATAL;
         goto done;
@@ -1087,7 +1087,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
                                    state->username, password);
 
         /* password caching failures are not fatal errors */
-        if (!ret) {
+        if (ret != EOK) {
             DEBUG(2, ("Failed to cache password for %s\n",
                       state->username));
         } else {
