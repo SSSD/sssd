@@ -181,6 +181,7 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
     struct global_cleanup_state *state;
     struct tevent_req *req;
     int ret;
+    bool in_transaction = false;
 
     req = tevent_req_create(memctx, &state, struct global_cleanup_state);
     if (!req) return NULL;
@@ -189,6 +190,11 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
 
     ctx->last_purge = tevent_timeval_current();
+
+    ret = sysdb_transaction_start(state->ctx->be->sysdb);
+    if (ret != EOK) {
+        goto fail;
+    }
 
     ret = cleanup_users(state, state->ctx);
     if (ret && ret != ENOENT) {
@@ -202,6 +208,11 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    ret = sysdb_transaction_commit(state->ctx->be->sysdb);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     tevent_req_done(req);
     tevent_req_post(req, ev);
     return req;
@@ -209,6 +220,15 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
 fail:
     DEBUG(1, ("Failed to cleanup caches (%d [%s]), retrying later!\n",
               (int)ret, strerror(ret)));
+    if (in_transaction) {
+        ret = sysdb_transaction_cancel(state->ctx->be->sysdb);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not cancel transaction\n"));
+            tevent_req_error(req, ret);
+            tevent_req_post(req, ev);
+            return req;
+        }
+    }
     tevent_req_done(req);
     tevent_req_post(req, ev);
     return req;
