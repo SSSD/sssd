@@ -1635,6 +1635,20 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         return;
     }
 
+    if (enumeration && (state->opts->schema_type != SDAP_SCHEMA_RFC2307) &&
+        (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)) {
+
+        DEBUG(9, ("Saving groups without members first "
+                  "to allow unrolling of nested groups.\n"));
+        ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
+                               state->groups, state->count, false, NULL);
+        if (ret) {
+            DEBUG(2, ("Failed to store groups.\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
     for (i = 0; i < state->count; i++) {
         subreq = sdap_process_group_send(state, state->ev, state->dom,
                                          state->sysdb, state->opts,
