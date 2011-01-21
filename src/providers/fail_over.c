@@ -500,22 +500,25 @@ create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
 
 int
 fo_add_srv_server(struct fo_service *service, const char *srv,
-                  const char *dns_domain, const char *sssd_domain,
+                  const char *discovery_domain, const char *sssd_domain,
                   const char *proto, void *user_data)
 {
     struct fo_server *server;
 
     DEBUG(3, ("Adding new SRV server in domain '%s', to service '%s' using %s\n",
-              dns_domain ? dns_domain : "unknown", service->name, proto));
+              discovery_domain ? discovery_domain : "unknown",
+              service->name, proto));
 
     DLIST_FOR_EACH(server, service->server_list) {
         if (server->user_data != user_data)
             continue;
 
         if (fo_is_srv_lookup(server)) {
-            if (((dns_domain == NULL && server->srv_data->dns_domain == NULL) ||
-                 (dns_domain != NULL && server->srv_data->dns_domain != NULL &&
-                  strcasecmp(server->srv_data->dns_domain, dns_domain) == 0)) &&
+            if (((discovery_domain == NULL &&
+                    server->srv_data->dns_domain == NULL) ||
+                 (discovery_domain != NULL &&
+                         server->srv_data->dns_domain != NULL &&
+                  strcasecmp(server->srv_data->dns_domain, discovery_domain) == 0)) &&
                 strcasecmp(server->srv_data->proto, proto) == 0) {
                 return EEXIST;
             }
@@ -541,8 +544,9 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
         server->srv_data->srv == NULL)
         return ENOMEM;
 
-    if (dns_domain) {
-        server->srv_data->discovery_domain = talloc_strdup(server->srv_data, dns_domain);
+    if (discovery_domain) {
+        server->srv_data->discovery_domain = talloc_strdup(server->srv_data,
+                                                           discovery_domain);
         if (server->srv_data->discovery_domain == NULL)
             return ENOMEM;
         server->srv_data->dns_domain =

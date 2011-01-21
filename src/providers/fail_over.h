@@ -116,7 +116,7 @@ int fo_add_server(struct fo_service *service,
 
 int fo_add_srv_server(struct fo_service *service,
                       const char *srv,
-                      const char *dns_domain,
+                      const char *discovery_domain,
                       const char *sssd_domain,
                       const char *proto,
                       void *user_data);
