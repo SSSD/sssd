@@ -23,6 +23,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/ldap_common.h"
 
 /* ==Save-User-Entry====================================================== */
 
