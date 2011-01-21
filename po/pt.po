@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-12-22 13:25-0500\n"
+"POT-Creation-Date: 2011-01-21 16:56-0500\n"
 "PO-Revision-Date: 2010-02-23 13:59+0100\n"
 "Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
 "Language-Team: fedora-trans-pt@redhat.com\n"
@@ -118,492 +118,533 @@ msgstr ""
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr ""
 
-#: src/config/SSSDConfig.py:70
+#: src/config/SSSDConfig.py:68
+msgid "How many days before password expiration a warning should be displayed"
+msgstr ""
+
+#: src/config/SSSDConfig.py:71
 msgid "Identity provider"
 msgstr "Fornecedor de identidade"
 
-#: src/config/SSSDConfig.py:71
+#: src/config/SSSDConfig.py:72
 msgid "Authentication provider"
 msgstr "Fornecedor de autenticação"
 
-#: src/config/SSSDConfig.py:72
+#: src/config/SSSDConfig.py:73
 msgid "Access control provider"
 msgstr "Fornecedor de controle de acesso"
 
-#: src/config/SSSDConfig.py:73
+#: src/config/SSSDConfig.py:74
 msgid "Password change provider"
 msgstr "Fornecedor de Alteração de Senha"
 
-#: src/config/SSSDConfig.py:76
+#: src/config/SSSDConfig.py:77
 msgid "Minimum user ID"
 msgstr "ID de utilizador mínimo"
 
-#: src/config/SSSDConfig.py:77
+#: src/config/SSSDConfig.py:78
 msgid "Maximum user ID"
 msgstr "ID de utilizador máximo"
 
-#: src/config/SSSDConfig.py:78
+#: src/config/SSSDConfig.py:79
 msgid "Enable enumerating all users/groups"
 msgstr "Permitir enumeração de todos os utilizadores/grupos"
 
-#: src/config/SSSDConfig.py:79
+#: src/config/SSSDConfig.py:80
 msgid "Cache credentials for offline login"
 msgstr "Efectuar cache de credenciais para sessões em modo desligado"
 
-#: src/config/SSSDConfig.py:80
+#: src/config/SSSDConfig.py:81
 msgid "Store password hashes"
 msgstr "Guardar hashes da senha"
 
-#: src/config/SSSDConfig.py:81
+#: src/config/SSSDConfig.py:82
 msgid "Display users/groups in fully-qualified form"
 msgstr "Apresentar utilizadores/grupos na forma completa"
 
-#: src/config/SSSDConfig.py:82
+#: src/config/SSSDConfig.py:83
 msgid "Entry cache timeout length (seconds)"
 msgstr "Validade da cache (segundos)"
 
-#: src/config/SSSDConfig.py:83
+#: src/config/SSSDConfig.py:84
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
 "Restringir ou preferir famílias de endereços especificas quando efectua "
 "consultas DNS"
 
-#: src/config/SSSDConfig.py:84
+#: src/config/SSSDConfig.py:85
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Durante quanto tempo devem ser permitidas as caches de sessões entre sessões "
 "bem sucedidas (dias)"
 
-#: src/config/SSSDConfig.py:85
+#: src/config/SSSDConfig.py:86
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
 
-#: src/config/SSSDConfig.py:86
+#: src/config/SSSDConfig.py:87
 msgid "The domain part of service discovery DNS query"
 msgstr ""
 
-#: src/config/SSSDConfig.py:89
+#: src/config/SSSDConfig.py:90
 msgid "IPA domain"
 msgstr "Domínio IPA"
 
-#: src/config/SSSDConfig.py:90
+#: src/config/SSSDConfig.py:91
 msgid "IPA server address"
 msgstr "Endereço do servidor IPA"
 
-#: src/config/SSSDConfig.py:91
+#: src/config/SSSDConfig.py:92
 msgid "IPA client hostname"
 msgstr "Nome da máquina do cliente IPA"
 
-#: src/config/SSSDConfig.py:92
+#: src/config/SSSDConfig.py:93
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 
-#: src/config/SSSDConfig.py:93
+#: src/config/SSSDConfig.py:94
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
-#: src/config/SSSDConfig.py:96 src/config/SSSDConfig.py:97
+#: src/config/SSSDConfig.py:95
+msgid "Search base for HBAC related objects"
+msgstr ""
+
+#: src/config/SSSDConfig.py:98 src/config/SSSDConfig.py:99
 msgid "Kerberos server address"
 msgstr "Endereço do servidor Kerberos"
 
-#: src/config/SSSDConfig.py:98
+#: src/config/SSSDConfig.py:100
 msgid "Kerberos realm"
 msgstr "Reino Kerberos"
 
-#: src/config/SSSDConfig.py:99
+#: src/config/SSSDConfig.py:101
 msgid "Authentication timeout"
 msgstr "Tempo de expiração da autenticação"
 
-#: src/config/SSSDConfig.py:102
+#: src/config/SSSDConfig.py:104
 msgid "Directory to store credential caches"
 msgstr "Directório para armazenar as caches de credenciais"
 
-#: src/config/SSSDConfig.py:103
+#: src/config/SSSDConfig.py:105
 msgid "Location of the user's credential cache"
 msgstr "Localização da cache de credenciais dos utilizadores"
 
-#: src/config/SSSDConfig.py:104
+#: src/config/SSSDConfig.py:106
 msgid "Location of the keytab to validate credentials"
 msgstr "Localização da tabela de chaves (keytab) para validar credenciais"
 
-#: src/config/SSSDConfig.py:105
+#: src/config/SSSDConfig.py:107
 msgid "Enable credential validation"
 msgstr "Activar validação de credenciais"
 
-#: src/config/SSSDConfig.py:106
+#: src/config/SSSDConfig.py:108
 msgid "Store password if offline for later online authentication"
 msgstr ""
 
-#: src/config/SSSDConfig.py:107
+#: src/config/SSSDConfig.py:109
 msgid "Renewable lifetime of the TGT"
 msgstr ""
 
-#: src/config/SSSDConfig.py:108
+#: src/config/SSSDConfig.py:110
 msgid "Lifetime of the TGT"
 msgstr ""
 
-#: src/config/SSSDConfig.py:109
+#: src/config/SSSDConfig.py:111
 msgid "Time between two checks for renewal"
 msgstr ""
 
-#: src/config/SSSDConfig.py:110
+#: src/config/SSSDConfig.py:112
 msgid "Enables FAST"
 msgstr ""
 
-#: src/config/SSSDConfig.py:113
+#: src/config/SSSDConfig.py:115
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 "Servidor onde está em execução o serviço de alteração de senha, se não "
 "coincide com o KDC"
 
-#: src/config/SSSDConfig.py:116
+#: src/config/SSSDConfig.py:118
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, O URI do servidor LDAP"
 
-#: src/config/SSSDConfig.py:117
+#: src/config/SSSDConfig.py:119
 msgid "The default base DN"
 msgstr "A base DN por omissão"
 
-#: src/config/SSSDConfig.py:118
+#: src/config/SSSDConfig.py:120
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "O tipo de Schema em utilização no servidor LDAP, rfc2307"
 
-#: src/config/SSSDConfig.py:119
+#: src/config/SSSDConfig.py:121
 msgid "The default bind DN"
 msgstr "O DN por omissão para a ligação"
 
-#: src/config/SSSDConfig.py:120
+#: src/config/SSSDConfig.py:122
 msgid "The type of the authentication token of the default bind DN"
 msgstr "O tipo de token de autenticação do bind DN por omissão"
 
-#: src/config/SSSDConfig.py:121
+#: src/config/SSSDConfig.py:123
 msgid "The authentication token of the default bind DN"
 msgstr "O token de autenticação do bind DN por omissão"
 
-#: src/config/SSSDConfig.py:122
+#: src/config/SSSDConfig.py:124
 msgid "Length of time to attempt connection"
 msgstr "Período de tempo para tentar ligação"
 
-#: src/config/SSSDConfig.py:123
+#: src/config/SSSDConfig.py:125
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Tempo de espera para tentar operações LDAP síncronas"
 
-#: src/config/SSSDConfig.py:124
+#: src/config/SSSDConfig.py:126
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "Tempo de espera entre tentativas para re-conectar quando desligado"
 
-#: src/config/SSSDConfig.py:125
+#: src/config/SSSDConfig.py:127
 msgid "Use only the upper case for realm names"
 msgstr ""
 
-#: src/config/SSSDConfig.py:126
+#: src/config/SSSDConfig.py:128
 msgid "File that contains CA certificates"
 msgstr "Ficheiro que contêm os certificados CA"
 
-#: src/config/SSSDConfig.py:127
+#: src/config/SSSDConfig.py:129
 msgid "Path to CA certificate directory"
 msgstr "Caminho para o directório do certificado CA"
 
-#: src/config/SSSDConfig.py:128
+#: src/config/SSSDConfig.py:130
+#, fuzzy
+msgid "File that contains the client certificate"
+msgstr "Ficheiro que contêm os certificados CA"
+
+#: src/config/SSSDConfig.py:131
+#, fuzzy
+msgid "File that contains the client key"
+msgstr "Ficheiro que contêm os certificados CA"
+
+#: src/config/SSSDConfig.py:132
+msgid "List of possible ciphers suites"
+msgstr ""
+
+#: src/config/SSSDConfig.py:133
 msgid "Require TLS certificate verification"
 msgstr "Obriga a verificação de certificados TLS"
 
-#: src/config/SSSDConfig.py:129
+#: src/config/SSSDConfig.py:134
 msgid "Specify the sasl mechanism to use"
 msgstr "Especificar mecanismo sasl a utilizar"
 
-#: src/config/SSSDConfig.py:130
+#: src/config/SSSDConfig.py:135
 msgid "Specify the sasl authorization id to use"
 msgstr "Especifique o id sasl para utilizar na autorização"
 
-#: src/config/SSSDConfig.py:131
+#: src/config/SSSDConfig.py:136
 msgid "Kerberos service keytab"
 msgstr "Separador chave do serviço Kerberos"
 
-#: src/config/SSSDConfig.py:132
+#: src/config/SSSDConfig.py:137
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Utilizar autenticação Kerberos para ligações LDAP"
 
-#: src/config/SSSDConfig.py:133
+#: src/config/SSSDConfig.py:138
 msgid "Follow LDAP referrals"
 msgstr "Seguir os referrals LDAP"
 
-#: src/config/SSSDConfig.py:134
+#: src/config/SSSDConfig.py:139
 #, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Utilizar autenticação Kerberos para ligações LDAP"
 
-#: src/config/SSSDConfig.py:135
+#: src/config/SSSDConfig.py:140
 msgid "How to dereference aliases"
 msgstr ""
 
-#: src/config/SSSDConfig.py:136
+#: src/config/SSSDConfig.py:141
 #, fuzzy
 msgid "Service name for DNS service lookups"
 msgstr "Filtro para as pesquisas do utilizador"
 
-#: src/config/SSSDConfig.py:138
+#: src/config/SSSDConfig.py:143
 #, fuzzy
 msgid "entryUSN attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:139
+#: src/config/SSSDConfig.py:144
 #, fuzzy
 msgid "lastUSN attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:142
+#: src/config/SSSDConfig.py:147
 msgid "Length of time to wait for a search request"
 msgstr "Tempo de espera por um pedido de pesquisa"
 
-#: src/config/SSSDConfig.py:143
+#: src/config/SSSDConfig.py:148
+#, fuzzy
+msgid "Length of time to wait for a enumeration request"
+msgstr "Tempo de espera por um pedido de pesquisa"
+
+#: src/config/SSSDConfig.py:149
 msgid "Length of time between enumeration updates"
 msgstr "Período de tempo entre enumeração de actualizações"
 
-#: src/config/SSSDConfig.py:144
+#: src/config/SSSDConfig.py:150
 #, fuzzy
 msgid "Length of time between cache cleanups"
 msgstr "Período de tempo entre enumeração de actualizações"
 
-#: src/config/SSSDConfig.py:145
+#: src/config/SSSDConfig.py:151
 msgid "Require TLS for ID lookups"
 msgstr "Requer TLS para consultas de ID"
 
-#: src/config/SSSDConfig.py:146
+#: src/config/SSSDConfig.py:152
 msgid "Base DN for user lookups"
 msgstr "DN base para pesquisa de utilizadores"
 
-#: src/config/SSSDConfig.py:147
+#: src/config/SSSDConfig.py:153
 msgid "Scope of user lookups"
 msgstr "Âmbito das pesquisas do utilizador"
 
-#: src/config/SSSDConfig.py:148
+#: src/config/SSSDConfig.py:154
 msgid "Filter for user lookups"
 msgstr "Filtro para as pesquisas do utilizador"
 
-#: src/config/SSSDConfig.py:149
+#: src/config/SSSDConfig.py:155
 msgid "Objectclass for users"
 msgstr "Objectclass para utilizadores"
 
-#: src/config/SSSDConfig.py:150
+#: src/config/SSSDConfig.py:156
 msgid "Username attribute"
 msgstr "Atributo do nome do utilizador"
 
-#: src/config/SSSDConfig.py:152
+#: src/config/SSSDConfig.py:158
 msgid "UID attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:153
+#: src/config/SSSDConfig.py:159
 msgid "Primary GID attribute"
 msgstr "Atributo GID primário"
 
-#: src/config/SSSDConfig.py:154
+#: src/config/SSSDConfig.py:160
 msgid "GECOS attribute"
 msgstr "Atributo GECOS"
 
-#: src/config/SSSDConfig.py:155
+#: src/config/SSSDConfig.py:161
 msgid "Home directory attribute"
 msgstr "Atributo da pasta pessoal"
 
-#: src/config/SSSDConfig.py:156
+#: src/config/SSSDConfig.py:162
 msgid "Shell attribute"
 msgstr "Atributo da Shell"
 
-#: src/config/SSSDConfig.py:157
+#: src/config/SSSDConfig.py:163
 msgid "UUID attribute"
 msgstr "Atributo UUID"
 
-#: src/config/SSSDConfig.py:158
+#: src/config/SSSDConfig.py:164
 msgid "User principal attribute (for Kerberos)"
 msgstr "Atributo principal do utilizador (para Kerberos)"
 
-#: src/config/SSSDConfig.py:159
+#: src/config/SSSDConfig.py:165
 msgid "Full Name"
 msgstr "Nome Completo"
 
-#: src/config/SSSDConfig.py:160
+#: src/config/SSSDConfig.py:166
 msgid "memberOf attribute"
 msgstr "Atributo memberOf"
 
-#: src/config/SSSDConfig.py:161
+#: src/config/SSSDConfig.py:167
 msgid "Modification time attribute"
 msgstr "Atributo da alteração da data"
 
-#: src/config/SSSDConfig.py:163
+#: src/config/SSSDConfig.py:169
 msgid "shadowLastChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig.py:164
+#: src/config/SSSDConfig.py:170
 #, fuzzy
 msgid "shadowMin attribute"
 msgstr "Atributo do nome do utilizador"
 
-#: src/config/SSSDConfig.py:165
+#: src/config/SSSDConfig.py:171
 #, fuzzy
 msgid "shadowMax attribute"
 msgstr "Atributo do nome do utilizador"
 
-#: src/config/SSSDConfig.py:166
+#: src/config/SSSDConfig.py:172
 #, fuzzy
 msgid "shadowWarning attribute"
 msgstr "Atributo do nome do utilizador"
 
-#: src/config/SSSDConfig.py:167
+#: src/config/SSSDConfig.py:173
 #, fuzzy
 msgid "shadowInactive attribute"
 msgstr "Atributo do nome do utilizador"
 
-#: src/config/SSSDConfig.py:168
+#: src/config/SSSDConfig.py:174
 #, fuzzy
 msgid "shadowExpire attribute"
 msgstr "Atributo do nome do utilizador"
 
-#: src/config/SSSDConfig.py:169
+#: src/config/SSSDConfig.py:175
 #, fuzzy
 msgid "shadowFlag attribute"
 msgstr "Atributo da Shell"
 
-#: src/config/SSSDConfig.py:170
+#: src/config/SSSDConfig.py:176
 msgid "Attribute listing authorized PAM services"
 msgstr ""
 
-#: src/config/SSSDConfig.py:171
+#: src/config/SSSDConfig.py:177
 msgid "krbLastPwdChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig.py:172
+#: src/config/SSSDConfig.py:178
 #, fuzzy
 msgid "krbPasswordExpiration attribute"
 msgstr "Atributo da alteração da data"
 
-#: src/config/SSSDConfig.py:173
+#: src/config/SSSDConfig.py:179
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
-#: src/config/SSSDConfig.py:175
+#: src/config/SSSDConfig.py:180
+#, fuzzy
+msgid "accountExpires attribute of AD"
+msgstr "Atributo do nome do utilizador"
+
+#: src/config/SSSDConfig.py:181
+msgid "userAccountControl attribute of AD"
+msgstr ""
+
+#: src/config/SSSDConfig.py:182
+#, fuzzy
+msgid "nsAccountLock attribute"
+msgstr "Atributo do nome do utilizador"
+
+#: src/config/SSSDConfig.py:184
 #, fuzzy
 msgid "Base DN for group lookups"
 msgstr "DN base para pesquisa de utilizadores"
 
-#: src/config/SSSDConfig.py:178
+#: src/config/SSSDConfig.py:187
 #, fuzzy
 msgid "Objectclass for groups"
 msgstr "Objectclass para utilizadores"
 
-#: src/config/SSSDConfig.py:179
+#: src/config/SSSDConfig.py:188
 #, fuzzy
 msgid "Group name"
 msgstr "Grupos"
 
-#: src/config/SSSDConfig.py:180
+#: src/config/SSSDConfig.py:189
 #, fuzzy
 msgid "Group password"
 msgstr "Grupos"
 
-#: src/config/SSSDConfig.py:181
+#: src/config/SSSDConfig.py:190
 #, fuzzy
 msgid "GID attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:182
+#: src/config/SSSDConfig.py:191
 #, fuzzy
 msgid "Group member attribute"
 msgstr "Atributo memberOf"
 
-#: src/config/SSSDConfig.py:183
+#: src/config/SSSDConfig.py:192
 #, fuzzy
 msgid "Group UUID attribute"
 msgstr "Atributo UUID"
 
-#: src/config/SSSDConfig.py:184
+#: src/config/SSSDConfig.py:193
 #, fuzzy
 msgid "Modification time attribute for groups"
 msgstr "Atributo da alteração da data"
 
-#: src/config/SSSDConfig.py:186
+#: src/config/SSSDConfig.py:195
 msgid "Maximum nesting level SSSd will follow"
 msgstr ""
 
-#: src/config/SSSDConfig.py:188
+#: src/config/SSSDConfig.py:197
 #, fuzzy
 msgid "Base DN for netgroup lookups"
 msgstr "DN base para pesquisa de utilizadores"
 
-#: src/config/SSSDConfig.py:189
+#: src/config/SSSDConfig.py:198
 #, fuzzy
 msgid "Objectclass for netgroups"
 msgstr "Objectclass para utilizadores"
 
-#: src/config/SSSDConfig.py:190
+#: src/config/SSSDConfig.py:199
 msgid "Netgroup name"
 msgstr ""
 
-#: src/config/SSSDConfig.py:191
+#: src/config/SSSDConfig.py:200
 #, fuzzy
 msgid "Netgroups members attribute"
 msgstr "Atributo memberOf"
 
-#: src/config/SSSDConfig.py:192
+#: src/config/SSSDConfig.py:201
 #, fuzzy
 msgid "Netgroup triple attribute"
 msgstr "Atributo da alteração da data"
 
-#: src/config/SSSDConfig.py:193
+#: src/config/SSSDConfig.py:202
 #, fuzzy
 msgid "Netgroup UUID attribute"
 msgstr "Atributo UUID"
 
-#: src/config/SSSDConfig.py:194
+#: src/config/SSSDConfig.py:203
 #, fuzzy
 msgid "Modification time attribute for netgroups"
 msgstr "Atributo da alteração da data"
 
-#: src/config/SSSDConfig.py:197
+#: src/config/SSSDConfig.py:206
 msgid "Policy to evaluate the password expiration"
 msgstr "Politica para avaliar a expiração da senha"
 
-#: src/config/SSSDConfig.py:200
+#: src/config/SSSDConfig.py:209
 msgid "LDAP filter to determine access privileges"
 msgstr ""
 
-#: src/config/SSSDConfig.py:201
+#: src/config/SSSDConfig.py:210
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 
-#: src/config/SSSDConfig.py:202
+#: src/config/SSSDConfig.py:211
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 
-#: src/config/SSSDConfig.py:205
+#: src/config/SSSDConfig.py:214
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig.py:206
+#: src/config/SSSDConfig.py:215
 msgid "DNS service name for LDAP password change server"
 msgstr ""
 
-#: src/config/SSSDConfig.py:209
+#: src/config/SSSDConfig.py:218
 msgid "Comma separated list of allowed users"
 msgstr "Lista de utilizadores autorizados separados por vírgulas"
 
-#: src/config/SSSDConfig.py:210
+#: src/config/SSSDConfig.py:219
 msgid "Comma separated list of prohibited users"
 msgstr "Lista de utilizadores não autorizados separados por vírgulas"
 
-#: src/config/SSSDConfig.py:213
+#: src/config/SSSDConfig.py:222
 msgid "Default shell, /bin/bash"
 msgstr "Shell pré-definida, /bin/bash"
 
-#: src/config/SSSDConfig.py:214
+#: src/config/SSSDConfig.py:223
 msgid "Base for home directories"
 msgstr "Directório base para as pastas pessoais"
 
-#: src/config/SSSDConfig.py:217
+#: src/config/SSSDConfig.py:226
 msgid "The name of the NSS library to use"
 msgstr "O nome da biblioteca NSS a utilizar"
 
-#: src/config/SSSDConfig.py:220
+#: src/config/SSSDConfig.py:229
 msgid "PAM stack to use"
 msgstr "Stack PAM a utilizar"
 
