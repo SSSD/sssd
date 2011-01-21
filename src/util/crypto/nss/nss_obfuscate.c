@@ -90,7 +90,7 @@ static int generate_random_key(TALLOC_CTX *mem_ctx,
 {
     SECStatus sret;
     SECItem      *randkeydata;
-    SECItem      *key;
+    SECItem      *key = NULL;
     PK11SymKey   *randkey;
     int ret;
 
