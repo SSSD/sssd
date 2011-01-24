@@ -200,6 +200,7 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/*.py*
 
 %lang(cs)       %{_mandir}/cs/man[58]/*
+%lang(uk)       %{_mandir}/uk/man[58]/*
 
 %files client
 %defattr(-,root,root,-)
