@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2011-01-21 16:56-0500\n"
-"PO-Revision-Date: 2010-12-23 09:06+0100\n"
+"PO-Revision-Date: 2011-01-23 17:33+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "Language: pl\n"
@@ -117,7 +117,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:68
 msgid "How many days before password expiration a warning should be displayed"
-msgstr ""
+msgstr "Ile dni przed wygaśnięciem hasła wyświetlić ostrzeżenie"
 
 #: src/config/SSSDConfig.py:71
 msgid "Identity provider"
@@ -211,7 +211,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:95
 msgid "Search base for HBAC related objects"
-msgstr ""
+msgstr "Wyszukiwanie podstawy pod kątem obiektów związanych z HBAC"
 
 #: src/config/SSSDConfig.py:98 src/config/SSSDConfig.py:99
 msgid "Kerberos server address"
@@ -319,18 +319,16 @@ msgid "Path to CA certificate directory"
 msgstr "Ścieżka do katalogu certyfikatów CA"
 
 #: src/config/SSSDConfig.py:130
-#, fuzzy
 msgid "File that contains the client certificate"
-msgstr "Plik zawierający certyfikaty CA"
+msgstr "Plik zawierający certyfikat klienta"
 
 #: src/config/SSSDConfig.py:131
-#, fuzzy
 msgid "File that contains the client key"
-msgstr "Plik zawierający certyfikaty CA"
+msgstr "Plik zawierający klucz klienta"
 
 #: src/config/SSSDConfig.py:132
 msgid "List of possible ciphers suites"
-msgstr ""
+msgstr "Lista możliwych zestawów szyfrów"
 
 #: src/config/SSSDConfig.py:133
 msgid "Require TLS certificate verification"
@@ -381,9 +379,8 @@ msgid "Length of time to wait for a search request"
 msgstr "Czas oczekiwania na żądanie wyszukiwania"
 
 #: src/config/SSSDConfig.py:148
-#, fuzzy
 msgid "Length of time to wait for a enumeration request"
-msgstr "Czas oczekiwania na żądanie wyszukiwania"
+msgstr "Czas oczekiwania na żądanie wyliczenia"
 
 #: src/config/SSSDConfig.py:149
 msgid "Length of time between enumeration updates"
@@ -502,18 +499,16 @@ msgid "Attribute indicating that server side password policies are active"
 msgstr "Atrybut wskazujący, czy polityki haseł po stronie serwera są aktywne"
 
 #: src/config/SSSDConfig.py:180
-#, fuzzy
 msgid "accountExpires attribute of AD"
-msgstr "Atrybut shadowExpire"
+msgstr "Atrybut accountExpires AD"
 
 #: src/config/SSSDConfig.py:181
 msgid "userAccountControl attribute of AD"
-msgstr ""
+msgstr "Atrybut userAccountControl AD"
 
 #: src/config/SSSDConfig.py:182
-#, fuzzy
 msgid "nsAccountLock attribute"
-msgstr "Atrybut shadowMin"
+msgstr "Atrybut nsAccountLock"
 
 #: src/config/SSSDConfig.py:184
 msgid "Base DN for group lookups"
