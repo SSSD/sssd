@@ -1,13 +1,13 @@
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
 #
-# Yuri Chornoivan <yurchor@ukr.net>, 2010.
+# Yuri Chornoivan <yurchor@ukr.net>, 2010, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2011-01-21 16:56-0500\n"
-"PO-Revision-Date: 2010-12-23 17:43+0200\n"
+"PO-Revision-Date: 2011-01-23 10:08+0200\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
 "Language: uk\n"
@@ -121,6 +121,8 @@ msgstr ""
 #: src/config/SSSDConfig.py:68
 msgid "How many days before password expiration a warning should be displayed"
 msgstr ""
+"Визначає кількість днів між днем, коли має бути показано попередження, і "
+"днем, коли завершиться строк дії пароля"
 
 #: src/config/SSSDConfig.py:71
 msgid "Identity provider"
@@ -214,7 +216,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:95
 msgid "Search base for HBAC related objects"
-msgstr ""
+msgstr "Шукати у базі об’єкти, пов’язані з HBAC"
 
 #: src/config/SSSDConfig.py:98 src/config/SSSDConfig.py:99
 msgid "Kerberos server address"
@@ -321,18 +323,16 @@ msgid "Path to CA certificate directory"
 msgstr "Шлях до каталогу сертифікатів CA"
 
 #: src/config/SSSDConfig.py:130
-#, fuzzy
 msgid "File that contains the client certificate"
-msgstr "Файл, що містить сертифікати CA"
+msgstr "Файл, що містить клієнтський сертифікат"
 
 #: src/config/SSSDConfig.py:131
-#, fuzzy
 msgid "File that contains the client key"
-msgstr "Файл, що містить сертифікати CA"
+msgstr "Файл, що містить клієнтський ключ"
 
 #: src/config/SSSDConfig.py:132
 msgid "List of possible ciphers suites"
-msgstr ""
+msgstr "Показати список можливих інструментів шифрування"
 
 #: src/config/SSSDConfig.py:133
 msgid "Require TLS certificate verification"
@@ -383,9 +383,8 @@ msgid "Length of time to wait for a search request"
 msgstr "Тривалість очікування на дані запиту пошуку"
 
 #: src/config/SSSDConfig.py:148
-#, fuzzy
 msgid "Length of time to wait for a enumeration request"
-msgstr "Тривалість очікування на дані запиту пошуку"
+msgstr "Тривалість очікування на дані запиту щодо переліку"
 
 #: src/config/SSSDConfig.py:149
 msgid "Length of time between enumeration updates"
@@ -505,18 +504,16 @@ msgstr ""
 "Атрибут, що відповідає за активізацію правил обробки паролів на боці сервера"
 
 #: src/config/SSSDConfig.py:180
-#, fuzzy
 msgid "accountExpires attribute of AD"
-msgstr "Атрибут shadowExpire"
+msgstr "Атрибут accountExpires AD"
 
 #: src/config/SSSDConfig.py:181
 msgid "userAccountControl attribute of AD"
-msgstr ""
+msgstr "Атрибут userAccountControl AD"
 
 #: src/config/SSSDConfig.py:182
-#, fuzzy
 msgid "nsAccountLock attribute"
-msgstr "Атрибут shadowMin"
+msgstr "Атрибут nsAccountLock"
 
 #: src/config/SSSDConfig.py:184
 msgid "Base DN for group lookups"
