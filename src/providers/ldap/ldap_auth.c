@@ -536,6 +536,7 @@ static void auth_resolve_done(struct tevent_req *subreq)
     struct auth_state *state = tevent_req_data(req,
                                                     struct auth_state);
     int ret;
+    bool use_tls;
 
     ret = be_resolve_server_recv(subreq, &state->srv);
     talloc_zfree(subreq);
@@ -546,8 +547,19 @@ static void auth_resolve_done(struct tevent_req *subreq)
         return;
     }
 
+    /* Check for undocumented debugging feature to disable TLS
+     * for authentication. This should never be used in production
+     * for obvious reasons.
+     */
+    use_tls = !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS);
+    if (!use_tls) {
+        sss_log(SSS_LOG_ALERT, "LDAP authentication being performed over "
+                               "insecure connection. This should be done "
+                               "for debugging purposes only.");
+    }
+
     subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
-                               state->sdap_service->uri, true);
+                               state->sdap_service->uri, use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
