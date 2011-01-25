@@ -73,6 +73,7 @@ BuildRequires: bind-utils
 BuildRequires: keyutils-libs-devel
 BuildRequires: libnl-devel
 BuildRequires: nscd
+BuildRequires: gettext
 
 %description
 Provides a set of daemons to manage access to remote directories and
