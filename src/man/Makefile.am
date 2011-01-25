@@ -73,7 +73,7 @@ XML_DOC = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 if HAVE_PO4A
 
 # FIXME: Use a stamp file until po4a supports them internally.
-man.stamp: $(XML_DOC)
+man.stamp: $(XML_DOC) $(POTFILE) $(PO4A_CONFIG)
 	cd $(srcdir) && \
 	$(PO4A) $(PO4A_BUILD_OPTS) $(PO4A_CONFIG)
 	touch $@
