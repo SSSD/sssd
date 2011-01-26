@@ -185,34 +185,47 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 name = map[a].sys_name;
             } else {
                 store = false;
+                name = NULL;
             }
         } else {
             name = str;
             store = true;
         }
 
+        if (strstr(str, ";range=") != NULL) {
+            DEBUG(1, ("Attribute [%s] has range sub-attribute "
+                      "which is currently not supported, skipping.\n", str));
+            store = false;
+        }
+
         if (store) {
             vals = ldap_get_values_len(sh->ldap, sm->msg, str);
             if (!vals) {
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-                DEBUG(1, ("LDAP Library error: %d(%s)",
-                          lerrno, ldap_err2string(lerrno)));
-                ret = EIO;
-                goto fail;
-            }
-            if (!vals[0]) {
-                DEBUG(1, ("Missing value after ldap_get_values() ??\n"));
-                ret = EINVAL;
-                goto fail;
-            }
-            for (i = 0; vals[i]; i++) {
-                v.data = (uint8_t *)vals[i]->bv_val;
-                v.length = vals[i]->bv_len;
+                if (lerrno != LDAP_SUCCESS) {
+                    DEBUG(1, ("LDAP Library error: %d(%s)",
+                              lerrno, ldap_err2string(lerrno)));
+                    ret = EIO;
+                    goto fail;
+                }
 
-                ret = sysdb_attrs_add_val(attrs, name, &v);
-                if (ret) goto fail;
+                DEBUG(5, ("Attribute [%s] has no values, skipping.\n", str));
+
+            } else {
+                if (!vals[0]) {
+                    DEBUG(1, ("Missing value after ldap_get_values() ??\n"));
+                    ret = EINVAL;
+                    goto fail;
+                }
+                for (i = 0; vals[i]; i++) {
+                    v.data = (uint8_t *)vals[i]->bv_val;
+                    v.length = vals[i]->bv_len;
+
+                    ret = sysdb_attrs_add_val(attrs, name, &v);
+                    if (ret) goto fail;
+                }
+                ldap_value_free_len(vals);
             }
-            ldap_value_free_len(vals);
         }
 
         ldap_memfree(str);
