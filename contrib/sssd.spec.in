@@ -167,6 +167,20 @@ do
     echo %{python_sitelib}/`basename $file` >> sssd.lang
 done
 
+touch sssd_tools.lang
+for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`
+do
+    lang=`echo $man | cut -c 1-2`
+    case `basename $man` in
+        sss_*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
+            ;;
+        *)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
+            ;;
+    esac
+done
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -200,9 +214,6 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
 
-%lang(cs)       %{_mandir}/cs/man[58]/*
-%lang(uk)       %{_mandir}/uk/man[58]/*
-
 %files client
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
@@ -212,7 +223,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
-%files tools
+%files tools -f sssd_tools.lang
 %defattr(-,root,root,-)
 %doc COPYING
 %{_sbindir}/sss_useradd
