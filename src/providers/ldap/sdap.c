@@ -19,7 +19,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define LDAP_DEPRECATED 1
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "providers/ldap/ldap_common.h"
