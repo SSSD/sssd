@@ -3409,6 +3409,7 @@ errno_t save_rfc2307bis_user_memberships(
 {
     errno_t ret, tret;
     char *member_dn;
+    char *sanitized_dn;
     char *filter;
     const char **attrs;
     size_t reply_count, i;
@@ -3447,12 +3448,18 @@ errno_t save_rfc2307bis_user_memberships(
         ret = ENOMEM;
         goto error;
     }
+    ret = sss_filter_sanitize(tmp_ctx, member_dn, &sanitized_dn);
+    if (ret != EOK) {
+        goto error;
+    }
+    talloc_free(member_dn);
 
-    filter = talloc_asprintf(tmp_ctx, "(member=%s)", member_dn);
+    filter = talloc_asprintf(tmp_ctx, "(member=%s)", sanitized_dn);
     if (!filter) {
         ret = ENOMEM;
         goto error;
     }
+    talloc_free(sanitized_dn);
 
     ret = sysdb_search_groups(tmp_ctx, state->sysdb, state->dom,
                               filter, attrs, &reply_count, &replies);
@@ -3874,6 +3881,7 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
     const char *name;
     bool in_transaction = false;
     char *member_dn;
+    char *sanitized_dn;
     char *filter;
     const char **attrs;
     size_t reply_count, i;
@@ -3918,12 +3926,18 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
         goto error;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(member=%s)", member_dn);
+    ret = sss_filter_sanitize(tmp_ctx, member_dn, &sanitized_dn);
+    if (ret != EOK) {
+        goto error;
+    }
+    talloc_free(member_dn);
+
+    filter = talloc_asprintf(tmp_ctx, "(member=%s)", sanitized_dn);
     if (!filter) {
         ret = ENOMEM;
         goto error;
     }
-    talloc_free(member_dn);
+    talloc_free(sanitized_dn);
 
     ret = sysdb_search_groups(tmp_ctx, state->sysdb, state->dom,
                               filter, attrs,
