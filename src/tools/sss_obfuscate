@@ -63,11 +63,15 @@ def main():
     obfpwd = obfobj.encrypt(password, obfobj.AES_256)
 
     # Save the obfuscated password into the domain
-    sssdconfig = SSSDConfig.SSSDConfig()
+    try:
+        sssdconfig = SSSDConfig.SSSDConfig()
+    except IOError:
+        print "Cannot read internal configuration files."
+        return 1
     try:
         sssdconfig.import_config(options.filename)
     except IOError:
-        print "Cannot open config file %s" % options.filename
+        print "Permissions error reading config file"
         return 1
 
     try:
@@ -86,7 +90,15 @@ def main():
 
 
     sssdconfig.save_domain(domain)
-    sssdconfig.write()
+    try:
+        sssdconfig.write()
+    except IOError:
+        # File could not be written
+        print >> sys.stderr, "Could not write to config file. Check that " \
+                             "you have the appropriate permissions to edit " \
+                             "this file."
+        return 1
+
     return 0
 
 if __name__ == "__main__":
