@@ -19,8 +19,8 @@ def parse_options():
                       dest="stdin", default=False,
                       help="Read the password from stdin.")
     parser.add_option("-d", "--domain",
-                      dest="domain", default="default",
-                      help="The domain to use the password in (default: default)",
+                      dest="domain", default=None,
+                      help="The domain to use the password in (mandatory)",
                       metavar="DOMNAME")
     parser.add_option("-f", "--file",
                       dest="filename", default=None,
@@ -38,6 +38,10 @@ def main():
     options, args = parse_options()
     if not options:
         print >> sys.stderr, "Cannot parse options"
+        return 1
+
+    if not options.domain:
+        print >> sys.stderr, "No domain specified"
         return 1
 
     if not options.stdin and not options.password:
