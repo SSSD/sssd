@@ -34,8 +34,7 @@
             section of the SSSD config file.
         </para>
         <para>
-            The cleartext password can be specified as an argument to the
-            program, read from standard input or entered interactively.
+            The cleartext password is read from standard input or entered interactively.
             The obfuscated password is put into <quote>ldap_default_authtok</quote>
             parameter of a given SSSD domain and the
             <quote>ldap_default_authtok_type</quote> parameter is set to
