@@ -136,8 +136,8 @@ make install DESTDIR=$RPM_BUILD_ROOT
 # Copy default sssd.conf file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
 install -m600 src/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.conf
-install -m400 src/config/etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
-install -m400 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
+install -m444 src/config/etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
+install -m444 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
 
 # Copy default logrotate file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
@@ -184,12 +184,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %dir %{pubconfpath}
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
-%attr(700,root,root) %dir %{_sysconfdir}/sssd
+%attr(711,root,root) %dir %{_sysconfdir}/sssd
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %config %{_sysconfdir}/sssd/sssd.api.conf
-%attr(700,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
+%attr(755,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
 %config %{_sysconfdir}/sssd/sssd.api.d/
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-ipa.5*
