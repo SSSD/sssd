@@ -26,10 +26,6 @@ def parse_options():
                       dest="filename", default=None,
                       help="Set input file to FILE (default: Use system default, usually /etc/sssd/sssd.conf)",
                       metavar="FILE")
-    parser.add_option("-p", "--password",
-                      dest="password", default=None,
-                      help="Password to obfuscate.",
-                      metavar="PASSWORD")
     (options, args) = parser.parse_args()
 
     return options, args
@@ -44,7 +40,7 @@ def main():
         print >> sys.stderr, "No domain specified"
         return 1
 
-    if not options.stdin and not options.password:
+    if not options.stdin:
         pprompt = lambda: (getpass.getpass("Enter password: "), getpass.getpass("Re-enter password: "))
         p1, p2 = pprompt()
         while p1 != p2:
