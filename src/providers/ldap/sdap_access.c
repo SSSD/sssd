@@ -1001,13 +1001,13 @@ static struct tevent_req *sdap_access_service_send(
 
     if (state->pam_status != PAM_SUCCESS) {
         DEBUG(4, ("No matching service rule found\n"));
-    }
 
-    ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
-                           sizeof(AUTHR_SRV_NO_MATCH_MSG),
-                           (const uint8_t *) AUTHR_SRV_NO_MATCH_MSG);
-    if (ret != EOK) {
-        DEBUG(1, ("pam_add_response failed.\n"));
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(AUTHR_SRV_NO_MATCH_MSG),
+                               (const uint8_t *) AUTHR_SRV_NO_MATCH_MSG);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
     }
 
     ret = EOK;
