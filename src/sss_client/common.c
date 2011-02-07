@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
@@ -52,6 +53,7 @@
 /* common functions */
 
 int sss_cli_sd = -1; /* the sss client socket descriptor */
+struct stat sss_cli_sb; /* the sss client stat buffer */
 
 static void sss_cli_close_socket(void)
 {
@@ -495,8 +497,11 @@ static int make_safe_fd(int fd)
 static int sss_nss_open_socket(int *errnop, const char *socket_name)
 {
     struct sockaddr_un nssaddr;
-    int inprogress = 1;
-    int wait_time, sleep_time;
+    bool inprogress = true;
+    bool connected = false;
+    unsigned int wait_time;
+    unsigned int sleep_time;
+    int ret;
     int sd;
 
     memset(&nssaddr, 0, sizeof(struct sockaddr_un));
@@ -521,19 +526,19 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
     /* this piece is adapted from winbind client code */
     wait_time = 0;
     sleep_time = 0;
-    while(inprogress) {
+    while (inprogress) {
         int connect_errno = 0;
         socklen_t errnosize;
         struct timeval tv;
         fd_set w_fds;
-        int ret;
 
         wait_time += sleep_time;
 
         ret = connect(sd, (struct sockaddr *)&nssaddr,
                       sizeof(nssaddr));
         if (ret == 0) {
-            return sd;
+            connected = true;
+            break;
         }
 
         switch(errno) {
@@ -550,10 +555,12 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
                 ret = getsockopt(sd, SOL_SOCKET, SO_ERROR,
                                  &connect_errno, &errnosize);
                 if (ret >= 0 && connect_errno == 0) {
-                    return sd;
+                    connected = true;
+                    break;
                 }
             }
-            wait_time += SSS_CLI_SOCKET_TIMEOUT;
+            wait_time += tv.tv_sec;
+            if (tv.tv_usec != 0) wait_time++;
             break;
         case EAGAIN:
             if (wait_time < SSS_CLI_SOCKET_TIMEOUT) {
@@ -563,28 +570,50 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
             break;
         default:
             *errnop = errno;
-            inprogress = 0;
+            inprogress = false;
             break;
         }
 
         if (wait_time >= SSS_CLI_SOCKET_TIMEOUT) {
-            inprogress = 0;
+            inprogress = false;
+        }
+
+        if (connected) {
+            inprogress = false;
         }
     }
 
-    /* if we get here connect() failed or we timed out */
+    if (!connected) {
+        close(sd);
+        return -1;
+    }
 
-    close(sd);
-    return -1;
+    ret = fstat(sd, &sss_cli_sb);
+    if (ret != 0) {
+        close(sd);
+        return -1;
+    }
+
+    return sd;
 }
 
 static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name)
 {
     static pid_t mypid;
+    struct stat mysb;
     int mysd;
+    int ret;
 
     if (getpid() != mypid) {
-        sss_cli_close_socket();
+        ret = fstat(sss_cli_sd, &mysb);
+        if (ret == 0) {
+            if (S_ISSOCK(mysb.st_mode) &&
+                mysb.st_dev == sss_cli_sb.st_dev &&
+                mysb.st_ino == sss_cli_sb.st_ino) {
+                sss_cli_close_socket();
+            }
+        }
+        sss_cli_sd = -1;
         mypid = getpid();
     }
 
