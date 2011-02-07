@@ -267,6 +267,7 @@ struct sss_cli_req_data {
 #define SSS_CLI_SOCKET_TIMEOUT 300000
 
 enum sss_status {
+    SSS_STATUS_TRYAGAIN,
     SSS_STATUS_UNAVAIL,
     SSS_STATUS_SUCCESS
 };

@@ -74,7 +74,7 @@ static void sss_cli_close_socket(void)
  * byte 12-15: 32bit unsigned (reserved)
  * byte 16-X: (optional) request structure associated to the command code used
  */
-static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
+static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
                                         struct sss_cli_req_data *rd,
                                         int *errnop)
 {
@@ -129,7 +129,7 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
         }
         if (*errnop) {
             sss_cli_close_socket();
-            return NSS_STATUS_UNAVAIL;
+            return SSS_STATUS_UNAVAIL;
         }
 
         errno = 0;
@@ -156,13 +156,13 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
             /* Write failed */
             sss_cli_close_socket();
             *errnop = errno;
-            return NSS_STATUS_UNAVAIL;
+            return SSS_STATUS_UNAVAIL;
         }
 
         datasent += res;
     }
 
-    return NSS_STATUS_SUCCESS;
+    return SSS_STATUS_SUCCESS;
 }
 
 /* Replies:
@@ -174,7 +174,7 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
  * byte 16-X: (optional) reply structure associated to the command code used
  */
 
-static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
+static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
                                         uint8_t **_buf, int *_len,
                                         int *errnop)
 {
@@ -234,7 +234,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
         }
         if (*errnop) {
             sss_cli_close_socket();
-            ret = NSS_STATUS_UNAVAIL;
+            ret = SSS_STATUS_UNAVAIL;
             goto failed;
         }
 
@@ -266,7 +266,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
 
             sss_cli_close_socket();
             *errnop = errno;
-            ret = NSS_STATUS_UNAVAIL;
+            ret = SSS_STATUS_UNAVAIL;
             goto failed;
         }
 
@@ -281,10 +281,10 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
                 sss_cli_close_socket();
                 *errnop = header[2];
                 if (*errnop == EAGAIN) {
-                    ret = NSS_STATUS_TRYAGAIN;
+                    ret = SSS_STATUS_TRYAGAIN;
                     goto failed;
                 } else {
-                    ret = NSS_STATUS_UNAVAIL;
+                    ret = SSS_STATUS_UNAVAIL;
                     goto failed;
                 }
             }
@@ -292,7 +292,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
                 /* wrong command id */
                 sss_cli_close_socket();
                 *errnop = EBADMSG;
-                ret = NSS_STATUS_UNAVAIL;
+                ret = SSS_STATUS_UNAVAIL;
                 goto failed;
             }
             if (header[0] > SSS_NSS_HEADER_SIZE) {
@@ -301,7 +301,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
                 if (!buf) {
                     sss_cli_close_socket();
                     *errnop = ENOMEM;
-                    ret = NSS_STATUS_UNAVAIL;
+                    ret = SSS_STATUS_UNAVAIL;
                     goto failed;
                 }
             }
@@ -311,7 +311,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
     *_len = len;
     *_buf = buf;
 
-    return NSS_STATUS_SUCCESS;
+    return SSS_STATUS_SUCCESS;
 
 failed:
     free(buf);
@@ -320,25 +320,25 @@ failed:
 
 /* this function will check command codes match and returned length is ok */
 /* repbuf and replen report only the data section not the header */
-static enum nss_status sss_nss_make_request_nochecks(
+static enum sss_status sss_cli_make_request_nochecks(
                                        enum sss_cli_command cmd,
                                        struct sss_cli_req_data *rd,
                                        uint8_t **repbuf, size_t *replen,
                                        int *errnop)
 {
-    enum nss_status ret;
+    enum sss_status ret;
     uint8_t *buf = NULL;
     int len = 0;
 
     /* send data */
-    ret = sss_nss_send_req(cmd, rd, errnop);
-    if (ret != NSS_STATUS_SUCCESS) {
+    ret = sss_cli_send_req(cmd, rd, errnop);
+    if (ret != SSS_STATUS_SUCCESS) {
         return ret;
     }
 
     /* data sent, now get reply */
-    ret = sss_nss_recv_rep(cmd, &buf, &len, errnop);
-    if (ret != NSS_STATUS_SUCCESS) {
+    ret = sss_cli_recv_rep(cmd, &buf, &len, errnop);
+    if (ret != SSS_STATUS_SUCCESS) {
         return ret;
     }
 
@@ -356,21 +356,21 @@ static enum nss_status sss_nss_make_request_nochecks(
         }
     }
 
-    return NSS_STATUS_SUCCESS;
+    return SSS_STATUS_SUCCESS;
 }
 
 /* GET_VERSION Reply:
  * 0-3: 32bit unsigned version number
  */
 
-static int sss_nss_check_version(const char *socket_name)
+static bool sss_cli_check_version(const char *socket_name)
 {
     uint8_t *repbuf;
     size_t replen;
-    enum nss_status nret;
+    enum sss_status nret;
     int errnop;
-    int res = NSS_STATUS_UNAVAIL;
     uint32_t expected_version;
+    uint32_t obtained_version;
     struct sss_cli_req_data req;
 
     if (strcmp(socket_name, SSS_NSS_SOCKET_NAME) == 0) {
@@ -379,28 +379,26 @@ static int sss_nss_check_version(const char *socket_name)
                strcmp(socket_name, SSS_PAM_PRIV_SOCKET_NAME) == 0) {
         expected_version = SSS_PAM_PROTOCOL_VERSION;
     } else {
-        return NSS_STATUS_UNAVAIL;
+        return false;
     }
 
     req.len = sizeof(expected_version);
     req.data = &expected_version;
 
-    nret = sss_nss_make_request_nochecks(SSS_GET_VERSION, &req,
+    nret = sss_cli_make_request_nochecks(SSS_GET_VERSION, &req,
                                          &repbuf, &replen, &errnop);
-    if (nret != NSS_STATUS_SUCCESS) {
-        return nret;
+    if (nret != SSS_STATUS_SUCCESS) {
+        return false;
     }
 
     if (!repbuf) {
-        return res;
+        return false;
     }
 
-    if (((uint32_t *)repbuf)[0] == expected_version) {
-        res = NSS_STATUS_SUCCESS;
-    }
-
+    obtained_version = ((uint32_t *)repbuf)[0];
     free(repbuf);
-    return res;
+
+    return (obtained_version == expected_version);
 }
 
 /* this 2 functions are adapted from samba3 winbinbd's wb_common.c */
@@ -497,7 +495,7 @@ static int make_safe_fd(int fd)
     return new_fd;
 }
 
-static int sss_nss_open_socket(int *errnop, const char *socket_name)
+static int sss_cli_open_socket(int *errnop, const char *socket_name)
 {
     struct sockaddr_un nssaddr;
     bool inprogress = true;
@@ -663,14 +661,14 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
         sss_cli_close_socket();
     }
 
-    mysd = sss_nss_open_socket(errnop, socket_name);
+    mysd = sss_cli_open_socket(errnop, socket_name);
     if (mysd == -1) {
         return SSS_STATUS_UNAVAIL;
     }
 
     sss_cli_sd = mysd;
 
-    if (sss_nss_check_version(socket_name) == NSS_STATUS_SUCCESS) {
+    if (sss_cli_check_version(socket_name)) {
         return SSS_STATUS_SUCCESS;
     }
 
@@ -700,7 +698,16 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
         return NSS_STATUS_UNAVAIL;
     }
 
-    return sss_nss_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    switch (ret) {
+    case SSS_STATUS_TRYAGAIN:
+        return NSS_STATUS_TRYAGAIN;
+    case SSS_STATUS_SUCCESS:
+        return NSS_STATUS_SUCCESS;
+    case SSS_STATUS_UNAVAIL:
+    default:
+        return NSS_STATUS_UNAVAIL;
+    }
 }
 
 errno_t check_server_cred(int sockfd)
@@ -731,7 +738,9 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                       uint8_t **repbuf, size_t *replen,
                       int *errnop)
 {
-    int ret;
+    int ret, statret;
+    errno_t error;
+    enum sss_status status;
     char *envval;
     struct stat stat_buf;
 
@@ -746,8 +755,8 @@ int sss_pam_make_request(enum sss_cli_command cmd,
 
     /* only root shall use the privileged pipe */
     if (getuid() == 0 && getgid() == 0) {
-        ret = stat(SSS_PAM_PRIV_SOCKET_NAME, &stat_buf);
-        if (ret != 0) {
+        statret = stat(SSS_PAM_PRIV_SOCKET_NAME, &stat_buf);
+        if (statret != 0) {
             ret = PAM_SERVICE_ERR;
             goto out;
         }
@@ -760,10 +769,10 @@ int sss_pam_make_request(enum sss_cli_command cmd,
             goto out;
         }
 
-        ret = sss_cli_check_socket(errnop, SSS_PAM_PRIV_SOCKET_NAME);
+        status = sss_cli_check_socket(errnop, SSS_PAM_PRIV_SOCKET_NAME);
     } else {
-        ret = stat(SSS_PAM_SOCKET_NAME, &stat_buf);
-        if (ret != 0) {
+        statret = stat(SSS_PAM_SOCKET_NAME, &stat_buf);
+        if (statret != 0) {
             ret = PAM_SERVICE_ERR;
             goto out;
         }
@@ -776,22 +785,27 @@ int sss_pam_make_request(enum sss_cli_command cmd,
             goto out;
         }
 
-        ret = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
+        status = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
     }
-    if (ret != NSS_STATUS_SUCCESS) {
+    if (status != SSS_STATUS_SUCCESS) {
         ret = PAM_SERVICE_ERR;
         goto out;
     }
 
-    ret = check_server_cred(sss_cli_sd);
-    if (ret != 0) {
+    error = check_server_cred(sss_cli_sd);
+    if (error != 0) {
         sss_cli_close_socket();
-        *errnop = ret;
+        *errnop = error;
         ret = PAM_SERVICE_ERR;
         goto out;
     }
 
-    ret = sss_nss_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    status = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    if (status == SSS_STATUS_SUCCESS) {
+        ret = PAM_SUCCESS;
+    } else {
+        ret = PAM_SERVICE_ERR;
+    }
 
 out:
     sss_pam_unlock();
