@@ -295,6 +295,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_purge_cache_timeout</term>
+                    <listitem>
+                        <para>
+                            Determine how often to check the cache for
+                            inactive entries (such as groups with no
+                            members and users who have never logged in) and
+                            remove them to save space.
+                        </para>
+                        <para>
+                            Setting this option to zero will disable the
+                            cache cleanup operation.
+                        </para>
+                        <para>
+                            Default: 0 (disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_member_of (string)</term>
                     <listitem>
                         <para>
