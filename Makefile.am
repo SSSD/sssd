@@ -637,6 +637,7 @@ auth_tests_SOURCES = \
     $(SSSD_UTIL_OBJ)
 auth_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    -DSYSDB_TEST \
     $(CHECK_CFLAGS)
 auth_tests_LDADD = \
     $(SSSD_LIBS) \

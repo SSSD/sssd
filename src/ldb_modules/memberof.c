@@ -1,7 +1,7 @@
 /*
    SSSD memberof module
 
-   Copyright (C) Simo Sorce <idra@samba.org> 2008
+   Copyright (C) Simo Sorce <idra@samba.org> 2008-2011
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -16,6 +16,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+/* Temporary workaround, will be fixed in ldb upstream soon */
+#ifndef LDB_VERSION
+#define LDB_VERSION "0.9.22"
+#endif
 
 #include <string.h>
 #include "ldb_module.h"
@@ -3630,3 +3635,11 @@ const struct ldb_module_ops ldb_memberof_module_ops = {
     .modify = memberof_mod,
     .del = memberof_del,
 };
+
+int ldb_init_module(const char *version)
+{
+#ifdef LDB_MODULE_CHECK_VERSION
+    LDB_MODULE_CHECK_VERSION(version);
+#endif
+    return ldb_register_module(&ldb_memberof_module_ops);
+}
