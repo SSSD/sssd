@@ -1727,15 +1727,8 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
 static int mbof_del_execute_cont(struct mbof_del_operation *delop)
 {
     struct mbof_del_ancestors_ctx *anc_ctx;
-    struct mbof_del_operation *parent;
-    struct mbof_del_ctx *del_ctx;
-    struct mbof_ctx *ctx;
     struct mbof_dn_array *new_list;
     int i;
-
-    del_ctx = delop->del_ctx;
-    parent = delop->parent;
-    ctx = del_ctx->ctx;
 
     anc_ctx = talloc_zero(delop, struct mbof_del_ancestors_ctx);
     if (!anc_ctx) {
