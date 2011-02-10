@@ -195,6 +195,7 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
     if (ret != EOK) {
         goto fail;
     }
+    in_transaction = true;
 
     ret = cleanup_users(state, state->ctx);
     if (ret && ret != ENOENT) {
