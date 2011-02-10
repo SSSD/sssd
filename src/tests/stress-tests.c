@@ -59,7 +59,7 @@ int test_lookup_user(const char *name, int enoent_fail)
     pwd = getpwnam(name);
     error = errno;
     if (pwd == NULL) {
-        if (errno == 0 || errno == ENOENT) {
+        if (error == 0 || error == ENOENT) {
             ret = (enoent_fail == 1) ? ENOENT : 0;
         }
     }

@@ -484,6 +484,9 @@ int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
     int ret;
 
     ret = sysdb_attrs_get_el(attrs, name, &el);
+    if (ret != EOK) {
+        return ret;
+    }
 
     vals = talloc_realloc(attrs->a, el->values,
                           struct ldb_val, el->num_values+1);
