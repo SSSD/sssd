@@ -547,15 +547,23 @@ static void auth_resolve_done(struct tevent_req *subreq)
         return;
     }
 
-    /* Check for undocumented debugging feature to disable TLS
-     * for authentication. This should never be used in production
-     * for obvious reasons.
-     */
-    use_tls = !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS);
-    if (!use_tls) {
-        sss_log(SSS_LOG_ALERT, "LDAP authentication being performed over "
-                               "insecure connection. This should be done "
-                               "for debugging purposes only.");
+    /* Determine whether we need to use TLS */
+    if (sdap_is_secure_uri(state->ctx->service->uri)) {
+        DEBUG(8, ("[%s] is a secure channel. No need to run START_TLS\n",
+                  state->ctx->service->uri));
+        use_tls = false;
+    } else {
+
+        /* Check for undocumented debugging feature to disable TLS
+         * for authentication. This should never be used in production
+         * for obvious reasons.
+         */
+        use_tls = !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS);
+        if (!use_tls) {
+            sss_log(SSS_LOG_ALERT, "LDAP authentication being performed over "
+                                   "insecure connection. This should be done "
+                                   "for debugging purposes only.");
+        }
     }
 
     subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
