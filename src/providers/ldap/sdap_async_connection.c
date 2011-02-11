@@ -24,6 +24,7 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/ldap_common.h"
 
 #define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
 
@@ -1123,6 +1124,8 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     int ret;
+    bool use_tls = dp_opt_get_bool(state->opts->basic,
+                                   SDAP_ID_TLS);
 
     ret = be_resolve_server_recv(subreq, &state->srv);
     talloc_zfree(subreq);
@@ -1134,10 +1137,15 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
         return;
     }
 
+    if (use_tls && sdap_is_secure_uri(state->service->uri)) {
+        DEBUG(8, ("[%s] is a secure channel. No need to run START_TLS\n",
+                  state->service->uri));
+        use_tls = false;
+    }
+
     subreq = sdap_connect_send(state, state->ev, state->opts,
                                state->service->uri,
-                               dp_opt_get_bool(state->opts->basic,
-                                               SDAP_ID_TLS));
+                               use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

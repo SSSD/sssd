@@ -993,3 +993,12 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+bool sdap_is_secure_uri(const char *uri)
+{
+    /* LDAPS URI's are secure channels */
+    if (strncasecmp(uri, LDAP_SSL_URI, strlen(LDAP_SSL_URI)) == 0) {
+        return true;
+    }
+    return false;
+}
