@@ -38,7 +38,7 @@ int get_fd_from_ldap(LDAP *ldap, int *fd)
     int ret;
 
     ret = ldap_get_option(ldap, LDAP_OPT_DESC, fd);
-    if (ret != LDAP_OPT_SUCCESS) {
+    if (ret != LDAP_OPT_SUCCESS || *fd < 0) {
         DEBUG(1, ("Failed to get fd from ldap!!\n"));
         *fd = -1;
         return EIO;
