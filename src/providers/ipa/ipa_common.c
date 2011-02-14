@@ -372,12 +372,31 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_NETGROUP_SEARCH_BASE)) {
+#if 0
         ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_NETGROUP_SEARCH_BASE,
                                 dp_opt_get_string(ipa_opts->id->basic,
                                                   SDAP_SEARCH_BASE));
         if (ret != EOK) {
             goto done;
         }
+#else
+        /* We don't yet have support for the native representation
+         * of netgroups in IPA. For now, we need to point at the
+         * compat tree
+         */
+        value = talloc_asprintf(tmpctx, "cn=ng,cn=compat,%s", basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_NETGROUP_SEARCH_BASE,
+                                value);
+        if (ret != EOK) {
+            goto done;
+        }
+#endif
         DEBUG(6, ("Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
