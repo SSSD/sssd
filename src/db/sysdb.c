@@ -25,6 +25,36 @@
 #include "confdb/confdb.h"
 #include <time.h>
 
+static errno_t  sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
+                           struct ldb_context **_ldb)
+{
+    int ret;
+    struct ldb_context *ldb;
+
+    if (_ldb == NULL) {
+        return EINVAL;
+    }
+
+    ldb = ldb_init(mem_ctx, NULL);
+    if (!ldb) {
+        return EIO;
+    }
+
+    ret = ldb_set_debug(ldb, ldb_debug_messages, NULL);
+    if (ret != LDB_SUCCESS) {
+        return EIO;
+    }
+
+    ret = ldb_connect(ldb, filename, 0, NULL);
+    if (ret != LDB_SUCCESS) {
+        return EIO;
+    }
+
+    *_ldb = ldb;
+
+    return EOK;
+}
+
 errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
                           char **sanitized)
 {
@@ -874,22 +904,10 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
         goto exit;
     }
 
-    ldb = ldb_init(tmp_ctx, NULL);
-    if (!ldb) {
-        ret = EIO;
-        goto exit;
-    }
-
-    ret = ldb_set_debug(ldb, ldb_debug_messages, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto exit;
-    }
-
-    ret = ldb_connect(ldb, ldb_file, 0, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto exit;
+    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        return ret;
     }
 
     verdn = ldb_dn_new(tmp_ctx, ldb, "cn=sysdb");
@@ -975,22 +993,10 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
     }
 
     /* reopen */
-    ldb = ldb_init(tmp_ctx, NULL);
-    if (!ldb) {
-        ret = EIO;
-        goto exit;
-    }
-
-    ret = ldb_set_debug(ldb, ldb_debug_messages, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto exit;
-    }
-
-    ret = ldb_connect(ldb, ldb_file, 0, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto exit;
+    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        return ret;
     }
 
     /* open a transaction */
@@ -1438,19 +1444,10 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     }
     DEBUG(5, ("DB File for %s: %s\n", domain->name, ctx->ldb_file));
 
-    ctx->ldb = ldb_init(ctx, NULL);
-    if (!ctx->ldb) {
-        return EIO;
-    }
-
-    ret = ldb_set_debug(ctx->ldb, ldb_debug_messages, NULL);
-    if (ret != LDB_SUCCESS) {
-        return EIO;
-    }
-
-    ret = ldb_connect(ctx->ldb, ctx->ldb_file, 0, NULL);
-    if (ret != LDB_SUCCESS) {
-        return EIO;
+    ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        return ret;
     }
 
     tmp_ctx = talloc_new(ctx);
