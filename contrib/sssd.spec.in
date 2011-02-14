@@ -73,7 +73,7 @@ BuildRequires: bind-utils
 BuildRequires: keyutils-libs-devel
 BuildRequires: libnl-devel
 BuildRequires: nscd
-BuildRequires: gettext
+BuildRequires: gettext-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -108,6 +108,7 @@ use with ldap_default_authtok_type = obfuscated_password.
 %setup -q
 
 %build
+autoreconf -ivf
 %configure \
     --with-db-path=%{dbpath} \
     --with-pipe-path=%{pipepath} \
