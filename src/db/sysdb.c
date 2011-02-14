@@ -25,11 +25,14 @@
 #include "confdb/confdb.h"
 #include <time.h>
 
+#define LDB_MODULES_PATH "LDB_MODULES_PATH"
+
 static errno_t  sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
                            struct ldb_context **_ldb)
 {
     int ret;
     struct ldb_context *ldb;
+    const char *mod_path;
 
     if (_ldb == NULL) {
         return EINVAL;
@@ -43,6 +46,12 @@ static errno_t  sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
     ret = ldb_set_debug(ldb, ldb_debug_messages, NULL);
     if (ret != LDB_SUCCESS) {
         return EIO;
+    }
+
+    mod_path = getenv(LDB_MODULES_PATH);
+    if (mod_path != NULL) {
+        DEBUG(9, ("Setting ldb module path to [%s].\n", mod_path));
+        ldb_set_modules_dir(ldb, mod_path);
     }
 
     ret = ldb_connect(ldb, filename, 0, NULL);
