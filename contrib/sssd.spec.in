@@ -3,6 +3,9 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
+# Determine the location of the LDB modules directory
+%global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -74,6 +77,7 @@ BuildRequires: keyutils-libs-devel
 BuildRequires: libnl-devel
 BuildRequires: nscd
 BuildRequires: gettext-devel
+BuildRequires: pkgconfig
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -152,7 +156,7 @@ install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 rm -f \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
     $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
-    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
+    $RPM_BUILD_ROOT/%{ldb_modulesdir}/memberof.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_krb5.la \
@@ -192,7 +196,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sssd
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
-%{_libdir}/ldb/memberof.so
+%{ldb_modulesdir}/memberof.so
 %dir %{sssdstatedir}
 %attr(700,root,root) %dir %{dbpath}
 %attr(755,root,root) %dir %{pipepath}
