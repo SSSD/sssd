@@ -206,6 +206,7 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
     if (ppolicy->grace > 0 || ppolicy->expire > 0) {
         uint32_t *data;
         uint32_t *ptr;
+        int ret;
 
         data = talloc_size(pd, 2* sizeof(uint32_t));
         if (data == NULL) {
@@ -224,8 +225,12 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
             *ptr = ppolicy->expire;
         }
 
-        pam_add_response(pd, SSS_PAM_USER_INFO, 2* sizeof(uint32_t),
-                         (uint8_t*)data);
+        ret = pam_add_response(pd, SSS_PAM_USER_INFO, 2* sizeof(uint32_t),
+                               (uint8_t*)data);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+            return ret;
+        }
     }
 
     *result = SDAP_AUTH_SUCCESS;

@@ -500,8 +500,12 @@ static void pam_reply(struct pam_auth_req *preq)
             DEBUG(5, ("Password change not possible while offline.\n"));
             pd->pam_status = PAM_AUTHTOK_ERR;
             user_info_type = SSS_PAM_USER_INFO_OFFLINE_CHPASS;
-            pam_add_response(pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
-                             (const uint8_t *) &user_info_type);
+            ret = pam_add_response(pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
+                                   (const uint8_t *) &user_info_type);
+            if (ret != EOK) {
+                DEBUG(1, ("pam_add_response failed.\n"));
+                goto done;
+            }
             break;
 /* TODO: we need the pam session cookie here to make sure that cached
  * authentication was successful */
@@ -565,8 +569,12 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
     if (pd->domain != NULL) {
-        pam_add_response(pd, SSS_PAM_DOMAIN_NAME, strlen(pd->domain)+1,
-                         (uint8_t *) pd->domain);
+        ret = pam_add_response(pd, SSS_PAM_DOMAIN_NAME, strlen(pd->domain)+1,
+                               (uint8_t *) pd->domain);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+            goto done;
+        }
     }
 
     resp_c = 0;
