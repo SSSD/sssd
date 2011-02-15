@@ -69,6 +69,9 @@ static void renew_tgt(struct tevent_context *ev, struct tevent_timer *te,
                          auth_data->krb5_ctx);
     if (req == NULL) {
         DEBUG(1, ("krb5_auth_send failed.\n"));
+/* Give back the pam data to the renewal item to be able to retry at the next
+ * time the renewals re run. */
+        talloc_steal(auth_data->renew_data, auth_data->pd);
         talloc_free(auth_data);
         return;
     }
@@ -83,6 +86,7 @@ static void renew_tgt_done(struct tevent_req *req)
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
     int dp_err;
+    hash_value_t value;
 
     ret = krb5_auth_recv(req, &pam_status, &dp_err);
     talloc_free(req);
@@ -97,6 +101,26 @@ static void renew_tgt_done(struct tevent_req *req)
             case PAM_SUCCESS:
                 DEBUG(4, ("Successfully renewed TGT for user [%s].\n",
                           auth_data->pd->user));
+/* In general a successful renewal will update the renewal item and free the
+ * old data. But if the TGT has reached the end of his renewable lifetime it
+ * will not be put into the list of renewable tickets again. In this case the
+ * renewal item is not updated and the value from the hash and the one we have
+ * stored are the same. Since the TGT cannot be renewed anymore we want to
+ * remove it from the list of renewable tickets. */
+                ret = hash_lookup(auth_data->table, &auth_data->key, &value);
+                if (ret == HASH_SUCCESS) {
+                    if (value.type == HASH_VALUE_PTR &&
+                        auth_data->renew_data == talloc_get_type(value.ptr,
+                                                           struct renew_data)) {
+                        DEBUG(5, ("New TGT was not added for renewal, "
+                                  "removing list entry for user [%s].\n",
+                                  auth_data->pd->user));
+                        ret = hash_delete(auth_data->table, &auth_data->key);
+                        if (ret != HASH_SUCCESS) {
+                            DEBUG(1, ("hash_delete failed.\n"));
+                        }
+                    }
+                }
                 break;
             case PAM_AUTHINFO_UNAVAIL:
             case PAM_AUTHTOK_LOCK_BUSY:
@@ -149,7 +173,16 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
             if (auth_data == NULL) {
                 DEBUG(1, ("talloc_zero failed.\n"));
             } else {
-                auth_data->pd = talloc_steal(auth_data, renew_data->pd);
+/* We need to steal the pam_data here, because a successful renewal of the
+ * ticket might add a new renewal item to the list with the same key (upn).
+ * This would delete renew_data and all its children. But we cannot be sure
+ * that adding the new renewal item is the last operation of the renewal
+ * process with access the pam_data. To be on the safe side we steal the
+ * pam_data and make it a child of auth_data which is only freed after the
+ * renewal process is finished. In the case of an error during renewal we
+ * might want to steal the pam_data back to renew_data before freeing
+ * auth_data to allow a new renewal attempt. */
+                auth_data->pd = talloc_move(auth_data, &renew_data->pd);
                 auth_data->krb5_ctx = renew_tgt_ctx->krb5_ctx;
                 auth_data->be_ctx = renew_tgt_ctx->be_ctx;
                 auth_data->table = renew_tgt_ctx->tgt_table;
