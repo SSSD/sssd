@@ -255,7 +255,10 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
         dbus_message_iter_recurse(&struct_iter, &sub_iter);
         dbus_message_iter_get_fixed_array(&sub_iter, &data, &len);
 
-        pam_add_response(pd, type, len, data);
+        if (pam_add_response(pd, type, len, data) != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+            return false;
+        }
         dbus_message_iter_next(&array_iter);
     }
 
