@@ -607,6 +607,7 @@ static void auth_resolve_done(struct tevent_req *subreq)
     struct auth_state *state = tevent_req_data(req,
                                                     struct auth_state);
     int ret;
+    bool use_tls = true;
 
     ret = be_resolve_server_recv(subreq, &state->srv);
     talloc_zfree(subreq);
@@ -617,8 +618,15 @@ static void auth_resolve_done(struct tevent_req *subreq)
         return;
     }
 
+    /* Determine whether we need to use TLS */
+    if (sdap_is_secure_uri(state->ctx->service->uri)) {
+        DEBUG(8, ("[%s] is a secure channel. No need to run START_TLS\n",
+                  state->ctx->service->uri));
+        use_tls = false;
+    }
+
     subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
-                               state->ctx->service->uri, true);
+                               state->ctx->service->uri, use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

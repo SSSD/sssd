@@ -32,6 +32,10 @@
 
 #define SSS_LDAP_SRV_NAME "ldap"
 
+#define LDAP_STANDARD_URI "ldap://"
+#define LDAP_SSL_URI "ldaps://"
+#define LDAP_LDAPI_URI "ldapi://"
+
 /* a fd the child process would log into */
 extern int ldap_child_debug_fd;
 
@@ -118,4 +122,7 @@ int groups_get_recv(struct tevent_req *req);
 int setup_child(struct sdap_id_ctx *ctx);
 
 void sdap_gsh_disconnect_callback(void *pvt);
+
+bool sdap_is_secure_uri(const char *uri);
+
 #endif /* _LDAP_COMMON_H_ */

@@ -701,3 +701,13 @@ void sdap_gsh_disconnect_callback(void *pvt)
         ctx->gsh->connected = false;
     }
 }
+
+bool sdap_is_secure_uri(const char *uri)
+{
+    /* LDAPS and LDAPI URI's are secure channels */
+    if ((strncasecmp(uri, LDAP_SSL_URI, strlen(LDAP_SSL_URI)) == 0) ||
+        (strncasecmp(uri, LDAP_LDAPI_URI, strlen(LDAP_LDAPI_URI)) == 0)) {
+        return true;
+    }
+    return false;
+}
