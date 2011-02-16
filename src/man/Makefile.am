@@ -134,8 +134,8 @@ all-local-yes: man.stamp
 	if [ -z $$recursion ]; then \
 		for lang in $(LINGUAS); do \
 			if [ -d $$lang ]; then \
-				sources=$$(ls $$lang/*.xml); \
-				manpages=$$(echo $$sources | $(SED) 's/\.xml//'); \
+				sources=$$(ls -1 $$lang/*.xml); \
+				manpages=$$(echo $$sources | $(SED) 's/\.xml//g'); \
 				$(MAKE) recursion=1 man_MANS="$$manpages"; \
 			fi \
 		done \
@@ -146,8 +146,8 @@ install-data-local-no:
 install-data-local-yes:
 	for lang in $(LINGUAS); do \
 		if [ -d $$lang ]; then \
-			sources=$$(ls $$lang/*.xml); \
-			manpages=$$(echo $$sources | $(SED) 's/\.xml//'); \
+			sources=$$(ls -1 $$lang/*.xml); \
+			manpages=$$(echo $$sources | $(SED) 's/\.xml//g'); \
 			$(MAKE) install-man \
 				mandir="$(mandir)/$$lang" \
 				man_MANS="$$manpages"; \
@@ -159,8 +159,8 @@ uninstall-local-no:
 uninstall-local-yes:
 	for lang in $(LINGUAS); do \
 		if [ -d $$lang ]; then \
-			sources=$$(ls $$lang/*.xml); \
-			manpages=$$(echo $$sources | $(SED) 's/\.xml//'); \
+			sources=$$(ls -1 $$lang/*.xml); \
+			manpages=$$(echo $$sources | $(SED) 's/\.xml//g'); \
 			$(MAKE) uninstall-man \
 				mandir="$(mandir)/$$lang" \
 				man_MANS="$$manpages"; \
