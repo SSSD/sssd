@@ -40,4 +40,7 @@ errno_t become_user(uid_t uid, gid_t gid);
 errno_t create_ccache_dir(TALLOC_CTX *mem_ctx, const char *filename,
                           pcre *illegal_re, uid_t uid, gid_t gid,
                           bool private_path);
+
+errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
+                             struct tgt_times *tgtt);
 #endif /* __KRB5_UTILS_H__ */

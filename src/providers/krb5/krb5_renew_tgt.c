@@ -26,6 +26,7 @@
 #include "util/util.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_utils.h"
 
 #define INITIAL_TGT_TABLE_SIZE 10
 
@@ -299,6 +300,139 @@ static void renew_del_cb(hash_entry_t *entry, hash_destroy_enum type, void *pvt)
     DEBUG(1, ("Unexpected value type [%d].\n", entry->value.type));
 }
 
+static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
+                                 const char *ccache_file, const char *upn,
+                                 const char *user_name)
+{
+    int ret;
+    struct stat stat_buf;
+    struct tgt_times tgtt;
+    struct pam_data pd;
+    time_t now;
+    const char *filename;
+
+    if (ccache_file == NULL || upn == NULL || user_name == NULL) {
+        DEBUG(6, ("Missing one of the needed attributes: [%s][%s][%s].\n",
+                  ccache_file == NULL ? "cache file missing" : ccache_file,
+                  upn == NULL ? "principal missing" : upn,
+                  user_name == NULL ? "user name missing" : user_name));
+        return EINVAL;
+    }
+
+    if (strncmp(ccache_file, "FILE:", 5) == 0) {
+        filename = ccache_file + 5;
+    } else {
+        filename = ccache_file;
+    }
+
+    ret = stat(filename, &stat_buf);
+    if (ret != EOK) {
+        if (ret == ENOENT) {
+            return EOK;
+        }
+        return ret;
+    }
+
+    DEBUG(9, ("Found ccache file [%s].\n", ccache_file));
+
+    memset(&tgtt, 0, sizeof(tgtt));
+    ret = get_ccache_file_data(ccache_file, upn, &tgtt);
+    if (ret != EOK) {
+        DEBUG(1, ("get_ccache_file_data failed.\n"));
+        return ret;
+    }
+
+    memset(&pd, 0, sizeof(pd));
+    pd.cmd = SSS_CMD_RENEW;
+    pd.user = discard_const_p(char, user_name);
+    now = time(NULL);
+    if (tgtt.renew_till > tgtt.endtime && tgtt.renew_till > now &&
+        tgtt.endtime > now) {
+        DEBUG(7, ("Adding [%s] for automatic renewal.\n", ccache_file));
+        ret = add_tgt_to_renew_table(renew_tgt_ctx->krb5_ctx, ccache_file,
+                                     &tgtt, &pd, upn);
+        if (ret != EOK) {
+            DEBUG(1, ("add_tgt_to_renew_table failed, "
+                      "automatic renewal not possible.\n"));
+        }
+    } else {
+        DEBUG(9, ("TGT in [%s] for [%s] is too old.\n", ccache_file, upn));
+    }
+
+    return EOK;
+}
+
+static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    const char *ccache_filter = "("SYSDB_CCACHE_FILE"=*)";
+    const char *ccache_attrs[] = { SYSDB_CCACHE_FILE, SYSDB_UPN, SYSDB_NAME,
+                                   NULL };
+    size_t msgs_count = 0;
+    struct ldb_message **msgs = NULL;
+    size_t c;
+    const char *ccache_file;
+    const char *upn;
+    const char *user_name;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_users(tmp_ctx, renew_tgt_ctx->be_ctx->sysdb,
+                             renew_tgt_ctx->be_ctx->domain, ccache_filter,
+                             ccache_attrs, &msgs_count, &msgs);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_search_users failed.\n"));
+        goto done;
+    }
+
+    if (msgs_count == 0) {
+        DEBUG(9, ("No entries with ccache file found in cache.\n"));
+        ret = EOK;
+        goto done;
+    }
+    DEBUG(9, ("Found [%d] entries with ccache file in cache.\n", msgs_count));
+
+    for (c = 0; c < msgs_count; c++) {
+        user_name = ldb_msg_find_attr_as_string(msgs[c], SYSDB_NAME, NULL);
+        if (user_name == NULL) {
+            DEBUG(1, ("No user name found, this is a severe error, "
+                      "but we ignore it here.\n"));
+            continue;
+        }
+
+        upn = ldb_msg_find_attr_as_string(msgs[c], SYSDB_UPN, NULL);
+        if (upn == NULL) {
+            ret = krb5_get_simple_upn(tmp_ctx, renew_tgt_ctx->krb5_ctx,
+                                      user_name, &upn);
+            if (ret != EOK) {
+                DEBUG(1, ("krb5_get_simple_upn failed.\n"));
+                continue;
+            }
+            DEBUG(9, ("No upn stored in cache, using [%s].\n", upn));
+        }
+
+        ccache_file = ldb_msg_find_attr_as_string(msgs[c], SYSDB_CCACHE_FILE,
+                                                  NULL);
+
+        ret = check_ccache_file(renew_tgt_ctx, ccache_file, upn, user_name);
+        if (ret != EOK) {
+            DEBUG(5, ("Failed to check ccache file [%s].\n", ccache_file));
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
                        struct tevent_context *ev, time_t renew_intv)
 {
@@ -325,6 +459,10 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
     krb5_ctx->renew_tgt_ctx->timer_interval = renew_intv;
     krb5_ctx->renew_tgt_ctx->added_to_online_callbacks = false;
 
+    ret = check_ccache_files(krb5_ctx->renew_tgt_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to read ccache files, continuing ...\n"));
+    }
 
     next = tevent_timeval_current_ofs(krb5_ctx->renew_tgt_ctx->timer_interval,
                                       0);

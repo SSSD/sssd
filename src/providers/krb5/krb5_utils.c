@@ -396,3 +396,103 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
+                             struct tgt_times *tgtt)
+{
+    krb5_error_code kerr;
+    krb5_context ctx = NULL;
+    krb5_ccache cc = NULL;
+    krb5_principal client_princ = NULL;
+    krb5_principal server_princ = NULL;
+    char *server_name;
+    krb5_creds mcred;
+    krb5_creds cred;
+
+    kerr = krb5_init_context(&ctx);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_init_context failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_parse_name(ctx, client_name, &client_princ);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_parse_name failed.\n"));
+        goto done;
+    }
+
+    server_name = talloc_asprintf(NULL, "krbtgt/%.*s@%.*s",
+                                  krb5_princ_realm(ctx, client_princ)->length,
+                                  krb5_princ_realm(ctx, client_princ)->data,
+                                  krb5_princ_realm(ctx, client_princ)->length,
+                                  krb5_princ_realm(ctx, client_princ)->data);
+    if (server_name == NULL) {
+        kerr = KRB5_CC_NOMEM;
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_parse_name(ctx, server_name, &server_princ);
+    talloc_free(server_name);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_parse_name failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_cc_resolve(ctx, ccache_file, &cc);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_cc_resolve failed.\n"));
+        goto done;
+    }
+
+    memset(&mcred, 0, sizeof(mcred));
+    memset(&cred, 0, sizeof(mcred));
+
+    mcred.server = server_princ;
+    mcred.client = client_princ;
+
+    kerr = krb5_cc_retrieve_cred(ctx, cc, 0, &mcred, &cred);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_cc_retrieve_cred failed.\n"));
+        goto done;
+    }
+
+    tgtt->authtime = cred.times.authtime;
+    tgtt->starttime = cred.times.starttime;
+    tgtt->endtime = cred.times.endtime;
+    tgtt->renew_till = cred.times.renew_till;
+
+    krb5_free_cred_contents(ctx, &cred);
+
+    kerr = krb5_cc_close(ctx, cc);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_cc_close failed.\n"));
+        goto done;
+    }
+    cc = NULL;
+
+    kerr = 0;
+
+done:
+    if (cc != NULL) {
+        krb5_cc_close(ctx, cc);
+    }
+
+    if (client_princ != NULL) {
+        krb5_free_principal(ctx, client_princ);
+    }
+
+    if (server_princ != NULL) {
+        krb5_free_principal(ctx, server_princ);
+    }
+
+    if (ctx != NULL) {
+        krb5_free_context(ctx);
+    }
+
+    if (kerr != 0) {
+        return EIO;
+    }
+
+    return EOK;
+}
