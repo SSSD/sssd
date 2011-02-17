@@ -631,6 +631,17 @@ static void groups_by_user_done(struct tevent_req *subreq)
         return;
     }
 
+    if (ret == ENOENT) {
+        ret = sysdb_delete_user(state,
+                                state->ctx->be->sysdb,
+                                state->ctx->be->domain,
+                                state->name, 0);
+        if (ret != EOK && ret != ENOENT) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
     state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
