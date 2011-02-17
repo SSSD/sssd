@@ -54,8 +54,8 @@
 
 #define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,%s"
 #define IPA_HBAC_BASE_TMPL "cn=hbac,%s"
-#define IPA_SERVICES_BASE_TMPL "cn=hbacservices,cn=accounts,%s"
-#define IPA_SERVICEGROUPS_BASE_TMPL "cn=hbacservicegroups,cn=accounts,%s"
+#define IPA_SERVICES_BASE_TMPL "cn=hbacservices,cn=hbac,%s"
+#define IPA_SERVICEGROUPS_BASE_TMPL "cn=hbacservicegroups,cn=hbac,%s"
 
 #define SYSDB_HBAC_BASE_TMPL "cn=hbac,"SYSDB_TMPL_CUSTOM_BASE
 
