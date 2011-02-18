@@ -952,10 +952,12 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    /* Make sure we don't go to the ID provider too often */
-    preq->cctx->pam_timeout = time(NULL) + pctx->id_timeout;
-
     ret = pam_check_user_search(preq);
+    if (ret == EOK || ret == ENOENT) {
+        /* Make sure we don't go to the ID provider too often */
+        preq->cctx->pam_timeout = time(NULL) + pctx->id_timeout;
+    }
+
     if (ret == EOK) {
         pam_dom_forwarder(preq);
     }
