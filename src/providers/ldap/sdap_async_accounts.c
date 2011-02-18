@@ -2161,6 +2161,8 @@ struct sdap_initgr_nested_state {
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
 
+    const char *username;
+
     const char **grp_attrs;
 
     char *filter;
@@ -2188,7 +2190,8 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     struct tevent_req *req, *subreq;
     struct sdap_initgr_nested_state *state;
     struct ldb_message_element *el;
-    int i, ret;
+    int i;
+    errno_t ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_nested_state);
     if (!req) return NULL;
@@ -2200,6 +2203,13 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->grp_attrs = grp_attrs;
     state->op = NULL;
+
+    ret = sysdb_attrs_get_string(user, SYSDB_NAME, &state->username);
+    if (ret != EOK) {
+        DEBUG(1, ("User entry had no username\n"));
+        talloc_free(req);
+        return NULL;
+    }
 
     state->filter = talloc_asprintf(state, "(objectclass=%s)",
                                     opts->group_map[SDAP_OC_GROUP].name);
@@ -2311,13 +2321,112 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
 static void sdap_initgr_nested_store(struct tevent_req *req)
 {
     struct sdap_initgr_nested_state *state;
-    int ret;
+    errno_t ret, sret;
+    const char *attrs[] = { SYSDB_MEMBEROF, NULL };
+    struct ldb_message *msg;
+    struct ldb_message_element *groups;
+    char **sysdb_grouplist = NULL;
+    char **ldap_grouplist = NULL;
+    char **del_groups;
+    size_t i, count;
 
     state = tevent_req_data(req, struct sdap_initgr_nested_state);
 
+    ret = sysdb_transaction_start(state->sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not create sysdb transaction\n"));
+        goto done;
+    }
+
     ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
                            state->groups, state->groups_cur, false, NULL);
-    if (ret) {
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get the list of groups this user belongs to */
+    ret = sysdb_search_user_by_name(state, state->sysdb, state->dom,
+                                    state->username, attrs,
+                                    &msg);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    if (!groups || groups->num_values == 0) {
+        /* No groups for this user in sysdb currently, so
+         * nothing to delete.
+         */
+        ret = EOK;
+        goto done;
+    }
+
+    sysdb_grouplist = talloc_array(state, char *, groups->num_values+1);
+    if (!sysdb_grouplist) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Get a list of the groups by name */
+    for (i = 0; i < groups->num_values; i++) {
+        ret = sysdb_group_dn_name(state->sysdb,
+                                  sysdb_grouplist,
+                                  (const char *)groups->values[i].data,
+                                  &sysdb_grouplist[i]);
+        if (ret != EOK) goto done;
+    }
+    sysdb_grouplist[groups->num_values] = NULL;
+
+    count = 0;
+    while (state->group_dns[count]) count++;
+
+    ldap_grouplist = talloc_array(state, char *, count+1);
+    if (!ldap_grouplist) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+        ret = sysdb_group_dn_name(state->sysdb,
+                                  ldap_grouplist,
+                                  state->group_dns[i],
+                                  &ldap_grouplist[i]);
+        if (ret != EOK) goto done;
+    }
+    ldap_grouplist[count] = NULL;
+
+    /* Find the differences between the sysdb and LDAP lists
+     * Groups in the sysdb only must be removed.
+     */
+    ret = diff_string_lists(state, ldap_grouplist, sysdb_grouplist,
+                            NULL, &del_groups, NULL);
+    if (ret != EOK) goto done;
+
+    if (!del_groups || !del_groups[0]) {
+        /* No groups to delete */
+        ret = EOK;
+        goto done;
+    }
+
+    ret = sysdb_update_members(state->sysdb, state->dom, state->username,
+                               SYSDB_MEMBER_USER, NULL,
+                               (const char *const *)del_groups);
+
+done:
+    if (ret == EOK) {
+        ret = sysdb_transaction_commit(state->sysdb);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not commit transaction! [%d][%s]\n",
+                      ret, strerror(ret)));
+        }
+    }
+
+    if (ret != EOK) {
+        sret = sysdb_transaction_cancel(state->sysdb);
+        if (sret != EOK) {
+            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
+                      sret, strerror(sret)));
+        }
         tevent_req_error(req, ret);
         return;
     }
