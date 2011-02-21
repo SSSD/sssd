@@ -61,7 +61,6 @@ struct bet_ops ipa_access_ops = {
 int common_ipa_init(struct be_ctx *bectx)
 {
     const char *ipa_servers;
-    const char *ipa_domain;
     int ret;
 
     ret = ipa_get_options(bectx, bectx->cdb,
@@ -76,13 +75,7 @@ int common_ipa_init(struct be_ctx *bectx)
         DEBUG(1, ("Missing ipa_server option - using service discovery!\n"));
     }
 
-    ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
-    if (!ipa_domain) {
-        DEBUG(0, ("Missing ipa_domain option!\n"));
-        return EINVAL;
-    }
-
-    ret = ipa_service_init(ipa_options, bectx, ipa_servers, ipa_domain,
+    ret = ipa_service_init(ipa_options, bectx, ipa_servers, ipa_options,
                            &ipa_options->service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init IPA failover service!\n"));

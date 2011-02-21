@@ -589,13 +589,15 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
 }
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                     const char *servers, const char *domain,
+                     const char *servers,
+                     struct ipa_options *options,
                      struct ipa_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
     struct ipa_service *service;
     char **list = NULL;
     char *realm;
+    const char *domain;
     int ret;
     int i;
 
@@ -639,15 +641,38 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
     service->sdap->kinit_service_name = service->krb5_service->name;
 
-    realm = talloc_strdup(service, domain);
-    if (!realm) {
-        ret = ENOMEM;
-        goto done;
+    /* First check whether the realm has been manually specified */
+    realm = dp_opt_get_string(options->id->basic, SDAP_KRB5_REALM);
+    if (realm) {
+        /* krb5_realm exists in the configuration, use it */
+        service->krb5_service->realm =
+                talloc_strdup(service->krb5_service, realm);
+        if (!service->krb5_service->realm) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        /* No explicit krb5_realm, use the IPA domain */
+        domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
+        if (!domain) {
+            DEBUG(0, ("Missing ipa_domain option!\n"));
+            ret = EINVAL;
+            goto done;
+        }
+
+        service->krb5_service->realm =
+                talloc_strdup(service->krb5_service, domain);
+        if (!service->krb5_service->realm) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Use the upper-case IPA domain for the kerberos realm */
+        for (i = 0; service->krb5_service->realm[i]; i++) {
+            service->krb5_service->realm[i] =
+                    toupper(service->krb5_service->realm[i]);
+        }
     }
-    for (i = 0; realm[i]; i++) {
-        realm[i] = toupper(realm[i]);
-    }
-    service->krb5_service->realm = realm;
 
     if (!servers) {
         servers = BE_SRV_IDENTIFIER;
