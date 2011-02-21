@@ -93,7 +93,8 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct dp_option **_opts);
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                     const char *servers, const char *domain,
+                     const char *servers,
+                     struct ipa_options *options,
                      struct ipa_service **_service);
 
 #endif /* _IPA_COMMON_H_ */
