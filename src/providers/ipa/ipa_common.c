@@ -272,14 +272,14 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
-    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)) {
-        ret = domain_to_basedn(tmpctx,
-                               dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
-                               &basedn);
-        if (ret != EOK) {
-            goto done;
-        }
+    ret = domain_to_basedn(tmpctx,
+                           dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
+                           &basedn);
+    if (ret != EOK) {
+        goto done;
+    }
 
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)) {
         /* FIXME: get values by querying IPA */
         /* set search base */
         value = talloc_asprintf(tmpctx, "cn=accounts,%s", basedn);
