@@ -49,6 +49,7 @@ enum ipa_basic_opt {
     IPA_DYNDNS_UPDATE,
     IPA_DYNDNS_IFACE,
     IPA_HBAC_SEARCH_BASE,
+    IPA_KRB5_REALM,
 
     IPA_OPTS_BASIC /* opts counter */
 };
