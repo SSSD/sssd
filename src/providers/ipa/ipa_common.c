@@ -35,7 +35,8 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_hostname", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ipa_dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING},
-    { "ipa_hbac_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING}
+    { "ipa_hbac_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING},
+    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING}
 };
 
 struct dp_option ipa_def_ldap_opts[] = {
@@ -642,7 +643,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     service->sdap->kinit_service_name = service->krb5_service->name;
 
     /* First check whether the realm has been manually specified */
-    realm = dp_opt_get_string(options->id->basic, SDAP_KRB5_REALM);
+    realm = dp_opt_get_string(options->basic, IPA_KRB5_REALM);
     if (realm) {
         /* krb5_realm exists in the configuration, use it */
         service->krb5_service->realm =
