@@ -161,6 +161,21 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_realm (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the Kerberos realm. This is optional and
+                            defaults to the value of <quote>ipa_domain</quote>.
+                        </para>
+                        <para>
+                            The name of the Kerberos realm has a special
+                            meaning in IPA - it is converted into the base
+                            DN to use for performing LDAP operations.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

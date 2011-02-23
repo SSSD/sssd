@@ -23,6 +23,8 @@
 */
 
 
+#include <ctype.h>
+
 #include "providers/ipa/ipa_common.h"
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
@@ -50,6 +52,10 @@ int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
     dn = talloc_strdup_append_buffer(dn, s);
     if (!dn) {
         return ENOMEM;
+    }
+
+    for (p=dn; *p; ++p) {
+        *p = tolower(*p);
     }
 
     *basedn = dn;

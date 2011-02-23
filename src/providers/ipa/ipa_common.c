@@ -175,8 +175,10 @@ int ipa_get_options(TALLOC_CTX *memctx,
     struct ipa_options *opts;
     char *domain;
     char *server;
+    char *realm;
     char *ipa_hostname;
     int ret;
+    int i;
     char hostname[HOST_NAME_MAX + 1];
 
     opts = talloc_zero(memctx, struct ipa_options);
@@ -196,6 +198,7 @@ int ipa_get_options(TALLOC_CTX *memctx,
         if (ret != EOK) {
             goto done;
         }
+        domain = dom->name;
     }
 
     server = dp_opt_get_string(opts->basic, IPA_SERVER);
@@ -220,6 +223,27 @@ int ipa_get_options(TALLOC_CTX *memctx,
         }
     }
 
+    /* First check whether the realm has been manually specified */
+    realm = dp_opt_get_string(opts->basic, IPA_KRB5_REALM);
+    if (!realm) {
+        /* No explicit krb5_realm, use the IPA domain */
+        realm = talloc_strdup(opts, domain);
+        if (!realm) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Use the upper-case IPA domain for the kerberos realm */
+        for (i = 0; realm[i]; i++) {
+            realm[i] = toupper(realm[i]);
+        }
+
+        ret = dp_opt_set_string(opts->basic, IPA_KRB5_REALM,
+                                realm);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
 
     ret = EOK;
     *_opts = opts;
@@ -273,7 +297,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
 
     ret = domain_to_basedn(tmpctx,
-                           dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
+                           dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM),
                            &basedn);
     if (ret != EOK) {
         goto done;
@@ -319,15 +343,12 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
 
     /* set krb realm */
     if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)) {
-        realm = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
+        realm = dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM);
         value = talloc_strdup(tmpctx, realm);
         if (value == NULL) {
             DEBUG(1, ("talloc_strdup failed.\n"));
             ret = ENOMEM;
             goto done;
-        }
-        for (i = 0; value[i]; i++) {
-            value[i] = toupper(value[i]);
         }
         ret = dp_opt_set_string(ipa_opts->id->basic,
                                 SDAP_KRB5_REALM, value);
@@ -467,7 +488,6 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     char *value;
     char *copy = NULL;
     int ret;
-    int i;
 
     /* self check test, this should never fail, unless someone forgot
      * to properly update the code after new ldap options have been added */
@@ -501,7 +521,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
 
     /* set krb realm */
     if (NULL == dp_opt_get_string(ipa_opts->auth, KRB5_REALM)) {
-        value = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
+        value = dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM);
         if (!value) {
             ret = ENOMEM;
             goto done;
@@ -511,9 +531,6 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
             DEBUG(1, ("talloc_strdup failed.\n"));
             ret = ENOMEM;
             goto done;
-        }
-        for (i = 0; copy[i]; i++) {
-            copy[i] = toupper(copy[i]);
         }
         ret = dp_opt_set_string(ipa_opts->auth, KRB5_REALM, copy);
         if (ret != EOK) {
@@ -598,7 +615,6 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     struct ipa_service *service;
     char **list = NULL;
     char *realm;
-    const char *domain;
     int ret;
     int i;
 
@@ -642,37 +658,17 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
     service->sdap->kinit_service_name = service->krb5_service->name;
 
-    /* First check whether the realm has been manually specified */
     realm = dp_opt_get_string(options->basic, IPA_KRB5_REALM);
-    if (realm) {
-        /* krb5_realm exists in the configuration, use it */
-        service->krb5_service->realm =
-                talloc_strdup(service->krb5_service, realm);
-        if (!service->krb5_service->realm) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        /* No explicit krb5_realm, use the IPA domain */
-        domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
-        if (!domain) {
-            DEBUG(0, ("Missing ipa_domain option!\n"));
-            ret = EINVAL;
-            goto done;
-        }
-
-        service->krb5_service->realm =
-                talloc_strdup(service->krb5_service, domain);
-        if (!service->krb5_service->realm) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* Use the upper-case IPA domain for the kerberos realm */
-        for (i = 0; service->krb5_service->realm[i]; i++) {
-            service->krb5_service->realm[i] =
-                    toupper(service->krb5_service->realm[i]);
-        }
+    if (!realm) {
+        DEBUG(1, ("No Kerberos realm set\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    service->krb5_service->realm =
+        talloc_strdup(service->krb5_service, realm);
+    if (!service->krb5_service->realm) {
+        ret = ENOMEM;
+        goto done;
     }
 
     if (!servers) {
