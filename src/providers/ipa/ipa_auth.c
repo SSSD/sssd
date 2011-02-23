@@ -46,7 +46,7 @@ struct get_password_migration_flag_state {
     struct sdap_handle *sh;
     enum sdap_result result;
     struct fo_server *srv;
-    char *ipa_domain;
+    char *ipa_realm;
     bool password_migration;
 };
 
@@ -56,13 +56,13 @@ static void get_password_migration_flag_done(struct tevent_req *subreq);
 static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
                                             struct sdap_auth_ctx *sdap_auth_ctx,
-                                            char *ipa_domain)
+                                            char *ipa_realm)
 {
     int ret;
     struct tevent_req *req, *subreq;
     struct get_password_migration_flag_state *state;
 
-    if (sdap_auth_ctx == NULL || ipa_domain == NULL) {
+    if (sdap_auth_ctx == NULL || ipa_realm == NULL) {
         DEBUG(1, ("Missing parameter.\n"));
         return NULL;
     }
@@ -80,7 +80,7 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
     state->result = SDAP_ERROR;
     state->srv = NULL;
     state->password_migration = false;
-    state->ipa_domain = ipa_domain;
+    state->ipa_realm = ipa_realm;
 
     /* We request to use StartTLS here, because if password migration is
      * enabled we will use this connection for authentication, too. */
@@ -126,7 +126,7 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = domain_to_basedn(state, state->ipa_domain, &ldap_basedn);
+    ret = domain_to_basedn(state, state->ipa_realm, &ldap_basedn);
     if (ret != EOK) {
         DEBUG(1, ("domain_to_basedn failed.\n"));
         tevent_req_error(req, ret);
@@ -311,7 +311,7 @@ static void ipa_auth_handler_done(struct tevent_req *req)
                                              state->ipa_auth_ctx->sdap_auth_ctx,
                                              dp_opt_get_string(
                                                state->ipa_auth_ctx->ipa_options,
-                                               IPA_DOMAIN));
+                                               IPA_KRB5_REALM));
         if (req == NULL) {
             DEBUG(1, ("get_password_migration_flag failed.\n"));
             goto done;

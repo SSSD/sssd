@@ -74,7 +74,7 @@ static char *get_hbac_search_base(TALLOC_CTX *mem_ctx,
     DEBUG(9, ("ipa_hbac_search_base not available, trying base DN.\n"));
 
     ret = domain_to_basedn(mem_ctx,
-                           dp_opt_get_string(ipa_options, IPA_DOMAIN),
+                           dp_opt_get_string(ipa_options, IPA_KRB5_REALM),
                            &base);
     if (ret != EOK) {
         DEBUG(1, ("domain_to_basedn failed.\n"));

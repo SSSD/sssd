@@ -39,6 +39,7 @@ struct test_domain {
 struct test_domain test_domains[] = {
     { "abc", "dc=abc"},
     { "a.b.c", "dc=a,dc=b,dc=c"},
+    { "A.B.C", "dc=a,dc=b,dc=c"},
     { NULL, NULL}
 };
 
