@@ -43,6 +43,10 @@
 #define DEFAULT_SERVER_STATUS SERVER_NAME_NOT_RESOLVED
 #define DEFAULT_SRV_STATUS SRV_NEUTRAL
 
+#ifndef HOSTNAME_RESOLVE_TIMEOUT
+#define HOSTNAME_RESOLVE_TIMEOUT 7200
+#endif /* HOSTNAME_RESOLVE_TIMEOUT */
+
 enum srv_lookup_status {
     SRV_NEUTRAL,        /* We didn't try this SRV lookup yet */
     SRV_RESOLVED,       /* This SRV lookup is resolved       */
@@ -320,7 +324,7 @@ get_server_status(struct fo_server *server)
             DEBUG(4, ("Reseting the server status of '%s'\n",
                       SERVER_NAME(server)));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
-            server->common->last_status_change.tv_sec = 0;
+            server->common->last_status_change.tv_sec = tv.tv_sec;
         }
     }
 
@@ -348,6 +352,12 @@ get_port_status(struct fo_server *server)
                       server->port, SERVER_NAME(server)));
             server->port_status = PORT_NEUTRAL;
             server->last_status_change.tv_sec = tv.tv_sec;
+
+            if (STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
+                DEBUG(4, ("Reseting the server status of '%s'\n",
+                          SERVER_NAME(server)));
+                fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
+            }
         }
     }
 
