@@ -54,7 +54,7 @@ struct ipa_dyndns_ctx {
     struct sdap_id_op* sdap_op;
     char *hostname;
     struct ipa_ipaddress *addresses;
-    int child_status;
+    bool use_server_with_nsupdate;
 };
 
 
@@ -101,6 +101,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         return NULL;
     }
     state->ipa_ctx = ctx;
+    state->use_server_with_nsupdate = false;
 
     iface = dp_opt_get_string(ctx->basic, IPA_DYNDNS_IFACE);
 
@@ -301,10 +302,12 @@ struct ipa_nsupdate_ctx {
     struct ipa_dyndns_ctx *dyndns_ctx;
     int pipefd_to_child;
     struct tevent_timer *timeout_handler;
+    int child_status;
 };
 
 
-static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx);
+static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
+                                   bool use_server_with_nsupdate);
 
 static struct tevent_req *
 fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx);
@@ -324,9 +327,10 @@ ipa_dyndns_gss_tsig_update_send(struct ipa_dyndns_ctx *ctx)
         return NULL;
     }
     state->dyndns_ctx = ctx;
+    state->child_status = 0;
 
     /* Format the message to pass to the nsupdate command */
-    ret = create_nsupdate_message(state);
+    ret = create_nsupdate_message(state, ctx->use_server_with_nsupdate);
     if (ret != EOK) {
         goto failed;
     }
@@ -347,20 +351,22 @@ failed:
 
 struct nsupdate_send_ctx {
     struct ipa_nsupdate_ctx *nsupdate_ctx;
+    int child_status;
 };
 
-static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx)
+static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
+                                   bool use_server_with_nsupdate)
 {
     int ret, i;
-    char *servername;
+    char *servername = NULL;
+    char *realm;
     char *zone;
     char ip_addr[INET6_ADDRSTRLEN];
     const char *ip;
     struct ipa_ipaddress *new_record;
 
-    servername = dp_opt_get_string(ctx->dyndns_ctx->ipa_ctx->basic,
-                                   IPA_SERVER);
-    if (!servername) {
+    realm = dp_opt_get_string(ctx->dyndns_ctx->ipa_ctx->basic, IPA_KRB5_REALM);
+    if (!realm) {
         return EIO;
     }
 
@@ -377,10 +383,31 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx)
         zone[i] = tolower(zone[i]);
     }
 
-    /* Add the server and zone headers */
-    ctx->update_msg = talloc_asprintf(ctx, "server %s\nzone %s.\n",
-                                           servername,
-                                           zone);
+    if (use_server_with_nsupdate) {
+        if (strncmp(ctx->dyndns_ctx->ipa_ctx->service->sdap->uri,
+                    "ldap://", 7) != 0) {
+            DEBUG(1, ("Unexpected format of LDAP URI.\n"));
+            return EIO;
+        }
+        servername = ctx->dyndns_ctx->ipa_ctx->service->sdap->uri + 7;
+        if (!servername) {
+            return EIO;
+        }
+
+        DEBUG(9, ("Creating update message for server [%s], realm [%s] "
+                  "and zone [%s].\n", servername, realm, zone));
+
+        /* Add the server, realm and zone headers */
+        ctx->update_msg = talloc_asprintf(ctx, "server %s\nrealm %s\nzone %s.\n",
+                                               servername, realm, zone);
+    } else {
+        DEBUG(9, ("Creating update message for realm [%s] and zone [%s].\n",
+                  realm, zone));
+
+        /* Add the realm and zone headers */
+        ctx->update_msg = talloc_asprintf(ctx, "realm %s\nzone %s.\n",
+                                               realm, zone);
+    }
     if (ctx->update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -478,6 +505,7 @@ fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx)
         return NULL;
     }
     state->nsupdate_ctx = ctx;
+    state->child_status = 0;
 
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
@@ -597,6 +625,10 @@ static void ipa_dyndns_child_handler(int child_status,
                                      void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct nsupdate_send_ctx *state =
+            tevent_req_data(req, struct nsupdate_send_ctx);
+
+    state->child_status = child_status;
 
     if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
         DEBUG(1, ("Dynamic DNS child failed with status [%d]\n",
@@ -615,6 +647,18 @@ static void ipa_dyndns_child_handler(int child_status,
     tevent_req_done(req);
 }
 
+static int ipa_dyndns_child_recv(struct tevent_req *req, int *child_status)
+{
+    struct nsupdate_send_ctx *state =
+            tevent_req_data(req, struct nsupdate_send_ctx);
+
+    *child_status = state->child_status;
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 static int ipa_dyndns_generic_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -627,8 +671,10 @@ static void fork_nsupdate_done(struct tevent_req *subreq)
     int ret;
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_nsupdate_ctx *state = tevent_req_data(req,
+                                                     struct ipa_nsupdate_ctx);
 
-    ret = ipa_dyndns_generic_recv(subreq);
+    ret = ipa_dyndns_child_recv(subreq, &state->child_status);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -638,21 +684,46 @@ static void fork_nsupdate_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+static int fork_nsupdate_recv(struct tevent_req *req, int *child_status)
+{
+    struct ipa_nsupdate_ctx *state =
+            tevent_req_data(req, struct ipa_nsupdate_ctx);
+
+    *child_status = state->child_status;
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 static void ipa_dyndns_gss_tsig_update_done(struct tevent_req *subreq)
 {
     /* Check the return code from the sigchld handler
      * and return it to the parent request.
      */
     int ret;
+    int child_status;
 
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_dyndns_ctx *state = tevent_req_data(req, struct ipa_dyndns_ctx);
 
-    ret = ipa_dyndns_generic_recv(subreq);
+    ret = fork_nsupdate_recv(subreq, &child_status);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        if (state->use_server_with_nsupdate == false &&
+            WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
+            DEBUG(9, ("nsupdate failed, retrying with server name.\n"));
+            state->use_server_with_nsupdate = true;
+            ret = ipa_dyndns_gss_tsig_update_step(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        } else {
+            tevent_req_error(req, ret);
+            return;
+        }
     }
 
     tevent_req_done(req);
