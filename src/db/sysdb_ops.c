@@ -2840,6 +2840,10 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     for (i = 0; remove_attrs[i]; i++) {
+        /* SYSDB_MEMBEROF is exclusively handled by the memberof plugin */
+        if (strcasecmp(remove_attrs[i], SYSDB_MEMBEROF) == 0) {
+            continue;
+        }
         DEBUG(8, ("Removing attribute [%s] from [%s]\n",
                   remove_attrs[i], name));
         lret = ldb_msg_add_empty(msg, remove_attrs[i],
