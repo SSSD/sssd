@@ -867,14 +867,6 @@ static void krb5_child_done(struct tevent_req *subreq)
         }
     }
 
-    struct sysdb_attrs *attrs;
-    attrs = sysdb_new_attrs(state);
-    ret = sysdb_attrs_add_string(attrs, SYSDB_CCACHE_FILE, kr->ccname);
-    if (ret != EOK) {
-        DEBUG(1, ("sysdb_attrs_add_string failed.\n"));
-        goto done;
-    }
-
     ret = krb5_save_ccname(state, state->be_ctx->sysdb,
                            state->be_ctx->domain,
                            pd->user, kr->ccname);
