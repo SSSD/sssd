@@ -76,13 +76,11 @@ struct sbus_interface monitor_be_interface = {
 };
 
 static int client_registration(DBusMessage *message, struct sbus_connection *conn);
-static int be_check_online(DBusMessage *message, struct sbus_connection *conn);
 static int be_get_account_info(DBusMessage *message, struct sbus_connection *conn);
 static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method be_methods[] = {
     { DP_METHOD_REGISTER, client_registration },
-    { DP_METHOD_ONLINE, be_check_online },
     { DP_METHOD_GETACCTINFO, be_get_account_info },
     { DP_METHOD_PAMHANDLER, be_pam_handler },
     { NULL, NULL }
@@ -178,53 +176,6 @@ static void be_reset_offline(struct be_ctx *ctx)
     ctx->offstat.went_offline = 0;
     ctx->offstat.offline = false;
     be_run_online_cb(ctx);
-}
-
-static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
-{
-    struct be_client *becli;
-    DBusMessage *reply;
-    DBusConnection *dbus_conn;
-    dbus_bool_t dbret;
-    void *user_data;
-    dbus_uint16_t online;
-    dbus_uint16_t err_maj = 0;
-    dbus_uint32_t err_min = 0;
-    static const char *err_msg = "Success";
-
-    user_data = sbus_conn_get_private_data(conn);
-    if (!user_data) return EINVAL;
-    becli = talloc_get_type(user_data, struct be_client);
-    if (!becli) return EINVAL;
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    if (be_is_offline(becli->bectx)) {
-        online = MOD_OFFLINE;
-    } else {
-        online = MOD_ONLINE;
-    }
-
-    dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, &online,
-                                     DBUS_TYPE_UINT16, &err_maj,
-                                     DBUS_TYPE_UINT32, &err_min,
-                                     DBUS_TYPE_STRING, &err_msg,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(1, ("Failed to generate dbus reply\n"));
-        return EIO;
-    }
-
-    dbus_conn = sbus_get_connection(becli->conn);
-    dbus_connection_send(dbus_conn, reply, NULL);
-    dbus_message_unref(reply);
-
-    DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
-
-    return EOK;
 }
 
 static char *dp_pam_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnum)

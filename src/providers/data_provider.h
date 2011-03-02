@@ -60,7 +60,6 @@
 #define BE_PROVIDE_POLICY (1<<10)
 
 #define DP_METHOD_REGISTER "RegisterService"
-#define DP_METHOD_ONLINE "getOnline"
 #define DP_METHOD_GETACCTINFO "getAccountInfo"
 /**
  * @defgroup pamHandler PAM DBUS request
