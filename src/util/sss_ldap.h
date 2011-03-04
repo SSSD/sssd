@@ -22,6 +22,21 @@
 #define __SSS_LDAP_H__
 
 #include <ldap.h>
+#include <talloc.h>
+
+#ifdef LDAP_OPT_DIAGNOSTIC_MESSAGE
+#define SDAP_DIAGNOSTIC_MESSAGE LDAP_OPT_DIAGNOSTIC_MESSAGE
+#else
+#ifdef LDAP_OPT_ERROR_STRING
+#define SDAP_DIAGNOSTIC_MESSAGE LDAP_OPT_ERROR_STRING
+#else
+#error No extended diagnostic message available
+#endif
+#endif
+
+int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx,
+                                LDAP *ld,
+                                char **_errmsg);
 
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,

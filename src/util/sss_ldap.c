@@ -22,7 +22,25 @@
 #include "config.h"
 
 #include "util/sss_ldap.h"
+#include "util/util.h"
 
+int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx, LDAP *ld, char **_errmsg)
+{
+    char *errmsg = NULL;
+    int optret;
+
+    optret = ldap_get_option(ld, SDAP_DIAGNOSTIC_MESSAGE, (void*)&errmsg);
+    if (optret != LDAP_SUCCESS) {
+        return EINVAL;
+    }
+
+    *_errmsg = talloc_strdup(mem_ctx, errmsg ? errmsg : "unknown error");
+    ldap_memfree(errmsg);
+    if (*_errmsg == NULL) {
+        return ENOMEM;
+    }
+    return EOK;
+}
 
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,

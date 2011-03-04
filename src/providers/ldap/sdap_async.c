@@ -821,13 +821,11 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
         DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
         if (lret == LDAP_SERVER_DOWN) {
             ret = ETIMEDOUT;
-            optret = ldap_get_option(state->sh->ldap,
-                                     SDAP_DIAGNOSTIC_MESSAGE,
-                                     (void*)&errmsg);
+            optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
+                                                 &errmsg);
             if (optret == LDAP_SUCCESS) {
                 DEBUG(3, ("Connection error: %s\n", errmsg));
                 sss_log(SSS_LOG_ERR, "LDAP connection error: %s", errmsg);
-                ldap_memfree(errmsg);
             }
             else {
                 sss_log(SSS_LOG_ERR, "LDAP connection error, %s",

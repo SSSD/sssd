@@ -216,15 +216,13 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &msgid);
     if (lret != LDAP_SUCCESS) {
-        optret = ldap_get_option(state->sh->ldap,
-                                 SDAP_DIAGNOSTIC_MESSAGE,
-                                 (void*)&errmsg);
+        optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
+                                             &errmsg);
         if (optret == LDAP_SUCCESS) {
             DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
                       ldap_err2string(lret),
                       errmsg));
             sss_log(SSS_LOG_ERR, "Could not start TLS. %s", errmsg);
-            ldap_memfree(errmsg);
         }
         else {
             DEBUG(3, ("ldap_start_tls failed: [%s]\n",
@@ -303,15 +301,13 @@ static void sdap_connect_done(struct sdap_op *op,
     ret = ldap_install_tls(state->sh->ldap);
     if (ret != LDAP_SUCCESS) {
 
-        optret = ldap_get_option(state->sh->ldap,
-                                 SDAP_DIAGNOSTIC_MESSAGE,
-                                 (void*)&tlserr);
+        optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
+                                             &tlserr);
         if (optret == LDAP_SUCCESS) {
             DEBUG(3, ("ldap_install_tls failed: [%s] [%s]\n",
                       ldap_err2string(ret),
                       tlserr));
             sss_log(SSS_LOG_ERR, "Could not start TLS encryption. %s", tlserr);
-            ldap_memfree(tlserr);
         }
         else {
             DEBUG(3, ("ldap_install_tls failed: [%s]\n",
@@ -1480,30 +1476,34 @@ static int synchronous_tls_setup(LDAP *ldap)
     int msgid;
     char *errmsg = NULL;
     LDAPMessage *result;
+    TALLOC_CTX *tmp_ctx;
 
     DEBUG(4, ("Executing START TLS\n"));
 
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return LDAP_NO_MEMORY;
+
     lret = ldap_start_tls(ldap, NULL, NULL, &msgid);
     if (lret != LDAP_SUCCESS) {
-        optret = ldap_get_option(ldap, SDAP_DIAGNOSTIC_MESSAGE, (void*)&errmsg);
+        optret = sss_ldap_get_diagnostic_msg(tmp_ctx, ldap, &errmsg);
         if (optret == LDAP_SUCCESS) {
             DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
                       ldap_err2string(lret), errmsg));
             sss_log(SSS_LOG_ERR, "Could not start TLS. %s", errmsg);
-            ldap_memfree(errmsg);
         } else {
             DEBUG(3, ("ldap_start_tls failed: [%s]\n", ldap_err2string(lret)));
             sss_log(SSS_LOG_ERR, "Could not start TLS. "
                                  "Check for certificate issues.");
         }
-        return lret;
+        goto done;
     }
 
     lret = ldap_result(ldap, msgid, 1, NULL, &result);
     if (lret != LDAP_RES_EXTENDED) {
         DEBUG(2, ("Unexpected ldap_result, expected [%d] got [%d].\n",
                   LDAP_RES_EXTENDED, lret));
-        return LDAP_PARAM_ERROR;
+        lret = LDAP_PARAM_ERROR;
+        goto done;
     }
 
     lret = ldap_parse_result(ldap, result, &ldaperr, NULL, &errmsg, NULL, NULL,
@@ -1511,7 +1511,7 @@ static int synchronous_tls_setup(LDAP *ldap)
     if (lret != LDAP_SUCCESS) {
         DEBUG(2, ("ldap_parse_result failed (%d) [%d][%s]\n", msgid, lret,
                   ldap_err2string(lret)));
-        return lret;
+        goto done;
     }
 
     DEBUG(3, ("START TLS result: %s(%d), %s\n",
@@ -1520,18 +1520,18 @@ static int synchronous_tls_setup(LDAP *ldap)
 
     if (ldap_tls_inplace(ldap)) {
         DEBUG(9, ("SSL/TLS handler already in place.\n"));
-        return LDAP_SUCCESS;
+        lret = LDAP_SUCCESS;
+        goto done;
     }
 
     lret = ldap_install_tls(ldap);
     if (lret != LDAP_SUCCESS) {
 
-        optret = ldap_get_option(ldap, SDAP_DIAGNOSTIC_MESSAGE, (void*)&errmsg);
+        optret = sss_ldap_get_diagnostic_msg(tmp_ctx, ldap, &errmsg);
         if (optret == LDAP_SUCCESS) {
             DEBUG(3, ("ldap_install_tls failed: [%s] [%s]\n",
                       ldap_err2string(lret), errmsg));
             sss_log(SSS_LOG_ERR, "Could not start TLS encryption. %s", errmsg);
-            ldap_memfree(errmsg);
         } else {
             DEBUG(3, ("ldap_install_tls failed: [%s]\n",
                       ldap_err2string(lret)));
@@ -1539,10 +1539,13 @@ static int synchronous_tls_setup(LDAP *ldap)
                                  "Check for certificate issues.");
         }
 
-        return lret;
+        goto done;
     }
 
-    return LDAP_SUCCESS;
+    lret = LDAP_SUCCESS;
+done:
+    talloc_zfree(tmp_ctx);
+    return lret;
 }
 
 static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
@@ -1561,7 +1564,7 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
 
     if (p->use_start_tls) {
         ret = synchronous_tls_setup(ldap);
-        if (ret != EOK) {
+        if (ret != LDAP_SUCCESS) {
             DEBUG(1, ("synchronous_tls_setup failed.\n"));
             return ret;
         }
