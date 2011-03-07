@@ -498,6 +498,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                 tevent_req_callback_data(subreq, struct sdap_id_conn_data);
     struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
     struct sdap_server_opts *srv_opts = NULL;
+    struct sdap_server_opts *current_srv_opts = NULL;
     bool can_retry = false;
     bool is_offline = false;
     int ret;
@@ -527,6 +528,20 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
     }
 
     if (ret == EOK) {
+        current_srv_opts = conn_cache->id_ctx->srv_opts;
+        if (current_srv_opts) {
+            DEBUG(8, ("Old USN: %lu, New USN: %lu\n", current_srv_opts->last_usn, srv_opts->last_usn));
+
+            if (strcmp(srv_opts->server_id, current_srv_opts->server_id) == 0 &&
+                srv_opts->supports_usn &&
+                current_srv_opts->last_usn > srv_opts->last_usn) {
+                DEBUG(5, ("Server was probably re-initialized\n"));
+
+                current_srv_opts->max_user_value= 0;
+                current_srv_opts->max_group_value = 0;
+                current_srv_opts->last_usn = 0;
+            }
+        }
         ret = sdap_id_conn_data_set_expire_timer(conn_data);
         sdap_steal_server_opts(conn_cache->id_ctx, &srv_opts);
     }

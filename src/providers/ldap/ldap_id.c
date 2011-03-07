@@ -710,8 +710,13 @@ static void sdap_check_online_done(struct tevent_req *req)
     int ret;
     int dp_err = DP_ERR_FATAL;
     bool can_retry;
+    struct sdap_id_ctx *ctx;
+    struct sdap_server_opts *srv_opts;
 
-    ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, NULL);
+    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                          struct sdap_id_ctx);
+
+    ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, &srv_opts);
     talloc_zfree(req);
 
     if (ret != EOK) {
@@ -720,6 +725,16 @@ static void sdap_check_online_done(struct tevent_req *req)
         }
     } else {
         dp_err = DP_ERR_OK;
+
+        if (strcmp(srv_opts->server_id, ctx->srv_opts->server_id) == 0 &&
+            srv_opts->supports_usn &&
+            ctx->srv_opts->last_usn > srv_opts->last_usn) {
+            ctx->srv_opts->max_user_value = 0;
+            ctx->srv_opts->max_group_value = 0;
+            ctx->srv_opts->last_usn = srv_opts->last_usn;
+        }
+
+        sdap_steal_server_opts(ctx, &srv_opts);
     }
 
     sdap_handler_done(be_req, dp_err, 0, NULL);
