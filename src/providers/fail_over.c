@@ -312,7 +312,7 @@ get_server_status(struct fo_server *server)
     time_t timeout;
 
     if (server->common == NULL)
-        return SERVER_NAME_RESOLVED;
+        return SERVER_NAME_NOT_RESOLVED;
 
     DEBUG(7, ("Status of server '%s' is '%s'\n", SERVER_NAME(server),
               str_server_status(server->common->server_status)));
@@ -353,7 +353,8 @@ get_port_status(struct fo_server *server)
             server->port_status = PORT_NEUTRAL;
             server->last_status_change.tv_sec = tv.tv_sec;
 
-            if (STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
+            if (server->common != NULL &&
+                STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
                 DEBUG(4, ("Reseting the server status of '%s'\n",
                           SERVER_NAME(server)));
                 fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
