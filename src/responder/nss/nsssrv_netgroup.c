@@ -494,6 +494,12 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         netgr->ready = true;
         netgr->entries = NULL;
         netgr->lookup_table = step_ctx->nctx->netgroups;
+        netgr->name = talloc_strdup(netgr, step_ctx->name);
+        if (netgr->name == NULL) {
+            DEBUG(1, ("talloc_strdup failed.\n"));
+            talloc_free(netgr);
+            return ENOMEM;
+        }
 
         ret = set_netgroup_entry(step_ctx->nctx, step_ctx->name, netgr);
         if (ret != EOK) {
