@@ -57,16 +57,19 @@ static errno_t get_netgroup_entry(struct nss_ctx *nctx,
 
 static int netgr_hash_remove (TALLOC_CTX *ctx);
 static errno_t set_netgroup_entry(struct nss_ctx *nctx,
-                                  char *name,
                                   struct getent_ctx *netgr)
 {
     hash_key_t key;
     hash_value_t value;
     int hret;
 
+    if (netgr->name == NULL) {
+        DEBUG(1, ("Missing netgroup name.\n"));
+        return EINVAL;
+    }
     /* Add this entry to the hash table */
     key.type = HASH_KEY_STRING;
-    key.str = name;
+    key.str = netgr->name;
     value.type = HASH_VALUE_PTR;
     value.ptr = netgr;
     hret = hash_enter(nctx->netgroups, &key, &value);
@@ -270,7 +273,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
             goto error;
         }
 
-        ret = set_netgroup_entry(nctx, client->netgr_name, state->netgr);
+        ret = set_netgroup_entry(nctx, state->netgr);
         if (ret != EOK) {
             DEBUG(1, ("set_netgroup_entry failed.\n"));
             talloc_free(state->netgr);
@@ -501,7 +504,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
             return ENOMEM;
         }
 
-        ret = set_netgroup_entry(step_ctx->nctx, step_ctx->name, netgr);
+        ret = set_netgroup_entry(step_ctx->nctx, netgr);
         if (ret != EOK) {
             DEBUG(1, ("set_netgroup_entry failed, ignored.\n"));
         }
