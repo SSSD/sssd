@@ -495,7 +495,8 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
 
 int sysdb_add_fake_user(struct sysdb_ctx *ctx,
                         struct sss_domain_info *domain,
-                        const char *name);
+                        const char *name,
+                        const char *original_dn);
 
 /* Add group (only basic attrs and w/o checks) */
 int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,

@@ -1406,7 +1406,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         *in_transaction = true;
     }
 
-    ret = sysdb_add_fake_user(state->sysdb, state->dom, username);
+    ret = sysdb_add_fake_user(state->sysdb, state->dom, username, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
                   ret, strerror(ret)));

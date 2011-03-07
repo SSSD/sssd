@@ -934,7 +934,8 @@ done:
 
 int sysdb_add_fake_user(struct sysdb_ctx *ctx,
                         struct sss_domain_info *domain,
-                        const char *name)
+                        const char *name,
+                        const char *original_dn)
 {
     TALLOC_CTX *tmpctx;
     struct ldb_message *msg;
@@ -982,6 +983,12 @@ int sysdb_add_fake_user(struct sysdb_ctx *ctx,
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CACHE_EXPIRE,
                     (unsigned long) now-1);
     if (ret) goto done;
+
+    if (original_dn) {
+        ret = add_string(msg, LDB_FLAG_MOD_ADD,
+                         SYSDB_ORIG_DN, original_dn);
+        if (ret) goto done;
+    }
 
     ret = ldb_add(ctx->ldb, msg);
     ret = sysdb_error_to_errno(ret);
