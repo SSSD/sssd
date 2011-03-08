@@ -2,20 +2,21 @@
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# 
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-01-21 16:56-0500\n"
+"POT-Creation-Date: 2011-03-08 10:17-0500\n"
 "PO-Revision-Date: 2011-03-08 15:07+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Polish <None>\n"
+"Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: pl\n"
-"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2)\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -152,8 +153,7 @@ msgstr "Włącza wyliczanie wszystkich użytkowników/grup"
 
 #: src/config/SSSDConfig.py:80
 msgid "Cache credentials for offline login"
-msgstr ""
-"Dane uwierzytelniające pamięci podręcznej dla logowań w trybie offline"
+msgstr "Dane uwierzytelniające pamięci podręcznej dla logowań w trybie offline"
 
 #: src/config/SSSDConfig.py:81
 msgid "Store password hashes"
@@ -177,14 +177,14 @@ msgstr ""
 #: src/config/SSSDConfig.py:85
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
-"Jak długo utrzymywać wpisy logowania w pamięci podręcznej po ostatnim udanym"
-" zalogowaniu (dni)"
+"Jak długo utrzymywać wpisy logowania w pamięci podręcznej po ostatnim udanym "
+"zalogowaniu (dni)"
 
 #: src/config/SSSDConfig.py:86
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
-"Jak długo czekać na odpowiedzi od serwera DNS podczas rozwiązywania serwerów"
-" (sekundy)"
+"Jak długo czekać na odpowiedzi od serwera DNS podczas rozwiązywania serwerów "
+"(sekundy)"
 
 #: src/config/SSSDConfig.py:87
 msgid "The domain part of service discovery DNS query"
@@ -249,8 +249,8 @@ msgstr "Włącza sprawdzanie danych uwierzytelniających"
 #: src/config/SSSDConfig.py:108
 msgid "Store password if offline for later online authentication"
 msgstr ""
-"Przechowuje hasło, jeśli w trybie offline do późniejszego uwierzytelnienia w"
-" trybie online"
+"Przechowuje hasło, jeśli w trybie offline do późniejszego uwierzytelnienia w "
+"trybie online"
 
 #: src/config/SSSDConfig.py:109
 msgid "Renewable lifetime of the TGT"
@@ -656,27 +656,27 @@ msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
-#: src/sss_client/common.c:779
+#: src/sss_client/common.c:822
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Uprawnione gniazdo posiada błędnego właściciela lub uprawnienia."
 
-#: src/sss_client/common.c:782
+#: src/sss_client/common.c:825
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Publiczne gniazdo posiada błędnego właściciela lub uprawnienia"
 
-#: src/sss_client/common.c:785
+#: src/sss_client/common.c:828
 msgid "Unexpected format of the server credential message."
 msgstr "Nieoczekiwany format komunikatu uwierzytelniającego serwera."
 
-#: src/sss_client/common.c:788
+#: src/sss_client/common.c:831
 msgid "SSSD is not run by root."
 msgstr "SSSD nie zostało uruchomione w trybie roota."
 
-#: src/sss_client/common.c:793
+#: src/sss_client/common.c:836
 msgid "An error occurred, but no description can be found."
 msgstr "Wystąpił błąd, ale nie odnaleziono jego opisu."
 
-#: src/sss_client/common.c:799
+#: src/sss_client/common.c:842
 msgid "Unexpected error while looking for an error description"
 msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 
@@ -873,8 +873,7 @@ msgstr "Nie można utworzyć buforu poczty użytkownika: %s\n"
 #: src/tools/sss_useradd.c:258
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr ""
-"Nie można przydzielić identyfikatora użytkownikowi - czy domena jest "
-"pełna?\n"
+"Nie można przydzielić identyfikatora użytkownikowi - czy domena jest pełna?\n"
 
 #: src/tools/sss_useradd.c:262
 msgid "A user or group with the same name or ID already exists\n"
@@ -923,8 +922,8 @@ msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Nie ma takiej grupy w lokalnej domenie. Usuwanie grup jest dozwolone tylko w"
-" lokalnej domenie.\n"
+"Nie ma takiej grupy w lokalnej domenie. Usuwanie grup jest dozwolone tylko w "
+"lokalnej domenie.\n"
 
 #: src/tools/sss_groupdel.c:122
 msgid "Internal error. Could not remove group.\n"
@@ -948,8 +947,8 @@ msgstr "Proszę podać grupę do zmodyfikowania\n"
 
 #: src/tools/sss_groupmod.c:128
 msgid ""
-"Cannot find group in local domain, modifying groups is allowed only in local"
-" domain\n"
+"Cannot find group in local domain, modifying groups is allowed only in local "
+"domain\n"
 msgstr ""
 "Nie można odnaleźć grupy w lokalnej domenie, modyfikowanie grup jest "
 "dozwolone tylko w lokalnej domenie\n"
@@ -971,8 +970,8 @@ msgstr ""
 #: src/tools/sss_groupmod.c:218
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
-"Nie można zmodyfikować grupy - proszę sprawdzić, czy nazwy członków grupy są"
-" poprawne\n"
+"Nie można zmodyfikować grupy - proszę sprawdzić, czy nazwy członków grupy są "
+"poprawne\n"
 
 #: src/tools/sss_groupmod.c:222
 msgid "Could not modify group - check if groupname is correct\n"
@@ -1034,8 +1033,8 @@ msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Nie ma takiej grupy w lokalnej domenie. Drukowanie grup jest dozwolone tylko"
-" w lokalnej domenie.\n"
+"Nie ma takiej grupy w lokalnej domenie. Drukowanie grup jest dozwolone tylko "
+"w lokalnej domenie.\n"
 
 #: src/tools/sss_groupshow.c:699
 msgid "Internal error. Could not print group.\n"
@@ -1171,5 +1170,4 @@ msgstr "%s musi zostać uruchomione jako root\n"
 #: src/util/util.h:67
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
-"Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia "
-"błędów"
+"Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"

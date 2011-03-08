@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.5.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2011-01-24 13:36-0500\n"
+"POT-Creation-Date: 2011-03-08 10:17-0500\n"
 "PO-Revision-Date: 2011-01-25 20:56+0200\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
@@ -82,7 +82,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><title>
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:39 pam_sss.8.xml:48 sssd.8.xml:42 sss_obfuscate.8.xml:59
+#: sss_groupmod.8.xml:39 pam_sss.8.xml:48 sssd.8.xml:42 sss_obfuscate.8.xml:58
 #: sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39
 #: sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39
 msgid "OPTIONS"
@@ -134,7 +134,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_groupmod.8.xml:72 sssd.conf.5.xml:1008 sssd-ldap.5.xml:1389
 #: pam_sss.8.xml:128 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143
-#: sssd-ipa.5.xml:191 sssd.8.xml:166 sss_obfuscate.8.xml:104
+#: sssd-ipa.5.xml:206 sssd.8.xml:166 sss_obfuscate.8.xml:103
 #: sss_useradd.8.xml:167 sssd-krb5.5.xml:424 sss_groupadd.8.xml:58
 #: sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58
 #: sss_usermod.8.xml:138
@@ -1645,7 +1645,7 @@ msgstr "Типове значення: None, не виконувати жодн�
 # type: Content of: <reference><refentry><refsect1><title>
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:973 sssd-ldap.5.xml:1357 sssd-simple.5.xml:126
-#: sssd-ipa.5.xml:173 sssd-krb5.5.xml:405
+#: sssd-ipa.5.xml:188 sssd-krb5.5.xml:405
 msgid "EXAMPLE"
 msgstr "ПРИКЛАД"
 
@@ -3042,7 +3042,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1063 sssd-krb5.5.xml:103
+#: sssd-ldap.5.xml:1063 sssd-ipa.5.xml:165 sssd-krb5.5.xml:103
 msgid "krb5_realm (string)"
 msgstr "krb5_realm (рядок)"
 
@@ -3466,7 +3466,7 @@ msgstr ""
 "    enumerate = true\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1364 sssd-simple.5.xml:134 sssd-ipa.5.xml:181
+#: sssd-ldap.5.xml:1364 sssd-simple.5.xml:134 sssd-ipa.5.xml:196
 #: sssd-krb5.5.xml:414
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
@@ -4058,9 +4058,23 @@ msgid ""
 "end."
 msgstr ""
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:168
+msgid ""
+"The name of the Kerberos realm. This is optional and defaults to the value "
+"of <quote>ipa_domain</quote>."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:172
+msgid ""
+"The name of the Kerberos realm has a special meaning in IPA - it is "
+"converted into the base DN to use for performing LDAP operations."
+msgstr ""
+
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:175
+#: sssd-ipa.5.xml:190
 msgid ""
 "The following example assumes that SSSD is correctly configured and example."
 "com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
@@ -4069,7 +4083,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><programlisting>
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ipa.5.xml:182
+#: sssd-ipa.5.xml:197
 #, no-wrap
 msgid ""
 "    [domain/example.com]\n"
@@ -4084,7 +4098,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:193
+#: sssd-ipa.5.xml:208
 msgid ""
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
@@ -4336,10 +4350,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:37
 msgid ""
-"The cleartext password can be specified as an argument to the program, read "
-"from standard input or entered interactively.  The obfuscated password is "
-"put into <quote>ldap_default_authtok</quote> parameter of a given SSSD "
-"domain and the <quote>ldap_default_authtok_type</quote> parameter is set to "
+"The cleartext password is read from standard input or entered "
+"interactively.  The obfuscated password is put into "
+"<quote>ldap_default_authtok</quote> parameter of a given SSSD domain and the "
+"<quote>ldap_default_authtok_type</quote> parameter is set to "
 "<quote>obfuscated_password</quote>. Refer to <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more details on these parameters."
@@ -4347,7 +4361,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_obfuscate.8.xml:50
+#: sss_obfuscate.8.xml:49
 msgid ""
 "Please note that obfuscating the password provides <emphasis>no real "
 "security benefit</emphasis> as it is still possible for an attacker to "
@@ -4358,19 +4372,19 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_obfuscate.8.xml:64
+#: sss_obfuscate.8.xml:63
 msgid "<option>-s</option>,<option>--stdin</option>"
 msgstr "<option>-s</option>,<option>--stdin</option>"
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_obfuscate.8.xml:68
+#: sss_obfuscate.8.xml:67
 msgid "The password to obfuscate will be read from standard input."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_obfuscate.8.xml:75
+#: sss_obfuscate.8.xml:74
 msgid ""
 "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
 "replaceable>"
@@ -4380,7 +4394,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_obfuscate.8.xml:80
+#: sss_obfuscate.8.xml:79
 msgid ""
 "The SSSD domain to use the password in. The default name is <quote>default</"
 "quote>."
@@ -4388,7 +4402,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_obfuscate.8.xml:87
+#: sss_obfuscate.8.xml:86
 msgid ""
 "<option>-f</option>,<option>--file</option> <replaceable>FILE</replaceable>"
 msgstr ""
@@ -4396,19 +4410,19 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_obfuscate.8.xml:92
+#: sss_obfuscate.8.xml:91
 msgid "Read the config file specified by the positional parameter."
 msgstr "Прочитати дані з файла налаштувань, вказаного позиційним параметром."
 
 # type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_obfuscate.8.xml:96
+#: sss_obfuscate.8.xml:95
 msgid "Default: <filename>/etc/sssd/sssd.conf</filename>"
 msgstr "Типове значення: <filename>/etc/sssd/sssd.conf</filename>"
 
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_obfuscate.8.xml:106
+#: sss_obfuscate.8.xml:105
 msgid ""
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>"

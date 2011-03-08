@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-01-21 16:56-0500\n"
+"POT-Creation-Date: 2011-03-08 10:17-0500\n"
 "PO-Revision-Date: 2009-11-19 12:19+0100\n"
 "Last-Translator: Richard van der Luit <nippur@fedoraproject.org>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -635,27 +635,27 @@ msgstr ""
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: src/sss_client/common.c:779
+#: src/sss_client/common.c:822
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:782
+#: src/sss_client/common.c:825
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:785
+#: src/sss_client/common.c:828
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:788
+#: src/sss_client/common.c:831
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:793
+#: src/sss_client/common.c:836
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:799
+#: src/sss_client/common.c:842
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
