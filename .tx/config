@@ -1,0 +1,13 @@
+[main]
+host = https://www.transifex.net
+
+[sssd.master-po-sssd-pot]
+file_filter = po/<lang>.po
+source_file = po/sssd.pot
+source_lang = en
+
+[sssd.sssd-docspot_1]
+file_filter = src/man/po/<lang>.po
+source_file = src/man/po/sssd-docs.pot
+source_lang = en
+
