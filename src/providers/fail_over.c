@@ -318,14 +318,20 @@ get_server_status(struct fo_server *server)
               str_server_status(server->common->server_status)));
 
     timeout = server->service->ctx->opts->retry_timeout;
+    gettimeofday(&tv, NULL);
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
-        gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server->common, tv) > timeout) {
             DEBUG(4, ("Reseting the server status of '%s'\n",
                       SERVER_NAME(server)));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
             server->common->last_status_change.tv_sec = tv.tv_sec;
         }
+    }
+
+    if (STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
+        DEBUG(4, ("Hostname resolution expired, reseting the server "
+                  "status of '%s'\n", SERVER_NAME(server)));
+        fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
     }
 
     return server->common->server_status;
@@ -352,13 +358,6 @@ get_port_status(struct fo_server *server)
                       server->port, SERVER_NAME(server)));
             server->port_status = PORT_NEUTRAL;
             server->last_status_change.tv_sec = tv.tv_sec;
-
-            if (server->common != NULL &&
-                STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
-                DEBUG(4, ("Reseting the server status of '%s'\n",
-                          SERVER_NAME(server)));
-                fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
-            }
         }
     }
 
