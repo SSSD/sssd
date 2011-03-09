@@ -42,6 +42,7 @@ struct be_svc_data {
     struct fo_service *fo_service;
 
     struct fo_server *last_good_srv;
+    time_t last_status_change;
     bool run_callbacks;
 
     struct be_svc_callback *callbacks;
@@ -400,6 +401,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                                              struct be_resolve_server_state);
     struct be_svc_callback *callback;
     int ret;
+    time_t srv_status_change;
 
     ret = fo_resolve_service_recv(subreq, &state->srv);
     talloc_zfree(subreq);
@@ -461,10 +463,15 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                   fo_get_server_name(state->srv), ipaddr));
     }
 
+    srv_status_change = fo_get_server_hostname_last_change(state->srv);
+
     /* now call all svc callbacks if server changed or if it is explicitly
-     * requested */
-    if (state->srv != state->svc->last_good_srv || state->svc->run_callbacks) {
+     * requested or if the server is the same but changed status since last time*/
+    if (state->srv != state->svc->last_good_srv ||
+        state->svc->run_callbacks ||
+        srv_status_change > state->svc->last_status_change) {
         state->svc->last_good_srv = state->srv;
+        state->svc->last_status_change = srv_status_change;
         state->svc->run_callbacks = false;
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
