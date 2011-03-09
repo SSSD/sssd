@@ -457,6 +457,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
         if (ret != EOK) {
             DEBUG(1, ("Failed to convert results into entries\n"));
+            netgr->ready = true;
+            set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
             return EIO;
         }
 
