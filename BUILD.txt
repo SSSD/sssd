@@ -10,7 +10,11 @@ talloc, tdb, tevent, ldb
 
 They are now available in major distribution development branches.
 
-If you want to build them from source download the latest samba master branch.
+If you want to build them from source download them from the following links:
+http://samba.org/ftp/talloc/
+http://samba.org/ftp/tdb/
+http://samba.org/ftp/tevent/
+http://samba.org/ftp/ldb/
 
 Additionally the ding-libs are needed. These used to be included in the sssd
 release but are now a separate project. The lastest ding-libs release can be
@@ -18,10 +22,12 @@ downloaded from https://fedorahosted.org/sssd/wiki/Releases#DING-LIBSReleases .
 
 To install all of the dependencies in Fedora before building sssd:
 yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
-    dbus-devel libxslt-devel docbook-style-xsl krb5-devel \
-    docbook-style-xsl libxml2 pam-devel nss-devel libtevent \
+    dbus-devel libxslt docbook-style-xsl krb5-devel nspr-devel \
+    libxml2 pam-devel nss-devel libtevent python-devel \
     libtevent-devel libtdb libtdb-devel libtalloc libtalloc-devel \
-    libldb libldb-devel cvs popt-devel c-ares-devel
+    libldb libldb-devel cvs popt-devel c-ares-devel check-devel \
+    doxygen libselinux-devel libsemanage-devel bind-utils libnl-devel \
+    nscd gettext-devel
 
 ding-libs are available in Fedora 14 and later version:
 yum install  libcollection-devel  libdhash-devel  libini_config-devel \
@@ -57,4 +63,4 @@ Now you can call pam_test_client:
 ./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
 
 ~~~~~
-Simo and Steve (Last updated for 1.4.1)
+Simo and Steve (Last updated for 1.5.2)
