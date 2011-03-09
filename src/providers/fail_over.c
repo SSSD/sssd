@@ -1386,6 +1386,15 @@ fo_get_server_hostent(struct fo_server *server)
     return server->common->hostent;
 }
 
+time_t
+fo_get_server_hostname_last_change(struct fo_server *server)
+{
+    if (server->common == NULL) {
+        return 0;
+    }
+    return server->common->last_status_change.tv_sec;
+}
+
 void fo_reset_services(struct fo_ctx *fo_ctx)
 {
     struct fo_service *service;
