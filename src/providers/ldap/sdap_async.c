@@ -172,6 +172,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
 
     if (!sh->connected || !sh->ldap) {
         DEBUG(2, ("ERROR: LDAP connection is not connected!\n"));
+        sdap_handle_release(sh);
         return;
     }
 
