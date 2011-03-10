@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-01-21 16:56-0500\n"
+"POT-Creation-Date: 2011-03-10 13:48-0500\n"
 "PO-Revision-Date: 2010-04-08 16:50+0200\n"
 "Last-Translator: Guido Grazioli <guido.grazioli@gmail.com>\n"
 "Language-Team: Italian <trans-it@lists.fedoraproject.org>\n"
@@ -679,28 +679,28 @@ msgstr "Un descrittore di file aperto per l'output di debug"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del provider di informazioni (obbligatorio)"
 
-#: src/sss_client/common.c:779
+#: src/sss_client/common.c:808
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:782
+#: src/sss_client/common.c:811
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:785
+#: src/sss_client/common.c:814
 #, fuzzy
 msgid "Unexpected format of the server credential message."
 msgstr "Percorso della cache delle credenziali utente"
 
-#: src/sss_client/common.c:788
+#: src/sss_client/common.c:817
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:793
+#: src/sss_client/common.c:822
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:799
+#: src/sss_client/common.c:828
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
