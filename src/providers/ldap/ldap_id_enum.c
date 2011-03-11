@@ -546,19 +546,23 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->op = op;
 
     if (ctx->srv_opts && ctx->srv_opts->max_group_value && !purge) {
-        state->filter = talloc_asprintf(state,
-                              "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
-                              ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                              ctx->opts->group_map[SDAP_OC_GROUP].name,
-                              ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
-                              ctx->srv_opts->max_group_value,
-                              ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
-                              ctx->srv_opts->max_group_value);
+        state->filter = talloc_asprintf(
+                state,
+                "(&(objectclass=%s)(%s=*)(%s=*)(%s>=%s)(!(%s=%s)))",
+                ctx->opts->group_map[SDAP_OC_GROUP].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
+                ctx->srv_opts->max_group_value,
+                ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
+                ctx->srv_opts->max_group_value);
     } else {
-        state->filter = talloc_asprintf(state,
-                              "(&(%s=*)(objectclass=%s))",
-                              ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                              ctx->opts->group_map[SDAP_OC_GROUP].name);
+        state->filter = talloc_asprintf(
+                state,
+                "(&(objectclass=%s)(%s=*)(%s=*))",
+                ctx->opts->group_map[SDAP_OC_GROUP].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     }
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));

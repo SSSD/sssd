@@ -2007,10 +2007,12 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_name,
-                             opts->group_map[SDAP_OC_GROUP].name);
+                             opts->group_map[SDAP_OC_GROUP].name,
+                             opts->group_map[SDAP_AT_GROUP_NAME].name,
+                             opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!filter) {
         talloc_zfree(req);
         return NULL;
@@ -2211,8 +2213,10 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->filter = talloc_asprintf(state, "(objectclass=%s)",
-                                    opts->group_map[SDAP_OC_GROUP].name);
+    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*)(%s=*)",
+                                    opts->group_map[SDAP_OC_GROUP].name,
+                                    opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                    opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!state->filter) {
         talloc_zfree(req);
         return NULL;
@@ -3103,8 +3107,10 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
     }
 
     filter = talloc_asprintf(
-            sdap_attrs, "(objectclass=%s)",
-            state->opts->group_map[SDAP_OC_GROUP].name);
+            sdap_attrs, "(&(objectclass=%s)(%s=*)(%s=*))",
+            state->opts->group_map[SDAP_OC_GROUP].name,
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+            state->opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!filter) {
         talloc_free(sdap_attrs);
         return ENOMEM;
@@ -3435,10 +3441,12 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_orig_dn,
-                             opts->group_map[SDAP_OC_GROUP].name);
+                             opts->group_map[SDAP_OC_GROUP].name,
+                             opts->group_map[SDAP_AT_GROUP_NAME].name,
+                             opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!filter) {
         talloc_zfree(req);
         return NULL;
@@ -3839,10 +3847,12 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     }
 
     filter = talloc_asprintf(
-            tmp_ctx, "(&(%s=%s)(objectclass=%s))",
+            tmp_ctx, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
             state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
             clean_orig_dn,
-            state->opts->group_map[SDAP_OC_GROUP].name);
+            state->opts->group_map[SDAP_OC_GROUP].name,
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+            state->opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!filter) {
         ret = ENOMEM;
         goto error;
