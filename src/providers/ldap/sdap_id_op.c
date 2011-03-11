@@ -522,7 +522,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
         /* be is going offline as there is no more servers to try */
         DEBUG(1, ("Failed to connect, going offline (%d [%s])\n",
                   ret, strerror(ret)));
-        be_mark_offline(conn_data->conn_cache->id_ctx->be);
+        be_mark_offline(conn_cache->id_ctx->be);
         is_offline = true;
     }
 
@@ -544,6 +544,8 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
             default:
                 /* do not attempt to retry on errors like ENOMEM */
                 can_retry = false;
+                is_offline = true;
+                be_mark_offline(conn_cache->id_ctx->be);
                 break;
         }
     }
