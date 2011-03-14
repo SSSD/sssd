@@ -441,19 +441,25 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     state->op = op;
 
     if (ctx->srv_opts && ctx->srv_opts->max_user_value && !purge) {
-        state->filter = talloc_asprintf(state,
-                               "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
-                               ctx->opts->user_map[SDAP_AT_USER_NAME].name,
-                               ctx->opts->user_map[SDAP_OC_USER].name,
-                               ctx->opts->user_map[SDAP_AT_USER_USN].name,
-                               ctx->srv_opts->max_user_value,
-                               ctx->opts->user_map[SDAP_AT_USER_USN].name,
-                               ctx->srv_opts->max_user_value);
+        state->filter = talloc_asprintf(
+                state,
+                "(&(objectclass=%s)(%s=*)(%s=*)(%s=*)(%s>=%s)(!(%s=%s)))",
+                ctx->opts->user_map[SDAP_OC_USER].name,
+                ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+                ctx->opts->user_map[SDAP_AT_USER_UID].name,
+                ctx->opts->user_map[SDAP_AT_USER_GID].name,
+                ctx->opts->user_map[SDAP_AT_USER_USN].name,
+                ctx->srv_opts->max_user_value,
+                ctx->opts->user_map[SDAP_AT_USER_USN].name,
+                ctx->srv_opts->max_user_value);
     } else {
-        state->filter = talloc_asprintf(state,
-                               "(&(%s=*)(objectclass=%s))",
-                               ctx->opts->user_map[SDAP_AT_USER_NAME].name,
-                               ctx->opts->user_map[SDAP_OC_USER].name);
+        state->filter = talloc_asprintf(
+                state,
+                "(&(objectclass=%s)(%s=*)(%s=*)(%s=*))",
+                ctx->opts->user_map[SDAP_OC_USER].name,
+                ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+                ctx->opts->user_map[SDAP_AT_USER_UID].name,
+                ctx->opts->user_map[SDAP_AT_USER_GID].name);
     }
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
