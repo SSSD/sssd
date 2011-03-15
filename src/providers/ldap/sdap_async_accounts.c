@@ -1980,6 +1980,80 @@ fail:
     return ret;
 }
 
+static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
+                                    struct sdap_options *opts,
+                                    struct sss_domain_info *dom,
+                                    const char *name,
+                                    enum sysdb_member_type type,
+                                    char **sysdb_grouplist,
+                                    struct sysdb_attrs **ldap_groups,
+                                    int ldap_groups_count,
+                                    bool add_fake)
+{
+    TALLOC_CTX *tmp_ctx;
+    char **ldap_grouplist = NULL;
+    char **add_groups;
+    char **del_groups;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    if (ldap_groups_count == 0) {
+        /* No groups for this user in LDAP.
+         * We need to ensure that there are no groups
+         * in the sysdb either.
+         */
+        ldap_grouplist = NULL;
+    } else {
+        ret = sysdb_attrs_to_list(tmp_ctx, ldap_groups,
+                                  ldap_groups_count,
+                                  SYSDB_NAME,
+                                  &ldap_grouplist);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_to_list failed [%d]: %s\n",
+                      ret, strerror(ret)));
+            goto done;
+        }
+    }
+
+    /* Find the differences between the sysdb and LDAP lists
+     * Groups in the sysdb only must be removed.
+     */
+    ret = diff_string_lists(tmp_ctx, ldap_grouplist, sysdb_grouplist,
+                            &add_groups, &del_groups, NULL);
+    if (ret != EOK) goto done;
+
+    /* Add fake entries for any groups the user should be added as
+     * member of but that are not cached in sysdb
+     */
+    if (add_fake && add_groups && add_groups[0]) {
+        ret = sdap_add_incomplete_groups(sysdb, opts, dom,
+                                         add_groups, ldap_groups,
+                                         ldap_groups_count);
+        if (ret != EOK) {
+            DEBUG(1, ("Adding incomplete users failed\n"));
+            goto done;
+        }
+    }
+
+    DEBUG(8, ("Updating memberships for %s\n", name));
+    ret = sysdb_update_members(sysdb, dom, name,
+                               type,
+                               (const char *const *) add_groups,
+                               (const char *const *) del_groups);
+    if (ret != EOK) {
+        DEBUG(1, ("Membership update failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 /* ==Initgr-call-(groups-a-user-is-member-of)-RFC2307-Classic/BIS========= */
 
 struct sdap_initgr_rfc2307_state {
@@ -2073,10 +2147,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     struct tevent_req *req;
     struct sdap_initgr_rfc2307_state *state;
     struct sysdb_attrs **ldap_groups;
-    char **ldap_grouplist = NULL;
     char **sysdb_grouplist = NULL;
-    char **add_groups;
-    char **del_groups;
     struct ldb_message *msg;
     struct ldb_message_element *groups;
     size_t count;
@@ -2092,22 +2163,6 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     if (ret) {
         tevent_req_error(req, ret);
         return;
-    }
-
-    if (count == 0) {
-        /* No groups for this user in LDAP.
-         * We need to ensure that there are no groups
-         * in the sysdb either.
-         */
-        ldap_grouplist = NULL;
-    } else {
-        ret = sysdb_attrs_to_list(state, ldap_groups, count,
-                                  SYSDB_NAME,
-                                  &ldap_grouplist);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
     }
 
     /* Search for all groups for which this user is a member */
@@ -2145,34 +2200,12 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
         sysdb_grouplist[groups->num_values] = NULL;
     }
 
-    /* Find the differences between the sysdb and LDAP lists
-     * Groups in LDAP only must be added to the sysdb;
-     * groups in the sysdb only must be removed.
-     */
-    ret = diff_string_lists(state, ldap_grouplist, sysdb_grouplist,
-                            &add_groups, &del_groups, NULL);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    /* Add fake entries for any groups the user should be added as
-     * member of but that are not cached in sysdb
-     */
-    if (add_groups && add_groups[0]) {
-        ret = sdap_add_incomplete_groups(state->sysdb, state->opts,
-                                         state->dom, add_groups,
-                                         ldap_groups, count);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-    }
-
-    ret = sysdb_update_members(state->sysdb, state->dom, state->name,
-                               SYSDB_MEMBER_USER,
-                               (const char *const *)add_groups,
-                               (const char *const *)del_groups);
+    /* There are no nested groups here so we can just update the
+     * memberships */
+    ret = sdap_initgr_common_store(state->sysdb, state->opts,
+                                   state->dom, state->name,
+                                   SYSDB_MEMBER_USER, sysdb_grouplist,
+                                   ldap_groups, count, true);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -2198,6 +2231,7 @@ struct sdap_initgr_nested_state {
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
 
+    struct sysdb_attrs *user;
     const char *username;
 
     const char **grp_attrs;
@@ -2239,6 +2273,7 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->sh = sh;
     state->grp_attrs = grp_attrs;
+    state->user = user;
     state->op = NULL;
 
     ret = sysdb_attrs_primary_name(sysdb, user,
@@ -2359,120 +2394,389 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
     }
 }
 
+static int sdap_initgr_nested_store_group(struct sysdb_ctx *sysdb,
+                                          struct sdap_options *opts,
+                                          struct sss_domain_info *dom,
+                                          struct sysdb_attrs *group,
+                                          struct sysdb_attrs **groups,
+                                          int ngroups);
+
 static void sdap_initgr_nested_store(struct tevent_req *req)
 {
     struct sdap_initgr_nested_state *state;
-    errno_t ret, sret;
-    const char *attrs[] = { SYSDB_MEMBEROF, NULL };
-    struct ldb_message *msg;
-    struct ldb_message_element *groups;
+
+    struct ldb_message_element *el;
+    errno_t ret;
+    int i, mi;
+    struct ldb_message **direct_sysdb_groups = NULL;
+    size_t direct_sysdb_count = 0;
+
+    const char *orig_dn;
+    const char *user_dn;
+    struct ldb_dn *basedn;
+    static const char *group_attrs[] = { SYSDB_NAME, NULL };
+    const char *member_filter;
     char **sysdb_grouplist = NULL;
     char **ldap_grouplist = NULL;
-    char **del_groups;
-    size_t i, count;
+    const char *tmp_str;
+
+    int ndirect;
+    struct sysdb_attrs **direct_groups;
 
     state = tevent_req_data(req, struct sdap_initgr_nested_state);
 
-    ret = sysdb_transaction_start(state->sysdb);
+    /* Get direct LDAP parents */
+    ret = sysdb_attrs_get_string(state->user, SYSDB_ORIG_DN, &orig_dn);
     if (ret != EOK) {
-        DEBUG(1, ("Could not create sysdb transaction\n"));
+        DEBUG(2, ("The user has no original DN\n"));
         goto done;
     }
 
-    ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                           state->groups, state->groups_cur, false, NULL);
-    if (ret != EOK) {
+    direct_groups = talloc_zero_array(state, struct sysdb_attrs *,
+                                      state->count + 1);
+    if (!direct_groups) {
+        ret = ENOMEM;
         goto done;
     }
+    ndirect = 0;
 
-    /* Get the list of groups this user belongs to */
-    ret = sysdb_search_user_by_name(state, state->sysdb, state->dom,
-                                    state->username, attrs,
-                                    &msg);
-    if (ret != EOK) {
-        goto done;
+    for (i=0; i < state->groups_cur ; i++) {
+        ret = sysdb_attrs_get_el(state->groups[i], SYSDB_MEMBER, &el);
+        if (ret) {
+            DEBUG(3, ("A group with no members during initgroups?\n"));
+            goto done;
+        }
+
+        for (mi = 0; mi < el->num_values; mi++) {
+            if (strcasecmp((const char *) el->values[mi].data, orig_dn) != 0) {
+                continue;
+            }
+
+            direct_groups[ndirect] = state->groups[i];
+            ndirect++;
+        }
     }
 
-    groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    if (!groups || groups->num_values == 0) {
-        /* No groups for this user in sysdb currently, so
-         * nothing to delete.
-         */
-        ret = EOK;
-        goto done;
-    }
+    DEBUG(7, ("The user %s is a direct member of %d LDAP groups\n",
+              state->username, ndirect));
 
-    sysdb_grouplist = talloc_array(state, char *, groups->num_values+1);
-    if (!sysdb_grouplist) {
+    /* Get direct sysdb parents */
+    user_dn = sysdb_user_strdn(state, state->dom->name, state->username);
+    if (!user_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* Get a list of the groups by name */
-    for (i = 0; i < groups->num_values; i++) {
-        ret = sysdb_group_dn_name(state->sysdb,
-                                  sysdb_grouplist,
-                                  (const char *)groups->values[i].data,
-                                  &sysdb_grouplist[i]);
-        if (ret != EOK) goto done;
-    }
-    sysdb_grouplist[groups->num_values] = NULL;
-
-    count = 0;
-    while (state->group_dns[count]) count++;
-
-    ldap_grouplist = talloc_array(state, char *, count+1);
-    if (!ldap_grouplist) {
+    member_filter = talloc_asprintf(state, "(&(%s=%s)(%s=%s))",
+                                    SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS,
+                                    SYSDB_MEMBER, user_dn);
+    if (!member_filter) {
         ret = ENOMEM;
         goto done;
     }
 
-    for (i = 0; i < count; i++) {
-        ret = sysdb_group_dn_name(state->sysdb,
-                                  ldap_grouplist,
-                                  state->group_dns[i],
-                                  &ldap_grouplist[i]);
-        if (ret != EOK) goto done;
-    }
-    ldap_grouplist[count] = NULL;
-
-    /* Find the differences between the sysdb and LDAP lists
-     * Groups in the sysdb only must be removed.
-     */
-    ret = diff_string_lists(state, ldap_grouplist, sysdb_grouplist,
-                            NULL, &del_groups, NULL);
-    if (ret != EOK) goto done;
-
-    if (!del_groups || !del_groups[0]) {
-        /* No groups to delete */
-        ret = EOK;
+    basedn = ldb_dn_new_fmt(state, sysdb_ctx_get_ldb(state->sysdb),
+                            SYSDB_TMPL_GROUP_BASE,
+                            state->dom->name);
+    if (!basedn) {
+        ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_update_members(state->sysdb, state->dom, state->username,
-                               SYSDB_MEMBER_USER, NULL,
-                               (const char *const *)del_groups);
+    DEBUG(8, ("searching sysdb with filter [%s]\n", member_filter));
+
+    ret = sysdb_search_entry(state, state->sysdb, basedn,
+                             LDB_SCOPE_SUBTREE, member_filter, group_attrs,
+                             &direct_sysdb_count, &direct_sysdb_groups);
+    if (ret == EOK) {
+        /* Get the list of sysdb groups by name */
+        sysdb_grouplist = talloc_array(state, char *, direct_sysdb_count+1);
+        if (!sysdb_grouplist) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for(i = 0; i < direct_sysdb_count; i++) {
+            tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
+                                                SYSDB_NAME, NULL);
+            if (!tmp_str) {
+                /* This should never happen, but if it does, just continue */
+                continue;
+            }
+
+            sysdb_grouplist[i] = talloc_strdup(sysdb_grouplist, tmp_str);
+            if (!sysdb_grouplist[i]) {
+                DEBUG(1, ("A group with no name?\n"));
+                ret = EIO;
+                goto done;
+            }
+        }
+        sysdb_grouplist[i] = NULL;
+    } else if (ret == ENOENT) {
+        direct_sysdb_groups = NULL;
+        direct_sysdb_count = 0;
+    } else {
+        DEBUG(2, ("sysdb_search_entry failed: [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
+    DEBUG(7, ("The user %s is a member of %d sysdb groups\n",
+              state->username, direct_sysdb_count));
+
+    /* Store the direct parents with full member/memberof pairs */
+    ret = sdap_initgr_common_store(state->sysdb, state->opts,
+                                   state->dom,
+                                   state->username,
+                                   SYSDB_MEMBER_USER,
+                                   sysdb_grouplist,
+                                   direct_groups,
+                                   ndirect, true);
+    if (ret != EOK) {
+        DEBUG(1, ("sdap_initgr_common_store failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    /* Not all indirect groups may be cached.
+     * Add fake entries for those that are not */
+    ret = sysdb_attrs_to_list(state, state->groups,
+                              state->groups_cur,
+                              SYSDB_NAME,
+                              &ldap_grouplist);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_attrs_to_list failed [%d]: %s\n",
+                    ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = sdap_add_incomplete_groups(state->sysdb, state->opts,
+                                     state->dom, ldap_grouplist,
+                                     state->groups, state->groups_cur);
+    if (ret != EOK) {
+        DEBUG(1, ("adding incomplete groups failed [%d]: %s\n",
+                    ret, strerror(ret)));
+        goto done;
+    }
+
+    /* Set the indirect memberships */
+    for (i=0; i < state->groups_cur ; i++) {
+        ret = sdap_initgr_nested_store_group(state->sysdb, state->opts,
+                                             state->dom, state->groups[i],
+                                             state->groups, state->groups_cur);
+        if (ret != EOK) {
+            DEBUG(2, ("Cannot fix nested group membership\n"));
+            goto done;
+        }
+    }
 
 done:
-    if (ret == EOK) {
-        ret = sysdb_transaction_commit(state->sysdb);
-        if (ret != EOK) {
-            DEBUG(1, ("Could not commit transaction! [%d][%s]\n",
-                      ret, strerror(ret)));
-        }
-    }
-
     if (ret != EOK) {
-        sret = sysdb_transaction_cancel(state->sysdb);
-        if (sret != EOK) {
-            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
-                      sret, strerror(sret)));
-        }
         tevent_req_error(req, ret);
         return;
     }
 
     tevent_req_done(req);
+}
+
+static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
+                                                 struct sysdb_attrs *attrs,
+                                                 struct sysdb_attrs **groups,
+                                                 int ngroups,
+                                                 struct sysdb_attrs ***_direct_parents,
+                                                 int *_ndirect);
+
+static int sdap_initgr_nested_store_group(struct sysdb_ctx *sysdb,
+                                          struct sdap_options *opts,
+                                          struct sss_domain_info *dom,
+                                          struct sysdb_attrs *group,
+                                          struct sysdb_attrs **groups,
+                                          int ngroups)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *member_filter;
+    const char *group_orig_dn;
+    const char *group_name;
+    const char *group_dn;
+    int ret;
+    int i;
+    struct ldb_message **direct_sysdb_groups = NULL;
+    size_t direct_sysdb_count = 0;
+    static const char *group_attrs[] = { SYSDB_NAME, NULL };
+    struct ldb_dn *basedn;
+    int ndirect;
+    struct sysdb_attrs **direct_groups;
+    char **sysdb_grouplist = NULL;
+    const char *tmp_str;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb_ctx_get_ldb(sysdb),
+                            SYSDB_TMPL_GROUP_BASE,
+                            dom->name);
+    if (!basedn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_string(group, SYSDB_ORIG_DN, &group_orig_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_string(group, SYSDB_NAME, &group_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get direct sysdb parents */
+    group_dn = sysdb_group_strdn(tmp_ctx, dom->name, group_name);
+    if (!group_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    member_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(%s=%s))",
+                                    SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS,
+                                    SYSDB_MEMBER, group_dn);
+    if (!member_filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(8, ("searching sysdb with filter %s\n", member_filter));
+
+    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn,
+                             LDB_SCOPE_SUBTREE, member_filter, group_attrs,
+                             &direct_sysdb_count, &direct_sysdb_groups);
+    if (ret == EOK) {
+        /* Get the list of sysdb groups by name */
+        sysdb_grouplist = talloc_array(tmp_ctx, char *, direct_sysdb_count+1);
+        if (!sysdb_grouplist) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for(i = 0; i < direct_sysdb_count; i++) {
+            tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
+                                                SYSDB_NAME, NULL);
+            if (!tmp_str) {
+                /* This should never happen, but if it does, just continue */
+                continue;
+            }
+
+            sysdb_grouplist[i] = talloc_strdup(sysdb_grouplist, tmp_str);
+            if (!sysdb_grouplist[i]) {
+                DEBUG(1, ("A group with no name?\n"));
+                ret = EIO;
+                goto done;
+            }
+        }
+        sysdb_grouplist[i] = NULL;
+    } else if (ret == ENOENT) {
+        direct_sysdb_groups = NULL;
+        direct_sysdb_count = 0;
+    } else {
+        DEBUG(2, ("sysdb_search_entry failed: [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
+    DEBUG(7, ("The group %s is a member of %d sysdb groups\n",
+              group_name, direct_sysdb_count));
+
+    /* Filter only parents from full set */
+    ret = sdap_initgr_nested_get_direct_parents(tmp_ctx, group, groups,
+                                                ngroups, &direct_groups,
+                                                &ndirect);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot get parent groups [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+    DEBUG(7, ("The group %s is a direct member of %d LDAP groups\n",
+              group_name, ndirect));
+
+    /* Store the direct parents with full member/memberof pairs */
+    ret = sdap_initgr_common_store(sysdb, opts, dom, group_name,
+                                   SYSDB_MEMBER_GROUP, sysdb_grouplist,
+                                   direct_groups, ndirect, false);
+    if (ret != EOK) {
+        DEBUG(1, ("sdap_initgr_common_store failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
+                                                 struct sysdb_attrs *attrs,
+                                                 struct sysdb_attrs **groups,
+                                                 int ngroups,
+                                                 struct sysdb_attrs ***_direct_parents,
+                                                 int *_ndirect)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message_element *member;
+    int i, mi;
+    int ret;
+    const char *orig_dn;
+
+    int ndirect;
+    struct sysdb_attrs **direct_groups;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+
+    direct_groups = talloc_zero_array(tmp_ctx, struct sysdb_attrs *,
+                                      ngroups + 1);
+    if (!direct_groups) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ndirect = 0;
+
+    ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &orig_dn);
+    if (ret != EOK) {
+        DEBUG(3, ("Missing originalDN\n"));
+        goto done;
+    }
+    DEBUG(9, ("Looking up direct parents for group [%s]\n", orig_dn));
+
+    /* FIXME - Filter only parents from full set to avoid searching
+     * through all members of huge groups. That requires asking for memberOf
+     * with the group LDAP search
+     */
+
+    /* Filter only direct parents from the list of all groups */
+    for (i=0; i < ngroups; i++) {
+        ret = sysdb_attrs_get_el(groups[i], SYSDB_MEMBER, &member);
+        if (ret) {
+            DEBUG(7, ("A group with no members during initgroups?\n"));
+            continue;
+        }
+
+        for (mi = 0; mi < member->num_values; mi++) {
+            if (strcasecmp((const char *) member->values[mi].data, orig_dn) != 0) {
+                continue;
+            }
+
+            direct_groups[ndirect] = groups[i];
+            ndirect++;
+        }
+    }
+    direct_groups[ndirect] = NULL;
+
+    DEBUG(9, ("The group [%s] has %d direct parents\n", orig_dn, ndirect));
+
+    *_direct_parents = direct_groups;
+    *_ndirect = ndirect;
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
 }
 
 static int sdap_initgr_nested_recv(struct tevent_req *req)
@@ -4115,7 +4419,7 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
     }
 
     if (reply_count == 0) {
-        DEBUG(6, ("User [%s] is not a direct member of any groups\n", name));
+        DEBUG(6, ("Group [%s] is not a direct member of any groups\n", name));
         sysdb_grouplist = NULL;
     } else {
         sysdb_grouplist = talloc_array(tmp_ctx, char *, reply_count+1);
