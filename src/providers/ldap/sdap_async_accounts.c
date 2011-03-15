@@ -2213,7 +2213,7 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*)(%s=*)",
+    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*)(%s=*))",
                                     opts->group_map[SDAP_OC_GROUP].name,
                                     opts->group_map[SDAP_AT_GROUP_NAME].name,
                                     opts->group_map[SDAP_AT_GROUP_GID].name);
