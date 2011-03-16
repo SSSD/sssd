@@ -40,7 +40,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
 {
     struct ldb_message_element *el;
     int ret;
-    const char *name;
+    const char *name = NULL;
     const char *pwd;
     const char *gecos;
     const char *homedir;
@@ -49,25 +49,35 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     gid_t gid;
     struct sysdb_attrs *user_attrs;
     char *upn = NULL;
-    int i;
+    size_t i;
     char *val = NULL;
     int cache_timeout;
     char *usn_value = NULL;
     size_t c;
     char **missing = NULL;
+    TALLOC_CTX *tmpctx = NULL;
 
     DEBUG(9, ("Save user\n"));
 
-    ret = sysdb_attrs_get_el(attrs,
-                             opts->user_map[SDAP_AT_USER_NAME].sys_name, &el);
-    if (el->num_values == 0) {
-        ret = EINVAL;
+    tmpctx = talloc_new(memctx);
+    if (!tmpctx) {
+        ret = ENOMEM;
+        goto fail;
     }
-    if (ret) {
+
+    user_attrs = sysdb_new_attrs(tmpctx);
+    if (user_attrs == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_attrs_primary_name(ctx, attrs,
+                                   opts->user_map[SDAP_AT_USER_NAME].name,
+                                   &name);
+    if (ret != EOK) {
         DEBUG(1, ("Failed to save the user - entry has no name attribute\n"));
-        return ret;
+        goto fail;
     }
-    name = (const char *)el->values[0].data;
 
     ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_PWD].sys_name, &el);
@@ -126,12 +136,6 @@ static int sdap_save_user(TALLOC_CTX *memctx,
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
                       name));
         ret = EINVAL;
-        goto fail;
-    }
-
-    user_attrs = sysdb_new_attrs(memctx);
-    if (user_attrs == NULL) {
-        ret = ENOMEM;
         goto fail;
     }
 
@@ -271,7 +275,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     /* Make sure that any attributes we requested from LDAP that we
      * did not receive are also removed from the sysdb
      */
-    ret = list_missing_attrs(NULL, opts->user_map, SDAP_OPTS_USER,
+    ret = list_missing_attrs(user_attrs, opts->user_map, SDAP_OPTS_USER,
                              ldap_attrs, attrs, &missing);
     if (ret != EOK) {
         goto fail;
@@ -285,21 +289,23 @@ static int sdap_save_user(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for user %s\n", name));
 
-    ret = sysdb_store_user(memctx, ctx, dom,
+    ret = sysdb_store_user(user_attrs, ctx, dom,
                            name, pwd, uid, gid, gecos, homedir, shell,
                            user_attrs, missing, cache_timeout);
     if (ret) goto fail;
-    talloc_zfree(missing);
 
     if (_usn_value) {
         *_usn_value = usn_value;
     }
 
+    talloc_steal(memctx, user_attrs);
+    talloc_free(tmpctx);
     return EOK;
 
 fail:
-    DEBUG(2, ("Failed to save user %s\n", name));
-    talloc_free(missing);
+    DEBUG(2, ("Failed to save user [%s]\n",
+              name ? name : "Unknown"));
+    talloc_free(tmpctx);
     return ret;
 }
 
