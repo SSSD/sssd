@@ -204,33 +204,68 @@ struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *ctx, void *memctx,
     return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP_BASE, domain);
 }
 
-errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
-                            const char *_dn, char **_name)
+errno_t sysdb_get_rdn(struct sysdb_ctx *ctx, void *memctx,
+                      const char *_dn, char **_name, char **_val)
 {
+    errno_t ret;
     struct ldb_dn *dn;
+    const char *attr_name = NULL;
     const struct ldb_val *val;
-    *_name = NULL;
+    TALLOC_CTX *tmpctx;
 
-    dn = ldb_dn_new_fmt(memctx, ctx->ldb, "%s", _dn);
-    if (dn == NULL) {
+    /* We have to create a tmpctx here because
+     * ldb_dn_new_fmt() fails if memctx is NULL
+     */
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
         return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmpctx, ctx->ldb, "%s", _dn);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (_name) {
+        attr_name = ldb_dn_get_rdn_name(dn);
+        if (attr_name == NULL) {
+            ret = EINVAL;
+            goto done;
+        }
+
+        *_name = talloc_strdup(memctx, attr_name);
+        if (!_name) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     val = ldb_dn_get_rdn_val(dn);
     if (val == NULL) {
-        talloc_zfree(dn);
-        return EINVAL;
+        ret = EINVAL;
+        talloc_free(*_name);
+        goto done;
     }
 
-    *_name = talloc_strndup(memctx, (char *) val->data, val->length);
-    if (!*_name) {
-        talloc_zfree(dn);
-        return ENOMEM;
+    *_val = talloc_strndup(memctx, (char *) val->data, val->length);
+    if (!*_val) {
+        ret = ENOMEM;
+        talloc_free(*_name);
+        goto done;
     }
 
-    talloc_zfree(dn);
+    ret = EOK;
 
-    return EOK;
+done:
+    talloc_zfree(tmpctx);
+    return ret;
+}
+
+errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
+                            const char *_dn, char **_name)
+{
+    return sysdb_get_rdn(ctx, memctx, _dn, NULL, _name);
 }
 
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
