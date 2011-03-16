@@ -836,9 +836,9 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     const char *name;
     int ret;
 
-    ret = sysdb_attrs_get_string(attrs,
-                                opts->group_map[SDAP_AT_GROUP_NAME].sys_name,
-                                &name);
+    ret = sysdb_attrs_primary_name(ctx, attrs,
+                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                   &name);
     if (ret != EOK) {
         goto fail;
     }
@@ -2232,7 +2232,9 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     state->grp_attrs = grp_attrs;
     state->op = NULL;
 
-    ret = sysdb_attrs_get_string(user, SYSDB_NAME, &state->username);
+    ret = sysdb_attrs_primary_name(sysdb, user,
+                                   opts->user_map[SDAP_AT_USER_NAME].name,
+                                   &state->username);
     if (ret != EOK) {
         DEBUG(1, ("User entry had no username\n"));
         talloc_free(req);
@@ -2834,11 +2836,12 @@ static struct tevent_req *sdap_nested_group_process_send(
      */
     key.type = HASH_KEY_STRING;
 
-    ret = sysdb_attrs_get_string(
-            group,
-            opts->group_map[SDAP_AT_GROUP_NAME].sys_name,
-            &groupname);
-    if (ret != EOK) goto immediate;
+    ret = sysdb_attrs_primary_name(sysdb, group,
+                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                   &groupname);
+    if (ret != EOK) {
+        goto immediate;
+    }
 
     key.str = talloc_strdup(state, groupname);
     if (!key.str) {
@@ -3802,8 +3805,11 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto error;
     }
 
-    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
-                                 SYSDB_NAME, &name);
+    ret = sysdb_attrs_primary_name(
+            state->sysdb,
+            state->groups[state->group_iter],
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+            &name);
     if (ret != EOK) {
         goto error;
     }
@@ -3842,7 +3848,8 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
 
     DEBUG(6, ("Saving incomplete group [%s] to the sysdb\n",
               groupnamelist[0]));
-    ret = sdap_add_incomplete_groups(state->sysdb, state->dom, groupnamelist,
+    ret = sdap_add_incomplete_groups(state->sysdb, state->opts,
+                                     state->dom, groupnamelist,
                                      grouplist, 1);
     if (ret != EOK) {
         goto error;
@@ -4051,11 +4058,16 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
     }
     in_transaction = true;
 
-    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
-                                 SYSDB_NAME, &name);
+    ret = sysdb_attrs_primary_name(
+            state->sysdb,
+            state->groups[state->group_iter],
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+            &name);
     if (ret != EOK) {
         goto error;
     }
+
+    DEBUG(6, ("Processing group [%s]\n", name));
 
     attrs = talloc_array(tmp_ctx, const char *, 2);
     if (!attrs) {
