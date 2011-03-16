@@ -2038,3 +2038,105 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
+                                 struct sysdb_attrs *attrs,
+                                 const char *ldap_attr,
+                                 const char **_primary)
+{
+    errno_t ret;
+    char *rdn_attr = NULL;
+    char *rdn_val = NULL;
+    struct ldb_message_element *sysdb_name_el;
+    struct ldb_message_element *orig_dn_el;
+    size_t i;
+    TALLOC_CTX *tmpctx = NULL;
+
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_get_el(attrs,
+                             SYSDB_NAME,
+                             &sysdb_name_el);
+    if (sysdb_name_el->num_values == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (sysdb_name_el->num_values == 1) {
+        /* Entry contains only one name. Just return that */
+        *_primary = (const char *)sysdb_name_el->values[0].data;
+        ret = EOK;
+        goto done;
+    }
+
+    /* Multiple values for name. Check whether one matches the RDN */
+
+    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &orig_dn_el);
+    if (ret) {
+        goto done;
+    }
+    if (orig_dn_el->num_values == 0) {
+        DEBUG(7, ("Original DN is not available.\n"));
+    } else if (orig_dn_el->num_values == 1) {
+        ret = sysdb_get_rdn(sysdb, tmpctx,
+                            (const char *) orig_dn_el->values[0].data,
+                            &rdn_attr,
+                            &rdn_val);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not get rdn from [%s]\n",
+                      (const char *) orig_dn_el->values[0].data));
+            goto done;
+        }
+    } else {
+        DEBUG(1, ("Should not have more than one origDN\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* First check whether the attribute name matches */
+    DEBUG(8, ("Comparing attribute names [%s] and [%s]\n",
+              rdn_attr, ldap_attr));
+    if (strcasecmp(rdn_attr, ldap_attr) != 0) {
+        /* Multiple entries, and the RDN attribute doesn't match.
+         * We have no way of resolving this deterministically,
+         * so we'll punt.
+         */
+        DEBUG(1, ("Cannot save entry. It has multiple names and the RDN "
+                  "attribute does not match\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (i = 0; i < sysdb_name_el->num_values; i++) {
+        if (strcasecmp(rdn_val,
+                       (const char *)sysdb_name_el->values[i].data) == 0) {
+            /* This name matches the RDN. Use it */
+            break;
+        }
+    }
+    if (i < sysdb_name_el->num_values) {
+        /* Match was found */
+        *_primary = (const char *)sysdb_name_el->values[i].data;
+    } else {
+        /* If we can't match the name to the RDN, we just have to
+         * throw up our hands. There's no deterministic way to
+         * decide which name is correct.
+         */
+        DEBUG(1, ("Cannot save entry. Unable to determine groupname\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        DEBUG(1, ("Could not determine primary name: [%d][%s]\n",
+                  ret, strerror(ret)));
+    }
+    talloc_free(tmpctx);
+    return ret;
+}
