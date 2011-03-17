@@ -1868,6 +1868,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     struct ldb_message *msg;
     int i, mi, ai;
     const char *name;
+    const char *original_dn;
     char **missing;
     gid_t gid;
     int ret;
@@ -1939,9 +1940,17 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                     goto fail;
                 }
 
+                ret = sysdb_attrs_get_string(ldap_groups[ai],
+                                             SYSDB_ORIG_DN,
+                                             &original_dn);
+                if (ret) {
+                    DEBUG(5, ("The group has no name original DN\n"));
+                    original_dn = NULL;
+                }
 
                 DEBUG(8, ("Adding fake group %s to sysdb\n", name));
-                ret = sysdb_add_incomplete_group(sysdb, dom, name, gid);
+                ret = sysdb_add_incomplete_group(sysdb, dom, name,
+                                                 gid, original_dn);
                 if (ret != EOK) {
                     goto fail;
                 }

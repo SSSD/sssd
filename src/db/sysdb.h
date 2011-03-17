@@ -496,7 +496,8 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
 int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
                                struct sss_domain_info *domain,
                                const char *name,
-                               gid_t gid);
+                               gid_t gid,
+                               const char *original_dn);
 
 /* Add netgroup (only basic attrs and w/o checks) */
 int sysdb_add_basic_netgroup(struct sysdb_ctx *ctx,

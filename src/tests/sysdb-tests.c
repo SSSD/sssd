@@ -268,7 +268,7 @@ static int test_add_incomplete_group(struct test_data *data)
     int ret;
 
     ret = sysdb_add_incomplete_group(data->ctx->sysdb, data->ctx->domain,
-                                     data->groupname, data->gid);
+                                     data->groupname, data->gid, NULL);
     return ret;
 }
 
@@ -2743,7 +2743,7 @@ START_TEST(test_odd_characters)
 
     /* Add */
     ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
-                                     odd_groupname, 20000);
+                                     odd_groupname, 20000, NULL);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
