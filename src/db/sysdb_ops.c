@@ -1147,7 +1147,8 @@ done:
 int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
                                struct sss_domain_info *domain,
                                const char *name,
-                               gid_t gid)
+                               gid_t gid,
+                               const char *original_dn)
 {
     TALLOC_CTX *tmpctx;
     time_t now;
@@ -1177,6 +1178,11 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  now-1);
     if (ret) goto done;
+
+    if (original_dn) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, original_dn);
+        if (ret) goto done;
+    }
 
     ret = sysdb_set_group_attr(tmpctx, ctx,
                                domain, name, attrs, SYSDB_MOD_REP);
