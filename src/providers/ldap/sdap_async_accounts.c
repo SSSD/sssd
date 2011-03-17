@@ -1700,7 +1700,7 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret) {
         sysret = sysdb_transaction_cancel(state->sysdb);
-        if (ret != EOK) {
+        if (sysret != EOK) {
             DEBUG(0, ("Could not cancel sysdb transaction\n"));
         }
         tevent_req_error(req, ret);
