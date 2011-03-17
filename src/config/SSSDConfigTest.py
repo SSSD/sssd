@@ -693,7 +693,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'ipa': ['id', 'auth', 'access', 'chpass'],
             'local': ['id', 'auth', 'chpass'],
             'ldap': ['id', 'auth', 'access', 'chpass'],
-            'krb5': ['auth', 'chpass'],
+            'krb5': ['auth', 'access', 'chpass'],
             'proxy': ['id', 'auth'],
             'simple': ['access'],
             'permit': ['access'],
