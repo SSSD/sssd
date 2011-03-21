@@ -512,13 +512,20 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
     struct ldb_message **msgs;
     size_t num_msgs;
     int ret;
+    char *sanitized_dn;
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
 
-    filter = talloc_asprintf(tmpctx, "%s=%s", SYSDB_ORIG_DN, orig_dn);
+    ret = sss_filter_sanitize(tmpctx, orig_dn, &sanitized_dn);
+    if (ret != EOK) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmpctx, "%s=%s", SYSDB_ORIG_DN, sanitized_dn);
     if (!filter) {
         ret = ENOMEM;
         goto done;
@@ -530,6 +537,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
         goto done;
     }
 
+    DEBUG(9, ("Searching cache for [%s].\n", sanitized_dn));
     ret = sysdb_search_entry(tmpctx, ctx,
                              base_dn, LDB_SCOPE_SUBTREE, filter, no_attrs,
                              &num_msgs, &msgs);
