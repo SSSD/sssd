@@ -2006,12 +2006,13 @@ static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
          */
         ldap_grouplist = NULL;
     } else {
-        ret = sysdb_attrs_to_list(tmp_ctx, ldap_groups,
-                                  ldap_groups_count,
-                                  SYSDB_NAME,
-                                  &ldap_grouplist);
+        ret = sysdb_attrs_primary_name_list(
+                sysdb, tmp_ctx,
+                ldap_groups, ldap_groups_count,
+                opts->group_map[SDAP_AT_GROUP_NAME].name,
+                &ldap_grouplist);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_to_list failed [%d]: %s\n",
+            DEBUG(1, ("sysdb_attrs_primary_name_list failed [%d]: %s\n",
                       ret, strerror(ret)));
             goto done;
         }
@@ -2538,12 +2539,13 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
 
     /* Not all indirect groups may be cached.
      * Add fake entries for those that are not */
-    ret = sysdb_attrs_to_list(state, state->groups,
-                              state->groups_cur,
-                              SYSDB_NAME,
-                              &ldap_grouplist);
+    ret = sysdb_attrs_primary_name_list(
+            state->sysdb, state,
+            state->groups, state->groups_cur,
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+            &ldap_grouplist);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_attrs_to_list failed [%d]: %s\n",
+        DEBUG(1, ("sysdb_attrs_primary_name_list failed [%d]: %s\n",
                     ret, strerror(ret)));
         goto done;
     }
@@ -3965,10 +3967,11 @@ errno_t save_rfc2307bis_user_memberships(
         ldap_grouplist = NULL;
     }
     else {
-        ret = sysdb_attrs_to_list(tmp_ctx,
-                                  state->ldap_groups, state->ldap_groups_count,
-                                  SYSDB_NAME,
-                                  &ldap_grouplist);
+        ret = sysdb_attrs_primary_name_list(
+                state->sysdb, tmp_ctx,
+                state->ldap_groups, state->ldap_groups_count,
+                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                &ldap_grouplist);
         if (ret != EOK) {
             goto error;
         }
@@ -4454,10 +4457,11 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
         ldap_grouplist = NULL;
     }
     else {
-        ret = sysdb_attrs_to_list(tmp_ctx,
-                                  state->ldap_groups, state->ldap_groups_count,
-                                  SYSDB_NAME,
-                                  &ldap_grouplist);
+        ret = sysdb_attrs_primary_name_list(
+                state->sysdb, tmp_ctx,
+                state->ldap_groups, state->ldap_groups_count,
+                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                &ldap_grouplist);
         if (ret != EOK) {
             goto error;
         }
