@@ -2623,7 +2623,9 @@ static int sdap_initgr_nested_store_group(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_attrs_get_string(group, SYSDB_NAME, &group_name);
+    ret = sysdb_attrs_primary_name(sysdb, group,
+                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                   &group_name);
     if (ret != EOK) {
         goto done;
     }
