@@ -219,6 +219,12 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
                                  struct sysdb_attrs *attrs,
                                  const char *ldap_attr,
                                  const char **_primary);
+errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sysdb_attrs **attr_list,
+                                      size_t attr_count,
+                                      const char *ldap_attr,
+                                      char ***name_list);
 
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);

@@ -2256,3 +2256,56 @@ done:
     talloc_free(tmpctx);
     return ret;
 }
+
+errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sysdb_attrs **attr_list,
+                                      size_t attr_count,
+                                      const char *ldap_attr,
+                                      char ***name_list)
+{
+    errno_t ret;
+    size_t i, j;
+    char **list;
+    const char *name;
+
+    /* Assume that every entry has a primary name */
+    list = talloc_array(mem_ctx, char *, attr_count+1);
+    if (!list) {
+        return ENOMEM;
+    }
+
+    j = 0;
+    for (i = 0; i < attr_count; i++) {
+        ret = sysdb_attrs_primary_name(sysdb,
+                                       attr_list[i],
+                                       ldap_attr,
+                                       &name);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not determine primary name\n"));
+            /* Skip and continue. Don't advance 'j' */
+            continue;
+        }
+
+        list[j] = talloc_strdup(list, name);
+        if (!list[j]) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        j++;
+    }
+
+    /* NULL-terminate the list */
+    list[j] = NULL;
+
+    *name_list = list;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(list);
+    }
+    return ret;
+}
