@@ -235,7 +235,7 @@ errno_t sysdb_get_rdn(struct sysdb_ctx *ctx, void *memctx,
         }
 
         *_name = talloc_strdup(memctx, attr_name);
-        if (!_name) {
+        if (!*_name) {
             ret = ENOMEM;
             goto done;
         }
