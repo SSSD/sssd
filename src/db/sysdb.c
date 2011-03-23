@@ -244,14 +244,14 @@ errno_t sysdb_get_rdn(struct sysdb_ctx *ctx, void *memctx,
     val = ldb_dn_get_rdn_val(dn);
     if (val == NULL) {
         ret = EINVAL;
-        talloc_free(*_name);
+        if (_name) talloc_free(*_name);
         goto done;
     }
 
     *_val = talloc_strndup(memctx, (char *) val->data, val->length);
     if (!*_val) {
         ret = ENOMEM;
-        talloc_free(*_name);
+        if (_name) talloc_free(*_name);
         goto done;
     }
 
