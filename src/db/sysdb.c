@@ -2195,7 +2195,9 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
         goto done;
     }
     if (orig_dn_el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available.\n"));
+        DEBUG(1, ("Original DN is not available.\n"));
+        ret = EINVAL;
+        goto done;
     } else if (orig_dn_el->num_values == 1) {
         ret = sysdb_get_rdn(sysdb, tmpctx,
                             (const char *) orig_dn_el->values[0].data,
