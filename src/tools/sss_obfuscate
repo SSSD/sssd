@@ -44,12 +44,24 @@ def main():
         try:
             pprompt = lambda: (getpass.getpass("Enter password: "), getpass.getpass("Re-enter password: "))
             p1, p2 = pprompt()
+
+            #Work around bug in Python 2.6
+            if '\x03' in p1 or '\x03' in p2:
+                raise KeyboardInterrupt
+
             while p1 != p2:
                 print('Passwords do not match. Try again')
                 p1, p2 = pprompt()
+
+                #Work around bug in Python 2.6
+                if '\x03' in p1 or '\x03' in p2:
+                    raise KeyboardInterrupt
             password = p1
+
         except EOFError:
             print >> sys.stderr, '\nUnexpected end-of-file. Password change aborted'
+            return 1
+        except KeyboardInterrupt:
             return 1
 
     else:
