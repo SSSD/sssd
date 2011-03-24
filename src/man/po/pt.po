@@ -3,22 +3,26 @@
 # This file is distributed under the same license as the sssd-docs package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: sssd-docs 1.5.4\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2011-03-24 14:46-0300\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2011-03-24 18:37+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Language-Team: Portuguese <trans-pt@lists.fedoraproject.org>\n"
+"Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #. type: Content of: <reference><title>
-#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sssd-ipa.5.xml:5 sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_useradd.8.xml:5 sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5 sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5
+#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
+#: sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sssd-ipa.5.xml:5
+#: sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_useradd.8.xml:5 sssd-krb5.5.xml:5
+#: sss_groupadd.8.xml:5 sss_userdel.8.xml:5 sss_groupdel.8.xml:5
+#: sss_groupshow.8.xml:5 sss_usermod.8.xml:5
 msgid "SSSD Manual pages"
 msgstr ""
 
@@ -28,7 +32,10 @@ msgid "sss_groupmod"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
-#: sss_groupmod.8.xml:11 pam_sss.8.xml:14 sssd_krb5_locator_plugin.8.xml:11 sssd.8.xml:11 sss_obfuscate.8.xml:11 sss_useradd.8.xml:11 sss_groupadd.8.xml:11 sss_userdel.8.xml:11 sss_groupdel.8.xml:11 sss_groupshow.8.xml:11 sss_usermod.8.xml:11
+#: sss_groupmod.8.xml:11 pam_sss.8.xml:14 sssd_krb5_locator_plugin.8.xml:11
+#: sssd.8.xml:11 sss_obfuscate.8.xml:11 sss_useradd.8.xml:11
+#: sss_groupadd.8.xml:11 sss_userdel.8.xml:11 sss_groupdel.8.xml:11
+#: sss_groupshow.8.xml:11 sss_usermod.8.xml:11
 msgid "8"
 msgstr ""
 
@@ -40,13 +47,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupmod.8.xml:21
 msgid ""
-"<command>sss_groupmod</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>GROUP</replaceable></arg>"
+"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:41 sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22 sssd-ipa.5.xml:21 sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_useradd.8.xml:30 sssd-krb5.5.xml:21 sss_groupadd.8.xml:30 sss_userdel.8.xml:30 sss_groupdel.8.xml:30 sss_groupshow.8.xml:30 sss_usermod.8.xml:30
+#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:41
+#: sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22 sssd-ipa.5.xml:21
+#: sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_useradd.8.xml:30
+#: sssd-krb5.5.xml:21 sss_groupadd.8.xml:30 sss_userdel.8.xml:30
+#: sss_groupdel.8.xml:30 sss_groupshow.8.xml:30 sss_usermod.8.xml:30
 msgid "DESCRIPTION"
 msgstr ""
 
@@ -58,61 +69,63 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:39 pam_sss.8.xml:48 sssd.8.xml:42 sss_obfuscate.8.xml:58 sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39 sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39
+#: sss_groupmod.8.xml:39 pam_sss.8.xml:48 sssd.8.xml:42 sss_obfuscate.8.xml:58
+#: sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39
+#: sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39
 msgid "OPTIONS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:43 sss_usermod.8.xml:77
 msgid ""
-"<option>-a</option>,<option>--append-group</option> "
-"<replaceable>GROUPS</replaceable>"
+"<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_groupmod.8.xml:48
 msgid ""
-"Append this group to groups specified by the "
-"<replaceable>GROUPS</replaceable> parameter.  The "
-"<replaceable>GROUPS</replaceable> parameter is a comma separated list of "
-"group names."
+"Append this group to groups specified by the <replaceable>GROUPS</"
+"replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter is "
+"a comma separated list of group names."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:57 sss_usermod.8.xml:91
 msgid ""
-"<option>-r</option>,<option>--remove-group</option> "
-"<replaceable>GROUPS</replaceable>"
+"<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_groupmod.8.xml:62
 msgid ""
-"Remove this group from groups specified by the "
-"<replaceable>GROUPS</replaceable> parameter."
+"Remove this group from groups specified by the <replaceable>GROUPS</"
+"replaceable> parameter."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:72 sssd.conf.5.xml:1008 sssd-ldap.5.xml:1389 pam_sss.8.xml:128 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143 sssd-ipa.5.xml:206 sssd.8.xml:166 sss_obfuscate.8.xml:103 sss_useradd.8.xml:167 sssd-krb5.5.xml:424 sss_groupadd.8.xml:58 sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58 sss_usermod.8.xml:138
+#: sss_groupmod.8.xml:72 sssd.conf.5.xml:1008 sssd-ldap.5.xml:1389
+#: pam_sss.8.xml:128 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143
+#: sssd-ipa.5.xml:206 sssd.8.xml:166 sss_obfuscate.8.xml:103
+#: sss_useradd.8.xml:167 sssd-krb5.5.xml:424 sss_groupadd.8.xml:58
+#: sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58
+#: sss_usermod.8.xml:138
 msgid "SEE ALSO"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupmod.8.xml:74
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -121,17 +134,20 @@ msgid "sssd.conf"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
-#: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11 sssd-ipa.5.xml:11 sssd-krb5.5.xml:11
+#: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
+#: sssd-ipa.5.xml:11 sssd-krb5.5.xml:11
 msgid "5"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><refmiscinfo>
-#: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12 sssd-ipa.5.xml:12 sssd-krb5.5.xml:12
+#: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
+#: sssd-ipa.5.xml:12 sssd-krb5.5.xml:12
 msgid "File Formats and Conventions"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sssd.conf.5.xml:17 sssd-ldap.5.xml:17 sssd_krb5_locator_plugin.8.xml:16 sssd-ipa.5.xml:17 sssd-krb5.5.xml:17
+#: sssd.conf.5.xml:17 sssd-ldap.5.xml:17 sssd_krb5_locator_plugin.8.xml:16
+#: sssd-ipa.5.xml:17 sssd-krb5.5.xml:17
 msgid "the configuration file for SSSD"
 msgstr ""
 
@@ -145,10 +161,8 @@ msgstr ""
 #, no-wrap
 msgid ""
 "                <replaceable>[section]</replaceable>\n"
-"                <replaceable>key</replaceable> = "
-"<replaceable>value</replaceable>\n"
-"                <replaceable>key2</replaceable> = "
-"<replaceable>value2,value3</replaceable>\n"
+"                <replaceable>key</replaceable> = <replaceable>value</replaceable>\n"
+"                <replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>\n"
 "            "
 msgstr ""
 
@@ -157,8 +171,8 @@ msgstr ""
 msgid ""
 "The file has an ini-style syntax and consists of sections and parameters. A "
 "section begins with the name of the section in square brackets and continues "
-"until the next section begins. An example of section with single and "
-"multi-valued parameters: <placeholder type=\"programlisting\" id=\"0\"/>"
+"until the next section begins. An example of section with single and multi-"
+"valued parameters: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -223,7 +237,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:84
-msgid "Comma separated list of services that are started when sssd itself starts."
+msgid ""
+"Comma separated list of services that are started when sssd itself starts."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -293,8 +308,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:138
 msgid ""
-"PLEASE NOTE ALSO: older version of libpcre only support the Python syntax "
-"(?P&lt;name&gt;) to label subpatterns."
+"PLEASE NOTE ALSO: older version of libpcre only support the Python syntax (?"
+"P&lt;name&gt;) to label subpatterns."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
@@ -305,9 +320,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:148
 msgid ""
-"A <citerefentry> <refentrytitle>printf</refentrytitle> "
-"<manvolnum>3</manvolnum> </citerefentry>-compatible format that describes "
-"how to translate a (name, domain) tuple into a fully qualified name."
+"A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
+"manvolnum> </citerefentry>-compatible format that describes how to translate "
+"a (name, domain) tuple into a fully qualified name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -358,8 +373,8 @@ msgid ""
 "services that are started and stopped together with SSSD.  The services are "
 "managed by a special service frequently called <quote>monitor</quote>. The "
 "<quote>[sssd]</quote> section is used to configure the monitor as well as "
-"some other important options like the identity domains.  <placeholder "
-"type=\"variablelist\" id=\"0\"/>"
+"some other important options like the identity domains.  <placeholder type="
+"\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
@@ -372,8 +387,8 @@ msgstr ""
 msgid ""
 "Settings that can be used to configure different services are described in "
 "this section. They should reside in the [<replaceable>$NAME</replaceable>] "
-"section, for example, for NSS service, the section would be "
-"<quote>[nss]</quote>"
+"section, for example, for NSS service, the section would be <quote>[nss]</"
+"quote>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
@@ -414,7 +429,8 @@ msgid "Add a timestamp to the debug messages"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:229 sssd.conf.5.xml:353 sssd-ldap.5.xml:1015 sssd-ldap.5.xml:1120 sssd-ipa.5.xml:155
+#: sssd.conf.5.xml:229 sssd.conf.5.xml:353 sssd-ldap.5.xml:1015
+#: sssd-ldap.5.xml:1120 sssd-ipa.5.xml:155
 msgid "Default: true"
 msgstr ""
 
@@ -426,10 +442,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:250
 msgid ""
-"By default, the executable representing this service is called "
-"<command>sssd_${service_name}</command>.  This directive allows to change "
-"the executable name for the service. In the vast majority of configurations, "
-"the default values should suffice."
+"By default, the executable representing this service is called <command>sssd_"
+"${service_name}</command>.  This directive allows to change the executable "
+"name for the service. In the vast majority of configurations, the default "
+"values should suffice."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -445,8 +461,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:268
 msgid ""
-"These options can be used to configure the Name Service Switch (NSS) "
-"service."
+"These options can be used to configure the Name Service Switch (NSS) service."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -525,8 +540,8 @@ msgstr ""
 #: sssd.conf.5.xml:334
 msgid ""
 "Exclude certain users from being fetched from the sss NSS database. This is "
-"particularly useful for system accounts. This option can also be set "
-"per-domain or include fully-qualified names to filter only users from the "
+"particularly useful for system accounts. This option can also be set per-"
+"domain or include fully-qualified names to filter only users from the "
 "particular domain."
 msgstr ""
 
@@ -542,7 +557,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:349
-msgid "If you want filtered user still be group members set this option to false."
+msgid ""
+"If you want filtered user still be group members set this option to false."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
@@ -619,8 +635,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:417
 msgid ""
-"Controls what kind of messages are shown to the user during "
-"authentication. The higher the number to more messages are displayed."
+"Controls what kind of messages are shown to the user during authentication. "
+"The higher the number to more messages are displayed."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -670,10 +686,9 @@ msgstr ""
 #: sssd.conf.5.xml:453
 msgid ""
 "A complete PAM conversation may perform multiple PAM requests, such as "
-"account management and session opening. This option controls (on a "
-"per-client-application basis) how long (in seconds) we can cache the "
-"identity information to avoid excessive round-trips to the identity "
-"provider."
+"account management and session opening. This option controls (on a per-"
+"client-application basis) how long (in seconds) we can cache the identity "
+"information to avoid excessive round-trips to the identity provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -720,8 +735,8 @@ msgstr ""
 #: sssd.conf.5.xml:503
 msgid ""
 "For users, this affects the primary GID limit. The user will not be returned "
-"to NSS if either the UID or the primary GID is outside the range. For "
-"non-primary group memberships, those that are in range will be reported as "
+"to NSS if either the UID or the primary GID is outside the range. For non-"
+"primary group memberships, those that are in range will be reported as "
 "expected."
 msgstr ""
 
@@ -884,8 +899,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:637
 msgid ""
-"If set to TRUE, all requests to this domain must use fully qualified "
-"names. For example, if used in LOCAL domain that contains a \"test\" user, "
+"If set to TRUE, all requests to this domain must use fully qualified names. "
+"For example, if used in LOCAL domain that contains a \"test\" user, "
 "<command>getent passwd test</command> wouldn't find the user while "
 "<command>getent passwd test@LOCAL</command> would."
 msgstr ""
@@ -906,21 +921,22 @@ msgstr ""
 #: sssd.conf.5.xml:657
 msgid ""
 "<quote>ldap</quote> for native LDAP authentication. See <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> for more information on configuring LDAP."
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> for more information on configuring LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:664
 msgid ""
 "<quote>krb5</quote> for Kerberos authentication. See <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> for more information on configuring Kerberos."
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> for more information on configuring Kerberos."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:671
-msgid "<quote>proxy</quote> for relaying authentication to some other PAM target."
+msgid ""
+"<quote>proxy</quote> for relaying authentication to some other PAM target."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -962,9 +978,9 @@ msgstr ""
 #: sssd.conf.5.xml:698
 msgid ""
 "<quote>simple</quote> access control based on access or deny lists. See "
-"<citerefentry> <refentrytitle>sssd-simple</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry> for more information on configuring "
-"the simple access module."
+"<citerefentry> <refentrytitle>sssd-simple</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry> for more information on configuring the simple "
+"access module."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -988,31 +1004,30 @@ msgstr ""
 #: sssd.conf.5.xml:718
 msgid ""
 "<quote>ipa</quote> to change a password stored in an IPA server.  See "
-"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> for more information on configuring "
-"IPA."
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:726
 msgid ""
 "<quote>ldap</quote> to change a password stored in a LDAP server.  See "
-"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> for more information on configuring "
-"LDAP."
+"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> for more information on configuring LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:734
 msgid ""
 "<quote>krb5</quote> to change the Kerberos password. See <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> for more information on configuring Kerberos."
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> for more information on configuring Kerberos."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:742
-msgid "<quote>proxy</quote> for relaying password changes to some other PAM target."
+msgid ""
+"<quote>proxy</quote> for relaying password changes to some other PAM target."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1103,9 +1118,8 @@ msgstr ""
 #: sssd.conf.5.xml:490
 msgid ""
 "These configuration options can be present in a domain configuration "
-"section, that is, in a section called "
-"<quote>[domain/<replaceable>NAME</replaceable>]</quote> <placeholder "
-"type=\"variablelist\" id=\"0\"/>"
+"section, that is, in a section called <quote>[domain/<replaceable>NAME</"
+"replaceable>]</quote> <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -1141,8 +1155,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:814
 msgid ""
-"Options valid for proxy domains.  <placeholder type=\"variablelist\" "
-"id=\"0\"/>"
+"Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
+"\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
@@ -1247,8 +1261,8 @@ msgstr ""
 msgid ""
 "The skeleton directory, which contains files and directories to be copied in "
 "the user's home directory, when the home directory is created by "
-"<citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry>"
+"<citerefentry> <refentrytitle>sss_useradd</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -1293,7 +1307,8 @@ msgid "Default: None, no command is run"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:973 sssd-ldap.5.xml:1357 sssd-simple.5.xml:126 sssd-ipa.5.xml:188 sssd-krb5.5.xml:405
+#: sssd.conf.5.xml:973 sssd-ldap.5.xml:1357 sssd-simple.5.xml:126
+#: sssd-ipa.5.xml:188 sssd-krb5.5.xml:405
 msgid "EXAMPLE"
 msgstr ""
 
@@ -1339,25 +1354,20 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:1010
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -1371,9 +1381,8 @@ msgid ""
 "This manual page describes the configuration of LDAP domains for "
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
 "</citerefentry>.  Refer to the <quote>FILE FORMAT</quote> section of the "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> manual page for detailed syntax "
-"information."
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> manual page for detailed syntax information."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -1385,16 +1394,17 @@ msgstr ""
 #: sssd-ldap.5.xml:38
 msgid ""
 "LDAP back end supports id, auth, access and chpass providers. If you want to "
-"authenticate against an LDAP server either TLS/SSL or LDAPS is "
-"required. <command>sssd</command> <emphasis>does not</emphasis> support "
-"authentication over an unencrypted channel.  If the LDAP server is used only "
-"as an identity provider, an encrypted channel is not needed. Please refer to "
+"authenticate against an LDAP server either TLS/SSL or LDAPS is required. "
+"<command>sssd</command> <emphasis>does not</emphasis> support authentication "
+"over an unencrypted channel.  If the LDAP server is used only as an identity "
+"provider, an encrypted channel is not needed. Please refer to "
 "<quote>ldap_access_filter</quote> config option for more information about "
 "using LDAP as an access provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:61 sssd-krb5.5.xml:63
+#: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:61
+#: sssd-krb5.5.xml:63
 msgid "CONFIGURATION OPTIONS"
 msgstr ""
 
@@ -1675,9 +1685,9 @@ msgstr ""
 #: sssd-ldap.5.xml:300
 msgid ""
 "When using ldap_pwd_policy=shadow, this parameter contains the name of an "
-"LDAP attribute corresponding to its <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> counterpart (date of the last password change)."
+"LDAP attribute corresponding to its <citerefentry> <refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> counterpart (date of "
+"the last password change)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1694,9 +1704,9 @@ msgstr ""
 #: sssd-ldap.5.xml:319
 msgid ""
 "When using ldap_pwd_policy=shadow, this parameter contains the name of an "
-"LDAP attribute corresponding to its <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> counterpart (minimum password age)."
+"LDAP attribute corresponding to its <citerefentry> <refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> counterpart (minimum "
+"password age)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1713,9 +1723,9 @@ msgstr ""
 #: sssd-ldap.5.xml:337
 msgid ""
 "When using ldap_pwd_policy=shadow, this parameter contains the name of an "
-"LDAP attribute corresponding to its <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> counterpart (maximum password age)."
+"LDAP attribute corresponding to its <citerefentry> <refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> counterpart (maximum "
+"password age)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1732,9 +1742,9 @@ msgstr ""
 #: sssd-ldap.5.xml:355
 msgid ""
 "When using ldap_pwd_policy=shadow, this parameter contains the name of an "
-"LDAP attribute corresponding to its <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> counterpart (password warning period)."
+"LDAP attribute corresponding to its <citerefentry> <refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> counterpart "
+"(password warning period)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1751,9 +1761,9 @@ msgstr ""
 #: sssd-ldap.5.xml:374
 msgid ""
 "When using ldap_pwd_policy=shadow, this parameter contains the name of an "
-"LDAP attribute corresponding to its <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> counterpart (password inactivity period)."
+"LDAP attribute corresponding to its <citerefentry> <refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> counterpart "
+"(password inactivity period)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1771,9 +1781,8 @@ msgstr ""
 msgid ""
 "When using ldap_pwd_policy=shadow or ldap_account_expire_policy=shadow, this "
 "parameter contains the name of an LDAP attribute corresponding to its "
-"<citerefentry> <refentrytitle>shadow</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> counterpart (account expiration "
-"date)."
+"<citerefentry> <refentrytitle>shadow</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> counterpart (account expiration date)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -1899,7 +1908,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:504 sssd-ldap.5.xml:961 sssd-ipa.5.xml:115 sssd.8.xml:64 sssd-krb5.5.xml:235 sssd-krb5.5.xml:266
+#: sssd-ldap.5.xml:504 sssd-ldap.5.xml:961 sssd-ipa.5.xml:115 sssd.8.xml:64
+#: sssd-krb5.5.xml:235 sssd-krb5.5.xml:266
 msgid "Default: false"
 msgstr ""
 
@@ -2071,9 +2081,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:670
 msgid ""
-"If ldap_schema is set to a schema format that supports nested groups "
-"(e.g. RFC2307bis), then this option controls how many levels of nesting SSSD "
-"will follow. This option has no effect on the RFC2307 schema."
+"If ldap_schema is set to a schema format that supports nested groups (e.g. "
+"RFC2307bis), then this option controls how many levels of nesting SSSD will "
+"follow. This option has no effect on the RFC2307 schema."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2128,7 +2138,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:724
-msgid "The LDAP attribute that contains the (host, user, domain) netgroup triples."
+msgid ""
+"The LDAP attribute that contains the (host, user, domain) netgroup triples."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2143,7 +2154,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:737
-msgid "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
+msgid ""
+"The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -2204,11 +2216,11 @@ msgstr ""
 #: sssd-ldap.5.xml:800
 msgid ""
 "Specifies the timeout (in seconds) after which the <citerefentry> "
-"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> "
-"</citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-"<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> "
-"</citerefentry> returns in case of no activity."
+"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
+"<citerefentry> <refentrytitle>select</refentrytitle> <manvolnum>2</"
+"manvolnum> </citerefentry> following a <citerefentry> "
+"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
+"citerefentry> returns in case of no activity."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -2292,8 +2304,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:888 sssd-ldap.5.xml:906 sssd-ldap.5.xml:947
 msgid ""
-"Default: use OpenLDAP defaults, typically in "
-"<filename>/etc/openldap/ldap.conf</filename>"
+"Default: use OpenLDAP defaults, typically in <filename>/etc/openldap/ldap."
+"conf</filename>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -2356,8 +2368,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:957
 msgid ""
-"Specifies that the id_provider connection must also use <systemitem "
-"class=\"protocol\">tls</systemitem> to protect the channel."
+"Specifies that the id_provider connection must also use <systemitem class="
+"\"protocol\">tls</systemitem> to protect the channel."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -2447,10 +2459,10 @@ msgstr ""
 msgid ""
 "Specifies the list of IP addresses or hostnames of the Kerberos servers to "
 "which SSSD should connect in the order of preference. For more information "
-"on failover and server redundancy, see the <quote>FAILOVER</quote> "
-"section. An optional port number (preceded by a colon) may be appended to "
-"the addresses or hostnames.  If empty, service discovery is enabled - for "
-"more information, refer to the <quote>SERVICE DISCOVERY</quote> section."
+"on failover and server redundancy, see the <quote>FAILOVER</quote> section. "
+"An optional port number (preceded by a colon) may be appended to the "
+"addresses or hostnames.  If empty, service discovery is enabled - for more "
+"information, refer to the <quote>SERVICE DISCOVERY</quote> section."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2464,10 +2476,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1054 sssd-krb5.5.xml:94
 msgid ""
-"This option was named <quote>krb5_kdcip</quote> in earlier releases of "
-"SSSD. While the legacy name is recognized for the time being, users are "
-"advised to migrate their config files to use <quote>krb5_server</quote> "
-"instead."
+"This option was named <quote>krb5_kdcip</quote> in earlier releases of SSSD. "
+"While the legacy name is recognized for the time being, users are advised to "
+"migrate their config files to use <quote>krb5_server</quote> instead."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -2493,8 +2504,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1078
 msgid ""
-"Select the policy to evaluate the password expiration on the client "
-"side. The following values are allowed:"
+"Select the policy to evaluate the password expiration on the client side. "
+"The following values are allowed:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2507,11 +2518,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1088
 msgid ""
-"<emphasis>shadow</emphasis> - Use "
-"<citerefentry><refentrytitle>shadow</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry> style attributes to evaluate if the "
-"password has expired.  Note that the current version of sssd cannot update "
-"this attribute during a password change."
+"<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes to "
+"evaluate if the password has expired.  Note that the current version of sssd "
+"cannot update this attribute during a password change."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2665,9 +2675,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1221
 msgid ""
-"<emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>, "
-"<emphasis>389ds</emphasis>: use the value of ldap_ns_account_lock to check "
-"if access is allowed or not."
+"<emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>, <emphasis>389ds</"
+"emphasis>: use the value of ldap_ns_account_lock to check if access is "
+"allowed or not."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -2759,9 +2769,9 @@ msgstr ""
 msgid ""
 "All of the common configuration options that apply to SSSD domains also "
 "apply to LDAP domains. Refer to the <quote>DOMAIN SECTIONS</quote> section "
-"of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> manual page for full details.  "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> manual page for full details.  <placeholder type="
+"\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
@@ -2776,7 +2786,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1311
-msgid "An optional base DN to restrict netgroup searches to a specific subtree."
+msgid ""
+"An optional base DN to restrict netgroup searches to a specific subtree."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2835,7 +2846,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1364 sssd-simple.5.xml:134 sssd-ipa.5.xml:196 sssd-krb5.5.xml:414
+#: sssd-ldap.5.xml:1364 sssd-simple.5.xml:134 sssd-ipa.5.xml:196
+#: sssd-krb5.5.xml:414
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
@@ -2856,19 +2868,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:1391
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 msgstr ""
 
 #. type: Content of: <refentryinfo>
 #: pam_sss.8.xml:8 include/upstream.xml:2
 msgid ""
-"<productname>SSSD</productname> <orgname>The SSSD upstream - "
-"http://fedorahosted.org/sssd</orgname>"
+"<productname>SSSD</productname> <orgname>The SSSD upstream - http://"
+"fedorahosted.org/sssd</orgname>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -2884,19 +2894,19 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
 msgid ""
-"<command>pam_sss.so</command> <arg choice='opt'> "
-"<replaceable>forward_pass</replaceable> </arg> <arg choice='opt'> "
-"<replaceable>use_first_pass</replaceable> </arg> <arg choice='opt'> "
-"<replaceable>use_authtok</replaceable> </arg> <arg choice='opt'> "
-"<replaceable>retry=N</replaceable> </arg>"
+"<command>pam_sss.so</command> <arg choice='opt'> <replaceable>forward_pass</"
+"replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
+"replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
+"replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:42
 msgid ""
 "<command>pam_sss.so</command> is the PAM interface to the System Security "
-"Services daemon (SSSD). Errors and results are logged through "
-"<command>syslog(3)</command> with the LOG_AUTHPRIV facility."
+"Services daemon (SSSD). Errors and results are logged through <command>syslog"
+"(3)</command> with the LOG_AUTHPRIV facility."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -2921,8 +2931,7 @@ msgstr ""
 msgid ""
 "The argument use_first_pass forces the module to use a previous stacked "
 "modules password and will never prompt the user - if no password is "
-"available or the password is not appropriate, the user will be denied "
-"access."
+"available or the password is not appropriate, the user will be denied access."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -2978,19 +2987,17 @@ msgstr ""
 #: pam_sss.8.xml:107
 msgid ""
 "If a password reset by root fails, because the corresponding SSSD provider "
-"does not support password resets, an individual message can be "
-"displayed. This message can e.g. contain instructions about how to reset a "
-"password."
+"does not support password resets, an individual message can be displayed. "
+"This message can e.g. contain instructions about how to reset a password."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:112
 msgid ""
-"The message is read from the file "
-"<filename>pam_sss_pw_reset_message.LOC</filename> where LOC stands for a "
-"locale string returned by <citerefentry> "
-"<refentrytitle>setlocale</refentrytitle><manvolnum>3</manvolnum> "
-"</citerefentry>. If there is no matching file the content of "
+"The message is read from the file <filename>pam_sss_pw_reset_message.LOC</"
+"filename> where LOC stands for a locale string returned by <citerefentry> "
+"<refentrytitle>setlocale</refentrytitle><manvolnum>3</manvolnum> </"
+"citerefentry>. If there is no matching file the content of "
 "<filename>pam_sss_pw_reset_message.txt</filename> is displayed. Root must be "
 "the owner of the files and only root may have read and write permissions "
 "while all other users must have only read permisssions."
@@ -2999,17 +3006,16 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:122
 msgid ""
-"These files are searched in the directory "
-"<filename>/etc/sssd/customize/DOMAIN_NAME/</filename>. If no matching file "
-"is present a generic message is displayed."
+"These files are searched in the directory <filename>/etc/sssd/customize/"
+"DOMAIN_NAME/</filename>. If no matching file is present a generic message is "
+"displayed."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:130
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>"
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -3021,16 +3027,16 @@ msgstr ""
 #: sssd_krb5_locator_plugin.8.xml:22
 msgid ""
 "The Kerberos locator plugin <command>sssd_krb5_locator_plugin</command> is "
-"used by the Kerberos provider of <citerefentry> "
-"<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> </citerefentry> "
-"to tell the Kerberos libraries what Realm and which KDC to use.  Typically "
-"this is done in <citerefentry> <refentrytitle>krb5.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> which is always read by the "
-"Kerberos libraries. To simplyfy the configuration the Realm and the KDC can "
-"be defined in <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> as described in <citerefentry> "
-"<refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>"
+"used by the Kerberos provider of <citerefentry> <refentrytitle>sssd</"
+"refentrytitle> <manvolnum>8</manvolnum> </citerefentry> to tell the Kerberos "
+"libraries what Realm and which KDC to use.  Typically this is done in "
+"<citerefentry> <refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> which is always read by the Kerberos libraries. "
+"To simplyfy the configuration the Realm and the KDC can be defined in "
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> as described in <citerefentry> "
+"<refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3062,11 +3068,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:77
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 msgstr ""
 
@@ -3087,8 +3091,8 @@ msgid ""
 "provider for <citerefentry> <refentrytitle>sssd</refentrytitle> "
 "<manvolnum>8</manvolnum> </citerefentry>.  For a detailed syntax reference, "
 "refer to the <quote>FILE FORMAT</quote> section of the <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> manual page."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> manual page."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3173,8 +3177,8 @@ msgstr ""
 #: sssd-simple.5.xml:70 sssd-ipa.5.xml:62
 msgid ""
 "Refer to the section <quote>DOMAIN SECTIONS</quote> of the <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> manual page for details on the configuration of an SSSD "
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> manual page for details on the configuration of an SSSD "
 "domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
@@ -3188,10 +3192,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:128
 msgid ""
-"The following example assumes that SSSD is correctly configured and "
-"example.com is one of the domains in the <replaceable>[sssd]</replaceable> "
-"section. This examples shows only the simple access provider-specific "
-"options."
+"The following example assumes that SSSD is correctly configured and example."
+"com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
+"This examples shows only the simple access provider-specific options."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
@@ -3206,10 +3209,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:145
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -3223,9 +3225,8 @@ msgid ""
 "This manual page describes the configuration of the IPA provider for "
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
 "</citerefentry>.  For a detailed syntax reference, refer to the <quote>FILE "
-"FORMAT</quote> section of the <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> manual page."
+"FORMAT</quote> section of the <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3241,15 +3242,14 @@ msgstr ""
 #: sssd-ipa.5.xml:43
 msgid ""
 "The IPA provider accepts the same options used by the <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> identity provider and the <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> authentication provider.  However, it is neither necessary "
-"nor recommended to set these options.  IPA provider can also be used as an "
-"access and chpass provider. As an access provider it uses HBAC (host-based "
-"access control) rules. Please refer to freeipa.org for more information "
-"about HBAC. No configuration of access provider is required on the client "
-"side."
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> identity provider and the <citerefentry> <refentrytitle>sssd-"
+"krb5</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> authentication "
+"provider.  However, it is neither necessary nor recommended to set these "
+"options.  IPA provider can also be used as an access and chpass provider. As "
+"an access provider it uses HBAC (host-based access control) rules. Please "
+"refer to freeipa.org for more information about HBAC. No configuration of "
+"access provider is required on the client side."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -3371,9 +3371,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:190
 msgid ""
-"The following example assumes that SSSD is correctly configured and "
-"example.com is one of the domains in the <replaceable>[sssd]</replaceable> "
-"section. This examples shows only the ipa provider-specific options."
+"The following example assumes that SSSD is correctly configured and example."
+"com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
+"This examples shows only the ipa provider-specific options."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
@@ -3389,14 +3389,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:208
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -3412,8 +3410,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sssd.8.xml:21
 msgid ""
-"<command>sssd</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg>"
+"<command>sssd</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3431,8 +3429,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:46
 msgid ""
-"<option>-d</option>,<option>--debug-level</option> "
-"<replaceable>LEVEL</replaceable>"
+"<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3484,11 +3482,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:106
 msgid ""
-"Specify a non-default config file. The default is "
-"<filename>/etc/sssd/sssd.conf</filename>. For reference on the config file "
-"syntax and options, consult the <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> manual page."
+"Specify a non-default config file. The default is <filename>/etc/sssd/sssd."
+"conf</filename>. For reference on the config file syntax and options, "
+"consult the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
@@ -3548,21 +3545,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:168
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -3578,17 +3571,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_obfuscate.8.xml:21
 msgid ""
-"<command>sss_obfuscate</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>[PASSWORD]</replaceable></arg>"
+"<command>sss_obfuscate</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>[PASSWORD]</"
+"replaceable></arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:32
 msgid ""
-"<command>sss_obfuscate</command> converts a given password into "
-"human-unreadable format and places it into appropriate domain section of the "
-"SSSD config file."
+"<command>sss_obfuscate</command> converts a given password into human-"
+"unreadable format and places it into appropriate domain section of the SSSD "
+"config file."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3599,8 +3592,8 @@ msgid ""
 "<quote>ldap_default_authtok</quote> parameter of a given SSSD domain and the "
 "<quote>ldap_default_authtok_type</quote> parameter is set to "
 "<quote>obfuscated_password</quote>. Refer to <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> for more details on these parameters."
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> for more details on these parameters."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3626,20 +3619,21 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:74
 msgid ""
-"<option>-d</option>,<option>--domain</option> "
-"<replaceable>DOMAIN</replaceable>"
+"<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_obfuscate.8.xml:79
 msgid ""
-"The SSSD domain to use the password in. The default name is "
-"<quote>default</quote>."
+"The SSSD domain to use the password in. The default name is <quote>default</"
+"quote>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:86
-msgid "<option>-f</option>,<option>--file</option> <replaceable>FILE</replaceable>"
+msgid ""
+"<option>-f</option>,<option>--file</option> <replaceable>FILE</replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3655,8 +3649,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:105
 msgid ""
-"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>"
+"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -3672,9 +3666,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_useradd.8.xml:21
 msgid ""
-"<command>sss_useradd</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>LOGIN</replaceable></arg>"
+"<command>sss_useradd</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3686,7 +3680,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_useradd.8.xml:43
-msgid "<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
+msgid ""
+"<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3699,8 +3694,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_useradd.8.xml:55 sss_usermod.8.xml:43
 msgid ""
-"<option>-c</option>,<option>--gecos</option> "
-"<replaceable>COMMENT</replaceable>"
+"<option>-c</option>,<option>--gecos</option> <replaceable>COMMENT</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3713,8 +3708,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_useradd.8.xml:67 sss_usermod.8.xml:55
 msgid ""
-"<option>-h</option>,<option>--home</option> "
-"<replaceable>HOME_DIR</replaceable>"
+"<option>-h</option>,<option>--home</option> <replaceable>HOME_DIR</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3723,30 +3718,29 @@ msgid ""
 "The home directory of the user account.  The default is to append the "
 "<replaceable>LOGIN</replaceable> name to <filename>/home</filename> and use "
 "that as the home directory.  The base that is prepended before "
-"<replaceable>LOGIN</replaceable> is tunable with "
-"<quote>user_defaults/baseDirectory</quote> setting in sssd.conf."
+"<replaceable>LOGIN</replaceable> is tunable with <quote>user_defaults/"
+"baseDirectory</quote> setting in sssd.conf."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_useradd.8.xml:82 sss_usermod.8.xml:66
 msgid ""
-"<option>-s</option>,<option>--shell</option> "
-"<replaceable>SHELL</replaceable>"
+"<option>-s</option>,<option>--shell</option> <replaceable>SHELL</replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_useradd.8.xml:87
 msgid ""
-"The user's login shell. The default is currently "
-"<filename>/bin/bash</filename>.  The default can be changed with "
-"<quote>user_defaults/defaultShell</quote> setting in sssd.conf."
+"The user's login shell. The default is currently <filename>/bin/bash</"
+"filename>.  The default can be changed with <quote>user_defaults/"
+"defaultShell</quote> setting in sssd.conf."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_useradd.8.xml:96
 msgid ""
-"<option>-G</option>,<option>--groups</option> "
-"<replaceable>GROUPS</replaceable>"
+"<option>-G</option>,<option>--groups</option> <replaceable>GROUPS</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3774,14 +3768,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_useradd.8.xml:125
-msgid "Do not create the user's home directory. Overrides configuration settings."
+msgid ""
+"Do not create the user's home directory. Overrides configuration settings."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_useradd.8.xml:132
 msgid ""
-"<option>-k</option>,<option>--skel</option> "
-"<replaceable>SKELDIR</replaceable>"
+"<option>-k</option>,<option>--skel</option> <replaceable>SKELDIR</"
+"replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -3795,9 +3790,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_useradd.8.xml:143
 msgid ""
-"This option is only valid if the <option>-m</option> (or "
-"<option>--create-home</option>) option is specified, or creation of home "
-"directories is set to TRUE in the configuration."
+"This option is only valid if the <option>-m</option> (or <option>--create-"
+"home</option>) option is specified, or creation of home directories is set "
+"to TRUE in the configuration."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -3817,19 +3812,15 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_useradd.8.xml:169
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -3841,12 +3832,11 @@ msgstr ""
 #: sssd-krb5.5.xml:23
 msgid ""
 "This manual page describes the configuration of the Kerberos 5 "
-"authentication backend for <citerefentry> "
-"<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>.  For a detailed syntax reference, please refer to the "
-"<quote>FILE FORMAT</quote> section of the <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> manual page"
+"authentication backend for <citerefentry> <refentrytitle>sssd</"
+"refentrytitle> <manvolnum>8</manvolnum> </citerefentry>.  For a detailed "
+"syntax reference, please refer to the <quote>FILE FORMAT</quote> section of "
+"the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> manual page"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3866,11 +3856,11 @@ msgstr ""
 #: sssd-krb5.5.xml:47
 msgid ""
 "This backend also provides access control based on the .k5login file in the "
-"home directory of the user. See <citerefentry> "
-"<refentrytitle>.k5login</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry> for more details. Please note that an empty .k5login file "
-"will deny all access to this user. To activate this feature use "
-"'access_provider = krb5' in your sssd configuration."
+"home directory of the user. See <citerefentry> <refentrytitle>.k5login</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry> for more details. "
+"Please note that an empty .k5login file will deny all access to this user. "
+"To activate this feature use 'access_provider = krb5' in your sssd "
+"configuration."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -3928,8 +3918,8 @@ msgid ""
 "directory does not exist it will be created. If %u, %U, %p or %h are used a "
 "private directory belonging to the user is created. Otherwise a public "
 "directory with restricted deletion flag (aka sticky bit, see <citerefentry> "
-"<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
-"</citerefentry> for details) is created."
+"<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> </"
+"citerefentry> for details) is created."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4080,7 +4070,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:262
-msgid "Please note that this feature currently only available on a Linux platform."
+msgid ""
+"Please note that this feature currently only available on a Linux platform."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -4154,7 +4145,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:337
-msgid "Default: not set, i.e. the default ticket lifetime configured on the KDC."
+msgid ""
+"Default: not set, i.e. the default ticket lifetime configured on the KDC."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -4182,8 +4174,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:365
 msgid ""
-"Enables flexible authentication secure tunneling (FAST) for Kerberos "
-"pre-authentication. The following options are supported:"
+"Enables flexible authentication secure tunneling (FAST) for Kerberos pre-"
+"authentication. The following options are supported:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4257,11 +4249,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:426
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> "
-"</citerefentry>, <citerefentry> "
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 msgstr ""
 
@@ -4278,9 +4268,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupadd.8.xml:21
 msgid ""
-"<command>sss_groupadd</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>GROUP</replaceable></arg>"
+"<command>sss_groupadd</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -4293,7 +4283,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupadd.8.xml:43
-msgid "<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
+msgid ""
+"<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -4306,19 +4297,15 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupadd.8.xml:60
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -4334,9 +4321,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_userdel.8.xml:21
 msgid ""
-"<command>sss_userdel</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>LOGIN</replaceable></arg>"
+"<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -4395,19 +4382,15 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_userdel.8.xml:95
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -4423,9 +4406,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupdel.8.xml:21
 msgid ""
-"<command>sss_groupdel</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>GROUP</replaceable></arg>"
+"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -4438,19 +4421,15 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupdel.8.xml:48
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -4466,9 +4445,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupshow.8.xml:21
 msgid ""
-"<command>sss_groupshow</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>GROUP</replaceable></arg>"
+"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -4495,17 +4474,14 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupshow.8.xml:60
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -4521,9 +4497,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_usermod.8.xml:21
 msgid ""
-"<command>sss_usermod</command> <arg choice='opt'> "
-"<replaceable>options</replaceable> </arg> <arg "
-"choice='plain'><replaceable>LOGIN</replaceable></arg>"
+"<command>sss_usermod</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
+"arg>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -4547,17 +4523,16 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:82
 msgid ""
-"Append this user to groups specified by the "
-"<replaceable>GROUPS</replaceable> parameter.  The "
-"<replaceable>GROUPS</replaceable> parameter is a comma separated list of "
-"group names."
+"Append this user to groups specified by the <replaceable>GROUPS</"
+"replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter is "
+"a comma separated list of group names."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:96
 msgid ""
-"Remove this user from groups specified by the "
-"<replaceable>GROUPS</replaceable> parameter."
+"Remove this user from groups specified by the <replaceable>GROUPS</"
+"replaceable> parameter."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -4588,19 +4563,15 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_usermod.8.xml:140
 msgid ""
-"<citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
 
 #. type: Content of: <refsect1><title>
@@ -4641,8 +4612,8 @@ msgstr ""
 #: include/service_discovery.xml:25
 msgid ""
 "Please refer to the <quote>dns_discovery_domain</quote> parameter in the "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> manual page for more details."
+"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> manual page for more details."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><title>
@@ -4664,7 +4635,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:44
-msgid "For more information on the service discovery mechanism, refer to RFC 2782."
+msgid ""
+"For more information on the service discovery mechanism, refer to RFC 2782."
 msgstr ""
 
 #. type: Content of: outside any tag (error?)
@@ -4693,8 +4665,8 @@ msgstr ""
 #: include/failover.xml:10
 msgid ""
 "The list of servers is given as a comma-separated list; any number of spaces "
-"is allowed around the comma. The servers are listed in order of "
-"preference. The list can contain any number of servers."
+"is allowed around the comma. The servers are listed in order of preference. "
+"The list can contain any number of servers."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><title>
