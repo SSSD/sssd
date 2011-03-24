@@ -41,12 +41,16 @@ def main():
         return 1
 
     if not options.stdin:
-        pprompt = lambda: (getpass.getpass("Enter password: "), getpass.getpass("Re-enter password: "))
-        p1, p2 = pprompt()
-        while p1 != p2:
-            print('Passwords do not match. Try again')
+        try:
+            pprompt = lambda: (getpass.getpass("Enter password: "), getpass.getpass("Re-enter password: "))
             p1, p2 = pprompt()
-        password = p1
+            while p1 != p2:
+                print('Passwords do not match. Try again')
+                p1, p2 = pprompt()
+            password = p1
+        except EOFError:
+            print >> sys.stderr, '\nUnexpected end-of-file. Password change aborted'
+            return 1
 
     else:
         try:
