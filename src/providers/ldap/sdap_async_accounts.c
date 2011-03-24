@@ -3328,7 +3328,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
                 ret = sdap_nested_group_lookup_user(
                         req, sdap_nested_group_process_ldap_user);
                 if (ret != EOK) {
-                    tevent_req_error(req, ret);
+                    goto error;
                 }
                 return EAGAIN;
             }
@@ -3640,6 +3640,7 @@ static void sdap_group_internal_nesting_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
+        return;
     }
 
     state->member_index++;
@@ -4272,6 +4273,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
         ret = rfc2307bis_nested_groups_update_sysdb(state);
         if (ret != EOK) {
             tevent_req_error(req, ret);
+            return;
         }
 
         state->group_iter++;
@@ -4279,6 +4281,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
             ret = rfc2307bis_nested_groups_step(req);
             if (ret != EOK) {
                 tevent_req_error(req, ret);
+                return;
             }
         } else {
             tevent_req_done(req);
