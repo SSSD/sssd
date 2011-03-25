@@ -1231,6 +1231,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
     char *member_name;
     char *strdn;
     int ret;
+    errno_t sret;
     int i;
 
     for (i=0; i < memberel->num_values; i++) {
@@ -1282,12 +1283,22 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
             DEBUG(2, ("Cannot commit sysdb transaction\n"));
             goto done;
         }
+        in_transaction = false;
     }
 
     ret = EOK;
     memberel->values = talloc_steal(state->group, state->sysdb_dns->values);
     memberel->num_values = state->sysdb_dns->num_values;
+
 done:
+    if (in_transaction) {
+        /* If the transaction is still active here, we need to cancel it */
+        sret = sysdb_transaction_cancel(state->sysdb);
+        if (sret != EOK) {
+            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
+                      sret, strerror(sret)));
+        }
+    }
     return ret;
 }
 
