@@ -1236,6 +1236,10 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
 
     for (i=0; i < memberel->num_values; i++) {
         member_name = (char *)memberel->values[i].data;
+
+        /* We need to skip over zero-length usernames */
+        if (member_name[0] == '\0') continue;
+
         ret = sysdb_search_user_by_name(state, state->sysdb,
                                         state->dom, member_name,
                                         NULL, &msg);
