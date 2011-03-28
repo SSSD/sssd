@@ -1364,7 +1364,7 @@ static int
 sdap_process_missing_member_2307(struct sdap_process_group_state *state,
                                  char *username, bool *in_transaction)
 {
-    int ret;
+    int ret, sret;
     struct ldb_dn *dn;
     char* dn_string;
 
@@ -1415,7 +1415,13 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
     return EOK;
 fail:
     if (*in_transaction) {
-        sysdb_transaction_cancel(state->sysdb);
+        sret = sysdb_transaction_cancel(state->sysdb);
+        if (sret == EOK) {
+            *in_transaction = false;
+        } else {
+            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
+                       sret, strerror(sret)));
+        }
     }
     return ret;
 }
