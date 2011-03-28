@@ -164,7 +164,8 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
-    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 int ipa_get_options(TALLOC_CTX *memctx,

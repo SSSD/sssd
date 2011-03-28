@@ -393,6 +393,15 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_fast_principal (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the server principal to use for FAST.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

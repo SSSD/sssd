@@ -44,7 +44,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
-    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
@@ -109,6 +110,7 @@ errno_t check_and_export_options(struct dp_option *opts,
     const char *realm;
     const char *dummy;
     char *use_fast_str;
+    char *fast_principal;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -155,6 +157,14 @@ errno_t check_and_export_options(struct dp_option *opts,
             ret = setenv(SSSD_KRB5_USE_FAST, use_fast_str, 1);
             if (ret != EOK) {
                 DEBUG(2, ("setenv [%s] failed.\n", SSSD_KRB5_USE_FAST));
+            } else {
+                fast_principal = dp_opt_get_string(opts, KRB5_FAST_PRINCIPAL);
+                if (fast_principal != NULL) {
+                    ret = setenv(SSSD_KRB5_FAST_PRINCIPAL, fast_principal, 1);
+                    if (ret != EOK) {
+                        DEBUG(2, ("setenv [%s] failed.\n", SSSD_KRB5_FAST_PRINCIPAL));
+                    }
+                }
             }
         }
     }

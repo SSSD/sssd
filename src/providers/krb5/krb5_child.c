@@ -1221,7 +1221,8 @@ done:
     return krberr;
 }
 
-static krb5_error_code check_fast_ccache(krb5_context ctx, const char *realm,
+static krb5_error_code check_fast_ccache(krb5_context ctx, const char *primary,
+                                         const char *realm,
                                          const char *keytab_name,
                                          TALLOC_CTX *mem_ctx,
                                          char **fast_ccname)
@@ -1260,7 +1261,7 @@ static krb5_error_code check_fast_ccache(krb5_context ctx, const char *realm,
         goto done;
     }
 
-    kerr = find_principal_in_keytab(ctx, keytab, NULL, realm, &client_princ);
+    kerr = find_principal_in_keytab(ctx, keytab, primary, realm, &client_princ);
     if (kerr != 0) {
         DEBUG(1, ("find_principal_in_keytab failed.\n"));
         goto done;
@@ -1322,6 +1323,11 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
     krb5_error_code kerr = 0;
     char *lifetime_str;
     char *use_fast_str;
+    char *tmp_str;
+    krb5_data *realm_data;
+    krb5_principal fast_princ_struct;
+    char *fast_principal = NULL;
+    const char *fast_principal_realm = NULL;
     krb5_deltat lifetime;
 
     kr->krb5_ctx = talloc_zero(kr, struct krb5_child_ctx);
@@ -1443,7 +1449,40 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
             DEBUG(9, ("Not using FAST.\n"));
         } else if (strcasecmp(use_fast_str, "try") == 0 ||
                    strcasecmp(use_fast_str, "demand") == 0) {
-            kerr = check_fast_ccache(kr->ctx, kr->krb5_ctx->realm, kr->keytab,
+
+            tmp_str = getenv(SSSD_KRB5_FAST_PRINCIPAL);
+            if (!tmp_str) {
+                fast_principal = NULL;
+                fast_principal_realm = kr->krb5_ctx->realm;
+            } else {
+                kerr = krb5_parse_name(kr->ctx, tmp_str, &fast_princ_struct);
+                if (kerr) {
+                    DEBUG(1, ("krb5_parse_name failed.\n"));
+                    goto failed;
+                }
+                kerr = krb5_unparse_name_flags(kr->ctx, fast_princ_struct,
+                                               KRB5_PRINCIPAL_UNPARSE_NO_REALM,
+                                               &tmp_str);
+                if (kerr) {
+                    DEBUG(1, ("krb5_unparse_name_flags failed.\n"));
+                    goto failed;
+                }
+                fast_principal = talloc_strdup(kr, tmp_str);
+                if (!fast_principal) {
+                    DEBUG(1, ("talloc_strdup failed.\n"));
+                    kerr = KRB5KRB_ERR_GENERIC;
+                    goto failed;
+                }
+                free(tmp_str);
+                realm_data = krb5_princ_realm(kr->ctx, fast_princ_struct);
+                fast_principal_realm = talloc_asprintf(kr, "%.*s", realm_data->length, realm_data->data);
+                if (!fast_principal_realm) {
+                    DEBUG(1, ("talloc_asprintf failed.\n"));
+                    goto failed;
+                }
+            }
+
+            kerr = check_fast_ccache(kr->ctx, fast_principal, fast_principal_realm, kr->keytab,
                                      kr, &kr->fast_ccname);
             if (kerr != 0) {
                 DEBUG(1, ("check_fast_ccache failed.\n"));
