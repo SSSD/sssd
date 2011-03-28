@@ -3317,7 +3317,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
             if (ret != EOK && ret != ENOENT) {
                 ret = EIO;
                 goto error;
-            } else if (ret == ENOENT || count == 9) {
+            } else if (ret == ENOENT || count == 0) {
                 if (ret == EOK) talloc_zfree(msgs);
 
                 /* It wasn't found in the groups either
