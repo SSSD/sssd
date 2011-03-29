@@ -58,6 +58,12 @@ int sss_krb5_verify_keytab(const char *principal,
 int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
                               krb5_context context, krb5_keytab keytab);
 
+krb5_error_code find_principal_in_keytab(krb5_context ctx,
+                                         krb5_keytab keytab,
+                                         const char *pattern_primary,
+                                         const char *pattern_realm,
+                                         krb5_principal *princ);
+
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
 typedef void krb5_expire_callback_func(krb5_context context, void *data,
                                              krb5_timestamp password_expiration,

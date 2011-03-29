@@ -188,6 +188,161 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
     return EOK;
 }
 
+
+enum matching_mode {MODE_NORMAL, MODE_PREFIX, MODE_POSTFIX};
+/**
+ * We only have primary and instances stored separately, we need to
+ * join them to one string and compare that string.
+ *
+ * @param ctx kerberos context
+ * @param principal principal we want to match
+ * @param pattern_primary primary part of the principal we want to
+ *        perform matching against. It is possible to use * wildcard
+ *        at the beginning or at the end of the string. If NULL, it
+ *        will act as "*"
+ * @param pattern_realm realm part of the principal we want to perform
+ *        the matching against. If NULL, it will act as "*"
+ */
+static bool match_principal(krb5_context ctx,
+                     krb5_principal principal,
+                     const char *pattern_primary,
+                     const char *pattern_realm)
+{
+    krb5_data *realm_data;
+    char *primary = NULL;
+    char *primary_str = NULL;
+    int primary_str_len = 0;
+    int tmp_len;
+    int len_diff;
+
+    int mode = MODE_NORMAL;
+    TALLOC_CTX *tmp_ctx;
+    bool ret;
+
+    realm_data = krb5_princ_realm(ctx, principal);
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        DEBUG(1, ("talloc_new failed\n"));
+        return false;
+    }
+
+    if (pattern_primary) {
+        tmp_len = strlen(pattern_primary);
+        if (pattern_primary[tmp_len] == '*') {
+            mode = MODE_PREFIX;
+            primary_str = talloc_strdup(tmp_ctx, pattern_primary);
+            primary_str[tmp_len] = '\0';
+            primary_str_len = tmp_len-1;
+        } else if (pattern_primary[0] == '*') {
+            mode = MODE_POSTFIX;
+            primary_str = talloc_strdup(tmp_ctx, pattern_primary+1);
+            primary_str_len = tmp_len-1;
+        }
+
+        krb5_unparse_name_flags(ctx, principal, KRB5_PRINCIPAL_UNPARSE_NO_REALM,
+                                &primary);
+
+        len_diff = strlen(primary)-primary_str_len;
+
+        if ((mode == MODE_NORMAL &&
+                strcmp(primary, pattern_primary) != 0) ||
+            (mode == MODE_PREFIX &&
+                strncmp(primary, primary_str, primary_str_len) != 0) ||
+            (mode == MODE_POSTFIX &&
+                strcmp(primary+len_diff, primary_str) != 0)) {
+            ret = false;
+            goto done;
+        }
+    }
+
+    if (!pattern_realm || (realm_data->length == strlen(pattern_realm) &&
+        strncmp(realm_data->data, pattern_realm, realm_data->length) == 0)) {
+        DEBUG(7, ("Principal matched to the sample (%s@%s).\n", pattern_primary,
+                                                                pattern_realm));
+        ret = true;
+    }
+
+done:
+    free(primary);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+krb5_error_code find_principal_in_keytab(krb5_context ctx,
+                                         krb5_keytab keytab,
+                                         const char *pattern_primary,
+                                         const char *pattern_realm,
+                                         krb5_principal *princ)
+{
+    krb5_error_code kerr;
+    krb5_error_code kt_err;
+    krb5_error_code kerr_d;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+    bool principal_found = false;
+
+    memset(&cursor, 0, sizeof(cursor));
+    kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_kt_start_seq_get failed.\n"));
+        return kerr;
+    }
+
+    DEBUG(9, ("Trying to find principal %s@%s in keytab.\n", pattern_primary, pattern_realm));
+    memset(&entry, 0, sizeof(entry));
+    while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
+        principal_found = match_principal(ctx, entry.principal, pattern_primary, pattern_realm);
+        if (principal_found) {
+            break;
+        }
+
+        kerr = krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr != 0) {
+            DEBUG(1, ("Failed to free keytab entry.\n"));
+        }
+        memset(&entry, 0, sizeof(entry));
+    }
+
+    /* Close the keytab here.  Even though we're using cursors, the file
+     * handle is stored in the krb5_keytab structure, and it gets
+     * overwritten by other keytab calls, creating a leak. */
+    kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_kt_end_seq_get failed.\n"));
+        goto done;
+    }
+
+    if (!principal_found) {
+        kerr = KRB5_KT_NOTFOUND;
+        DEBUG(1, ("No principal matching %s@%s found in keytab.\n",
+                  pattern_primary, pattern_realm));
+        goto done;
+    }
+
+    /* check if we got any errors from krb5_kt_next_entry */
+    if (kt_err != 0 && kt_err != KRB5_KT_END) {
+        DEBUG(1, ("Error while reading keytab.\n"));
+        goto done;
+    }
+
+    kerr = krb5_copy_principal(ctx, entry.principal, princ);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_copy_principal failed.\n"));
+        goto done;
+    }
+
+    kerr = 0;
+
+done:
+    kerr_d = krb5_free_keytab_entry_contents(ctx, &entry);
+    if (kerr_d != 0) {
+        DEBUG(1, ("Failed to free keytab entry.\n"));
+    }
+
+    return kerr;
+}
+
 const char *KRB5_CALLCONV sss_krb5_get_error_message(krb5_context ctx,
                                                krb5_error_code ec)
 {

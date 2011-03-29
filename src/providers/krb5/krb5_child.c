@@ -30,6 +30,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/sss_krb5.h"
 #include "util/user_info_msg.h"
 #include "providers/child_common.h"
 #include "providers/dp_backend.h"
@@ -490,85 +491,6 @@ static errno_t add_ticket_times_to_response(struct krb5_req *kr)
     }
 
     return ret;
-}
-
-static krb5_error_code find_principal_in_keytab(krb5_context ctx,
-                                                krb5_keytab keytab,
-                                                const char *realm,
-                                                krb5_principal *princ)
-{
-    krb5_error_code kerr;
-    krb5_error_code kt_err;
-    krb5_error_code kerr_d;
-    krb5_kt_cursor cursor;
-    krb5_keytab_entry entry;
-    bool principal_found = false;
-
-    memset(&cursor, 0, sizeof(cursor));
-    kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
-    if (kerr != 0) {
-        DEBUG(1, ("krb5_kt_start_seq_get failed.\n"));
-        KRB5_DEBUG(1, kerr);
-        return kerr;
-    }
-
-    /* We look for the first entry from our realm or take the last one */
-    memset(&entry, 0, sizeof(entry));
-    while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
-        if (krb5_princ_realm(ctx, entry.principal)->length == strlen(realm) &&
-            strncmp(krb5_princ_realm(ctx, entry.principal)->data, realm,
-                    krb5_princ_realm(ctx, entry.principal)->length) == 0) {
-            DEBUG(9, ("Found keytab entry with the realm of the credential.\n"));
-            principal_found = true;
-            break;
-        }
-
-        kerr = krb5_free_keytab_entry_contents(ctx, &entry);
-        if (kerr != 0) {
-            DEBUG(1, ("Failed to free keytab entry.\n"));
-        }
-        memset(&entry, 0, sizeof(entry));
-    }
-
-    /* Close the keytab here.  Even though we're using cursors, the file
-     * handle is stored in the krb5_keytab structure, and it gets
-     * overwritten by other keytab calls, creating a leak. */
-    kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
-    if (kerr != 0) {
-        DEBUG(1, ("krb5_kt_end_seq_get failed.\n"));
-        goto done;
-    }
-
-    if (!principal_found) {
-        kerr = KRB5_KT_NOTFOUND;
-        DEBUG(1, ("No principal from realm [%s] found in keytab.\n", realm));
-        goto done;
-    }
-
-    /* check if we got any errors from krb5_kt_next_entry */
-    if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(1, ("Error while reading keytab.\n"));
-        KRB5_DEBUG(1, kerr);
-        goto done;
-    }
-
-    kerr = krb5_copy_principal(ctx, entry.principal, princ);
-    if (kerr != 0) {
-        DEBUG(1, ("krb5_copy_principal failed.\n"));
-        KRB5_DEBUG(1, kerr);
-        goto done;
-    }
-
-    kerr = 0;
-
-done:
-    kerr_d = krb5_free_keytab_entry_contents(ctx, &entry);
-    if (kerr_d != 0) {
-        DEBUG(1, ("Failed to free keytab entry.\n"));
-        KRB5_DEBUG(1, kerr_d);
-    }
-
-    return kerr;
 }
 
 static krb5_error_code validate_tgt(struct krb5_req *kr)
@@ -1338,7 +1260,7 @@ static krb5_error_code check_fast_ccache(krb5_context ctx, const char *realm,
         goto done;
     }
 
-    kerr = find_principal_in_keytab(ctx, keytab, realm, &client_princ);
+    kerr = find_principal_in_keytab(ctx, keytab, NULL, realm, &client_princ);
     if (kerr != 0) {
         DEBUG(1, ("find_principal_in_keytab failed.\n"));
         goto done;
