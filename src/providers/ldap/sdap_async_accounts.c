@@ -91,6 +91,15 @@ static int sdap_save_user(TALLOC_CTX *memctx,
     if (el->num_values == 0) gecos = NULL;
     else gecos = (const char *)el->values[0].data;
 
+    if (!gecos) {
+        /* Fall back to the user's full name */
+        ret = sysdb_attrs_get_el(
+                attrs,
+                opts->user_map[SDAP_AT_USER_FULLNAME].sys_name, &el);
+        if (ret) goto fail;
+        if (el->num_values > 0) gecos = (const char *)el->values[0].data;
+    }
+
     ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_HOME].sys_name, &el);
     if (ret) goto fail;
