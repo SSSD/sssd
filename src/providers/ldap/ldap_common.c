@@ -63,6 +63,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sasl_mech", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sasl_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */

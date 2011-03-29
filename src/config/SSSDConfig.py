@@ -133,6 +133,7 @@ option_strings = {
     'ldap_tls_reqcert' : _('Require TLS certificate verification'),
     'ldap_sasl_mech' : _('Specify the sasl mechanism to use'),
     'ldap_sasl_authid' : _('Specify the sasl authorization id to use'),
+    'ldap_sasl_realm' : _('Specify the sasl authorization realm to use'),
     'ldap_krb5_keytab' : _('Kerberos service keytab'),
     'ldap_krb5_init_creds' : _('Use Kerberos auth for LDAP connection'),
     'ldap_referrals' : _('Follow LDAP referrals'),

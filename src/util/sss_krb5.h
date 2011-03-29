@@ -64,6 +64,14 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
                                          const char *pattern_realm,
                                          krb5_principal *princ);
 
+errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
+                                     const char *hostname,
+                                     const char *desired_realm,
+                                     const char *keytab_name,
+                                     char **_principal,
+                                     char **_primary,
+                                     char **_realm);
+
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
 typedef void krb5_expire_callback_func(krb5_context context, void *data,
                                              krb5_timestamp password_expiration,

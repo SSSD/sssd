@@ -458,6 +458,12 @@ int setup_child(struct sdap_id_ctx *ctx)
     const char *mech;
     unsigned v;
     FILE *debug_filep;
+    const char *realm;
+
+    realm = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_REALM);
+    if (!realm) {
+        realm = dp_opt_get_string(ctx->opts->basic, SDAP_KRB5_REALM);
+    }
 
     mech = dp_opt_get_string(ctx->opts->basic,
                              SDAP_SASL_MECH);
@@ -468,8 +474,7 @@ int setup_child(struct sdap_id_ctx *ctx)
     if (mech && (strcasecmp(mech, "GSSAPI") == 0)) {
         ret = sss_krb5_verify_keytab(dp_opt_get_string(ctx->opts->basic,
                                                        SDAP_SASL_AUTHID),
-                                     dp_opt_get_string(ctx->opts->basic,
-                                                       SDAP_KRB5_REALM),
+                                     realm,
                                      dp_opt_get_string(ctx->opts->basic,
                                                        SDAP_KRB5_KEYTAB));
 

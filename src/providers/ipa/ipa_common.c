@@ -28,6 +28,7 @@
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "util/sss_krb5.h"
 
 struct dp_option ipa_basic_opts[] = {
     { "ipa_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -69,6 +70,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sasl_mech", DP_OPT_STRING, { "GSSAPI" } , NULL_STRING },
     { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sasl_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
@@ -263,10 +265,14 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct sdap_options **_opts)
 {
     TALLOC_CTX *tmpctx;
-    char *hostname;
+    char *primary;
     char *basedn;
     char *realm;
     char *value;
+    char *desired_realm;
+    char *desired_primary;
+    bool primary_requested = true;
+    bool realm_requested = true;
     int ret;
     int i;
 
@@ -323,26 +329,6 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)));
     }
 
-    /* set the ldap_sasl_authid if the ipa_hostname override was specified */
-    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_AUTHID)) {
-        hostname = dp_opt_get_string(ipa_opts->basic, IPA_HOSTNAME);
-        if (hostname) {
-            value = talloc_asprintf(tmpctx, "host/%s", hostname);
-            if (!value) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ret = dp_opt_set_string(ipa_opts->id->basic,
-                                    SDAP_SASL_AUTHID, value);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-        DEBUG(6, ("Option %s set to %s\n",
-                  ipa_opts->id->basic[SDAP_SASL_AUTHID].opt_name,
-                  dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_AUTHID)));
-    }
-
     /* set krb realm */
     if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)) {
         realm = dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM);
@@ -361,6 +347,52 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   ipa_opts->id->basic[SDAP_KRB5_REALM].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)));
     }
+
+    /* Configuration of SASL auth ID and realm */
+    desired_primary = dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_AUTHID);
+    if (!desired_primary) {
+        primary_requested = false;
+        desired_primary = dp_opt_get_string(ipa_opts->id->basic, IPA_HOSTNAME);
+    }
+    desired_realm = dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_REALM);
+    if (!desired_realm) {
+        realm_requested = false;
+        desired_realm = dp_opt_get_string(ipa_opts->id->basic, IPA_KRB5_REALM);
+    }
+
+    ret = select_principal_from_keytab(tmpctx,
+                                       dp_opt_get_string(ipa_opts->auth,
+                                                         KRB5_KEYTAB),
+                                       desired_primary, desired_realm,
+                                       NULL, &primary, &realm);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if ((primary_requested && strcmp(desired_primary, primary) != 0) ||
+        (realm_requested && strcmp(desired_realm, realm) != 0)) {
+        DEBUG(1, ("Configured SASL auth ID/realm not found in keytab.\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = dp_opt_set_string(ipa_opts->id->basic,
+                            SDAP_SASL_AUTHID, primary);
+    if (ret != EOK) {
+        goto done;
+    }
+    DEBUG(6, ("Option %s set to %s\n",
+              ipa_opts->id->basic[SDAP_SASL_AUTHID].opt_name,
+              dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_AUTHID)));
+
+    ret = dp_opt_set_string(ipa_opts->id->basic,
+                            SDAP_SASL_REALM, realm);
+    if (ret != EOK) {
+        goto done;
+    }
+    DEBUG(6, ("Option %s set to %s\n",
+              ipa_opts->id->basic[SDAP_SASL_REALM].opt_name,
+              dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_REALM)));
 
     /* fix schema to IPAv1 for now */
     ipa_opts->id->schema_type = SDAP_SCHEMA_IPA_V1;

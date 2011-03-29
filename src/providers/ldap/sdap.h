@@ -172,6 +172,7 @@ enum sdap_basic_opt {
     SDAP_ID_TLS,
     SDAP_SASL_MECH,
     SDAP_SASL_AUTHID,
+    SDAP_SASL_REALM,
     SDAP_KRB5_KEYTAB,
     SDAP_KRB5_KINIT,
     SDAP_KRB5_KDC,

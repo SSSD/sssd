@@ -196,8 +196,9 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         }
         hostname[511] = '\0';
 
-        full_princ = talloc_asprintf(memctx, "host/%s@%s",
-                                     hostname, realm_name);
+        ret = select_principal_from_keytab(memctx, hostname, realm_name,
+                                           keytab_name, &full_princ, NULL, NULL);
+        if (ret) goto done;
     }
     if (!full_princ) {
         krberr = KRB5KRB_ERR_GENERIC;

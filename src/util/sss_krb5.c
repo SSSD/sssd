@@ -26,6 +26,175 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
+errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
+                                     const char *hostname,
+                                     const char *desired_realm,
+                                     const char *keytab_name,
+                                     char **_principal,
+                                     char **_primary,
+                                     char **_realm)
+{
+    krb5_error_code kerr = 0;
+    krb5_context krb_ctx = NULL;
+    krb5_keytab keytab;
+    krb5_principal client_princ = NULL;
+    TALLOC_CTX *tmp_ctx;
+    char *primary = NULL;
+    char *realm = NULL;
+    int i = 0;
+    errno_t ret;
+    char *principal_string;
+
+    /**
+     * Priority of lookup:
+     * - foobar$@REALM (AD domain)
+     * - host/our.hostname@REALM
+     * - host/foobar@REALM
+     * - host/foo@BAR
+     * - pick the first principal in the keytab
+     */
+    const char *primary_patterns[] = {"%s$", "*$", "host/%s", "host/*", "host/*", NULL};
+    const char *realm_patterns[] = {"%s", "%s", "%s", "%s", NULL, NULL};
+
+    DEBUG(5, ("trying to select the most appropriate principal from keytab\n"));
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        DEBUG(1, ("talloc_new failed\n"));
+        return ENOMEM;
+    }
+
+    kerr = krb5_init_context(&krb_ctx);
+    if (kerr) {
+        DEBUG(2, ("Failed to init kerberos context\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (keytab_name != NULL) {
+        kerr = krb5_kt_resolve(krb_ctx, keytab_name, &keytab);
+    } else {
+        kerr = krb5_kt_default(krb_ctx, &keytab);
+    }
+    if (kerr) {
+        DEBUG(0, ("Failed to read keytab file: %s\n",
+                  sss_krb5_get_error_message(krb_ctx, kerr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (!desired_realm) {
+        desired_realm = "*";
+    }
+    if (!hostname) {
+        hostname = "*";
+    }
+
+    do {
+        if (primary_patterns[i]) {
+            primary = talloc_asprintf(tmp_ctx, primary_patterns[i], hostname);
+            if (primary == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            primary = NULL;
+        }
+        if (realm_patterns[i]) {
+            realm = talloc_asprintf(tmp_ctx, realm_patterns[i], desired_realm);
+            if (realm == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            realm = NULL;
+        }
+
+        kerr = find_principal_in_keytab(krb_ctx, keytab, primary, realm,
+                                        &client_princ);
+        talloc_zfree(primary);
+        talloc_zfree(realm);
+        if (kerr == 0) {
+            break;
+        }
+        if (client_princ != NULL) {
+            krb5_free_principal(krb_ctx, client_princ);
+            client_princ = NULL;
+        }
+        i++;
+    } while(primary_patterns[i-1] != NULL || realm_patterns[i-1] != NULL);
+
+    if (kerr == 0) {
+        if (_principal) {
+            kerr = krb5_unparse_name(krb_ctx, client_princ, &principal_string);
+            if (kerr) {
+                DEBUG(1, ("krb5_unparse_name failed"));
+                ret = EFAULT;
+                goto done;
+            }
+
+            *_principal = talloc_strdup(mem_ctx, principal_string);
+            free(principal_string);
+            if (!*_principal) {
+                DEBUG(1, ("talloc_strdup failed"));
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(5, ("Selected principal: %s\n", *_principal));
+        }
+
+        if (_primary) {
+            kerr = krb5_unparse_name_flags(krb_ctx, client_princ,
+                                           KRB5_PRINCIPAL_UNPARSE_NO_REALM,
+                                           &principal_string);
+            if (kerr) {
+                DEBUG(1, ("krb5_unparse_name failed"));
+                ret = EFAULT;
+                goto done;
+            }
+
+            *_primary = talloc_strdup(mem_ctx, principal_string);
+            free(principal_string);
+            if (!*_primary) {
+                DEBUG(1, ("talloc_strdup failed"));
+                if (_principal) talloc_zfree(*_principal);
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(5, ("Selected primary: %s\n", *_primary));
+        }
+
+        if (_realm) {
+            *_realm = talloc_asprintf(mem_ctx, "%.*s",
+                                      krb5_princ_realm(ctx, client_princ)->length,
+                                      krb5_princ_realm(ctx, client_princ)->data);
+            if (!*_realm) {
+                DEBUG(1, ("talloc_asprintf failed"));
+                if (_principal) talloc_zfree(*_principal);
+                if (_primary) talloc_zfree(*_primary);
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(5, ("Selected realm: %s\n", *_realm));
+        }
+
+        ret = EOK;
+    } else {
+        DEBUG(3, ("No suitable principal found in keytab\n"));
+        ret = ENOENT;
+    }
+
+done:
+    if (keytab) krb5_kt_close(krb_ctx, keytab);
+    if (krb_ctx) krb5_free_context(krb_ctx);
+    if (client_princ != NULL) {
+        krb5_free_principal(krb_ctx, client_princ);
+        client_princ = NULL;
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
 int sss_krb5_verify_keytab(const char *principal,
                            const char *realm_str,
                            const char *keytab_name)
@@ -104,8 +273,9 @@ int sss_krb5_verify_keytab(const char *principal,
         }
         hostname[511] = '\0';
 
-        full_princ = talloc_asprintf(tmp_ctx, "host/%s@%s",
-                                     hostname, realm_name);
+        ret = select_principal_from_keytab(tmp_ctx, hostname, realm_name,
+                                           keytab_name, &full_princ, NULL, NULL);
+        if (ret) goto done;
     }
     if (!full_princ) {
         ret = ENOMEM;

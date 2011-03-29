@@ -1318,6 +1318,12 @@ static void sdap_cli_kinit_step(struct tevent_req *req)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
+    const char *realm;
+
+    realm = dp_opt_get_string(state->opts->basic, SDAP_SASL_REALM);
+    if (!realm) {
+        realm = dp_opt_get_string(state->opts->basic, SDAP_KRB5_REALM);
+    }
 
     subreq = sdap_kinit_send(state, state->ev,
                              state->be,
@@ -1329,8 +1335,7 @@ static void sdap_cli_kinit_step(struct tevent_req *req)
                                                    SDAP_KRB5_KEYTAB),
                         dp_opt_get_string(state->opts->basic,
                                                    SDAP_SASL_AUTHID),
-                        dp_opt_get_string(state->opts->basic,
-                                                   SDAP_KRB5_REALM),
+                        realm,
                         dp_opt_get_int(state->opts->basic,
                                                    SDAP_KRB5_TICKET_LIFETIME));
     if (!subreq) {
