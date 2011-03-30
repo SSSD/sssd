@@ -1739,23 +1739,20 @@ class SSSDConfig(SSSDChangeConf):
             domain.oldname = None;
 
         sectionname = 'domain/%s' % name
-        # Ensure that the existing section is removed
-        # This way we ensure that we are getting a
-        # complete copy of the service.
-        # delete_option() is a noop if the section
-        # does not exist.
-        index = self.delete_option('section', sectionname)
-        addkw = []
+        section_subtree = self.findOpts(self.opts, 'section', sectionname)
+
+        if name not in self.list_domains():
+            self.add_section(sectionname, []);
+
+        for option in self.options(sectionname):
+            if option['type'] == 'option':
+                if option['name'] not in domain.get_all_options():
+                    self.delete_option_subtree(section_subtree, 'option', option['name'], True)
+
         for option,value in domain.get_all_options().items():
             if (type(value) == list):
                 value = ', '.join(value)
-            addkw.append( { 'type'  : 'option',
-                            'name'  : option,
-                            'value' : str(value) } )
-        if oldindex:
-            self.add_section(sectionname, addkw, oldindex)
-        else:
-            self.add_section(sectionname, addkw, index)
+            self.set(sectionname, option, str(value))
 
         if domain.active:
             self.activate_domain(name)

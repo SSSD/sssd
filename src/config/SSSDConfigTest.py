@@ -599,33 +599,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         # First test default options
         options = domain.list_mandatory_options()
-        control_list = [
-            'cache_credentials',
-            'id_provider',
-            'auth_provider']
-
-        self.assertTrue(type(options) == dict,
-                        "Options should be a dictionary")
-
-        # Ensure that all of the expected defaults are there
-        for option in control_list:
-            self.assertTrue(option in options.keys(),
-                            "Option [%s] missing" %
-                            option)
-
-        # Ensure that there aren't any unexpected options listed
-        for option in options.keys():
-            self.assertTrue(option in control_list,
-                            'Option [%s] unexpectedly found' %
-                            option)
-
-        # Add a provider and verify that the new options appear
-        domain.add_provider('local', 'id')
-        control_list.extend(
-            ['default_shell',
-             'base_directory'])
-
-        options = domain.list_mandatory_options()
+        control_list = ['id_provider']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -999,11 +973,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
     def testRemoveOption(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
-
-        # Positive test - Remove existing option
-        self.assertTrue('cache_credentials' in domain.get_all_options().keys())
-        domain.remove_option('cache_credentials')
-        self.assertFalse('cache_credentials' in domain.get_all_options().keys())
 
         # Positive test - Remove unset but valid option
         self.assertFalse('max_id' in domain.get_all_options().keys())
