@@ -909,6 +909,8 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
     bool twopass;
     int ret;
     int i;
+    struct sysdb_attrs **saved_groups = NULL;
+    int nsaved_groups = 0;
 
     switch (opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
@@ -935,6 +937,15 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
+    if (twopass && !populate_members) {
+        saved_groups = talloc_array(tmpctx, struct sysdb_attrs *,
+                                    num_groups);
+        if (!saved_groups) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     for (i = 0; i < num_groups; i++) {
         usn_value = NULL;
 
@@ -949,6 +960,10 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
             DEBUG(2, ("Failed to store group %d. Ignoring.\n", i));
         } else {
             DEBUG(9, ("Group %d processed!\n", i));
+            if (twopass && !populate_members) {
+                saved_groups[nsaved_groups] = groups[i];
+                nsaved_groups++;
+            }
         }
 
         if (usn_value) {
@@ -968,9 +983,9 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
 
     if (twopass && !populate_members) {
 
-        for (i = 0; i < num_groups; i++) {
+        for (i = 0; i < nsaved_groups; i++) {
 
-            ret = sdap_save_grpmem(tmpctx, sysdb, opts, dom, groups[i]);
+            ret = sdap_save_grpmem(tmpctx, sysdb, opts, dom, saved_groups[i]);
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
             if (ret) {
