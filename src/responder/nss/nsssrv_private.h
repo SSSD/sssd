@@ -64,6 +64,7 @@ struct getent_ctx {
     struct sysdb_netgroup_ctx **entries;
     char *name;
     char *domain;
+    bool found;
 };
 
 struct nss_dom_ctx {
