@@ -794,9 +794,39 @@ int sdap_get_rootdse_recv(struct tevent_req *req,
     return EOK;
 }
 
-/* ==Generic Search============================================ */
+/* ==Helpers for parsing replies============================== */
+struct sdap_reply {
+    size_t reply_max;
+    size_t reply_count;
+    struct sysdb_attrs **reply;
+};
 
-struct sdap_get_generic_state {
+static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
+                            struct sdap_reply *sreply,
+                            struct sysdb_attrs *msg)
+{
+    if (sreply->reply == NULL || sreply->reply_max == sreply->reply_count) {
+        sreply->reply_max += REPLY_REALLOC_INCREMENT;
+        sreply->reply = talloc_realloc(mem_ctx, sreply->reply,
+                                       struct sysdb_attrs *,
+                                       sreply->reply_max);
+        if (sreply->reply == NULL) {
+            DEBUG(1, ("talloc_realloc failed.\n"));
+            return ENOMEM;
+        }
+    }
+
+    sreply->reply[sreply->reply_count++] = talloc_steal(sreply->reply, msg);
+
+    return EOK;
+}
+
+/* ==Generic Search exposing all options======================= */
+typedef errno_t (*sdap_parse_cb)(struct sdap_handle *sh,
+                                 struct sdap_msg *msg,
+                                 void *pvt);
+
+struct sdap_get_generic_ext_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
@@ -804,43 +834,52 @@ struct sdap_get_generic_state {
     int scope;
     const char *filter;
     const char **attrs;
-    struct sdap_attr_map *map;
-    int map_num_attrs;
     int timeout;
+    int attrsonly;
+    int sizelimit;
 
     struct sdap_op *op;
 
     struct berval cookie;
 
-    size_t reply_max;
-    size_t reply_count;
-    struct sysdb_attrs **reply;
+    LDAPControl **serverctrls;
+    int nserverctrls;
+    LDAPControl **clientctrls;
+
+    sdap_parse_cb parse_cb;
+    void *cb_data;
+
 };
 
-static errno_t sdap_get_generic_step(struct tevent_req *req);
-static void sdap_get_generic_done(struct sdap_op *op,
-                                 struct sdap_msg *reply,
-                                 int error, void *pvt);
-static errno_t add_to_reply(struct sdap_get_generic_state *state,
-                            struct sysdb_attrs *msg);
+static errno_t sdap_get_generic_ext_step(struct tevent_req *req);
 
-struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
-                                         struct tevent_context *ev,
-                                         struct sdap_options *opts,
-                                         struct sdap_handle *sh,
-                                         const char *search_base,
-                                         int scope,
-                                         const char *filter,
-                                         const char **attrs,
-                                         struct sdap_attr_map *map,
-                                         int map_num_attrs,
-                                         int timeout)
+static void sdap_get_generic_ext_done(struct sdap_op *op,
+                                      struct sdap_msg *reply,
+                                      int error, void *pvt);
+
+static struct tevent_req *
+sdap_get_generic_ext_send(TALLOC_CTX *memctx,
+                          struct tevent_context *ev,
+                          struct sdap_options *opts,
+                          struct sdap_handle *sh,
+                          const char *search_base,
+                          int scope,
+                          const char *filter,
+                          const char **attrs,
+                          int attrsonly,
+                          LDAPControl **serverctrls,
+                          LDAPControl **clientctrls,
+                          int sizelimit,
+                          int timeout,
+                          sdap_parse_cb parse_cb,
+                          void *cb_data)
 {
     errno_t ret;
-    struct sdap_get_generic_state *state;
+    struct sdap_get_generic_ext_state *state;
     struct tevent_req *req;
+    int i;
 
-    req = tevent_req_create(memctx, &state, struct sdap_get_generic_state);
+    req = tevent_req_create(memctx, &state, struct sdap_get_generic_ext_state);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -850,17 +889,34 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     state->scope = scope;
     state->filter = filter;
     state->attrs = attrs;
-    state->map = map;
-    state->map_num_attrs = map_num_attrs;
+    state->attrsonly = attrsonly;
     state->op = NULL;
-    state->reply_max = 0;
-    state->reply_count = 0;
-    state->reply = NULL;
     state->timeout = timeout;
     state->cookie.bv_len = 0;
     state->cookie.bv_val = NULL;
+    state->parse_cb = parse_cb;
+    state->cb_data = cb_data;
+    state->clientctrls = clientctrls;
 
-    ret = sdap_get_generic_step(req);
+    for (state->nserverctrls=0;
+         serverctrls && serverctrls[state->nserverctrls];
+         state->nserverctrls++) ;
+
+    /* One extra space for NULL, one for page control */
+    state->serverctrls = talloc_array(state, LDAPControl *,
+                                      state->nserverctrls+2);
+    if (!state->serverctrls) {
+        tevent_req_error(req, ENOMEM);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    for (i=0; i < state->nserverctrls; i++) {
+        state->serverctrls[i] = serverctrls[i];
+    }
+    state->serverctrls[i] = NULL;
+
+    ret = sdap_get_generic_ext_step(req);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
@@ -870,10 +926,10 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     return req;
 }
 
-static errno_t sdap_get_generic_step(struct tevent_req *req)
+static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
 {
-    struct sdap_get_generic_state *state =
-            tevent_req_data(req, struct sdap_get_generic_state);
+    struct sdap_get_generic_ext_state *state =
+            tevent_req_data(req, struct sdap_get_generic_ext_state);
     char *errmsg;
     int lret;
     int optret;
@@ -881,7 +937,6 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
     int msgid;
 
     LDAPControl *page_control = NULL;
-    LDAPControl *m_controls[2] = { NULL, NULL };
 
     /* Make sure to free any previous operations so
      * if we are handling a large number of pages we
@@ -914,15 +969,17 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
             ret = EIO;
             goto done;
         }
-        m_controls[0] = page_control;
+        state->serverctrls[state->nserverctrls] = page_control;
+        state->serverctrls[state->nserverctrls+1] = NULL;
     }
 
     lret = ldap_search_ext(state->sh->ldap, state->search_base,
                            state->scope, state->filter,
                            discard_const(state->attrs),
-                           false, m_controls, NULL, NULL, 0, &msgid);
+                           state->attrsonly, state->serverctrls,
+                           state->clientctrls, NULL, state->sizelimit, &msgid);
     ldap_control_free(page_control);
-    m_controls[0] = NULL;
+    state->serverctrls[state->nserverctrls] = NULL;
     if (lret != LDAP_SUCCESS) {
         DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
         if (lret == LDAP_SERVER_DOWN) {
@@ -947,7 +1004,7 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
     DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_generic_done, req,
+                      sdap_get_generic_ext_done, req,
                       state->timeout,
                       &state->op);
     if (ret != EOK) {
@@ -959,14 +1016,13 @@ done:
     return ret;
 }
 
-static void sdap_get_generic_done(struct sdap_op *op,
-                                 struct sdap_msg *reply,
-                                 int error, void *pvt)
+static void sdap_get_generic_ext_done(struct sdap_op *op,
+                                      struct sdap_msg *reply,
+                                      int error, void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_get_generic_state *state = tevent_req_data(req,
-                                            struct sdap_get_generic_state);
-    struct sysdb_attrs *attrs;
+    struct sdap_get_generic_ext_state *state = tevent_req_data(req,
+                                            struct sdap_get_generic_ext_state);
     char *errmsg = NULL;
     int result;
     int ret;
@@ -991,18 +1047,9 @@ static void sdap_get_generic_done(struct sdap_op *op,
         break;
 
     case LDAP_RES_SEARCH_ENTRY:
-        ret = sdap_parse_entry(state, state->sh, reply,
-                               state->map, state->map_num_attrs,
-                               &attrs, NULL);
+        ret = state->parse_cb(state->sh, reply, state->cb_data);
         if (ret != EOK) {
-            DEBUG(1, ("sdap_parse_generic_entry failed.\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        ret = add_to_reply(state, attrs);
-        if (ret != EOK) {
-            DEBUG(1, ("add_to_reply failed.\n"));
+            DEBUG(1, ("reply parsing callback failed.\n"));
             tevent_req_error(req, ret);
             return;
         }
@@ -1063,7 +1110,7 @@ static void sdap_get_generic_done(struct sdap_op *op,
             }
             ber_memfree(cookie.bv_val);
 
-            ret = sdap_get_generic_step(req);
+            ret = sdap_get_generic_ext_step(req);
             if (ret != EOK) {
                 tevent_req_error(req, ENOMEM);
                 return;
@@ -1086,23 +1133,105 @@ static void sdap_get_generic_done(struct sdap_op *op,
     }
 }
 
-static errno_t add_to_reply(struct sdap_get_generic_state *state,
-                            struct sysdb_attrs *msg)
+static int
+sdap_get_generic_ext_recv(struct tevent_req *req)
 {
-    if (state->reply == NULL || state->reply_max == state->reply_count) {
-        state->reply_max += REPLY_REALLOC_INCREMENT;
-        state->reply = talloc_realloc(state, state->reply,
-                                      struct sysdb_attrs *,
-                                      state->reply_max);
-        if (state->reply == NULL) {
-            DEBUG(1, ("talloc_realloc failed.\n"));
-            return ENOMEM;
-        }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+/* ==Generic Search============================================ */
+struct sdap_get_generic_state {
+    struct sdap_attr_map *map;
+    int map_num_attrs;
+
+    struct sdap_reply sreply;
+};
+
+static void sdap_get_generic_done(struct tevent_req *subreq);
+static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
+                                            struct sdap_msg *msg,
+                                            void *pvt);
+
+struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sdap_handle *sh,
+                                         const char *search_base,
+                                         int scope,
+                                         const char *filter,
+                                         const char **attrs,
+                                         struct sdap_attr_map *map,
+                                         int map_num_attrs,
+                                         int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_get_generic_state *state = NULL;
+
+    req = tevent_req_create(memctx, &state, struct sdap_get_generic_state);
+    if (!req) return NULL;
+
+    state->map = map;
+    state->map_num_attrs = map_num_attrs;
+
+    subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
+                                       scope, filter, attrs, false, NULL,
+                                       NULL, 0, timeout,
+                                       sdap_get_generic_parse_entry, state);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_generic_done, req);
+
+    return req;
+}
+
+static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
+                                            struct sdap_msg *msg,
+                                            void *pvt)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    struct sdap_get_generic_state *state =
+                talloc_get_type(pvt, struct sdap_get_generic_state);
+
+    ret = sdap_parse_entry(state, sh, msg,
+                           state->map, state->map_num_attrs,
+                           &attrs, NULL);
+    if (ret != EOK) {
+        DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
+        return ret;
     }
 
-    state->reply[state->reply_count++] = talloc_steal(state->reply, msg);
+    ret = add_to_reply(state, &state->sreply, attrs);
+    if (ret != EOK) {
+        talloc_free(attrs);
+        DEBUG(1, ("add_to_reply failed.\n"));
+        return ret;
+    }
 
+    /* add_to_reply steals attrs, no need to free them here */
     return EOK;
+}
+
+static void sdap_get_generic_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sdap_get_generic_ext_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
 }
 
 int sdap_get_generic_recv(struct tevent_req *req,
@@ -1115,8 +1244,8 @@ int sdap_get_generic_recv(struct tevent_req *req,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *reply_count = state->reply_count;
-    *reply = talloc_steal(mem_ctx, state->reply);
+    *reply_count = state->sreply.reply_count;
+    *reply = talloc_steal(mem_ctx, state->sreply.reply);
 
     return EOK;
 }
