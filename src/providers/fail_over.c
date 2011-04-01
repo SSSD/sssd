@@ -312,7 +312,7 @@ get_server_status(struct fo_server *server)
     time_t timeout;
 
     if (server->common == NULL)
-        return SERVER_NAME_NOT_RESOLVED;
+        return SERVER_NAME_RESOLVED;
 
     DEBUG(7, ("Status of server '%s' is '%s'\n", SERVER_NAME(server),
               str_server_status(server->common->server_status)));
