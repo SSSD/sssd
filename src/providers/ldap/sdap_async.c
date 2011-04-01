@@ -1285,3 +1285,206 @@ int sdap_get_generic_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* ==Attribute scoped search============================================ */
+struct sdap_asq_search_state {
+    struct sdap_attr_map_info *maps;
+    int num_maps;
+
+    struct sdap_deref_reply dreply;
+};
+
+static int sdap_asq_search_create_control(struct sdap_handle *sh,
+                                          const char *attr,
+                                          LDAPControl **ctrl);
+static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
+                                           struct sdap_msg *msg,
+                                           void *pvt);
+static void sdap_asq_search_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                     struct sdap_options *opts, struct sdap_handle *sh,
+                     const char *base_dn, const char *deref_attr,
+                     const char **attrs, struct sdap_attr_map_info *maps,
+                     int num_maps, int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_asq_search_state *state;
+    int ret;
+    LDAPControl *ctrls[2] = { NULL, NULL };
+
+    req = tevent_req_create(memctx, &state, struct sdap_asq_search_state);
+    if (!req) return NULL;
+
+    state->maps = maps;
+    state->num_maps = num_maps;
+
+    ret = sdap_asq_search_create_control(sh, deref_attr, &ctrls[0]);
+    if (ret != EOK) {
+        talloc_zfree(req);
+        DEBUG(1, ("Could not create ASQ control\n"));
+        return NULL;
+    }
+
+    DEBUG(6, ("Dereferencing entry [%s] using ASQ\n", base_dn));
+    subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
+                                       LDAP_SCOPE_BASE, NULL, attrs,
+                                       false, ctrls, NULL, 0, timeout,
+                                       sdap_asq_search_parse_entry,
+                                       state);
+    ldap_control_free(ctrls[0]);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_asq_search_done, req);
+
+    return req;
+}
+
+
+static int sdap_asq_search_create_control(struct sdap_handle *sh,
+                                          const char *attr,
+                                          LDAPControl **ctrl)
+{
+    struct berval *asqval;
+    int ret;
+    BerElement *ber = NULL;
+
+    ber = ber_alloc_t(LBER_USE_DER);
+    if (ber == NULL) {
+        DEBUG(2, ("ber_alloc_t failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = ber_printf(ber, "{s}", attr);
+    if (ret == -1) {
+        DEBUG(2, ("ber_printf failed.\n"));
+        ber_free(ber, 1);
+        return EIO;
+    }
+
+    ret = ber_flatten(ber, &asqval);
+    ber_free(ber, 1);
+    if (ret == -1) {
+        DEBUG(1, ("ber_flatten failed.\n"));
+        return EIO;
+    }
+
+    ret = sdap_control_create(sh, LDAP_SERVER_ASQ_OID, 1, asqval, 1, ctrl);
+    ber_bvfree(asqval);
+    if (ret != EOK) {
+        DEBUG(1, ("sdap_control_create failed\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
+                                           struct sdap_msg *msg,
+                                           void *pvt)
+{
+    errno_t ret;
+    struct sdap_asq_search_state *state =
+                talloc_get_type(pvt, struct sdap_asq_search_state);
+    struct berval **vals;
+    int i, mi;
+    struct sdap_attr_map *map;
+    int num_attrs;
+    struct sdap_deref_attrs **res;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    res = talloc_array(tmp_ctx, struct sdap_deref_attrs *,
+                       state->num_maps);
+    if (!res) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (mi =0; mi < state->num_maps; mi++) {
+        res[mi] = talloc_zero(res, struct sdap_deref_attrs);
+        if (!res[mi]) {
+            ret = ENOMEM;
+            goto done;
+        }
+        res[mi]->map = state->maps[mi].map;
+        res[mi]->attrs = NULL;
+    }
+
+    /* Find all suitable maps in the list */
+    vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
+    for (mi =0; mi < state->num_maps; mi++) {
+        map = NULL;
+        for (i = 0; vals[i]; i++) {
+            /* the objectclass is always the first name in the map */
+            if (strncasecmp(state->maps[mi].map[0].name,
+                            vals[i]->bv_val, vals[i]->bv_len) == 0) {
+                /* it's an entry of the right type */
+                map = state->maps[mi].map;
+                num_attrs = state->maps[mi].num_attrs;
+                break;
+            }
+        }
+        if (!map) continue;
+
+        ret = sdap_parse_entry(res[mi], sh, msg,
+                               map, num_attrs,
+                               &res[mi]->attrs, NULL);
+        if (ret != EOK) {
+            DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
+    }
+    ldap_value_free_len(vals);
+
+    ret = add_to_deref_reply(state, state->num_maps,
+                             &state->dreply, res);
+    if (ret != EOK) {
+        DEBUG(1, ("add_to_deref_reply failed.\n"));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static void sdap_asq_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sdap_get_generic_ext_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sdap_asq_search_recv(struct tevent_req *req,
+                         TALLOC_CTX *mem_ctx,
+                         size_t *reply_count,
+                         struct sdap_deref_attrs ***reply)
+{
+    struct sdap_asq_search_state *state = tevent_req_data(req,
+                                            struct sdap_asq_search_state);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->dreply.reply_count;
+    *reply = talloc_steal(mem_ctx, state->dreply.reply);
+
+    return EOK;
+}

@@ -38,6 +38,10 @@ int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx,
                                 LDAP *ld,
                                 char **_errmsg);
 
+#ifndef LDAP_SERVER_ASQ_OID
+#define LDAP_SERVER_ASQ_OID "1.2.840.113556.1.4.1504"
+#endif /* LDAP_SERVER_ASQ_OID */
+
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
                             LDAPControl **ctrlp);
