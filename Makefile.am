@@ -30,6 +30,7 @@ pluginpath = @pluginpath@
 pidpath = @pidpath@
 pipepath = @pipepath@
 initdir = @initdir@
+systemdunitdir = @systemdunitdir@
 logpath = @logpath@
 pubconfpath = @pubconfpath@
 
@@ -974,6 +975,11 @@ update-po:
 #######################
 
 dist_init_SCRIPTS =
+dist_systemdunit_DATA =
+if HAVE_SYSTEMD_UNIT
+    dist_systemdunit_DATA += \
+        src/sysv/systemd/sssd.service
+else
 if HAVE_SUSE
     dist_init_SCRIPTS += \
         src/sysv/SUSE/sssd
@@ -984,6 +990,7 @@ if HAVE_GENTOO
 else
     dist_init_SCRIPTS += \
         src/sysv/sssd
+endif
 endif
 endif
 
@@ -1003,18 +1010,15 @@ installsssddirs::
     $(DESTDIR)$(includedir) \
     $(DESTDIR)$(libdir) \
     $(DESTDIR)$(sbindir) \
-    $(DESTDIR)$(initdir) \
     $(DESTDIR)$(mandir) \
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
-    $(DESTDIR)$(infpintrospectdir) \
     $(DESTDIR)$(dbusintrospectdir) \
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
     $(DESTDIR)$(sssdconfdir) \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(pidpath) \
-    $(DESTDIR)$(initdir) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath)
 
@@ -1041,6 +1045,11 @@ if BUILD_PYTHON_BINDINGS
 	fi
 endif
 	mkdir -p doc $(DESTDIR)/$(docdir); cp -a doc $(DESTDIR)/$(docdir)/
+if HAVE_SYSTEMD_UNIT
+	mkdir -p $(DESTDIR)$(systemdunitdir)
+else
+	mkdir -p $(DESTDIR)$(initdir)
+endif
 
 install-data-hook:
 	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \

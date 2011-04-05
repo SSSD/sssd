@@ -119,7 +119,11 @@ m4_include([src/external/nscd.m4])
 m4_include([src/external/nsupdate.m4])
 m4_include([src/external/libkeyutils.m4])
 m4_include([src/external/libnl.m4])
+m4_include([src/external/systemd.m4])
 m4_include([src/util/signal.m4])
+
+WITH_INITSCRIPT
+WITH_SYSTEMD_UNIT_DIR
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 dnl if test -n "`$PKG_CONFIG --modversion dbus-1 | grep '^0\.'`" ; then
@@ -163,6 +167,10 @@ fi
 
 if test x$BUILD_LIBNL != x; then
     AM_CHECK_LIBNL
+fi
+
+if test x$HAVE_SYSTEMD_UNIT != x; then
+    AM_CHECK_SYSTEMD
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])

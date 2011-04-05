@@ -100,6 +100,30 @@ AC_DEFUN([WITH_PIPE_PATH],
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
+AC_DEFUN([WITH_INITSCRIPT],
+  [ AC_ARG_WITH([initscript],
+                [AC_HELP_STRING([--with-initscript=INITSCRIPT_TYPE],
+                                [Type of your init script (sysv|systemd). [sysv]]
+                               )
+                ]
+               )
+  default_initscript=sysv
+  if test x"$with_initscript" = x; then
+    with_initscript=$default_initscript
+  fi
+
+  if test x"$with_initscript" = xsysv || \
+     test x"$with_initscript" = xsystemd; then
+        initscript=$with_initscript
+  else
+      AC_MSG_ERROR([Illegal value -$with_initscript- for option --with-initscript])
+  fi
+
+  AM_CONDITIONAL([HAVE_SYSV], [test x"$initscript" = xsysv])
+  AM_CONDITIONAL([HAVE_SYSTEMD_UNIT], [test x"$initscript" = xsystemd])
+  AC_MSG_NOTICE([Will use init script type: $initscript])
+  ])
+
 AC_DEFUN([WITH_INIT_DIR],
   [ AC_ARG_WITH([init-dir],
                 [AC_HELP_STRING([--with-init-dir=DIR],
@@ -115,6 +139,25 @@ AC_DEFUN([WITH_INIT_DIR],
         initdir=$with_init_dir
     fi
     AC_SUBST(initdir)
+  ])
+
+dnl A macro to configure the directory to install the systemd unit files to
+AC_DEFUN([WITH_SYSTEMD_UNIT_DIR],
+  [ AC_ARG_WITH([systemdunitdir],
+                [ AC_HELP_STRING([--with-systemdunitdir=DIR],
+                                 [Directory for systemd service files [Auto]]
+                                ),
+                ],
+               )
+  if test x"$with_systemdunitdir" != x; then
+    systemdunitdir=$with_systemdunitdir
+  else
+    systemdunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+    if test x"$systemdunitdir" = x; then
+      AC_MSG_ERROR([Could not detect systemd unit directory])
+    fi
+  fi
+  AC_SUBST(systemdunitdir)
   ])
 
 AC_DEFUN([WITH_MANPAGES],
@@ -251,3 +294,4 @@ AC_DEFUN([WITH_LIBNL],
         AC_SUBST(BUILD_LIBNL)
     fi
   ])
+
