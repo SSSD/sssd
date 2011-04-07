@@ -787,7 +787,7 @@ static int sysdb_upgrade_01(TALLOC_CTX *mem_ctx,
     char *domain;
     int ret, i, j;
 
-    basedn = ldb_dn_new(mem_ctx, ldb, "cn=sysdb");
+    basedn = ldb_dn_new(mem_ctx, ldb, SYSDB_BASE);
     if (!basedn) {
         ret = EIO;
         goto done;
@@ -881,7 +881,7 @@ static int sysdb_upgrade_01(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(mem_ctx, ldb, "cn=sysdb");
+    msg->dn = ldb_dn_new(mem_ctx, ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -957,7 +957,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    verdn = ldb_dn_new(tmp_ctx, ldb, "cn=sysdb");
+    verdn = ldb_dn_new(tmp_ctx, ldb, SYSDB_BASE);
     if (!verdn) {
         ret = EIO;
         goto exit;
@@ -1200,7 +1200,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ldb, "cn=sysdb");
+    msg->dn = ldb_dn_new(tmp_ctx, ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1300,7 +1300,7 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1413,7 +1413,7 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1521,7 +1521,7 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1610,7 +1610,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    verdn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    verdn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
     if (!verdn) {
         ret = EIO;
         goto done;
@@ -1683,7 +1683,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* cn=sysdb does not exists, means db is empty, populate */
+    /* SYSDB_BASE does not exists, means db is empty, populate */
 
     base_ldif = SYSDB_BASE_LDIF;
     while ((ldif = ldb_ldif_read_string(ctx->ldb, &base_ldif))) {
