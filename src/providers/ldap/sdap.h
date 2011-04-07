@@ -335,6 +335,13 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sysdb_attrs **_attrs, char **_dn);
 
+errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
+                         struct sdap_attr_map_info *minfo,
+                         size_t num_maps,
+                         struct sdap_handle *sh,
+                         LDAPDerefRes *dref,
+                         struct sdap_deref_attrs ***_res);
+
 int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
                     struct sdap_msg *sm, char **_dn);
 

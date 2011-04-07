@@ -1285,6 +1285,216 @@ int sdap_get_generic_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* ==OpenLDAP deref search============================================== */
+static int sdap_x_deref_create_control(struct sdap_handle *sh,
+                                       const char *deref_attr,
+                                       const char **attrs,
+                                       LDAPControl **ctrl);
+
+static void sdap_x_deref_search_done(struct tevent_req *subreq);
+
+static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
+                                        struct sdap_msg *msg,
+                                        void *pvt);
+struct sdap_x_deref_search_state {
+    struct sdap_handle *sh;
+    struct sdap_op *op;
+    struct sdap_attr_map_info *maps;
+
+    struct sdap_deref_reply dreply;
+    int num_maps;
+};
+
+static struct tevent_req *
+sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                         struct sdap_options *opts, struct sdap_handle *sh,
+                         const char *base_dn, const char *deref_attr,
+                         const char **attrs, struct sdap_attr_map_info *maps,
+                         int num_maps, int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_x_deref_search_state *state;
+    LDAPControl *ctrls[2] = { NULL, NULL };
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct sdap_x_deref_search_state);
+    if (!req) return NULL;
+
+    state->sh = sh;
+    state->maps = maps;
+    state->op = NULL;
+    state->num_maps = num_maps;
+
+    ret = sdap_x_deref_create_control(sh, deref_attr, attrs, &ctrls[0]);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not create OpenLDAP deref control\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    DEBUG(6, ("Dereferencing entry [%s] using OpenLDAP deref\n", base_dn));
+    subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
+                                       LDAP_SCOPE_BASE, NULL, attrs,
+                                       false, ctrls, NULL, 0, timeout,
+                                       sdap_x_deref_parse_entry,
+                                       state);
+    ldap_control_free(ctrls[0]);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_x_deref_search_done, req);
+
+    return req;
+}
+
+static int sdap_x_deref_create_control(struct sdap_handle *sh,
+                                       const char *deref_attr,
+                                       const char **attrs,
+                                       LDAPControl **ctrl)
+{
+    struct berval derefval;
+    int ret;
+    static LDAPDerefSpec ds;
+
+    ds.derefAttr = discard_const(deref_attr);
+    ds.attributes = discard_const(attrs);
+
+    ret = ldap_create_deref_control_value(sh->ldap, &ds, &derefval);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(1, ("sss_ldap_control_create failed: %s\n",
+                  ldap_err2string(ret)));
+        return ret;
+    }
+
+    ret = sdap_control_create(sh, LDAP_CONTROL_X_DEREF,
+                              1, &derefval, 1, ctrl);
+    ldap_memfree(derefval.bv_val);
+    if (ret != EOK) {
+        DEBUG(1, ("sss_ldap_control_create failed\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
+                                        struct sdap_msg *msg,
+                                        void *pvt)
+{
+    errno_t ret;
+    LDAPControl **ctrls = NULL;
+    LDAPControl **next = NULL;
+    LDAPControl **start = NULL;
+    LDAPControl *derefctrl = NULL;
+    LDAPDerefRes    *deref_res;
+    LDAPDerefRes    *dref;
+    struct sdap_deref_attrs **res;
+    TALLOC_CTX *tmp_ctx;
+
+    struct sdap_x_deref_search_state *state = talloc_get_type(pvt,
+                                            struct sdap_x_deref_search_state);
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    ret = ldap_get_entry_controls(state->sh->ldap, msg->msg,
+                                  &ctrls);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(1, ("ldap_parse_result failed\n"));
+        goto done;
+    }
+
+    if (!ctrls) {
+        DEBUG(4, ("No controls found for entry\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    start = ctrls;
+    res = NULL;
+    do {
+        derefctrl = ldap_control_find(LDAP_CONTROL_X_DEREF, start, &next);
+        if (!derefctrl) break;
+
+        DEBUG(9, ("Got deref control\n"));
+        start = next;
+
+        ret = ldap_parse_derefresponse_control(state->sh->ldap,
+                                               derefctrl,
+                                               &deref_res);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(1, ("ldap_parse_derefresponse_control failed: %s\n",
+                      ldap_err2string(ret)));
+            goto done;
+        }
+
+        for (dref = deref_res; dref; dref=dref->next) {
+            ret = sdap_parse_deref(tmp_ctx, state->maps, state->num_maps,
+                                   state->sh, dref, &res);
+            if (ret) {
+                DEBUG(1, ("sdap_parse_deref failed [%d]: %s\n",
+                          ret, strerror(ret)));
+                goto done;
+            }
+
+            ret = add_to_deref_reply(state, state->num_maps,
+                                     &state->dreply, res);
+            if (ret != EOK) {
+                DEBUG(1, ("add_to_deref_reply failed.\n"));
+                goto done;
+            }
+        }
+
+        DEBUG(9, ("All deref results from a single control parsed\n"));
+        ldap_derefresponse_free(deref_res);
+        deref_res = NULL;
+    } while (derefctrl);
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    ldap_controls_free(ctrls);
+    ldap_derefresponse_free(deref_res);
+    return ret;
+}
+
+static void sdap_x_deref_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sdap_get_generic_ext_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static int
+sdap_x_deref_search_recv(struct tevent_req *req,
+                         TALLOC_CTX *mem_ctx,
+                         size_t *reply_count,
+                         struct sdap_deref_attrs ***reply)
+{
+    struct sdap_x_deref_search_state *state = tevent_req_data(req,
+                                            struct sdap_x_deref_search_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->dreply.reply_count;
+    *reply = talloc_steal(mem_ctx, state->dreply.reply);
+
+    return EOK;
+}
+
 /* ==Attribute scoped search============================================ */
 struct sdap_asq_search_state {
     struct sdap_attr_map_info *maps;

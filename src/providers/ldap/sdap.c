@@ -277,6 +277,165 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
                             SDAP_OPTS_GROUP, _attrs, _dn);
 }
 
+/* Parses an LDAPDerefRes into sdap_deref_attrs structure */
+errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
+                         struct sdap_attr_map_info *minfo,
+                         size_t num_maps,
+                         struct sdap_handle *sh,
+                         LDAPDerefRes *dref,
+                         struct sdap_deref_attrs ***_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    LDAPDerefVal *dval;
+    const char *orig_dn;
+    const char **ocs;
+    struct sdap_attr_map *map;
+    int num_attrs;
+    struct ldb_val v;
+    int ret, i, a, mi;
+    const char *name;
+    size_t len;
+    struct sdap_deref_attrs **res;
+
+    if (!dref || !minfo) return EINVAL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    res = talloc_array(tmp_ctx, struct sdap_deref_attrs *, num_maps);
+    if (!res) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i=0; i < num_maps; i++) {
+        res[i] = talloc_zero(res, struct sdap_deref_attrs);
+        if (!res[i]) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        res[i]->map = minfo[i].map;
+    }
+
+    if (!dref->derefVal.bv_val) {
+        DEBUG(2, ("Entry has no DN?\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (!dref->attrVals) {
+        DEBUG(2, ("Dereferenced entry has no attributes\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    orig_dn = dref->derefVal.bv_val;
+    DEBUG(7, ("Dereferenced DN: %s\n", orig_dn));
+
+    ocs = NULL;
+    for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
+        if (strcasecmp("objectClass", dval->type) == 0) {
+            if (dval->vals == NULL) {
+                DEBUG(4, ("No value for objectClass, skipping\n"));
+                continue;
+            }
+
+            for(len=0; dval->vals[len].bv_val; len++);
+
+            ocs = talloc_array(tmp_ctx, const char *, len+1);
+            if (!ocs) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            for (i=0; i<len; i++) {
+                DEBUG(9, ("Dereferenced objectClass value: %s\n",
+                          dval->vals[i].bv_val));
+                ocs[i] = talloc_strdup(ocs, dval->vals[i].bv_val);
+                if (!ocs[i]) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+            }
+            ocs[i] = NULL;
+            break;
+        }
+    }
+    if (!ocs) {
+        DEBUG(1, ("Unknown entry type, no objectClasses found!\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (mi = 0; mi < num_maps; mi++) {
+        map = NULL;
+
+        for (i=0; ocs[i]; i++) {
+            /* the objectclass is always the first name in the map */
+            if (strcasecmp(minfo[mi].map[0].name, ocs[i]) == 0) {
+                DEBUG(9, ("Found map for objectclass '%s'\n", ocs[i]));
+                map = minfo[mi].map;
+                num_attrs = minfo[mi].num_attrs;
+                break;
+            }
+        }
+        if (!map) continue;
+
+        res[mi]->attrs = sysdb_new_attrs(res[mi]);
+        if (!res[mi]->attrs) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_string(res[mi]->attrs, SYSDB_ORIG_DN,
+                                     orig_dn);
+        if (ret) {
+            goto done;
+        }
+
+        for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
+            DEBUG(8, ("Dereferenced attribute: %s\n", dval->type));
+
+            for (a = 1; a < num_attrs; a++) {
+                /* check if this attr is valid with the chosen schema */
+                if (!map[a].name) continue;
+                /* check if it is an attr we are interested in */
+                if (strcasecmp(dval->type, map[a].name) == 0) break;
+            }
+
+            /* interesting attr */
+            if (a < num_attrs) {
+                name = map[a].sys_name;
+            } else {
+                continue;
+            }
+
+            if (dval->vals == NULL) {
+                DEBUG(4, ("No value for attribute %s, skipping\n", name));
+                continue;
+            }
+
+            for (i=0; dval->vals[i].bv_val; i++) {
+                DEBUG(9, ("Dereferenced attribute value: %s\n",
+                          dval->vals[i].bv_val));
+                v.data = (uint8_t *) dval->vals[i].bv_val;
+                v.length = dval->vals[i].bv_len;
+
+                ret = sysdb_attrs_add_val(res[mi]->attrs, name, &v);
+                if (ret) goto done;
+            }
+        }
+    }
+
+
+    *_res = talloc_steal(mem_ctx, res);
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 /* =Get-DN-from-message=================================================== */
 
 int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
