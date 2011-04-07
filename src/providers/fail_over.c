@@ -1132,15 +1132,6 @@ resolve_srv_done(struct tevent_req *subreq)
     }
 
     for (reply = reply_list; reply; reply = reply->next) {
-        ret = EOK;
-        DLIST_FOR_EACH(server, state->service->server_list) {
-            if (server->port == reply->port) {
-                ret = EEXIST;
-                break;
-            }
-        }
-        if (ret == EEXIST) continue;
-
         server = create_fo_server(state->service, reply->host,
                                   reply->port, state->meta->user_data);
         if (!server) {
