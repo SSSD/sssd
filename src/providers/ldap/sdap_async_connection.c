@@ -1269,28 +1269,30 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
         }
     }
 
-    /* save rootdse data about supported features */
-    ret = sdap_set_rootdse_supported_lists(rootdse, state->sh);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
+    if (state->use_rootdse) {
+        /* save rootdse data about supported features */
+        ret = sdap_set_rootdse_supported_lists(rootdse, state->sh);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
 
-    ret = sdap_set_config_options_with_rootdse(rootdse, state->sh,
-                                               state->opts);
-    if (ret) {
-        DEBUG(1, ("sdap_set_config_options_with_rootdse failed.\n"));
-        tevent_req_error(req, ret);
-        return;
-    }
+        ret = sdap_set_config_options_with_rootdse(rootdse, state->sh,
+                                                   state->opts);
+        if (ret) {
+            DEBUG(1, ("sdap_set_config_options_with_rootdse failed.\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
 
-    ret = sdap_get_server_opts_from_rootdse(state,
-                                            state->service->uri, rootdse,
-                                            state->opts, &state->srv_opts);
-    if (ret) {
-        DEBUG(1, ("sdap_get_server_opts_from_rootdse failed.\n"));
-        tevent_req_error(req, ret);
-        return;
+        ret = sdap_get_server_opts_from_rootdse(state,
+                                                state->service->uri, rootdse,
+                                                state->opts, &state->srv_opts);
+        if (ret) {
+            DEBUG(1, ("sdap_get_server_opts_from_rootdse failed.\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
     }
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
