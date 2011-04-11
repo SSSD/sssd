@@ -486,6 +486,10 @@ int sysdb_set_user_attr(TALLOC_CTX *mem_ctx,
 {
     struct ldb_dn *dn;
 
+    if (!domain) {
+        domain = ctx->domain;
+    }
+
     dn = sysdb_user_dn(ctx, mem_ctx, domain->name, name);
     if (!dn) {
         return ENOMEM;
@@ -529,6 +533,10 @@ int sysdb_set_netgroup_attr(struct sysdb_ctx *ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    if (domain == NULL) {
+        domain = ctx->domain;
     }
 
     dn = sysdb_netgroup_dn(ctx, tmp_ctx, domain->name, name);
@@ -1383,6 +1391,18 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    if (!domain) {
+        domain = ctx->domain;
+    }
+
+    if (!attrs) {
+        attrs = sysdb_new_attrs(tmpctx);
+        if (!attrs) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     if (pwd && (domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
         if (ret) goto done;
@@ -1407,14 +1427,6 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
     }
 
     /* the user exists, let's just replace attributes when set */
-    if (!attrs) {
-        attrs = sysdb_new_attrs(tmpctx);
-        if (!attrs) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
     if (uid) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, uid);
         if (ret) goto done;
@@ -1516,6 +1528,10 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    if (!domain) {
+        domain = ctx->domain;
+    }
+
     ret = sysdb_search_group_by_name(tmpctx, ctx,
                                      domain, name, src_attrs, &msg);
     if (ret && ret != ENOENT) {
@@ -1523,6 +1539,14 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
     }
     if (ret == ENOENT) {
         new_group = true;
+    }
+
+    if (!attrs) {
+        attrs = sysdb_new_attrs(tmpctx);
+        if (!attrs) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     /* FIXME: use the remote modification timestamp to know if the
@@ -1536,15 +1560,6 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
     }
 
     /* the group exists, let's just replace attributes when set */
-
-    if (!attrs) {
-        attrs = sysdb_new_attrs(tmpctx);
-        if (!attrs) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
     if (gid) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
         if (ret) goto done;
@@ -2088,6 +2103,10 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    if (!domain) {
+        domain = sysdb->domain;
+    }
+
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!basedn) {
@@ -2200,6 +2219,10 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
         return ENOMEM;
+    }
+
+    if (!domain) {
+        domain = sysdb->domain;
     }
 
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
