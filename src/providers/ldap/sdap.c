@@ -606,46 +606,48 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
 
     last_usn_name = opts->gen_map[SDAP_AT_LAST_USN].name;
     entry_usn_name = opts->gen_map[SDAP_AT_ENTRY_USN].name;
-    if (last_usn_name) {
-        ret = sysdb_attrs_get_string(rootdse,
-                                      last_usn_name, &last_usn_value);
-        if (ret != EOK) {
-            switch (ret) {
-            case ENOENT:
-                DEBUG(1, ("%s configured but not found in rootdse!\n",
-                          opts->gen_map[SDAP_AT_LAST_USN].opt_name));
-                break;
-            case ERANGE:
-                DEBUG(1, ("Multiple values of %s found in rootdse!\n",
-                          opts->gen_map[SDAP_AT_LAST_USN].opt_name));
-                break;
-            default:
-                DEBUG(1, ("Unkown error (%d) checking rootdse!\n", ret));
+    if (rootdse) {
+        if (last_usn_name) {
+            ret = sysdb_attrs_get_string(rootdse,
+                                          last_usn_name, &last_usn_value);
+            if (ret != EOK) {
+                switch (ret) {
+                case ENOENT:
+                    DEBUG(1, ("%s configured but not found in rootdse!\n",
+                              opts->gen_map[SDAP_AT_LAST_USN].opt_name));
+                    break;
+                case ERANGE:
+                    DEBUG(1, ("Multiple values of %s found in rootdse!\n",
+                              opts->gen_map[SDAP_AT_LAST_USN].opt_name));
+                    break;
+                default:
+                    DEBUG(1, ("Unkown error (%d) checking rootdse!\n", ret));
+                }
+            } else {
+                if (!entry_usn_name) {
+                    DEBUG(1, ("%s found in rootdse but %s is not set!\n",
+                              last_usn_name,
+                              opts->gen_map[SDAP_AT_ENTRY_USN].opt_name));
+                } else {
+                    so->supports_usn = true;
+                }
             }
         } else {
-            if (!entry_usn_name) {
-                DEBUG(1, ("%s found in rootdse but %s is not set!\n",
-                          last_usn_name,
-                          opts->gen_map[SDAP_AT_ENTRY_USN].opt_name));
-            } else {
-                so->supports_usn = true;
-            }
-        }
-    } else {
-        /* no usn option configure, let's try to autodetect. */
-        for (i = 0; usn_attrs[i].last_name; i++) {
-            ret = sysdb_attrs_get_string(rootdse,
-                                         usn_attrs[i].last_name,
-                                         &last_usn_value);
-            if (ret == EOK) {
-                /* Fixate discovered configuration */
-                opts->gen_map[SDAP_AT_LAST_USN].name =
-                    talloc_strdup(opts->gen_map, usn_attrs[i].last_name);
-                opts->gen_map[SDAP_AT_ENTRY_USN].name =
-                    talloc_strdup(opts->gen_map, usn_attrs[i].entry_name);
-                so->supports_usn = true;
-                last_usn_name = usn_attrs[i].last_name;
-                break;
+            /* no usn option configure, let's try to autodetect. */
+            for (i = 0; usn_attrs[i].last_name; i++) {
+                ret = sysdb_attrs_get_string(rootdse,
+                                             usn_attrs[i].last_name,
+                                             &last_usn_value);
+                if (ret == EOK) {
+                    /* Fixate discovered configuration */
+                    opts->gen_map[SDAP_AT_LAST_USN].name =
+                        talloc_strdup(opts->gen_map, usn_attrs[i].last_name);
+                    opts->gen_map[SDAP_AT_ENTRY_USN].name =
+                        talloc_strdup(opts->gen_map, usn_attrs[i].entry_name);
+                    so->supports_usn = true;
+                    last_usn_name = usn_attrs[i].last_name;
+                    break;
+                }
             }
         }
     }
