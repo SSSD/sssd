@@ -1311,6 +1311,8 @@ fo_set_server_status(struct fo_server *server, enum server_status status)
 void
 fo_set_port_status(struct fo_server *server, enum port_status status)
 {
+    struct fo_server *siter;
+
     DEBUG(4, ("Marking port %d of server '%s' as '%s'\n", server->port,
               SERVER_NAME(server), str_port_status(status)));
 
@@ -1319,6 +1321,25 @@ fo_set_port_status(struct fo_server *server, enum port_status status)
     if (status == PORT_WORKING) {
         fo_set_server_status(server, SERVER_WORKING);
         server->service->active_server = server;
+    }
+
+    if (!server->common || !server->common->name) return;
+
+    /* It is possible to introduce duplicates when expanding SRV results
+     * into fo_server structures. Find the duplicates and set the same
+     * status */
+    DLIST_FOR_EACH(siter, server->service->server_list) {
+        if (siter == server) continue;
+        if (!siter->common || !siter->common->name) continue;
+
+        if (siter->port == server->port &&
+            (strcasecmp(siter->common->name, server->common->name) == 0)) {
+            DEBUG(7, ("Marking port %d of duplicate server '%s' as '%s'\n",
+                      siter->port, SERVER_NAME(siter),
+                      str_port_status(status)));
+            siter->port_status = status;
+            gettimeofday(&siter->last_status_change, NULL);
+        }
     }
 }
 
