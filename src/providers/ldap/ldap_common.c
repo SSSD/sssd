@@ -962,6 +962,15 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
             continue;
         }
 
+        /* GECOS is another special case. Its value can come
+         * either from the 'gecos' attribute or the 'cn'
+         * attribute. It's best if we just never remove it.
+         */
+        if (strcasecmp(sysdb_name, SYSDB_GECOS) == 0) {
+            talloc_free(sysdb_name);
+            continue;
+        }
+
         for (j = 0; j < recvd_attrs->num; j++) {
             /* Check whether this expected attribute appeared in the
              * received attributes and had a non-zero number of
