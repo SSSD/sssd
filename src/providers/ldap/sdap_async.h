@@ -148,4 +148,22 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);
+
+bool sdap_has_deref_support(struct sdap_handle *sh);
+
+struct tevent_req *
+sdap_deref_search_send(TALLOC_CTX *memctx,
+                       struct tevent_context *ev,
+                       struct sdap_options *opts,
+                       struct sdap_handle *sh,
+                       const char *base_dn,
+                       const char *deref_attr,
+                       const char **attrs,
+                       int num_maps,
+                       struct sdap_attr_map_info *maps,
+                       int timeout);
+int sdap_deref_search_recv(struct tevent_req *req,
+                           TALLOC_CTX *mem_ctx,
+                           size_t *reply_count,
+                           struct sdap_deref_attrs ***reply);
 #endif /* _SDAP_ASYNC_H_ */

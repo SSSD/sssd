@@ -1698,3 +1698,142 @@ int sdap_asq_search_recv(struct tevent_req *req,
 
     return EOK;
 }
+
+/* ==Generic Deref Search============================================ */
+enum sdap_deref_type {
+    SDAP_DEREF_OPENLDAP,
+    SDAP_DEREF_ASQ
+};
+
+struct sdap_deref_search_state {
+    size_t reply_count;
+    struct sdap_deref_attrs **reply;
+    enum sdap_deref_type deref_type;
+};
+
+static void sdap_deref_search_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_deref_search_send(TALLOC_CTX *memctx,
+                       struct tevent_context *ev,
+                       struct sdap_options *opts,
+                       struct sdap_handle *sh,
+                       const char *base_dn,
+                       const char *deref_attr,
+                       const char **attrs,
+                       int num_maps,
+                       struct sdap_attr_map_info *maps,
+                       int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_deref_search_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_deref_search_state);
+    if (!req) return NULL;
+
+    state->reply_count = 0;
+    state->reply = NULL;
+
+    if (sdap_is_control_supported(sh, LDAP_SERVER_ASQ_OID)) {
+        DEBUG(8, ("Server supports ASQ\n"));
+        state->deref_type = SDAP_DEREF_ASQ;
+
+        subreq = sdap_asq_search_send(state, ev, opts, sh, base_dn,
+                                      deref_attr, attrs, maps, num_maps,
+                                      timeout);
+        if (!subreq) {
+            DEBUG(2, ("Cannot start ASQ search\n"));
+            goto fail;
+        }
+    } else if (sdap_is_control_supported(sh, LDAP_CONTROL_X_DEREF)) {
+        DEBUG(8, ("Server supports OpenLDAP deref\n"));
+        state->deref_type = SDAP_DEREF_OPENLDAP;
+
+        subreq = sdap_x_deref_search_send(state, ev, opts, sh, base_dn,
+                                          deref_attr, attrs, maps, num_maps,
+                                          timeout);
+        if (!subreq) {
+            DEBUG(2, ("Cannot start OpenLDAP deref search\n"));
+            goto fail;
+        }
+    } else {
+        DEBUG(2, ("Server does not support any known deref method!\n"));
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, sdap_deref_search_done, req);
+    return req;
+
+fail:
+    talloc_zfree(req);
+    return NULL;
+}
+
+static void sdap_deref_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_deref_search_state *state = tevent_req_data(req,
+                                            struct sdap_deref_search_state);
+    int ret;
+
+    switch (state->deref_type) {
+    case SDAP_DEREF_OPENLDAP:
+        ret = sdap_x_deref_search_recv(subreq, state,
+                &state->reply_count, &state->reply);
+        break;
+    case SDAP_DEREF_ASQ:
+        ret = sdap_asq_search_recv(subreq, state,
+                &state->reply_count, &state->reply);
+        break;
+    default:
+        DEBUG(1, ("Unknown deref method\n"));
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(2, ("dereference processing failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sdap_deref_search_recv(struct tevent_req *req,
+                           TALLOC_CTX *mem_ctx,
+                           size_t *reply_count,
+                           struct sdap_deref_attrs ***reply)
+{
+    struct sdap_deref_search_state *state = tevent_req_data(req,
+                                            struct sdap_deref_search_state);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->reply_count;
+    *reply = talloc_steal(mem_ctx, state->reply);
+
+    return EOK;
+}
+
+bool sdap_has_deref_support(struct sdap_handle *sh)
+{
+    const char *deref_oids[][2] = { { LDAP_SERVER_ASQ_OID, "ASQ" },
+                                    { LDAP_CONTROL_X_DEREF, "OpenLDAP" },
+                                    { NULL, NULL }
+                                  };
+    int i;
+
+    for (i=0; deref_oids[i]; i++) {
+        if (sdap_is_control_supported(sh, deref_oids[i][0])) {
+            DEBUG(6, ("The server supports deref method %s\n",
+                      deref_oids[i][1]));
+            return true;
+        }
+    }
+
+    return false;
+}
