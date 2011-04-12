@@ -1261,6 +1261,7 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
              * work properly.
              */
             state->use_rootdse = false;
+            rootdse = NULL;
         }
 
         else {
