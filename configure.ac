@@ -123,7 +123,9 @@ m4_include([src/external/systemd.m4])
 m4_include([src/util/signal.m4])
 
 WITH_INITSCRIPT
-WITH_SYSTEMD_UNIT_DIR
+if test x$initscript = xsystemd; then
+    WITH_SYSTEMD_UNIT_DIR
+fi
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 dnl if test -n "`$PKG_CONFIG --modversion dbus-1 | grep '^0\.'`" ; then
