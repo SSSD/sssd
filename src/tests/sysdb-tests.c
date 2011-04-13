@@ -2897,6 +2897,50 @@ START_TEST(test_sysdb_has_enumerated)
 }
 END_TEST
 
+START_TEST(test_sysdb_original_dn_case_insensitive)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *filter;
+    struct ldb_dn *base_dn;
+    const char *no_attrs[] = { NULL };
+    struct ldb_message **msgs;
+    size_t num_msgs;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
+                                     "case_sensitive_group1", 29000,
+                                     "cn=case_sensitive_group1,cn=example,cn=com");
+    fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
+                                     "case_sensitive_group2", 29001,
+                                     "cn=CASE_SENSITIVE_GROUP1,cn=EXAMPLE,cn=COM");
+    fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* Search by originalDN should yield 2 entries */
+    filter = talloc_asprintf(test_ctx, "%s=%s", SYSDB_ORIG_DN,
+                             "cn=case_sensitive_group1,cn=example,cn=com");
+    fail_if(filter == NULL, "Cannot construct filter\n");
+
+    base_dn = sysdb_domain_dn(test_ctx->sysdb, test_ctx, test_ctx->domain->name);
+    fail_if(base_dn == NULL, "Cannot construct basedn\n");
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
+                             base_dn, LDB_SCOPE_SUBTREE, filter, no_attrs,
+                             &num_msgs, &msgs);
+    fail_unless(ret == EOK, "cache search error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(num_msgs == 2, "Did not find the expected number of entries using "
+                               "case insensitive originalDN search");
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -3023,6 +3067,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test sysdb enumerated flag */
     tcase_add_test(tc_sysdb, test_sysdb_has_enumerated);
+
+    /* Test originalDN searches */
+    tcase_add_test(tc_sysdb, test_sysdb_original_dn_case_insensitive);
 
 /* ===== NETGROUP TESTS ===== */
 
