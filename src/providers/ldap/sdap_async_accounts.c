@@ -3350,11 +3350,11 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
             filter = talloc_asprintf(NULL, "(%s=%s)",
                                      SYSDB_ORIG_DN,
                                      member_dn);
+            talloc_zfree(member_dn);
             if (!filter) {
                 ret = ENOMEM;
                 goto error;
             }
-            talloc_zfree(member_dn);
 
             ret = sysdb_search_groups(state, state->sysdb, state->domain,
                                       filter, attrs, &count, &msgs);
