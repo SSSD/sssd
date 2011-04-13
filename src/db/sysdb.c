@@ -1595,19 +1595,20 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                             domain->name, db_path,
                             &ctx->ldb_file);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
     DEBUG(5, ("DB File for %s: %s\n", domain->name, ctx->ldb_file));
 
     ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_ldb_connect failed.\n"));
-        return ret;
+        goto done;
     }
 
     tmp_ctx = talloc_new(ctx);
     if (!tmp_ctx) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     verdn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
@@ -1785,6 +1786,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 done:
     if (ret == EOK) {
         *_ctx = ctx;
+    } else {
+        talloc_free(ctx);
     }
     talloc_free(tmp_ctx);
     return ret;
