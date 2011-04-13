@@ -1161,6 +1161,7 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
 static int mbof_del_muop(struct mbof_del_ctx *ctx);
 static int mbof_del_muop_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
+static void free_delop_contents(struct mbof_del_operation *delop);
 
 
 static int memberof_del(struct ldb_module *module, struct ldb_request *req)
@@ -2189,6 +2190,8 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
         return ret;
     }
 
+    free_delop_contents(delop);
+
     if (nextop) {
         return mbof_del_execute_op(nextop);
     }
@@ -2412,7 +2415,16 @@ static int mbof_del_muop_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
-
+/* delop may carry on a lot of memory, so we need a function to clean up
+ * the payload without breaking the delop chain */
+static void free_delop_contents(struct mbof_del_operation *delop)
+{
+    talloc_zfree(delop->entry);
+    talloc_zfree(delop->parents);
+    talloc_zfree(delop->anc_ctx);
+    delop->num_parents = 0;
+    delop->cur_parent = 0;
+}
 
 /* mod operation */
 
