@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_7 "0.7"
 #define SYSDB_VERSION_0_6 "0.6"
 #define SYSDB_VERSION_0_5 "0.5"
 #define SYSDB_VERSION_0_4 "0.4"
@@ -30,7 +31,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_6
+#define SYSDB_VERSION SYSDB_VERSION_0_7
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -38,6 +39,7 @@
      "cn: CASE_INSENSITIVE\n" \
      "dc: CASE_INSENSITIVE\n" \
      "dn: CASE_INSENSITIVE\n" \
+     "originalDN: CASE_INSENSITIVE\n" \
      "objectclass: CASE_INSENSITIVE\n" \
      "\n" \
      "dn: @INDEXLIST\n" \
