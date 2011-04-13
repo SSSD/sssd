@@ -1688,8 +1688,15 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
              * SSSD.
              */
             if (strcmp(version, SYSDB_VERSION) == 0) {
-                /* all fine, return */
-                ret = EOK;
+                /* The cache has been upgraded.
+                 * We need to reopen the LDB to ensure that
+                 * any changes made above take effect.
+                 */
+                talloc_zfree(ctx->ldb);
+                ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+                if (ret != EOK) {
+                    DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+                }
                 goto done;
             }
         }
@@ -1797,7 +1804,17 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     }
     talloc_zfree(msg);
 
-    ret = EOK;
+    /* The cache has been newly created.
+     * We need to reopen the LDB to ensure that
+     * all of the special values take effect
+     * (such as enabling the memberOf plugin and
+     * the various indexes).
+     */
+    talloc_zfree(ctx->ldb);
+    ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+    }
 
 done:
     if (ret == EOK) {
