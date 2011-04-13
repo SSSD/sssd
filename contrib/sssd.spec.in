@@ -249,6 +249,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_groupmod
 %{_sbindir}/sss_groupshow
 %{_sbindir}/sss_obfuscate
+%{_sbindir}/sss_cache
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
 %{_mandir}/man8/sss_groupmod.8*

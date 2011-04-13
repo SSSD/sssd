@@ -54,7 +54,8 @@ sbin_PROGRAMS = \
     sss_groupdel \
     sss_usermod \
     sss_groupmod \
-    sss_groupshow
+    sss_groupshow \
+    sss_cache
 
 sssdlibexec_PROGRAMS = \
     sssd_nss \
@@ -474,6 +475,13 @@ sss_groupshow_SOURCES = \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupshow_LDADD = \
+    $(TOOLS_LIBS)
+
+sss_cache_SOURCES = \
+    src/tools/sss_cache.c \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_TOOLS_OBJ)
+sss_cache_LDADD = \
     $(TOOLS_LIBS)
 
 #################
