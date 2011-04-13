@@ -2727,6 +2727,7 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
                         added->dns[j] = added->dns[j+1];
                     }
                     added->num--;
+                    i--;
                 }
             }
         }
