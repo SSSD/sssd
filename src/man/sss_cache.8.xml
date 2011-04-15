@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_cache</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_cache</refname>
+        <refpurpose>perform cache cleanup</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_cache</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_cache</command> invalidates records in SSSD cache.
+            Invalidated records are forced to be reloaded from server as soon
+            as related SSSD backend is online.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-u</option>,<option>--user</option>
+                    <replaceable>login</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific user.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-U</option>,<option>--users</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all user records. This option overrides
+                        invalidation of specific user if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-g</option>,<option>--group</option>
+                    <replaceable>group</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific group.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-G</option>,<option>--groups</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all group records. This option overrides
+                        invalidation of specific group if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-n</option>,<option>--netgroup</option>
+                    <replaceable>netgroup</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific netgroup.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-N</option>,<option>--netgroups</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all netgroup records. This option overrides
+                        invalidation of specific netgroup if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>domain</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Restrict invalidation process only to a particular
+                        domain.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+</refentry>
+</reference>
