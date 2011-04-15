@@ -532,12 +532,17 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
-            DEBUG(2, ("User [%s] does not exist! (negative cache)\n", name));
+            DEBUG(2, ("User [%s] does not exist in [%s]! (negative cache)\n",
+                      name, dom->name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = dom->next;
                 continue;
             }
+            /* There are no further domains or this was a
+             * fully-qualified user request.
+             */
+            return ENOENT;
         }
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
@@ -1794,12 +1799,17 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
-            DEBUG(2, ("Group [%s] does not exist! (negative cache)\n", name));
+            DEBUG(2, ("Group [%s] does not exist in [%s]! (negative cache)\n",
+                    name, dom->name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = dom->next;
                 continue;
             }
+            /* There are no further domains or this was a
+             * fully-qualified user request.
+             */
+            return ENOENT;
         }
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
@@ -2827,12 +2837,17 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
-            DEBUG(2, ("User [%s] does not exist! (negative cache)\n", name));
+            DEBUG(2, ("User [%s] does not exist in [%s]! (negative cache)\n",
+                      dom->name, name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = dom->next;
                 continue;
             }
+            /* There are no further domains or this was a
+             * fully-qualified user request.
+             */
+            return ENOENT;
         }
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
