@@ -65,6 +65,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     struct users_get_state *state;
     const char *attr_name;
     char *clean_name;
+    char *base_filter;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct users_get_state);
@@ -103,15 +104,24 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                                    attr_name, clean_name,
-                                    ctx->opts->user_map[SDAP_OC_USER].name);
-    if (!state->filter) {
-        DEBUG(2, ("Failed to build filter\n"));
+    base_filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                                  attr_name, clean_name,
+                                  ctx->opts->user_map[SDAP_OC_USER].name);
+    talloc_zfree(clean_name);
+    if (!base_filter) {
+        DEBUG(2, ("Failed to build the base filter\n"));
         ret = ENOMEM;
         goto fail;
     }
-    talloc_zfree(clean_name);
+
+    state->filter = sdap_get_id_specific_filter(state, base_filter,
+           dp_opt_get_string(ctx->opts->basic, SDAP_USER_SEARCH_FILTER));
+    talloc_zfree(base_filter);
+    if (!state->filter) {
+        DEBUG(2, ("Failed to build user filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->user_map,
@@ -297,6 +307,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     struct groups_get_state *state;
     const char *attr_name;
     char *clean_name;
+    char *base_filter;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
@@ -335,18 +346,26 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->filter =
-            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
-                            attr_name, clean_name,
-                            ctx->opts->group_map[SDAP_OC_GROUP].name,
-                            ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                            ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
-    if (!state->filter) {
+    base_filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
+                                attr_name, clean_name,
+                                ctx->opts->group_map[SDAP_OC_GROUP].name,
+                                ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
+    talloc_zfree(clean_name);
+    if (!base_filter) {
         DEBUG(2, ("Failed to build filter\n"));
         ret = ENOMEM;
         goto fail;
     }
-    talloc_zfree(clean_name);
+
+    state->filter = sdap_get_id_specific_filter(state, base_filter,
+           dp_opt_get_string(ctx->opts->basic, SDAP_GROUP_SEARCH_FILTER));
+    talloc_zfree(base_filter);
+    if (!state->filter) {
+        DEBUG(2, ("Failed to build group-specific filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->group_map,
