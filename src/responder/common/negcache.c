@@ -71,6 +71,8 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
     char *ep;
     int ret;
 
+    DEBUG(8, ("Checking negative cache for [%s]\n", str));
+
     ret = string_to_tdb_data(str, &key);
     if (ret != EOK) goto done;
 
@@ -140,6 +142,9 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx,
 
     ret = string_to_tdb_data(timest, &data);
     if (ret != EOK) goto done;
+
+    DEBUG(6, ("Adding [%s] to negative cache%s\n",
+              str, permanent?" permanently":""));
 
     ret = tdb_store(ctx->tdb, key, data, TDB_REPLACE);
     if (ret != 0) {
