@@ -219,7 +219,7 @@ static void users_get_done(struct tevent_req *subreq)
         case BE_FILTER_NAME:
             ret = sysdb_delete_user(state, state->sysdb,
                                     state->domain, state->name, 0);
-            if (ret) {
+            if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
             }
@@ -234,7 +234,7 @@ static void users_get_done(struct tevent_req *subreq)
 
             ret = sysdb_delete_user(state, state->sysdb,
                                     state->domain, NULL, uid);
-            if (ret) {
+            if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
             }
@@ -453,7 +453,7 @@ static void groups_get_done(struct tevent_req *subreq)
         case BE_FILTER_NAME:
             ret = sysdb_delete_group(state, state->sysdb,
                                      state->domain, state->name, 0);
-            if (ret) {
+            if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
             }
@@ -468,7 +468,7 @@ static void groups_get_done(struct tevent_req *subreq)
 
             ret = sysdb_delete_group(state, state->sysdb,
                                      state->domain, NULL, gid);
-            if (ret) {
+            if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
             }
