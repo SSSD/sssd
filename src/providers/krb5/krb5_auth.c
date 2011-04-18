@@ -523,8 +523,7 @@ static void krb5_resolve_kdc_done(struct tevent_req *subreq)
         be_mark_offline(state->be_ctx);
         kr->is_offline = true;
     } else {
-        if (state->pd->cmd == SSS_PAM_CHAUTHTOK &&
-            kr->krb5_ctx->kpasswd_service != NULL) {
+        if (kr->krb5_ctx->kpasswd_service != NULL) {
             subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
                                             kr->krb5_ctx->kpasswd_service->name);
             if (subreq == NULL) {
