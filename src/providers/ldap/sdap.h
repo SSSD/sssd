@@ -295,6 +295,7 @@ struct sdap_options {
 struct sdap_server_opts {
     char *server_id;
     bool supports_usn;
+    unsigned long last_usn;
     char *max_user_value;
     char *max_group_value;
 };

@@ -590,6 +590,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     const char *last_usn_name;
     const char *last_usn_value;
     const char *entry_usn_name;
+    char *endptr = NULL;
     int ret;
     int i;
 
@@ -629,6 +630,13 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                               opts->gen_map[SDAP_AT_ENTRY_USN].opt_name));
                 } else {
                     so->supports_usn = true;
+                    so->last_usn = strtoul(last_usn_value, &endptr, 10);
+                    if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
+                        DEBUG(3, ("USN is not valid (value: %s)\n", last_usn_value));
+                        so->last_usn = 0;
+                    } else {
+                        DEBUG(9, ("USN value: %s (int: %lu)\n", last_usn_value, so->last_usn));
+                    }
                 }
             }
         } else {
@@ -644,6 +652,13 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     opts->gen_map[SDAP_AT_ENTRY_USN].name =
                         talloc_strdup(opts->gen_map, usn_attrs[i].entry_name);
                     so->supports_usn = true;
+                    so->last_usn = strtoul(last_usn_value, &endptr, 10);
+                    if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
+                        DEBUG(3, ("USN is not valid (value: %s)\n", last_usn_value));
+                        so->last_usn = 0;
+                    } else {
+                        DEBUG(9, ("USN value: %s (int: %lu)\n", last_usn_value, so->last_usn));
+                    }
                     last_usn_name = usn_attrs[i].last_name;
                     break;
                 }
