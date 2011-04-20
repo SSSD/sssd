@@ -43,21 +43,10 @@
 #include "sss_client/sss_cli.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
-#define DATA_PROVIDER_SERVICE_NAME "dp"
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
-
-#define DATA_PROVIDER_DB_FILE "sssd.ldb"
-#define DATA_PROVIDER_DB_CONF_SEC "config/services/nss"
-
-#define MOD_OFFLINE 0x0000
-#define MOD_ONLINE  0x0001
 
 #define DP_INTERFACE "org.freedesktop.sssd.dataprovider"
 #define DP_PATH "/org/freedesktop/sssd/dataprovider"
-
-#define BE_PROVIDE_ACC_INFO (1<<8)
-#define BE_PROVIDE_PAM (1<<9)
-#define BE_PROVIDE_POLICY (1<<10)
 
 #define DP_METHOD_REGISTER "RegisterService"
 #define DP_METHOD_GETACCTINFO "getAccountInfo"
