@@ -181,6 +181,8 @@ if test x$cryptolib = xnss; then
 fi
 if test x$cryptolib = xlibcrypto; then
     AM_CHECK_LIBCRYPTO
+    AC_MSG_WARN([libcrypto back end does not implement all the crypto features, \
+notably password obfuscation. Using the NSS backend is recommended.])
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])

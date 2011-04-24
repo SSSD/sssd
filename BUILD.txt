@@ -33,6 +33,13 @@ ding-libs are available in Fedora 14 and later version:
 yum install  libcollection-devel  libdhash-devel  libini_config-devel \
      libpath_utils-devel  libref_array-devel
 
+Some features, notably password caching, require the presence of a crypto
+library. The default, tested by SSSD upstream, is Mozilla NSS. An alternative
+crypto library can be selected during configure time using the --with-crypto
+switch. Please note that alternative crypto back ends may not provide all
+features -  as of this writing, password obfuscation is only supported with the
+NSS back end.
+
 How to build:
 ~~~~~~~~~~~~~
 From the root of the source, run:
