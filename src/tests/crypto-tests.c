@@ -55,9 +55,18 @@ START_TEST(test_encrypt_decrypt)
                                "",                    /* empty */
                                NULL};                 /* sentinel */
     int i;
-    char *obfpwd;
-    char *ctpwd;
+    char *obfpwd = NULL;
+    char *ctpwd = NULL;
     int ret;
+    int expected;
+
+#ifdef HAVE_NSS
+    expected = EOK;
+#elif HAVE_LIBCRYPTO
+    expected = ENOSYS;
+#else
+#error Unknown crypto back end
+#endif
 
     test_ctx = talloc_new(NULL);
     fail_if(test_ctx == NULL);
@@ -66,12 +75,12 @@ START_TEST(test_encrypt_decrypt)
     for (i=0; password[i]; i++) {
         ret = sss_password_encrypt(test_ctx, password[i], strlen(password[i])+1,
                                    AES_256, &obfpwd);
-        fail_if(ret != EOK);
+        fail_if(ret != expected);
 
         ret = sss_password_decrypt(test_ctx, obfpwd, &ctpwd);
-        fail_if(ret != EOK);
+        fail_if(ret != expected);
 
-        fail_if(strcmp(password[i], ctpwd) != 0);
+        fail_if(ctpwd && strcmp(password[i], ctpwd) != 0);
 
         talloc_free(obfpwd);
         talloc_free(ctpwd);

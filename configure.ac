@@ -95,6 +95,7 @@ WITH_SELINUX
 WITH_NSCD
 WITH_SEMANAGE
 WITH_LIBNL
+WITH_CRYPTO
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -173,6 +174,13 @@ fi
 
 if test x$HAVE_SYSTEMD_UNIT != x; then
     AM_CHECK_SYSTEMD
+fi
+
+if test x$cryptolib = xnss; then
+    AM_CHECK_NSS
+fi
+if test x$cryptolib = xlibcrypto; then
+    AM_CHECK_LIBCRYPTO
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])
