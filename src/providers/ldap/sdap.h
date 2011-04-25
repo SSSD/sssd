@@ -87,6 +87,7 @@ struct sdap_handle {
     bool connected;
     /* Authentication ticket expiration time (if any) */
     time_t expire_time;
+    ber_int_t page_size;
 
     struct sdap_fd_events *sdap_fd_events;
 
@@ -201,6 +202,7 @@ enum sdap_basic_opt {
     SDAP_CHPASS_DNS_SERVICE_NAME,
     SDAP_ENUM_SEARCH_TIMEOUT,
     SDAP_DISABLE_AUTH_TLS,
+    SDAP_PAGE_SIZE,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

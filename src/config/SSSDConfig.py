@@ -139,6 +139,7 @@ option_strings = {
     'ldap_krb5_ticket_lifetime' : _('Lifetime of TGT for LDAP connection'),
     'ldap_deref' : _('How to dereference aliases'),
     'ldap_dns_service_name' : _('Service name for DNS service lookups'),
+    'ldap_page_size' : _('The number of records to retrieve in a single LDAP query'),
 
     'ldap_entry_usn' : _('entryUSN attribute'),
     'ldap_rootdse_last_usn' : _('lastUSN attribute'),

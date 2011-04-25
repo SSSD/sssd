@@ -91,7 +91,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     /* Do not include ldap_auth_disable_tls_never_use_in_production in the
      * manpages or SSSDConfig API
      */
-    { "ldap_auth_disable_tls_never_use_in_production", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
+    { "ldap_auth_disable_tls_never_use_in_production", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_page_size", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER }
 };
 
 struct sdap_attr_map ipa_attr_map[] = {

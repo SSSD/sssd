@@ -838,6 +838,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_page_size (integer)</term>
+                    <listitem>
+                        <para>
+                            Specify the number of records to retrieve from
+                            LDAP in a single request. Some LDAP servers
+                            enforce a maximum limit per-request.
+                        </para>
+                        <para>
+                            Default: 1000
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_tls_reqcert (string)</term>
                     <listitem>
                         <para>

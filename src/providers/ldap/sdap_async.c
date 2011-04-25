@@ -749,20 +749,23 @@ struct sdap_get_generic_state {
     const char **attrs;
     struct sdap_attr_map *map;
     int map_num_attrs;
+    int timeout;
 
     struct sdap_op *op;
+
+    struct berval cookie;
 
     size_t reply_max;
     size_t reply_count;
     struct sysdb_attrs **reply;
 };
 
+static errno_t sdap_get_generic_step(struct tevent_req *req);
+static void sdap_get_generic_done(struct sdap_op *op,
+                                 struct sdap_msg *reply,
+                                 int error, void *pvt);
 static errno_t add_to_reply(struct sdap_get_generic_state *state,
                             struct sysdb_attrs *msg);
-
-static void sdap_get_generic_done(struct sdap_op *op,
-                                  struct sdap_msg *reply,
-                                  int error, void *pvt);
 
 struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
@@ -776,13 +779,9 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          int map_num_attrs,
                                          int timeout)
 {
-    struct tevent_req *req = NULL;
-    struct sdap_get_generic_state *state = NULL;
-    char *errmsg;
-    int lret;
-    int optret;
-    int ret;
-    int msgid;
+    errno_t ret;
+    struct sdap_get_generic_state *state;
+    struct tevent_req *req;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_generic_state);
     if (!req) return NULL;
@@ -800,6 +799,38 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     state->reply_max = 0;
     state->reply_count = 0;
     state->reply = NULL;
+    state->timeout = timeout;
+    state->cookie.bv_len = 0;
+    state->cookie.bv_val = NULL;
+
+    ret = sdap_get_generic_step(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    return req;
+}
+
+static errno_t sdap_get_generic_step(struct tevent_req *req)
+{
+    struct sdap_get_generic_state *state =
+            tevent_req_data(req, struct sdap_get_generic_state);
+    char *errmsg;
+    int lret;
+    int optret;
+    errno_t ret;
+    int msgid;
+
+    LDAPControl *page_control = NULL;
+    LDAPControl *m_controls[2] = { NULL, NULL };
+
+    /* Make sure to free any previous operations so
+     * if we are handling a large number of pages we
+     * don't waste memory.
+     */
+    talloc_zfree(state->op);
 
     DEBUG(6, ("calling ldap_search_ext with [%s][%s].\n", state->filter,
                                                           state->search_base));
@@ -813,10 +844,28 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
         }
     }
 
+    if (sdap_is_control_supported(state->sh,
+                                  LDAP_CONTROL_PAGEDRESULTS)) {
+        lret = ldap_create_page_control(state->sh->ldap,
+                                        state->sh->page_size,
+                                        state->cookie.bv_val ?
+                                            &state->cookie :
+                                            NULL,
+                                        false,
+                                        &page_control);
+        if (lret != LDAP_SUCCESS) {
+            ret = EIO;
+            goto done;
+        }
+        m_controls[0] = page_control;
+    }
+
     lret = ldap_search_ext(state->sh->ldap, state->search_base,
                            state->scope, state->filter,
                            discard_const(state->attrs),
-                           false, NULL, NULL, NULL, 0, &msgid);
+                           false, m_controls, NULL, NULL, 0, &msgid);
+    ldap_control_free(page_control);
+    m_controls[0] = NULL;
     if (lret != LDAP_SUCCESS) {
         DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
         if (lret == LDAP_SERVER_DOWN) {
@@ -838,26 +887,22 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
         else {
             ret = EIO;
         }
-        goto fail;
+        goto done;
     }
     DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_generic_done, req, timeout,
+                      sdap_get_generic_done, req,
+                      state->timeout,
                       &state->op);
     if (ret != EOK) {
         DEBUG(1, ("Failed to set up operation!\n"));
-        goto fail;
+        goto done;
     }
 
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
+done:
+    return ret;
 }
-
 
 static void sdap_get_generic_done(struct sdap_op *op,
                                  struct sdap_msg *reply,
@@ -870,6 +915,11 @@ static void sdap_get_generic_done(struct sdap_op *op,
     char *errmsg = NULL;
     int result;
     int ret;
+    int lret;
+    ber_int_t total_count;
+    struct berval cookie;
+    LDAPControl **returned_controls = NULL;
+    LDAPControl *page_control;
 
     if (error) {
         tevent_req_error(req, error);
@@ -907,7 +957,8 @@ static void sdap_get_generic_done(struct sdap_op *op,
 
     case LDAP_RES_SEARCH_RESULT:
         ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                                &result, NULL, &errmsg, NULL, NULL, 0);
+                                &result, NULL, &errmsg, NULL,
+                                &returned_controls, 0);
         if (ret != LDAP_SUCCESS) {
             DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
             tevent_req_error(req, EIO);
@@ -922,6 +973,53 @@ static void sdap_get_generic_done(struct sdap_op *op,
                       ldap_err2string(result), result, errmsg));
         }
         ldap_memfree(errmsg);
+
+        /* Determine if there are more pages to retrieve */
+        page_control = ldap_control_find(LDAP_CONTROL_PAGEDRESULTS,
+                                         returned_controls, NULL );
+        if (!page_control) {
+            /* No paging support. We are done */
+            tevent_req_done(req);
+            return;
+        }
+
+        lret = ldap_parse_pageresponse_control(state->sh->ldap, page_control,
+                                               &total_count, &cookie);
+        ldap_controls_free(returned_controls);
+        if (lret != LDAP_SUCCESS) {
+            DEBUG(1, ("Could not determine page control"));
+            tevent_req_error(req, EIO);
+            return;
+        }
+        DEBUG(7, ("Total count [%lu]\n", total_count));
+
+        if (cookie.bv_val != NULL && cookie.bv_len > 0) {
+            /* Cookie contains data, which means there are more requests
+             * to be processed.
+             */
+            talloc_zfree(state->cookie.bv_val);
+            state->cookie.bv_len = cookie.bv_len;
+            state->cookie.bv_val = talloc_memdup(state,
+                                                 cookie.bv_val,
+                                                 cookie.bv_len);
+            if (!state->cookie.bv_val) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            ber_memfree(cookie.bv_val);
+
+            ret = sdap_get_generic_step(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+
+            return;
+        }
+        /* The cookie must be freed even if len == 0 */
+        ber_memfree(cookie.bv_val);
+
+        /* This was the last page. We're done */
 
         tevent_req_done(req);
         return;
