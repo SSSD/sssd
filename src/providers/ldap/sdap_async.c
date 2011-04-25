@@ -207,6 +207,61 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     sdap_process_message(ev, sh, msg);
 }
 
+static const char *sdap_ldap_result_str(int msgtype)
+{
+    switch (msgtype) {
+    case LDAP_RES_BIND:
+        return "LDAP_RES_BIND";
+
+    case LDAP_RES_SEARCH_ENTRY:
+        return "LDAP_RES_SEARCH_ENTRY";
+
+    case LDAP_RES_SEARCH_REFERENCE:
+        return "LDAP_RES_SEARCH_REFERENCE";
+
+    case LDAP_RES_SEARCH_RESULT:
+        return "LDAP_RES_SEARCH_RESULT";
+
+    case LDAP_RES_MODIFY:
+        return "LDAP_RES_MODIFY";
+
+    case LDAP_RES_ADD:
+        return "LDAP_RES_ADD";
+
+    case LDAP_RES_DELETE:
+        return "LDAP_RES_DELETE";
+
+    case LDAP_RES_MODDN:
+    /* These are the same result
+    case LDAP_RES_MODRDN:
+    case LDAP_RES_RENAME:
+    */
+        return "LDAP_RES_RENAME";
+
+    case LDAP_RES_COMPARE:
+        return "LDAP_RES_COMPARE";
+
+    case LDAP_RES_EXTENDED:
+        return "LDAP_RES_EXTENDED";
+
+    case LDAP_RES_INTERMEDIATE:
+        return "LDAP_RES_INTERMEDIATE";
+
+    case LDAP_RES_ANY:
+        return "LDAP_RES_ANY";
+
+    case LDAP_RES_UNSOLICITED:
+        return "LDAP_RES_UNSOLICITED";
+
+    default:
+        /* Unmatched, fall through */
+        break;
+    }
+
+    /* Unknown result type */
+    return "Unknown result type!";
+}
+
 /* process a messgae calling the right operation callback.
  * msg is completely taken care of (including freeeing it)
  * NOTE: this function may even end up freeing the sdap_handle
@@ -247,6 +302,8 @@ static void sdap_process_message(struct tevent_context *ev,
         ldap_msgfree(msg);
         return;
     }
+
+    DEBUG(9, ("Message type: [%s]\n", sdap_ldap_result_str(msgtype)));
 
     switch (msgtype) {
     case LDAP_RES_SEARCH_ENTRY:
