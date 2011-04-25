@@ -158,22 +158,28 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
     if (ret != EOK) {
         DEBUG(1, ("Could not look up primary group [%lu]: [%d][%s]\n",
                   gid, ret, strerror(ret)));
-        goto done;
+        /* We have to treat this as non-fatal, because the primary
+         * group may be local to the machine and not available in
+         * our ID provider.
+         */
+    } else {
+        primary_group = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        if (!primary_group) {
+            ret = EINVAL;
+            goto done;
+        }
+
+        groups[j] = talloc_strdup(tmp_ctx, primary_group);
+        if (!groups[j]) {
+            ret = ENOMEM;
+            goto done;
+        }
+        j++;
+
+        talloc_zfree(msg);
     }
 
-    primary_group = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    if (!primary_group) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    groups[j] = talloc_strdup(tmp_ctx, primary_group);
-    if (!groups[j]) {
-        ret = ENOMEM;
-        goto done;
-    }
-    groups[j+1] = NULL;
-    talloc_zfree(msg);
+    groups[j] = NULL;
 
     /* Now process allow and deny group rules
      * If access was already granted above, we'll skip
