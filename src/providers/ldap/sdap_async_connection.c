@@ -108,6 +108,10 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         talloc_zfree(req);
         return NULL;
     }
+
+    state->sh->page_size = dp_opt_get_int(state->opts->basic,
+                                          SDAP_PAGE_SIZE);
+
     /* Initialize LDAP handler */
     lret = ldap_initialize(&state->sh->ldap, uri);
     if (lret != LDAP_SUCCESS) {

@@ -880,7 +880,6 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
     errno_t ret;
     int msgid;
 
-    ber_int_t page_size = 1000;
     LDAPControl *page_control = NULL;
     LDAPControl *m_controls[2] = { NULL, NULL };
 
@@ -905,7 +904,7 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
     if (sdap_is_control_supported(state->sh,
                                   LDAP_CONTROL_PAGEDRESULTS)) {
         lret = ldap_create_page_control(state->sh->ldap,
-                                        page_size,
+                                        state->sh->page_size,
                                         state->cookie.bv_val ?
                                             &state->cookie :
                                             NULL,
