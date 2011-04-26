@@ -462,6 +462,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # First test default options
         options = domain.list_options()
         control_list = [
+            'description',
             'debug_level',
             'debug_timestamps',
             'min_id',
@@ -765,6 +766,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # First test default options
         options = domain.list_options()
         control_list = [
+            'description',
             'debug_level',
             'debug_timestamps',
             'min_id',
