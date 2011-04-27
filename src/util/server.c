@@ -444,14 +444,17 @@ int server_setup(const char *name, int flags,
         return ret;
     }
 
-    /* set debug level if any in conf_entry */
-    ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
-                         CONFDB_SERVICE_DEBUG_LEVEL,
-                         debug_level, &debug_level);
-    if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
-        return ret;
+    if (debug_level == SSS_UNRESOLVED_DEBUG_LEVEL) {
+        /* set debug level if any in conf_entry */
+        ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
+                             CONFDB_SERVICE_DEBUG_LEVEL,
+                             SSS_DEFAULT_DEBUG_LEVEL,
+                             &debug_level);
+        if (ret != EOK) {
+            DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                      ret, strerror(ret)));
+            return ret;
+        }
     }
 
     /* same for debug timestamps */

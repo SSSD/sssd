@@ -31,7 +31,8 @@
 #include "util/util.h"
 
 const char *debug_prg_name = "sssd";
-int debug_level = 0;
+
+int debug_level = SSS_UNRESOLVED_DEBUG_LEVEL;
 int debug_timestamps = 1;
 
 int debug_to_file = 0;

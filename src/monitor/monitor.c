@@ -57,6 +57,8 @@
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
 
+int cmdline_debug_level;
+
 struct svc_spy;
 
 struct mt_svc {
@@ -942,13 +944,30 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     }
 
     if (!svc->command) {
-        svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d%s%s",
-                                       SSSD_LIBEXEC_PATH,
-                                       svc->name, debug_level,
-                                       (debug_timestamps?
-                                              "": " --debug-timestamps=0"),
-                                       (debug_to_file ?
-                                              " --debug-to-files":""));
+        if (cmdline_debug_level == SSS_UNRESOLVED_DEBUG_LEVEL) {
+            svc->command = talloc_asprintf(svc, "%s/sssd_%s %s%s",
+                                           SSSD_LIBEXEC_PATH,
+                                           svc->name,
+                                           (debug_timestamps?
+                                                  "": " --debug-timestamps=0"),
+                                           (debug_to_file ?
+                                                  " --debug-to-files":""));
+        } else {
+            /* If the debug level was specified at the command-line,
+             * make sure to pass it into the children, overriding the
+             * config file.
+             */
+            svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d%s%s",
+                                           SSSD_LIBEXEC_PATH,
+                                           svc->name,
+                                           cmdline_debug_level,
+                                           debug_timestamps ?
+                                               "" :
+                                               " --debug-timestamps=0",
+                                           debug_to_file ?
+                                               " --debug-to-files" :
+                                               "");
+        }
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
@@ -1071,12 +1090,25 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
 
     /* if there are no custom commands, build a default one */
     if (!svc->command) {
-        svc->command = talloc_asprintf(svc,
-                            "%s/sssd_be -d %d%s%s --domain %s",
-                            SSSD_LIBEXEC_PATH, debug_level,
-                            (debug_timestamps?"": " --debug-timestamps=0"),
-                            (debug_to_file?" --debug-to-files":""),
-                            svc->name);
+        if (cmdline_debug_level == SSS_UNRESOLVED_DEBUG_LEVEL) {
+            svc->command = talloc_asprintf(svc,
+                                "%s/sssd_be --domain %s%s%s",
+                                SSSD_LIBEXEC_PATH,
+                                svc->name,
+                                debug_timestamps ? ""
+                                                 : " --debug-timestamps=0",
+                                debug_to_file ? " --debug-to-files" : "");
+        } else {
+            svc->command = talloc_asprintf(svc,
+                                "%s/sssd_be --domain %s -d %d%s%s ",
+                                SSSD_LIBEXEC_PATH,
+                                svc->name,
+                                cmdline_debug_level,
+                                debug_timestamps ? ""
+                                                 : " --debug-timestamps=0",
+                                debug_to_file ? " --debug-to-files" : "");
+        }
+
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
@@ -2260,6 +2292,11 @@ int main(int argc, const char *argv[])
             return 1;
         }
     }
+
+    /* If the level was passed at the command-line, we want
+     * to save it and pass it to the children later.
+     */
+    cmdline_debug_level = debug_level;
 
     if (opt_daemon && opt_interactive) {
         fprintf(stderr, "Option -i|--interactive is not allowed together with -D|--daemon\n");
