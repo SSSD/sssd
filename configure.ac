@@ -95,7 +95,6 @@ WITH_SELINUX
 WITH_NSCD
 WITH_SEMANAGE
 WITH_LIBNL
-WITH_CRYPTO
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -176,14 +175,8 @@ if test x$HAVE_SYSTEMD_UNIT != x; then
     AM_CHECK_SYSTEMD
 fi
 
-if test x$cryptolib = xnss; then
-    AM_CHECK_NSS
-fi
-if test x$cryptolib = xlibcrypto; then
-    AM_CHECK_LIBCRYPTO
-    AC_MSG_WARN([libcrypto back end does not implement all the crypto features, \
-notably password obfuscation. Using the NSS backend is recommended.])
-fi
+AM_CHECK_NSS
+AM_CONDITIONAL([HAVE_NSS], [test x"$NSS_CFLAGS" != x])
 
 AC_CHECK_HEADERS([sys/inotify.h])
 
