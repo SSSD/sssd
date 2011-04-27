@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-03-08 10:17-0500\n"
+"POT-Creation-Date: 2011-04-27 11:41-0400\n"
 "PO-Revision-Date: 2010-07-20 09:18-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -350,310 +350,323 @@ msgid "Specify the sasl authorization id to use"
 msgstr "Especifique el id de autorización sasl a usar"
 
 #: src/config/SSSDConfig.py:136
+#, fuzzy
+msgid "Specify the sasl authorization realm to use"
+msgstr "Especifique el id de autorización sasl a usar"
+
+#: src/config/SSSDConfig.py:137
 msgid "Kerberos service keytab"
 msgstr "Tabla de clave del servicio Kerberos"
 
-#: src/config/SSSDConfig.py:137
+#: src/config/SSSDConfig.py:138
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Usar auth Kerberos para la conexión LDAP"
 
-#: src/config/SSSDConfig.py:138
+#: src/config/SSSDConfig.py:139
 msgid "Follow LDAP referrals"
 msgstr "Seguir referencias LDAP"
 
-#: src/config/SSSDConfig.py:139
+#: src/config/SSSDConfig.py:140
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Período de vida del TGT para la conexión LDAP"
 
-#: src/config/SSSDConfig.py:140
+#: src/config/SSSDConfig.py:141
 msgid "How to dereference aliases"
 msgstr ""
 
-#: src/config/SSSDConfig.py:141
+#: src/config/SSSDConfig.py:142
 #, fuzzy
 msgid "Service name for DNS service lookups"
 msgstr "Filtro para las búsquedas del usuario"
 
 #: src/config/SSSDConfig.py:143
+msgid "The number of records to retrieve in a single LDAP query"
+msgstr ""
+
+#: src/config/SSSDConfig.py:145
 #, fuzzy
 msgid "entryUSN attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:144
+#: src/config/SSSDConfig.py:146
 #, fuzzy
 msgid "lastUSN attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:147
+#: src/config/SSSDConfig.py:149
 msgid "Length of time to wait for a search request"
 msgstr "Tiempo máximo a esperar un pedido de búsqueda"
 
-#: src/config/SSSDConfig.py:148
+#: src/config/SSSDConfig.py:150
 #, fuzzy
 msgid "Length of time to wait for a enumeration request"
 msgstr "Tiempo máximo a esperar un pedido de búsqueda"
 
-#: src/config/SSSDConfig.py:149
+#: src/config/SSSDConfig.py:151
 msgid "Length of time between enumeration updates"
 msgstr "Tiempo en segundos entre las actualizaciones de enumeración"
 
-#: src/config/SSSDConfig.py:150
+#: src/config/SSSDConfig.py:152
 #, fuzzy
 msgid "Length of time between cache cleanups"
 msgstr "Tiempo en segundos entre las actualizaciones de enumeración"
 
-#: src/config/SSSDConfig.py:151
+#: src/config/SSSDConfig.py:153
 msgid "Require TLS for ID lookups"
 msgstr "Requiere TLS para búsquedas de ID"
 
-#: src/config/SSSDConfig.py:152
+#: src/config/SSSDConfig.py:154
 msgid "Base DN for user lookups"
 msgstr "DN base para búsquedas de usuario"
 
-#: src/config/SSSDConfig.py:153
+#: src/config/SSSDConfig.py:155
 msgid "Scope of user lookups"
 msgstr "Ambito de las búsquedas del usuario"
 
-#: src/config/SSSDConfig.py:154
+#: src/config/SSSDConfig.py:156
 msgid "Filter for user lookups"
 msgstr "Filtro para las búsquedas del usuario"
 
-#: src/config/SSSDConfig.py:155
+#: src/config/SSSDConfig.py:157
 msgid "Objectclass for users"
 msgstr "Objectclass para los usuarios"
 
-#: src/config/SSSDConfig.py:156
+#: src/config/SSSDConfig.py:158
 msgid "Username attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:158
+#: src/config/SSSDConfig.py:160
 msgid "UID attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:159
+#: src/config/SSSDConfig.py:161
 msgid "Primary GID attribute"
 msgstr "Atributo GID primario"
 
-#: src/config/SSSDConfig.py:160
+#: src/config/SSSDConfig.py:162
 msgid "GECOS attribute"
 msgstr "Atributo GECOS"
 
-#: src/config/SSSDConfig.py:161
+#: src/config/SSSDConfig.py:163
 msgid "Home directory attribute"
 msgstr "Atributo Directorio de inicio"
 
-#: src/config/SSSDConfig.py:162
+#: src/config/SSSDConfig.py:164
 msgid "Shell attribute"
 msgstr "Atributo shell"
 
-#: src/config/SSSDConfig.py:163
+#: src/config/SSSDConfig.py:165
 msgid "UUID attribute"
 msgstr "Atributo UUID"
 
-#: src/config/SSSDConfig.py:164
+#: src/config/SSSDConfig.py:166
 msgid "User principal attribute (for Kerberos)"
 msgstr "Atributo principal del usuario (para Kerberos) "
 
-#: src/config/SSSDConfig.py:165
+#: src/config/SSSDConfig.py:167
 msgid "Full Name"
 msgstr "Nombre completo"
 
-#: src/config/SSSDConfig.py:166
+#: src/config/SSSDConfig.py:168
 msgid "memberOf attribute"
 msgstr "Atributo memberOf"
 
-#: src/config/SSSDConfig.py:167
+#: src/config/SSSDConfig.py:169
 msgid "Modification time attribute"
 msgstr "Atributo hora de modificación"
 
-#: src/config/SSSDConfig.py:169
+#: src/config/SSSDConfig.py:171
 msgid "shadowLastChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig.py:170
+#: src/config/SSSDConfig.py:172
 #, fuzzy
 msgid "shadowMin attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:171
+#: src/config/SSSDConfig.py:173
 #, fuzzy
 msgid "shadowMax attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:172
+#: src/config/SSSDConfig.py:174
 #, fuzzy
 msgid "shadowWarning attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:173
+#: src/config/SSSDConfig.py:175
 #, fuzzy
 msgid "shadowInactive attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:174
+#: src/config/SSSDConfig.py:176
 #, fuzzy
 msgid "shadowExpire attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:175
+#: src/config/SSSDConfig.py:177
 #, fuzzy
 msgid "shadowFlag attribute"
 msgstr "Atributo shell"
 
-#: src/config/SSSDConfig.py:176
+#: src/config/SSSDConfig.py:178
 msgid "Attribute listing authorized PAM services"
 msgstr ""
 
-#: src/config/SSSDConfig.py:177
+#: src/config/SSSDConfig.py:179
+msgid "Attribute listing authorized server hosts"
+msgstr ""
+
+#: src/config/SSSDConfig.py:180
 msgid "krbLastPwdChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig.py:178
+#: src/config/SSSDConfig.py:181
 #, fuzzy
 msgid "krbPasswordExpiration attribute"
 msgstr "Atributo hora de modificación"
 
-#: src/config/SSSDConfig.py:179
+#: src/config/SSSDConfig.py:182
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
-#: src/config/SSSDConfig.py:180
+#: src/config/SSSDConfig.py:183
 #, fuzzy
 msgid "accountExpires attribute of AD"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:181
+#: src/config/SSSDConfig.py:184
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
-#: src/config/SSSDConfig.py:182
+#: src/config/SSSDConfig.py:185
 #, fuzzy
 msgid "nsAccountLock attribute"
 msgstr "Atributo Username"
 
-#: src/config/SSSDConfig.py:184
+#: src/config/SSSDConfig.py:187
 #, fuzzy
 msgid "Base DN for group lookups"
 msgstr "DN base para búsquedas de usuario"
 
-#: src/config/SSSDConfig.py:187
+#: src/config/SSSDConfig.py:190
 #, fuzzy
 msgid "Objectclass for groups"
 msgstr "Objectclass para los usuarios"
 
-#: src/config/SSSDConfig.py:188
+#: src/config/SSSDConfig.py:191
 #, fuzzy
 msgid "Group name"
 msgstr "Grupos"
 
-#: src/config/SSSDConfig.py:189
+#: src/config/SSSDConfig.py:192
 #, fuzzy
 msgid "Group password"
 msgstr "Grupos"
 
-#: src/config/SSSDConfig.py:190
+#: src/config/SSSDConfig.py:193
 #, fuzzy
 msgid "GID attribute"
 msgstr "Atributo UID"
 
-#: src/config/SSSDConfig.py:191
+#: src/config/SSSDConfig.py:194
 #, fuzzy
 msgid "Group member attribute"
 msgstr "Atributo memberOf"
 
-#: src/config/SSSDConfig.py:192
+#: src/config/SSSDConfig.py:195
 #, fuzzy
 msgid "Group UUID attribute"
 msgstr "Atributo UUID"
 
-#: src/config/SSSDConfig.py:193
+#: src/config/SSSDConfig.py:196
 #, fuzzy
 msgid "Modification time attribute for groups"
 msgstr "Atributo hora de modificación"
 
-#: src/config/SSSDConfig.py:195
-msgid "Maximum nesting level SSSd will follow"
-msgstr ""
-
-#: src/config/SSSDConfig.py:197
-#, fuzzy
-msgid "Base DN for netgroup lookups"
-msgstr "DN base para búsquedas de usuario"
-
 #: src/config/SSSDConfig.py:198
-#, fuzzy
-msgid "Objectclass for netgroups"
-msgstr "Objectclass para los usuarios"
-
-#: src/config/SSSDConfig.py:199
-msgid "Netgroup name"
+msgid "Maximum nesting level SSSd will follow"
 msgstr ""
 
 #: src/config/SSSDConfig.py:200
 #, fuzzy
+msgid "Base DN for netgroup lookups"
+msgstr "DN base para búsquedas de usuario"
+
+#: src/config/SSSDConfig.py:201
+#, fuzzy
+msgid "Objectclass for netgroups"
+msgstr "Objectclass para los usuarios"
+
+#: src/config/SSSDConfig.py:202
+msgid "Netgroup name"
+msgstr ""
+
+#: src/config/SSSDConfig.py:203
+#, fuzzy
 msgid "Netgroups members attribute"
 msgstr "Atributo memberOf"
 
-#: src/config/SSSDConfig.py:201
+#: src/config/SSSDConfig.py:204
 #, fuzzy
 msgid "Netgroup triple attribute"
 msgstr "Atributo hora de modificación"
 
-#: src/config/SSSDConfig.py:202
+#: src/config/SSSDConfig.py:205
 #, fuzzy
 msgid "Netgroup UUID attribute"
 msgstr "Atributo UUID"
 
-#: src/config/SSSDConfig.py:203
+#: src/config/SSSDConfig.py:206
 #, fuzzy
 msgid "Modification time attribute for netgroups"
 msgstr "Atributo hora de modificación"
 
-#: src/config/SSSDConfig.py:206
+#: src/config/SSSDConfig.py:209
 msgid "Policy to evaluate the password expiration"
 msgstr "Política para evaluar el vencimiento de la contraseña"
 
-#: src/config/SSSDConfig.py:209
+#: src/config/SSSDConfig.py:212
 msgid "LDAP filter to determine access privileges"
 msgstr "Filtro LDAP para determinar privilegios de acceso"
 
-#: src/config/SSSDConfig.py:210
+#: src/config/SSSDConfig.py:213
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 
-#: src/config/SSSDConfig.py:211
+#: src/config/SSSDConfig.py:214
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 
-#: src/config/SSSDConfig.py:214
+#: src/config/SSSDConfig.py:217
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig.py:215
+#: src/config/SSSDConfig.py:218
 msgid "DNS service name for LDAP password change server"
 msgstr ""
 
-#: src/config/SSSDConfig.py:218
+#: src/config/SSSDConfig.py:221
 msgid "Comma separated list of allowed users"
 msgstr "Lista separada por comas de usuarios autorizados"
 
-#: src/config/SSSDConfig.py:219
+#: src/config/SSSDConfig.py:222
 msgid "Comma separated list of prohibited users"
 msgstr "Lista separada por comas de usuarios prohibidos"
 
-#: src/config/SSSDConfig.py:222
+#: src/config/SSSDConfig.py:225
 msgid "Default shell, /bin/bash"
 msgstr "Shell predeterminado, /bin/bash"
 
-#: src/config/SSSDConfig.py:223
+#: src/config/SSSDConfig.py:226
 msgid "Base for home directories"
 msgstr "Base de los directorios de inicio"
 
-#: src/config/SSSDConfig.py:226
+#: src/config/SSSDConfig.py:229
 msgid "The name of the NSS library to use"
 msgstr "Nombre de la biblioteca NSS a usar"
 
-#: src/config/SSSDConfig.py:229
+#: src/config/SSSDConfig.py:232
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
@@ -669,21 +682,21 @@ msgstr "Ejecutarse en forma interactiva (no un demonio)"
 msgid "Specify a non-default config file"
 msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
-#: src/providers/krb5/krb5_child.c:1593 src/providers/ldap/ldap_child.c:359
+#: src/providers/krb5/krb5_child.c:1554 src/providers/ldap/ldap_child.c:360
 #: src/util/util.h:65
 msgid "Debug level"
 msgstr "Nive de depuración"
 
-#: src/providers/krb5/krb5_child.c:1595 src/providers/ldap/ldap_child.c:361
+#: src/providers/krb5/krb5_child.c:1556 src/providers/ldap/ldap_child.c:362
 #: src/util/util.h:69
 msgid "Add debug timestamps"
 msgstr "Agregar marcas de tiempo de depuración"
 
-#: src/providers/krb5/krb5_child.c:1597 src/providers/ldap/ldap_child.c:363
+#: src/providers/krb5/krb5_child.c:1558 src/providers/ldap/ldap_child.c:364
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: src/providers/data_provider_be.c:1275
+#: src/providers/data_provider_be.c:1226
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 

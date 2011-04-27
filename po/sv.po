@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-03-08 10:17-0500\n"
+"POT-Creation-Date: 2011-04-27 11:41-0400\n"
 "PO-Revision-Date: 2009-12-30 17:58+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -331,312 +331,325 @@ msgid "Specify the sasl authorization id to use"
 msgstr "Ange sasl-auktorisering-id att använda"
 
 #: src/config/SSSDConfig.py:136
+#, fuzzy
+msgid "Specify the sasl authorization realm to use"
+msgstr "Ange sasl-auktorisering-id att använda"
+
+#: src/config/SSSDConfig.py:137
 msgid "Kerberos service keytab"
 msgstr "Kerberostjänstens nyckeltabell"
 
-#: src/config/SSSDConfig.py:137
+#: src/config/SSSDConfig.py:138
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
-#: src/config/SSSDConfig.py:138
+#: src/config/SSSDConfig.py:139
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: src/config/SSSDConfig.py:139
+#: src/config/SSSDConfig.py:140
 #, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
-#: src/config/SSSDConfig.py:140
+#: src/config/SSSDConfig.py:141
 msgid "How to dereference aliases"
 msgstr ""
 
-#: src/config/SSSDConfig.py:141
+#: src/config/SSSDConfig.py:142
 #, fuzzy
 msgid "Service name for DNS service lookups"
 msgstr "Filter för användaruppslagningar"
 
 #: src/config/SSSDConfig.py:143
+msgid "The number of records to retrieve in a single LDAP query"
+msgstr ""
+
+#: src/config/SSSDConfig.py:145
 #, fuzzy
 msgid "entryUSN attribute"
 msgstr "UID-attribut"
 
-#: src/config/SSSDConfig.py:144
+#: src/config/SSSDConfig.py:146
 #, fuzzy
 msgid "lastUSN attribute"
 msgstr "UID-attribut"
 
-#: src/config/SSSDConfig.py:147
+#: src/config/SSSDConfig.py:149
 msgid "Length of time to wait for a search request"
 msgstr "Tidslängd att vänta på en sökbegäran"
 
-#: src/config/SSSDConfig.py:148
+#: src/config/SSSDConfig.py:150
 #, fuzzy
 msgid "Length of time to wait for a enumeration request"
 msgstr "Tidslängd att vänta på en sökbegäran"
 
-#: src/config/SSSDConfig.py:149
+#: src/config/SSSDConfig.py:151
 msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
-#: src/config/SSSDConfig.py:150
+#: src/config/SSSDConfig.py:152
 #, fuzzy
 msgid "Length of time between cache cleanups"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
-#: src/config/SSSDConfig.py:151
+#: src/config/SSSDConfig.py:153
 #, fuzzy
 msgid "Require TLS for ID lookups"
 msgstr "Kräv TLS för ID-uppslagningar, falsk"
 
-#: src/config/SSSDConfig.py:152
+#: src/config/SSSDConfig.py:154
 msgid "Base DN for user lookups"
 msgstr "Bas-DN för användaruppslagningar"
 
-#: src/config/SSSDConfig.py:153
+#: src/config/SSSDConfig.py:155
 msgid "Scope of user lookups"
 msgstr "Omfång av användaruppslagningar"
 
-#: src/config/SSSDConfig.py:154
+#: src/config/SSSDConfig.py:156
 msgid "Filter for user lookups"
 msgstr "Filter för användaruppslagningar"
 
-#: src/config/SSSDConfig.py:155
+#: src/config/SSSDConfig.py:157
 msgid "Objectclass for users"
 msgstr "Objektklass för användare"
 
-#: src/config/SSSDConfig.py:156
+#: src/config/SSSDConfig.py:158
 msgid "Username attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:158
+#: src/config/SSSDConfig.py:160
 msgid "UID attribute"
 msgstr "UID-attribut"
 
-#: src/config/SSSDConfig.py:159
+#: src/config/SSSDConfig.py:161
 msgid "Primary GID attribute"
 msgstr "Primärt GID-attribut"
 
-#: src/config/SSSDConfig.py:160
+#: src/config/SSSDConfig.py:162
 msgid "GECOS attribute"
 msgstr "GECOS-attribut"
 
-#: src/config/SSSDConfig.py:161
+#: src/config/SSSDConfig.py:163
 msgid "Home directory attribute"
 msgstr "Hemkatalogattribut"
 
-#: src/config/SSSDConfig.py:162
+#: src/config/SSSDConfig.py:164
 msgid "Shell attribute"
 msgstr "Skalattribut"
 
-#: src/config/SSSDConfig.py:163
+#: src/config/SSSDConfig.py:165
 msgid "UUID attribute"
 msgstr "UUID-attribut"
 
-#: src/config/SSSDConfig.py:164
+#: src/config/SSSDConfig.py:166
 msgid "User principal attribute (for Kerberos)"
 msgstr "Användarens huvudmansattribut (för Kerberos)"
 
-#: src/config/SSSDConfig.py:165
+#: src/config/SSSDConfig.py:167
 msgid "Full Name"
 msgstr "Fullständigt namn"
 
-#: src/config/SSSDConfig.py:166
+#: src/config/SSSDConfig.py:168
 msgid "memberOf attribute"
 msgstr "medlemAv-attribut"
 
-#: src/config/SSSDConfig.py:167
+#: src/config/SSSDConfig.py:169
 msgid "Modification time attribute"
 msgstr "Modifieringstidsattribut"
 
-#: src/config/SSSDConfig.py:169
+#: src/config/SSSDConfig.py:171
 msgid "shadowLastChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig.py:170
+#: src/config/SSSDConfig.py:172
 #, fuzzy
 msgid "shadowMin attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:171
+#: src/config/SSSDConfig.py:173
 #, fuzzy
 msgid "shadowMax attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:172
+#: src/config/SSSDConfig.py:174
 #, fuzzy
 msgid "shadowWarning attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:173
+#: src/config/SSSDConfig.py:175
 #, fuzzy
 msgid "shadowInactive attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:174
+#: src/config/SSSDConfig.py:176
 #, fuzzy
 msgid "shadowExpire attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:175
+#: src/config/SSSDConfig.py:177
 #, fuzzy
 msgid "shadowFlag attribute"
 msgstr "Skalattribut"
 
-#: src/config/SSSDConfig.py:176
+#: src/config/SSSDConfig.py:178
 msgid "Attribute listing authorized PAM services"
 msgstr ""
 
-#: src/config/SSSDConfig.py:177
+#: src/config/SSSDConfig.py:179
+msgid "Attribute listing authorized server hosts"
+msgstr ""
+
+#: src/config/SSSDConfig.py:180
 msgid "krbLastPwdChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig.py:178
+#: src/config/SSSDConfig.py:181
 #, fuzzy
 msgid "krbPasswordExpiration attribute"
 msgstr "Modifieringstidsattribut"
 
-#: src/config/SSSDConfig.py:179
+#: src/config/SSSDConfig.py:182
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
-#: src/config/SSSDConfig.py:180
+#: src/config/SSSDConfig.py:183
 #, fuzzy
 msgid "accountExpires attribute of AD"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:181
+#: src/config/SSSDConfig.py:184
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
-#: src/config/SSSDConfig.py:182
+#: src/config/SSSDConfig.py:185
 #, fuzzy
 msgid "nsAccountLock attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig.py:184
+#: src/config/SSSDConfig.py:187
 #, fuzzy
 msgid "Base DN for group lookups"
 msgstr "Bas-DN för användaruppslagningar"
 
-#: src/config/SSSDConfig.py:187
+#: src/config/SSSDConfig.py:190
 #, fuzzy
 msgid "Objectclass for groups"
 msgstr "Objektklass för användare"
 
-#: src/config/SSSDConfig.py:188
+#: src/config/SSSDConfig.py:191
 #, fuzzy
 msgid "Group name"
 msgstr "Grupper"
 
-#: src/config/SSSDConfig.py:189
+#: src/config/SSSDConfig.py:192
 #, fuzzy
 msgid "Group password"
 msgstr "Grupper"
 
-#: src/config/SSSDConfig.py:190
+#: src/config/SSSDConfig.py:193
 #, fuzzy
 msgid "GID attribute"
 msgstr "UID-attribut"
 
-#: src/config/SSSDConfig.py:191
+#: src/config/SSSDConfig.py:194
 #, fuzzy
 msgid "Group member attribute"
 msgstr "medlemAv-attribut"
 
-#: src/config/SSSDConfig.py:192
+#: src/config/SSSDConfig.py:195
 #, fuzzy
 msgid "Group UUID attribute"
 msgstr "UUID-attribut"
 
-#: src/config/SSSDConfig.py:193
+#: src/config/SSSDConfig.py:196
 #, fuzzy
 msgid "Modification time attribute for groups"
 msgstr "Modifieringstidsattribut"
 
-#: src/config/SSSDConfig.py:195
-msgid "Maximum nesting level SSSd will follow"
-msgstr ""
-
-#: src/config/SSSDConfig.py:197
-#, fuzzy
-msgid "Base DN for netgroup lookups"
-msgstr "Bas-DN för användaruppslagningar"
-
 #: src/config/SSSDConfig.py:198
-#, fuzzy
-msgid "Objectclass for netgroups"
-msgstr "Objektklass för användare"
-
-#: src/config/SSSDConfig.py:199
-msgid "Netgroup name"
+msgid "Maximum nesting level SSSd will follow"
 msgstr ""
 
 #: src/config/SSSDConfig.py:200
 #, fuzzy
+msgid "Base DN for netgroup lookups"
+msgstr "Bas-DN för användaruppslagningar"
+
+#: src/config/SSSDConfig.py:201
+#, fuzzy
+msgid "Objectclass for netgroups"
+msgstr "Objektklass för användare"
+
+#: src/config/SSSDConfig.py:202
+msgid "Netgroup name"
+msgstr ""
+
+#: src/config/SSSDConfig.py:203
+#, fuzzy
 msgid "Netgroups members attribute"
 msgstr "medlemAv-attribut"
 
-#: src/config/SSSDConfig.py:201
+#: src/config/SSSDConfig.py:204
 #, fuzzy
 msgid "Netgroup triple attribute"
 msgstr "Modifieringstidsattribut"
 
-#: src/config/SSSDConfig.py:202
+#: src/config/SSSDConfig.py:205
 #, fuzzy
 msgid "Netgroup UUID attribute"
 msgstr "UUID-attribut"
 
-#: src/config/SSSDConfig.py:203
+#: src/config/SSSDConfig.py:206
 #, fuzzy
 msgid "Modification time attribute for netgroups"
 msgstr "Modifieringstidsattribut"
 
-#: src/config/SSSDConfig.py:206
+#: src/config/SSSDConfig.py:209
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy för att utvärdera utgång av lösenord"
 
-#: src/config/SSSDConfig.py:209
+#: src/config/SSSDConfig.py:212
 msgid "LDAP filter to determine access privileges"
 msgstr ""
 
-#: src/config/SSSDConfig.py:210
+#: src/config/SSSDConfig.py:213
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 
-#: src/config/SSSDConfig.py:211
+#: src/config/SSSDConfig.py:214
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 
-#: src/config/SSSDConfig.py:214
+#: src/config/SSSDConfig.py:217
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig.py:215
+#: src/config/SSSDConfig.py:218
 msgid "DNS service name for LDAP password change server"
 msgstr ""
 
-#: src/config/SSSDConfig.py:218
+#: src/config/SSSDConfig.py:221
 msgid "Comma separated list of allowed users"
 msgstr ""
 
-#: src/config/SSSDConfig.py:219
+#: src/config/SSSDConfig.py:222
 msgid "Comma separated list of prohibited users"
 msgstr ""
 
-#: src/config/SSSDConfig.py:222
+#: src/config/SSSDConfig.py:225
 msgid "Default shell, /bin/bash"
 msgstr "Standardskal, /bin/bash"
 
-#: src/config/SSSDConfig.py:223
+#: src/config/SSSDConfig.py:226
 msgid "Base for home directories"
 msgstr "Bas för hemkataloger"
 
-#: src/config/SSSDConfig.py:226
+#: src/config/SSSDConfig.py:229
 msgid "The name of the NSS library to use"
 msgstr "Namnet på NSS-biblioteket att använda"
 
-#: src/config/SSSDConfig.py:229
+#: src/config/SSSDConfig.py:232
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
@@ -652,22 +665,22 @@ msgstr ""
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1593 src/providers/ldap/ldap_child.c:359
+#: src/providers/krb5/krb5_child.c:1554 src/providers/ldap/ldap_child.c:360
 #: src/util/util.h:65
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1595 src/providers/ldap/ldap_child.c:361
+#: src/providers/krb5/krb5_child.c:1556 src/providers/ldap/ldap_child.c:362
 #: src/util/util.h:69
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1597 src/providers/ldap/ldap_child.c:363
+#: src/providers/krb5/krb5_child.c:1558 src/providers/ldap/ldap_child.c:364
 #, fuzzy
 msgid "An open file descriptor for the debug logs"
 msgstr "Ange pratsamhet för felsökningsloggning"
 
-#: src/providers/data_provider_be.c:1275
+#: src/providers/data_provider_be.c:1226
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
