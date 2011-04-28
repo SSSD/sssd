@@ -358,7 +358,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     desired_realm = dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_REALM);
     if (!desired_realm) {
         realm_requested = false;
-        desired_realm = dp_opt_get_string(ipa_opts->id->basic, IPA_KRB5_REALM);
+        desired_realm = dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM);
     }
 
     ret = select_principal_from_keytab(tmpctx,
