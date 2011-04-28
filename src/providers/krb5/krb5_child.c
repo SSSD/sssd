@@ -1460,11 +1460,11 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
                     DEBUG(1, ("krb5_parse_name failed.\n"));
                     goto failed;
                 }
-                kerr = krb5_unparse_name_flags(kr->ctx, fast_princ_struct,
+                kerr = sss_krb5_unparse_name_flags(kr->ctx, fast_princ_struct,
                                                KRB5_PRINCIPAL_UNPARSE_NO_REALM,
                                                &tmp_str);
                 if (kerr) {
-                    DEBUG(1, ("krb5_unparse_name_flags failed.\n"));
+                    DEBUG(1, ("sss_krb5_unparse_name_flags failed.\n"));
                     goto failed;
                 }
                 fast_principal = talloc_strdup(kr, tmp_str);

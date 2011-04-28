@@ -102,4 +102,14 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_flags(
 #define SSS_KRB5_FAST_REQUIRED 0
 #endif
 
+
+#ifndef HAVE_KRB5_UNPARSE_NAME_FLAGS
+#define KRB5_PRINCIPAL_UNPARSE_SHORT 0x1
+#define KRB5_PRINCIPAL_UNPARSE_NO_REALM 0x2
+#define KRB5_PRINCIPAL_UNPARSE_DISPLAY 0x4
+#endif
+krb5_error_code
+sss_krb5_unparse_name_flags(krb5_context context, krb5_const_principal principal,
+                            int flags, char **name);
+
 #endif /* __SSS_KRB5_H__ */

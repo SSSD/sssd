@@ -143,9 +143,9 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         }
 
         if (_primary) {
-            kerr = krb5_unparse_name_flags(krb_ctx, client_princ,
-                                           KRB5_PRINCIPAL_UNPARSE_NO_REALM,
-                                           &principal_string);
+            kerr = sss_krb5_unparse_name_flags(krb_ctx, client_princ,
+                                               KRB5_PRINCIPAL_UNPARSE_NO_REALM,
+                                               &principal_string);
             if (kerr) {
                 DEBUG(1, ("krb5_unparse_name failed"));
                 ret = EFAULT;
@@ -410,8 +410,8 @@ static bool match_principal(krb5_context ctx,
             primary_str_len = tmp_len-1;
         }
 
-        krb5_unparse_name_flags(ctx, principal, KRB5_PRINCIPAL_UNPARSE_NO_REALM,
-                                &primary);
+        sss_krb5_unparse_name_flags(ctx, principal, KRB5_PRINCIPAL_UNPARSE_NO_REALM,
+                                    &primary);
 
         len_diff = strlen(primary)-primary_str_len;
 
@@ -740,4 +740,177 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_flags(
     DEBUG(5, ("krb5_get_init_creds_opt_set_fast_flags not available.\n"));
     return 0;
 #endif
+}
+
+
+#ifndef HAVE_KRB5_UNPARSE_NAME_FLAGS
+#ifndef REALM_SEP
+#define REALM_SEP       '@'
+#endif
+#ifndef COMPONENT_SEP
+#define COMPONENT_SEP   '/'
+#endif
+
+static int
+sss_krb5_copy_component_quoting(char *dest, const krb5_data *src, int flags)
+{
+    int j;
+    const char *cp = src->data;
+    char *q = dest;
+    int length = src->length;
+
+    if (flags & KRB5_PRINCIPAL_UNPARSE_DISPLAY) {
+        memcpy(dest, src->data, src->length);
+        return src->length;
+    }
+
+    for (j=0; j < length; j++,cp++) {
+        int no_realm = (flags & KRB5_PRINCIPAL_UNPARSE_NO_REALM) &&
+            !(flags & KRB5_PRINCIPAL_UNPARSE_SHORT);
+
+        switch (*cp) {
+        case REALM_SEP:
+            if (no_realm) {
+                *q++ = *cp;
+                break;
+            }
+        case COMPONENT_SEP:
+        case '\\':
+            *q++ = '\\';
+            *q++ = *cp;
+            break;
+        case '\t':
+            *q++ = '\\';
+            *q++ = 't';
+            break;
+        case '\n':
+            *q++ = '\\';
+            *q++ = 'n';
+            break;
+        case '\b':
+            *q++ = '\\';
+            *q++ = 'b';
+            break;
+        case '\0':
+            *q++ = '\\';
+            *q++ = '0';
+            break;
+        default:
+            *q++ = *cp;
+        }
+    }
+    return q - dest;
+}
+
+static int
+sss_krb5_component_length_quoted(const krb5_data *src, int flags)
+{
+    const char *cp = src->data;
+    int length = src->length;
+    int j;
+    int size = length;
+
+    if ((flags & KRB5_PRINCIPAL_UNPARSE_DISPLAY) == 0) {
+        int no_realm = (flags & KRB5_PRINCIPAL_UNPARSE_NO_REALM) &&
+            !(flags & KRB5_PRINCIPAL_UNPARSE_SHORT);
+
+        for (j = 0; j < length; j++,cp++)
+            if ((!no_realm && *cp == REALM_SEP) ||
+                *cp == COMPONENT_SEP ||
+                *cp == '\0' || *cp == '\\' || *cp == '\t' ||
+                *cp == '\n' || *cp == '\b')
+                size++;
+    }
+
+    return size;
+}
+
+#endif /* HAVE_KRB5_UNPARSE_NAME_FLAGS */
+
+
+krb5_error_code
+sss_krb5_unparse_name_flags(krb5_context context, krb5_const_principal principal,
+                        int flags, char **name)
+{
+#ifdef HAVE_KRB5_UNPARSE_NAME_FLAGS
+    return krb5_unparse_name_flags(context, principal, flags, name);
+#else
+    char *cp, *q;
+    int i;
+    int length;
+    krb5_int32 nelem;
+    unsigned int totalsize = 0;
+    char *default_realm = NULL;
+    krb5_error_code ret = 0;
+
+    if (name != NULL)
+        *name = NULL;
+
+    if (!principal || !name)
+        return KRB5_PARSE_MALFORMED;
+
+    if (flags & KRB5_PRINCIPAL_UNPARSE_SHORT) {
+        /* omit realm if local realm */
+        krb5_principal_data p;
+
+        ret = krb5_get_default_realm(context, &default_realm);
+        if (ret != 0)
+            goto cleanup;
+
+        krb5_princ_realm(context, &p)->length = strlen(default_realm);
+        krb5_princ_realm(context, &p)->data = default_realm;
+
+        if (krb5_realm_compare(context, &p, principal))
+            flags |= KRB5_PRINCIPAL_UNPARSE_NO_REALM;
+    }
+
+    if ((flags & KRB5_PRINCIPAL_UNPARSE_NO_REALM) == 0) {
+        totalsize += sss_krb5_component_length_quoted(krb5_princ_realm(context,
+                                                              principal),
+                                             flags);
+        totalsize++;
+    }
+
+    nelem = krb5_princ_size(context, principal);
+    for (i = 0; i < (int) nelem; i++) {
+        cp = krb5_princ_component(context, principal, i)->data;
+        totalsize += sss_krb5_component_length_quoted(krb5_princ_component(context, principal, i), flags);
+        totalsize++;
+    }
+    if (nelem == 0)
+        totalsize++;
+
+    *name = malloc(totalsize);
+
+    if (!*name) {
+        ret = ENOMEM;
+        goto cleanup;
+    }
+
+    q = *name;
+
+    for (i = 0; i < (int) nelem; i++) {
+        cp = krb5_princ_component(context, principal, i)->data;
+        length = krb5_princ_component(context, principal, i)->length;
+        q += sss_krb5_copy_component_quoting(q,
+                                    krb5_princ_component(context,
+                                                         principal,
+                                                         i),
+                                    flags);
+        *q++ = COMPONENT_SEP;
+    }
+
+    if (i > 0)
+        q--;
+    if ((flags & KRB5_PRINCIPAL_UNPARSE_NO_REALM) == 0) {
+        *q++ = REALM_SEP;
+        q += sss_krb5_copy_component_quoting(q, krb5_princ_realm(context, principal), flags);
+    }
+    *q++ = '\0';
+
+cleanup:
+    free(default_realm);
+
+    return ret;
+#endif /* HAVE_KRB5_UNPARSE_NAME_FLAGS */
 }
