@@ -1000,8 +1000,13 @@ static void krb5_save_ccname_done(struct tevent_req *req)
         state->dp_err = DP_ERR_OK;
 
         switch(pd->cmd) {
-            case SSS_PAM_AUTHENTICATE:
             case SSS_CMD_RENEW:
+                /* The authtok is set to the credential cache
+                 * during renewal. We don't want to save this
+                 * as the cached password.
+                 */
+                break;
+            case SSS_PAM_AUTHENTICATE:
             case SSS_PAM_CHAUTHTOK_PRELIM:
                 password = talloc_size(state, pd->authtok_size + 1);
                 if (password != NULL) {
@@ -1021,8 +1026,11 @@ static void krb5_save_ccname_done(struct tevent_req *req)
         }
 
         if (password == NULL) {
-            DEBUG(0, ("password not available, offline auth may not work.\n"));
-            ret = EOK; /* password caching failures are not fatal errors */
+            if (pd->cmd != SSS_CMD_RENEW) {
+                DEBUG(0, ("password not available, offline auth may not work.\n"));
+                /* password caching failures are not fatal errors */
+            }
+            ret = EOK;
             goto done;
         }
 
@@ -1034,6 +1042,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
         if (ret) {
             DEBUG(2, ("Failed to cache password, offline auth may not work."
                       " (%d)[%s]!?\n", ret, strerror(ret)));
+            /* password caching failures are not fatal errors */
         }
     }
 
