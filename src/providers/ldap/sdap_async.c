@@ -921,6 +921,8 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
                            state->scope, state->filter,
                            discard_const(state->attrs),
                            false, m_controls, NULL, NULL, 0, &msgid);
+    ldap_control_free(page_control);
+    m_controls[0] = NULL;
     if (lret != LDAP_SUCCESS) {
         DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
         if (lret == LDAP_SERVER_DOWN) {
@@ -1038,6 +1040,7 @@ static void sdap_get_generic_done(struct sdap_op *op,
 
         lret = ldap_parse_pageresponse_control(state->sh->ldap, page_control,
                                                &total_count, &cookie);
+        ldap_controls_free(returned_controls);
         if (lret != LDAP_SUCCESS) {
             DEBUG(1, ("Could not determine page control"));
             tevent_req_error(req, EIO);
@@ -1068,6 +1071,8 @@ static void sdap_get_generic_done(struct sdap_op *op,
 
             return;
         }
+        /* The cookie must be freed even if len == 0 */
+        ber_memfree(cookie.bv_val);
 
         /* This was the last page. We're done */
 
