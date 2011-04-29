@@ -362,9 +362,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
 
     ret = select_principal_from_keytab(tmpctx,
+                                       desired_primary, desired_realm,
                                        dp_opt_get_string(ipa_opts->id->basic,
                                                          SDAP_KRB5_KEYTAB),
-                                       desired_primary, desired_realm,
                                        NULL, &primary, &realm);
     if (ret != EOK) {
         goto done;
