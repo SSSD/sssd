@@ -3405,156 +3405,188 @@ immediate:
     return req;
 }
 
+static errno_t sdap_nested_group_check_hash(struct sdap_nested_group_ctx *);
+static errno_t sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    struct sdap_options *opts,
+                                    char *member_dn,
+                                    struct ldb_message ***_msgs,
+                                    enum sysdb_member_type *_mtype);
 static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq);
 static void sdap_nested_group_process_user(struct tevent_req *subreq);
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                                              tevent_req_fn fn);
 static errno_t sdap_nested_group_lookup_group(struct tevent_req *req);
+
 static errno_t sdap_nested_group_process_step(struct tevent_req *req)
 {
     errno_t ret;
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
-    char *member_dn;
-    char *filter;
-    static const char *attrs[] = SYSDB_PW_ATTRS;
-    size_t count;
-    struct ldb_message **msgs;
-    uint64_t expiration;
-    uint64_t create_time;
-    bool has_key = false;
-    hash_key_t key;
-    uint8_t *data;
-    time_t now = time(NULL);
-    uid_t user_uid;
+    struct ldb_message **msgs = NULL;
+    enum sysdb_member_type mtype;
 
     while (true) {
         /* Continue to loop through until all entries have been
          * processed.
          */
-        do {
-            if (state->member_index >= state->members->num_values) {
-                /* No more entries to check. Return success */
-                return EOK;
-            }
-
-            /* First check whether this origDN is present (and not expired)
-             * in the sysdb
-             */
-            data = state->members->values[state->member_index].data;
-            state->member_dn = talloc_strdup(state, (const char *)data);
-            if (!state->member_dn) {
-                ret = ENOMEM;
-                goto error;
-            }
-
-            /* Check the user hash
-             * If it's there, we can save ourselves a trip to the
-             * sysdb and possibly LDAP as well
-             */
-            key.type = HASH_KEY_STRING;
-            key.str = state->member_dn;
-            has_key = hash_has_key(state->users, &key);
-            if (has_key) {
-                talloc_zfree(state->member_dn);
-                state->member_index++;
-                continue;
-            }
-
-
-        } while (has_key);
-
-        ret = sss_filter_sanitize(state, state->member_dn, &member_dn);
-        if (ret != EOK) {
-            goto error;
+        ret = sdap_nested_group_check_hash(state);
+        if (ret == EOK) {
+            talloc_zfree(state->member_dn);
+            return EOK; /* All members in hash */
+        } else if (ret != ENOENT) {
+            goto error; /* Unexpected error */
         }
 
-        /* Check for the specified origDN in the sysdb */
-        filter = talloc_asprintf(NULL, "(%s=%s)",
-                                 SYSDB_ORIG_DN,
-                                 member_dn);
-        if (!filter) {
-            ret = ENOMEM;
-            goto error;
-        }
-
-        /* Try users first */
-        ret = sysdb_search_users(state, state->sysdb, state->domain, filter,
-                                 attrs, &count, &msgs);
-        talloc_zfree(filter);
-        if (ret != EOK && ret != ENOENT) {
-            goto error;
-        } if (ret == ENOENT || count == 0) {
-            /* It wasn't a user. Check whether it's a group */
-            if (ret == EOK) talloc_zfree(msgs);
-
-            filter = talloc_asprintf(NULL, "(%s=%s)",
-                                     SYSDB_ORIG_DN,
-                                     member_dn);
-            talloc_zfree(member_dn);
-            if (!filter) {
-                ret = ENOMEM;
-                goto error;
-            }
-
-            ret = sysdb_search_groups(state, state->sysdb, state->domain,
-                                      filter, attrs, &count, &msgs);
-            talloc_zfree(filter);
-            if (ret != EOK && ret != ENOENT) {
-                ret = EIO;
-                goto error;
-            } else if (ret == ENOENT || count == 0) {
-                if (ret == EOK) talloc_zfree(msgs);
-
-                /* It wasn't found in the groups either
-                 * We'll have to do a blind lookup for both
-                 */
-
-                /* Try users first */
+        ret = sdap_nested_group_check_cache(state, state->sysdb,
+                                            state->domain, state->opts,
+                                            state->member_dn,
+                                            &msgs, &mtype);
+        if (ret == EOK) {
+            /* The entry is cached and valid */
+            state->member_index++;
+            talloc_zfree(state->member_dn);
+            continue;
+        } else if (ret == EAGAIN) {
+            /* The entry is cached but needs refresh */
+            switch(mtype) {
+            case SYSDB_MEMBER_GROUP:
+                DEBUG(6, ("Refreshing cached group from LDAP\n"));
+                ret = sdap_nested_group_lookup_group(req);
+                if (ret != EOK) goto error;
+                break;
+            case SYSDB_MEMBER_USER:
+                DEBUG(6, ("Refreshing cached user from LDAP\n"));
                 ret = sdap_nested_group_lookup_user(
-                        req, sdap_nested_group_process_ldap_user);
-                if (ret != EOK) {
-                    goto error;
-                }
-                return EAGAIN;
+                        req, sdap_nested_group_process_user);
+                if (ret != EOK) goto error;
+                break;
+            default:
+                DEBUG(2, ("Unknown member value\n"));
+                ret = EINVAL;
+                goto error;
             }
-
-            /* We found a group with this origDN in the sysdb */
-
-            /* Check whether the entry is valid */
-            if (count != 1) {
-                DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
-                state->member_index++;
-                talloc_zfree(state->member_dn);
-                continue;
-            }
-
-            expiration = ldb_msg_find_attr_as_uint64(msgs[0],
-                                                     SYSDB_CACHE_EXPIRE,
-                                                     0);
-            if (expiration && expiration > now) {
-                DEBUG(6, ("Cached values are still valid. Skipping\n"));
-                state->member_index++;
-                talloc_zfree(state->member_dn);
-                continue;
-            }
-
-            /* Refresh the group from LDAP */
-            ret = sdap_nested_group_lookup_group(req);
-            if (ret != EOK)  goto error;
 
             return EAGAIN;
-        }
-        talloc_zfree(member_dn);
+        } else if (ret == ENOENT) {
+            /* It wasn't found in the cache either
+             * We'll have to do a blind lookup in LDAP
+             */
 
-        /* We found a user with this origDN in the sysdb */
+            /* Try users first */
+            ret = sdap_nested_group_lookup_user(
+                    req, sdap_nested_group_process_ldap_user);
+            if (ret != EOK) {
+                goto error;
+            }
+            return EAGAIN;
+        }
+
+        /* Unexpected error, skip this entry */
+        state->member_index++;
+        talloc_zfree(state->member_dn);
+        continue;
+    } /* while (true) */
+
+error:
+    talloc_zfree(state->member_dn);
+    return ret;
+}
+
+static errno_t
+sdap_nested_group_check_hash(struct sdap_nested_group_ctx *state)
+{
+    hash_key_t key;
+    bool has_key = false;
+    uint8_t *data;
+
+    do {
+        if (state->member_index >= state->members->num_values) {
+            /* No more entries to check. Return success */
+            return EOK;
+        }
+
+        data = state->members->values[state->member_index].data;
+        state->member_dn = talloc_strdup(state, (const char *)data);
+        if (!state->member_dn) {
+            return ENOMEM;
+        }
+
+        /* Check the user hash
+         * If it's there, we can save ourselves a trip to the
+         * sysdb and possibly LDAP as well
+         */
+        key.type = HASH_KEY_STRING;
+        key.str = state->member_dn;
+        has_key = hash_has_key(state->users, &key);
+        if (has_key) {
+            talloc_zfree(state->member_dn);
+            state->member_index++;
+            continue;
+        }
+    } while (has_key);
+
+    return ENOENT;
+}
+
+static errno_t
+sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain,
+                              struct sdap_options *opts,
+                              char *dn,
+                              struct ldb_message ***_msgs,
+                              enum sysdb_member_type *_mtype)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    struct ldb_message **msgs = NULL;
+    char *member_dn;
+    uint64_t expiration;
+    uint64_t create_time;
+    uid_t user_uid;
+    time_t now = time(NULL);
+    static const char *attrs[] = { SYSDB_CACHE_EXPIRE, SYSDB_UIDNUM,
+                                   SYSDB_CREATE_TIME, SYSDB_NAME,
+                                   NULL };
+    char *filter;
+    enum sysdb_member_type mtype;
+    size_t count;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    ret = sss_filter_sanitize(tmp_ctx, dn, &member_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Check for the specified origDN in the sysdb */
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
+                             SYSDB_ORIG_DN,
+                             member_dn);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Try users first */
+    ret = sysdb_search_users(tmp_ctx, sysdb, domain, filter,
+                             attrs, &count, &msgs);
+    if (ret != EOK && ret != ENOENT) {
+        ret = EIO;
+        goto done;
+    } else if (ret == EOK && count > 0) {
+        /* We found a user with this origDN in the sysdb. Check if it is valid
+         */
+        mtype = SYSDB_MEMBER_USER;
 
         /* Check whether the entry is valid */
         if (count != 1) {
             DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
-            state->member_index++;
-            talloc_zfree(state->member_dn);
-            continue;
+            ret = EIO;
+            goto done;
         }
 
         user_uid = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_UIDNUM, 0);
@@ -3564,7 +3596,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
                                                     SYSDB_CREATE_TIME,
                                                     0);
             expiration = create_time +
-                            dp_opt_get_int(state->opts->basic,
+                            dp_opt_get_int(opts->basic,
                                         SDAP_ENTRY_CACHE_TIMEOUT);
         } else {
             /* Regular user, check if we need a refresh */
@@ -3575,21 +3607,54 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
 
         if (expiration && expiration > now) {
             DEBUG(6, ("Cached values are still valid. Skipping\n"));
-            state->member_index++;
-            talloc_zfree(state->member_dn);
-            continue;
+            ret = EOK;
+            goto done;
         }
 
         /* Refresh the user from LDAP */
-        ret = sdap_nested_group_lookup_user(
-                req, sdap_nested_group_process_user);
-        if (ret != EOK)  goto error;
+        ret = EAGAIN;
+        goto done;
+    }
 
-        return EAGAIN;
-    } /* while (true) */
+    /* It wasn't a user. Check whether it's a group */
+    if (ret == EOK) talloc_zfree(msgs);
 
-error:
-    talloc_zfree(state->member_dn);
+    ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
+                              filter, attrs, &count, &msgs);
+    if (ret != EOK && ret != ENOENT) {
+        ret = EIO;
+        goto done;
+    } else if (ret == EOK && count > 0) {
+        /* We found a group with this origDN in the sysdb */
+        mtype = SYSDB_MEMBER_GROUP;
+
+        /* Check whether the entry is valid */
+        if (count != 1) {
+            DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
+            ret = EIO;
+            goto done;
+        }
+
+        expiration = ldb_msg_find_attr_as_uint64(msgs[0],
+                                                 SYSDB_CACHE_EXPIRE,
+                                                 0);
+        if (expiration && expiration > now) {
+            DEBUG(6, ("Cached values are still valid.\n"));
+            ret = EOK;
+            goto done;
+        }
+
+        /* Refresh the group from LDAP */
+        ret = EAGAIN;
+        goto done;
+    }
+
+    /* It wasn't found in the groups either */
+    ret = ENOENT;
+done:
+    *_msgs = talloc_steal(mem_ctx, msgs);
+    *_mtype = mtype;
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
