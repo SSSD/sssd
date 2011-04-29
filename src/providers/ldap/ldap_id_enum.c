@@ -511,6 +511,8 @@ static void enum_users_op_done(struct tevent_req *subreq)
     struct enum_users_state *state = tevent_req_data(req,
                                                      struct enum_users_state);
     char *usn_value;
+    char *endptr = NULL;
+    unsigned usn_number;
     int ret;
 
     ret = sdap_get_users_recv(subreq, state, &usn_value);
@@ -523,6 +525,12 @@ static void enum_users_op_done(struct tevent_req *subreq)
     if (usn_value) {
         talloc_zfree(state->ctx->srv_opts->max_user_value);
         state->ctx->srv_opts->max_user_value = talloc_steal(state->ctx, usn_value);
+
+        usn_number = strtoul(usn_value, &endptr, 10);
+        if ((endptr == NULL || (*endptr == '\0' && endptr != usn_value))
+            && (usn_number > state->ctx->srv_opts->last_usn)) {
+            state->ctx->srv_opts->last_usn = usn_number;
+        }
     }
 
     DEBUG(4, ("Users higher USN value: [%s]\n",
@@ -629,6 +637,8 @@ static void enum_groups_op_done(struct tevent_req *subreq)
     struct enum_groups_state *state = tevent_req_data(req,
                                                  struct enum_groups_state);
     char *usn_value;
+    char *endptr = NULL;
+    unsigned usn_number;
     int ret;
 
     ret = sdap_get_groups_recv(subreq, state, &usn_value);
@@ -642,6 +652,11 @@ static void enum_groups_op_done(struct tevent_req *subreq)
         talloc_zfree(state->ctx->srv_opts->max_group_value);
         state->ctx->srv_opts->max_group_value =
                                         talloc_steal(state->ctx, usn_value);
+        usn_number = strtoul(usn_value, &endptr, 10);
+        if ((endptr == NULL || (*endptr == '\0' && endptr != usn_value))
+            && (usn_number > state->ctx->srv_opts->last_usn)) {
+            state->ctx->srv_opts->last_usn = usn_number;
+        }
     }
 
     DEBUG(4, ("Groups higher USN value: [%s]\n",

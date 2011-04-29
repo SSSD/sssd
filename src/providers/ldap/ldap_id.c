@@ -726,9 +726,12 @@ static void sdap_check_online_done(struct tevent_req *req)
     } else {
         dp_err = DP_ERR_OK;
 
-        if (strcmp(srv_opts->server_id, ctx->srv_opts->server_id) == 0 &&
-            srv_opts->supports_usn &&
-            ctx->srv_opts->last_usn > srv_opts->last_usn) {
+        if (!ctx->srv_opts) {
+            srv_opts->max_user_value = 0;
+            srv_opts->max_group_value = 0;
+        } else if (strcmp(srv_opts->server_id, ctx->srv_opts->server_id) == 0
+                   && srv_opts->supports_usn
+                   && ctx->srv_opts->last_usn > srv_opts->last_usn) {
             ctx->srv_opts->max_user_value = 0;
             ctx->srv_opts->max_group_value = 0;
             ctx->srv_opts->last_usn = srv_opts->last_usn;

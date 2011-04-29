@@ -537,9 +537,9 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                 current_srv_opts->last_usn > srv_opts->last_usn) {
                 DEBUG(5, ("Server was probably re-initialized\n"));
 
-                current_srv_opts->max_user_value= 0;
+                current_srv_opts->max_user_value = 0;
                 current_srv_opts->max_group_value = 0;
-                current_srv_opts->last_usn = 0;
+                current_srv_opts->last_usn = srv_opts->last_usn;
             }
         }
         ret = sdap_id_conn_data_set_expire_timer(conn_data);
