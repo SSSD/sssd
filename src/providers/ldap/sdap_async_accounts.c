@@ -3278,6 +3278,28 @@ int sdap_get_initgr_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct sdap_deref_ctx {
+    const char *orig_dn;
+
+    size_t expired_users_num;
+    uint32_t expired_users_index;
+    char **expired_users;
+
+    size_t expired_groups_num;
+    uint32_t expired_groups_index;
+    char **expired_groups;
+
+    size_t missing_dns_num;
+    uint32_t missing_dns_index;
+    char **missing_dns;
+
+    struct sdap_deref_attrs **deref_result;
+    size_t num_results;
+    uint32_t result_index;
+
+    int deref_threshold;
+};
+
 struct sdap_nested_group_ctx {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
@@ -3294,9 +3316,13 @@ struct sdap_nested_group_ctx {
     struct ldb_message_element *members;
     uint32_t member_index;
     char *member_dn;
+
+    struct sdap_deref_ctx *derefctx;
 };
 
+static errno_t sdap_nested_group_process_deref_step(struct tevent_req *req);
 static errno_t sdap_nested_group_process_step(struct tevent_req *req);
+
 static struct tevent_req *sdap_nested_group_process_send(
         TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         struct sss_domain_info *domain,
@@ -3390,8 +3416,20 @@ static struct tevent_req *sdap_nested_group_process_send(
 
     state->member_index = 0;
 
-    ret = sdap_nested_group_process_step(req);
-    if (ret != EAGAIN) goto immediate;
+    if (sdap_has_deref_support(state->sh)) {
+        state->derefctx = talloc_zero(state, struct sdap_deref_ctx);
+        if (!state->derefctx) goto immediate;
+
+        ret = sysdb_attrs_get_string(group, SYSDB_ORIG_DN,
+                                     &state->derefctx->orig_dn);
+        if (ret != EOK) goto immediate;
+
+        ret = sdap_nested_group_process_deref_step(req);
+        if (ret != EAGAIN) goto immediate;
+    } else {
+        ret = sdap_nested_group_process_step(req);
+        if (ret != EAGAIN) goto immediate;
+    }
 
     return req;
 
@@ -3418,6 +3456,136 @@ static void sdap_nested_group_process_user(struct tevent_req *subreq);
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                                              tevent_req_fn fn);
 static errno_t sdap_nested_group_lookup_group(struct tevent_req *req);
+static errno_t sdap_nested_group_process_deref_call(struct tevent_req *req);
+static errno_t sdap_nested_group_process_noderef(struct tevent_req *req);
+
+static errno_t sdap_nested_group_process_deref_step(struct tevent_req *req)
+{
+    errno_t ret;
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    size_t missing = 0;
+    struct ldb_message **msgs = NULL;
+    enum sysdb_member_type mtype;
+    struct sdap_deref_ctx *dctx = state->derefctx;
+
+    dctx->deref_threshold = dp_opt_get_int(state->opts->basic,
+                                           SDAP_DEREF_THRESHOLD);
+
+    dctx->expired_users = talloc_array(dctx, char *,
+                                       state->members->num_values + 1);
+    dctx->expired_groups = talloc_array(dctx, char *,
+                                       state->members->num_values + 1);
+    dctx->missing_dns = talloc_array(dctx, char *,
+                                     state->members->num_values + 1);
+    if (!dctx->expired_users ||
+        !dctx->expired_groups ||
+        !dctx->missing_dns) return ENOMEM;
+
+    while (true) {
+        if (state->member_index >= state->members->num_values) {
+            /* No more entries to check. Return success */
+            talloc_zfree(state->member_dn);
+            ret = EOK;
+            break;
+        }
+
+        /* Continue to loop through until all entries have been
+         * processed.
+         */
+        ret = sdap_nested_group_check_hash(state);
+        if (ret == EOK) {
+            talloc_zfree(state->member_dn);
+            break; /* All remaining members in hash, check missing */
+        } else if (ret != ENOENT) {
+            goto done; /* Unexpected error */
+        }
+
+        ret = sdap_nested_group_check_cache(state, state->sysdb,
+                                            state->domain, state->opts,
+                                            state->member_dn,
+                                            &msgs, &mtype);
+        if (ret == EOK) {
+            /* The entry is cached and valid */
+            state->member_index++;
+            talloc_zfree(state->member_dn);
+            continue;
+        } else if (ret == EAGAIN) {
+            /* The entry is cached but needs refresh */
+            switch(mtype) {
+            case SYSDB_MEMBER_GROUP:
+                DEBUG(8, ("Cached LDAP group [%s] needs refresh\n",
+                           state->member_dn));
+
+                missing++;
+
+                dctx->expired_groups[dctx->expired_groups_num] =
+                    talloc_move(dctx, &state->member_dn);
+                dctx->expired_groups_num++;
+
+                state->member_index++;
+                continue;
+            case SYSDB_MEMBER_USER:
+                DEBUG(8, ("Cached LDAP user [%s] needs refresh\n",
+                           state->member_dn));
+                missing++;
+
+                dctx->expired_users[dctx->expired_users_num] =
+                    talloc_move(dctx, &state->member_dn);
+                dctx->expired_users_num++;
+
+                state->member_index++;
+                continue;
+            default:
+                DEBUG(2, ("Unknown member value\n"));
+                ret = EINVAL;
+                goto done;
+            }
+        } else if (ret == ENOENT) {
+            /* The entry is missing. It is unclear whether it
+             * is a user or a group so we'll need to try looking
+             * it up */
+            missing++;
+
+            dctx->missing_dns[dctx->missing_dns_num] =
+                talloc_move(dctx, &state->member_dn);
+            dctx->missing_dns_num++;
+
+            state->member_index++;
+            continue;
+        }
+
+        /* Unexpected error, skip this entry */
+        state->member_index++;
+        continue;
+    } /* while (true) */
+
+
+    dctx->expired_users[dctx->expired_users_num] = NULL;
+    dctx->expired_groups[dctx->expired_groups_num] = NULL;
+    dctx->missing_dns[dctx->missing_dns_num] = NULL;
+
+    if (missing == 0) {
+        ret = EOK;
+        goto done;
+    }
+
+    if (missing > dctx->deref_threshold) {
+        DEBUG(6, ("Missing data past threshold, doing a full deref\n"));
+        ret = sdap_nested_group_process_deref_call(req);
+    } else {
+        DEBUG(6, ("Falling back to individual lookups\n"));
+        ret = sdap_nested_group_process_noderef(req);
+    }
+
+    if (ret != EOK && ret != EAGAIN) goto done;
+    return EAGAIN;
+
+done:
+    talloc_zfree(state->member_dn);
+    return ret;
+}
+
 
 static errno_t sdap_nested_group_process_step(struct tevent_req *req)
 {
@@ -3658,6 +3826,110 @@ done:
     return ret;
 }
 
+static void sdap_nested_group_process_deref(struct tevent_req *subreq);
+
+static errno_t
+sdap_nested_group_process_deref_call(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_attr_map_info *maps;
+    const char **sdap_attrs;
+    int ret;
+    int timeout;
+    const int num_maps = 2;
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    maps = talloc_array(state, struct sdap_attr_map_info, num_maps+1);
+    if (!maps) return ENOMEM;
+
+    maps[0].map = state->opts->user_map;
+    maps[0].num_attrs = SDAP_OPTS_USER;
+    maps[1].map = state->opts->group_map;
+    maps[1].num_attrs = SDAP_OPTS_GROUP;
+    maps[2].map = NULL;
+
+    /* Pull down the whole group map, but only pull down username
+     * and originalDN for users. */
+    ret = build_attrs_from_map(state, state->opts->group_map,
+                               SDAP_OPTS_GROUP, &sdap_attrs);
+    if (ret != EOK) goto fail;
+
+    sdap_attrs = talloc_realloc(NULL, sdap_attrs, const char *,
+                                SDAP_OPTS_GROUP + 2);
+    if (!sdap_attrs) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    sdap_attrs[SDAP_OPTS_GROUP] = \
+                        state->opts->user_map[SDAP_AT_USER_NAME].name;
+    sdap_attrs[SDAP_OPTS_GROUP + 1] = NULL;
+
+    timeout = dp_opt_get_int(state->opts->basic, SDAP_ENTRY_CACHE_TIMEOUT);
+
+    subreq = sdap_deref_search_send(state, state->ev, state->opts,
+                    state->sh, state->derefctx->orig_dn,
+                    state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
+                    sdap_attrs, num_maps, maps, timeout);
+    if (!subreq) {
+        ret = EIO;
+        goto fail;
+    }
+    talloc_steal(subreq, sdap_attrs);
+    talloc_steal(subreq, maps);
+
+    tevent_req_set_callback(subreq, sdap_nested_group_process_deref, req);
+    return EOK;
+
+fail:
+    talloc_free(sdap_attrs);
+    talloc_free(maps);
+    return ret;
+}
+
+static errno_t sdap_nested_group_process_noderef(struct tevent_req *req)
+{
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    struct sdap_deref_ctx *dctx = state->derefctx;
+    errno_t ret;
+
+    if (dctx->expired_users_index < dctx->expired_users_num) {
+        state->member_dn = dctx->expired_users[dctx->expired_users_index];
+        DEBUG(8, ("Refreshing expired user [%s]\n", state->member_dn));
+
+        ret = sdap_nested_group_lookup_user(
+                req, sdap_nested_group_process_user);
+        if (ret != EOK) goto done;
+        return EAGAIN;
+    }
+
+    if (dctx->expired_groups_index < dctx->expired_groups_num) {
+        state->member_dn = dctx->expired_groups[dctx->expired_groups_index];
+        DEBUG(8, ("Refreshing expired group [%s]\n", state->member_dn));
+
+        ret = sdap_nested_group_lookup_group(req);
+        if (ret != EOK) goto done;
+        return EAGAIN;
+    }
+
+    if (dctx->missing_dns_index < dctx->missing_dns_num) {
+        state->member_dn = dctx->missing_dns[dctx->missing_dns_index];
+        DEBUG(8, ("Looking up missing DN [%s]\n", state->member_dn));
+
+        /* Try users first for generic missing DNs */
+        ret = sdap_nested_group_lookup_user(
+                req, sdap_nested_group_process_ldap_user);
+        if (ret != EOK) goto done;
+        return EAGAIN;
+    }
+
+    ret = EOK;
+done:
+    return ret;
+}
+
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                                              tevent_req_fn fn)
 {
@@ -3803,9 +4075,15 @@ static void sdap_nested_group_process_user(struct tevent_req *subreq)
     talloc_steal(state->users, replies[0]);
 
 skip:
-    state->member_index++;
-    talloc_zfree(state->member_dn);
-    ret = sdap_nested_group_process_step(req);
+    if (state->derefctx) {
+        state->derefctx->expired_users_index++;
+        ret = sdap_nested_group_process_noderef(req);
+    } else {
+        state->member_index++;
+        talloc_zfree(state->member_dn);
+        ret = sdap_nested_group_process_step(req);
+    }
+
     if (ret == EOK) {
         /* EOK means it's complete */
         tevent_req_done(req);
@@ -3875,9 +4153,15 @@ static void sdap_nested_group_process_group(struct tevent_req *subreq)
     return;
 
 skip:
-    state->member_index++;
-    talloc_zfree(state->member_dn);
-    ret = sdap_nested_group_process_step(req);
+    if (state->derefctx) {
+        state->derefctx->expired_groups_index++;
+        ret = sdap_nested_group_process_noderef(req);
+    } else {
+        state->member_index++;
+        talloc_zfree(state->member_dn);
+        ret = sdap_nested_group_process_step(req);
+    }
+
     if (ret == EOK) {
         /* EOK means it's complete */
         tevent_req_done(req);
@@ -3908,9 +4192,22 @@ static void sdap_group_internal_nesting_done(struct tevent_req *subreq)
         return;
     }
 
-    state->member_index++;
-    talloc_zfree(state->member_dn);
-    ret = sdap_nested_group_process_step(req);
+    if (state->derefctx) {
+        if (state->derefctx->expired_groups_index <
+            state->derefctx->expired_groups_num) {
+            state->derefctx->expired_groups_index++;
+        } else {
+            state->derefctx->missing_dns_index++;
+        }
+
+        state->derefctx->expired_users_index++;
+        ret = sdap_nested_group_process_noderef(req);
+    } else {
+        state->member_index++;
+        talloc_zfree(state->member_dn);
+        ret = sdap_nested_group_process_step(req);
+    }
+
     if (ret == EOK) {
         /* EOK means it's complete */
         tevent_req_done(req);
@@ -3984,9 +4281,15 @@ static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq)
     talloc_steal(state->users, replies[0]);
 
     /* Move on to the next member */
-    state->member_index++;
-    talloc_zfree(state->member_dn);
-    ret = sdap_nested_group_process_step(req);
+    if (state->derefctx) {
+        state->derefctx->missing_dns_index++;
+        ret = sdap_nested_group_process_noderef(req);
+    } else {
+        state->member_index++;
+        talloc_zfree(state->member_dn);
+        ret = sdap_nested_group_process_step(req);
+    }
+
     if (ret == EOK) {
         /* EOK means it's complete */
         tevent_req_done(req);
@@ -4000,6 +4303,143 @@ static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq)
 
 done:
     talloc_free(tmp_ctx);
+}
+
+static errno_t
+sdap_nested_group_process_deref_result(struct tevent_req *req);
+
+static void sdap_nested_group_process_deref(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    ret = sdap_deref_search_recv(subreq, state->derefctx,
+                                 &state->derefctx->num_results,
+                                 &state->derefctx->deref_result);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret == ENOENT || state->derefctx->deref_result == 0) {
+        /* Nothing could be dereferenced. Done. */
+        tevent_req_done(req);
+        return;
+    }
+
+    state->derefctx->result_index = 0;
+
+    DEBUG(8, ("Received %d dereference results, about to process them\n",
+              state->derefctx->num_results));
+    ret = sdap_nested_group_process_deref_result(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means a recursive search is in progress */
+}
+
+static void
+sdap_nested_group_process_deref_recurse_done(struct tevent_req *subreq);
+
+static errno_t
+sdap_nested_group_process_deref_result(struct tevent_req *req)
+{
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    struct tevent_req *subreq;
+    hash_key_t key;
+    hash_value_t value;
+    int hret;
+    const char *orig_dn;
+    errno_t ret;
+    struct sdap_deref_ctx *dctx = state->derefctx;
+
+    while (dctx->result_index < dctx->num_results) {
+        if (dctx->deref_result[dctx->result_index]->map == \
+            state->opts->user_map) {
+            /* Add to appropriate hash table */
+            ret = sysdb_attrs_get_string(
+                    dctx->deref_result[dctx->result_index]->attrs,
+                    SYSDB_ORIG_DN, &orig_dn);
+            if (ret != EOK) {
+                DEBUG(2, ("The entry has no originalDN\n"));
+                return ret;
+            }
+
+            DEBUG(9, ("Found member user [%s]\n", orig_dn));
+
+            key.type = HASH_KEY_STRING;
+            key.str = talloc_strdup(state, orig_dn);
+
+            value.type = HASH_VALUE_PTR;
+            value.ptr = dctx->deref_result[dctx->result_index]->attrs;
+
+            hret = hash_enter(state->users, &key, &value);
+            if (hret != HASH_SUCCESS) return EIO;
+
+            talloc_steal(state->users,
+                         dctx->deref_result[dctx->result_index]->attrs);
+            dctx->result_index++;
+        } else if (dctx->deref_result[dctx->result_index]->map == \
+                   state->opts->group_map) {
+            DEBUG(6, ("Recursing down a nested group\n"));
+            subreq = sdap_nested_group_process_send(state, state->ev,
+                                state->domain, state->sysdb,
+                                dctx->deref_result[dctx->result_index]->attrs,
+                                state->users, state->groups,
+                                state->opts, state->sh,
+                                state->nesting_level + 1);
+            if (!subreq) return EIO;
+
+            tevent_req_set_callback(subreq,
+                    sdap_nested_group_process_deref_recurse_done,
+                    req);
+            return EAGAIN;
+        } else {
+            /* This should never happen, but if it does,
+             * do not loop forever */
+            DEBUG(2, ("Entry does not match any known map, skipping\n"));
+            dctx->result_index++;
+            continue;
+        }
+    }
+
+    /* All deref results processed */
+    DEBUG(8, ("All dereference results processed\n"));
+    return EOK;
+}
+
+static void
+sdap_nested_group_process_deref_recurse_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    ret = sdap_nested_group_process_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->derefctx->result_index++;
+
+    ret = sdap_nested_group_process_deref_result(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means a recursive search is in progress */
 }
 
 static errno_t sdap_nested_group_process_recv(struct tevent_req *req)

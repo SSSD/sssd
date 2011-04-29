@@ -869,6 +869,29 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_deref_threshold (integer)</term>
+                    <listitem>
+                        <para>
+                            Specify the number of group members that must be
+                            missing from the internal cache in order to trigger
+                            a dereference lookup. If less members are missing,
+                            they are looked up individually.
+                        </para>
+                        <para>
+                            A dereference lookup is a means of fetching all
+                            group members in a single LDAP call.
+                            Different LDAP servers may implement different
+                            dereference methods. The currently supported
+                            servers are 389/RHDS, OpenLDAP and Active
+                            Directory.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_tls_reqcert (string)</term>
                     <listitem>
                         <para>
