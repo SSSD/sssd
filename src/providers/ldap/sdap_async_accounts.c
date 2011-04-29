@@ -1817,6 +1817,12 @@ int sdap_get_groups_recv(struct tevent_req *req,
     return EOK;
 }
 
+static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
+                                                struct sss_domain_info *dom,
+                                                struct sdap_options *opts,
+                                                struct sysdb_attrs **users,
+                                                int num_users);
+
 static void sdap_nested_done(struct tevent_req *subreq)
 {
     errno_t ret;
@@ -1862,9 +1868,8 @@ static void sdap_nested_done(struct tevent_req *subreq)
     /* Save all of the users first so that they are in
      * place for the groups to add them.
      */
-    ret = sdap_save_users(state, state->sysdb, state->attrs,
-                          state->dom, state->opts,
-                          users, count, &state->higher_usn);
+    ret = sdap_nested_group_populate_users(state->sysdb, state->dom,
+                                           state->opts, users, count);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -1900,6 +1905,138 @@ static void sdap_nested_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
+                                                struct sss_domain_info *dom,
+                                                struct sdap_options *opts,
+                                                struct sysdb_attrs **users,
+                                                int num_users)
+{
+    int i;
+    errno_t ret, sret;
+    struct ldb_message_element *el;
+    const char *username;
+    char *clean_orig_dn;
+    const char *original_dn;
+
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message **msgs;
+    char *filter;
+    const char *sysdb_name;
+    struct sysdb_attrs *attrs;
+    static const char *search_attrs[] = { SYSDB_NAME, NULL };
+    size_t count;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    if (num_users == 0) {
+        /* Nothing to do if there are no users */
+        return EOK;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret) {
+        DEBUG(1, ("Failed to start transaction!\n"));
+        goto done;
+    }
+
+    for (i = 0; i < num_users; i++) {
+        ret = sysdb_attrs_primary_name(sysdb, users[i],
+                                    opts->user_map[SDAP_AT_USER_NAME].name,
+                                    &username);
+        if (ret != EOK) {
+            DEBUG(1, ("User entry %d has no name attribute\n", i));
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_el(users[i], SYSDB_ORIG_DN, &el);
+        if (el->num_values == 0) {
+            ret = EINVAL;
+        }
+        if (ret != EOK) {
+            DEBUG(1, ("User entry %s has no originalDN attribute\n", i));
+            goto done;
+        }
+        original_dn = (const char *) el->values[0].data;
+
+        ret = sss_filter_sanitize(tmp_ctx, original_dn,
+                                  &clean_orig_dn);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot sanitize originalDN\n", i));
+            goto done;
+        }
+
+        /* Check for the specified origDN in the sysdb */
+        filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
+                                 SYSDB_ORIG_DN,
+                                 clean_orig_dn);
+        if (!filter) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = sysdb_search_users(tmp_ctx, sysdb, dom, filter,
+                                 search_attrs, &count, &msgs);
+        talloc_zfree(filter);
+        talloc_zfree(clean_orig_dn);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(1, ("Error checking cache for user entry\n"));
+            goto done;
+        }
+        if (ret == EOK) {
+            /* The entry is cached but expired. Update the username
+             * if needed. */
+            if (count != 1) {
+                DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
+                continue;
+            }
+
+            sysdb_name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
+            if (strcmp(sysdb_name, username) == 0) {
+                /* Username is correct, continue */
+                continue;
+            }
+
+            attrs = sysdb_new_attrs(tmp_ctx);
+            if (!attrs) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, username);
+            if (ret) goto done;
+            ret = sysdb_set_user_attr(tmp_ctx, sysdb,
+                                      dom, sysdb_name, attrs, SYSDB_MOD_REP);
+            if (ret != EOK) goto done;
+        }
+
+        /* If the entry does not exist add a fake user record */
+        ret = sysdb_add_fake_user(sysdb, dom, username, original_dn);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot store fake user entry, ignoring: [%d]: %s\n",
+                      ret, strerror(ret)));
+            continue;
+        } else {
+            DEBUG(9, ("Added incomplete user %s!\n", username));
+        }
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret) {
+        DEBUG(1, ("Failed to commit transaction!\n"));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    if (ret != EOK) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(2, ("Could not cancel transaction\n"));
+        }
+    }
+    return ret;
+}
 
 /* ==Save-fake-group-list=====================================*/
 static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
@@ -3268,7 +3405,6 @@ immediate:
     return req;
 }
 
-
 static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq);
 static void sdap_nested_group_process_user(struct tevent_req *subreq);
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
@@ -3285,10 +3421,12 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
     size_t count;
     struct ldb_message **msgs;
     uint64_t expiration;
+    uint64_t create_time;
     bool has_key = false;
     hash_key_t key;
     uint8_t *data;
     time_t now = time(NULL);
+    uid_t user_uid;
 
     while (true) {
         /* Continue to loop through until all entries have been
@@ -3419,9 +3557,22 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
             continue;
         }
 
-        expiration = ldb_msg_find_attr_as_uint64(msgs[0],
-                                                 SYSDB_CACHE_EXPIRE,
-                                                 0);
+        user_uid = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_UIDNUM, 0);
+        if (!user_uid) {
+            /* Refresh the fake user if he was created before cache_timeout */
+            create_time = ldb_msg_find_attr_as_uint64(msgs[0],
+                                                    SYSDB_CREATE_TIME,
+                                                    0);
+            expiration = create_time +
+                            dp_opt_get_int(state->opts->basic,
+                                        SDAP_ENTRY_CACHE_TIMEOUT);
+        } else {
+            /* Regular user, check if we need a refresh */
+            expiration = ldb_msg_find_attr_as_uint64(msgs[0],
+                                                    SYSDB_CACHE_EXPIRE,
+                                                    0);
+        }
+
         if (expiration && expiration > now) {
             DEBUG(6, ("Cached values are still valid. Skipping\n"));
             state->member_index++;
@@ -3445,18 +3596,19 @@ error:
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                                              tevent_req_fn fn)
 {
-    errno_t ret;
     const char **sdap_attrs;
     char *filter;
     struct tevent_req *subreq;
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
 
-    ret = build_attrs_from_map(state, state->opts->user_map,
-                               SDAP_OPTS_USER, &sdap_attrs);
-    if (ret != EOK) {
-        return ret;
-    }
+
+    /* Only pull down username and originalDN */
+    sdap_attrs = talloc_array(state, const char *, 3);
+    if (!sdap_attrs) return ENOMEM;
+    sdap_attrs[0] = "objectClass";
+    sdap_attrs[1] = state->opts->user_map[SDAP_AT_USER_NAME].name;
+    sdap_attrs[2] = NULL;
 
     filter = talloc_asprintf(
             sdap_attrs, "(objectclass=%s)",
