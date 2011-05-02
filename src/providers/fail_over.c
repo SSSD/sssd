@@ -329,7 +329,7 @@ get_server_status(struct fo_server *server)
     }
 
     if (STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
-        DEBUG(4, ("Hostname resolution expired, reseting the server "
+        DEBUG(4, ("Hostname resolution expired, resetting the server "
                   "status of '%s'\n", SERVER_NAME(server)));
         fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
     }
