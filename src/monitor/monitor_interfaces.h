@@ -56,3 +56,10 @@ int monitor_common_res_init(DBusMessage *message,
 int monitor_common_rotate_logs(DBusMessage *message,
                                struct sbus_connection *conn);
 
+errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_interface *intf,
+                         const char *svc_name,
+                         uint16_t svc_version,
+                         void *pvt,
+                         struct sbus_connection **mon_conn);

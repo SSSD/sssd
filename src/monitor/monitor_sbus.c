@@ -27,6 +27,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
+#include "sbus/sbus_client.h"
 #include "monitor/monitor_interfaces.h"
 
 int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, char **address)
@@ -190,4 +191,45 @@ int monitor_common_rotate_logs(DBusMessage *message,
     }
 
     return monitor_common_pong(message, conn);
+}
+
+errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_interface *intf,
+                         const char *svc_name,
+                         uint16_t svc_version,
+                         void *pvt,
+                         struct sbus_connection **mon_conn)
+{
+    errno_t ret;
+    char *sbus_address;
+    struct sbus_connection *conn;
+
+    /* Set up SBUS connection to the monitor */
+    ret = monitor_get_sbus_address(NULL, &sbus_address);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not locate monitor address.\n"));
+        return ret;
+    }
+
+    ret = sbus_client_init(mem_ctx, ev, sbus_address,
+                           intf, &conn,
+                           NULL, pvt);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        talloc_free(sbus_address);
+        return ret;
+    }
+    talloc_free(sbus_address);
+
+    /* Identify ourselves to the monitor */
+    ret = monitor_common_send_id(conn, svc_name, svc_version);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to identify to the monitor!\n"));
+        return ret;
+    }
+
+    *mon_conn = conn;
+
+    return EOK;
 }

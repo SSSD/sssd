@@ -362,39 +362,6 @@ static void accept_fd_handler(struct tevent_context *ev,
     return;
 }
 
-static int sss_monitor_init(struct resp_ctx *rctx,
-                            struct sbus_interface *intf,
-                            const char *svc_name,
-                            uint16_t svc_version)
-{
-    char *sbus_address;
-    int ret;
-
-    /* Set up SBUS connection to the monitor */
-    ret = monitor_get_sbus_address(rctx, &sbus_address);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not locate monitor address.\n"));
-        return ret;
-    }
-
-    ret = sbus_client_init(rctx, rctx->ev, sbus_address,
-                           intf, &rctx->mon_conn,
-                           NULL, NULL);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to monitor services.\n"));
-        return ret;
-    }
-
-    /* Identify ourselves to the monitor */
-    ret = monitor_common_send_id(rctx->mon_conn, svc_name, svc_version);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to identify to the monitor!\n"));
-        return ret;
-    }
-
-    return EOK;
-}
-
 static int sss_dp_init(struct resp_ctx *rctx,
                        struct sbus_interface *intf,
                        const char *cli_name,
@@ -620,7 +587,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sss_monitor_init(rctx, monitor_intf, svc_name, svc_version);
+    ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
+                           svc_name, svc_version, rctx,
+                           &rctx->mon_conn);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up message bus\n"));
         return ret;

@@ -868,40 +868,6 @@ static int be_srv_init(struct be_ctx *ctx)
     return EOK;
 }
 
-/* mon_cli_init
- * sbus channel to the monitor daemon */
-static int mon_cli_init(struct be_ctx *ctx)
-{
-    char *sbus_address;
-    int ret;
-
-    /* Set up SBUS connection to the monitor */
-    ret = monitor_get_sbus_address(ctx, &sbus_address);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not locate monitor address.\n"));
-        return ret;
-    }
-
-    ret = sbus_client_init(ctx, ctx->ev, sbus_address,
-                           &monitor_be_interface, &ctx->mon_conn,
-                           NULL, ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to monitor services.\n"));
-        return ret;
-    }
-
-    /* Identify ourselves to the monitor */
-    ret = monitor_common_send_id(ctx->mon_conn,
-                                 ctx->identity,
-                                 DATA_PROVIDER_VERSION);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to identify to the monitor!\n"));
-        return ret;
-    }
-
-    return EOK;
-}
-
 static void be_target_access_permit(struct be_req *be_req)
 {
     struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
@@ -1138,7 +1104,9 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = mon_cli_init(ctx);
+    ret = sss_monitor_init(ctx, ctx->ev, &monitor_be_interface,
+                           ctx->identity, DATA_PROVIDER_VERSION,
+                           ctx, &ctx->mon_conn);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up monitor bus\n"));
         return ret;
