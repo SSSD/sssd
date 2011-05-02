@@ -72,7 +72,8 @@ static void renew_tgt(struct tevent_context *ev, struct tevent_timer *te,
         DEBUG(1, ("krb5_auth_send failed.\n"));
 /* Give back the pam data to the renewal item to be able to retry at the next
  * time the renewals re run. */
-        talloc_steal(auth_data->renew_data, auth_data->pd);
+        auth_data->renew_data->pd = talloc_steal(auth_data->renew_data,
+                                                 auth_data->pd);
         talloc_free(auth_data);
         return;
     }
@@ -95,7 +96,8 @@ static void renew_tgt_done(struct tevent_req *req)
         DEBUG(1, ("krb5_auth request failed.\n"));
         if (auth_data->renew_data != NULL) {
             DEBUG(5, ("Giving back pam data.\n"));
-            talloc_steal(auth_data->renew_data, auth_data->pd);
+            auth_data->renew_data->pd = talloc_steal(auth_data->renew_data,
+                                                     auth_data->pd);
         }
     } else {
         switch (pam_status) {
@@ -130,7 +132,8 @@ static void renew_tgt_done(struct tevent_req *req)
                           auth_data->pd->user));
                 if (auth_data->renew_data != NULL) {
                     DEBUG(5, ("Giving back pam data.\n"));
-                    talloc_steal(auth_data->renew_data, auth_data->pd);
+                    auth_data->renew_data->pd = talloc_steal(auth_data->renew_data,
+                                                             auth_data->pd);
                 }
                 break;
             default:
@@ -169,7 +172,9 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
         renew_data = talloc_get_type(entries[c].value.ptr, struct renew_data);
         DEBUG(9, ("Checking [%s] for renewal at [%.24s].\n", renew_data->ccfile,
                   ctime(&renew_data->start_renew_at)));
-        if (renew_data->start_renew_at < now) {
+        /* If renew_data->pd == NULL a renewal request for this data is
+         * currently running so we skip it. */
+        if (renew_data->start_renew_at < now && renew_data->pd != NULL) {
             auth_data = talloc_zero(renew_tgt_ctx, struct auth_data);
             if (auth_data == NULL) {
                 DEBUG(1, ("talloc_zero failed.\n"));
