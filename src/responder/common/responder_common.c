@@ -652,3 +652,15 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
     return EOK;
 }
 
+int responder_logrotate(DBusMessage *message,
+                        struct sbus_connection *conn)
+{
+    errno_t ret;
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct resp_ctx);
+
+    ret = monitor_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
+    if (ret != EOK) return ret;
+
+    return monitor_common_pong(message, conn);
+}

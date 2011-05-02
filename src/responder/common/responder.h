@@ -171,4 +171,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          bool fast_reply, int type,
                          const char *opt_name, uint32_t opt_id);
 
+int responder_logrotate(DBusMessage *message,
+                        struct sbus_connection *conn);
+
 #endif /* __SSS_RESPONDER_H__ */

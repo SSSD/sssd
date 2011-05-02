@@ -39,7 +39,6 @@ int debug_to_file = 0;
 const char *debug_log_file = "sssd";
 FILE *debug_file = NULL;
 
-
 errno_t set_debug_file_from_fd(const int fd)
 {
     FILE *dummy;

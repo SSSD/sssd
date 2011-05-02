@@ -122,6 +122,7 @@ struct mt_ctx {
     bool check_children;
     bool services_started;
     struct netlink_ctx *nlctx;
+    const char *conf_path;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -2372,7 +2373,8 @@ int main(int argc, const char *argv[])
     }
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd", flags, CONFDB_MONITOR_CONF_ENTRY, &main_ctx);
+    monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;
+    ret = server_setup("sssd", flags, monitor->conf_path, &main_ctx);
     if (ret != EOK) return 2;
 
     monitor->ev = main_ctx->event_ctx;

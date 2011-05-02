@@ -178,10 +178,11 @@ int monitor_common_res_init(DBusMessage *message,
     return monitor_common_pong(message, conn);
 }
 
-int monitor_common_rotate_logs(DBusMessage *message,
-                               struct sbus_connection *conn)
+errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,
+                                   const char *conf_path)
 {
-    int ret;
+    errno_t ret;
+    int old_debug_level = debug_level;
 
     ret = rotate_debug_files();
     if (ret) {
@@ -190,7 +191,23 @@ int monitor_common_rotate_logs(DBusMessage *message,
         return ret;
     }
 
-    return monitor_common_pong(message, conn);
+    /* Get new debug level from the confdb */
+    ret = confdb_get_int(confdb, NULL, conf_path,
+                         CONFDB_SERVICE_DEBUG_LEVEL,
+                         old_debug_level,
+                         &debug_level);
+    if (ret != EOK) {
+        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                  ret, strerror(ret)));
+        /* Try to proceed with the old value */
+        debug_level = old_debug_level;
+    }
+
+    if (debug_level != old_debug_level) {
+        DEBUG(0, ("Debug level changed to %d\n", debug_level));
+    }
+
+    return EOK;
 }
 
 errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,

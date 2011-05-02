@@ -31,6 +31,7 @@
 #include "util/util.h"
 #include "ldb.h"
 #include "confdb/confdb.h"
+#include "monitor/monitor_interfaces.h"
 
 #ifdef HAVE_PRCTL
 #include <sys/prctl.h>
@@ -346,6 +347,11 @@ int die_if_parent_died(void)
     return EOK;
 }
 
+struct logrotate_ctx {
+    struct confdb_ctx *confdb;
+    const char *confdb_path;
+};
+
 static void te_server_hup(struct tevent_context *ev,
                           struct tevent_signal *se,
                           int signum,
@@ -353,8 +359,17 @@ static void te_server_hup(struct tevent_context *ev,
                           void *siginfo,
                           void *private_data)
 {
+    errno_t ret;
+    struct logrotate_ctx *lctx =
+            talloc_get_type(private_data, struct logrotate_ctx);
+
     DEBUG(1, ("Received SIGHUP. Rotating logfiles.\n"));
-    rotate_debug_files();
+
+    ret = monitor_common_rotate_logs(lctx->confdb, lctx->confdb_path);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not reopen log file [%s]\n",
+                  strerror(ret)));
+    }
 }
 
 int server_setup(const char *name, int flags,
@@ -369,6 +384,7 @@ int server_setup(const char *name, int flags,
     bool dt;
     bool dl;
     struct tevent_signal *tes;
+    struct logrotate_ctx *lctx;
 
     debug_prg_name = strdup(name);
     if (!debug_prg_name) {
@@ -483,8 +499,14 @@ int server_setup(const char *name, int flags,
     if (dl) debug_to_file = 1;
 
     /* before opening the log file set up log rotation */
+    lctx = talloc_zero(ctx, struct logrotate_ctx);
+    if (!lctx) return ENOMEM;
+
+    lctx->confdb = ctx->confdb_ctx;
+    lctx->confdb_path = conf_entry;
+
     tes = tevent_add_signal(ctx->event_ctx, ctx, SIGHUP, 0,
-                            te_server_hup, NULL);
+                            te_server_hup, lctx);
     if (tes == NULL) {
         return EIO;
     }

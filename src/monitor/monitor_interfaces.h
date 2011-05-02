@@ -19,6 +19,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "sbus/sssd_dbus.h"
+
 /*** Monitor ***/
 
 #define MONITOR_VERSION 0x0001
@@ -53,8 +55,8 @@ int monitor_common_pong(DBusMessage *message,
                         struct sbus_connection *conn);
 int monitor_common_res_init(DBusMessage *message,
                             struct sbus_connection *conn);
-int monitor_common_rotate_logs(DBusMessage *message,
-                               struct sbus_connection *conn);
+int monitor_common_rotate_logs(struct confdb_ctx *confdb,
+                               const char *conf_entry);
 
 errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,

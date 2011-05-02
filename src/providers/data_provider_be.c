@@ -57,13 +57,15 @@ static int data_provider_go_offline(DBusMessage *message,
                                     struct sbus_connection *conn);
 static int data_provider_reset_offline(DBusMessage *message,
                                        struct sbus_connection *conn);
+static int data_provider_logrotate(DBusMessage *message,
+                                struct sbus_connection *conn);
 
 struct sbus_method monitor_be_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, data_provider_res_init },
     { MON_CLI_METHOD_OFFLINE, data_provider_go_offline },
     { MON_CLI_METHOD_RESET_OFFLINE, data_provider_reset_offline },
-    { MON_CLI_METHOD_ROTATE, monitor_common_rotate_logs },
+    { MON_CLI_METHOD_ROTATE, data_provider_logrotate },
     { NULL, NULL }
 };
 
@@ -1183,8 +1185,8 @@ int main(int argc, const char *argv[])
     poptContext pc;
     char *be_domain = NULL;
     char *srv_name = NULL;
-    char *conf_entry = NULL;
     struct main_context *main_ctx;
+    char *confdb_path;
     int ret;
 
     struct poptOption long_options[] = {
@@ -1222,10 +1224,10 @@ int main(int argc, const char *argv[])
     srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
     if (!srv_name) return 2;
 
-    conf_entry = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
-    if (!conf_entry) return 2;
+    confdb_path = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
+    if (!confdb_path) return 2;
 
-    ret = server_setup(srv_name, 0, conf_entry, &main_ctx);
+    ret = server_setup(srv_name, 0, confdb_path, &main_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not set up mainloop [%d]\n", ret));
         return 2;
@@ -1281,5 +1283,18 @@ static int data_provider_reset_offline(DBusMessage *message,
     struct be_ctx *be_ctx;
     be_ctx = talloc_get_type(sbus_conn_get_private_data(conn), struct be_ctx);
     check_if_online(be_ctx);
+    return monitor_common_pong(message, conn);
+}
+
+static int data_provider_logrotate(DBusMessage *message,
+                                struct sbus_connection *conn)
+{
+    errno_t ret;
+    struct be_ctx *be_ctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct be_ctx);
+
+    ret = monitor_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
+    if (ret != EOK) return ret;
+
     return monitor_common_pong(message, conn);
 }
