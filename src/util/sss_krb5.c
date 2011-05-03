@@ -36,7 +36,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
 {
     krb5_error_code kerr = 0;
     krb5_context krb_ctx = NULL;
-    krb5_keytab keytab;
+    krb5_keytab keytab = NULL;
     krb5_principal client_princ = NULL;
     TALLOC_CTX *tmp_ctx;
     char *primary = NULL;
