@@ -74,11 +74,4 @@ struct sysdb_ctx {
     char *ldb_file;
 };
 
-struct sysdb_ctx_list {
-    struct sysdb_ctx **dbs;
-    size_t num_dbs;
-
-    char *db_path;
-};
-
 #endif /* __INT_SYS_DB_H__ */

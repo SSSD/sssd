@@ -169,8 +169,14 @@
 #define SYSDB_MOD_REP LDB_FLAG_MOD_REPLACE
 
 struct confdb_ctx;
-struct sysdb_ctx_list;
 struct sysdb_ctx;
+
+struct sysdb_ctx_list {
+    struct sysdb_ctx **dbs;
+    size_t num_dbs;
+
+    char *db_path;
+};
 
 struct sysdb_attrs {
     int num;
@@ -281,6 +287,11 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *domain,
                       const char *db_path,
                       struct sysdb_ctx **_ctx);
+
+int sysdb_list_init(TALLOC_CTX *mem_ctx,
+                    const char *path,
+                    struct sysdb_ctx *ctx,
+                    struct sysdb_ctx_list **_list);
 
 int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
                             struct sss_domain_info *domain,

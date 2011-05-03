@@ -2013,6 +2013,47 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                                       db_path, false, _ctx);
 }
 
+int sysdb_list_init(TALLOC_CTX *mem_ctx,
+                    const char *path,
+                    struct sysdb_ctx *ctx,
+                    struct sysdb_ctx_list **_list)
+{
+    struct sysdb_ctx_list *list;
+    int ret;
+
+    list = talloc_zero(mem_ctx, struct sysdb_ctx_list);
+    if (!list) {
+        DEBUG(1, ("talloc_zero failed\n"));
+        return ENOMEM;
+    }
+
+    list->db_path = talloc_strdup(list, path);
+    if (!list->db_path) {
+        DEBUG(1, ("talloc_strdup failed\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (ctx) {
+        list->num_dbs = 1;
+        list->dbs = talloc_array(list, struct sysdb_ctx *, list->num_dbs);
+        if (!list->dbs) {
+            DEBUG(1, ("talloc_array failed\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        list->dbs[0] = talloc_steal(list, ctx);
+    }
+
+    *_list = list;
+    return EOK;
+
+fail:
+    talloc_free(list);
+    return ret;
+}
+
 int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
                             struct sss_domain_info *domain,
                             struct sysdb_ctx **ctx)
