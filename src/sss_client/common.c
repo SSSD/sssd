@@ -501,6 +501,7 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
     bool connected = false;
     unsigned int wait_time;
     unsigned int sleep_time;
+    time_t start_time = time(NULL);
     int ret;
     int sd;
 
@@ -529,8 +530,7 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
     while (inprogress) {
         int connect_errno = 0;
         socklen_t errnosize;
-        struct timeval tv;
-        fd_set w_fds;
+        struct pollfd pfd;
 
         wait_time += sleep_time;
 
@@ -543,12 +543,10 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
 
         switch(errno) {
         case EINPROGRESS:
-            FD_ZERO(&w_fds);
-            FD_SET(sd, &w_fds);
-            tv.tv_sec = SSS_CLI_SOCKET_TIMEOUT - wait_time;
-            tv.tv_usec = 0;
+            pfd.fd = sd;
+            pfd.events = POLLOUT;
 
-            ret = select(sd + 1, NULL, &w_fds, NULL, &tv);
+            ret = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT - wait_time);
 
             if (ret > 0) {
                 errnosize = sizeof(connect_errno);
@@ -559,8 +557,7 @@ static int sss_nss_open_socket(int *errnop, const char *socket_name)
                     break;
                 }
             }
-            wait_time += tv.tv_sec;
-            if (tv.tv_usec != 0) wait_time++;
+            wait_time = time(NULL) - start_time;
             break;
         case EAGAIN:
             if (wait_time < SSS_CLI_SOCKET_TIMEOUT) {
