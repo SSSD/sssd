@@ -42,6 +42,17 @@ struct bet_ops krb5_auth_ops = {
     .finalize = NULL,
 };
 
+int krb5_ctx_re_destructor(void *memctx)
+{
+    struct krb5_ctx *ctx = (struct krb5_ctx *) memctx;
+
+    if (ctx->illegal_path_re) {
+        pcre_free(ctx->illegal_path_re);
+        ctx->illegal_path_re = NULL;
+    }
+    return 0;
+}
+
 int sssm_krb5_auth_init(struct be_ctx *bectx,
                         struct bet_ops **ops,
                         void **pvt_auth_data)
@@ -183,6 +194,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         ret = EFAULT;
         goto fail;
     }
+    talloc_set_destructor((TALLOC_CTX *) ctx, krb5_ctx_re_destructor);
 
     *ops = &krb5_auth_ops;
     *pvt_auth_data = ctx;
