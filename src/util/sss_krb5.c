@@ -387,7 +387,7 @@ static bool match_principal(krb5_context ctx,
 
     int mode = MODE_NORMAL;
     TALLOC_CTX *tmp_ctx;
-    bool ret;
+    bool ret = false;
 
     realm_data = krb5_princ_realm(ctx, principal);
 
@@ -421,7 +421,6 @@ static bool match_principal(krb5_context ctx,
                 strncmp(primary, primary_str, primary_str_len) != 0) ||
             (mode == MODE_POSTFIX &&
                 strcmp(primary+len_diff, primary_str) != 0)) {
-            ret = false;
             goto done;
         }
     }
