@@ -2295,6 +2295,63 @@ fail:
     return ret;
 }
 
+/* =Search-Netgroups-with-Custom-Filter===================================== */
+
+int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
+                           const char *sub_filter,
+                           const char **attrs,
+                           size_t *msgs_count,
+                           struct ldb_message ***msgs)
+{
+    TALLOC_CTX *tmpctx;
+    struct ldb_dn *basedn;
+    char *filter;
+    int ret;
+
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    if (domain == NULL) {
+        domain = sysdb->domain;
+    }
+
+    basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+                            SYSDB_TMPL_NETGROUP_BASE, domain->name);
+    if (!basedn) {
+        DEBUG(2, ("Failed to build base dn\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    filter = talloc_asprintf(tmpctx, "(&(%s)%s)", SYSDB_NC, sub_filter);
+    if (!filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    DEBUG(6, ("Search netgroups with filter: %s\n", filter));
+
+    ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
+                             LDB_SCOPE_SUBTREE, filter, attrs,
+                             msgs_count, msgs);
+    if (ret) {
+        goto fail;
+    }
+
+    talloc_zfree(tmpctx);
+    return EOK;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    talloc_zfree(tmpctx);
+    return ret;
+}
+
 /* =Delete-Netgroup-by-Name============================================== */
 
 int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,

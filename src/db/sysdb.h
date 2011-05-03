@@ -713,6 +713,14 @@ int sysdb_delete_group(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *name, gid_t gid);
 
+int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
+                           const char *sub_filter,
+                           const char **attrs,
+                           size_t *msgs_count,
+                           struct ldb_message ***msgs);
+
 int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           const char *name);
