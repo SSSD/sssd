@@ -9,11 +9,31 @@ dnl ---------------------------------------------------------------------------
 dnl - Check for Mozilla LDAP or OpenLDAP SDK
 dnl ---------------------------------------------------------------------------
 
+for p in /usr/include/openldap24; do
+    if test -f "${p}/ldap.h"; then
+        OPENLDAP_CFLAGS="${OPENLDAP_CFLAGS} -I${p}"
+        break;
+    fi
+done
+
+for p in /usr/lib64/openldap24 /usr/lib/openldap24; do
+    if test -f "${p}/libldap.so"; then
+        OPENLDAP_LIBS="${OPENLDAP_LIBS} -L${p}"
+        break;
+    fi
+done
+
+SAVE_CFLAGS=$CFLAGS
+SAVE_LIBS=$LIBS
+CFLAGS="$CFLAGS $OPENLDAP_CFLAGS"
+LIBS="$LIBS $OPENLDAP_LIBS"
 AC_CHECK_LIB(ldap, ldap_search, with_ldap=yes)
 dnl Check for other libraries we need to link with to get the main routines.
 test "$with_ldap" != "yes" && { AC_CHECK_LIB(ldap, ldap_open, [with_ldap=yes with_ldap_lber=yes], , -llber) }
 test "$with_ldap" != "yes" && { AC_CHECK_LIB(ldap, ldap_open, [with_ldap=yes with_ldap_lber=yes with_ldap_krb=yes], , -llber -lkrb) }
 test "$with_ldap" != "yes" && { AC_CHECK_LIB(ldap, ldap_open, [with_ldap=yes with_ldap_lber=yes with_ldap_krb=yes with_ldap_des=yes], , -llber -lkrb -ldes) }
+CFLAGS=$SAVE_CFLAGS
+LIBS=$SAVE_LIBS
 dnl Recently, we need -lber even though the main routines are elsewhere,
 dnl because otherwise be get link errors w.r.t. ber_pvt_opt_on.  So just
 dnl check for that (it's a variable not a fun but that doesn't seem to
@@ -38,6 +58,7 @@ else
 fi
 
 AC_SUBST(OPENLDAP_LIBS)
+AC_SUBST(OPENLDAP_CFLAGS)
 
 SAVE_CFLAGS=$CFLAGS
 SAVE_LIBS=$LIBS

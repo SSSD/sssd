@@ -181,6 +181,7 @@ AM_CPPFLAGS = \
     $(INI_CONFIG_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(LIBNL_CFLAGS) \
+    $(OPENLDAP_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
@@ -286,8 +287,8 @@ TOOLS_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-	$(OPENLDAP_LIBS) \
-	$(TDB_LIBS) \
+    $(OPENLDAP_LIBS) \
+    $(TDB_LIBS) \
     libsss_crypt.la
 
 if BUILD_SELINUX
