@@ -331,7 +331,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     options.sock_state_cb_data = ctx;
     options.timeout = ctx->timeout * 1000;
     options.lookups = discard_const("fb");
-    options.tries = 0;
+    options.tries = 1;
     ret = ares_init_options(&new_channel, &options,
                             ARES_OPT_SOCK_STATE_CB |
                             ARES_OPT_TIMEOUTMS |
