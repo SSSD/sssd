@@ -949,10 +949,10 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
             svc->command = talloc_asprintf(svc, "%s/sssd_%s %s%s",
                                            SSSD_LIBEXEC_PATH,
                                            svc->name,
-                                           (debug_timestamps?
-                                                  "": " --debug-timestamps=0"),
-                                           (debug_to_file ?
-                                                  " --debug-to-files":""));
+                                           debug_timestamps?
+                                                  "": "--debug-timestamps=0 ",
+                                           debug_to_file?
+                                                  "--debug-to-files":"");
         } else {
             /* If the debug level was specified at the command-line,
              * make sure to pass it into the children, overriding the
