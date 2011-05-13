@@ -759,7 +759,7 @@ static int check_local_domain_unique(struct sss_domain_info *domains)
 static char *check_services(char **services)
 {
     const char *known_services[] = { "nss", "pam", "sudo", "autofs", "ssh",
-                                     NULL };
+                                     "pac", NULL };
     int i;
     int ii;
 

@@ -1,0 +1,34 @@
+AC_SUBST(NDR_KRB5PAC_CFLAGS)
+AC_SUBST(NDR_KRB5PAC_LIBS)
+
+AC_ARG_ENABLE([experimental-pac-responder],
+              [AS_HELP_STRING([--enable-experimental-pac-responder],
+                              [build experimental pac responder])],
+              [build_pac_responder=$enableval],
+              [build_pac_responder=no])
+
+if test x$build_all_experimental_features != xno
+then
+    build_pac_responder=yes
+fi
+
+if test x$build_pac_responder == xyes
+then
+    PKG_CHECK_MODULES(NDR_KRB5PAC, ndr_krb5pac,,
+        AC_MSG_ERROR([Cannot build pac responder without libndr_krb5pac]))
+
+    AC_PATH_PROG(KRB5_CONFIG, krb5-config)
+    AC_MSG_CHECKING(for supported MIT krb5 version)
+    KRB5_VERSION="`$KRB5_CONFIG --version`"
+    case $KRB5_VERSION in
+        Kerberos\ 5\ release\ 1.9* | \
+        Kerberos\ 5\ release\ 1.10*)
+            AC_MSG_RESULT(yes)
+            ;;
+        *)
+            AC_MSG_ERROR([Cannot build authdata plugin with this version of
+                          MIT Kerberos, please use 1.9.x or 1.10.x])
+    esac
+fi
+
+AM_CONDITIONAL([BUILD_PAC_RESPONDER], [test x$build_pac_responder = xyes ])

@@ -119,6 +119,9 @@
 #define CONFDB_SSH_HASH_KNOWN_HOSTS "ssh_hash_known_hosts"
 #define CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS true
 
+/* PAC */
+#define CONFDB_PAC_CONF_ENTRY "config/pac"
+
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"
 

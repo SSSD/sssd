@@ -97,6 +97,10 @@ if BUILD_SSH
 sssdlibexec_PROGRAMS += sssd_ssh
 endif
 
+if BUILD_PAC_RESPONDER
+    sssdlibexec_PROGRAMS += sssd_pac
+endif
+
 if HAVE_CHECK
     non_interactive_check_based_tests = \
         sysdb-tests \
@@ -236,6 +240,7 @@ AM_CPPFLAGS = \
     -DSSS_NSS_MCACHE_DIR=\"$(mcpath)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
+    -DSSS_PAC_SOCKET_NAME=\"$(pipepath)/pac\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
@@ -349,6 +354,7 @@ dist_noinst_HEADERS = \
     src/responder/nss/nsssrv_netgroup.h \
     src/responder/nss/nsssrv_services.h \
     src/responder/nss/nsssrv_mmap_cache.h \
+    src/responder/pac/pacsrv.h \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
@@ -580,6 +586,21 @@ sssd_ssh_LDADD = \
     $(SSSD_LIBS) \
     libsss_util.la
 endif
+
+sssd_pac_SOURCES = \
+    src/responder/pac/pacsrv.c \
+    src/responder/pac/pacsrv_cmd.c \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_RESPONDER_OBJ)
+sssd_pac_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS)
+sssd_pac_LDADD = \
+    $(NDR_KRB5PAC_LIBS) \
+    $(TDB_LIBS) \
+    $(SSSD_LIBS) \
+    libsss_idmap.la \
+    libsss_util.la
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \
