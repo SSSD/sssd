@@ -47,6 +47,7 @@ typedef int errno_t;
 #define SSS_SUDO_PROTOCOL_VERSION 0
 #define SSS_AUTOFS_PROTOCOL_VERSION 1
 #define SSS_SSH_PROTOCOL_VERSION 0
+#define SSS_PAC_PROTOCOL_VERSION 1
 
 #ifdef LOGIN_NAME_MAX
 #define SSS_NAME_MAX LOGIN_NAME_MAX
@@ -484,6 +485,10 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,
                                      uint8_t **repbuf, size_t *replen,
                                      int *errnop);
+int sss_pac_make_request(enum sss_cli_command cmd,
+                         struct sss_cli_req_data *rd,
+                         uint8_t **repbuf, size_t *replen,
+                         int *errnop);
 
 int sss_sudo_make_request(enum sss_cli_command cmd,
                           struct sss_cli_req_data *rd,

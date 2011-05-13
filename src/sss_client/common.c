@@ -398,6 +398,8 @@ static bool sss_cli_check_version(const char *socket_name)
         expected_version = SSS_AUTOFS_PROTOCOL_VERSION;
     } else if (strcmp(socket_name, SSS_SSH_SOCKET_NAME) == 0) {
         expected_version = SSS_SSH_PROTOCOL_VERSION;
+    } else if (strcmp(socket_name, SSS_PAC_SOCKET_NAME) == 0) {
+        expected_version = SSS_PAC_PROTOCOL_VERSION;
     } else {
         return false;
     }
@@ -714,6 +716,37 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     }
 
     ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME);
+    if (ret != SSS_STATUS_SUCCESS) {
+        return NSS_STATUS_UNAVAIL;
+    }
+
+    ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    switch (ret) {
+    case SSS_STATUS_TRYAGAIN:
+        return NSS_STATUS_TRYAGAIN;
+    case SSS_STATUS_SUCCESS:
+        return NSS_STATUS_SUCCESS;
+    case SSS_STATUS_UNAVAIL:
+    default:
+        return NSS_STATUS_UNAVAIL;
+    }
+}
+
+int sss_pac_make_request(enum sss_cli_command cmd,
+                         struct sss_cli_req_data *rd,
+                         uint8_t **repbuf, size_t *replen,
+                         int *errnop)
+{
+    enum sss_status ret;
+    char *envval;
+
+    /* avoid looping in the nss daemon */
+    envval = getenv("_SSS_LOOPS");
+    if (envval && strcmp(envval, "NO") == 0) {
+        return NSS_STATUS_NOTFOUND;
+    }
+
+    ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME);
     if (ret != SSS_STATUS_SUCCESS) {
         return NSS_STATUS_UNAVAIL;
     }
