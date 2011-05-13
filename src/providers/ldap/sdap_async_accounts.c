@@ -2722,7 +2722,7 @@ static int sdap_initgr_nested_store_group(struct sysdb_ctx *sysdb,
         }
         sysdb_grouplist[i] = NULL;
     } else if (ret == ENOENT) {
-        direct_sysdb_groups = NULL;
+        sysdb_grouplist = NULL;
         direct_sysdb_count = 0;
     } else {
         DEBUG(2, ("sysdb_search_entry failed: [%d]: %s\n", ret, strerror(ret)));
