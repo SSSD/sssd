@@ -180,6 +180,7 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         talloc_zfree(sys_attrs);
     } else {
         DEBUG(3, ("Could not create sysdb attributes\n"));
+        ret = ENOMEM;
     }
     return ret;
 }
