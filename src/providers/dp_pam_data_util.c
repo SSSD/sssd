@@ -114,6 +114,7 @@ errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *old_pd,
     pd->authtok_size = old_pd->authtok_size;
     pd->newauthtok_type = old_pd->newauthtok_type;
     pd->newauthtok_size = old_pd->newauthtok_size;
+    pd->priv = old_pd->priv;
 
     PD_STR_COPY(domain);
     PD_STR_COPY(user);
