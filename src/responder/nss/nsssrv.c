@@ -94,7 +94,7 @@ static int nss_get_config(struct nss_ctx *nctx,
     if (ret != EOK) goto done;
     if (nctx->cache_refresh_percent < 0 ||
         nctx->cache_refresh_percent > 99) {
-        DEBUG(0,("Configuration error: entry_cache_nowait_percentage is"
+        DEBUG(0,("Configuration error: entry_cache_nowait_percentage is "
                  "invalid. Disabling feature.\n"));
         nctx->cache_refresh_percent = 0;
     }
