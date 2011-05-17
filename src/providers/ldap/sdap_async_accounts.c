@@ -2346,8 +2346,11 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     ret = sysdb_attrs_get_el(user, SYSDB_MEMBEROF, &el);
     if (ret || !el || el->num_values == 0) {
         DEBUG(4, ("User entry lacks original memberof ?\n"));
-        /* user with no groups ? */
-        tevent_req_error(req, ENOENT);
+        /* We can't find any groups for this user, so we'll
+         * have to assume there aren't any. Just return
+         * success here.
+         */
+        tevent_req_done(req);
         tevent_req_post(req, ev);
         return req;
     }
