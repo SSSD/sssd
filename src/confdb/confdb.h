@@ -72,6 +72,7 @@
 #define CONFDB_NSS_FILTER_USERS "filter_users"
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
 #define CONFDB_NSS_PWFIELD  "pwfield"
+#define CONFDB_NSS_OVERRIDE_HOMEDIR "override_homedir"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"
@@ -145,6 +146,7 @@ struct sss_domain_info {
     bool legacy_passwords;
 
     gid_t override_gid;
+    const char *override_homedir;
 
     uint32_t entry_cache_timeout;
 

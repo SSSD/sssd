@@ -354,6 +354,43 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>override_homedir (string)</term>
+                    <listitem>
+                        <para>
+                            Override the user's home directory. You
+                            can either provide an absolute value or a
+                            template. In the template, the following
+                            sequences are substituted:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>%u</term>
+                                    <listitem><para>login name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>%U</term>
+                                    <listitem><para>UID number</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>%d</term>
+                                    <listitem><para>domain name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>%f</term>
+                                    <listitem><para>fully qualified user name (user@domain)</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>%%</term>
+                                    <listitem><para>a literal '%'</para>
+                                    </listitem>
+                                </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            This option can also be set per-domain.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>

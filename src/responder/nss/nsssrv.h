@@ -57,6 +57,8 @@ struct nss_ctx {
     bool filter_users_in_groups;
 
     char *pwfield;
+
+    char *override_homedir;
 };
 
 struct nss_packet;

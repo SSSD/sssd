@@ -58,6 +58,7 @@ option_strings = {
     'filter_groups' : _('Groups that SSSD should explicitly ignore'),
     'filter_users_in_groups' : _('Should filtered users appear in groups'),
     'pwfield' : _('The value of the password field the NSS provider should return'),
+    'override_homedir' : _('Override homedir value from the identity provider with this value'),
 
     # [pam]
     'offline_credentials_expiration' : _('How long to allow cached logins between online logins (days)'),
