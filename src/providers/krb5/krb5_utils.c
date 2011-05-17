@@ -54,13 +54,13 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     copy = talloc_strdup(tmp_ctx, template);
     if (copy == NULL) {
         DEBUG(1, ("talloc_strdup failed.\n"));
-        goto fail;
+        goto done;
     }
 
     result = talloc_strdup(tmp_ctx, "");
     if (result == NULL) {
         DEBUG(1, ("talloc_strdup failed.\n"));
-        goto fail;
+        goto done;
     }
 
     p = copy;
@@ -69,7 +69,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
         n++;
         if ( *n == '\0' ) {
             DEBUG(1, ("format error, single %% at the end of the template.\n"));
-            goto fail;
+            goto done;
         }
 
         switch( *n ) {
@@ -77,7 +77,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 if (kr->pd->user == NULL) {
                     DEBUG(1, ("Cannot expand user name template "
                               "because user name is empty.\n"));
-                    goto fail;
+                    goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p,
                                                 kr->pd->user);
@@ -87,7 +87,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 if (kr->uid <= 0) {
                     DEBUG(1, ("Cannot expand uid template "
                               "because uid is invalid.\n"));
-                    goto fail;
+                    goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%d", p,
                                                 kr->uid);
@@ -97,7 +97,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 if (kr->upn == NULL) {
                     DEBUG(1, ("Cannot expand user principal name template "
                               "because upn is empty.\n"));
-                    goto fail;
+                    goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, kr->upn);
                 if (!file_mode) *private_path = true;
@@ -109,7 +109,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 dummy = dp_opt_get_string(kr->krb5_ctx->opts, KRB5_REALM);
                 if (dummy == NULL) {
                     DEBUG(1, ("Missing kerberos realm.\n"));
-                    goto fail;
+                    goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, dummy);
                 break;
@@ -117,7 +117,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 if (kr->homedir == NULL) {
                     DEBUG(1, ("Cannot expand home directory template "
                               "because the path is not available.\n"));
-                    goto fail;
+                    goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, kr->homedir);
                 if (!file_mode) *private_path = true;
@@ -128,7 +128,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                                                        KRB5_CCACHEDIR);
                     if (cache_dir_tmpl == NULL) {
                         DEBUG(1, ("Missing credential cache directory.\n"));
-                        goto fail;
+                        goto done;
                     }
 
                     dummy = expand_ccname_template(tmp_ctx, kr, cache_dir_tmpl,
@@ -136,36 +136,36 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                     if (dummy == NULL) {
                         DEBUG(1, ("Expanding credential cache directory "
                                   "template failed.\n"));
-                        goto fail;
+                        goto done;
                     }
                     result = talloc_asprintf_append(result, "%s%s", p, dummy);
                     talloc_zfree(dummy);
                 } else {
                     DEBUG(1, ("'%%d' is not allowed in this template.\n"));
-                    goto fail;
+                    goto done;
                 }
                 break;
             case 'P':
                 if (!file_mode) {
                     DEBUG(1, ("'%%P' is not allowed in this template.\n"));
-                    goto fail;
+                    goto done;
                 }
                 if (kr->pd->cli_pid == 0) {
                     DEBUG(1, ("Cannot expand PID template "
                               "because PID is not available.\n"));
-                    goto fail;
+                    goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%d", p,
                                                 kr->pd->cli_pid);
                 break;
             default:
                 DEBUG(1, ("format error, unknown template [%%%c].\n", *n));
-                goto fail;
+                goto done;
         }
 
         if (result == NULL) {
             DEBUG(1, ("talloc_asprintf_append failed.\n"));
-            goto fail;
+            goto done;
         }
 
         p = n + 1;
@@ -174,11 +174,11 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     result = talloc_asprintf_append(result, "%s", p);
     if (result == NULL) {
         DEBUG(1, ("talloc_asprintf_append failed.\n"));
-        goto fail;
+        goto done;
     }
 
     res = talloc_move(mem_ctx, &result);
-fail:
+done:
     talloc_zfree(tmp_ctx);
     return res;
 }
