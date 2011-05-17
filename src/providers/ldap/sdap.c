@@ -742,17 +742,6 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
     return EOK;
 }
 
-int append_attrs_to_array(const char **attrs, size_t size, const char *attr)
-{
-    attrs = talloc_realloc(NULL, attrs, const char *, size + 2);
-    if (!attrs) return ENOMEM;
-
-    attrs[size] = attr;
-    attrs[size + 1] = NULL;
-
-    return EOK;
-}
-
 int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
                         struct berval *value, int dupval, LDAPControl **ctrlp)
 {
