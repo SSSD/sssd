@@ -391,6 +391,50 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>allowed_shells (string)</term>
+                    <listitem>
+                        <para>
+                            Restrict user shell to one of the listed values. The order of evaluation is:
+                        </para>
+                        <para>
+                            1. If the shell is present in
+                            <quote>/etc/shells</quote>, it is used.
+                        </para>
+                        <para>
+                            2. If the shell is in the allowed_shells list but
+                            not in <quote>/etc/shells</quote>, use the
+                            value of the shell_fallback parameter.
+                        </para>
+                        <para>
+                            3. If the shell is not in the allowed_shells list and
+                            not in <quote>/etc/shells</quote>, a nologin shell
+                            is used.
+                        </para>
+                        <para>
+                            An empty string for shell is passed as-is to libc.
+                        </para>
+                        <para>
+                            The <quote>/etc/shells</quote> is only read on SSSD start up, which means that
+                            a restart of the SSSD is required in case a new shell is installed.
+                        </para>
+                        <para>
+                            Default: Not set. The user shell is automatically used.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>shell_fallback (string)</term>
+                    <listitem>
+                        <para>
+                            The default shell to use if an allowed shell is not
+                            installed on the machine.
+                        </para>
+                        <para>
+                            Default: /bin/sh
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>

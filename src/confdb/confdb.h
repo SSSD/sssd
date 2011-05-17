@@ -41,6 +41,7 @@
 #define CONFDB_DEFAULT_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
 #define SSSD_MIN_ID 1
 #define SSSD_LOCAL_MINID 1000
+#define CONFDB_DEFAULT_SHELL_FALLBACK "/bin/sh"
 
 
 /* Configuration options */
@@ -73,6 +74,8 @@
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
 #define CONFDB_NSS_PWFIELD  "pwfield"
 #define CONFDB_NSS_OVERRIDE_HOMEDIR "override_homedir"
+#define CONFDB_NSS_ALLOWED_SHELL "allowed_shells"
+#define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"
