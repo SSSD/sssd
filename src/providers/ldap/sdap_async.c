@@ -821,6 +821,41 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+struct sdap_deref_reply {
+    size_t reply_max;
+    size_t reply_count;
+    struct sdap_deref_attrs **reply;
+};
+
+static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
+                                  int num_maps,
+                                  struct sdap_deref_reply *dreply,
+                                  struct sdap_deref_attrs **res)
+{
+    int i;
+
+    for (i=0; i < num_maps; i++) {
+        if (res[i]->attrs == NULL) continue; /* Nothing in this map */
+
+        if (dreply->reply == NULL ||
+            dreply->reply_max == dreply->reply_count) {
+            dreply->reply_max += REPLY_REALLOC_INCREMENT;
+            dreply->reply = talloc_realloc(mem_ctx, dreply->reply,
+                                        struct sdap_deref_attrs *,
+                                        dreply->reply_max);
+            if (dreply->reply == NULL) {
+                DEBUG(1, ("talloc_realloc failed.\n"));
+                return ENOMEM;
+            }
+        }
+
+        dreply->reply[dreply->reply_count++] =
+            talloc_steal(dreply->reply, res[i]);
+    }
+
+    return EOK;
+}
+
 /* ==Generic Search exposing all options======================= */
 typedef errno_t (*sdap_parse_cb)(struct sdap_handle *sh,
                                  struct sdap_msg *msg,

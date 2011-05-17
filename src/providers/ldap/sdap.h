@@ -305,6 +305,16 @@ struct sdap_server_opts {
 
 struct sdap_id_ctx;
 
+struct sdap_attr_map_info {
+    struct sdap_attr_map *map;
+    int num_attrs;
+};
+
+struct sdap_deref_attrs {
+    struct sdap_attr_map *map;
+    struct sysdb_attrs *attrs;
+};
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
