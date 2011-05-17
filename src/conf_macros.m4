@@ -251,3 +251,17 @@ AC_DEFUN([WITH_LIBNL],
         AC_SUBST(BUILD_LIBNL)
     fi
   ])
+
+AC_DEFUN([WITH_NOLOGIN_SHELL],
+  [ AC_ARG_WITH([nologin-shell],
+                [AC_HELP_STRING([--with-nologin-shell=PATH],
+                                [The shell used to deny access to users [/sbin/nologin]]
+                               )
+                ]
+               )
+    nologin_shell="/sbin/nologin"
+    if test x"$with_nologin_shell" != x; then
+        nologin_shell=$with_nologin_shell
+    fi
+    AC_DEFINE_UNQUOTED(NOLOGIN_SHELL, "$nologin_shell", [The shell used to deny access to users])
+  ])
