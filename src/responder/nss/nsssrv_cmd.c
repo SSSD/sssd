@@ -170,6 +170,14 @@ struct setent_ctx {
  * PASSWD db related functions
  ***************************************************************************/
 
+static gid_t get_gid_override(struct ldb_message *msg,
+                              struct sss_domain_info *dom)
+{
+    return dom->override_gid ?
+        dom->override_gid :
+        ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+}
+
 static int fill_pwent(struct sss_packet *packet,
                       struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
@@ -206,7 +214,7 @@ static int fill_pwent(struct sss_packet *packet,
 
         name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
-        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+        gid = get_gid_override(msg, dom);
 
         if (!name || !uid || !gid) {
             DEBUG(2, ("Incomplete or fake user object for %s[%llu]! Skipping\n",

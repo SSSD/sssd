@@ -109,6 +109,7 @@
 #define CONFDB_DOMAIN_DNS_DISCOVERY_NAME "dns_discovery_domain"
 #define CONFDB_DOMAIN_FAMILY_ORDER "lookup_family_order"
 #define CONFDB_DOMAIN_ACCOUNT_CACHE_EXPIRATION "account_cache_expiration"
+#define CONFDB_DOMAIN_OVERRIDE_GID "override_gid"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -142,6 +143,8 @@ struct sss_domain_info {
 
     bool cache_credentials;
     bool legacy_passwords;
+
+    gid_t override_gid;
 
     uint32_t entry_cache_timeout;
 

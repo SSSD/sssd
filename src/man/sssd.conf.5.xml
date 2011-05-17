@@ -807,6 +807,15 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>override_gid (integer)</term>
+                    <listitem>
+                        <para>
+                            Override the primary GID value with the one specified.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 
