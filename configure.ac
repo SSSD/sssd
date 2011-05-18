@@ -192,6 +192,7 @@ AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the bu
 AC_SUBST([abs_builddir], $abs_build_dir)
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
-                 src/sysv/systemd/sssd.service po/Makefile.in src/man/Makefile])
+                 src/sysv/systemd/sssd.service po/Makefile.in src/man/Makefile
+                 src/providers/ipa/ipa_hbac.pc])
 AC_OUTPUT
 

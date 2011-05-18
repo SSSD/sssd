@@ -116,6 +116,23 @@ SSSD when using id_provider = local in /etc/sssd/sssd.conf.
 Also provides a userspace tool for generating an obfuscated LDAP password for
 use with ldap_default_authtok_type = obfuscated_password.
 
+%package -n libipa_hbac
+Summary: FreeIPA HBAC Evaluator library
+Group: Development/Libraries
+License: LGPLv3+
+
+%description -n libipa_hbac
+Utility library to validate FreeIPA HBAC rules for authorization requests
+
+%package -n libipa_hbac-devel
+Summary: FreeIPA HBAC Evaluator library
+Group: Development/Libraries
+License: LGPLv3+
+Requires: libipa_hbac = %{version}-%{release}
+
+%description -n libipa_hbac-devel
+Utility library to validate FreeIPA HBAC rules for authorization requests
+
 %prep
 %setup -q
 
@@ -181,6 +198,7 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ipa.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_simple.la \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libipa_hbac.la \
     $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
 
 # Older versions of rpmbuild can only handle one -f option
@@ -267,6 +285,17 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_usermod.8*
 %{_mandir}/man8/sss_obfuscate.8*
 %{_mandir}/man8/sss_cache.8*
+
+%files -n libipa_hbac
+%defattr(-,root,root,-)
+%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%{_libdir}/libipa_hbac.so.*
+
+%files -n libipa_hbac-devel
+%defattr(-,root,root,-)
+%{_includedir}/ipa_hbac.h
+%{_libdir}/libipa_hbac.so
+%{_libdir}/pkgconfig/ipa_hbac.pc
 
 %post
 /sbin/ldconfig

@@ -1,0 +1,618 @@
+/*
+    SSSD
+
+    Authors:
+        Stephen Gallagher <sgallagh@redhat.com>
+
+    Copyright (C) 2011 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#include <stdlib.h>
+#include <check.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <talloc.h>
+
+#include "tests/common.h"
+#include "providers/ipa/ipa_hbac.h"
+
+#define HBAC_TEST_USER "testuser"
+#define HBAC_TEST_INVALID_USER "nosuchuser"
+
+#define HBAC_TEST_GROUP1 "testgroup1"
+#define HBAC_TEST_GROUP2 "testgroup2"
+#define HBAC_TEST_INVALID_GROUP "nosuchgroup"
+
+#define HBAC_TEST_SERVICE "testservice"
+#define HBAC_TEST_INVALID_SERVICE "nosuchservice"
+
+#define HBAC_TEST_SERVICEGROUP1 "login_services"
+#define HBAC_TEST_SERVICEGROUP2 "all_services"
+#define HBAC_TEST_INVALID_SERVICEGROUP "nosuchservicegroup"
+
+#define HBAC_TEST_SRCHOST "client.example.com"
+#define HBAC_TEST_INVALID_SRCHOST "nosuchsrchost"
+
+#define HBAC_TEST_SRCHOSTGROUP1 "site_hosts"
+#define HBAC_TEST_SRCHOSTGROUP2 "corp_hosts"
+#define HBAC_TEST_INVALID_SRCHOSTGROUP "nosuchsrchostgroup"
+
+static void get_allow_all_rule(TALLOC_CTX *mem_ctx,
+                               struct hbac_rule **allow_rule)
+{
+    struct hbac_rule *rule;
+    /* Create a rule that ALLOWs all services, users and
+     * remote hosts.
+     */
+    rule = talloc_zero(mem_ctx, struct hbac_rule);
+    fail_if (rule == NULL);
+
+    rule->enabled = true;
+
+    rule->services = talloc_zero(rule, struct hbac_rule_element);
+    fail_if (rule->services == NULL);
+    rule->services->category = HBAC_CATEGORY_ALL;
+    rule->services->names = NULL;
+    rule->services->groups = NULL;
+
+    rule->users = talloc_zero(rule, struct hbac_rule_element);
+    fail_if (rule->users == NULL);
+    rule->users->category = HBAC_CATEGORY_ALL;
+    rule->users->names = NULL;
+    rule->users->groups = NULL;
+
+    rule->targethosts = talloc_zero(rule, struct hbac_rule_element);
+    fail_if (rule->targethosts == NULL);
+    rule->targethosts->category = HBAC_CATEGORY_ALL;
+    rule->targethosts->names = NULL;
+    rule->targethosts->groups = NULL;
+
+    rule->srchosts = talloc_zero(rule, struct hbac_rule_element);
+    fail_if (rule->srchosts == NULL);
+    rule->srchosts->category = HBAC_CATEGORY_ALL;
+    rule->srchosts->names = NULL;
+    rule->srchosts->groups = NULL;
+
+    *allow_rule = rule;
+}
+
+static void get_test_user(TALLOC_CTX *mem_ctx,
+                          struct hbac_request_element **user)
+{
+    struct hbac_request_element *new_user;
+
+    new_user = talloc_zero(mem_ctx, struct hbac_request_element);
+    fail_if (new_user == NULL);
+
+    new_user->name = talloc_strdup(new_user, HBAC_TEST_USER);
+    fail_if(new_user->name == NULL);
+
+    new_user->groups = talloc_array(new_user, const char *, 3);
+    fail_if(new_user->groups == NULL);
+
+    new_user->groups[0] = talloc_strdup(new_user->groups, HBAC_TEST_GROUP1);
+    fail_if(new_user->groups[0] == NULL);
+
+    new_user->groups[1] = talloc_strdup(new_user->groups, HBAC_TEST_GROUP2);
+    fail_if(new_user->groups[1] == NULL);
+
+    new_user->groups[2] = NULL;
+
+    *user = new_user;
+}
+
+static void get_test_service(TALLOC_CTX *mem_ctx,
+                             struct hbac_request_element **service)
+{
+    struct hbac_request_element *new_service;
+
+    new_service = talloc_zero(mem_ctx, struct hbac_request_element);
+    fail_if (new_service == NULL);
+
+    new_service->name = talloc_strdup(new_service, HBAC_TEST_SERVICE);
+    fail_if(new_service->name == NULL);
+
+    new_service->groups = talloc_array(new_service, const char *, 3);
+    fail_if(new_service->groups == NULL);
+
+    new_service->groups[0] = talloc_strdup(new_service->groups, HBAC_TEST_SERVICEGROUP1);
+    fail_if(new_service->groups[0] == NULL);
+
+    new_service->groups[1] = talloc_strdup(new_service->groups, HBAC_TEST_SERVICEGROUP2);
+    fail_if(new_service->groups[1] == NULL);
+
+    new_service->groups[2] = NULL;
+
+    *service = new_service;
+}
+
+static void get_test_srchost(TALLOC_CTX *mem_ctx,
+                             struct hbac_request_element **srchost)
+{
+    struct hbac_request_element *new_srchost;
+
+    new_srchost = talloc_zero(mem_ctx, struct hbac_request_element);
+    fail_if (new_srchost == NULL);
+
+    new_srchost->name = talloc_strdup(new_srchost, "client.example.com");
+    fail_if(new_srchost->name == NULL);
+
+    new_srchost->groups = talloc_array(new_srchost, const char *, 3);
+    fail_if(new_srchost->groups == NULL);
+
+    new_srchost->groups[0] = talloc_strdup(new_srchost->groups, "site_hosts");
+    fail_if(new_srchost->groups[0] == NULL);
+
+    new_srchost->groups[1] = talloc_strdup(new_srchost->groups, "corp_hosts");
+    fail_if(new_srchost->groups[1] == NULL);
+
+    new_srchost->groups[2] = NULL;
+
+    *srchost = new_srchost;
+}
+
+START_TEST(ipa_hbac_test_allow_all)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+    rules[0]->name = talloc_strdup(rules[0], "Allow All");
+    fail_if(rules[0]->name == NULL);
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_user)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    /* Modify the rule to allow only a specific user */
+    rules[0]->name = talloc_strdup(rules[0], "Allow user");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->users->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->users->names = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->users->names == NULL);
+
+    rules[0]->users->names[0] = HBAC_TEST_USER;
+    rules[0]->users->names[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test */
+    rules[0]->users->names[0] = HBAC_TEST_INVALID_USER;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_group)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    /* Modify the rule to allow only a group of users */
+    rules[0]->name = talloc_strdup(rules[0], "Allow group");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->users->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->users->names = NULL;
+    rules[0]->users->groups = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->users->groups == NULL);
+
+    rules[0]->users->groups[0] = HBAC_TEST_GROUP1;
+    rules[0]->users->groups[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test */
+    rules[0]->users->groups[0] = HBAC_TEST_INVALID_GROUP;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_svc)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    /* Modify the rule to allow only a specific service */
+    rules[0]->name = talloc_strdup(rules[0], "Allow service");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->services->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->services->names = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->services->names == NULL);
+
+    rules[0]->services->names[0] = HBAC_TEST_SERVICE;
+    rules[0]->services->names[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test */
+    rules[0]->services->names[0] = HBAC_TEST_INVALID_SERVICE;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_svcgroup)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    /* Modify the rule to allow only a group of users */
+    rules[0]->name = talloc_strdup(rules[0], "Allow servicegroup");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->services->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->services->names = NULL;
+    rules[0]->services->groups = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->services->groups == NULL);
+
+    rules[0]->services->groups[0] = HBAC_TEST_SERVICEGROUP1;
+    rules[0]->services->groups[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test */
+    rules[0]->services->groups[0] = HBAC_TEST_INVALID_SERVICEGROUP;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_srchost)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    /* Modify the rule to allow only a specific service */
+    rules[0]->name = talloc_strdup(rules[0], "Allow srchost");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->srchosts->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->srchosts->names = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->srchosts->names == NULL);
+
+    rules[0]->srchosts->names[0] = HBAC_TEST_SRCHOST;
+    rules[0]->srchosts->names[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test */
+    rules[0]->srchosts->names[0] = HBAC_TEST_INVALID_SRCHOST;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s](%s)",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_srchostgroup)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    /* Modify the rule to allow only a group of users */
+    rules[0]->name = talloc_strdup(rules[0], "Allow srchostgroup");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->srchosts->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->srchosts->names = NULL;
+    rules[0]->srchosts->groups = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->srchosts->groups == NULL);
+
+    rules[0]->srchosts->groups[0] = HBAC_TEST_SRCHOSTGROUP1;
+    rules[0]->srchosts->groups[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test */
+    rules[0]->srchosts->groups[0] = HBAC_TEST_INVALID_SRCHOSTGROUP;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+Suite *hbac_test_suite (void)
+{
+    Suite *s = suite_create ("HBAC");
+
+    TCase *tc_hbac = tcase_create("HBAC_rules");
+    tcase_add_checked_fixture(tc_hbac,
+                              leak_check_setup,
+                              leak_check_teardown);
+
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_all);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_user);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_group);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_svc);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_svcgroup);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_srchost);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_srchostgroup);
+
+    suite_add_tcase(s, tc_hbac);
+    return s;
+}
+
+int main(int argc, const char *argv[])
+{
+    int number_failed;
+
+    tests_set_cwd();
+
+    Suite *s = hbac_test_suite();
+    SRunner *sr = srunner_create(s);
+
+    /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */
+    srunner_run_all(sr, CK_ENV);
+    number_failed = srunner_ntests_failed (sr);
+    srunner_free (sr);
+
+    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
