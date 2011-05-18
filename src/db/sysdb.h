@@ -269,6 +269,8 @@ char *sysdb_group_strdn(TALLOC_CTX *memctx,
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *sysdb);
 
+struct sss_domain_info *sysdb_ctx_get_domain(struct sysdb_ctx *sysdb);
+
 int compare_ldb_dn_comp_num(const void *m1, const void *m2);
 
 /* functions to start and finish transactions */
