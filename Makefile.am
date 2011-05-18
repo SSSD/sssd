@@ -32,6 +32,7 @@ pipepath = @pipepath@
 initdir = @initdir@
 logpath = @logpath@
 pubconfpath = @pubconfpath@
+pkgconfigdir = $(libdir)/pkgconfig
 
 AM_CFLAGS =
 if WANT_AUX_INFO
@@ -42,6 +43,8 @@ if HAVE_GCC
                  -Wcast-qual -Wcast-align -Wwrite-strings \
                  -Werror-implicit-function-declaration
 endif
+
+dist_pkgconfig_DATA =
 
 ACLOCAL_AMFLAGS = -I m4 -I .
 
@@ -78,7 +81,8 @@ if HAVE_CHECK
         ipa_ldap_opt-tests \
         simple_access-tests \
         crypto-tests \
-        util-tests
+        util-tests \
+        ipa_hbac-tests
 endif
 
 check_PROGRAMS = \
@@ -357,6 +361,16 @@ if HAVE_NSS
     dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
 endif
 
+
+lib_LTLIBRARIES = libipa_hbac.la
+dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
+libipa_hbac_la_SOURCES = \
+    src/providers/ipa/hbac_evaluator.c
+libipa_hbac_la_LDFLAGS = \
+    -version 0:0:0
+
+include_HEADERS = \
+    src/providers/ipa/ipa_hbac.h
 
 ####################
 # Program Binaries #
@@ -694,6 +708,18 @@ crypto_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     libsss_test_common.la
+
+ipa_hbac_tests_SOURCES = \
+    src/tests/ipa_hbac-tests.c \
+    $(SSSD_UTIL_OBJ)
+ipa_hbac_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+ipa_hbac_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    libsss_test_common.la \
+    libipa_hbac.la
 
 endif
 
