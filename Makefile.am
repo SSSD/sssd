@@ -788,7 +788,7 @@ libsss_ldap_la_LIBADD = \
     $(KRB5_LIBS) \
     libsss_crypt.la
 libsss_ldap_la_LDFLAGS = \
-    -version-info 1:0:0 \
+    -avoid-version \
     -module
 
 libsss_proxy_la_SOURCES = \
@@ -802,7 +802,7 @@ libsss_proxy_la_CFLAGS = \
 libsss_proxy_la_LIBADD = \
     $(PAM_LIBS)
 libsss_proxy_la_LDFLAGS = \
-    -version-info 1:0:0 \
+    -avoid-version \
     -module
 
 libsss_simple_la_SOURCES = \
@@ -812,7 +812,7 @@ libsss_simple_la_CFLAGS = \
 libsss_simple_la_LIBADD = \
     $(PAM_LIBS)
 libsss_simple_la_LDFLAGS = \
-    -version-info 1:0:0 \
+    -avoid-version \
     -module
 
 libsss_krb5_la_SOURCES = \
@@ -837,7 +837,7 @@ libsss_krb5_la_LIBADD = \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS)
 libsss_krb5_la_LDFLAGS = \
-    -version-info 1:0:0 \
+    -avoid-version \
     -module
 
 libsss_ipa_la_SOURCES = \
@@ -887,7 +887,7 @@ libsss_ipa_la_LIBADD = \
     $(KRB5_LIBS) \
     libsss_crypt.la
 libsss_ipa_la_LDFLAGS = \
-    -version-info 1:0:0 \
+    -avoid-version \
     -module
 
 krb5_child_SOURCES = \
