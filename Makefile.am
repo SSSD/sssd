@@ -195,34 +195,6 @@ AM_CPPFLAGS = \
 
 EXTRA_DIST = build/config.rpath
 
-SSSD_DEBUG_OBJ = \
-    src/util/debug.c \
-    src/util/sss_log.c
-
-SSSD_UTIL_OBJ = \
-    src/confdb/confdb.c \
-    src/db/sysdb.c \
-    src/db/sysdb_ops.c \
-    src/db/sysdb_search.c \
-    src/monitor/monitor_sbus.c \
-    src/providers/dp_auth_util.c \
-    src/providers/dp_pam_data_util.c \
-    src/providers/dp_sbus.c \
-    src/sbus/sbus_client.c \
-    src/sbus/sssd_dbus_common.c \
-    src/sbus/sssd_dbus_connection.c \
-    src/sbus/sssd_dbus_server.c \
-    src/util/util.c \
-    src/util/memory.c \
-    src/util/server.c \
-    src/util/signal.c \
-    src/util/usertools.c \
-    src/util/backup_file.c \
-    src/util/strtonum.c \
-    src/util/check_and_open.c \
-    src/util/refcount.c \
-    $(SSSD_DEBUG_OBJ)
-
 SSSD_RESPONDER_OBJ = \
     src/responder/common/negcache.c \
     src/responder/common/responder_cmd.c \
@@ -261,8 +233,7 @@ SSSD_LIBS = \
     $(DHASH_LIBS) \
     $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
-    $(TDB_LIBS) \
-    libsss_crypt.la
+    $(TDB_LIBS)
 
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
@@ -274,8 +245,7 @@ PYTHON_BINDINGS_LIBS = \
     $(DHASH_LIBS) \
     $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
-    $(TDB_LIBS) \
-    libsss_crypt.la
+    $(TDB_LIBS)
 
 TOOLS_LIBS = \
     $(TALLOC_LIBS) \
@@ -288,8 +258,7 @@ TOOLS_LIBS = \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(OPENLDAP_LIBS) \
-    $(TDB_LIBS) \
-    libsss_crypt.la
+    $(TDB_LIBS)
 
 if BUILD_SELINUX
     PYTHON_BINDINGS_LIBS += $(SELINUX_LIBS)
@@ -360,6 +329,41 @@ if HAVE_NSS
     dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
 endif
 
+#####################
+# Utility libraries #
+#####################
+noinst_LTLIBRARIES += libsss_debug.la
+libsss_debug_la_SOURCES = \
+    src/util/debug.c \
+    src/util/sss_log.c
+
+noinst_LTLIBRARIES += libsss_util.la
+libsss_util_la_SOURCES = \
+    src/confdb/confdb.c \
+    src/db/sysdb.c \
+    src/db/sysdb_ops.c \
+    src/db/sysdb_search.c \
+    src/monitor/monitor_sbus.c \
+    src/providers/dp_auth_util.c \
+    src/providers/dp_pam_data_util.c \
+    src/providers/dp_sbus.c \
+    src/sbus/sbus_client.c \
+    src/sbus/sssd_dbus_common.c \
+    src/sbus/sssd_dbus_connection.c \
+    src/sbus/sssd_dbus_server.c \
+    src/util/util.c \
+    src/util/memory.c \
+    src/util/server.c \
+    src/util/signal.c \
+    src/util/usertools.c \
+    src/util/backup_file.c \
+    src/util/strtonum.c \
+    src/util/check_and_open.c \
+    src/util/refcount.c
+libsss_util_la_LIBADD = \
+    $(SSSD_LIBS) \
+    libsss_crypt.la \
+    libsss_debug.la
 
 ####################
 # Program Binaries #
@@ -367,41 +371,43 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_netlink.c \
-    src/confdb/confdb_setup.c \
-    $(SSSD_UTIL_OBJ)
+    src/confdb/confdb_setup.c
 sssd_LDADD = \
     $(SSSD_LIBS) \
-    $(LIBNL_LIBS)
+    $(LIBNL_LIBS) \
+    libsss_util.la
 
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
     src/responder/nss/nsssrv_cmd.c \
     src/responder/nss/nsssrv_netgroup.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    libsss_util.la
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_dp.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
     $(TDB_LIBS) \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    libsss_util.la
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    $(SSSD_FAILOVER_OBJ) \
-    $(SSSD_UTIL_OBJ)
-sssd_be_LDADD = $(SSSD_LIBS) $(CARES_LIBS)
+    $(SSSD_FAILOVER_OBJ)
+sssd_be_LDADD = \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    libsss_util.la
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -export-dynamic \
@@ -430,59 +436,59 @@ dist_noinst_DATA += \
 ######################
 sss_useradd_SOURCES = \
     src/tools/sss_useradd.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_useradd_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_userdel_SOURCES = \
     src/tools/sss_userdel.c \
     src/util/find_uid.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_userdel_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_groupadd_SOURCES = \
     src/tools/sss_groupadd.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupadd_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_groupdel_SOURCES = \
     src/tools/sss_groupdel.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupdel_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_usermod_SOURCES = \
     src/tools/sss_usermod.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_usermod_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_groupmod_SOURCES = \
     src/tools/sss_groupmod.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupmod_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_groupshow_SOURCES = \
     src/tools/sss_groupshow.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupshow_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 sss_cache_SOURCES = \
     src/tools/sss_cache.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_cache_LDADD = \
+    libsss_util.la \
     $(TOOLS_LIBS)
 
 #################
@@ -507,18 +513,17 @@ libsss_test_common_la_SOURCES += \
 sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 sysdb_tests_SOURCES = \
-    src/tests/sysdb-tests.c \
-    $(SSSD_UTIL_OBJ)
+    src/tests/sysdb-tests.c
 sysdb_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 strtonum_tests_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     src/tests/strtonum-tests.c \
     src/util/strtonum.c
 strtonum_tests_CFLAGS = \
@@ -527,6 +532,7 @@ strtonum_tests_CFLAGS = \
 strtonum_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
+    libsss_debug.la \
     libsss_test_common.la
 
 krb5_utils_tests_SOURCES = \
@@ -537,8 +543,7 @@ krb5_utils_tests_SOURCES = \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    $(SSSD_FAILOVER_OBJ) \
-    $(SSSD_UTIL_OBJ)
+    $(SSSD_FAILOVER_OBJ)
 krb5_utils_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
@@ -547,17 +552,18 @@ krb5_utils_tests_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 
 check_and_open_tests_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     src/tests/check_and_open-tests.c \
     src/util/check_and_open.c
 check_and_open_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 check_and_open_tests_LDADD = \
+    libsss_debug.la \
     $(CHECK_LIBS) \
     libsss_test_common.la
 
@@ -574,7 +580,6 @@ if BUILD_SEMANAGE
 endif
 
 files_tests_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     src/tests/files-tests.c \
     src/util/check_and_open.c \
     src/tools/selinux.c \
@@ -583,6 +588,7 @@ files_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 files_tests_LDADD = \
+    libsss_debug.la \
     $(FILES_TESTS_LIBS) \
     libsss_test_common.la
 
@@ -595,7 +601,6 @@ endif
 
 resolv_tests_SOURCES = \
     src/tests/resolv-tests.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESOLV_TESTS_OBJ)
 resolv_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -605,57 +610,58 @@ resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 refcount_tests_SOURCES = \
     src/tests/refcount-tests.c \
-    $(CHECK_OBJ) \
-    $(SSSD_UTIL_OBJ)
+    $(CHECK_OBJ)
 refcount_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 refcount_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 fail_over_tests_SOURCES = \
     src/tests/fail_over-tests.c \
     $(SSSD_FAILOVER_OBJ) \
-    $(CHECK_OBJ) \
-    $(SSSD_UTIL_OBJ)
+    $(CHECK_OBJ)
 fail_over_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 fail_over_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 find_uid_tests_SOURCES = \
     src/tests/find_uid-tests.c \
     src/util/find_uid.c \
-    src/util/strtonum.c \
-    $(SSSD_DEBUG_OBJ)
+    src/util/strtonum.c
 find_uid_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(CHECK_CFLAGS)
 find_uid_tests_LDADD = \
+    libsss_debug.la \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(CHECK_LIBS) \
     libsss_test_common.la
 
 auth_tests_SOURCES = \
-    src/tests/auth-tests.c \
-    $(SSSD_UTIL_OBJ)
+    src/tests/auth-tests.c
 auth_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 auth_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 ipa_ldap_opt_tests_SOURCES = \
@@ -671,28 +677,27 @@ ipa_ldap_opt_tests_LDADD = \
 
 simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
-    src/providers/simple/simple_access.c \
-    $(SSSD_UTIL_OBJ)
+    src/providers/simple/simple_access.c
 simple_access_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 simple_access_tests_LDADD = \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_util.la
 
 util_tests_SOURCES = \
-    src/tests/util-tests.c \
-    $(SSSD_UTIL_OBJ)
+    src/tests/util-tests.c
 util_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 util_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 crypto_tests_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     $(SSS_CRYPT_SOURCES) \
     src/tests/crypto-tests.c
 crypto_tests_CFLAGS = \
@@ -700,6 +705,7 @@ crypto_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 crypto_tests_LDADD = \
+    libsss_debug.la \
     $(SSS_CRYPT_LIBS) \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
@@ -708,10 +714,10 @@ crypto_tests_LDADD = \
 endif
 
 stress_tests_SOURCES = \
-    src/tests/stress-tests.c \
-    $(SSSD_UTIL_OBJ)
+    src/tests/stress-tests.c
 stress_tests_LDADD = \
     $(SSSD_LIBS) \
+    libsss_util.la \
     libsss_test_common.la
 
 noinst_PROGRAMS = pam_test_client
@@ -786,7 +792,7 @@ libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
-    libsss_crypt.la
+    libsss_util.la
 libsss_ldap_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -810,7 +816,8 @@ libsss_simple_la_SOURCES = \
 libsss_simple_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_simple_la_LIBADD = \
-    $(PAM_LIBS)
+    $(PAM_LIBS) \
+    libsss_util.la
 libsss_simple_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -835,7 +842,8 @@ libsss_krb5_la_CFLAGS = \
 libsss_krb5_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
-    $(KRB5_LIBS)
+    $(KRB5_LIBS) \
+    libsss_util.la
 libsss_krb5_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -885,13 +893,12 @@ libsss_ipa_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
-    libsss_crypt.la
+    libsss_util.la
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
     -module
 
 krb5_child_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_child.c \
     src/providers/child_common.c \
@@ -903,13 +910,13 @@ krb5_child_CFLAGS = \
     $(POPT_CFLAGS) \
     $(KRB5_CFLAGS)
 krb5_child_LDADD = \
+    libsss_debug.la \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(KRB5_LIBS)
 
 ldap_child_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     src/providers/ldap/ldap_child.c \
     src/providers/child_common.c \
     src/util/sss_krb5.c
@@ -918,6 +925,7 @@ ldap_child_CFLAGS = \
     $(POPT_CFLAGS) \
     $(KRB5_CFLAGS)
 ldap_child_LDADD = \
+    libsss_debug.la \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
@@ -925,22 +933,24 @@ ldap_child_LDADD = \
     $(KRB5_LIBS)
 
 proxy_child_SOURCES = \
-    $(SSSD_UTIL_OBJ) \
     src/providers/proxy/proxy_child.c
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS)
 proxy_child_LDADD = \
     $(PAM_LIBS) \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    libsss_util.la
 
 memberof_la_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     src/ldb_modules/memberof.c \
     src/util/util.c
 memberof_la_CFLAGS = \
     $(AM_CFLAGS)
-memberof_la_LIBADD = $(LDB_LIBS) $(DHASH_LIBS)
+memberof_la_LIBADD = \
+    libsss_debug.la \
+    $(LDB_LIBS) \
+    $(DHASH_LIBS)
 memberof_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -958,7 +968,6 @@ endif
 
 if BUILD_PYTHON_BINDINGS
 pysss_la_SOURCES = \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ) \
     src/python/pysss.c
 pysss_la_CFLAGS = \
@@ -966,7 +975,8 @@ pysss_la_CFLAGS = \
     $(PYTHON_CFLAGS)
 pysss_la_LIBADD = \
     $(PYTHON_BINDINGS_LIBS) \
-    $(PYTHON_LIBS)
+    $(PYTHON_LIBS) \
+    libsss_util.la
 pysss_la_LDFLAGS = \
     -avoid-version \
     -module
