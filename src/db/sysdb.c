@@ -89,7 +89,7 @@ errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
     return ret;
 }
 
-struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, void *memctx,
                                        const char *domain,
                                        const char *subtree_name)
 {
@@ -107,7 +107,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
                         clean_subtree, domain);
     if (dn) {
         talloc_steal(memctx, dn);
@@ -116,7 +116,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
 
     return dn;
 }
-struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, void *memctx,
                                 const char *domain, const char *object_name,
                                 const char *subtree_name)
 {
@@ -141,7 +141,7 @@ struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM, clean_name,
+    dn = ldb_dn_new_fmt(memctx, sysdb->ldb, SYSDB_TMPL_CUSTOM, clean_name,
                         clean_subtree, domain);
 
 done:
@@ -149,7 +149,7 @@ done:
     return dn;
 }
 
-struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, void *memctx,
                              const char *domain, const char *name)
 {
     errno_t ret;
@@ -161,14 +161,14 @@ struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_USER,
+    dn = ldb_dn_new_fmt(memctx, sysdb->ldb, SYSDB_TMPL_USER,
                         clean_name, domain);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, void *memctx,
                               const char *domain, const char *name)
 {
     errno_t ret;
@@ -180,14 +180,14 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_GROUP,
+    dn = ldb_dn_new_fmt(memctx, sysdb->ldb, SYSDB_TMPL_GROUP,
                         clean_name, domain);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, void *memctx,
                                  const char *domain, const char *name)
 {
     errno_t ret;
@@ -199,20 +199,20 @@ struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *ctx, void *memctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP,
+    dn = ldb_dn_new_fmt(memctx, sysdb->ldb, SYSDB_TMPL_NETGROUP,
                         clean_name, domain);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, void *memctx,
                                  const char *domain)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP_BASE, domain);
+    return ldb_dn_new_fmt(memctx, sysdb->ldb, SYSDB_TMPL_NETGROUP_BASE, domain);
 }
 
-errno_t sysdb_get_rdn(struct sysdb_ctx *ctx, void *memctx,
+errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, void *memctx,
                       const char *_dn, char **_name, char **_val)
 {
     errno_t ret;
@@ -229,7 +229,7 @@ errno_t sysdb_get_rdn(struct sysdb_ctx *ctx, void *memctx,
         return ENOMEM;
     }
 
-    dn = ldb_dn_new_fmt(tmpctx, ctx->ldb, "%s", _dn);
+    dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb, "%s", _dn);
     if (dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -270,21 +270,21 @@ done:
     return ret;
 }
 
-errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
+errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, void *memctx,
                             const char *_dn, char **_name)
 {
-    return sysdb_get_rdn(ctx, memctx, _dn, NULL, _name);
+    return sysdb_get_rdn(sysdb, memctx, _dn, NULL, _name);
 }
 
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, void *memctx,
                               const char *domain)
 {
-    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_DOM_BASE, domain);
+    return ldb_dn_new_fmt(memctx, sysdb->ldb, SYSDB_DOM_BASE, domain);
 }
 
-struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx)
+struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *sysdb)
 {
-    return ctx->ldb;
+    return sysdb->ldb;
 }
 
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx)
@@ -731,33 +731,33 @@ int sysdb_error_to_errno(int ldberr)
 
 /* =Transactions========================================================== */
 
-int sysdb_transaction_start(struct sysdb_ctx *ctx)
+int sysdb_transaction_start(struct sysdb_ctx *sysdb)
 {
     int ret;
 
-    ret = ldb_transaction_start(ctx->ldb);
+    ret = ldb_transaction_start(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
     }
     return sysdb_error_to_errno(ret);
 }
 
-int sysdb_transaction_commit(struct sysdb_ctx *ctx)
+int sysdb_transaction_commit(struct sysdb_ctx *sysdb)
 {
     int ret;
 
-    ret = ldb_transaction_commit(ctx->ldb);
+    ret = ldb_transaction_commit(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
     }
     return sysdb_error_to_errno(ret);
 }
 
-int sysdb_transaction_cancel(struct sysdb_ctx *ctx)
+int sysdb_transaction_cancel(struct sysdb_ctx *sysdb)
 {
     int ret;
 
-    ret = ldb_transaction_cancel(ctx->ldb);
+    ret = ldb_transaction_cancel(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
     }
@@ -968,7 +968,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_context *ldb;
     char *ldb_file;
-    struct sysdb_ctx *ctx;
+    struct sysdb_ctx *sysdb;
     struct sss_domain_info *dom;
     struct ldb_message_element *el;
     struct ldb_message *msg;
@@ -1109,12 +1109,12 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
 
         /* create new dom db */
         ret = sysdb_domain_init_internal(tmp_ctx, dom,
-                                         db_path, false, &ctx);
+                                         db_path, false, &sysdb);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = ldb_transaction_start(ctx->ldb);
+        ret = ldb_transaction_start(sysdb->ldb);
         if (ret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
             ret = EIO;
@@ -1126,8 +1126,8 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
          * copy them all in the new database,
          * then remove them from local */
 
-        domain_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                                   SYSDB_DOM_BASE, ctx->domain->name);
+        domain_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                                   SYSDB_DOM_BASE, sysdb->domain->name);
         if (!domain_dn) {
             ret = ENOMEM;
             goto done;
@@ -1141,14 +1141,14 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        users_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                                 SYSDB_TMPL_USER_BASE, ctx->domain->name);
+        users_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                                 SYSDB_TMPL_USER_BASE, sysdb->domain->name);
         if (!users_dn) {
             ret = ENOMEM;
             goto done;
         }
-        groups_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                                   SYSDB_TMPL_GROUP_BASE, ctx->domain->name);
+        groups_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                                   SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
         if (!groups_dn) {
             ret = ENOMEM;
             goto done;
@@ -1171,19 +1171,19 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
              * casefolding rules (example: name changing from case insensitive
              * to case sensitive) */
             orig_dn = msg->dn;
-            msg->dn = ldb_dn_new(msg, ctx->ldb,
+            msg->dn = ldb_dn_new(msg, sysdb->ldb,
                                  ldb_dn_get_linearized(orig_dn));
             if (!msg->dn) {
                 ret = ENOMEM;
                 goto done;
             }
 
-            ret = ldb_add(ctx->ldb, msg);
+            ret = ldb_add(sysdb->ldb, msg);
             if (ret != LDB_SUCCESS) {
                 DEBUG(0, ("WARNING: Could not add entry %s,"
                           " to new ldb file! (%d [%s])\n",
                           ldb_dn_get_linearized(msg->dn),
-                          ret, ldb_errstring(ctx->ldb)));
+                          ret, ldb_errstring(sysdb->ldb)));
             }
 
             ret = ldb_delete(ldb, orig_dn);
@@ -1220,7 +1220,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
                       ret, ldb_errstring(ldb)));
         }
 
-        ret = ldb_transaction_commit(ctx->ldb);
+        ret = ldb_transaction_commit(sysdb->ldb);
         if (ret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
             ret = EIO;
@@ -1275,7 +1275,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
 done:
     if (ret != EOK) {
         if (ctx_trans) {
-            ret = ldb_transaction_cancel(ctx->ldb);
+            ret = ldb_transaction_cancel(sysdb->ldb);
             if (ret != LDB_SUCCESS) {
                 DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
             }
@@ -1291,20 +1291,20 @@ exit:
     return ret;
 }
 
-static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
+static int sysdb_upgrade_03(struct sysdb_ctx *sysdb, const char **ver)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     struct ldb_message *msg;
 
-    tmp_ctx = talloc_new(ctx);
+    tmp_ctx = talloc_new(sysdb);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
     DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_4));
 
-    ret = ldb_transaction_start(ctx->ldb);
+    ret = ldb_transaction_start(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -1316,7 +1316,7 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@ATTRIBUTES");
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@ATTRIBUTES");
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1328,7 +1328,7 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1340,7 +1340,7 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1357,7 +1357,7 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1366,25 +1366,25 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_4, ver);
+    ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_4, ver);
     talloc_free(tmp_ctx);
     return ret;
 }
 
-static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
+static int sysdb_upgrade_04(struct sysdb_ctx *sysdb, const char **ver)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     struct ldb_message *msg;
 
-    tmp_ctx = talloc_new(ctx);
+    tmp_ctx = talloc_new(sysdb);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
     DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_5));
 
-    ret = ldb_transaction_start(ctx->ldb);
+    ret = ldb_transaction_start(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -1396,7 +1396,7 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@INDEXLIST");
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@INDEXLIST");
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1413,7 +1413,7 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1425,13 +1425,13 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@MEMBEROF-REBUILD");
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@MEMBEROF-REBUILD");
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = ldb_add(ctx->ldb, msg);
+    ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1443,7 +1443,7 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1460,7 +1460,7 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1469,25 +1469,25 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_5, ver);
+    ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_5, ver);
     talloc_free(tmp_ctx);
     return ret;
 }
 
-static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
+static int sysdb_upgrade_05(struct sysdb_ctx *sysdb, const char **ver)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     struct ldb_message *msg;
 
-    tmp_ctx = talloc_new(ctx);
+    tmp_ctx = talloc_new(sysdb);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
     DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_6));
 
-    ret = ldb_transaction_start(ctx->ldb);
+    ret = ldb_transaction_start(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -1499,7 +1499,7 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@INDEXLIST");
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@INDEXLIST");
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1529,7 +1529,7 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1541,7 +1541,7 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1558,7 +1558,7 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1567,25 +1567,25 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_6, ver);
+    ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_6, ver);
     talloc_free(tmp_ctx);
     return ret;
 }
 
-static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
+static int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     struct ldb_message *msg;
 
-    tmp_ctx = talloc_new(ctx);
+    tmp_ctx = talloc_new(sysdb);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
     DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_7));
 
-    ret = ldb_transaction_start(ctx->ldb);
+    ret = ldb_transaction_start(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -1597,7 +1597,7 @@ static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@ATTRIBUTES");
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "@ATTRIBUTES");
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1615,7 +1615,7 @@ static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1627,7 +1627,7 @@ static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, "cn=sysdb");
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1644,7 +1644,7 @@ static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
         goto done;
     }
 
-    ret = ldb_modify(ctx->ldb, msg);
+    ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -1653,7 +1653,7 @@ static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_7, ver);
+    ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_7, ver);
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -1665,7 +1665,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                       struct sysdb_ctx **_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    struct sysdb_ctx *ctx;
+    struct sysdb_ctx *sysdb;
     const char *base_ldif;
     struct ldb_ldif *ldif;
     struct ldb_message *msg;
@@ -1675,45 +1675,45 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     const char *version = NULL;
     int ret;
 
-    ctx = talloc_zero(mem_ctx, struct sysdb_ctx);
-    if (!ctx) {
+    sysdb = talloc_zero(mem_ctx, struct sysdb_ctx);
+    if (!sysdb) {
         return ENOMEM;
     }
-    ctx->domain = domain;
+    sysdb->domain = domain;
 
     /* The local provider s the only true MPG,
      * for the other domains, the provider actually unrolls MPGs */
     if (strcasecmp(domain->provider, "local") == 0) {
-        ctx->mpg = true;
+        sysdb->mpg = true;
     }
 
-    ret = sysdb_get_db_file(ctx, domain->provider,
+    ret = sysdb_get_db_file(sysdb, domain->provider,
                             domain->name, db_path,
-                            &ctx->ldb_file);
+                            &sysdb->ldb_file);
     if (ret != EOK) {
         goto done;
     }
-    DEBUG(5, ("DB File for %s: %s\n", domain->name, ctx->ldb_file));
+    DEBUG(5, ("DB File for %s: %s\n", domain->name, sysdb->ldb_file));
 
-    ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+    ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_ldb_connect failed.\n"));
         goto done;
     }
 
-    tmp_ctx = talloc_new(ctx);
+    tmp_ctx = talloc_new(sysdb);
     if (!tmp_ctx) {
         ret = ENOMEM;
         goto done;
     }
 
-    verdn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
+    verdn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
     if (!verdn) {
         ret = EIO;
         goto done;
     }
 
-    ret = ldb_search(ctx->ldb, tmp_ctx, &res,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
                      verdn, LDB_SCOPE_BASE,
                      NULL, NULL);
     if (ret != LDB_SUCCESS) {
@@ -1757,28 +1757,28 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                       domain->name, version));
 
             if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
-                ret = sysdb_upgrade_03(ctx, &version);
+                ret = sysdb_upgrade_03(sysdb, &version);
                 if (ret != EOK) {
                     goto done;
                 }
             }
 
             if (strcmp(version, SYSDB_VERSION_0_4) == 0) {
-                ret = sysdb_upgrade_04(ctx, &version);
+                ret = sysdb_upgrade_04(sysdb, &version);
                 if (ret != EOK) {
                     goto done;
                 }
             }
 
             if (strcmp(version, SYSDB_VERSION_0_5) == 0) {
-                ret = sysdb_upgrade_05(ctx, &version);
+                ret = sysdb_upgrade_05(sysdb, &version);
                 if (ret != EOK) {
                     goto done;
                 }
             }
 
             if (strcmp(version, SYSDB_VERSION_0_6) == 0) {
-                ret = sysdb_upgrade_06(ctx, &version);
+                ret = sysdb_upgrade_06(sysdb, &version);
                 if (ret != EOK) {
                     goto done;
                 }
@@ -1795,8 +1795,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                  * We need to reopen the LDB to ensure that
                  * any changes made above take effect.
                  */
-                talloc_zfree(ctx->ldb);
-                ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+                talloc_zfree(sysdb->ldb);
+                ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
                 if (ret != EOK) {
                     DEBUG(1, ("sysdb_ldb_connect failed.\n"));
                 }
@@ -1813,15 +1813,15 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* SYSDB_BASE does not exists, means db is empty, populate */
 
     base_ldif = SYSDB_BASE_LDIF;
-    while ((ldif = ldb_ldif_read_string(ctx->ldb, &base_ldif))) {
-        ret = ldb_add(ctx->ldb, ldif->msg);
+    while ((ldif = ldb_ldif_read_string(sysdb->ldb, &base_ldif))) {
+        ret = ldb_add(sysdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
             DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                      ret, ldb_errstring(ctx->ldb), domain->name));
+                      ret, ldb_errstring(sysdb->ldb), domain->name));
             ret = EIO;
             goto done;
         }
-        ldb_ldif_read_free(ctx->ldb, ldif);
+        ldb_ldif_read_free(sysdb->ldb, ldif);
     }
 
     /* == create base domain object == */
@@ -1831,7 +1831,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, ctx->ldb, SYSDB_DOM_BASE, domain->name);
+    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -1842,10 +1842,10 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
     /* do a synchronous add */
-    ret = ldb_add(ctx->ldb, msg);
+    ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                  ret, ldb_errstring(ctx->ldb), domain->name));
+                  ret, ldb_errstring(sysdb->ldb), domain->name));
         ret = EIO;
         goto done;
     }
@@ -1858,7 +1858,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, ctx->ldb,
+    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
                              SYSDB_TMPL_USER_BASE, domain->name);
     if (!msg->dn) {
         ret = ENOMEM;
@@ -1870,10 +1870,10 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
     /* do a synchronous add */
-    ret = ldb_add(ctx->ldb, msg);
+    ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                  ret, ldb_errstring(ctx->ldb), domain->name));
+                  ret, ldb_errstring(sysdb->ldb), domain->name));
         ret = EIO;
         goto done;
     }
@@ -1886,7 +1886,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, ctx->ldb,
+    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
                              SYSDB_TMPL_GROUP_BASE, domain->name);
     if (!msg->dn) {
         ret = ENOMEM;
@@ -1898,10 +1898,10 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
     /* do a synchronous add */
-    ret = ldb_add(ctx->ldb, msg);
+    ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                  ret, ldb_errstring(ctx->ldb), domain->name));
+                  ret, ldb_errstring(sysdb->ldb), domain->name));
         ret = EIO;
         goto done;
     }
@@ -1913,8 +1913,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
      * (such as enabling the memberOf plugin and
      * the various indexes).
      */
-    talloc_zfree(ctx->ldb);
-    ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+    talloc_zfree(sysdb->ldb);
+    ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_ldb_connect failed.\n"));
     }
@@ -1922,9 +1922,9 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     if (ret == EOK) {
-        *_ctx = ctx;
+        *_ctx = sysdb;
     } else {
-        talloc_free(ctx);
+        talloc_free(sysdb);
     }
     return ret;
 }
@@ -1937,7 +1937,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 {
     struct sysdb_ctx_list *ctx_list;
     struct sss_domain_info *domains, *dom;
-    struct sysdb_ctx *ctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     ctx_list = talloc_zero(mem_ctx, struct sysdb_ctx_list);
@@ -1984,13 +1984,13 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 
         ret = sysdb_domain_init_internal(ctx_list, dom,
                                          ctx_list->db_path,
-                                         allow_upgrade, &ctx);
+                                         allow_upgrade, &sysdb);
         if (ret != EOK) {
             talloc_zfree(ctx_list);
             return ret;
         }
 
-        ctx_list->dbs[ctx_list->num_dbs] = ctx;
+        ctx_list->dbs[ctx_list->num_dbs] = sysdb;
         ctx_list->num_dbs++;
     }
     if (ctx_list->num_dbs == 0) {
@@ -2015,7 +2015,7 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
 
 int sysdb_list_init(TALLOC_CTX *mem_ctx,
                     const char *path,
-                    struct sysdb_ctx *ctx,
+                    struct sysdb_ctx *sysdb,
                     struct sysdb_ctx_list **_list)
 {
     struct sysdb_ctx_list *list;
@@ -2034,7 +2034,7 @@ int sysdb_list_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    if (ctx) {
+    if (sysdb) {
         list->num_dbs = 1;
         list->dbs = talloc_array(list, struct sysdb_ctx *, list->num_dbs);
         if (!list->dbs) {
@@ -2043,7 +2043,7 @@ int sysdb_list_init(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        list->dbs[0] = talloc_steal(list, ctx);
+        list->dbs[0] = talloc_steal(list, sysdb);
     }
 
     *_list = list;
@@ -2056,17 +2056,17 @@ fail:
 
 int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
                             struct sss_domain_info *domain,
-                            struct sysdb_ctx **ctx)
+                            struct sysdb_ctx **sysdb)
 {
     int i;
 
     for (i = 0; i < ctx_list->num_dbs; i++) {
         if (ctx_list->dbs[i]->domain == domain) {
-            *ctx = ctx_list->dbs[i];
+            *sysdb = ctx_list->dbs[i];
             return EOK;
         }
         if (strcasecmp(ctx_list->dbs[i]->domain->name, domain->name) == 0) {
-            *ctx = ctx_list->dbs[i];
+            *sysdb = ctx_list->dbs[i];
             return EOK;
         }
     }
@@ -2193,7 +2193,7 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
     return EOK;
 }
 
-errno_t sysdb_has_enumerated(struct sysdb_ctx *ctx,
+errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *dom,
                              bool *has_enumerated)
 {
@@ -2212,7 +2212,7 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *ctx,
         goto done;
     }
 
-    base_dn = ldb_dn_new_fmt(tmpctx, ctx->ldb,
+    base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
                              SYSDB_DOM_BASE,
                              dom->name);
     if (!base_dn) {
@@ -2220,7 +2220,7 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *ctx,
         goto done;
     }
 
-    lret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
+    lret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
                       LDB_SCOPE_BASE, attributes, NULL);
     if (lret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(lret);
@@ -2257,7 +2257,7 @@ done:
     return ret;
 }
 
-errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
+errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *dom,
                              bool enumerated)
 {
@@ -2274,7 +2274,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                         SYSDB_DOM_BASE,
                         dom->name);
     if (!dn) {
@@ -2282,7 +2282,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
         goto done;
     }
 
-    lret = ldb_search(ctx->ldb, tmp_ctx, &res,
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res,
                       dn, LDB_SCOPE_BASE,
                       NULL, NULL);
     if (lret != LDB_SUCCESS) {
@@ -2323,9 +2323,9 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *ctx,
     }
 
     if (res->count) {
-        lret = ldb_modify(ctx->ldb, msg);
+        lret = ldb_modify(sysdb->ldb, msg);
     } else {
-        lret = ldb_add(ctx->ldb, msg);
+        lret = ldb_add(sysdb->ldb, msg);
     }
 
     ret = sysdb_error_to_errno(lret);
