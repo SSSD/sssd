@@ -193,7 +193,6 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
 
 int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain,
                               const char *name,
                               const char **attrs,
                               struct ldb_message **msg)
@@ -210,7 +209,7 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_user_dn(sysdb, tmpctx, domain->name, name);
+    basedn = sysdb_user_dn(sysdb, tmpctx, sysdb->domain->name, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -234,7 +233,6 @@ done:
 
 int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
                              struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
                              uid_t uid,
                              const char **attrs,
                              struct ldb_message **msg)
@@ -253,7 +251,7 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+                            SYSDB_TMPL_USER_BASE, sysdb->domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -291,7 +289,6 @@ done:
 
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *sysdb,
-                               struct sss_domain_info *domain,
                                const char *name,
                                const char **attrs,
                                struct ldb_message **msg)
@@ -308,7 +305,7 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_group_dn(sysdb, tmpctx, domain->name, name);
+    basedn = sysdb_group_dn(sysdb, tmpctx, sysdb->domain->name, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -332,7 +329,6 @@ done:
 
 int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain,
                               gid_t gid,
                               const char **attrs,
                               struct ldb_message **msg)
@@ -351,7 +347,7 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, domain->name);
+                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -389,7 +385,6 @@ done:
 
 int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
                                   struct sysdb_ctx *sysdb,
-                                  struct sss_domain_info *domain,
                                   const char *name,
                                   const char **attrs,
                                   struct ldb_message **msg)
@@ -406,7 +401,7 @@ int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_netgroup_dn(sysdb, tmpctx, domain->name, name);
+    basedn = sysdb_netgroup_dn(sysdb, tmpctx, sysdb->domain->name, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -479,18 +474,13 @@ fail:
 
 int sysdb_set_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attrs,
                         int mod_op)
 {
     struct ldb_dn *dn;
 
-    if (!domain) {
-        domain = sysdb->domain;
-    }
-
-    dn = sysdb_user_dn(sysdb, mem_ctx, domain->name, name);
+    dn = sysdb_user_dn(sysdb, mem_ctx, sysdb->domain->name, name);
     if (!dn) {
         return ENOMEM;
     }
@@ -503,14 +493,13 @@ int sysdb_set_user_attr(TALLOC_CTX *mem_ctx,
 
 int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op)
 {
     struct ldb_dn *dn;
 
-    dn = sysdb_group_dn(sysdb, mem_ctx, domain->name, name);
+    dn = sysdb_group_dn(sysdb, mem_ctx, sysdb->domain->name, name);
     if (!dn) {
         return ENOMEM;
     }
@@ -521,7 +510,6 @@ int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
 /* =Replace-Attributes-On-Netgroup=========================================== */
 
 int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
-                            struct sss_domain_info *domain,
                             const char *name,
                             struct sysdb_attrs *attrs,
                             int mod_op)
@@ -535,11 +523,7 @@ int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    if (domain == NULL) {
-        domain = sysdb->domain;
-    }
-
-    dn = sysdb_netgroup_dn(sysdb, tmp_ctx, domain->name, name);
+    dn = sysdb_netgroup_dn(sysdb, tmp_ctx, sysdb->domain->name, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -556,7 +540,6 @@ done:
 
 int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
                      uint32_t *_id)
 {
     TALLOC_CTX *tmpctx;
@@ -571,6 +554,8 @@ int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
     uint32_t id;
     int ret;
     int i;
+
+    struct sss_domain_info *domain = sysdb->domain;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -722,7 +707,6 @@ done:
 
 int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *name,
                          uid_t uid, gid_t gid,
                          const char *gecos,
@@ -738,7 +722,7 @@ int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
     }
 
     /* user dn */
-    msg->dn = sysdb_user_dn(sysdb, msg, domain->name, name);
+    msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain->name, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -797,7 +781,6 @@ done:
 
 int sysdb_add_user(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
-                   struct sss_domain_info *domain,
                    const char *name,
                    uid_t uid, gid_t gid,
                    const char *gecos,
@@ -812,6 +795,8 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
     uint32_t id;
     time_t now;
     int ret;
+
+    struct sss_domain_info *domain = sysdb->domain;
 
     if (sysdb->mpg) {
         if (gid != 0) {
@@ -854,7 +839,7 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
          * name the operation will fail */
 
         ret = sysdb_search_group_by_name(tmpctx, sysdb,
-                                         domain, name, NULL, &msg);
+                                         name, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
             goto done;
@@ -864,7 +849,7 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
     /* check no other user with the same uid exist */
     if (uid != 0) {
         ret = sysdb_search_user_by_uid(tmpctx, sysdb,
-                                       domain, uid, NULL, &msg);
+                                       uid, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
             goto done;
@@ -873,12 +858,12 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
 
     /* try to add the user */
     ret = sysdb_add_basic_user(tmpctx, sysdb,
-                               domain, name, uid, gid,
+                               name, uid, gid,
                                gecos, homedir, shell);
     if (ret) goto done;
 
     if (uid == 0) {
-        ret = sysdb_get_new_id(tmpctx, sysdb, domain, &id);
+        ret = sysdb_get_new_id(tmpctx, sysdb, &id);
         if (ret) goto done;
 
         id_attrs = sysdb_new_attrs(tmpctx);
@@ -895,7 +880,7 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
         }
 
         ret = sysdb_set_user_attr(tmpctx, sysdb,
-                                  domain, name, id_attrs, SYSDB_MOD_REP);
+                                  name, id_attrs, SYSDB_MOD_REP);
         goto done;
     }
 
@@ -918,7 +903,7 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
     if (ret) goto done;
 
     ret = sysdb_set_user_attr(tmpctx, sysdb,
-                              domain, name, attrs, SYSDB_MOD_REP);
+                              name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret == EOK) {
@@ -933,7 +918,6 @@ done:
 }
 
 int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
                         const char *name,
                         const char *original_dn)
 {
@@ -953,7 +937,7 @@ int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
     }
 
     /* user dn */
-    msg->dn = sysdb_user_dn(sysdb, msg, domain->name, name);
+    msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain->name, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1005,7 +989,6 @@ done:
 
 int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
                           const char *name, gid_t gid)
 {
     struct ldb_message *msg;
@@ -1017,7 +1000,7 @@ int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,
     }
 
     /* group dn */
-    msg->dn = sysdb_group_dn(sysdb, msg, domain->name, name);
+    msg->dn = sysdb_group_dn(sysdb, msg, sysdb->domain->name, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1052,7 +1035,6 @@ done:
 
 int sysdb_add_group(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
-                    struct sss_domain_info *domain,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
                     int cache_timeout)
@@ -1063,6 +1045,8 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     time_t now;
     int ret;
     bool posix;
+
+    struct sss_domain_info *domain = sysdb->domain;
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
@@ -1090,7 +1074,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
          * name the operation will fail */
 
         ret = sysdb_search_user_by_name(tmpctx, sysdb,
-                                        domain, name, NULL, &msg);
+                                        name, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
             goto done;
@@ -1100,7 +1084,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     /* check no other groups with the same gid exist */
     if (gid != 0) {
         ret = sysdb_search_group_by_gid(tmpctx, sysdb,
-                                        domain, gid, NULL, &msg);
+                                        gid, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
             goto done;
@@ -1108,7 +1092,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(tmpctx, sysdb, domain, name, gid);
+    ret = sysdb_add_basic_group(tmpctx, sysdb, name, gid);
     if (ret) goto done;
 
     if (!attrs) {
@@ -1129,7 +1113,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     }
 
     if (posix && gid == 0) {
-        ret = sysdb_get_new_id(tmpctx, sysdb, domain, &id);
+        ret = sysdb_get_new_id(tmpctx, sysdb, &id);
         if (ret) goto done;
 
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, id);
@@ -1147,7 +1131,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     if (ret) goto done;
 
     ret = sysdb_set_group_attr(tmpctx, sysdb,
-                               domain, name, attrs, SYSDB_MOD_REP);
+                               name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret == EOK) {
@@ -1162,7 +1146,6 @@ done:
 }
 
 int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
-                               struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
                                const char *original_dn,
@@ -1179,7 +1162,7 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(tmpctx, sysdb, domain, name, gid);
+    ret = sysdb_add_basic_group(tmpctx, sysdb, name, gid);
     if (ret) goto done;
 
     attrs = sysdb_new_attrs(tmpctx);
@@ -1206,7 +1189,7 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_set_group_attr(tmpctx, sysdb,
-                               domain, name, attrs, SYSDB_MOD_REP);
+                               name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret != EOK) {
@@ -1264,7 +1247,6 @@ fail:
 /* =Add-Basic-Netgroup-NO-CHECKS============================================= */
 
 int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
                              const char *name, const char *description)
 {
     struct ldb_message *msg;
@@ -1276,7 +1258,7 @@ int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
     }
 
     /* netgroup dn */
-    msg->dn = sysdb_netgroup_dn(sysdb, msg, domain->name, name);
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain->name, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1314,7 +1296,6 @@ done:
 /* =Add-Netgroup-Function==================================================== */
 
 int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
@@ -1337,7 +1318,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
     }
 
     /* try to add the netgroup */
-    ret = sysdb_add_basic_netgroup(sysdb, domain, name, description);
+    ret = sysdb_add_basic_netgroup(sysdb, name, description);
     if (ret && ret != EEXIST) goto done;
 
     if (!attrs) {
@@ -1358,7 +1339,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_netgroup_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_netgroup_attr(sysdb, name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret == EOK) {
@@ -1381,7 +1362,6 @@ done:
 
 int sysdb_store_user(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
                      const char *name,
                      const char *pwd,
                      uid_t uid, gid_t gid,
@@ -1404,10 +1384,6 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (!domain) {
-        domain = sysdb->domain;
-    }
-
     if (!attrs) {
         attrs = sysdb_new_attrs(tmpctx);
         if (!attrs) {
@@ -1416,7 +1392,7 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
         }
     }
 
-    if (pwd && (domain->legacy_passwords || !*pwd)) {
+    if (pwd && (sysdb->domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
         if (ret) goto done;
     }
@@ -1427,14 +1403,14 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
     in_transaction = true;
 
     ret = sysdb_search_user_by_name(tmpctx, sysdb,
-                                    domain, name, NULL, &msg);
+                                    name, NULL, &msg);
     if (ret && ret != ENOENT) {
         goto done;
     }
 
     if (ret == ENOENT) {
         /* users doesn't exist, turn into adding a user */
-        ret = sysdb_add_user(tmpctx, sysdb, domain, name, uid, gid,
+        ret = sysdb_add_user(tmpctx, sysdb, name, uid, gid,
                              gecos, homedir, shell, attrs, cache_timeout);
         goto done;
     }
@@ -1481,11 +1457,11 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
     if (ret) goto done;
 
     ret = sysdb_set_user_attr(tmpctx, sysdb,
-                              domain, name, attrs, SYSDB_MOD_REP);
+                              name, attrs, SYSDB_MOD_REP);
     if (ret != EOK) goto done;
 
     if (remove_attrs) {
-        ret = sysdb_remove_attrs(sysdb, domain, name,
+        ret = sysdb_remove_attrs(sysdb, name,
                                     SYSDB_MEMBER_USER,
                                     remove_attrs);
         if (ret != EOK) {
@@ -1522,7 +1498,6 @@ done:
 
 int sysdb_store_group(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx *sysdb,
-                      struct sss_domain_info *domain,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,
@@ -1541,12 +1516,8 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (!domain) {
-        domain = sysdb->domain;
-    }
-
     ret = sysdb_search_group_by_name(tmpctx, sysdb,
-                                     domain, name, src_attrs, &msg);
+                                     name, src_attrs, &msg);
     if (ret && ret != ENOENT) {
         goto done;
     }
@@ -1568,7 +1539,7 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
     if (new_group) {
         /* group doesn't exist, turn into adding a group */
         ret = sysdb_add_group(tmpctx, sysdb,
-                              domain, name, gid, attrs, cache_timeout);
+                              name, gid, attrs, cache_timeout);
         goto done;
     }
 
@@ -1589,8 +1560,7 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
     if (ret) goto done;
 
     ret = sysdb_set_group_attr(tmpctx, sysdb,
-                               domain, name,
-                               attrs, SYSDB_MOD_REP);
+                               name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret) {
@@ -1605,7 +1575,6 @@ done:
 
 
 int sysdb_add_group_member(struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
                            const char *group,
                            const char *member,
                            enum sysdb_member_type type)
@@ -1618,20 +1587,20 @@ int sysdb_add_group_member(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    group_dn = sysdb_group_dn(sysdb, tmp_ctx, domain->name, group);
+    group_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, group);
     if (!group_dn) {
         ret = ENOMEM;
         goto done;
     }
 
     if (type == SYSDB_MEMBER_USER) {
-        member_dn = sysdb_user_dn(sysdb, tmp_ctx, domain->name, member);
+        member_dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
         }
     } else if (type == SYSDB_MEMBER_GROUP) {
-        member_dn = sysdb_group_dn(sysdb, tmp_ctx, domain->name, member);
+        member_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
@@ -1654,7 +1623,6 @@ done:
 
 
 int sysdb_remove_group_member(struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain,
                               const char *group,
                               const char *member,
                               enum sysdb_member_type type)
@@ -1667,20 +1635,20 @@ int sysdb_remove_group_member(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    group_dn = sysdb_group_dn(sysdb, tmp_ctx, domain->name, group);
+    group_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, group);
     if (!group_dn) {
         ret = ENOMEM;
         goto done;
     }
 
     if (type == SYSDB_MEMBER_USER) {
-        member_dn = sysdb_user_dn(sysdb, tmp_ctx, domain->name, member);
+        member_dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
         }
     } else if (type == SYSDB_MEMBER_GROUP) {
-        member_dn = sysdb_group_dn(sysdb, tmp_ctx, domain->name, member);
+        member_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
@@ -1702,7 +1670,6 @@ done:
 
 int sysdb_cache_password(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *username,
                          const char *password)
 {
@@ -1747,7 +1714,7 @@ int sysdb_cache_password(TALLOC_CTX *mem_ctx,
 
 
     ret = sysdb_set_user_attr(tmpctx, sysdb,
-                              domain, username, attrs, SYSDB_MOD_REP);
+                              username, attrs, SYSDB_MOD_REP);
     if (ret) {
         goto fail;
     }
@@ -1766,7 +1733,6 @@ fail:
 
 int sysdb_search_custom(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
                         const char *filter,
                         const char *subtree_name,
                         const char **attrs,
@@ -1781,7 +1747,7 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
     }
 
     basedn = sysdb_custom_subtree_dn(sysdb, mem_ctx,
-                                     domain->name, subtree_name);
+                                     sysdb->domain->name, subtree_name);
     if (basedn == NULL) {
         DEBUG(1, ("sysdb_custom_subtree_dn failed.\n"));
         return ENOMEM;
@@ -1799,7 +1765,6 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
 
 int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
                                 struct sysdb_ctx *sysdb,
-                                struct sss_domain_info *domain,
                                 const char *object_name,
                                 const char *subtree_name,
                                 const char **attrs,
@@ -1822,7 +1787,7 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
     }
 
     basedn = sysdb_custom_dn(sysdb, tmpctx,
-                             domain->name, object_name, subtree_name);
+                             sysdb->domain->name, object_name, subtree_name);
     if (basedn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
@@ -1859,7 +1824,6 @@ done:
 
 int sysdb_store_custom(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
                        const char *object_name,
                        const char *subtree_name,
                        struct sysdb_attrs *attrs)
@@ -1890,7 +1854,7 @@ int sysdb_store_custom(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_search_custom_by_name(tmpctx, sysdb,
-                                      domain, object_name, subtree_name,
+                                      object_name, subtree_name,
                                       search_attrs, &resp_count, &resp);
     if (ret != EOK && ret != ENOENT) {
         goto done;
@@ -1907,7 +1871,7 @@ int sysdb_store_custom(TALLOC_CTX *mem_ctx,
     }
 
     msg->dn = sysdb_custom_dn(sysdb, tmpctx,
-                              domain->name, object_name, subtree_name);
+                              sysdb->domain->name, object_name, subtree_name);
     if (!msg->dn) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
@@ -1962,7 +1926,6 @@ done:
 
 int sysdb_delete_custom(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
                         const char *object_name,
                         const char *subtree_name)
 {
@@ -1979,7 +1942,7 @@ int sysdb_delete_custom(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    dn = sysdb_custom_dn(sysdb, tmpctx, domain->name, object_name, subtree_name);
+    dn = sysdb_custom_dn(sysdb, tmpctx, sysdb->domain->name, object_name, subtree_name);
     if (dn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
@@ -2010,7 +1973,6 @@ done:
 
 int sysdb_asq_search(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
                      struct ldb_dn *base_dn,
                      const char *expression,
                      const char *asq_attribute,
@@ -2100,7 +2062,6 @@ fail:
 
 int sysdb_search_users(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
                        const char *sub_filter,
                        const char **attrs,
                        size_t *msgs_count,
@@ -2116,12 +2077,8 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (!domain) {
-        domain = sysdb->domain;
-    }
-
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+                            SYSDB_TMPL_USER_BASE, sysdb->domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
         ret = ENOMEM;
@@ -2157,7 +2114,6 @@ fail:
 
 int sysdb_delete_user(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx *sysdb,
-                      struct sss_domain_info *domain,
                       const char *name, uid_t uid)
 {
     TALLOC_CTX *tmpctx;
@@ -2171,10 +2127,10 @@ int sysdb_delete_user(TALLOC_CTX *mem_ctx,
 
     if (name) {
         ret = sysdb_search_user_by_name(tmpctx, sysdb,
-                                        domain, name, NULL, &msg);
+                                        name, NULL, &msg);
     } else {
         ret = sysdb_search_user_by_uid(tmpctx, sysdb,
-                                       domain, uid, NULL, &msg);
+                                       uid, NULL, &msg);
     }
     if (ret) {
         goto fail;
@@ -2218,7 +2174,6 @@ fail:
 
 int sysdb_search_groups(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
                         const char *sub_filter,
                         const char **attrs,
                         size_t *msgs_count,
@@ -2234,12 +2189,8 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (!domain) {
-        domain = sysdb->domain;
-    }
-
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, domain->name);
+                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
         ret = ENOMEM;
@@ -2275,7 +2226,6 @@ fail:
 
 int sysdb_delete_group(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
                        const char *name, gid_t gid)
 {
     TALLOC_CTX *tmpctx;
@@ -2289,10 +2239,10 @@ int sysdb_delete_group(TALLOC_CTX *mem_ctx,
 
     if (name) {
         ret = sysdb_search_group_by_name(tmpctx, sysdb,
-                                         domain, name, NULL, &msg);
+                                         name, NULL, &msg);
     } else {
         ret = sysdb_search_group_by_gid(tmpctx, sysdb,
-                                        domain, gid, NULL, &msg);
+                                        gid, NULL, &msg);
     }
     if (ret) {
         goto fail;
@@ -2335,7 +2285,6 @@ fail:
 
 int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
                            const char *sub_filter,
                            const char **attrs,
                            size_t *msgs_count,
@@ -2351,12 +2300,8 @@ int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (domain == NULL) {
-        domain = sysdb->domain;
-    }
-
     basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
-                            SYSDB_TMPL_NETGROUP_BASE, domain->name);
+                            SYSDB_TMPL_NETGROUP_BASE, sysdb->domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
         ret = ENOMEM;
@@ -2391,7 +2336,6 @@ fail:
 /* =Delete-Netgroup-by-Name============================================== */
 
 int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
                           const char *name)
 {
     TALLOC_CTX *tmp_ctx;
@@ -2406,7 +2350,7 @@ int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb,
-                                        domain, name, NULL, &msg);
+                                        name, NULL, &msg);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(6, ("sysdb_search_netgroup_by_name failed: %d (%s)\n",
                    ret, strerror(ret)));
@@ -2495,7 +2439,6 @@ errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx,
 
 int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
                      const char *name,
                      const uint8_t *authtok,
                      size_t authtok_size,
@@ -2539,7 +2482,7 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    if (!domain->cache_credentials) {
+    if (!sysdb->domain->cache_credentials) {
         DEBUG(3, ("Cached credentials not available.\n"));
         return EINVAL;
     }
@@ -2557,7 +2500,7 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_search_user_by_name(tmpctx, sysdb,
-                                    domain, name, attrs, &ldb_msg);
+                                    name, attrs, &ldb_msg);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_search_user_by_name failed [%d][%s].\n",
                   ret, strerror(ret)));
@@ -2679,7 +2622,7 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_set_user_attr(tmpctx, sysdb,
-                              domain, name, update_attrs,
+                              name, update_attrs,
                               LDB_FLAG_MOD_REPLACE);
     if (ret) {
         DEBUG(1, ("Failed to update Login attempt information!\n"));
@@ -2713,7 +2656,6 @@ done:
 }
 
 errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
                              const char *member,
                              enum sysdb_member_type type,
                              const char *const *add_groups,
@@ -2736,8 +2678,7 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
     if (add_groups) {
         /* Add the user to all add_groups */
         for (i = 0; add_groups[i]; i++) {
-            ret = sysdb_add_group_member(sysdb, domain,
-                                         add_groups[i], member,
+            ret = sysdb_add_group_member(sysdb, add_groups[i], member,
                                          type);
             if (ret != EOK) {
                 DEBUG(1, ("Could not add member [%s] to group [%s]. "
@@ -2750,8 +2691,7 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
     if (del_groups) {
         /* Remove the user from all del_groups */
         for (i = 0; del_groups[i]; i++) {
-            ret = sysdb_remove_group_member(sysdb, domain,
-                                            del_groups[i], member,
+            ret = sysdb_remove_group_member(sysdb, del_groups[i], member,
                                             type);
             if (ret != EOK) {
                 DEBUG(1, ("Could not remove member [%s] from group [%s]. "
@@ -2772,29 +2712,26 @@ done:
 }
 
 errno_t sysdb_add_netgroup_tuple(struct sysdb_ctx *sysdb,
-                                 struct sss_domain_info *domain,
                                  const char *netgroup,
                                  const char *hostname,
                                  const char *username,
                                  const char *domainname)
 {
-    return sysdb_mod_netgroup_tuple(sysdb, domain, netgroup, hostname,
+    return sysdb_mod_netgroup_tuple(sysdb, netgroup, hostname,
                                     username, domainname, SYSDB_MOD_ADD);
 }
 
 errno_t sysdb_remove_netgroup_tuple(struct sysdb_ctx *sysdb,
-                                    struct sss_domain_info *domain,
                                     const char *netgroup,
                                     const char *hostname,
                                     const char *username,
                                     const char *domainname)
 {
-    return sysdb_mod_netgroup_tuple(sysdb, domain, netgroup, hostname,
+    return sysdb_mod_netgroup_tuple(sysdb, netgroup, hostname,
                                     username, domainname, SYSDB_MOD_DEL);
 }
 
 errno_t sysdb_mod_netgroup_tuple(struct sysdb_ctx *sysdb,
-                                 struct sss_domain_info *domain,
                                  const char *netgroup,
                                  const char *hostname,
                                  const char *username,
@@ -2811,7 +2748,7 @@ errno_t sysdb_mod_netgroup_tuple(struct sysdb_ctx *sysdb,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    msg->dn = sysdb_netgroup_dn(sysdb, msg, domain->name, netgroup);
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain->name, netgroup);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -2839,25 +2776,22 @@ done:
 }
 
 errno_t sysdb_add_netgroup_member(struct sysdb_ctx *sysdb,
-                                  struct sss_domain_info *domain,
                                   const char *netgroup,
                                   const char *member_netgroup)
 {
-    return sysdb_mod_netgroup_member(sysdb, domain, netgroup,
+    return sysdb_mod_netgroup_member(sysdb, netgroup,
                                      member_netgroup, SYSDB_MOD_ADD);
 }
 
 errno_t sysdb_remove_netgroup_member(struct sysdb_ctx *sysdb,
-                                  struct sss_domain_info *domain,
                                   const char *netgroup,
                                   const char *member_netgroup)
 {
-    return sysdb_mod_netgroup_member(sysdb, domain, netgroup,
+    return sysdb_mod_netgroup_member(sysdb, netgroup,
                                      member_netgroup, SYSDB_MOD_DEL);
 }
 
 errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
-                                  struct sss_domain_info *domain,
                                   const char *netgroup,
                                   const char *member_netgroup,
                                   int mod_op)
@@ -2872,13 +2806,13 @@ errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    msg->dn = sysdb_netgroup_dn(sysdb, msg, domain->name, netgroup);
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain->name, netgroup);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
 
     member = talloc_asprintf(msg, SYSDB_TMPL_NETGROUP,
-                             member_netgroup, domain->name);
+                             member_netgroup, sysdb->domain->name);
     if (!member) {
         ret = ENOMEM;
         goto done;
@@ -2901,7 +2835,6 @@ done:
 }
 
 errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
                            const char *name,
                            enum sysdb_member_type type,
                            char **remove_attrs)
@@ -2917,13 +2850,13 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
     if (!msg) return ENOMEM;
 
     if (type == SYSDB_MEMBER_USER) {
-        msg->dn = sysdb_user_dn(sysdb, msg, domain->name, name);
+        msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain->name, name);
         if (!msg->dn) {
             ret = ENOMEM;
             goto done;
         }
     } else if (type == SYSDB_MEMBER_GROUP) {
-        msg->dn = sysdb_group_dn(sysdb, msg, domain->name, name);
+        msg->dn = sysdb_group_dn(sysdb, msg, sysdb->domain->name, name);
         if (!msg->dn) {
             ret = ENOMEM;
             goto done;

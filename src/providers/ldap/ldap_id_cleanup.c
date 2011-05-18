@@ -245,7 +245,6 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
 {
     TALLOC_CTX *tmpctx;
     struct sysdb_ctx *sysdb = ctx->be->sysdb;
-    struct sss_domain_info *domain = ctx->be->domain;
     const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
@@ -291,7 +290,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
     }
 
     ret = sysdb_search_users(tmpctx, sysdb,
-                             domain, subfilter, attrs, &count, &msgs);
+                             subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {
             ret = EOK;
@@ -337,7 +336,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
 
         /* If not logged in or cannot check the table, delete him */
         DEBUG(9, ("About to delete user %s\n", name));
-        ret = sysdb_delete_user(tmpctx, sysdb, domain, name, 0);
+        ret = sysdb_delete_user(tmpctx, sysdb, name, 0);
         if (ret) {
             goto done;
         }
@@ -412,7 +411,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     }
 
     ret = sysdb_search_groups(tmpctx, sysdb,
-                              domain, subfilter, attrs, &count, &msgs);
+                              subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {
             ret = EOK;
@@ -453,7 +452,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         }
 
         ret = sysdb_search_users(tmpctx, sysdb,
-                                 domain, subfilter, NULL, &u_count, &u_msgs);
+                                 subfilter, NULL, &u_count, &u_msgs);
         if (ret == ENOENT) {
             const char *name;
 
@@ -466,7 +465,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             }
 
             DEBUG(8, ("About to delete group %s\n", name));
-            ret = sysdb_delete_group(tmpctx, sysdb, domain, name, 0);
+            ret = sysdb_delete_group(tmpctx, sysdb, name, 0);
             if (ret) {
                 DEBUG(2, ("Group delete returned %d (%s)\n",
                           ret, strerror(ret)));

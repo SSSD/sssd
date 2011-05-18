@@ -105,7 +105,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(tmp_ctx, ctx->sysdb, ctx->domain,
+    ret = sysdb_search_user_by_name(tmp_ctx, ctx->sysdb,
                                     username, user_attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not look up username [%s]: [%d][%s]\n",
@@ -153,7 +153,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
     }
     talloc_zfree(msg);
 
-    ret = sysdb_search_group_by_gid(tmp_ctx, ctx->sysdb, ctx->domain,
+    ret = sysdb_search_group_by_gid(tmp_ctx, ctx->sysdb,
                                     gid, group_attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not look up primary group [%lu]: [%d][%s]\n",

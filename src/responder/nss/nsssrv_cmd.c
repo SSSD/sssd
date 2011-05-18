@@ -744,7 +744,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getpwnam(cmdctx, sysdb, dom, name, &dctx->res);
+        ret = sysdb_getpwnam(cmdctx, sysdb, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -966,7 +966,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getpwuid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
+        ret = sysdb_getpwuid(cmdctx, sysdb, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -1355,7 +1355,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumpwent(dctx, sysdb, dctx->domain, &res);
+        ret = sysdb_enumpwent(dctx, sysdb, &res);
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
@@ -2011,7 +2011,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getgrnam(cmdctx, sysdb, dom, name, &dctx->res);
+        ret = sysdb_getgrnam(cmdctx, sysdb, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -2233,7 +2233,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getgrgid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
+        ret = sysdb_getgrgid(cmdctx, sysdb, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -2615,7 +2615,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumgrent(dctx, sysdb, dctx->domain, &res);
+        ret = sysdb_enumgrent(dctx, sysdb, &res);
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
@@ -3059,7 +3059,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_initgroups(cmdctx, sysdb, dom, name, &dctx->res);
+        ret = sysdb_initgroups(cmdctx, sysdb, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache! [%d][%s]\n",
                       ret, strerror(ret)));

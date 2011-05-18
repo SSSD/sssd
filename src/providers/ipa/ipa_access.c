@@ -605,7 +605,6 @@ static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
-    struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
     size_t count;
     struct ldb_message **msgs;
     TALLOC_CTX *tmp_ctx;
@@ -635,7 +634,7 @@ static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(mem_ctx, sysdb, domain, filter,
+    ret = sysdb_search_custom(mem_ctx, sysdb, filter,
                               HBAC_RULES_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {

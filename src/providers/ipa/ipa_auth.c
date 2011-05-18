@@ -363,7 +363,6 @@ static void ipa_get_migration_flag_done(struct tevent_req *req)
         attrs[1] = NULL;
 
         ret = sysdb_search_user_by_name(state, state->be_req->be_ctx->sysdb,
-                                        state->be_req->be_ctx->domain,
                                         state->pd->user, attrs, &user_msg);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_search_user_by_name failed.\n"));

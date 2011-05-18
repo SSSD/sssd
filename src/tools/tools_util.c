@@ -211,7 +211,6 @@ int check_group_names(struct tools_ctx *tctx,
         ret = sysdb_getgrnam_sync(tctx,
                                   tctx->sysdb,
                                   grouplist[i],
-                                  tctx->local,
                                   groupinfo);
         if (ret) {
             DEBUG(6, ("Cannot find group %s, ret: %d\n", grouplist[i], ret));

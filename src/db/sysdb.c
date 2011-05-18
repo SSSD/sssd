@@ -27,7 +27,7 @@
 
 #define LDB_MODULES_PATH "LDB_MODULES_PATH"
 
-static errno_t  sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
+static errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
                            struct ldb_context **_ldb)
 {
     int ret;
@@ -2199,7 +2199,6 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
 }
 
 errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *dom,
                              bool *has_enumerated)
 {
     errno_t ret;
@@ -2219,7 +2218,7 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
 
     base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
                              SYSDB_DOM_BASE,
-                             dom->name);
+                             sysdb->domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -2263,7 +2262,6 @@ done:
 }
 
 errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *dom,
                              bool enumerated)
 {
     errno_t ret;
@@ -2281,7 +2279,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
 
     dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                         SYSDB_DOM_BASE,
-                        dom->name);
+                        sysdb->domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -2303,7 +2301,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
     msg->dn = dn;
 
     if (res->count == 0) {
-        lret = ldb_msg_add_string(msg, "cn", dom->name);
+        lret = ldb_msg_add_string(msg, "cn", sysdb->domain->name);
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
             goto done;

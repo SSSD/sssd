@@ -376,7 +376,7 @@ static int get_user_dn(TALLOC_CTX *memctx,
     attrs[9] = SYSDB_PWD_ATTRIBUTE;
     attrs[10] = NULL;
 
-    ret = sysdb_get_user_attr(tmpctx, sysdb, dom, username, attrs, &res);
+    ret = sysdb_get_user_attr(tmpctx, sysdb, username, attrs, &res);
     if (ret) {
         goto done;
     }
@@ -1100,7 +1100,6 @@ static void sdap_pam_auth_done(struct tevent_req *req)
 
         ret = sysdb_cache_password(state,
                                    state->breq->be_ctx->sysdb,
-                                   state->breq->be_ctx->domain,
                                    state->username, password);
 
         /* password caching failures are not fatal errors */

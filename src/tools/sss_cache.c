@@ -39,7 +39,7 @@
 #define TYPE_NETGROUP 2
 struct entry_type_t {
     const char *type_string;
-    int (* search_fn)(TALLOC_CTX *, struct sysdb_ctx *, struct sss_domain_info *,
+    int (* search_fn)(TALLOC_CTX *, struct sysdb_ctx *,
                const char *, const char **, size_t *, struct ldb_message ***);
 };
 static struct entry_type_t entry_types[] = {
@@ -116,7 +116,7 @@ void invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
 
     type_rec = entry_types[entry_type];
     if (filter) {
-        ret = type_rec.search_fn(ctx, sysdb, NULL, filter, attrs,
+        ret = type_rec.search_fn(ctx, sysdb, filter, attrs,
                                  &msg_count, &msgs);
         if (ret != EOK) {
             DEBUG(3, ("Searching for %s with filter %s failed\n",
@@ -157,15 +157,15 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (ret == EOK) {
             switch (entry_type) {
                 case TYPE_USER:
-                    ret = sysdb_set_user_attr(ctx, sysdb, NULL, name,
+                    ret = sysdb_set_user_attr(ctx, sysdb, name,
                             sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_GROUP:
-                    ret = sysdb_set_group_attr(ctx, sysdb, NULL, name,
+                    ret = sysdb_set_group_attr(ctx, sysdb, name,
                             sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_NETGROUP:
-                    ret = sysdb_set_netgroup_attr(sysdb, NULL, name,
+                    ret = sysdb_set_netgroup_attr(sysdb, name,
                             sys_attrs, SYSDB_MOD_REP);
                     break;
                 default:

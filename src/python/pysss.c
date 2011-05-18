@@ -257,7 +257,6 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
             ret = sysdb_getpwnam_sync(tctx,
                                       tctx->sysdb,
                                       tctx->octx->name,
-                                      tctx->local,
                                       tctx->octx);
             if (ret != EOK) {
                 PyErr_SetSssError(ret);
@@ -363,7 +362,6 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
         ret = sysdb_getpwnam_sync(tctx,
                                   tctx->sysdb,
                                   tctx->octx->name,
-                                  tctx->local,
                                   tctx->octx);
         if (ret != EOK) {
             PyErr_SetSssError(ret);

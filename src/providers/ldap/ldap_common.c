@@ -492,9 +492,7 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
          * clients requesting get*ent information won't get an
          * immediate reply with no entries
          */
-        ret = sysdb_has_enumerated(ctx->be->sysdb,
-                                   ctx->be->domain,
-                                   &has_enumerated);
+        ret = sysdb_has_enumerated(ctx->be->sysdb, &has_enumerated);
         if (ret != EOK) {
             return ret;
         }

@@ -118,7 +118,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-    ret = sysdb_add_netgroup(sysdb, dom, name, NULL, attrs,
+    ret = sysdb_add_netgroup(sysdb, name, NULL, attrs,
                              ctx->entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_add_netgroup failed.\n"));

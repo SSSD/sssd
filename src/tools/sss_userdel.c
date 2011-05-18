@@ -219,7 +219,6 @@ int main(int argc, const char **argv)
     ret = sysdb_getpwnam_sync(tctx,
                               tctx->sysdb,
                               tctx->octx->name,
-                              tctx->local,
                               tctx->octx);
     if (ret != EOK) {
         /* Error message will be printed in the switch */

@@ -298,7 +298,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for user %s\n", name));
 
-    ret = sysdb_store_user(user_attrs, ctx, dom,
+    ret = sysdb_store_user(user_attrs, ctx,
                            name, pwd, uid, gid, gecos, homedir, shell,
                            user_attrs, missing, cache_timeout);
     if (ret) goto fail;
@@ -666,7 +666,6 @@ done:
 static errno_t
 sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *ctx,
-                          struct sss_domain_info *domain,
                           const char *name,
                           gid_t gid,
                           struct sysdb_attrs *group_attrs,
@@ -685,7 +684,7 @@ sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_store_group(mem_ctx, ctx, domain,
+    ret = sysdb_store_group(mem_ctx, ctx,
                             name, gid, group_attrs,
                             cache_timeout);
     if (ret) {
@@ -857,7 +856,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for group %s\n", name));
 
-    ret = sdap_store_group_with_gid(group_attrs, ctx, dom,
+    ret = sdap_store_group_with_gid(group_attrs, ctx,
                                     name, gid, group_attrs,
                                     dp_opt_get_int(opts->basic,
                                                    SDAP_ENTRY_CACHE_TIMEOUT),
@@ -929,8 +928,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing members for group %s\n", name));
 
-    ret = sysdb_store_group(memctx, ctx, dom,
-                            name, 0, group_attrs,
+    ret = sysdb_store_group(memctx, ctx, name, 0, group_attrs,
                             dp_opt_get_int(opts->basic,
                                            SDAP_ENTRY_CACHE_TIMEOUT));
     if (ret) goto fail;
@@ -1315,8 +1313,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
         /* We need to skip over zero-length usernames */
         if (member_name[0] == '\0') continue;
 
-        ret = sysdb_search_user_by_name(state, state->sysdb,
-                                        state->dom, member_name,
+        ret = sysdb_search_user_by_name(state, state->sysdb, member_name,
                                         NULL, &msg);
         if (ret == EOK) {
             strdn = sysdb_user_strdn(state->sysdb_dns->values,
@@ -1457,7 +1454,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         *in_transaction = true;
     }
 
-    ret = sysdb_add_fake_user(state->sysdb, state->dom, username, NULL);
+    ret = sysdb_add_fake_user(state->sysdb, username, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
                   ret, strerror(ret)));
@@ -2025,7 +2022,7 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
             ret = ENOMEM;
             goto done;
         }
-        ret = sysdb_search_users(tmp_ctx, sysdb, dom, filter,
+        ret = sysdb_search_users(tmp_ctx, sysdb, filter,
                                  search_attrs, &count, &msgs);
         talloc_zfree(filter);
         talloc_zfree(clean_orig_dn);
@@ -2056,12 +2053,12 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, username);
             if (ret) goto done;
             ret = sysdb_set_user_attr(tmp_ctx, sysdb,
-                                      dom, sysdb_name, attrs, SYSDB_MOD_REP);
+                                      sysdb_name, attrs, SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         }
 
         /* If the entry does not exist add a fake user record */
-        ret = sysdb_add_fake_user(sysdb, dom, username, original_dn);
+        ret = sysdb_add_fake_user(sysdb, username, original_dn);
         if (ret != EOK) {
             DEBUG(1, ("Cannot store fake user entry, ignoring: [%d]: %s\n",
                       ret, strerror(ret)));
@@ -2130,7 +2127,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     for (i=0; groupnames[i]; i++) {
-        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, dom,
+        ret = sysdb_search_group_by_name(tmp_ctx, sysdb,
                                          groupnames[i], NULL, &msg);
         if (ret == EOK) {
             continue;
@@ -2190,7 +2187,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                 }
 
                 DEBUG(8, ("Adding fake group %s to sysdb\n", name));
-                ret = sysdb_add_incomplete_group(sysdb, dom, name,
+                ret = sysdb_add_incomplete_group(sysdb, name,
                                                  gid, original_dn, posix);
                 if (ret != EOK) {
                     goto fail;
@@ -2280,8 +2277,7 @@ static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
     }
 
     DEBUG(8, ("Updating memberships for %s\n", name));
-    ret = sysdb_update_members(sysdb, dom, name,
-                               type,
+    ret = sysdb_update_members(sysdb, name, type,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {
@@ -2412,7 +2408,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     /* Search for all groups for which this user is a member */
     attrs[0] = SYSDB_MEMBEROF;
     attrs[1] = NULL;
-    ret = sysdb_search_user_by_name(state, state->sysdb, state->dom,
+    ret = sysdb_search_user_by_name(state, state->sysdb,
                                     state->name, attrs, &msg);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -3833,8 +3829,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
     }
 
     /* Try users first */
-    ret = sysdb_search_users(tmp_ctx, sysdb, domain, filter,
-                             attrs, &count, &msgs);
+    ret = sysdb_search_users(tmp_ctx, sysdb, filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         ret = EIO;
         goto fail;
@@ -3880,8 +3875,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
     /* It wasn't a user. Check whether it's a group */
     if (ret == EOK) talloc_zfree(msgs);
 
-    ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
-                              filter, attrs, &count, &msgs);
+    ret = sysdb_search_groups(tmp_ctx, sysdb, filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         ret = EIO;
         goto fail;
@@ -4737,8 +4731,8 @@ errno_t save_rfc2307bis_user_memberships(
     }
     talloc_free(sanitized_dn);
 
-    ret = sysdb_search_groups(tmp_ctx, state->sysdb, state->dom,
-                              filter, attrs, &reply_count, &replies);
+    ret = sysdb_search_groups(tmp_ctx, state->sysdb, filter, attrs,
+                              &reply_count, &replies);
     if (ret != EOK && ret != ENOENT) {
         goto error;
     } if (ret == ENOENT) {
@@ -4802,8 +4796,7 @@ errno_t save_rfc2307bis_user_memberships(
     }
 
     DEBUG(8, ("Updating memberships for %s\n", state->name));
-    ret = sysdb_update_members(state->sysdb, state->dom, state->name,
-                               SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(state->sysdb, state->name, SYSDB_MEMBER_USER,
                                (const char *const *)add_groups,
                                (const char *const *)del_groups);
     if (ret != EOK) {
@@ -5229,8 +5222,7 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
     }
     talloc_free(sanitized_dn);
 
-    ret = sysdb_search_groups(tmp_ctx, state->sysdb, state->dom,
-                              filter, attrs,
+    ret = sysdb_search_groups(tmp_ctx, state->sysdb, filter, attrs,
                               &reply_count, &replies);
     if (ret != EOK && ret != ENOENT) {
         goto error;
@@ -5296,8 +5288,7 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
     talloc_free(sysdb_grouplist);
 
     DEBUG(8, ("Updating memberships for %s\n", name));
-    ret = sysdb_update_members(state->sysdb, state->dom, name,
-                               SYSDB_MEMBER_GROUP,
+    ret = sysdb_update_members(state->sysdb, name, SYSDB_MEMBER_GROUP,
                                (const char *const *)add_groups,
                                (const char *const *)del_groups);
     if (ret != EOK) {

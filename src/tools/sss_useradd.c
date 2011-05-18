@@ -212,7 +212,6 @@ int main(int argc, const char **argv)
             ret = sysdb_getpwnam_sync(tctx,
                                       tctx->sysdb,
                                       tctx->octx->name,
-                                      tctx->local,
                                       tctx->octx);
             if (ret != EOK) {
                 ERROR("Cannot get info about the user\n");

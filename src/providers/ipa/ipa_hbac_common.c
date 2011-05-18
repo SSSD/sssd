@@ -77,8 +77,7 @@ ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
         }
         DEBUG(9, ("Object name: [%s].\n", object_name));
 
-        ret = sysdb_store_custom(tmp_ctx, sysdb, domain, object_name, subdir,
-                                 list[c]);
+        ret = sysdb_store_custom(tmp_ctx, sysdb, object_name, subdir, list[c]);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_store_custom failed.\n"));
             goto done;
@@ -210,7 +209,7 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                     goto done;
                 }
 
-                ret = sysdb_search_custom(tmp_ctx, sysdb, domain,
+                ret = sysdb_search_custom(tmp_ctx, sysdb, 
                                           member_filter, primary_subdir,
                                           NULL, &member_count, &members);
                 talloc_zfree(member_filter);
@@ -625,8 +624,7 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
      * This will give us the list of both POSIX and
      * non-POSIX groups that this user belongs to.
      */
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
-                                    users->name, attrs, &msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, users->name, attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not determine user memberships for [%s]\n",
                   users->name));
@@ -734,7 +732,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
     }
 
     /* Find the service groups */
-    ret = sysdb_asq_search(tmp_ctx, sysdb, domain, svc_dn,
+    ret = sysdb_asq_search(tmp_ctx, sysdb, svc_dn,
                            service_filter, SYSDB_MEMBEROF,
                            attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
@@ -835,7 +833,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     }
 
     /* Find the host groups */
-    ret = sysdb_asq_search(tmp_ctx, sysdb, domain, host_dn,
+    ret = sysdb_asq_search(tmp_ctx, sysdb, host_dn,
                            host_filter, SYSDB_MEMBEROF,
                            attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {

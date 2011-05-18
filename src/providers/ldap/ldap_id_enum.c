@@ -147,9 +147,7 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
          * process on the next SSSD service restart (to avoid
          * slowing down system boot-up
          */
-        ret = sysdb_set_enumerated(ctx->be->sysdb,
-                                   ctx->be->domain,
-                                   true);
+        ret = sysdb_set_enumerated(ctx->be->sysdb, true);
         if (ret != EOK) {
             DEBUG(1, ("Could not mark domain as having enumerated.\n"));
             /* This error is non-fatal, so continue */

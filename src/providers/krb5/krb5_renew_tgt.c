@@ -390,8 +390,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     }
 
     ret = sysdb_search_users(tmp_ctx, renew_tgt_ctx->be_ctx->sysdb,
-                             renew_tgt_ctx->be_ctx->domain, ccache_filter,
-                             ccache_attrs, &msgs_count, &msgs);
+                             ccache_filter, ccache_attrs, &msgs_count, &msgs);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_search_users failed.\n"));
         goto done;

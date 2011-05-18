@@ -87,7 +87,6 @@ static void do_successful_login(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
 
     ret = sysdb_set_user_attr(lreq, lreq->dbctx,
-                              lreq->preq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
@@ -129,7 +128,6 @@ static void do_failed_login(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
 
     ret = sysdb_set_user_attr(lreq, lreq->dbctx,
-                              lreq->preq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
@@ -203,7 +201,6 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
 
     ret = sysdb_set_user_attr(lreq, lreq->dbctx,
-                              lreq->preq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
@@ -254,8 +251,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
 
     pd->pam_status = PAM_SUCCESS;
 
-    ret = sysdb_get_user_attr(lreq, lreq->dbctx,
-                              preq->domain, preq->pd->user,
+    ret = sysdb_get_user_attr(lreq, lreq->dbctx, preq->pd->user,
                               attrs, &res);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_get_user_attr failed.\n"));

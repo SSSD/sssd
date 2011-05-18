@@ -172,9 +172,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Get original user DN */
-    ret = sysdb_get_user_attr(state, be_ctx->sysdb, be_ctx->domain,
-                              pd->user, attrs,
-                              &res);
+    ret = sysdb_get_user_attr(state, be_ctx->sysdb, pd->user, attrs, &res);
     if (ret != EOK) {
         if (ret == ENOENT) {
             /* If we can't find the user, return permission denied */
@@ -1062,7 +1060,6 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
 
     ret = sysdb_set_user_attr(attrs,
                               state->be_ctx->sysdb,
-                              state->be_ctx->domain,
                               state->username,
                               attrs, SYSDB_MOD_REP);
     if (ret != EOK) {

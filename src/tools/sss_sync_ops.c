@@ -54,7 +54,6 @@ struct sync_op_res {
  */
 static int mod_groups_member(TALLOC_CTX *mem_ctx,
                              struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
                              char **grouplist,
                              struct ldb_dn *member_dn,
                              int optype)
@@ -63,6 +62,7 @@ static int mod_groups_member(TALLOC_CTX *mem_ctx,
     struct ldb_dn *parent_dn;
     int ret;
     int i;
+    struct sss_domain_info *domain = sysdb_ctx_get_domain(sysdb);
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -95,11 +95,11 @@ done:
 }
 
 #define add_to_groups(memctx, sysdb, data, member_dn) \
-    mod_groups_member(memctx, sysdb, data->domain, \
-                      data->addgroups, member_dn, LDB_FLAG_MOD_ADD)
+    mod_groups_member(memctx, sysdb, data->addgroups, member_dn, \
+                      LDB_FLAG_MOD_ADD)
 #define remove_from_groups(memctx, sysdb, data, member_dn) \
-    mod_groups_member(memctx, sysdb, data->domain, \
-                      data->rmgroups, member_dn, LDB_FLAG_MOD_DELETE)
+    mod_groups_member(memctx, sysdb, data->rmgroups, member_dn, \
+                      LDB_FLAG_MOD_DELETE)
 
 /*
  * Modify a user
@@ -223,8 +223,7 @@ int usermod(TALLOC_CTX *mem_ctx,
     }
 
     if (attrs->num != 0) {
-        ret = sysdb_set_user_attr(mem_ctx, sysdb,
-                                  data->domain, data->name,
+        ret = sysdb_set_user_attr(mem_ctx, sysdb, data->name,
                                   attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
@@ -280,8 +279,7 @@ int groupmod(TALLOC_CTX *mem_ctx,
             return ret;
         }
 
-        ret = sysdb_set_group_attr(mem_ctx, sysdb,
-                                   data->domain, data->name,
+        ret = sysdb_set_group_attr(mem_ctx, sysdb, data->name,
                                    attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
@@ -476,8 +474,7 @@ int useradd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_user(mem_ctx, sysdb,
-                         data->domain, data->name, data->uid, data->gid,
+    ret = sysdb_add_user(mem_ctx, sysdb, data->name, data->uid, data->gid,
                          data->gecos, data->home, data->shell, NULL, 0);
     if (ret) {
         goto done;
@@ -543,8 +540,7 @@ int groupadd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_group(mem_ctx, sysdb,
-                          data->domain, data->name,
+    ret = sysdb_add_group(mem_ctx, sysdb, data->name,
                           data->gid, NULL, 0);
     if (ret == EOK) {
         flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
@@ -585,14 +581,13 @@ int groupdel(TALLOC_CTX *mem_ctx,
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
                         const char *name,
-                        struct sss_domain_info *domain,
                         struct ops_ctx *out)
 {
     struct ldb_result *res;
     const char *str;
     int ret;
 
-    ret = sysdb_getpwnam(mem_ctx, sysdb, domain, name, &res);
+    ret = sysdb_getpwnam(mem_ctx, sysdb, name, &res);
     if (ret) {
         return ret;
     }
@@ -659,14 +654,13 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
 int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
                         const char *name,
-                        struct sss_domain_info *domain,
                         struct ops_ctx *out)
 {
     struct ldb_result *res;
     const char *str;
     int ret;
 
-    ret = sysdb_getgrnam(mem_ctx, sysdb, domain, name, &res);
+    ret = sysdb_getgrnam(mem_ctx, sysdb, name, &res);
     if (ret) {
         return ret;
     }

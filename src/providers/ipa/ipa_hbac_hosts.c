@@ -331,7 +331,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
         }
 
         /* First check if this is a specific host */
-        ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
+        ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
                                   HBAC_HOSTS_SUBDIR, attrs,
                                   &count, &msgs);
         if (ret != EOK && ret != ENOENT) goto done;
@@ -367,7 +367,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
             num_hosts++;
         } else { /* ret == ENOENT */
             /* Check if this is a hostgroup */
-            ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
+            ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
                                       HBAC_HOSTGROUPS_SUBDIR, attrs,
                                       &count, &msgs);
             if (ret != EOK && ret != ENOENT) goto done;

@@ -402,8 +402,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         }
 
         /* Look up the netgroup in the cache */
-        ret = sysdb_getnetgr(step_ctx->dctx, sysdb, dom,
-                             step_ctx->name,
+        ret = sysdb_getnetgr(step_ctx->dctx, sysdb, step_ctx->name,
                              &step_ctx->dctx->res);
         if (ret == ENOENT) {
             /* This netgroup was not found in this domain */
