@@ -28,6 +28,63 @@
 #include "util/util.h"
 #include "tests/common.h"
 
+START_TEST(test_parse_args)
+{
+    struct pa_testcase {
+        const char *argstr;
+        const char **parsed;
+    };
+
+    TALLOC_CTX *test_ctx;
+    int i, ii;
+    int ret;
+    char **parsed;
+    char **only_ret;
+    char **only_exp;
+    char **both;
+
+    test_ctx = talloc_new(NULL);
+
+    /* Positive tests */
+    const char *parsed1[] = { "foo", NULL };
+    const char *parsed2[] = { "foo", "a", NULL };
+    const char *parsed3[] = { "foo", "b", NULL };
+    const char *parsed4[] = { "foo", "a c", NULL };
+    const char *parsed5[] = { "foo", "a", "d", NULL };
+    const char *parsed6[] = { "foo", "a", "e", NULL };
+    const char *parsed7[] = { "foo", "a", "f", NULL };
+    const char *parsed8[] = { "foo", "a\tg", NULL };
+    struct pa_testcase tc[] = {
+        { "foo", parsed1 },
+        { "foo a", parsed2 },
+        { "foo  b", parsed3 },
+        { "foo a\\ c", parsed4 },
+        { "foo a d ", parsed5 },
+        { "foo   a   e   ", parsed6 },
+        { "foo	a	 	f 	", parsed7 },
+        { "foo a\\\tg", parsed8 },
+        { NULL, NULL }
+    };
+
+    for (i=0; tc[i].argstr != NULL; i++) {
+        parsed = parse_args(tc[i].argstr);
+        fail_if(parsed == NULL && tc[i].parsed != NULL,
+                "Could not parse correct argument string '%s'\n");
+
+        ret = diff_string_lists(test_ctx, parsed, discard_const(tc[i].parsed),
+                                &only_ret, &only_exp, &both);
+        fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
+        fail_unless(only_ret[0] == NULL, "The parser returned more data than expected\n");
+        fail_unless(only_exp[0] == NULL, "The parser returned less data than expected\n");
+
+        for (ii = 0; parsed[ii]; ii++) free(parsed[ii]);
+        free(parsed);
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_diff_string_lists)
 {
     TALLOC_CTX *test_ctx;
@@ -264,6 +321,7 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_diff_string_lists);
     tcase_add_test (tc_util, test_sss_filter_sanitize);
     tcase_add_test (tc_util, test_size_t_overflow);
+    tcase_add_test (tc_util, test_parse_args);
     tcase_set_timeout(tc_util, 60);
 
     suite_add_tcase (s, tc_util);
