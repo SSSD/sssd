@@ -159,46 +159,54 @@ char **parse_args(const char *str)
     char **ret, **r;
     char *tmp;
     int num;
-    int i, e;
+    int i;
+    bool e, w;
 
     tmp = malloc(strlen(str) + 1);
     if (!tmp) return NULL;
 
     ret = NULL;
     num = 0;
-    e = 0;
     i = 0;
+    e = false;
+    w = false;
     p = str;
     while (*p) {
-        switch (*p) {
-        case '\\':
+        if (*p == '\\') {
+            w = false;
             if (e) {
+                /* if we were already escaping, add a '\' literal */
                 tmp[i] = '\\';
                 i++;
-                e = 0;
+                e = false;
             } else {
-                e = 1;
+                /* otherwise just start escaping */
+                e = true;
             }
-            break;
-        case ' ':
+        } else if (isspace(*p)) {
             if (e) {
-                tmp[i] = ' ';
+                /* Add escaped whitespace literally */
+                tmp[i] = *p;
                 i++;
-                e = 0;
-            } else {
+                e = false;
+            } else if (w == false) {
+                /* If previous character was non-whitespace, arg break */
                 tmp[i] = '\0';
                 i++;
+                w = true;
             }
-            break;
-        default:
+            /* previous char was whitespace as well, skip it */
+        } else {
+            w = false;
             if (e) {
+                /* Prepend escaped chars with a literal \ */
                 tmp[i] = '\\';
                 i++;
-                e = 0;
+                e = false;
             }
+            /* Copy character from the source string */
             tmp[i] = *p;
             i++;
-            break;
         }
 
         p++;
@@ -208,7 +216,7 @@ char **parse_args(const char *str)
             if (e) {
                 tmp[i] = '\\';
                 i++;
-                e = 0;
+                e = false;
             }
             tmp[i] = '\0';
             i++;
