@@ -183,13 +183,13 @@ done:
 
 static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
                                     struct crypto_mech_data *mech_props,
-                                    bool encrypt,
+                                    bool do_encrypt,
                                     struct sss_nss_crypto_ctx *cctx)
 {
     CK_ATTRIBUTE_TYPE   op;
     int ret;
 
-    op = encrypt ? CKA_ENCRYPT : CKA_DECRYPT;
+    op = do_encrypt ? CKA_ENCRYPT : CKA_DECRYPT;
 
     /* turn the raw key into a key object */
     cctx->keyobj = PK11_ImportSymKey(cctx->slot, mech_props->cipher,

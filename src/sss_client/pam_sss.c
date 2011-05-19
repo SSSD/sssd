@@ -24,10 +24,6 @@
 #define PAM_SM_SESSION
 #define PAM_SM_PASSWORD
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>

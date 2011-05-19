@@ -23,8 +23,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* for struct ucred */
-#define _GNU_SOURCE
+#include "config.h"
 
 #include <nss.h>
 #include <security/pam_modules.h>
@@ -43,7 +42,6 @@
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
-#include "config.h"
 #include "sss_cli.h"
 
 #if HAVE_PTHREAD

@@ -10,7 +10,6 @@
 /* SHA512-based Unix crypt implementation.
    Released into the Public Domain by Ulrich Drepper <drepper@redhat.com>.  */
 
-#define _GNU_SOURCE
 #include <endian.h>
 #include <errno.h>
 #include <limits.h>

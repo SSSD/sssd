@@ -19,8 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* for struct ucred */
-#define _GNU_SOURCE
+#include "config.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -33,7 +32,6 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <popt.h>
-#include "config.h"
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
