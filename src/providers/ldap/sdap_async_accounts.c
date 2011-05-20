@@ -298,8 +298,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for user %s\n", name));
 
-    ret = sysdb_store_user(user_attrs, ctx,
-                           name, pwd, uid, gid, gecos, homedir, shell,
+    ret = sysdb_store_user(ctx, name, pwd, uid, gid, gecos, homedir, shell,
                            user_attrs, missing, cache_timeout);
     if (ret) goto fail;
 
@@ -664,8 +663,7 @@ done:
     /* FIXME: support storing additional attributes */
 
 static errno_t
-sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *ctx,
+sdap_store_group_with_gid(struct sysdb_ctx *ctx,
                           const char *name,
                           gid_t gid,
                           struct sysdb_attrs *group_attrs,
@@ -684,9 +682,7 @@ sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_store_group(mem_ctx, ctx,
-                            name, gid, group_attrs,
-                            cache_timeout);
+    ret = sysdb_store_group(ctx, name, gid, group_attrs, cache_timeout);
     if (ret) {
         DEBUG(2, ("Could not store group %s\n", name));
         return ret;
@@ -856,8 +852,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for group %s\n", name));
 
-    ret = sdap_store_group_with_gid(group_attrs, ctx,
-                                    name, gid, group_attrs,
+    ret = sdap_store_group_with_gid(ctx, name, gid, group_attrs,
                                     dp_opt_get_int(opts->basic,
                                                    SDAP_ENTRY_CACHE_TIMEOUT),
                                     posix_group);
@@ -928,7 +923,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing members for group %s\n", name));
 
-    ret = sysdb_store_group(memctx, ctx, name, 0, group_attrs,
+    ret = sysdb_store_group(ctx, name, 0, group_attrs,
                             dp_opt_get_int(opts->basic,
                                            SDAP_ENTRY_CACHE_TIMEOUT));
     if (ret) goto fail;
@@ -2052,8 +2047,7 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
 
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, username);
             if (ret) goto done;
-            ret = sysdb_set_user_attr(tmp_ctx, sysdb,
-                                      sysdb_name, attrs, SYSDB_MOD_REP);
+            ret = sysdb_set_user_attr(sysdb, sysdb_name, attrs, SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         }
 

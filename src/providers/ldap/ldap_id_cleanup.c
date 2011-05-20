@@ -336,7 +336,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
 
         /* If not logged in or cannot check the table, delete him */
         DEBUG(9, ("About to delete user %s\n", name));
-        ret = sysdb_delete_user(tmpctx, sysdb, name, 0);
+        ret = sysdb_delete_user(sysdb, name, 0);
         if (ret) {
             goto done;
         }
@@ -465,7 +465,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             }
 
             DEBUG(8, ("About to delete group %s\n", name));
-            ret = sysdb_delete_group(tmpctx, sysdb, name, 0);
+            ret = sysdb_delete_group(sysdb, name, 0);
             if (ret) {
                 DEBUG(2, ("Group delete returned %d (%s)\n",
                           ret, strerror(ret)));

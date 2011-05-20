@@ -310,8 +310,7 @@ static errno_t set_last_login(struct pam_auth_req *preq)
         goto fail;
     }
 
-    ret = sysdb_set_user_attr(preq, dbctx, preq->pd->user, attrs,
-                              SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(dbctx, preq->pd->user, attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(2, ("set_last_login failed.\n"));
         preq->pd->pam_status = PAM_SYSTEM_ERR;
@@ -484,7 +483,7 @@ static void pam_reply(struct pam_auth_req *preq)
                         goto done;
                     }
 
-                    ret = sysdb_cache_auth(preq, sysdb, pd->user,
+                    ret = sysdb_cache_auth(sysdb, pd->user,
                                            pd->authtok, pd->authtok_size,
                                            pctx->rctx->cdb, false,
                                            &exp_date, &delay_until);

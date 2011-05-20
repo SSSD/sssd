@@ -195,7 +195,7 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
                           (long long) last_failed_login);
     fail_unless(ret == EOK, "ldb_msg_add_string failed");
 
-    ret = check_failed_login_attempts(test_ctx, test_ctx->confdb, ldb_msg,
+    ret = check_failed_login_attempts(test_ctx->confdb, ldb_msg,
                                       &returned_failed_login_attempts,
                                       &delayed_until);
     fail_unless(ret == expected_result,

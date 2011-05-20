@@ -454,7 +454,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
             return;
         }
 
-        ret = sysdb_delete_recursive(tmp_ctx, sysdb, base_dn, true);
+        ret = sysdb_delete_recursive(sysdb, base_dn, true);
         talloc_free(tmp_ctx);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_delete_recursive failed.\n"));

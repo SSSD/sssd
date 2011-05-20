@@ -190,7 +190,7 @@ static int test_add_user(struct test_data *data)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    ret = sysdb_add_user(data, data->ctx->sysdb, data->username,
+    ret = sysdb_add_user(data->ctx->sysdb, data->username,
                          data->uid, 0, gecos, homedir, "/bin/bash",
                          NULL, 0);
     return ret;
@@ -205,7 +205,7 @@ static int test_store_user(struct test_data *data)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    ret = sysdb_store_user(data, data->ctx->sysdb, data->username, "x",
+    ret = sysdb_store_user(data->ctx->sysdb, data->username, "x",
                            data->uid, 0, gecos, homedir,
                            data->shell ? data->shell : "/bin/bash",
                            NULL, NULL, -1);
@@ -228,7 +228,7 @@ static int test_remove_user_by_uid(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_user(data, data->ctx->sysdb, NULL, data->uid);
+    ret = sysdb_delete_user(data->ctx->sysdb, NULL, data->uid);
     return ret;
 }
 
@@ -236,7 +236,7 @@ static int test_remove_nonexistent_group(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_group(data, data->ctx->sysdb, NULL, data->uid);
+    ret = sysdb_delete_group(data->ctx->sysdb, NULL, data->uid);
     return ret;
 }
 
@@ -244,7 +244,7 @@ static int test_remove_nonexistent_user(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_user(data, data->ctx->sysdb, NULL, data->uid);
+    ret = sysdb_delete_user(data->ctx->sysdb, NULL, data->uid);
     return ret;
 }
 
@@ -252,7 +252,7 @@ static int test_add_group(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_add_group(data, data->ctx->sysdb, data->groupname,
+    ret = sysdb_add_group(data->ctx->sysdb, data->groupname,
                           data->gid, NULL, 0);
     return ret;
 }
@@ -270,7 +270,7 @@ static int test_store_group(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_store_group(data, data->ctx->sysdb, data->groupname,
+    ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
                             data->gid, NULL, -1);
     return ret;
 }
@@ -291,7 +291,7 @@ static int test_remove_group_by_gid(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_group(data, data->ctx->sysdb, NULL, data->gid);
+    ret = sysdb_delete_group(data->ctx->sysdb, NULL, data->gid);
     if (ret == ENOENT) {
         ret = EOK;
     }
@@ -302,7 +302,7 @@ static int test_set_user_attr(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_set_user_attr(data, data->ctx->sysdb, data->username,
+    ret = sysdb_set_user_attr(data->ctx->sysdb, data->username,
                               data->attrs, SYSDB_MOD_REP);
     return ret;
 }
@@ -349,7 +349,7 @@ static int test_store_custom(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_store_custom(data, data->ctx->sysdb, object_name,
+    ret = sysdb_store_custom(data->ctx->sysdb, object_name,
                              CUSTOM_TEST_CONTAINER, data->attrs);
     return ret;
 }
@@ -358,7 +358,7 @@ static int test_delete_custom(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_custom(data, data->ctx->sysdb,
+    ret = sysdb_delete_custom(data->ctx->sysdb,
                               CUSTOM_TEST_OBJECT, CUSTOM_TEST_CONTAINER);
     return ret;
 }
@@ -391,7 +391,7 @@ static int test_delete_recursive(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_delete_recursive(data, data->ctx->sysdb, dn, false);
+    ret = sysdb_delete_recursive(data->ctx->sysdb, dn, false);
     fail_unless(ret == EOK, "sysdb_delete_recursive returned [%d]", ret);
     return ret;
 }
@@ -419,7 +419,7 @@ static int test_memberof_store_group(struct test_data *data)
         }
     }
 
-    ret = sysdb_store_group(data, data->ctx->sysdb, data->groupname,
+    ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
                             data->gid, attrs, -1);
     return ret;
 }
@@ -1451,7 +1451,7 @@ START_TEST (test_sysdb_cache_password)
     data->ev = test_ctx->ev;
     data->username = talloc_asprintf(data, "testuser%d", _i);
 
-    ret = sysdb_cache_password(data, test_ctx->sysdb,
+    ret = sysdb_cache_password(test_ctx->sysdb,
                                data->username, data->username);
 
     fail_unless(ret == EOK, "sysdb_cache_password request failed [%d].", ret);
@@ -1490,7 +1490,7 @@ static void cached_authentication_without_expiration(const char *username,
         return;
     }
 
-    ret = sysdb_cache_auth(data, test_ctx->sysdb, data->username,
+    ret = sysdb_cache_auth(test_ctx->sysdb, data->username,
                            (const uint8_t *)password, strlen(password),
                            test_ctx->confdb, false, &expire_date, &delayed_until);
 
@@ -1546,11 +1546,11 @@ static void cached_authentication_with_expiration(const char *username,
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
 
-    ret = sysdb_set_user_attr(data, data->ctx->sysdb, data->username,
+    ret = sysdb_set_user_attr(data->ctx->sysdb, data->username,
                               data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Could not modify user %s", data->username);
 
-    ret = sysdb_cache_auth(data, test_ctx->sysdb, data->username,
+    ret = sysdb_cache_auth(test_ctx->sysdb, data->username,
                            (const uint8_t *) password, strlen(password),
                            test_ctx->confdb, false, &expire_date, &delayed_until);
 
@@ -2727,8 +2727,7 @@ START_TEST(test_odd_characters)
     /* ===== Users ===== */
 
     /* Add */
-    ret = sysdb_add_basic_user(test_ctx,
-                               test_ctx->sysdb,
+    ret = sysdb_add_basic_user(test_ctx->sysdb,
                                odd_username,
                                10000, 10000,
                                "","","");
@@ -2771,13 +2770,13 @@ START_TEST(test_odd_characters)
     talloc_free(res);
 
     /* Delete User */
-    ret = sysdb_delete_user(test_ctx, test_ctx->sysdb, odd_username, 10000);
+    ret = sysdb_delete_user(test_ctx->sysdb, odd_username, 10000);
     fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
                             ret, strerror(ret));
 
 
     /* Delete Group */
-    ret = sysdb_delete_group(test_ctx, test_ctx->sysdb, odd_groupname, 20000);
+    ret = sysdb_delete_group(test_ctx->sysdb, odd_groupname, 20000);
     fail_unless(ret == EOK, "sysdb_delete_group error [%d][%s]",
                             ret, strerror(ret));
 

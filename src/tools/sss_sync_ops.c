@@ -80,8 +80,7 @@ static int mod_groups_member(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = sysdb_mod_group_member(tmpctx, sysdb,
-                                     member_dn, parent_dn, optype);
+        ret = sysdb_mod_group_member(sysdb, member_dn, parent_dn, optype);
         if (ret) {
             goto done;
         }
@@ -223,8 +222,7 @@ int usermod(TALLOC_CTX *mem_ctx,
     }
 
     if (attrs->num != 0) {
-        ret = sysdb_set_user_attr(mem_ctx, sysdb, data->name,
-                                  attrs, SYSDB_MOD_REP);
+        ret = sysdb_set_user_attr(sysdb, data->name, attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
         }
@@ -279,8 +277,7 @@ int groupmod(TALLOC_CTX *mem_ctx,
             return ret;
         }
 
-        ret = sysdb_set_group_attr(mem_ctx, sysdb, data->name,
-                                   attrs, SYSDB_MOD_REP);
+        ret = sysdb_set_group_attr(sysdb, data->name, attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
         }
@@ -474,7 +471,7 @@ int useradd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_user(mem_ctx, sysdb, data->name, data->uid, data->gid,
+    ret = sysdb_add_user(sysdb, data->name, data->uid, data->gid,
                          data->gecos, data->home, data->shell, NULL, 0);
     if (ret) {
         goto done;
@@ -540,8 +537,7 @@ int groupadd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_group(mem_ctx, sysdb, data->name,
-                          data->gid, NULL, 0);
+    ret = sysdb_add_group(sysdb, data->name, data->gid, NULL, 0);
     if (ret == EOK) {
         flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
     }

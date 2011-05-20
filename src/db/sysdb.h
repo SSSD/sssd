@@ -377,8 +377,7 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
                        bool ignore_not_found);
 
 
-int sysdb_delete_recursive(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
+int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
                            struct ldb_dn *dn,
                            bool ignore_not_found);
 
@@ -426,22 +425,19 @@ int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
                                   struct ldb_message **msg);
 
 /* Replace entry attrs */
-int sysdb_set_entry_attr(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
+int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
                          struct ldb_dn *entry_dn,
                          struct sysdb_attrs *attrs,
                          int mod_op);
 
 /* Replace user attrs */
-int sysdb_set_user_attr(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
+int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
                         const char *name,
                         struct sysdb_attrs *attrs,
                         int mod_op);
 
 /* Replace group attrs */
-int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
+int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op);
@@ -453,13 +449,11 @@ int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
                             int mod_op);
 
 /* Allocate a new id */
-int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
+int sysdb_get_new_id(struct sysdb_ctx *sysdb,
                      uint32_t *id);
 
 /* Add user (only basic attrs and w/o checks) */
-int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
+int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
                          const char *name,
                          uid_t uid, gid_t gid,
                          const char *gecos,
@@ -467,8 +461,7 @@ int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
                          const char *shell);
 
 /* Add user (all checks) */
-int sysdb_add_user(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
+int sysdb_add_user(struct sysdb_ctx *sysdb,
                    const char *name,
                    uid_t uid, gid_t gid,
                    const char *gecos,
@@ -482,13 +475,11 @@ int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
                         const char *original_dn);
 
 /* Add group (only basic attrs and w/o checks) */
-int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *sysdb,
+int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
                           const char *name, gid_t gid);
 
 /* Add group (all checks) */
-int sysdb_add_group(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
+int sysdb_add_group(struct sysdb_ctx *sysdb,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
                     int cache_timeout);
@@ -509,14 +500,12 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                        int cache_timeout);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
-int sysdb_mod_group_member(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
+int sysdb_mod_group_member(struct sysdb_ctx *sysdb,
                            struct ldb_dn *member_dn,
                            struct ldb_dn *group_dn,
                            int mod_op);
 
-int sysdb_store_user(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
+int sysdb_store_user(struct sysdb_ctx *sysdb,
                      const char *name,
                      const char *pwd,
                      uid_t uid, gid_t gid,
@@ -527,8 +516,7 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
                      char **remove_attrs,
                      uint64_t cache_timeout);
 
-int sysdb_store_group(TALLOC_CTX *mem_ctx,
-                      struct sysdb_ctx *sysdb,
+int sysdb_store_group(struct sysdb_ctx *sysdb,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,
@@ -592,18 +580,15 @@ errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
  * If you are not in a transaction pass NULL in handle and provide sysdb,
  * in this case a transaction will be automatically started and the
  * function will be completely wrapped in it's own sysdb transaction */
-int sysdb_cache_password(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
+int sysdb_cache_password(struct sysdb_ctx *sysdb,
                          const char *username,
                          const char *password);
 
-errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx,
-                                    struct confdb_ctx *cdb,
+errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,
                                     uint32_t *failed_login_attempts,
                                     time_t *delayed_until);
-int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
+int sysdb_cache_auth(struct sysdb_ctx *sysdb,
                      const char *name,
                      const uint8_t *authtok,
                      size_t authtok_size,
@@ -612,8 +597,7 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
                      time_t *_expire_date,
                      time_t *_delayed_until);
 
-int sysdb_store_custom(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
+int sysdb_store_custom(struct sysdb_ctx *sysdb,
                        const char *object_name,
                        const char *subtree_name,
                        struct sysdb_attrs *attrs);
@@ -634,8 +618,7 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
                                 size_t *_count,
                                 struct ldb_message ***_msgs);
 
-int sysdb_delete_custom(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
+int sysdb_delete_custom(struct sysdb_ctx *sysdb,
                         const char *object_name,
                         const char *subtree_name);
 
@@ -655,8 +638,7 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
                        size_t *msgs_count,
                        struct ldb_message ***msgs);
 
-int sysdb_delete_user(TALLOC_CTX *mem_ctx,
-                      struct sysdb_ctx *sysdb,
+int sysdb_delete_user(struct sysdb_ctx *sysdb,
                       const char *name, uid_t uid);
 
 int sysdb_search_groups(TALLOC_CTX *mem_ctx,
@@ -666,8 +648,7 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
                         size_t *msgs_count,
                         struct ldb_message ***msgs);
 
-int sysdb_delete_group(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
+int sysdb_delete_group(struct sysdb_ctx *sysdb,
                        const char *name, gid_t gid);
 
 int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,

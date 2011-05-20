@@ -193,7 +193,7 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_set_user_attr(tmpctx, sysdb, name, attrs, mod_op);
+    ret = sysdb_set_user_attr(sysdb, name, attrs, mod_op);
     if (ret != EOK) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         sysdb_transaction_cancel(sysdb);
@@ -1083,8 +1083,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
 
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        ret = sysdb_cache_password(state, state->be_ctx->sysdb, pd->user,
-                                   password);
+        ret = sysdb_cache_password(state->be_ctx->sysdb, pd->user, password);
         if (ret) {
             DEBUG(2, ("Failed to cache password, offline auth may not work."
                       " (%d)[%s]!?\n", ret, strerror(ret)));
@@ -1112,7 +1111,7 @@ static void krb5_pam_handler_cache_auth_step(struct tevent_req *req)
     struct krb5_ctx *krb5_ctx = state->kr->krb5_ctx;
     int ret;
 
-    ret = sysdb_cache_auth(state, state->be_ctx->sysdb, pd->user, pd->authtok,
+    ret = sysdb_cache_auth(state->be_ctx->sysdb, pd->user, pd->authtok,
                            pd->authtok_size, state->be_ctx->cdb, true, NULL,
                            NULL);
     if (ret != EOK) {

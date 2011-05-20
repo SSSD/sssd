@@ -97,7 +97,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = sysdb_store_user(tmpctx, sysdb,
+        ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
                                pwd->pw_uid,
@@ -212,7 +212,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = sysdb_store_user(tmpctx, sysdb,
+        ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
                                pwd->pw_uid,
@@ -241,7 +241,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
         DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", uid));
 
-        ret = sysdb_delete_user(tmpctx, sysdb, NULL, uid);
+        ret = sysdb_delete_user(sysdb, NULL, uid);
         if (ret) {
             goto done;
         }
@@ -352,7 +352,7 @@ again:
             goto again; /* skip */
         }
 
-        ret = sysdb_store_user(tmpctx, sysdb,
+        ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
                                pwd->pw_uid,
@@ -515,7 +515,7 @@ again:
             members = NULL;
         }
 
-        ret = sysdb_store_group(tmpctx, sysdb,
+        ret = sysdb_store_group(sysdb,
                                 grp->gr_name,
                                 grp->gr_gid,
                                 members,
@@ -666,7 +666,7 @@ again:
             members = NULL;
         }
 
-        ret = sysdb_store_group(tmpctx, sysdb,
+        ret = sysdb_store_group(sysdb,
                                 grp->gr_name,
                                 grp->gr_gid,
                                 members,
@@ -691,7 +691,7 @@ again:
         DEBUG(7, ("Group %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", gid));
 
-        ret = sysdb_delete_group(tmpctx, sysdb, NULL, gid);
+        ret = sysdb_delete_group(sysdb, NULL, gid);
         if (ret) {
             goto done;
         }
@@ -821,7 +821,7 @@ again:
             members = NULL;
         }
 
-        ret = sysdb_store_group(tmpctx, sysdb,
+        ret = sysdb_store_group(sysdb,
                                 grp->gr_name,
                                 grp->gr_gid,
                                 members,
@@ -928,7 +928,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = sysdb_store_user(tmpctx, sysdb,
+        ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
                                pwd->pw_uid,

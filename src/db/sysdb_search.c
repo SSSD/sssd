@@ -39,7 +39,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     char *sanitized_name;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -83,7 +83,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -119,7 +119,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -202,7 +202,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -259,7 +259,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -308,7 +308,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -360,7 +360,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
     static const char *attrs[] = SYSDB_INITGR_ATTRS;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -457,7 +457,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     char *sanitized_name;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -811,7 +811,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
     char *sanitized_netgroup;
     int ret;
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }

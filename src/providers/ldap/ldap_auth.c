@@ -1098,8 +1098,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         }
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        ret = sysdb_cache_password(state,
-                                   state->breq->be_ctx->sysdb,
+        ret = sysdb_cache_password(state->breq->be_ctx->sysdb,
                                    state->username, password);
 
         /* password caching failures are not fatal errors */

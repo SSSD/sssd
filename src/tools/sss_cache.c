@@ -157,12 +157,12 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (ret == EOK) {
             switch (entry_type) {
                 case TYPE_USER:
-                    ret = sysdb_set_user_attr(ctx, sysdb, name,
-                            sys_attrs, SYSDB_MOD_REP);
+                    ret = sysdb_set_user_attr(sysdb, name, sys_attrs,
+                                              SYSDB_MOD_REP);
                     break;
                 case TYPE_GROUP:
-                    ret = sysdb_set_group_attr(ctx, sysdb, name,
-                            sys_attrs, SYSDB_MOD_REP);
+                    ret = sysdb_set_group_attr(sysdb, name, sys_attrs,
+                                               SYSDB_MOD_REP);
                     break;
                 case TYPE_NETGROUP:
                     ret = sysdb_set_netgroup_attr(sysdb, name,

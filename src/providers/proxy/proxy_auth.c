@@ -759,8 +759,7 @@ static void proxy_child_done(struct tevent_req *req)
         }
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        ret = sysdb_cache_password(client_ctx,
-                                   client_ctx->be_req->be_ctx->sysdb,
+        ret = sysdb_cache_password(client_ctx->be_req->be_ctx->sysdb,
                                    pd->user, password);
 
         /* password caching failures are not fatal errors */
