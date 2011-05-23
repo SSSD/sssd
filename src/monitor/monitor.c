@@ -19,13 +19,13 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/util.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/param.h>
 #include <time.h>
 #include <string.h>
-#include "config.h"
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 #endif
@@ -39,7 +39,6 @@
 #include <arpa/nameser.h>
 #include <resolv.h>
 
-#include "util/util.h"
 #include "popt.h"
 #include "tevent.h"
 #include "confdb/confdb.h"

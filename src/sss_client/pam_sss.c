@@ -24,6 +24,7 @@
 #define PAM_SM_SESSION
 #define PAM_SM_PASSWORD
 
+#include "config.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -46,7 +47,6 @@
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
-#include "config.h"
 
 #define FLAGS_USE_FIRST_PASS (1 << 0)
 #define FLAGS_FORWARD_PASS   (1 << 1)

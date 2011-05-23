@@ -21,6 +21,7 @@
 #ifndef __SSSD_UTIL_H__
 #define __SSSD_UTIL_H__
 
+#include "config.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -35,8 +36,6 @@
 #include <pcre.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include "config.h"
 
 #include <talloc.h>
 #include <tevent.h>
