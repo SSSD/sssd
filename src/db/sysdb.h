@@ -207,6 +207,8 @@ int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
                            const char **string);
 int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
                                  TALLOC_CTX *mem_ctx, const char ***string);
+errno_t sysdb_attrs_get_bool(struct sysdb_attrs *attrs, const char *name,
+                             bool *value);
 int sysdb_attrs_get_uint32_t(struct sysdb_attrs *attrs, const char *name,
                              uint32_t *value);
 
