@@ -28,6 +28,7 @@
 #include <nss.h>
 #include <pwd.h>
 #include <grp.h>
+#include <string.h>
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
