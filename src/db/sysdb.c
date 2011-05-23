@@ -372,6 +372,28 @@ int sysdb_attrs_get_uint32_t(struct sysdb_attrs *attrs, const char *name,
     return EOK;
 }
 
+errno_t sysdb_attrs_get_bool(struct sysdb_attrs *attrs, const char *name,
+                             bool *value)
+{
+    struct ldb_message_element *el;
+    int ret;
+
+    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    if (ret) {
+        return ret;
+    }
+
+    if (el->num_values != 1) {
+        return ERANGE;
+    }
+
+    if (strcmp((const char *)el->values[0].data, "TRUE") == 0)
+        *value = true;
+    else
+        *value = false;
+    return EOK;
+}
+
 int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
                                  TALLOC_CTX *mem_ctx, const char ***string)
 {
