@@ -277,6 +277,20 @@ AC_DEFUN([WITH_DEFAULT_CCNAME_TEMPLATE],
     AC_DEFINE_UNQUOTED(DEFAULT_CCNAME_TEMPLATE, "$config_def_ccname_template", [The default value of krb5_ccname_template])
   ])
 
+AC_DEFUN([WITH_KRB5AUTHDATA_PLUGIN_PATH],
+  [ AC_ARG_WITH([krb5authdata-plugin-path],
+                [AC_HELP_STRING([--with-krb5authdata-plugin-path=PATH],
+                                [Path to kerberos authdata plugin store [/usr/lib/krb5/plugins/authdata]]
+                               )
+                ]
+               )
+    krb5authdatapluginpath="${libdir}/krb5/plugins/authdata"
+    if test x"$with_krb5authdata_plugin_path" != x; then
+        krb5authdatapluginpath=$with_krb5authdata_plugin_path
+    fi
+    AC_SUBST(krb5authdatapluginpath)
+  ])
+
 AC_DEFUN([WITH_PYTHON_BINDINGS],
   [ AC_ARG_WITH([python-bindings],
                 [AC_HELP_STRING([--with-python-bindings],

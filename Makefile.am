@@ -23,6 +23,9 @@ ldblibdir = @ldblibdir@
 if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugindir = @krb5pluginpath@
 endif
+if BUILD_PAC_RESPONDER
+krb5authdata_plugindir = @krb5authdatapluginpath@
+endif
 sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
@@ -152,6 +155,11 @@ ldblib_LTLIBRARIES = \
 if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugin_LTLIBRARIES = \
     sssd_krb5_locator_plugin.la
+endif
+
+if BUILD_PAC_RESPONDER
+krb5authdata_plugin_LTLIBRARIES = \
+    sssd_pac_plugin.la
 endif
 
 noinst_LTLIBRARIES = \
@@ -1396,6 +1404,19 @@ sssd_krb5_locator_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 endif
+
+sssd_pac_plugin_la_SOURCES = \
+    src/sss_client/sssd_pac.c \
+    src/sss_client/common.c \
+    src/sss_client/sss_cli.h \
+    src/sss_client/krb5_authdata_int.h
+sssd_pac_plugin_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS)
+sssd_pac_plugin_la_LDFLAGS = \
+    -lkrb5 \
+    -avoid-version \
+    -module
 
 if BUILD_PYTHON_BINDINGS
 pysss_la_SOURCES = \
