@@ -1827,7 +1827,7 @@ bool sdap_has_deref_support(struct sdap_handle *sh)
                                   };
     int i;
 
-    for (i=0; deref_oids[i]; i++) {
+    for (i=0; deref_oids[i][0]; i++) {
         if (sdap_is_control_supported(sh, deref_oids[i][0])) {
             DEBUG(6, ("The server supports deref method %s\n",
                       deref_oids[i][1]));
