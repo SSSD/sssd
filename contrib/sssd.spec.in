@@ -111,6 +111,9 @@ BuildRequires: libnl-devel
 BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
+%if (0%{?enable_experimental} == 1)
+BuildRequires: samba4-devel
+%endif
 
 %if 0%{?is_rhel5} > 0
 BuildRequires: glib2-devel
@@ -326,6 +329,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
+%{_libexecdir}/%{servicename}/sssd_pac
 %endif
 
 %{_libdir}/%{name}/libsss_ipa.so
@@ -372,6 +376,9 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
+%if (0%{?enable_experimental} == 1)
+%{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
+%endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
