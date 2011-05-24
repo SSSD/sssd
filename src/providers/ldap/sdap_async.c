@@ -1388,7 +1388,7 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
     LDAPControl **next = NULL;
     LDAPControl **start = NULL;
     LDAPControl *derefctrl = NULL;
-    LDAPDerefRes    *deref_res;
+    LDAPDerefRes    *deref_res = NULL;
     LDAPDerefRes    *dref;
     struct sdap_deref_attrs **res;
     TALLOC_CTX *tmp_ctx;
