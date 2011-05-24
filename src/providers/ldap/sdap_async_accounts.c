@@ -3820,8 +3820,10 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
     /* It wasn't found in the groups either */
     ret = ENOENT;
 done:
-    *_msgs = talloc_steal(mem_ctx, msgs);
-    *_mtype = mtype;
+    if (ret == EOK || ret == EAGAIN) {
+        *_msgs = talloc_steal(mem_ctx, msgs);
+        *_mtype = mtype;
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
