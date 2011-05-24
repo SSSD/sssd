@@ -164,6 +164,9 @@
                         <para>
                             obfuscated_password
                         </para>
+                        <para>
+                            default: password
+                        </para>
                     </listitem>
                 </varlistentry>
 
