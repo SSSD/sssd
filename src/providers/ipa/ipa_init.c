@@ -149,11 +149,9 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
             /* nsupdate is available. Dynamic updates
              * are supported
              */
-            ret = be_add_online_cb(ctx, ctx->be,
-                                   ipa_dyndns_update,
-                                   ipa_options, NULL);
+            ret = ipa_dyndns_init(ctx, ctx->be, ipa_options);
             if (ret != EOK) {
-                DEBUG(1,("Failure setting up automatic DNS update\n"));
+                DEBUG(1, ("Failure setting up automatic DNS update\n"));
                 /* We will continue without DNS updating */
             }
         }

@@ -41,6 +41,9 @@
 
 #define IPA_DYNDNS_TIMEOUT 15
 
+#define IPA_DYNDNS_REMOVE_A     0x1
+#define IPA_DYNDNS_REMOVE_AAAA  0x2
+
 struct ipa_ipaddress {
     struct ipa_ipaddress *next;
     struct ipa_ipaddress *prev;
@@ -55,12 +58,117 @@ struct ipa_dyndns_ctx {
     char *hostname;
     struct ipa_ipaddress *addresses;
     bool use_server_with_nsupdate;
+    uint8_t remove_af;
+    enum restrict_family family_order;
 };
 
 
 static struct tevent_req * ipa_dyndns_update_send(struct ipa_options *ctx);
 
 static void ipa_dyndns_update_done(struct tevent_req *req);
+
+static errno_t
+ipa_ipaddress_list_as_string_list(TALLOC_CTX *mem_ctx,
+                                  struct ipa_ipaddress *ipa_addr_list,
+                                  char ***_straddrs)
+{
+    struct ipa_ipaddress *ipa_addr;
+    size_t count;
+    int ai;
+    char **straddrs;
+    const char *ip;
+    char ip_addr[INET6_ADDRSTRLEN];
+    errno_t ret;
+
+    count = 0;
+    DLIST_FOR_EACH(ipa_addr, ipa_addr_list) {
+        count++;
+    }
+
+    straddrs = talloc_array(mem_ctx, char *, count+1);
+    if (straddrs == NULL) {
+        return ENOMEM;
+    }
+
+    ai = 0;
+    DLIST_FOR_EACH(ipa_addr, ipa_addr_list) {
+        switch(ipa_addr->addr->ss_family) {
+        case AF_INET:
+            errno = 0;
+            ip = inet_ntop(ipa_addr->addr->ss_family,
+                           &(((struct sockaddr_in *)ipa_addr->addr)->sin_addr),
+                           ip_addr, INET6_ADDRSTRLEN);
+            if (ip == NULL) {
+                ret = errno;
+                goto fail;
+            }
+            break;
+
+        case AF_INET6:
+            errno = 0;
+            ip = inet_ntop(ipa_addr->addr->ss_family,
+                           &(((struct sockaddr_in6 *)ipa_addr->addr)->sin6_addr),
+                           ip_addr, INET6_ADDRSTRLEN);
+            if (ip == NULL) {
+                ret = errno;
+                goto fail;
+            }
+            break;
+
+        default:
+            DEBUG(0, ("Unknown address family\n"));
+            continue;
+        }
+
+        straddrs[ai] = talloc_strdup(straddrs, ip);
+        if (straddrs[ai] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        ai++;
+    }
+
+    straddrs[count] = NULL;
+    *_straddrs = straddrs;
+    return EOK;
+
+fail:
+    talloc_free(straddrs);
+    return ret;
+}
+
+
+errno_t ipa_dyndns_init(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *be_ctx,
+                        struct ipa_options *ctx)
+{
+    errno_t ret;
+    int resolv_timeout;
+
+    ret = confdb_get_int(be_ctx->cdb, be_ctx, be_ctx->conf_path,
+                         CONFDB_DOMAIN_RESOLV_TIMEOUT,
+                         RESOLV_DEFAULT_TIMEOUT, &resolv_timeout);
+    if (ret != EOK) {
+        DEBUG(1, ("Could get the timeout parameter from confdb\n"));
+        return ret;
+    }
+
+    ret = resolv_init(be_ctx, be_ctx->ev, resolv_timeout, &ctx->resolv);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not set up resolver context\n"));
+        return ret;
+    }
+
+    ret = be_add_online_cb(be_ctx, be_ctx,
+                           ipa_dyndns_update,
+                           ctx, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not set up online callback\n"));
+        return ret;
+    }
+
+    return EOK;
+}
 
 void ipa_dyndns_update(void *pvt)
 {
@@ -266,11 +374,26 @@ static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
     return EOK;
 }
 
+static struct tevent_req *
+ipa_dyndns_update_get_addrs_send(TALLOC_CTX *mem_ctx,
+                                 struct ipa_dyndns_ctx *ctx,
+                                 enum restrict_family family_order);
+static errno_t
+ipa_dyndns_update_get_addrs_recv(struct tevent_req *req,
+                                 TALLOC_CTX *mem_ctx,
+                                 char ***_addrlist);
+
+static errno_t
+ipa_dyndns_gss_tsig_update_setup_check(struct ipa_dyndns_ctx *state);
+static void
+ipa_dyndns_gss_tsig_update_check(struct tevent_req *subreq);
+
 static int ipa_dyndns_gss_tsig_update_step(struct tevent_req *req)
 {
     struct ipa_dyndns_ctx *state = tevent_req_data(req, struct ipa_dyndns_ctx);
     char *ipa_hostname;
     struct tevent_req *subreq;
+    errno_t ret;
 
     /* Get the IPA hostname */
     ipa_hostname = dp_opt_get_string(state->ipa_ctx->basic,
@@ -283,22 +406,329 @@ static int ipa_dyndns_gss_tsig_update_step(struct tevent_req *req)
     }
 
     state->hostname = talloc_strdup(state, ipa_hostname);
-    if(state->hostname == NULL) {
+    if (state->hostname == NULL) {
         return ENOMEM;
     }
 
-    /* In the future, it might be best to check that an update
-     * needs to be run before running it, but this is such a
-     * rare event that it's probably fine to just run an update
-     * every time we come online.
-     */
-    subreq = ipa_dyndns_gss_tsig_update_send(state);
-    if(subreq == NULL) {
+    DEBUG(7, ("Checking if the update is needed\n"));
+
+    ret = ipa_dyndns_gss_tsig_update_setup_check(state);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    subreq = ipa_dyndns_update_get_addrs_send(state, state,
+                                              state->family_order);
+    if (subreq == NULL) {
         return ENOMEM;
     }
     tevent_req_set_callback(subreq,
-                            ipa_dyndns_gss_tsig_update_done,
+                            ipa_dyndns_gss_tsig_update_check,
                             req);
+    return EOK;
+}
+
+static errno_t
+ipa_dyndns_gss_tsig_update_setup_check(struct ipa_dyndns_ctx *state)
+{
+    errno_t ret;
+
+    if (dp_opt_get_string(state->ipa_ctx->basic, IPA_DYNDNS_IFACE)) {
+        ret = resolv_get_family_order(state->ipa_ctx->id_ctx->be->cdb,
+                                      state->ipa_ctx->id_ctx->be->conf_path,
+                                      &state->family_order);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        /* Unless one family is restricted, just replace all
+        * address families during the update
+        */
+        switch (state->family_order) {
+        case IPV4_ONLY:
+            state->remove_af |= IPA_DYNDNS_REMOVE_A;
+            break;
+        case IPV6_ONLY:
+            state->remove_af |= IPA_DYNDNS_REMOVE_AAAA;
+            break;
+        case IPV4_FIRST:
+        case IPV6_FIRST:
+            state->remove_af |= (IPA_DYNDNS_REMOVE_A |
+                                IPA_DYNDNS_REMOVE_AAAA);
+            break;
+        }
+    } else {
+        /* If the interface isn't specified, we ONLY want to have the address
+         * that's connected to the LDAP server stored, so we need to check
+         * (and later remove) both address families.
+         */
+        state->family_order = IPV4_FIRST;
+        state->remove_af = (IPA_DYNDNS_REMOVE_A |
+                            IPA_DYNDNS_REMOVE_AAAA);
+    }
+
+    return EOK;
+}
+
+static void
+ipa_dyndns_gss_tsig_update_check(struct tevent_req *subreq)
+{
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_dyndns_ctx *state = tevent_req_data(req,
+                                                   struct ipa_dyndns_ctx);
+
+    errno_t ret;
+    char **str_dnslist = NULL, **str_local_list = NULL;
+    char **dns_only = NULL, **local_only = NULL;
+    bool do_update = false;
+    int i;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = ipa_dyndns_update_get_addrs_recv(subreq, tmp_ctx, &str_dnslist);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(3, ("Getting the current list of addresses failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    ret = ipa_ipaddress_list_as_string_list(tmp_ctx,
+                                            state->addresses, &str_local_list);
+    if (ret != EOK) {
+        DEBUG(3, ("Converting DNS IP addresses to strings failed: [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    /* Compare the lists */
+    ret = diff_string_lists(tmp_ctx, str_dnslist, str_local_list,
+                            &dns_only, &local_only, NULL);
+    if (ret != EOK) {
+        DEBUG(3, ("diff_string_lists failed: [%d]: %s\n", ret, strerror(ret)));
+        goto fail;
+    }
+
+    if (dns_only) {
+        for (i=0; dns_only[i]; i++) {
+            DEBUG(7, ("Address in DNS only: %s\n", dns_only[i]));
+            do_update = true;
+        }
+    }
+
+    if (local_only) {
+        for (i=0; local_only[i]; i++) {
+            DEBUG(7, ("Address on localhost only: %s\n", local_only[i]));
+            do_update = true;
+        }
+    }
+
+    if (do_update) {
+        DEBUG(6, ("Detected IP addresses change, will perform an update\n"));
+        subreq = ipa_dyndns_gss_tsig_update_send(state);
+        if(subreq == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        tevent_req_set_callback(subreq,
+                                ipa_dyndns_gss_tsig_update_done,
+                                req);
+        talloc_free(tmp_ctx);
+        return;
+    }
+
+    DEBUG(6, ("No DNS update needed, addresses did not change\n"));
+    tevent_req_done(req);
+    talloc_free(tmp_ctx);
+    return;
+
+fail:
+    talloc_free(tmp_ctx);
+    tevent_req_error(req, ret);
+}
+
+struct ipa_dyndns_update_get_addrs_state {
+    struct ipa_dyndns_ctx *dctx;
+
+    enum host_database *db;
+    enum restrict_family family_order;
+
+    char **addrlist;
+    size_t count;
+};
+
+static void ipa_dyndns_update_get_addrs_done(struct tevent_req *subreq);
+static errno_t ipa_dyndns_update_get_addrs_step(struct tevent_req *req);
+
+static struct tevent_req *
+ipa_dyndns_update_get_addrs_send(TALLOC_CTX *mem_ctx,
+                                 struct ipa_dyndns_ctx *ctx,
+                                 enum restrict_family family_order)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct ipa_dyndns_update_get_addrs_state *state;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_dyndns_update_get_addrs_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->dctx = ctx;
+    state->family_order = family_order;
+
+    state->db = talloc_array(state, enum host_database, 2);
+    if (state->db == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    state->db[0] = DB_DNS;
+    state->db[1] = DB_SENTINEL;
+
+    ret = ipa_dyndns_update_get_addrs_step(req);
+    if (ret != EOK) {
+        goto immediate;
+    }
+
+immediate:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ctx->ipa_ctx->id_ctx->be->ev);
+    }
+    return req;
+}
+
+static errno_t
+ipa_dyndns_update_get_addrs_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct ipa_dyndns_update_get_addrs_state *state = tevent_req_data(req,
+                                        struct ipa_dyndns_update_get_addrs_state);
+
+    subreq = resolv_gethostbyname_send(state,
+                                       state->dctx->ipa_ctx->id_ctx->be->ev,
+                                       state->dctx->ipa_ctx->resolv,
+                                       state->dctx->hostname,
+                                       state->family_order,
+                                       state->db);
+    if (!subreq) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, ipa_dyndns_update_get_addrs_done, req);
+    return EOK;
+}
+
+static void
+ipa_dyndns_update_get_addrs_done(struct tevent_req *subreq)
+{
+    int ret;
+    size_t count;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_dyndns_update_get_addrs_state *state = tevent_req_data(req,
+                                     struct ipa_dyndns_update_get_addrs_state);
+    struct resolv_hostent *rhostent;
+    int i;
+
+    ret = resolv_gethostbyname_recv(subreq, state, NULL, NULL,
+                                    &rhostent);
+    talloc_zfree(subreq);
+
+    /* If the retry did not match, simply quit */
+    if (ret == ENOENT) {
+        /* If the resolver is set to honor both address families
+         * retry the second one
+         */
+        if (((state->family_order == IPV4_FIRST &&
+              rhostent->family == AF_INET) ||
+            (state->family_order == IPV6_FIRST &&
+             rhostent->family == AF_INET6))) {
+
+            state->family_order = (state->family_order == IPV4_FIRST) ? \
+                                   IPV6_ONLY : IPV4_ONLY;
+
+            ret = ipa_dyndns_update_get_addrs_step(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+
+        /* Nothing to retry, simply quit */
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* EOK */
+
+    for (count=0; rhostent->addr_list[count]; count++);
+
+    state->addrlist = talloc_realloc(state, state->addrlist, char *,
+                                        state->count + count + 1);
+    if (!state->addrlist) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    for (i=0; i < count; i++) {
+        state->addrlist[state->count + i] = \
+                        resolv_get_string_address_index(state->addrlist,
+                                                        rhostent, i);
+
+        if (state->addrlist[state->count + i] == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    }
+    state->count += count;
+    state->addrlist[state->count] = NULL;
+
+    /* If the resolver is set to honor both address families
+     * and the first one matched, retry the second one to
+     * get the complete list.
+     */
+    if (((state->family_order == IPV4_FIRST &&
+            rhostent->family == AF_INET) ||
+        (state->family_order == IPV6_FIRST &&
+            rhostent->family == AF_INET6))) {
+
+        state->family_order = (state->family_order == IPV4_FIRST) ? \
+                                IPV6_ONLY : IPV4_ONLY;
+
+        ret = ipa_dyndns_update_get_addrs_step(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* The second address matched either immediatelly or after a retry.
+     * No need to retry again. */
+    tevent_req_done(req);
+    return;
+}
+
+static errno_t
+ipa_dyndns_update_get_addrs_recv(struct tevent_req *req,
+                                 TALLOC_CTX *mem_ctx,
+                                 char ***_addrlist)
+{
+    struct ipa_dyndns_update_get_addrs_state *state = tevent_req_data(req,
+                                    struct ipa_dyndns_update_get_addrs_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_addrlist = talloc_steal(mem_ctx, state->addrlist);
     return EOK;
 }
 
@@ -312,6 +742,7 @@ struct ipa_nsupdate_ctx {
 
 
 static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
+                                   uint8_t remove_af,
                                    bool use_server_with_nsupdate);
 
 static struct tevent_req *
@@ -335,7 +766,8 @@ ipa_dyndns_gss_tsig_update_send(struct ipa_dyndns_ctx *ctx)
     state->child_status = 0;
 
     /* Format the message to pass to the nsupdate command */
-    ret = create_nsupdate_message(state, ctx->use_server_with_nsupdate);
+    ret = create_nsupdate_message(state, ctx->remove_af,
+                                  ctx->use_server_with_nsupdate);
     if (ret != EOK) {
         goto failed;
     }
@@ -360,6 +792,7 @@ struct nsupdate_send_ctx {
 };
 
 static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
+                                   uint8_t remove_af,
                                    bool use_server_with_nsupdate)
 {
     int ret, i;
@@ -382,7 +815,7 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
     }
 
     /* The DNS zone for IPA is the lower-case
-     * version of hte IPA domain
+     * version of the IPA domain
      */
     for(i = 0; zone[i] != '\0'; i++) {
         zone[i] = tolower(zone[i]);
@@ -418,15 +851,24 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
         goto done;
     }
 
-    /* Remove any existing entries */
-    ctx->update_msg = talloc_asprintf_append(ctx->update_msg,
-                                             "update delete %s. in A\nsend\n"
-                                             "update delete %s. in AAAA\nsend\n",
-                                             ctx->dyndns_ctx->hostname,
-                                             ctx->dyndns_ctx->hostname);
-    if (ctx->update_msg == NULL) {
-        ret = ENOMEM;
-        goto done;
+    /* Remove existing entries as needed */
+    if (remove_af & IPA_DYNDNS_REMOVE_A) {
+        ctx->update_msg = talloc_asprintf_append(ctx->update_msg,
+                                            "update delete %s. in A\nsend\n",
+                                            ctx->dyndns_ctx->hostname);
+        if (ctx->update_msg == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    if (remove_af & IPA_DYNDNS_REMOVE_AAAA) {
+        ctx->update_msg = talloc_asprintf_append(ctx->update_msg,
+                                         "update delete %s. in AAAA\nsend\n",
+                                          ctx->dyndns_ctx->hostname);
+        if (ctx->update_msg == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     DLIST_FOR_EACH(new_record, ctx->dyndns_ctx->addresses) {
@@ -746,5 +1188,5 @@ static void ipa_dyndns_update_done(struct tevent_req *req)
         return;
     }
 
-    DEBUG(1,("Updated DNS entry\n"));
+    DEBUG(1, ("DNS update finished\n"));
 }
