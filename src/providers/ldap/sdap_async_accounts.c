@@ -3727,7 +3727,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
 
     ret = sss_filter_sanitize(tmp_ctx, dn, &member_dn);
     if (ret != EOK) {
-        goto done;
+        goto fail;
     }
 
     /* Check for the specified origDN in the sysdb */
@@ -3736,7 +3736,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                              member_dn);
     if (!filter) {
         ret = ENOMEM;
-        goto done;
+        goto fail;
     }
 
     /* Try users first */
@@ -3744,7 +3744,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                              attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         ret = EIO;
-        goto done;
+        goto fail;
     } else if (ret == EOK && count > 0) {
         /* We found a user with this origDN in the sysdb. Check if it is valid
          */
@@ -3754,7 +3754,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
         if (count != 1) {
             DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
             ret = EIO;
-            goto done;
+            goto fail;
         }
 
         user_uid = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_UIDNUM, 0);
@@ -3791,7 +3791,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                               filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         ret = EIO;
-        goto done;
+        goto fail;
     } else if (ret == EOK && count > 0) {
         /* We found a group with this origDN in the sysdb */
         mtype = SYSDB_MEMBER_GROUP;
@@ -3800,7 +3800,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
         if (count != 1) {
             DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
             ret = EIO;
-            goto done;
+            goto fail;
         }
 
         expiration = ldb_msg_find_attr_as_uint64(msgs[0],
@@ -3824,6 +3824,10 @@ done:
         *_msgs = talloc_steal(mem_ctx, msgs);
         *_mtype = mtype;
     }
+    talloc_zfree(tmp_ctx);
+    return ret;
+
+fail:
     talloc_zfree(tmp_ctx);
     return ret;
 }
