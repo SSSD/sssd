@@ -2870,6 +2870,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     const char *base_dn;
     char *filter;
     int ret;
+    char *clean_name;
 
     DEBUG(9, ("Retrieving info for initgroups call\n"));
 
@@ -2886,9 +2887,14 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->grp_attrs = grp_attrs;
     state->orig_user = NULL;
 
+    ret = sss_filter_sanitize(state, name, &clean_name);
+    if (ret != EOK) {
+        return NULL;
+    }
+
     filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
                         state->opts->user_map[SDAP_AT_USER_NAME].name,
-                        state->name,
+                        clean_name,
                         state->opts->user_map[SDAP_OC_USER].name);
     if (!filter) {
         talloc_zfree(req);
