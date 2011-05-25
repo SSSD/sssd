@@ -60,11 +60,23 @@
                     <term>ldap_uri (string)</term>
                     <listitem>
                         <para>
-                            Specifies the list of URIs of the LDAP servers to which
+                            Specifies the comma-separated list of URIs of the LDAP servers to which
                             SSSD should connect in the order of preference. Refer to the
                             <quote>FAILOVER</quote> section for more information on failover and server redundancy.
                             If not specified, service discovery is enabled. For more information, refer
                             to the <quote>SERVICE DISCOVERY</quote> section.
+                        </para>
+                        <para>
+                            The format of the URI must match the format defined in RFC 2732:
+                        </para>
+                        <para>
+                            ldap[s]://&lt;host&gt;[:port]
+                        </para>
+                        <para>
+                            For explicit IPv6 addresses, &lt;host&gt; must be enclosed in brackets []
+                        </para>
+                        <para>
+                            example: ldap://[fc00::126:25]:389
                         </para>
                     </listitem>
                 </varlistentry>
