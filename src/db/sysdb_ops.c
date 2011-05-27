@@ -1047,6 +1047,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     uint32_t id;
     time_t now;
     int ret;
+    bool posix;
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
@@ -1095,28 +1096,29 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
     ret = sysdb_add_basic_group(tmpctx, ctx, domain, name, gid);
     if (ret) goto done;
 
-    if (gid == 0) {
-        ret = sysdb_get_new_id(tmpctx, ctx, domain, &id);
-        if (ret) goto done;
-
-        if (!attrs) {
-            attrs = sysdb_new_attrs(tmpctx);
-            if (!attrs) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, id);
-        if (ret) goto done;
-    }
-
     if (!attrs) {
         attrs = sysdb_new_attrs(tmpctx);
         if (!attrs) {
             ret = ENOMEM;
             goto done;
         }
+    }
+
+    ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix);
+    if (ret == ENOENT) {
+        posix = true;
+        ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, true);
+        if (ret) goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    if (posix && gid == 0) {
+        ret = sysdb_get_new_id(tmpctx, ctx, domain, &id);
+        if (ret) goto done;
+
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, id);
+        if (ret) goto done;
     }
 
     now = time(NULL);
@@ -1148,7 +1150,8 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
                                struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
-                               const char *original_dn)
+                               const char *original_dn,
+                               bool posix)
 {
     TALLOC_CTX *tmpctx;
     time_t now;
@@ -1177,6 +1180,9 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  now-1);
+    if (ret) goto done;
+
+    ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, posix);
     if (ret) goto done;
 
     if (original_dn) {
