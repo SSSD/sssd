@@ -62,6 +62,7 @@
 
 #define SYSDB_MEMBER "member"
 #define SYSDB_MEMBERUID "memberUid"
+#define SYSDB_POSIX "isPosix"
 
 #define SYSDB_DEFAULTGROUP "defaultGroup"
 #define SYSDB_GECOS "gecos"
@@ -154,7 +155,7 @@
                            NULL}
 
 #define SYSDB_INITGR_ATTR SYSDB_MEMBEROF
-#define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, \
+#define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, SYSDB_POSIX, \
                             SYSDB_DEFAULT_ATTRS, \
                             NULL}
 
@@ -518,7 +519,7 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
                                struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
-                               const char *original_dn);
+                               const char *original_dn, bool posix);
 
 /* Add netgroup (only basic attrs and w/o checks) */
 int sysdb_add_basic_netgroup(struct sysdb_ctx *ctx,
