@@ -555,15 +555,24 @@ done:
 
 static void ipa_resolve_callback(void *private_data, struct fo_server *server)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     struct ipa_service *service;
     struct hostent *srvaddr;
     char *address;
+    const char *safe_address;
     char *new_uri;
     int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed\n"));
+        return;
+    }
 
     service = talloc_get_type(private_data, struct ipa_service);
     if (!service) {
         DEBUG(1, ("FATAL: Bad private_data\n"));
+        talloc_free(tmp_ctx);
         return;
     }
 
@@ -571,27 +580,39 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     if (!srvaddr) {
         DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
                   fo_get_server_name(server)));
+        talloc_free(tmp_ctx);
         return;
     }
 
-    address = resolv_get_string_address(service, srvaddr);
+    address = resolv_get_string_address(tmp_ctx, srvaddr);
     if (address == NULL) {
         DEBUG(1, ("resolv_get_string_address failed.\n"));
+        talloc_free(tmp_ctx);
         return;
     }
 
-    new_uri = talloc_asprintf(service, "ldap://%s", address);
-    if (!new_uri) {
-        DEBUG(2, ("Failed to copy URI ...\n"));
-        talloc_free(address);
+    safe_address = sss_ldap_escape_ip_address(tmp_ctx,
+                                              srvaddr->h_addrtype,
+                                              address);
+    if (safe_address == NULL) {
+        DEBUG(1, ("sss_ldap_escape_ip_address failed.\n"));
+        talloc_free(tmp_ctx);
         return;
     }
+
+    new_uri = talloc_asprintf(service, "ldap://%s", safe_address);
+    if (!new_uri) {
+        DEBUG(2, ("Failed to copy URI ...\n"));
+        talloc_free(tmp_ctx);
+        return;
+    }
+    DEBUG(6, ("Constructed uri '%s'\n", new_uri));
 
     /* free old one and replace with new one */
     talloc_zfree(service->sdap->uri);
     service->sdap->uri = new_uri;
     talloc_zfree(service->krb5_service->address);
-    service->krb5_service->address = address;
+    service->krb5_service->address = talloc_steal(service, address);
 
     ret = write_krb5info_file(service->krb5_service->realm, address,
                               SSS_KRB5KDC_FO_SRV);
@@ -599,6 +620,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
     }
 
+    talloc_free(tmp_ctx);
 }
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
