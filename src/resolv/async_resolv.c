@@ -648,6 +648,30 @@ resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+char *
+resolv_get_string_address(TALLOC_CTX *mem_ctx, struct hostent *hostent)
+{
+    char *address;
+
+    if (!hostent) return NULL;
+
+    address = talloc_zero_size(mem_ctx, 128);
+    if (address == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        return NULL;
+    }
+
+    errno = 0;
+    if (inet_ntop(hostent->h_addrtype, hostent->h_addr_list[0],
+                  address, 128) == NULL) {
+        DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
+        talloc_free(address);
+        return NULL;
+    }
+
+    return address;
+}
+
 static void
 ares_gethostbyname_wakeup(struct tevent_req *subreq)
 {

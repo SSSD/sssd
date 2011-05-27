@@ -76,6 +76,9 @@ int resolv_gethostbyname_recv(struct tevent_req *req,
                               int *timeouts,
                               struct hostent **hostent);
 
+char *
+resolv_get_string_address(TALLOC_CTX *mem_ctx, struct hostent *hostent);
+
 /** Get SRV record **/
 struct tevent_req *resolv_getsrv_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
