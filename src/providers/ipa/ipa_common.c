@@ -574,15 +574,9 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    address = talloc_zero_size(service, 128);
+    address = resolv_get_string_address(service, srvaddr);
     if (address == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
-        return;
-    }
-
-    if (inet_ntop(srvaddr->h_addrtype, srvaddr->h_addr_list[0],
-                  address, 128) == NULL) {
-        DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
+        DEBUG(1, ("resolv_get_string_address failed.\n"));
         return;
     }
 
