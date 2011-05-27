@@ -679,6 +679,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     int ret;
     char *usn_value = NULL;
     TALLOC_CTX *tmpctx = NULL;
+    bool posix_group;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -700,6 +701,19 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix_group);
+    if (ret == ENOENT) {
+        posix_group = true;
+    } else if (ret != EOK) {
+        goto fail;
+    }
+
+    DEBUG(8, ("This is%s a posix group\n", (posix_group)?"":" not"));
+    ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, posix_group);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     ret = sysdb_attrs_get_uint32_t(attrs,
                                    opts->group_map[SDAP_AT_GROUP_GID].sys_name,
                                    &gid);
@@ -711,7 +725,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     /* check that the gid is valid for this domain */
-    if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
+    if ((posix_group || gid != 0) &&
+        OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
                       name));
         ret = EINVAL;
@@ -1918,6 +1933,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     gid_t gid;
     int ret;
     bool in_transaction = false;
+    bool posix;
 
     /* There are no groups in LDAP but we should add user to groups ?? */
     if (ldap_groups_count == 0) return EOK;
@@ -1977,11 +1993,15 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             }
 
             if (strcmp(name, missing[i]) == 0) {
+                posix = true;
                 ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
                                                SYSDB_GIDNUM,
                                                &gid);
-                if (ret) {
-                    DEBUG(1, ("The GID attribute is missing or malformed\n"));
+                if (ret == ENOENT) {
+                    gid = 0;
+                    posix = false;
+                } else if (ret) {
+                    DEBUG(1, ("The GID attribute is malformed\n"));
                     goto fail;
                 }
 
@@ -1995,7 +2015,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
                 DEBUG(8, ("Adding fake group %s to sysdb\n", name));
                 ret = sysdb_add_incomplete_group(sysdb, dom, name,
-                                                 gid, original_dn);
+                                                 gid, original_dn, posix);
                 if (ret != EOK) {
                     goto fail;
                 }
@@ -2331,10 +2351,9 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*)(%s=*))",
+    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*))",
                                     opts->group_map[SDAP_OC_GROUP].name,
-                                    opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                    opts->group_map[SDAP_AT_GROUP_GID].name);
+                                    opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!state->filter) {
         talloc_zfree(req);
         return NULL;
@@ -3181,6 +3200,7 @@ static struct tevent_req *sdap_nested_group_process_send(
     const char *groupname;
     hash_key_t key;
     hash_value_t value;
+    gid_t gid;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_nested_group_ctx);
     if (!req) {
@@ -3226,6 +3246,28 @@ static struct tevent_req *sdap_nested_group_process_send(
          * Skip it and just return success
          */
         ret = EOK;
+        goto immediate;
+    }
+
+    ret = sysdb_attrs_get_uint32_t(group,
+                                   opts->group_map[SDAP_AT_GROUP_GID].name,
+                                   &gid);
+    if (ret == ENOENT) {
+        DEBUG(8, ("Marking group as non-posix and setting GID=0!\n"));
+        ret = sysdb_attrs_add_uint32(group,
+                                     opts->group_map[SDAP_AT_GROUP_GID].name,
+                                     0);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to add a GID to non-posix group!\n"));
+            goto immediate;
+        }
+
+        ret = sysdb_attrs_add_bool(group, SYSDB_POSIX, false);
+        if (ret != EOK) {
+            DEBUG(2, ("Error: Failed to mark group as non-posix!\n"));
+            goto immediate;
+        }
+    } else if (ret) {
         goto immediate;
     }
 
@@ -3507,10 +3549,9 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
     }
 
     filter = talloc_asprintf(
-            sdap_attrs, "(&(objectclass=%s)(%s=*)(%s=*))",
+            sdap_attrs, "(&(objectclass=%s)(%s=*))",
             state->opts->group_map[SDAP_OC_GROUP].name,
-            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-            state->opts->group_map[SDAP_AT_GROUP_GID].name);
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!filter) {
         talloc_free(sdap_attrs);
         return ENOMEM;
@@ -3842,12 +3883,11 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_orig_dn,
                              opts->group_map[SDAP_OC_GROUP].name,
-                             opts->group_map[SDAP_AT_GROUP_NAME].name,
-                             opts->group_map[SDAP_AT_GROUP_GID].name);
+                             opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!filter) {
         talloc_zfree(req);
         return NULL;
@@ -4043,6 +4083,7 @@ errno_t save_rfc2307bis_user_memberships(
         goto error;
     }
 
+    DEBUG(8, ("Updating memberships for %s\n", state->name));
     ret = sysdb_update_members(state->sysdb, state->dom, state->name,
                                SYSDB_MEMBER_USER,
                                (const char *const *)add_groups,
@@ -4253,12 +4294,11 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     }
 
     filter = talloc_asprintf(
-            tmp_ctx, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
+            tmp_ctx, "(&(%s=%s)(objectclass=%s)(%s=*))",
             state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
             clean_orig_dn,
             state->opts->group_map[SDAP_OC_GROUP].name,
-            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-            state->opts->group_map[SDAP_AT_GROUP_GID].name);
+            state->opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!filter) {
         ret = ENOMEM;
         goto error;
@@ -4537,6 +4577,7 @@ static errno_t rfc2307bis_nested_groups_update_sysdb(
     talloc_free(ldap_grouplist);
     talloc_free(sysdb_grouplist);
 
+    DEBUG(8, ("Updating memberships for %s\n", name));
     ret = sysdb_update_members(state->sysdb, state->dom, name,
                                SYSDB_MEMBER_GROUP,
                                (const char *const *)add_groups,

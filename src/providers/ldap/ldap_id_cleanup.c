@@ -374,6 +374,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     size_t u_count;
     int ret;
     int i;
+    const char *posix;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -412,19 +413,18 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             goto done;
         }
 
-        gid = (gid_t) ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
-        if (!gid) {
-            DEBUG(2, ("Entry has no GID\n"));
-            ret = EIO;
-            goto done;
+        posix = ldb_msg_find_attr_as_string(msgs[i], SYSDB_POSIX, NULL);
+        if (!posix || strcmp(posix, "TRUE") == 0) {
+            /* Search for users that are members of this group, or
+             * that have this group as their primary GID
+             */
+            gid = (gid_t) ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
+            subfilter = talloc_asprintf(tmpctx, "(|(%s=%s)(%s=%lu))",
+                                        SYSDB_MEMBEROF, dn,
+                                        SYSDB_GIDNUM, (long unsigned) gid);
+        } else {
+            subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF, dn);
         }
-
-        /* Search for users that are members of this group, or
-         * that have this group as their primary GID
-         */
-        subfilter = talloc_asprintf(tmpctx, "(|(%s=%s)(%s=%lu))",
-                                    SYSDB_MEMBEROF, dn,
-                                    SYSDB_GIDNUM, (long unsigned) gid);
         if (!subfilter) {
             DEBUG(2, ("Failed to build filter\n"));
             ret = ENOMEM;
