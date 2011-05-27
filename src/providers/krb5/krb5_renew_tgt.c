@@ -37,7 +37,6 @@ struct renew_tgt_ctx {
     struct krb5_ctx *krb5_ctx;
     time_t timer_interval;
     struct tevent_timer *te;
-    bool added_to_online_callbacks;
 };
 
 struct renew_data {
@@ -226,12 +225,19 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
 
 static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx);
 
+static void renew_tgt_offline_callback(void *private_data)
+{
+    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type(private_data,
+                                                          struct renew_tgt_ctx);
+
+    talloc_zfree(renew_tgt_ctx->te);
+}
+
 static void renew_tgt_online_callback(void *private_data)
 {
     struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type(private_data,
                                                           struct renew_tgt_ctx);
 
-    renew_tgt_ctx->added_to_online_callbacks = false;
     renew_handler(renew_tgt_ctx);
 }
 
@@ -242,6 +248,9 @@ static void renew_tgt_timer_handler(struct tevent_context *ev,
     struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type(data,
                                                           struct renew_tgt_ctx);
 
+    /* forget the timer event, it will be freed by the tevent timer loop */
+    renew_tgt_ctx->te = NULL;
+
     renew_handler(renew_tgt_ctx);
 }
 
@@ -251,29 +260,22 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
     int ret;
 
     if (be_is_offline(renew_tgt_ctx->be_ctx)) {
-        if (renew_tgt_ctx->added_to_online_callbacks) {
-            DEBUG(3, ("Renewal task was already added to online callbacks.\n"));
-            return;
-        }
-        DEBUG(7, ("Offline, adding renewal task to online callbacks.\n"));
-        ret = be_add_online_cb(renew_tgt_ctx->krb5_ctx, renew_tgt_ctx->be_ctx,
-                               renew_tgt_online_callback, renew_tgt_ctx, NULL);
-        if (ret == EOK) {
-            renew_tgt_ctx->added_to_online_callbacks = true;
-            return;
-        }
+        DEBUG(4, ("Offline, disable renew timer.\n"));
+        return;
+    }
 
-        DEBUG(1, ("Failed to add the renewal task to online callbacks, "
-                  "continue normal operation.\n"));
-    } else {
-        ret = renew_all_tgts(renew_tgt_ctx);
-        if (ret != EOK) {
-            DEBUG(1, ("renew_all_tgts failed. "
-                      "Disabling automatic TGT renewal\n"));
-            sss_log(SSS_LOG_ERR, "Disabling automatic TGT renewal.");
-            talloc_zfree(renew_tgt_ctx);
-            return;
-        }
+    ret = renew_all_tgts(renew_tgt_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("renew_all_tgts failed. "
+                  "Disabling automatic TGT renewal\n"));
+        sss_log(SSS_LOG_ERR, "Disabling automatic TGT renewal.");
+        talloc_zfree(renew_tgt_ctx);
+        return;
+    }
+
+    if (renew_tgt_ctx->te != NULL) {
+        DEBUG(7, ("There is an active renewal timer, doing nothing.\n"));
+        return;
     }
 
     DEBUG(7, ("Adding new renew timer.\n"));
@@ -462,7 +464,6 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
     krb5_ctx->renew_tgt_ctx->krb5_ctx = krb5_ctx;
     krb5_ctx->renew_tgt_ctx->ev = ev;
     krb5_ctx->renew_tgt_ctx->timer_interval = renew_intv;
-    krb5_ctx->renew_tgt_ctx->added_to_online_callbacks = false;
 
     ret = check_ccache_files(krb5_ctx->renew_tgt_ctx);
     if (ret != EOK) {
@@ -477,6 +478,24 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
     if (krb5_ctx->renew_tgt_ctx->te == NULL) {
         DEBUG(1, ("tevent_add_timer failed.\n"));
         ret = ENOMEM;
+        goto fail;
+    }
+
+    DEBUG(7, ("Adding offline callback to remove renewal timer.\n"));
+    ret = be_add_offline_cb(krb5_ctx->renew_tgt_ctx, be_ctx,
+                            renew_tgt_offline_callback, krb5_ctx->renew_tgt_ctx,
+                            NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to add offline callback.\n"));
+        goto fail;
+    }
+
+    DEBUG(7, ("Adding renewal task to online callbacks.\n"));
+    ret = be_add_online_cb(krb5_ctx->renew_tgt_ctx, be_ctx,
+                           renew_tgt_online_callback, krb5_ctx->renew_tgt_ctx,
+                           NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to add renewal task to online callbacks.\n"));
         goto fail;
     }
 
