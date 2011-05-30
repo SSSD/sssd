@@ -133,6 +133,16 @@ Requires: libipa_hbac = %{version}-%{release}
 %description -n libipa_hbac-devel
 Utility library to validate FreeIPA HBAC rules for authorization requests
 
+%package -n libipa_hbac-python
+Summary: Python bindings for the FreeIPA HBAC Evaluator library
+Group: Development/Libraries
+License: LGPLv3+
+Requires: libipa_hbac = %{version}-%{release}
+
+%description -n libipa_hbac-python
+The libipa_hbac-python contains the bindings so that libipa_hbac can be
+used by Python applications.
+
 %prep
 %setup -q
 
@@ -199,7 +209,8 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_simple.la \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
     $RPM_BUILD_ROOT/%{_libdir}/libipa_hbac.la \
-    $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
+    $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la \
+    $RPM_BUILD_ROOT/%{python_sitearch}/pyhbac.la
 
 # Older versions of rpmbuild can only handle one -f option
 # So we need to append to the sssd.lang file
@@ -296,6 +307,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/ipa_hbac.h
 %{_libdir}/libipa_hbac.so
 %{_libdir}/pkgconfig/ipa_hbac.pc
+
+%files -n libipa_hbac-python
+%defattr(-,root,root,-)
+%{python_sitearch}/pyhbac.so
 
 %post
 /sbin/ldconfig
