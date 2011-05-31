@@ -2838,7 +2838,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
             DEBUG(2, ("User [%s] does not exist in [%s]! (negative cache)\n",
-                      dom->name, name));
+                      name, dom->name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = dom->next;
