@@ -22,6 +22,7 @@
 #define __SSS_LDAP_H__
 
 #include <ldap.h>
+#include <talloc.h>
 
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
