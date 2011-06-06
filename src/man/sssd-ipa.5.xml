@@ -175,6 +175,21 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>ipa_hbac_refresh (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of the HBAC
+                            rules against the IPA server. This will reduce the
+                            latency and load on the IPA server if there are
+                            many access-control requests made in a short
+                            period.
+                        </para>
+                        <para>
+                            Default: 5 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
 
             </variablelist>
         </para>

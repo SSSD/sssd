@@ -43,10 +43,12 @@ struct ipa_access_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
     struct time_rules_ctx *tr_ctx;
+    time_t last_update;
 };
 
 struct hbac_ctx {
     struct sdap_id_ctx *sdap_ctx;
+    struct ipa_access_ctx *access_ctx;
     struct sdap_id_op *sdap_op;
     struct dp_option *ipa_options;
     struct time_rules_ctx *tr_ctx;
