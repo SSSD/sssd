@@ -114,6 +114,7 @@ void ipa_access_handler(struct be_req *be_req)
     ipa_access_ctx = talloc_get_type(
                               be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                               struct ipa_access_ctx);
+    hbac_ctx->access_ctx = ipa_access_ctx;
     hbac_ctx->sdap_ctx = ipa_access_ctx->sdap_ctx;
     hbac_ctx->ipa_options = ipa_access_ctx->ipa_options;
     hbac_ctx->tr_ctx = ipa_access_ctx->tr_ctx;
@@ -145,9 +146,21 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
     struct tevent_req *subreq;
     int ret;
     bool offline;
+    time_t now, refresh_interval;
+    struct ipa_access_ctx *access_ctx = hbac_ctx->access_ctx;
 
     offline = be_is_offline(hbac_ctx->be_req->be_ctx);
     DEBUG(9, ("Connection status is [%s].\n", offline ? "offline" : "online"));
+
+    refresh_interval = dp_opt_get_int(hbac_ctx->ipa_options,
+                                      IPA_HBAC_REFRESH);
+
+    now = time(NULL);
+    if (now < access_ctx->last_update + refresh_interval) {
+        /* Simulate offline mode and just go to the cache */
+        DEBUG(6, ("Performing cached HBAC evaluation\n"));
+        offline = true;
+    }
 
     if (!offline) {
         if (hbac_ctx->sdap_op == NULL) {
@@ -504,6 +517,9 @@ static void hbac_sysdb_save(struct tevent_req *req)
      * sysdb lookups.
      */
     hbac_clear_rule_data(hbac_ctx);
+
+
+    access_ctx->last_update = time(NULL);
 
     /* Now evaluate the request against the rules */
     ipa_hbac_evaluate_rules(hbac_ctx);
