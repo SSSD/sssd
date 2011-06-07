@@ -926,7 +926,8 @@ libsss_ipa_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
-    libsss_util.la
+    libsss_util.la \
+    libipa_hbac.la
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
     -module

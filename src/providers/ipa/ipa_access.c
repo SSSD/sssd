@@ -29,6 +29,8 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_access.h"
+#include "providers/ipa/ipa_hbac.h"
+#include "providers/ipa/ipa_hbac_private.h"
 
 static char *get_hbac_search_base(TALLOC_CTX *mem_ctx,
                                   struct dp_option *ipa_options)
@@ -56,27 +58,40 @@ static char *get_hbac_search_base(TALLOC_CTX *mem_ctx,
 
 static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
 {
+    struct be_req *be_req = hbac_ctx->be_req;
+    struct pam_data *pd;
+    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd->pam_status = pam_status;
 
-    return EOK;
+    /* destroy HBAC context now to release all used resources and LDAP connection */
+    talloc_zfree(hbac_ctx);
 
-not_applicable:
-    if (ret == RULE_NOT_APPLICABLE) {
-        *result = HBAC_NOT_APPLICABLE;
+    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
+        be_req->fn(be_req, DP_ERR_OK, pam_status, NULL);
     } else {
-        *result = HBAC_DENY;
+        be_req->fn(be_req, DP_ERR_FATAL, pam_status, NULL);
     }
-    return EOK;
 }
 
+enum hbac_result {
+    HBAC_ALLOW = 1,
+    HBAC_DENY,
+    HBAC_NOT_APPLICABLE
+};
 
-    return EOK;
-}
+enum check_result {
+    RULE_APPLICABLE = 0,
+    RULE_NOT_APPLICABLE,
+    RULE_ERROR
+};
 
 static int hbac_retry(struct hbac_ctx *hbac_ctx);
 static void hbac_connect_done(struct tevent_req *subreq);
 static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret);
 
 static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx);
+
+static void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx);
 
 void ipa_access_handler(struct be_req *be_req)
 {
@@ -93,6 +108,7 @@ void ipa_access_handler(struct be_req *be_req)
         DEBUG(1, ("talloc failed.\n"));
         goto fail;
     }
+    hbac_ctx->get_deny_rules = true; /* make this a config option */
     hbac_ctx->be_req = be_req;
     hbac_ctx->pd = pd;
     ipa_access_ctx = talloc_get_type(
@@ -128,18 +144,36 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
 {
     struct tevent_req *subreq;
     int ret;
+    bool offline;
 
-    if (hbac_ctx_is_offline(hbac_ctx)) {
-        return hbac_get_host_info_step(hbac_ctx);
+    offline = be_is_offline(hbac_ctx->be_req->be_ctx);
+    DEBUG(9, ("Connection status is [%s].\n", offline ? "offline" : "online"));
+
+    if (!offline) {
+        if (hbac_ctx->sdap_op == NULL) {
+            hbac_ctx->sdap_op = sdap_id_op_create(hbac_ctx,
+                                        hbac_ctx_sdap_id_ctx(hbac_ctx)->conn_cache);
+            if (hbac_ctx->sdap_op == NULL) {
+                DEBUG(1, ("sdap_id_op_create failed.\n"));
+                return EIO;
+            }
+        }
+
+        subreq = sdap_id_op_connect_send(hbac_ctx_sdap_id_op(hbac_ctx), hbac_ctx, &ret);
+        if (!subreq) {
+            DEBUG(1, ("sdap_id_op_connect_send failed: %d(%s).\n", ret, strerror(ret)));
+            talloc_zfree(hbac_ctx->sdap_op);
+            return ret;
+        }
+
+        tevent_req_set_callback(subreq, hbac_connect_done, hbac_ctx);
+    } else {
+        /* Evaluate the rules based on what we have in the
+         * sysdb
+         */
+        ipa_hbac_evaluate_rules(hbac_ctx);
+        return EOK;
     }
-
-    subreq = sdap_id_op_connect_send(hbac_ctx_sdap_id_op(hbac_ctx), hbac_ctx, &ret);
-    if (!subreq) {
-        DEBUG(1, ("sdap_id_op_connect_send failed: %d(%s).\n", ret, strerror(ret)));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, hbac_connect_done, hbac_ctx);
     return EOK;
 }
 
@@ -154,6 +188,9 @@ static void hbac_connect_done(struct tevent_req *subreq)
     if (dp_error == DP_ERR_OFFLINE) {
         /* switching to offline mode */
         talloc_zfree(hbac_ctx->sdap_op);
+
+        ipa_hbac_evaluate_rules(hbac_ctx);
+        return;
     } else if (ret != EOK) {
         goto fail;
     }
@@ -167,6 +204,24 @@ static void hbac_connect_done(struct tevent_req *subreq)
 
 fail:
     ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+}
+
+static void hbac_clear_rule_data(struct hbac_ctx *hbac_ctx)
+{
+    hbac_ctx->host_count = 0;
+    talloc_zfree(hbac_ctx->hosts);
+
+    hbac_ctx->hostgroup_count = 0;
+    talloc_zfree(hbac_ctx->hostgroups);
+
+    hbac_ctx->service_count = 0;
+    talloc_zfree(hbac_ctx->services);
+
+    hbac_ctx->servicegroup_count = 0;
+    talloc_zfree(hbac_ctx->servicegroups);
+
+    hbac_ctx->rule_count = 0;
+    talloc_zfree(hbac_ctx->rules);
 }
 
 /* Check the step result code and continue, retry, get offline result or abort accordingly */
@@ -189,6 +244,10 @@ static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret)
         if (dp_error == DP_ERR_OFFLINE) {
             /* switching to offline mode */
             talloc_zfree(hbac_ctx->sdap_op);
+
+            /* Free any of the results we've gotten */
+            hbac_clear_rule_data(hbac_ctx);
+
             dp_error = DP_ERR_OK;
         }
 
@@ -205,173 +264,370 @@ static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret)
     return false;
 }
 
+static void hbac_get_service_info_step(struct tevent_req *req);
+static void hbac_get_rule_info_step(struct tevent_req *req);
+static void hbac_sysdb_save (struct tevent_req *req);
+
 static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
 {
-    struct pam_data *pd = hbac_ctx->pd;
-    const char *hostlist[3];
-    struct tevent_req *subreq;
-
-    hostlist[0] = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
-    if (hostlist[0] == NULL) {
-        DEBUG(1, ("ipa_hostname not available.\n"));
-        return EINVAL;
-    }
-    if (pd->rhost != NULL && *pd->rhost != '\0') {
-        hostlist[1] = pd->rhost;
-        hostlist[2] = NULL;
-    } else {
-        hostlist[1] = NULL;
-        pd->rhost = discard_const_p(char, hostlist[0]);
-    }
-
-    subreq = hbac_get_host_info_send(hbac_ctx, hbac_ctx, hostlist);
-    if (!subreq) {
-        DEBUG(1, ("hbac_get_host_info_send failed.\n"));
+    struct tevent_req *req =
+            ipa_hbac_host_info_send(hbac_ctx,
+                                    hbac_ctx_ev(hbac_ctx),
+                                    hbac_ctx_sysdb(hbac_ctx),
+                                    hbac_ctx_be(hbac_ctx)->domain,
+                                    sdap_id_op_handle(hbac_ctx->sdap_op),
+                                    hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                                    hbac_ctx->hbac_search_base);
+    if (req == NULL) {
+        DEBUG(1, ("Could not get host info\n"));
         return ENOMEM;
     }
+    tevent_req_set_callback(req, hbac_get_service_info_step, hbac_ctx);
 
-    tevent_req_set_callback(subreq, hbac_get_host_info_done, hbac_ctx);
     return EOK;
 }
 
-static void hbac_get_host_info_done(struct tevent_req *req)
+static void hbac_get_service_info_step(struct tevent_req *req)
 {
-    struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
-    int ret;
-    int pam_status = PAM_SYSTEM_ERR;
-    const char *ipa_hostname;
-    struct hbac_host_info *local_hhi = NULL;
+    errno_t ret;
+    struct hbac_ctx *hbac_ctx =
+            tevent_req_callback_data(req, struct hbac_ctx);
 
-    ret = hbac_get_host_info_recv(req, hbac_ctx, &hbac_ctx->hbac_hosts_count,
-                                  &hbac_ctx->hbac_hosts_list);
+    ret = ipa_hbac_host_info_recv(req, hbac_ctx,
+                                  &hbac_ctx->host_count,
+                                  &hbac_ctx->hosts,
+                                  &hbac_ctx->hostgroup_count,
+                                  &hbac_ctx->hostgroups);
     talloc_zfree(req);
-
     if (!hbac_check_step_result(hbac_ctx, ret)) {
         return;
     }
 
+    /* Get services and service groups */
+    req = ipa_hbac_service_info_send(hbac_ctx,
+                                    hbac_ctx_ev(hbac_ctx),
+                                    hbac_ctx_sysdb(hbac_ctx),
+                                    hbac_ctx_be(hbac_ctx)->domain,
+                                    sdap_id_op_handle(hbac_ctx->sdap_op),
+                                    hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                                    hbac_ctx->hbac_search_base);
+    if (req == NULL) {
+        DEBUG(1,("Could not get service info\n"));
+        goto fail;
+    }
+    tevent_req_set_callback(req, hbac_get_rule_info_step, hbac_ctx);
+    return;
+
+fail:
+    ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+}
+
+static void hbac_get_rule_info_step(struct tevent_req *req)
+{
+    errno_t ret;
+    size_t i;
+    const char *ipa_hostname;
+    const char *hostname;
+    struct hbac_ctx *hbac_ctx =
+            tevent_req_callback_data(req, struct hbac_ctx);
+
+    ret = ipa_hbac_service_info_recv(req, hbac_ctx,
+                                     &hbac_ctx->service_count,
+                                     &hbac_ctx->services,
+                                     &hbac_ctx->servicegroup_count,
+                                     &hbac_ctx->servicegroups);
+    talloc_zfree(req);
+    if (!hbac_check_step_result(hbac_ctx, ret)) {
+        return;
+    }
+
+    /* Get the ipa_host attrs */
+    hbac_ctx->ipa_host = NULL;
     ipa_hostname = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
     if (ipa_hostname == NULL) {
         DEBUG(1, ("Missing ipa_hostname, this should never happen.\n"));
         goto fail;
     }
 
-    ret = set_local_and_remote_host_info(hbac_ctx, hbac_ctx->hbac_hosts_count,
-                                         hbac_ctx->hbac_hosts_list, ipa_hostname,
-                                         hbac_ctx->pd->rhost, &local_hhi,
-                                         &hbac_ctx->remote_hhi);
-    if (ret != EOK) {
-        DEBUG(1, ("set_local_and_remote_host_info failed.\n"));
-        goto fail;
-     }
+    for (i = 0; i < hbac_ctx->host_count; i++) {
+        ret = sysdb_attrs_get_string(hbac_ctx->hosts[i],
+                                     IPA_HOST_FQDN,
+                                     &hostname);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not locate IPA host\n"));
+            goto fail;
+        }
 
-    if (local_hhi == NULL) {
-        DEBUG(1, ("Missing host info for [%s].\n", ipa_hostname));
-        pam_status = PAM_PERM_DENIED;
+        if (strcmp(hostname, ipa_hostname) == 0) {
+            hbac_ctx->ipa_host = hbac_ctx->hosts[i];
+            break;
+        }
+    }
+    if (hbac_ctx->ipa_host == NULL) {
+        DEBUG(1, ("Could not locate IPA host\n"));
         goto fail;
     }
-    req = hbac_get_rules_send(hbac_ctx, hbac_ctx, local_hhi->dn,
-                              local_hhi->memberof);
+
+
+    /* Get the list of applicable rules */
+    req = ipa_hbac_rule_info_send(hbac_ctx,
+                                  hbac_ctx->get_deny_rules,
+                                  hbac_ctx_ev(hbac_ctx),
+                                  hbac_ctx_sysdb(hbac_ctx),
+                                  hbac_ctx_be(hbac_ctx)->domain,
+                                  sdap_id_op_handle(hbac_ctx->sdap_op),
+                                  hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                                  hbac_ctx->hbac_search_base,
+                                  hbac_ctx->ipa_host);
     if (req == NULL) {
-        DEBUG(1, ("hbac_get_rules_send failed.\n"));
+        DEBUG(1, ("Could not get rules\n"));
         goto fail;
     }
 
-    tevent_req_set_callback(req, hbac_get_rules_done, hbac_ctx);
+    tevent_req_set_callback(req, hbac_sysdb_save, hbac_ctx);
     return;
 
 fail:
-    ipa_access_reply(hbac_ctx, pam_status);
+    ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
 }
 
-static void hbac_get_rules_done(struct tevent_req *req)
+static void hbac_sysdb_save(struct tevent_req *req)
 {
-    struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
-    int ret;
-    int pam_status = PAM_SYSTEM_ERR;
+    errno_t ret;
+    bool in_transaction = false;
+    struct hbac_ctx *hbac_ctx =
+            tevent_req_callback_data(req, struct hbac_ctx);
+    struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
+    struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
+    struct ldb_dn *base_dn;
+    struct be_ctx *be_ctx = hbac_ctx_be(hbac_ctx);
+    struct ipa_access_ctx *access_ctx =
+            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+                            struct ipa_access_ctx);
+    TALLOC_CTX *tmp_ctx;
 
-    hbac_ctx->hbac_rule_count = 0;
-    talloc_zfree(hbac_ctx->hbac_rule_list);
-
-    ret = hbac_get_rules_recv(req, hbac_ctx, &hbac_ctx->hbac_rule_count,
-                              &hbac_ctx->hbac_rule_list);
+    ret = ipa_hbac_rule_info_recv(req, hbac_ctx,
+                                  &hbac_ctx->rule_count,
+                                  &hbac_ctx->rules);
     talloc_zfree(req);
+    if (ret == ENOENT) {
+        /* No rules were found that apply to this
+         * host.
+         */
+
+        tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) {
+            ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+            return;
+        }
+        /* Delete any rules in the sysdb so offline logins
+         * are also denied.
+         */
+        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx,
+                                          domain->name,
+                                          HBAC_RULES_SUBDIR);
+        if (base_dn == NULL) {
+            talloc_free(tmp_ctx);
+            ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+            return;
+        }
+
+        ret = sysdb_delete_recursive(tmp_ctx, sysdb, base_dn, true);
+        talloc_free(tmp_ctx);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_delete_recursive failed.\n"));
+            ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+            return;
+        }
+
+        /* If no rules are found, we default to DENY */
+        ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
+        return;
+    }
 
     if (!hbac_check_step_result(hbac_ctx, ret)) {
         return;
     }
 
-    req = hbac_get_service_data_send(hbac_ctx, hbac_ctx);
-    if (req == NULL) {
-        DEBUG(1, ("hbac_get_service_data_send failed.\n"));
-        goto failed;
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not start transaction\n"));
+        goto fail;
+    }
+    in_transaction = true;
+
+    /* Save the hosts */
+    ret = ipa_hbac_sysdb_save(sysdb, domain,
+                              HBAC_HOSTS_SUBDIR, IPA_HOST_FQDN,
+                              hbac_ctx->host_count, hbac_ctx->hosts,
+                              HBAC_HOSTGROUPS_SUBDIR, IPA_CN,
+                              hbac_ctx->hostgroup_count,
+                              hbac_ctx->hostgroups);
+    if (ret != EOK) {
+        DEBUG(1, ("Error saving hosts: [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
     }
 
-    tevent_req_set_callback(req, hbac_get_service_data_done, hbac_ctx);
+    /* Save the services */
+    ret = ipa_hbac_sysdb_save(sysdb, domain,
+                              HBAC_SERVICES_SUBDIR, IPA_CN,
+                              hbac_ctx->service_count, hbac_ctx->services,
+                              HBAC_SERVICEGROUPS_SUBDIR, IPA_CN,
+                              hbac_ctx->servicegroup_count,
+                              hbac_ctx->servicegroups);
+    if (ret != EOK) {
+        DEBUG(1, ("Error saving services:  [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+    /* Save the rules */
+    ret = ipa_hbac_sysdb_save(sysdb, domain,
+                              HBAC_RULES_SUBDIR, IPA_UNIQUE_ID,
+                              hbac_ctx->rule_count,
+                              hbac_ctx->rules,
+                              NULL, NULL, 0, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Error saving rules:  [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to commit transaction\n"));
+        goto fail;
+    }
+
+    /* We don't need the rule data any longer,
+     * the rest of the processing relies on
+     * sysdb lookups.
+     */
+    hbac_clear_rule_data(hbac_ctx);
+
+    /* Now evaluate the request against the rules */
+    ipa_hbac_evaluate_rules(hbac_ctx);
+
     return;
 
-failed:
-    ipa_access_reply(hbac_ctx, pam_status);
+fail:
+    if (in_transaction) {
+        ret = sysdb_transaction_cancel(sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Could not cancel transaction\n"));
+        }
+    }
+    ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
 }
 
-static void hbac_get_service_data_done(struct tevent_req *req)
+static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
+                                     struct hbac_ctx *hbac_ctx);
+
+void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
 {
-    struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
-    struct pam_data *pd = hbac_ctx->pd;
-    int ret;
-    int pam_status = PAM_SYSTEM_ERR;
-    bool access_allowed = false;
+    errno_t ret;
+    struct hbac_rule **hbac_rules;
+    struct hbac_eval_req *eval_req;
+    enum hbac_eval_result result;
+    struct hbac_info *info;
 
-    hbac_ctx->hbac_services_count = 0;
-    talloc_zfree(hbac_ctx->hbac_services_list);
+    /* Get HBAC rules from the sysdb */
+    ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not retrieve rules from the cache\n"));
+        ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+    }
 
-    ret = hbac_get_service_data_recv(req, hbac_ctx,
-                                     &hbac_ctx->hbac_services_count,
-                                     &hbac_ctx->hbac_services_list);
-    talloc_zfree(req);
-
-    if (!hbac_check_step_result(hbac_ctx, ret)) {
+    ret = hbac_ctx_to_rules(hbac_ctx, hbac_ctx,
+                            &hbac_rules, &eval_req);
+    if (ret == EPERM) {
+        DEBUG(1, ("DENY rules detected. Denying access to all users\n"));
+        ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
+        return;
+    } else if (ret != EOK) {
+        DEBUG(1, ("Could not construct HBAC rules\n"));
+        ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
         return;
     }
 
-    if (hbac_ctx->user_dn) {
-        talloc_free(discard_const_p(TALLOC_CTX, hbac_ctx->user_dn));
-        hbac_ctx->user_dn = 0;
+    result = hbac_evaluate(hbac_rules, eval_req, &info);
+    if (result == HBAC_EVAL_ALLOW) {
+        DEBUG(3, ("Access granted by HBAC rule [%s]\n",
+                  info->rule_name));
+        hbac_free_info(info);
+        ipa_access_reply(hbac_ctx, PAM_SUCCESS);
+        return;
+    } else if (result == HBAC_EVAL_ERROR) {
+        DEBUG(1, ("Error [%s] occurred in rule [%s]\n",
+                  hbac_error_string(info->code),
+                  info->rule_name));
+        hbac_free_info(info);
+        ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+        return;
+    } else if (result == HBAC_EVAL_OOM) {
+        DEBUG(1, ("Insufficient memory\n"));
+        ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+        return;
     }
 
-    if (!hbac_ctx_is_offline(hbac_ctx)) {
-        ret = hbac_save_data_to_sysdb(hbac_ctx);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to save data, "
-                      "offline authentication might not work.\n"));
-            /* This is not a fatal error. */
-        }
+    DEBUG(3, ("Access denied by HBAC rules\n"));
+    ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
+}
+
+static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
+                                     struct hbac_ctx *hbac_ctx)
+{
+    errno_t ret;
+    struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
+    struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
+    size_t count;
+    struct ldb_message **msgs;
+    TALLOC_CTX *tmp_ctx;
+    char *filter;
+    const char *attrs[] = { OBJECTCLASS,
+                            IPA_CN,
+                            IPA_UNIQUE_ID,
+                            IPA_ENABLED_FLAG,
+                            IPA_ACCESS_RULE_TYPE,
+                            IPA_MEMBER_USER,
+                            IPA_USER_CATEGORY,
+                            IPA_MEMBER_SERVICE,
+                            IPA_SERVICE_CATEGORY,
+                            IPA_SOURCE_HOST,
+                            IPA_SOURCE_HOST_CATEGORY,
+                            IPA_EXTERNAL_HOST,
+                            IPA_MEMBER_HOST,
+                            IPA_HOST_CATEGORY,
+                            NULL };
+
+    tmp_ctx = talloc_new(hbac_ctx);
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    filter = talloc_asprintf(tmp_ctx, "(objectClass=%s)", IPA_HBAC_RULE);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    hbac_ctx->groups_count = 0;
-    talloc_zfree(hbac_ctx->groups);
+    ret = sysdb_search_custom(mem_ctx, sysdb, domain, filter,
+                              HBAC_RULES_SUBDIR, attrs,
+                              &count, &msgs);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(1, ("Error looking up HBAC rules"));
+        goto done;
+    } if (ret == ENOENT) {
+       count = 0;
+    }
 
-    ret = hbac_get_user_info(hbac_ctx, hbac_ctx_be(hbac_ctx),
-                             pd->user, &hbac_ctx->user_dn,
-                             &hbac_ctx->groups_count, &hbac_ctx->groups);
+    ret = msgs2attrs_array(mem_ctx, count, msgs, &hbac_ctx->rules);
     if (ret != EOK) {
-        goto failed;
+        DEBUG(1, ("Could not convert ldb message to sysdb_attrs\n"));
+        goto done;
     }
+    hbac_ctx->rule_count = count;
 
-    ret = evaluate_ipa_hbac_rules(hbac_ctx, &access_allowed);
-    if (ret != EOK) {
-        DEBUG(1, ("evaluate_ipa_hbac_rules failed.\n"));
-        goto failed;
-    }
-
-    if (access_allowed) {
-        pam_status = PAM_SUCCESS;
-        DEBUG(5, ("Access allowed.\n"));
-    } else {
-        pam_status = PAM_PERM_DENIED;
-        DEBUG(3, ("Access denied.\n"));
-    }
-
-failed:
-    ipa_access_reply(hbac_ctx, pam_status);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
