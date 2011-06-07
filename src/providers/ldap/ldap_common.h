@@ -162,4 +162,8 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
 
 bool sdap_is_secure_uri(const char *uri);
 
+errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
+                         struct ldb_message **msgs,
+                         struct sysdb_attrs ***attrs);
+
 #endif /* _LDAP_COMMON_H_ */
