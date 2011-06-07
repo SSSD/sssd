@@ -166,4 +166,8 @@ char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
                                   char *base_filter,
                                   char *extra_filter);
 
+errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
+                         struct ldb_message **msgs,
+                         struct sysdb_attrs ***attrs);
+
 #endif /* _LDAP_COMMON_H_ */
