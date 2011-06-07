@@ -52,17 +52,8 @@ struct hbac_ctx {
     struct time_rules_ctx *tr_ctx;
     struct be_req *be_req;
     struct pam_data *pd;
-    struct sysdb_attrs **hbac_hosts_list;
-    size_t hbac_hosts_count;
-    struct hbac_host_info *remote_hhi;
-    struct sysdb_attrs **hbac_rule_list;
-    size_t hbac_rule_count;
-    const char *user_dn;
-    size_t groups_count;
-    const char **groups;
+
     char *hbac_search_base;
-    struct sysdb_attrs **hbac_services_list;
-    size_t hbac_services_count;
 };
 
 /* Get BE context associated with HBAC context */
