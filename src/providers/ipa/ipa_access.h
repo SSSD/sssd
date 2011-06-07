@@ -54,6 +54,24 @@ struct hbac_ctx {
     struct pam_data *pd;
 
     char *hbac_search_base;
+
+    /* Hosts */
+    size_t host_count;
+    struct sysdb_attrs **hosts;
+    size_t hostgroup_count;
+    struct sysdb_attrs **hostgroups;
+    struct sysdb_attrs *ipa_host;
+
+    /* Rules */
+    bool get_deny_rules;
+    size_t rule_count;
+    struct sysdb_attrs **rules;
+
+    /* Services */
+    size_t service_count;
+    struct sysdb_attrs **services;
+    size_t servicegroup_count;
+    struct sysdb_attrs **servicegroups;
 };
 
 /* Get BE context associated with HBAC context */

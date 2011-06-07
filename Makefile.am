@@ -907,7 +907,8 @@ libsss_ipa_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
-    libsss_crypt.la
+    libsss_crypt.la \
+    libipa_hbac.la
 libsss_ipa_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
