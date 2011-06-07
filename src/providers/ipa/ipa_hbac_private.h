@@ -1,0 +1,194 @@
+/*
+    SSSD
+
+    Authors:
+        Stephen Gallagher <sgallagh@redhat.com>
+
+    Copyright (C) 2011 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef IPA_HBAC_PRIVATE_H_
+#define IPA_HBAC_PRIVATE_H_
+
+#include "providers/ipa/ipa_access.h"
+#include "providers/ipa/ipa_hbac.h"
+
+#define IPA_HBAC_RULE "ipaHBACRule"
+
+#define IPA_HOST "ipaHost"
+#define IPA_HOSTGROUP "ipaHostGroup"
+
+#define IPA_HBAC_SERVICE "ipaHBACService"
+#define IPA_HBAC_SERVICE_GROUP "ipaHBACServiceGroup"
+
+#define IPA_HOST_SERVERHOSTNAME "serverHostName"
+#define IPA_HOST_FQDN "fqdn"
+#define IPA_UNIQUE_ID "ipauniqueid"
+
+#define IPA_MEMBER "member"
+#define SYSDB_ORIG_MEMBER "orig_member"
+#define HBAC_HOSTS_SUBDIR "hbac_hosts"
+#define HBAC_HOSTGROUPS_SUBDIR "hbac_hostgroups"
+
+#define OBJECTCLASS "objectclass"
+#define IPA_MEMBEROF "memberOf"
+#define IPA_ACCESS_RULE_TYPE "accessRuleType"
+#define IPA_HBAC_ALLOW "allow"
+#define IPA_MEMBER_USER "memberUser"
+#define IPA_USER_CATEGORY "userCategory"
+#define IPA_SERVICE_NAME "serviceName"
+#define IPA_SOURCE_HOST "sourceHost"
+#define IPA_SOURCE_HOST_CATEGORY "sourceHostCategory"
+#define IPA_EXTERNAL_HOST "externalHost"
+#define IPA_ENABLED_FLAG "ipaenabledflag"
+#define IPA_MEMBER_HOST "memberHost"
+#define IPA_HOST_CATEGORY "hostCategory"
+#define IPA_CN "cn"
+#define IPA_MEMBER_SERVICE "memberService"
+#define IPA_SERVICE_CATEGORY "serviceCategory"
+#define IPA_TRUE_VALUE "TRUE"
+
+#define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,%s"
+#define IPA_HBAC_BASE_TMPL "cn=hbac,%s"
+#define IPA_SERVICES_BASE_TMPL "cn=hbacservices,cn=accounts,%s"
+
+#define SYSDB_HBAC_BASE_TMPL "cn=hbac,"SYSDB_TMPL_CUSTOM_BASE
+
+#define HBAC_RULES_SUBDIR "hbac_rules"
+#define HBAC_SERVICES_SUBDIR "hbac_services"
+#define HBAC_SERVICEGROUPS_SUBDIR "hbac_servicegroups"
+
+/* From ipa_hbac_common.c */
+errno_t ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
+                           const char *subdir, struct sss_domain_info *domain,
+                           const char *naming_attribute, size_t count,
+                           struct sysdb_attrs **list);
+errno_t
+ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                    const char *primary_subdir, const char *attr_name,
+                    size_t primary_count, struct sysdb_attrs **primary,
+                    const char *group_subdir, const char *groupattr_name,
+                    size_t group_count, struct sysdb_attrs **groups);
+
+errno_t
+replace_attribute_name(const char *old_name,
+                       const char *new_name, const size_t count,
+                       struct sysdb_attrs **list);
+
+errno_t hbac_ctx_to_rules(TALLOC_CTX *mem_ctx,
+                          struct hbac_ctx *hbac_ctx,
+                          struct hbac_rule ***rules,
+                          struct hbac_eval_req **request);
+
+errno_t
+hbac_get_category(struct sysdb_attrs *attrs,
+                  const char *category_attr,
+                  uint32_t *_categories);
+
+/* From ipa_hbac_hosts.c */
+struct tevent_req *
+ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *dom,
+                        struct sdap_handle *sh,
+                        struct sdap_options *opts,
+                        const char *search_base);
+
+errno_t
+ipa_hbac_host_info_recv(struct tevent_req *req,
+                        TALLOC_CTX *mem_ctx,
+                        size_t *host_count,
+                        struct sysdb_attrs ***hosts,
+                        size_t *hostgroup_count,
+                        struct sysdb_attrs ***hostgroups);
+
+errno_t
+hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
+                         const char *rule_name,
+                         struct sysdb_attrs *rule_attrs,
+                         struct hbac_rule_element **thosts);
+
+errno_t
+hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
+                         const char *rule_name,
+                         struct sysdb_attrs *rule_attrs,
+                         struct hbac_rule_element **source_hosts);
+
+/* From ipa_hbac_services.c */
+struct tevent_req *
+ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *dom,
+                           struct sdap_handle *sh,
+                           struct sdap_options *opts,
+                           const char *search_base);
+
+errno_t
+ipa_hbac_service_info_recv(struct tevent_req *req,
+                           TALLOC_CTX *mem_ctx,
+                           size_t *service_count,
+                           struct sysdb_attrs ***services,
+                           size_t *servicegroup_count,
+                           struct sysdb_attrs ***servicegroups);
+
+errno_t
+hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
+                           const char *rule_name,
+                           struct sysdb_attrs *rule_attrs,
+                           struct hbac_rule_element **services);
+
+/* From ipa_hbac_rules.c */
+struct tevent_req *
+ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
+                        bool get_deny_rules,
+                        struct tevent_context *ev,
+                        struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *dom,
+                        struct sdap_handle *sh,
+                        struct sdap_options *opts,
+                        const char *search_base,
+                        struct sysdb_attrs *ipa_host);
+
+errno_t
+ipa_hbac_rule_info_recv(struct tevent_req *req,
+                        TALLOC_CTX *mem_ctx,
+                        size_t *rule_count,
+                        struct sysdb_attrs ***rules);
+
+/* From ipa_hbac_users.c */
+errno_t
+hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
+                        const char *rule_name,
+                        struct sysdb_attrs *rule_attrs,
+                        struct hbac_rule_element **users);
+
+errno_t
+get_ipa_groupname(TALLOC_CTX *mem_ctx,
+                  struct sysdb_ctx *sysdb,
+                  const char *group_dn,
+                  const char **groupname);
+
+#endif /* IPA_HBAC_PRIVATE_H_ */

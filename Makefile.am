@@ -864,6 +864,12 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_auth.c \
     src/providers/ipa/ipa_access.c \
     src/providers/ipa/ipa_dyndns.c \
+    src/providers/ipa/ipa_hbac_hosts.c \
+    src/providers/ipa/ipa_hbac_private.h \
+    src/providers/ipa/ipa_hbac_rules.c \
+    src/providers/ipa/ipa_hbac_services.c \
+    src/providers/ipa/ipa_hbac_users.c \
+    src/providers/ipa/ipa_hbac_common.c \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \
