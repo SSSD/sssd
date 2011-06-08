@@ -1233,45 +1233,43 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     case 1:
         /* Single group search */
-        if ((state->opts->schema_type == SDAP_SCHEMA_RFC2307) ||
-            (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) == 0)) {
-            /* Either this is RFC2307 or we have disabled nested group
-             * support for RFC2307bis. Either way, we'll process the
-             * groups in single-level, multiple-request mode.
-             */
+        if ((state->opts->schema_type != SDAP_SCHEMA_RFC2307) &&
+            (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)) {
+
+            /* Prepare hashes for nested user processing */
+            ret = sss_hash_create(state, 32, &state->user_hash);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+
+            ret = sss_hash_create(state, 32, &state->group_hash);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+
+            subreq = sdap_nested_group_process_send(state,
+                                                    state->ev,
+                                                    state->dom,
+                                                    state->sysdb,
+                                                    state->groups[0],
+                                                    state->user_hash,
+                                                    state->group_hash,
+                                                    state->opts,
+                                                    state->sh,
+                                                    0);
+            if (!subreq) {
+                tevent_req_error(req, EIO);
+                return;
+            }
+
+            tevent_req_set_callback(subreq, sdap_nested_done, req);
+            return;
+        } else {
+            /* RFC2307 or disabled nested groups */
             break;
         }
-
-        /* Prepare hashes for nested user processing */
-        ret = sss_hash_create(state, 32, &state->user_hash);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        ret = sss_hash_create(state, 32, &state->group_hash);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        subreq = sdap_nested_group_process_send(state,
-                                                state->ev,
-                                                state->dom,
-                                                state->sysdb,
-                                                state->groups[0],
-                                                state->user_hash,
-                                                state->group_hash,
-                                                state->opts,
-                                                state->sh,
-                                                0);
-        if (!subreq) {
-            tevent_req_error(req, EIO);
-            return;
-        }
-
-        tevent_req_set_callback(subreq, sdap_nested_done, req);
-        return;
 
     default:
         /* Enumeration */
