@@ -719,7 +719,55 @@ done:
 static int
 sdap_process_missing_member_2307bis(struct tevent_req *req,
                                     char *user_dn,
-                                    int num_users);
+                                    int num_users)
+{
+    struct sdap_process_group_state *grp_state =
+        tevent_req_data(req, struct sdap_process_group_state);
+    struct tevent_req *subreq;
+
+    /*
+     * Issue at most GROUPMEMBER_REQ_PARALLEL LDAP searches at once.
+     * The rest is sent while the results are being processed.
+     * We limit the number as of request here, as the Server might
+     * enforce limits on the number of pending operations per
+     * connection.
+     */
+    if (grp_state->check_count > GROUPMEMBER_REQ_PARALLEL) {
+        DEBUG(7, (" queueing search for: %s\n", user_dn));
+        if (!grp_state->queued_members) {
+            DEBUG(7, ("Allocating queue for %d members\n",
+                      num_users - grp_state->check_count));
+
+            grp_state->queued_members = talloc_array(grp_state, char *,
+                    num_users - grp_state->check_count + 1);
+            if (!grp_state->queued_members) {
+                return ENOMEM;
+            }
+        }
+        grp_state->queued_members[grp_state->queue_len] = user_dn;
+        grp_state->queue_len++;
+    } else {
+        subreq = sdap_get_generic_send(grp_state,
+                                       grp_state->ev,
+                                       grp_state->opts,
+                                       grp_state->sh,
+                                       user_dn,
+                                       LDAP_SCOPE_BASE,
+                                       grp_state->filter,
+                                       grp_state->attrs,
+                                       grp_state->opts->user_map,
+                                       SDAP_OPTS_USER,
+                                       dp_opt_get_int(grp_state->opts->basic,
+                                                      SDAP_SEARCH_TIMEOUT));
+        if (!subreq) {
+            return ENOMEM;
+        }
+        tevent_req_set_callback(subreq, sdap_process_group_members, req);
+    }
+
+    grp_state->check_count++;
+    return EOK;
+}
 
 static int
 sdap_process_group_members_2307bis(struct tevent_req *req,
@@ -806,7 +854,69 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
 
 static int
 sdap_process_missing_member_2307(struct sdap_process_group_state *state,
-                                 char *username, bool *in_transaction);
+                                 char *username, bool *in_transaction)
+{
+    int ret, sret;
+    struct ldb_dn *dn;
+    char* dn_string;
+
+    DEBUG(7, ("Adding a dummy entry\n"));
+
+    if (!in_transaction) return EINVAL;
+
+    if (!*in_transaction) {
+        ret = sysdb_transaction_start(state->sysdb);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot start sysdb transaction: [%d]: %s\n",
+                       ret, strerror(ret)));
+            return ret;
+        }
+        *in_transaction = true;
+    }
+
+    ret = sysdb_add_fake_user(state->sysdb, username, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    /*
+     * Convert the just received DN into the corresponding sysdb DN
+     * for saving into member attribute of the group
+     */
+    dn = sysdb_user_dn(state->sysdb, state, state->dom->name,
+                       (char*) username);
+    if (!dn) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    dn_string = ldb_dn_alloc_linearized(state->sysdb_dns->values, dn);
+    if (!dn_string) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+            (uint8_t *) dn_string;
+    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+            strlen(dn_string);
+    state->sysdb_dns->num_values++;
+
+    return EOK;
+fail:
+    if (*in_transaction) {
+        sret = sysdb_transaction_cancel(state->sysdb);
+        if (sret == EOK) {
+            *in_transaction = false;
+        } else {
+            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
+                       sret, strerror(sret)));
+        }
+    }
+    return ret;
+}
 
 static int
 sdap_process_group_members_2307(struct sdap_process_group_state *state,
@@ -886,126 +996,6 @@ done:
         if (sret != EOK) {
             DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
                       sret, strerror(sret)));
-        }
-    }
-    return ret;
-}
-
-
-static int
-sdap_process_missing_member_2307bis(struct tevent_req *req,
-                                    char *user_dn,
-                                    int num_users)
-{
-    struct sdap_process_group_state *grp_state =
-        tevent_req_data(req, struct sdap_process_group_state);
-    struct tevent_req *subreq;
-
-    /*
-     * Issue at most GROUPMEMBER_REQ_PARALLEL LDAP searches at once.
-     * The rest is sent while the results are being processed.
-     * We limit the number as of request here, as the Server might
-     * enforce limits on the number of pending operations per
-     * connection.
-     */
-    if (grp_state->check_count > GROUPMEMBER_REQ_PARALLEL) {
-        DEBUG(7, (" queueing search for: %s\n", user_dn));
-        if (!grp_state->queued_members) {
-            DEBUG(7, ("Allocating queue for %d members\n",
-                      num_users - grp_state->check_count));
-
-            grp_state->queued_members = talloc_array(grp_state, char *,
-                    num_users - grp_state->check_count + 1);
-            if (!grp_state->queued_members) {
-                return ENOMEM;
-            }
-        }
-        grp_state->queued_members[grp_state->queue_len] = user_dn;
-        grp_state->queue_len++;
-    } else {
-        subreq = sdap_get_generic_send(grp_state,
-                                       grp_state->ev,
-                                       grp_state->opts,
-                                       grp_state->sh,
-                                       user_dn,
-                                       LDAP_SCOPE_BASE,
-                                       grp_state->filter,
-                                       grp_state->attrs,
-                                       grp_state->opts->user_map,
-                                       SDAP_OPTS_USER,
-                                       dp_opt_get_int(grp_state->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
-        if (!subreq) {
-            return ENOMEM;
-        }
-        tevent_req_set_callback(subreq, sdap_process_group_members, req);
-    }
-
-    grp_state->check_count++;
-    return EOK;
-}
-
-static int
-sdap_process_missing_member_2307(struct sdap_process_group_state *state,
-                                 char *username, bool *in_transaction)
-{
-    int ret, sret;
-    struct ldb_dn *dn;
-    char* dn_string;
-
-    DEBUG(7, ("Adding a dummy entry\n"));
-
-    if (!in_transaction) return EINVAL;
-
-    if (!*in_transaction) {
-        ret = sysdb_transaction_start(state->sysdb);
-        if (ret != EOK) {
-            DEBUG(1, ("Cannot start sysdb transaction: [%d]: %s\n",
-                       ret, strerror(ret)));
-            return ret;
-        }
-        *in_transaction = true;
-    }
-
-    ret = sysdb_add_fake_user(state->sysdb, username, NULL);
-    if (ret != EOK) {
-        DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
-                  ret, strerror(ret)));
-        goto fail;
-    }
-
-    /*
-     * Convert the just received DN into the corresponding sysdb DN
-     * for saving into member attribute of the group
-     */
-    dn = sysdb_user_dn(state->sysdb, state, state->dom->name,
-                       (char*) username);
-    if (!dn) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    dn_string = ldb_dn_alloc_linearized(state->sysdb_dns->values, dn);
-    if (!dn_string) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
-            (uint8_t *) dn_string;
-    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
-            strlen(dn_string);
-    state->sysdb_dns->num_values++;
-
-    return EOK;
-fail:
-    if (*in_transaction) {
-        sret = sysdb_transaction_cancel(state->sysdb);
-        if (sret == EOK) {
-            *in_transaction = false;
-        } else {
-            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
-                       sret, strerror(sret)));
         }
     }
     return ret;
