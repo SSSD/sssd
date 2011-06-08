@@ -146,11 +146,12 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
     return EOK;
 }
 
-static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
-                            struct sysdb_ctx *sysdb,
-                            struct sss_domain_info *domain,
-                            const char *name,
-                            const char *ccname)
+static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
+                           const char *name,
+                           const char *ccname,
+                           int mod_op)
 {
     TALLOC_CTX *tmpctx;
     struct sysdb_attrs *attrs;
@@ -161,7 +162,13 @@ static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    DEBUG(9, ("Save ccname [%s] for user [%s].\n", ccname, name));
+    if (mod_op != SYSDB_MOD_REP && mod_op != SYSDB_MOD_DEL) {
+        DEBUG(1, ("Unsupported operation [%d].\n", mod_op));
+        return EINVAL;
+    }
+
+    DEBUG(9, ("%s ccname [%s] for user [%s].\n",
+              mod_op == SYSDB_MOD_REP ? "Save" : "Delete", ccname, name));
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -187,7 +194,7 @@ static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_set_user_attr(tmpctx, sysdb,
-                              domain, name, attrs, SYSDB_MOD_REP);
+                              domain, name, attrs, mod_op);
     if (ret != EOK) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         sysdb_transaction_cancel(sysdb);
@@ -202,6 +209,26 @@ static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmpctx);
     return ret;
+}
+
+static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
+                            struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
+                            const char *name,
+                            const char *ccname)
+{
+    return krb5_mod_ccname(mem_ctx, sysdb, domain, name, ccname,
+                           SYSDB_MOD_REP);
+}
+
+static int krb5_delete_ccname(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain,
+                              const char *name,
+                              const char *ccname)
+{
+    return krb5_mod_ccname(mem_ctx, sysdb, domain, name, ccname,
+                           SYSDB_MOD_DEL);
 }
 
 static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
@@ -799,13 +826,41 @@ static void krb5_child_done(struct tevent_req *subreq)
     /* If the child request failed, but did not return an offline error code,
      * return with the status */
     if (msg_status != PAM_SUCCESS && msg_status != PAM_AUTHINFO_UNAVAIL &&
-        msg_status != PAM_AUTHTOK_LOCK_BUSY) {
+        msg_status != PAM_AUTHTOK_LOCK_BUSY &&
+        msg_status != PAM_NEW_AUTHTOK_REQD) {
         state->pam_status = msg_status;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     } else {
         state->pam_status = msg_status;
+    }
+
+    /* If the password is expired we can safely remove the ccache from the
+     * cache and disk if it is not actively used anymore. This will allow to
+     * create a new random ccache if sshd with privilege separation is used. */
+    if (msg_status == PAM_NEW_AUTHTOK_REQD) {
+        if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache_present) {
+            if (kr->old_ccname != NULL) {
+                ret = safe_remove_old_ccache_file(kr->old_ccname, "dummy");
+                if (ret != EOK) {
+                    DEBUG(1, ("Failed to remove old ccache file [%s], "
+                              "please remove it manually.\n", kr->old_ccname));
+                }
+
+                ret = krb5_delete_ccname(state, state->be_ctx->sysdb,
+                                         state->be_ctx->domain,
+                                         pd->user, kr->old_ccname);
+                if (ret != EOK) {
+                    DEBUG(1, ("krb5_delete_ccname failed.\n"));
+                }
+            }
+        }
+
+        state->pam_status = msg_status;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
     }
 
     /* If the child request was successful and we run the first pass of the
