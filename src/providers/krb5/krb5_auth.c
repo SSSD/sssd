@@ -917,7 +917,8 @@ static void krb5_child_done(struct tevent_req *subreq)
     if (kr->old_ccname != NULL) {
         ret = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to remove old ccache file [%s], please remove it manually.\n"));
+            DEBUG(1, ("Failed to remove old ccache file [%s], "
+                      "please remove it manually.\n", kr->old_ccname));
         }
     }
 
@@ -925,7 +926,7 @@ static void krb5_child_done(struct tevent_req *subreq)
                            state->be_ctx->domain,
                            pd->user, kr->ccname);
     if (ret) {
-        DEBUG(1, ("krb5_save_ccname_send failed.\n"));
+        DEBUG(1, ("krb5_save_ccname failed.\n"));
         goto done;
     }
 
