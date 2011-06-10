@@ -37,6 +37,10 @@
 #include "resolv/ares/ares_data.h"
 #endif /* HAVE_ARES_DATA */
 
+#ifndef RESOLV_DEFAULT_TTL
+#define RESOLV_DEFAULT_TTL 7200
+#endif  /* RESOLV_DEFAULT_TTL */
+
 /*
  * An opaque structure which holds context for a module using the async
  * resolver. Is should be used as a "local-global" variable - in sssd,
@@ -52,6 +56,31 @@ int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 void resolv_reread_configuration(void);
 
 const char *resolv_strerror(int ares_code);
+
+/* If resolv_hostent->family is AF_INET, then ipaddr points to
+ * struct in_addr, else if family is AF_INET6, ipaddr points to
+ * struct in6_addr
+ */
+struct resolv_addr {
+    uint8_t *ipaddr;
+    int ttl;
+};
+
+struct resolv_hostent {
+    char  *name;            /* official name of host */
+    char **aliases;         /* alias list */
+    int    family;          /* host address type */
+
+    struct resolv_addr **addr_list; /* list of addresses */
+};
+
+struct resolv_hostent *
+resolv_copy_hostent2(TALLOC_CTX *mem_ctx, struct hostent *src);
+
+struct resolv_hostent *
+resolv_copy_hostent_ares(TALLOC_CTX *mem_ctx, struct hostent *src,
+                         int family, void *ares_ttl_data,
+                         int num_ares_ttl_data);
 
 struct hostent *resolv_copy_hostent(TALLOC_CTX *mem_ctx,
                                     struct hostent *src);
