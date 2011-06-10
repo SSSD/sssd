@@ -627,6 +627,98 @@ fail:
     return NULL;
 }
 
+/* =================== Resolve host name in files =========================*/
+struct gethostbyname_files_state {
+    struct resolv_ctx *resolv_ctx;
+
+    /* Part of the query. */
+    const char *name;
+    int family;
+
+    /* query result */
+    struct resolv_hostent *rhostent;
+
+    /* returned by ares. */
+    int status;
+};
+
+/* Fake up an async interface even though files would
+ * always be blocking */
+static struct tevent_req *
+resolv_gethostbyname_files_send(TALLOC_CTX *mem_ctx,
+                                struct tevent_context *ev,
+                                struct resolv_ctx *ctx,
+                                const char *name,
+                                int family)
+{
+    struct tevent_req *req;
+    struct gethostbyname_files_state *state;
+    struct hostent *hostent = NULL;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct gethostbyname_files_state);
+    if (req == NULL) {
+        tevent_req_error(req, ENOMEM);
+        goto done;
+    }
+
+    state->resolv_ctx = ctx;
+    state->name = name;
+    state->rhostent = NULL;
+    state->family = family;
+
+    DEBUG(4, ("Trying to resolve %s record of '%s' in files\n",
+              state->family == AF_INET ? "A" : "AAAA", state->name));
+
+    state->status = ares_gethostbyname_file(state->resolv_ctx->channel,
+                                            state->name, state->family,
+                                            &hostent);
+
+    if (state->status == ARES_SUCCESS) {
+        state->rhostent = resolv_copy_hostent2(state, hostent);
+        if (state->rhostent == NULL) {
+            tevent_req_error(req, ENOMEM);
+            goto done;
+        }
+    } else if (state->status == ARES_ENOTFOUND ||
+               state->status == ARES_ENODATA) {
+        /* Just say we didn't find anything and let the caller decide
+         * about retrying */
+        tevent_req_error(req, ENOENT);
+        goto done;
+    } else {
+        tevent_req_error(req, return_code(state->status));
+        goto done;
+    }
+
+    tevent_req_done(req);
+done:
+    if (hostent) ares_free_hostent(hostent);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static errno_t
+resolv_gethostbyname_files_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                                int *status, struct resolv_hostent **rhostent)
+{
+    struct gethostbyname_files_state *state = tevent_req_data(req,
+                                        struct gethostbyname_files_state);
+
+    /* Fill in even in case of error as status contains the
+     * c-ares return code */
+    if (status) {
+        *status = state->status;
+    }
+    if (rhostent) {
+        *rhostent = talloc_steal(mem_ctx, state->rhostent);
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 /*******************************************************************
  * Get host by name.                                               *
  *******************************************************************/
