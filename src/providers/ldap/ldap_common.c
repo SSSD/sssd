@@ -533,7 +533,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sdap_service *service;
-    struct hostent *srvaddr;
+    struct resolv_hostent *srvaddr;
     char *address;
     const char *safe_address;
     const char *tmp;
@@ -571,7 +571,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     }
 
     safe_address = sss_ldap_escape_ip_address(tmp_ctx,
-                                              srvaddr->h_addrtype,
+                                              srvaddr->family,
                                               address);
     talloc_zfree(address);
     if (safe_address == NULL) {

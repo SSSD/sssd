@@ -169,7 +169,7 @@ int fo_get_server_port(struct fo_server *server);
 
 const char *fo_get_server_name(struct fo_server *server);
 
-struct hostent *fo_get_server_hostent(struct fo_server *server);
+struct resolv_hostent *fo_get_server_hostent(struct fo_server *server);
 
 time_t fo_get_server_hostname_last_change(struct fo_server *server);
 

@@ -56,6 +56,8 @@
 #define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
 #define DNS_HEADER_ANCOUNT(h)           DNS__16BIT((h) + 6)
 
+enum host_database default_host_dbs[] = { DB_FILES, DB_DNS, DB_SENTINEL };
+
 struct fd_watch {
     struct fd_watch *prev;
     struct fd_watch *next;
@@ -333,7 +335,8 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
     options.timeout = ctx->timeout * 1000;
-    options.lookups = discard_const("fb");
+    /* Only affects ares_gethostbyname */
+    options.lookups = discard_const("f");
     options.tries = 1;
     ret = ares_init_options(&new_channel, &options,
                             ARES_OPT_SOCK_STATE_CB |
@@ -399,64 +402,6 @@ resolv_reread_configuration(void)
     DLIST_FOR_EACH(ctx, context_list) {
         recreate_ares_channel(ctx);
     }
-}
-
-struct hostent *
-resolv_copy_hostent(TALLOC_CTX *mem_ctx, struct hostent *src)
-{
-    struct hostent *ret;
-    int len;
-    int i;
-
-    ret = talloc_zero(mem_ctx, struct hostent);
-    if (ret == NULL) {
-        return NULL;
-    }
-
-    if (src->h_name != NULL) {
-        ret->h_name = talloc_strdup(ret, src->h_name);
-        if (ret->h_name == NULL) {
-            goto fail;
-        }
-    }
-    if (src->h_aliases != NULL) {
-        for (len = 0; src->h_aliases[len] != NULL; len++);
-        ret->h_aliases = talloc_size(ret, sizeof(char *) * (len + 1));
-        if (ret->h_aliases == NULL) {
-            goto fail;
-        }
-        for (i = 0; i < len; i++) {
-            ret->h_aliases[i] = talloc_strdup(ret->h_aliases, src->h_aliases[i]);
-            if (ret->h_aliases[i] == NULL) {
-                goto fail;
-            }
-        }
-        ret->h_aliases[len] = NULL;
-    }
-    ret->h_addrtype = src->h_addrtype;
-    ret->h_length = src->h_length;
-    if (src->h_addr_list != NULL) {
-        for (len = 0; src->h_addr_list[len] != NULL; len++);
-        ret->h_addr_list = talloc_size(ret, sizeof(char *) * (len + 1));
-        if (ret->h_addr_list == NULL) {
-            goto fail;
-        }
-        for (i = 0; i < len; i++) {
-            ret->h_addr_list[i] = talloc_memdup(ret->h_addr_list,
-                                                src->h_addr_list[i],
-                                                ret->h_length);
-            if (ret->h_addr_list[i] == NULL) {
-                goto fail;
-            }
-        }
-        ret->h_addr_list[len] = NULL;
-    }
-
-    return ret;
-
-fail:
-    talloc_free(ret);
-    return NULL;
 }
 
 static errno_t
@@ -529,7 +474,7 @@ fail:
 }
 
 struct resolv_hostent *
-resolv_copy_hostent2(TALLOC_CTX *mem_ctx, struct hostent *src)
+resolv_copy_hostent(TALLOC_CTX *mem_ctx, struct hostent *src)
 {
     struct resolv_hostent *ret;
     int len;
@@ -678,7 +623,7 @@ resolv_gethostbyname_files_send(TALLOC_CTX *mem_ctx,
                                             &hostent);
 
     if (state->status == ARES_SUCCESS) {
-        state->rhostent = resolv_copy_hostent2(state, hostent);
+        state->rhostent = resolv_copy_hostent(state, hostent);
         if (state->rhostent == NULL) {
             tevent_req_error(req, ENOMEM);
             goto done;
@@ -979,30 +924,46 @@ resolv_gethostbyname_dns_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 struct gethostbyname_state {
     struct resolv_ctx *resolv_ctx;
+    struct tevent_context *ev;
+
     /* Part of the query. */
     const char *name;
     int family;
+
     /* In which order to use IPv4, or v6 */
     enum restrict_family family_order;
+
+    /* Known hosts databases and index to the current one */
+    enum host_database *db;
+    int dbi;
+
     /* These are returned by ares. The hostent struct will be freed
      * when the user callback returns. */
-    struct hostent *hostent;
+    struct resolv_hostent *rhostent;
     int status;
     int timeouts;
     int retrying;
 };
 
-static void
-ares_gethostbyname_wakeup(struct tevent_req *req);
+static errno_t
+resolv_gethostbyname_address(TALLOC_CTX *mem_ctx, const char *address,
+                             struct resolv_hostent **_rhostent);
+static inline int
+resolv_gethostbyname_family_init(enum restrict_family family_order);
+static bool
+resolv_is_address(const char *name);
+static errno_t
+resolv_gethostbyname_step(struct tevent_req *req);
 
 struct tevent_req *
 resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                           struct resolv_ctx *ctx, const char *name,
-                          enum restrict_family family_order)
+                          enum restrict_family family_order,
+                          enum host_database *db)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct gethostbyname_state *state;
-    struct timeval tv = { 0, 0 };
+    errno_t ret;
 
     if (ctx->channel == NULL) {
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
@@ -1010,141 +971,279 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     }
 
     req = tevent_req_create(mem_ctx, &state, struct gethostbyname_state);
-    if (req == NULL)
+    if (req == NULL) {
         return NULL;
+    }
 
     state->resolv_ctx = ctx;
+    state->ev = ev;
     state->name = name;
-    state->hostent = NULL;
+    state->rhostent = NULL;
     state->status = 0;
     state->timeouts = 0;
     state->retrying = 0;
     state->family_order = family_order;
-    state->family = (family_order < IPV6_ONLY) ? AF_INET : AF_INET6;
+    state->family = resolv_gethostbyname_family_init(state->family_order);
+    state->db = db;
+    state->dbi = 0;
 
-    DEBUG(4, ("Trying to resolve %s record of '%s'\n",
-              state->family == AF_INET ? "A" : "AAAA",
-              state->name));
+    /* Do not attempt to resolve IP addresses */
+    if (resolv_is_address(state->name)) {
+        ret = resolv_gethostbyname_address(state, state->name,
+                                           &state->rhostent);
+        if (ret != EOK) {
+            DEBUG(1, ("Canot create a fake hostent structure\n"));
+            talloc_zfree(req);
+            return NULL;
+        }
 
-    /* We need to have a wrapper around ares_gethostbyname(), because
-     * ares_gethostbyname() can in some cases call it's callback immediately.
-     * This would not let our caller to set a callback for req. */
-    subreq = tevent_wakeup_send(req, ev, tv);
-    if (subreq == NULL) {
-        DEBUG(1, ("Failed to add critical timer to run next operation!\n"));
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    ret = resolv_gethostbyname_step(req);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot start the resolving\n"));
         talloc_zfree(req);
         return NULL;
     }
-    tevent_req_set_callback(subreq, ares_gethostbyname_wakeup, req);
-    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
 
-static void
-resolv_gethostbyname_next_done(void *arg, int status, int timeouts, struct hostent *hostent);
-
-static void
-resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *hostent)
+static bool
+resolv_is_address(const char *name)
 {
-    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
-    struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
+    struct addrinfo hints;
+    struct addrinfo *res = NULL;
+    int ret;
 
-    if (state->retrying == 0 && status == ARES_EDESTRUCTION
-            && state->resolv_ctx->channel != NULL) {
-        state->retrying = 1;
-        ares_gethostbyname(state->resolv_ctx->channel, state->name,
-                           state->family, resolv_gethostbyname_done, req);
-        return;
+    memset((void *) &hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = AI_NUMERICHOST; /* No network lookups */
+
+    ret = getaddrinfo(name, NULL, &hints, &res);
+    freeaddrinfo(res);
+    if (ret != 0) {
+        if (ret == -2) {
+            DEBUG(9, ("[%s] does not look like an IP address\n", name));
+        } else {
+            DEBUG(2, ("getaddrinfo failed [%d]: %s\n",
+                      ret, gai_strerror(ret)));
+        }
     }
 
-    unschedule_timeout_watcher(state->resolv_ctx);
+    return ret == 0;
+}
 
-    if (hostent != NULL) {
-        state->hostent = resolv_copy_hostent(req, hostent);
-        if (state->hostent == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
+static errno_t
+resolv_gethostbyname_address(TALLOC_CTX *mem_ctx, const char *address,
+                             struct resolv_hostent **_rhostent)
+{
+    struct resolv_hostent *rhostent;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    int family;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    rhostent = talloc_zero(tmp_ctx, struct resolv_hostent);
+    if (!rhostent) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    rhostent->name = talloc_strdup(rhostent, address);
+    rhostent->addr_list = talloc_array(rhostent, struct resolv_addr *, 2);
+
+    if (!rhostent->name ||
+        !rhostent->addr_list) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    rhostent->addr_list[0] = talloc_zero(rhostent->addr_list,
+                                         struct resolv_addr);
+    if (!rhostent->addr_list[0]) {
+        ret = ENOMEM;
+        goto done;
+    }
+    rhostent->addr_list[0]->ipaddr = talloc_array(rhostent->addr_list[0],
+                                                  uint8_t,
+                                                  sizeof(struct in6_addr));
+    if (!rhostent->addr_list[0]->ipaddr) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    family = AF_INET;
+    ret = inet_pton(family, address,
+                    rhostent->addr_list[0]->ipaddr);
+    if (ret != 1) {
+        family = AF_INET6;
+        ret = inet_pton(family, address,
+                        rhostent->addr_list[0]->ipaddr);
+        if (ret != 1) {
+            DEBUG(1, ("Could not parse address as neither v4 nor v6\n"));
+            ret = EINVAL;
+            goto done;
         }
+    }
+
+    rhostent->addr_list[0]->ttl = RESOLV_DEFAULT_TTL;
+    rhostent->addr_list[1] = NULL;
+    rhostent->family = family;
+    rhostent->aliases = NULL;
+
+    *_rhostent = talloc_move(mem_ctx, &rhostent);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static inline int
+resolv_gethostbyname_family_init(enum restrict_family family_order)
+{
+    switch(family_order) {
+        case IPV4_ONLY:
+        case IPV4_FIRST:
+            return AF_INET;
+        case IPV6_ONLY:
+        case IPV6_FIRST:
+            return AF_INET6;
+    }
+
+    DEBUG(1, ("Unknown address family order %d\n", family_order));
+    return -1;
+}
+
+static int
+resolv_gethostbyname_next(struct gethostbyname_state *state)
+{
+    if (state->family_order == IPV4_FIRST &&
+        state->family == AF_INET) {
+        state->family = AF_INET6;
+        return EOK;
+    } else if (state->family_order == IPV6_FIRST &&
+               state->family == AF_INET6) {
+        state->family = AF_INET;
+        return EOK;
     } else {
-        state->hostent = NULL;
-    }
-    state->status = status;
-    state->timeouts = timeouts;
-
-    if (status != ARES_SUCCESS) {
-        if (status == ARES_ENOTFOUND || status == ARES_ENODATA) {
-            if (state->family_order == IPV4_FIRST) {
-                state->family = AF_INET6;
-            } else if (state->family_order == IPV6_FIRST) {
-                state->family = AF_INET;
-            } else {
-                tevent_req_error(req, return_code(status));
-                return;
-            }
-
-            state->retrying = 0;
-            state->timeouts = 0;
-            DEBUG(4, ("Trying to resolve %s record of '%s'\n",
-                      state->family == AF_INET ? "A" : "AAAA",
-                      state->name));
-            schedule_timeout_watcher(state->resolv_ctx->ev_ctx,
-                                     state->resolv_ctx);
-            ares_gethostbyname(state->resolv_ctx->channel, state->name,
-                               state->family, resolv_gethostbyname_next_done,
-                               req);
-            return;
+        /* No more address families for this DB, check if
+         * there is another DB to try */
+        DEBUG(5, ("No more address families to retry\n"));
+        state->dbi++;
+        if (state->db[state->dbi] != DB_SENTINEL) {
+            state->family = resolv_gethostbyname_family_init(
+                                                state->family_order);
+            return EOK;
         }
+    }
 
-        /* Any other error indicates a server error,
-         * so don't bother trying again
-         */
-        tevent_req_error(req, return_code(status));
-    }
-    else {
-        tevent_req_done(req);
-    }
+    DEBUG(4, ("No more hosts databases to retry\n"));
+    return ENOENT;
 }
 
 static void
-resolv_gethostbyname_next_done(void *arg, int status, int timeouts, struct hostent *hostent)
-{
-    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
-    struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
+resolv_gethostbyname_done(struct tevent_req *subreq);
 
-    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
-        state->retrying = 1;
-        ares_gethostbyname(state->resolv_ctx->channel, state->name,
-                           state->family, resolv_gethostbyname_next_done, req);
+static errno_t
+resolv_gethostbyname_step(struct tevent_req *req)
+{
+    struct gethostbyname_state *state = tevent_req_data(req,
+                                                struct gethostbyname_state);
+    struct tevent_req *subreq;
+
+    switch(state->db[state->dbi]) {
+        case DB_FILES:
+            DEBUG(8, ("Querying files\n"));
+            subreq = resolv_gethostbyname_files_send(state, state->ev,
+                                                     state->resolv_ctx,
+                                                     state->name,
+                                                     state->family);
+            break;
+        case DB_DNS:
+            DEBUG(8, ("Querying DNS\n"));
+            subreq = resolv_gethostbyname_dns_send(state, state->ev,
+                                                   state->resolv_ctx,
+                                                   state->name,
+                                                   state->family);
+            break;
+        default:
+            DEBUG(1, ("Invalid hosts database\n"));
+            return EINVAL;
+    }
+
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, resolv_gethostbyname_done, req);
+    return EOK;
+}
+
+static void
+resolv_gethostbyname_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct gethostbyname_state *state = tevent_req_data(req,
+                                                struct gethostbyname_state);
+    errno_t ret;
+
+    switch(state->db[state->dbi]) {
+        case DB_FILES:
+            ret = resolv_gethostbyname_files_recv(subreq, state,
+                                                  &state->status,
+                                                  &state->rhostent);
+            /* files is synchronous, there can be no timeouts */
+            state->timeouts = 0;
+            break;
+        case DB_DNS:
+            ret = resolv_gethostbyname_dns_recv(subreq, state,
+                                                &state->status, &state->timeouts,
+                                                &state->rhostent);
+            break;
+        default:
+            DEBUG(1, ("Invalid hosts database\n"));
+            tevent_req_error(req, EINVAL);
+            return;
+    }
+
+    talloc_zfree(subreq);
+
+    if (ret == ENOENT) {
+        ret = resolv_gethostbyname_next(state);
+        if (ret == EOK) {
+            ret = resolv_gethostbyname_step(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+
+        /* No more databases and/or address families */
+        tevent_req_error(req, ENOENT);
         return;
     }
 
-    unschedule_timeout_watcher(state->resolv_ctx);
+    if (ret != EOK) {
+        DEBUG(2, ("querying hosts database failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
 
-    if (hostent != NULL) {
-        state->hostent = resolv_copy_hostent(req, hostent);
-        if (state->hostent == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-    } else {
-        state->hostent = NULL;
-    }
-    state->status = status;
-    state->timeouts = timeouts;
-
-    if (status != ARES_SUCCESS) {
-        tevent_req_error(req, return_code(status));
-    }
-    else {
-        tevent_req_done(req);
-    }
+    tevent_req_done(req);
 }
 
 int
 resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                           int *status, int *timeouts,
-                          struct hostent **hostent)
+                          struct resolv_hostent **rhostent)
 {
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
 
@@ -1156,8 +1255,8 @@ resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     if (timeouts) {
         *timeouts = state->timeouts;
     }
-    if (hostent) {
-        *hostent = talloc_steal(mem_ctx, state->hostent);
+    if (rhostent) {
+        *rhostent = talloc_steal(mem_ctx, state->rhostent);
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -1166,7 +1265,7 @@ resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 }
 
 char *
-resolv_get_string_address(TALLOC_CTX *mem_ctx, struct hostent *hostent)
+resolv_get_string_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent)
 {
     char *address;
 
@@ -1179,7 +1278,7 @@ resolv_get_string_address(TALLOC_CTX *mem_ctx, struct hostent *hostent)
     }
 
     errno = 0;
-    if (inet_ntop(hostent->h_addrtype, hostent->h_addr_list[0],
+    if (inet_ntop(hostent->family, hostent->addr_list[0]->ipaddr,
                   address, 128) == NULL) {
         DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
         talloc_free(address);
@@ -1187,29 +1286,6 @@ resolv_get_string_address(TALLOC_CTX *mem_ctx, struct hostent *hostent)
     }
 
     return address;
-}
-
-static void
-ares_gethostbyname_wakeup(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                struct tevent_req);
-    struct gethostbyname_state *state = tevent_req_data(req,
-                                                struct gethostbyname_state);
-
-    if (!tevent_wakeup_recv(subreq)) {
-        return;
-    }
-    talloc_zfree(subreq);
-
-    if (state->resolv_ctx->channel == NULL) {
-        DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    ares_gethostbyname(state->resolv_ctx->channel, state->name,
-                       state->family, resolv_gethostbyname_done, req);
 }
 
 /*
