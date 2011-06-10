@@ -53,6 +53,9 @@
     _ares_malloc_data(data)
 #endif /* HAVE_ARES_DATA */
 
+#define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
+#define DNS_HEADER_ANCOUNT(h)           DNS__16BIT((h) + 6)
+
 struct fd_watch {
     struct fd_watch *prev;
     struct fd_watch *next;
@@ -709,6 +712,257 @@ resolv_gethostbyname_files_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
      * c-ares return code */
     if (status) {
         *status = state->status;
+    }
+    if (rhostent) {
+        *rhostent = talloc_steal(mem_ctx, state->rhostent);
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+/* ==================== Resolve host name in DNS =========================*/
+struct gethostbyname_dns_state {
+    struct resolv_ctx *resolv_ctx;
+    struct tevent_context *ev;
+
+    /* Part of the query. */
+    const char *name;
+    int family;
+
+    /* query result */
+    struct resolv_hostent *rhostent;
+
+    /* These are returned by ares. */
+    int status;
+    int timeouts;
+    int retrying;
+};
+
+static void
+resolv_gethostbyname_dns_wakeup(struct tevent_req *subreq);
+static void
+resolv_gethostbyname_dns_query(struct tevent_req *req,
+                               struct gethostbyname_dns_state *state);
+static void
+resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
+                                    unsigned char *abuf, int alen);
+static int
+resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state, int status,
+                               int timeouts, unsigned char *abuf, int alen);
+
+static struct tevent_req *
+resolv_gethostbyname_dns_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+                              struct resolv_ctx *ctx, const char *name,
+                              int family)
+{
+    struct tevent_req *req, *subreq;
+    struct gethostbyname_dns_state *state;
+    struct timeval tv = { 0, 0 };
+
+    if (ctx->channel == NULL) {
+        DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
+        return NULL;
+    }
+
+    req = tevent_req_create(mem_ctx, &state, struct gethostbyname_dns_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->resolv_ctx = ctx;
+    state->ev = ev;
+    state->name = name;
+    state->rhostent = NULL;
+    state->status = 0;
+    state->timeouts = 0;
+    state->retrying = 0;
+    state->family = family;
+
+    /* We need to have a wrapper around ares async calls, because
+     * they can in some cases call it's callback immediately.
+     * This would not let our caller to set a callback for req. */
+    subreq = tevent_wakeup_send(req, ev, tv);
+    if (subreq == NULL) {
+        DEBUG(1, ("Failed to add critical timer to run next operation!\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, resolv_gethostbyname_dns_wakeup, req);
+    schedule_timeout_watcher(ev, ctx);
+
+    return req;
+}
+
+static void
+resolv_gethostbyname_dns_wakeup(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct gethostbyname_dns_state *state = tevent_req_data(req,
+                                        struct gethostbyname_dns_state);
+
+    if (!tevent_wakeup_recv(subreq)) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    talloc_zfree(subreq);
+
+    if (state->resolv_ctx->channel == NULL) {
+        DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    resolv_gethostbyname_dns_query(req, state);
+}
+
+static void
+resolv_gethostbyname_dns_query(struct tevent_req *req,
+                               struct gethostbyname_dns_state *state)
+{
+    DEBUG(4, ("Trying to resolve %s record of '%s' in DNS\n",
+              state->family == AF_INET ? "A" : "AAAA", state->name));
+
+    ares_query(state->resolv_ctx->channel,
+               state->name, ns_c_in,
+               (state->family == AF_INET) ? ns_t_a : ns_t_aaaa,
+               resolv_gethostbyname_dns_query_done, req);
+}
+
+static void
+resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
+                                    unsigned char *abuf, int alen)
+{
+    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
+    struct gethostbyname_dns_state *state = tevent_req_data(req,
+                                        struct gethostbyname_dns_state);
+    errno_t ret;
+
+    unschedule_timeout_watcher(state->resolv_ctx);
+
+    state->status = status;
+    state->timeouts = timeouts;
+
+    /* If resolv.conf changed during processing of a request we might
+     * destroy the old channel before the request has a chance to finish.
+     * We must resend the request in this case */
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION
+        && state->resolv_ctx->channel != NULL) {
+        state->retrying = 1;
+        schedule_timeout_watcher(state->ev, state->resolv_ctx);
+        resolv_gethostbyname_dns_query(req, state);
+        return;
+    }
+
+    if (status == ARES_ENOTFOUND || status == ARES_ENODATA) {
+        /* Just say we didn't find anything and let the caller decide
+         * about retrying */
+        tevent_req_error(req, ENOENT);
+        return;
+    }
+
+    if (status != ARES_SUCCESS) {
+        /* Any other error indicates a server error,
+         * so don't bother trying again
+         */
+        tevent_req_error(req, return_code(status));
+        return;
+    }
+
+    ret = resolv_gethostbyname_dns_parse(state, status, timeouts, abuf, alen);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static int
+resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
+                               int status, int timeouts,
+                               unsigned char *abuf, int alen)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct hostent *hostent;
+    int naddrttls;
+    errno_t ret;
+    void *addr;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    naddrttls = DNS_HEADER_ANCOUNT(abuf);
+
+    switch (state->family) {
+        case AF_INET:
+            DEBUG(7, ("Parsing an A reply\n"));
+
+            addr = talloc_array(state, struct ares_addrttl, naddrttls);
+            if (!addr) {
+                ret = ENOMEM;
+                goto fail;
+            }
+
+            status = ares_parse_a_reply(abuf, alen, &hostent,
+                                        (struct ares_addrttl *) addr,
+                                        &naddrttls);
+            break;
+        case AF_INET6:
+            DEBUG(7, ("Parsing an AAAA reply\n"));
+
+            addr = talloc_array(state, struct ares_addr6ttl, naddrttls);
+            if (!addr) {
+                ret = ENOMEM;
+                goto fail;
+            }
+
+            status = ares_parse_aaaa_reply(abuf, alen, &hostent,
+                                           (struct ares_addr6ttl *) addr,
+                                           &naddrttls);
+            break;
+        default:
+            DEBUG(1, ("Unknown family %d\n", state->family));
+            ret = EAFNOSUPPORT;
+            goto fail;
+    }
+
+    if (hostent != NULL) {
+        state->rhostent = resolv_copy_hostent_ares(state, hostent,
+                                                   state->family,
+                                                   addr, naddrttls);
+        free(hostent);
+        if (state->rhostent == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return return_code(status);
+
+fail:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static int
+resolv_gethostbyname_dns_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                              int *status, int *timeouts,
+                              struct resolv_hostent **rhostent)
+{
+    struct gethostbyname_dns_state *state = tevent_req_data(req,
+                                        struct gethostbyname_dns_state);
+
+    /* Fill in even in case of error as status contains the
+     * c-ares return code */
+    if (status) {
+        *status = state->status;
+    }
+    if (timeouts) {
+        *timeouts = state->timeouts;
     }
     if (rhostent) {
         *rhostent = talloc_steal(mem_ctx, state->rhostent);
