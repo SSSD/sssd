@@ -43,10 +43,6 @@
 #define DEFAULT_SERVER_STATUS SERVER_NAME_NOT_RESOLVED
 #define DEFAULT_SRV_STATUS SRV_NEUTRAL
 
-#ifndef HOSTNAME_RESOLVE_TIMEOUT
-#define HOSTNAME_RESOLVE_TIMEOUT 7200
-#endif /* HOSTNAME_RESOLVE_TIMEOUT */
-
 enum srv_lookup_status {
     SRV_NEUTRAL,        /* We didn't try this SRV lookup yet */
     SRV_RESOLVED,       /* This SRV lookup is resolved       */
@@ -94,7 +90,7 @@ struct server_common {
     struct server_common *next;
 
     char *name;
-    struct hostent *hostent;
+    struct resolv_hostent *rhostent;
     struct resolve_service_request *request_list;
     int server_status;
     struct timeval last_status_change;
@@ -328,8 +324,9 @@ get_server_status(struct fo_server *server)
         }
     }
 
-    if (STATUS_DIFF(server->common, tv) > HOSTNAME_RESOLVE_TIMEOUT) {
-        DEBUG(4, ("Hostname resolution expired, reseting the server "
+    if (server->common->rhostent && STATUS_DIFF(server->common, tv) >
+        server->common->rhostent->addr_list[0]->ttl) {
+        DEBUG(4, ("Hostname resolution expired, resetting the server "
                   "status of '%s'\n", SERVER_NAME(server)));
         fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
     }
@@ -497,7 +494,7 @@ create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
     common->ctx = ctx;
     common->prev = NULL;
     common->next = NULL;
-    common->hostent = NULL;
+    common->rhostent = NULL;
     common->request_list = NULL;
     common->server_status = DEFAULT_SERVER_STATUS;
     common->last_status_change.tv_sec = 0;
@@ -846,7 +843,8 @@ fo_resolve_service_server(struct tevent_req *req)
         subreq = resolv_gethostbyname_send(state->server->common,
                                            state->ev, state->resolv,
                                            state->server->common->name,
-                                           state->fo_ctx->opts->family_order);
+                                           state->fo_ctx->opts->family_order,
+                                           default_host_dbs);
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
             return true;
@@ -883,13 +881,13 @@ fo_resolve_service_done(struct tevent_req *subreq)
     struct resolve_service_request *request;
     int ret;
 
-    if (state->server->common->hostent != NULL) {
-        talloc_zfree(state->server->common->hostent);
+    if (state->server->common->rhostent != NULL) {
+        talloc_zfree(state->server->common->rhostent);
     }
 
     ret = resolv_gethostbyname_recv(subreq, state->server->common,
                                     &resolv_status, NULL,
-                                    &state->server->common->hostent);
+                                    &state->server->common->rhostent);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(1, ("Failed to resolve server '%s': %s\n",
@@ -1224,7 +1222,8 @@ resolve_get_domain_send(TALLOC_CTX *mem_ctx,
 
     subreq = resolv_gethostbyname_send(state, ev, resolv,
                                        state->hostname,
-                                       foctx->opts->family_order);
+                                       foctx->opts->family_order,
+                                       default_host_dbs);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -1240,10 +1239,10 @@ static void resolve_get_domain_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct resolve_get_domain_state *state = tevent_req_data(req,
                                                       struct resolve_get_domain_state);
-    struct hostent *hostent;
+    struct resolv_hostent *rhostent;
     int ret;
 
-    ret = resolv_gethostbyname_recv(subreq, req, NULL, NULL, &hostent);
+    ret = resolv_gethostbyname_recv(subreq, req, NULL, NULL, &rhostent);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(2, ("Could not get fully qualified name for host name %s "
@@ -1251,8 +1250,8 @@ static void resolve_get_domain_done(struct tevent_req *subreq)
                   state->hostname, ret, strerror(ret)));
         /* We'll proceed with hostname in this case */
     } else {
-        DEBUG(7, ("The full FQDN is: %s\n", hostent->h_name));
-        state->fqdn = hostent->h_name;
+        DEBUG(7, ("The full FQDN is: %s\n", rhostent->name));
+        state->fqdn = rhostent->name;
     }
     tevent_req_done(req);
 }
@@ -1367,14 +1366,15 @@ const char *fo_get_server_name(struct fo_server *server)
     return server->common->name;
 }
 
-struct hostent *
+struct resolv_hostent *
 fo_get_server_hostent(struct fo_server *server)
 {
     if (server->common == NULL) {
         DEBUG(1, ("Bug: Trying to get hostent from a name-less server\n"));
         return NULL;
     }
-    return server->common->hostent;
+
+    return server->common->rhostent;
 }
 
 time_t

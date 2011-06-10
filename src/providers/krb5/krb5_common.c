@@ -367,7 +367,7 @@ done:
 static void krb5_resolve_callback(void *private_data, struct fo_server *server)
 {
     struct krb5_service *krb5_service;
-    struct hostent *srvaddr;
+    struct resolv_hostent *srvaddr;
     char *address;
     int ret;
 

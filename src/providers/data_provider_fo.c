@@ -453,14 +453,15 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     /* all fine we got the server */
 
     if (debug_level >= 4) {
-        struct hostent *srvaddr;
+        struct resolv_hostent *srvaddr;
         char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);
-        inet_ntop(srvaddr->h_addrtype, srvaddr->h_addr_list[0],
+        inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
                   ipaddr, 128);
 
-        DEBUG(4, ("Found address for server %s: [%s]\n",
-                  fo_get_server_name(state->srv), ipaddr));
+        DEBUG(4, ("Found address for server %s: [%s] TTL %d\n",
+                  fo_get_server_name(state->srv), ipaddr,
+                  srvaddr->addr_list[0]->ttl));
     }
 
     srv_status_change = fo_get_server_hostname_last_change(state->srv);

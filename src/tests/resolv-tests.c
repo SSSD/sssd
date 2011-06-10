@@ -95,37 +95,59 @@ static int test_loop(struct resolv_test_ctx *data)
 START_TEST(test_copy_hostent)
 {
     void *ctx;
-    struct hostent *new_he;
+    struct resolv_hostent *rhe;
 
     char name[] = "foo.example.com";
     char alias_1[] = "bar.example.com";
     char alias_2[] = "baz.example.com";
     char *aliases[] = { alias_1, alias_2, NULL };
-    char addr_1[] = { 1, 2, 3, 4 };
-    char addr_2[] = { 4, 3, 2, 1 };
-    char *addr_list[] = { addr_1, addr_2, NULL };
+    struct in_addr addr_1 = { 1234 };
+    struct in_addr addr_2 = { 5678 };
+    int ttl_1 = 12;
+    int ttl_2 = 34;
+    char *addr_list[] = { (char *) &addr_2, (char *) &addr_1, NULL };
     struct hostent he = {
-            name, aliases, 123 /* Whatever. */,
+            name, aliases, AF_INET,
             sizeof(addr_1), addr_list
     };
+    struct ares_addrttl attl[] = { { addr_1, ttl_1 }, { addr_2, ttl_2 } };
 
     ctx = talloc_new(global_talloc_context);
     fail_if(ctx == NULL);
 
     check_leaks_push(ctx);
-    new_he = resolv_copy_hostent(ctx, &he);
-    fail_if(new_he == NULL);
-    fail_if(strcmp(new_he->h_name, name));
-    fail_if(strcmp(new_he->h_aliases[0], alias_1));
-    fail_if(strcmp(new_he->h_aliases[1], alias_2));
-    fail_if(new_he->h_aliases[2] != NULL);
-    fail_if(new_he->h_addrtype != 123);
-    fail_if(new_he->h_length != sizeof(addr_1));
-    fail_if(memcmp(new_he->h_addr_list[0], addr_1, sizeof(addr_1)));
-    fail_if(memcmp(new_he->h_addr_list[1], addr_2, sizeof(addr_1)));
-    fail_if(new_he->h_addr_list[2] != NULL);
 
-    talloc_free(new_he);
+    rhe = resolv_copy_hostent_ares(ctx, &he, AF_INET, &attl, 2);
+
+    fail_if(rhe == NULL);
+    fail_if(strcmp(rhe->name, name));
+    fail_if(strcmp(rhe->aliases[0], alias_1));
+    fail_if(strcmp(rhe->aliases[1], alias_2));
+    fail_if(rhe->aliases[2] != NULL);
+    fail_if(rhe->family != AF_INET);
+    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_1, sizeof(addr_1)));
+    fail_if(rhe->addr_list[0]->ttl != ttl_1);
+    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_2, sizeof(addr_2)));
+    fail_if(rhe->addr_list[1]->ttl != ttl_2);
+    fail_if(rhe->addr_list[2] != NULL);
+
+    talloc_zfree(rhe);
+
+    rhe = resolv_copy_hostent(ctx, &he);
+    fail_if(rhe == NULL);
+    fail_if(strcmp(rhe->name, name));
+    fail_if(strcmp(rhe->aliases[0], alias_1));
+    fail_if(strcmp(rhe->aliases[1], alias_2));
+    fail_if(rhe->aliases[2] != NULL);
+    fail_if(rhe->family != AF_INET);
+    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_2, sizeof(addr_1)));
+    fail_if(rhe->addr_list[0]->ttl != RESOLV_DEFAULT_TTL);
+    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_1, sizeof(addr_2)));
+    fail_if(rhe->addr_list[1]->ttl != RESOLV_DEFAULT_TTL);
+    fail_if(rhe->addr_list[2] != NULL);
+
+    talloc_free(rhe);
+
     check_leaks_pop(ctx);
 }
 END_TEST
@@ -134,7 +156,7 @@ static void test_ip_addr(struct tevent_req *req)
 {
     int recv_status;
     int status;
-    struct hostent *hostent;
+    struct resolv_hostent *rhostent;
     int i;
     struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
                                                                 struct resolv_test_ctx);
@@ -142,7 +164,7 @@ static void test_ip_addr(struct tevent_req *req)
     test_ctx->done = true;
 
     recv_status = resolv_gethostbyname_recv(req, test_ctx,
-                                            &status, NULL, &hostent);
+                                            &status, NULL, &rhostent);
     talloc_zfree(req);
     if (recv_status != EOK) {
         DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
@@ -152,15 +174,17 @@ static void test_ip_addr(struct tevent_req *req)
     DEBUG(7, ("resolv_gethostbyname_recv status: %d\n", status));
 
     test_ctx->error = ENOENT;
-    for (i = 0; hostent->h_addr_list[i]; i++) {
+    for (i = 0; rhostent->addr_list[i]; i++) {
         char addr_buf[256];
-        inet_ntop(hostent->h_addrtype, hostent->h_addr_list[i], addr_buf, sizeof(addr_buf));
+        inet_ntop(rhostent->family,
+                  rhostent->addr_list[i]->ipaddr,
+                  addr_buf, sizeof(addr_buf));
 
         if (strcmp(addr_buf, "127.0.0.1") == 0) {
             test_ctx->error = EOK;
         }
     }
-    talloc_free(hostent);
+    talloc_free(rhostent);
 }
 
 START_TEST(test_resolv_ip_addr)
@@ -178,7 +202,8 @@ START_TEST(test_resolv_ip_addr)
 
     check_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
-                                    test_ctx->resolv, hostname, IPV4_ONLY);
+                                    test_ctx->resolv, hostname, IPV4_ONLY,
+                                    default_host_dbs);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -200,7 +225,7 @@ static void test_localhost(struct tevent_req *req)
 {
     int recv_status;
     int status;
-    struct hostent *hostent;
+    struct resolv_hostent *rhostent;
     int i;
     struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
                                                                 struct resolv_test_ctx);
@@ -208,7 +233,7 @@ static void test_localhost(struct tevent_req *req)
     test_ctx->done = true;
 
     recv_status = resolv_gethostbyname_recv(req, test_ctx,
-                                            &status, NULL, &hostent);
+                                            &status, NULL, &rhostent);
     talloc_zfree(req);
     if (recv_status != EOK) {
         DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
@@ -218,16 +243,17 @@ static void test_localhost(struct tevent_req *req)
     DEBUG(7, ("resolv_gethostbyname_recv status: %d\n", status));
 
     test_ctx->error = ENOENT;
-    for (i = 0; hostent->h_addr_list[i]; i++) {
+    for (i = 0; rhostent->addr_list[i]; i++) {
         char addr_buf[256];
-        inet_ntop(hostent->h_addrtype, hostent->h_addr_list[i], addr_buf, sizeof(addr_buf));
+        inet_ntop(rhostent->family, rhostent->addr_list[i]->ipaddr,
+                  addr_buf, sizeof(addr_buf));
 
         /* test that localhost resolves to 127.0.0.1 or ::1 */
         if (strcmp(addr_buf, "127.0.0.1") == 0 || strcmp(addr_buf, "::1") == 0) {
             test_ctx->error = EOK;
         }
     }
-    talloc_free(hostent);
+    talloc_free(rhostent);
 }
 
 START_TEST(test_resolv_localhost)
@@ -245,7 +271,8 @@ START_TEST(test_resolv_localhost)
 
     check_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
-                                    test_ctx->resolv, hostname, IPV4_FIRST);
+                                    test_ctx->resolv, hostname, IPV4_FIRST,
+                                    default_host_dbs);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -267,7 +294,7 @@ static void test_negative(struct tevent_req *req)
 {
      int recv_status;
      int status;
-     struct hostent *hostent;
+     struct resolv_hostent *hostent;
      struct resolv_test_ctx *test_ctx;
 
      test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
@@ -300,7 +327,8 @@ START_TEST(test_resolv_negative)
 
     check_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
-                                    test_ctx->resolv, hostname, IPV4_FIRST);
+                                    test_ctx->resolv, hostname, IPV4_FIRST,
+                                    default_host_dbs);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -325,9 +353,10 @@ static void test_internet(struct tevent_req *req)
     int status;
     struct resolv_test_ctx *test_ctx;
     void *tmp_ctx;
-    struct hostent *hostent = NULL;
+    struct resolv_hostent *rhostent = NULL;
     struct ares_txt_reply *txt_replies = NULL, *txtptr;
     struct ares_srv_reply *srv_replies = NULL, *srvptr;
+    int i;
 
     test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
 
@@ -339,8 +368,18 @@ static void test_internet(struct tevent_req *req)
     switch (test_ctx->tested_function) {
     case TESTING_HOSTNAME:
         recv_status = resolv_gethostbyname_recv(req, tmp_ctx,
-                                                &status, NULL, &hostent);
-        test_ctx->error = (hostent->h_length == 0) ? ENOENT : EOK;
+                                                &status, NULL, &rhostent);
+        test_ctx->error = (rhostent->name == NULL) ? ENOENT : EOK;
+        if (test_ctx->error == EOK) {
+            char addr_buf[256];
+            for (i=0; rhostent->addr_list[i]; i++) {
+                inet_ntop(rhostent->family,
+                          rhostent->addr_list[i]->ipaddr,
+                          addr_buf, sizeof(addr_buf));
+                DEBUG(2, ("Found address %s with TTL %d\n",
+                          addr_buf, rhostent->addr_list[i]->ttl));
+            }
+        }
         break;
     case TESTING_TXT:
         recv_status = resolv_gettxt_recv(tmp_ctx, req, &status, NULL,
@@ -368,8 +407,8 @@ static void test_internet(struct tevent_req *req)
     fail_if(recv_status != EOK, "The recv function failed: %d", recv_status);
     DEBUG(7, ("recv status: %d\n", status));
 
-    if (hostent != NULL) {
-        talloc_free(hostent);
+    if (rhostent != NULL) {
+        talloc_free(rhostent);
     } else if (txt_replies != NULL) {
         talloc_free(txt_replies);
     } else if (srv_replies != NULL) {
@@ -394,7 +433,8 @@ START_TEST(test_resolv_internet)
 
     check_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
-                                    test_ctx->resolv, hostname, IPV4_FIRST);
+                                    test_ctx->resolv, hostname, IPV4_FIRST,
+                                    default_host_dbs);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -498,7 +538,8 @@ START_TEST(test_resolv_free_context)
     }
 
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
-                                    test_ctx->resolv, hostname, IPV4_FIRST);
+                                    test_ctx->resolv, hostname, IPV4_FIRST,
+                                    default_host_dbs);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
@@ -645,7 +686,8 @@ START_TEST(test_resolv_free_req)
 
     check_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
-                                    test_ctx->resolv, hostname, IPV4_FIRST);
+                                    test_ctx->resolv, hostname, IPV4_FIRST,
+                                    default_host_dbs);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
