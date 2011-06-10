@@ -456,6 +456,177 @@ fail:
     return NULL;
 }
 
+static errno_t
+resolv_copy_in_addr(TALLOC_CTX *mem_ctx, struct resolv_addr *ret,
+                    struct ares_addrttl *attl)
+{
+    ret->ipaddr = talloc_array(mem_ctx, uint8_t, sizeof(struct in_addr));
+    if (!ret->ipaddr) return ENOMEM;
+
+    memcpy(ret->ipaddr, &attl->ipaddr, sizeof(struct in_addr));
+    ret->ttl = attl->ttl;
+
+    return EOK;
+}
+
+static errno_t
+resolv_copy_in6_addr(TALLOC_CTX *mem_ctx, struct resolv_addr *ret,
+                     struct ares_addr6ttl *a6ttl)
+{
+    ret->ipaddr = talloc_array(mem_ctx, uint8_t, sizeof(struct in6_addr));
+    if (!ret->ipaddr) return ENOMEM;
+
+    memcpy(ret->ipaddr, &a6ttl->ip6addr, sizeof(struct in6_addr));
+    ret->ttl = a6ttl->ttl;
+
+    return EOK;
+}
+
+static struct resolv_hostent *
+resolv_copy_hostent_common(TALLOC_CTX *mem_ctx, struct hostent *src)
+{
+    struct resolv_hostent *ret;
+    int len;
+    int i;
+
+    ret = talloc_zero(mem_ctx, struct resolv_hostent);
+    if (ret == NULL) {
+        return NULL;
+    }
+
+    if (src->h_name != NULL) {
+        ret->name = talloc_strdup(ret, src->h_name);
+        if (ret->name == NULL) {
+            goto fail;
+        }
+    }
+    if (src->h_aliases != NULL) {
+        for (len = 0; src->h_aliases[len] != NULL; len++);
+
+        ret->aliases = talloc_array(ret, char *, len + 1);
+        if (ret->aliases == NULL) {
+            goto fail;
+        }
+
+        for (i = 0; i < len; i++) {
+            ret->aliases[i] = talloc_strdup(ret->aliases, src->h_aliases[i]);
+            if (ret->aliases[i] == NULL) {
+                goto fail;
+            }
+        }
+        ret->aliases[len] = NULL;
+    }
+
+    ret->family = src->h_addrtype;
+    return ret;
+
+fail:
+    talloc_free(ret);
+    return NULL;
+}
+
+struct resolv_hostent *
+resolv_copy_hostent2(TALLOC_CTX *mem_ctx, struct hostent *src)
+{
+    struct resolv_hostent *ret;
+    int len;
+    int i;
+
+    ret = resolv_copy_hostent_common(mem_ctx, src);
+    if (ret == NULL) {
+        return NULL;
+    }
+
+    if (src->h_addr_list != NULL) {
+        for (len = 0; src->h_addr_list[len] != NULL; len++);
+
+        ret->addr_list = talloc_array(ret, struct resolv_addr *, len + 1);
+        if (ret->addr_list == NULL) {
+            goto fail;
+        }
+
+        for (i = 0; i < len; i++) {
+            ret->addr_list[i] = talloc_zero(ret->addr_list,
+                                            struct resolv_addr);
+            if (ret->addr_list[i] == NULL) {
+                goto fail;
+            }
+
+            ret->addr_list[i]->ipaddr = talloc_memdup(ret->addr_list[i],
+                                                      src->h_addr_list[i],
+                                                      src->h_length);
+            if (ret->addr_list[i]->ipaddr == NULL) {
+                goto fail;
+            }
+            ret->addr_list[i]->ttl = RESOLV_DEFAULT_TTL;
+        }
+        ret->addr_list[len] = NULL;
+    }
+    return ret;
+
+fail:
+    talloc_free(ret);
+    return NULL;
+}
+
+struct resolv_hostent *
+resolv_copy_hostent_ares(TALLOC_CTX *mem_ctx, struct hostent *src,
+                         int family, void *ares_ttl_data,
+                         int num_ares_ttl_data)
+{
+    struct resolv_hostent *ret;
+    errno_t cret;
+    int i;
+
+    ret = resolv_copy_hostent_common(mem_ctx, src);
+    if (ret == NULL) {
+        return NULL;
+    }
+
+    if (num_ares_ttl_data > 0) {
+        ret->addr_list = talloc_array(ret, struct resolv_addr *,
+                                      num_ares_ttl_data + 1);
+        if (ret->addr_list == NULL) {
+            goto fail;
+        }
+
+        for (i = 0; i < num_ares_ttl_data; i++) {
+            ret->addr_list[i] = talloc_zero(ret->addr_list,
+                                            struct resolv_addr);
+            if (ret->addr_list[i] == NULL) {
+                goto fail;
+            }
+
+            switch (family) {
+            case AF_INET:
+                cret = resolv_copy_in_addr(ret->addr_list, ret->addr_list[i],
+                                &((struct ares_addrttl *) ares_ttl_data)[i]);
+                break;
+            case AF_INET6:
+                cret = resolv_copy_in6_addr(ret->addr_list, ret->addr_list[i],
+                                &((struct ares_addr6ttl *) ares_ttl_data)[i]);
+                break;
+            default:
+                DEBUG(1, ("Unknown address family %d\n"));
+                goto fail;
+            }
+
+            if (cret != EOK) {
+                DEBUG(1, ("Could not copy address\n"));
+                goto fail;
+            }
+        }
+        ret->addr_list[num_ares_ttl_data] = NULL;
+    }
+
+    ret->family = family;
+    return ret;
+
+fail:
+    talloc_free(ret);
+    return NULL;
+}
+
 /*******************************************************************
  * Get host by name.                                               *
  *******************************************************************/
