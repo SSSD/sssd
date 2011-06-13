@@ -471,6 +471,9 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
         goto done;
     }
 
+    DEBUG(6, (" -- Begin nsupdate message -- \n%s", ctx->update_msg));
+    DEBUG(6, (" -- End nsupdate message -- \n"));
+
     ret = EOK;
 
 done:
