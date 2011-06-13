@@ -30,6 +30,7 @@
 #include <ares.h>
 
 #include "config.h"
+#include "confdb/confdb.h"
 
 #ifndef HAVE_ARES_DATA
 #include "resolv/ares/ares_parse_srv_reply.h"
@@ -42,6 +43,8 @@
 #endif  /* RESOLV_DEFAULT_TTL */
 
 #define RESOLV_DEFAULT_TIMEOUT  5
+
+#include "util/util.h"
 
 /*
  * An opaque structure which holds context for a module using the async
@@ -81,6 +84,11 @@ enum restrict_family {
     IPV6_ONLY,
     IPV6_FIRST
 };
+
+/* Read and validate the family order from conf_path in confdb */
+errno_t
+resolv_get_family_order(struct confdb_ctx *cdb, const char *conf_path,
+                        enum restrict_family *family_order);
 
 /* If resolv_hostent->family is AF_INET, then ipaddr points to
  * struct in_addr, else if family is AF_INET6, ipaddr points to

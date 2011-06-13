@@ -65,38 +65,18 @@ int be_fo_is_srv_identifier(const char *server)
 static int be_fo_get_options(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                              struct fo_options *opts)
 {
-    char *str_opt;
-    int ret;
+    errno_t ret;
 
     /* todo get timeout from configuration */
     opts->retry_timeout = 30;
     opts->srv_retry_timeout = 14400;
 
-    ret = confdb_get_string(ctx->cdb, mem_ctx, ctx->conf_path,
-                            CONFDB_DOMAIN_FAMILY_ORDER,
-                            "ipv4_first", &str_opt);
+    ret = resolv_get_family_order(ctx->cdb, ctx->conf_path,
+                                  &opts->family_order);
     if (ret != EOK) {
         return ret;
     }
 
-    DEBUG(7, ("Lookup order: %s\n", str_opt));
-
-    if (strcasecmp(str_opt, "ipv4_first") == 0) {
-        opts->family_order = IPV4_FIRST;
-    } else if (strcasecmp(str_opt, "ipv4_only") == 0) {
-        opts->family_order = IPV4_ONLY;
-    } else if (strcasecmp(str_opt, "ipv6_first") == 0) {
-        opts->family_order = IPV6_FIRST;
-    } else if (strcasecmp(str_opt, "ipv6_only") == 0) {
-        opts->family_order = IPV6_ONLY;
-    } else {
-        DEBUG(1, ("Unknown value for option %s: %s\n",
-                  CONFDB_DOMAIN_FAMILY_ORDER, str_opt));
-        talloc_free(str_opt);
-        return EINVAL;
-    }
-
-    talloc_free(str_opt);
     return EOK;
 }
 
