@@ -117,7 +117,7 @@ int be_init_failover(struct be_ctx *ctx)
 
     ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
                          CONFDB_DOMAIN_RESOLV_TIMEOUT,
-                         5, &fo_timeout);
+                         RESOLV_DEFAULT_TIMEOUT, &fo_timeout);
     if (ret != EOK) {
         return ret;
     }
