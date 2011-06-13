@@ -170,13 +170,15 @@ test_resolve_service_callback(struct tevent_req *req)
     if (task->new_server_status >= 0)
         fo_set_server_status(server, task->new_server_status);
 
-    he = fo_get_server_hostent(server);
-    fail_if(he == NULL, "%s: fo_get_server_hostent() returned NULL");
-    for (i = 0; he->addr_list[i]; i++) {
-        char buf[256];
+    if (strcmp(fo_get_server_name(server), "unknown name")) {
+        he = fo_get_server_hostent(server);
+        fail_if(he == NULL, "%s: fo_get_server_hostent() returned NULL");
+        for (i = 0; he->addr_list[i]; i++) {
+            char buf[256];
 
-        inet_ntop(he->family, he->addr_list[i]->ipaddr, buf, sizeof(buf));
-        fail_if(strcmp(buf, "127.0.0.1") != 0 && strcmp(buf, "::1") != 0);
+            inet_ntop(he->family, he->addr_list[i]->ipaddr, buf, sizeof(buf));
+            fail_if(strcmp(buf, "127.0.0.1") != 0 && strcmp(buf, "::1") != 0);
+        }
     }
 
 }
@@ -215,7 +217,7 @@ _get_request(struct test_ctx *test_ctx, struct fo_service *service,
 START_TEST(test_fo_resolve_service)
 {
     struct test_ctx *ctx;
-    struct fo_service *service[2];
+    struct fo_service *service[3];
 
     ctx = setup_test();
     fail_if(ctx == NULL);
@@ -225,6 +227,8 @@ START_TEST(test_fo_resolve_service)
 
     fail_if(fo_new_service(ctx->fo_ctx, "ldap", &service[1]) != EOK);
 
+    fail_if(fo_new_service(ctx->fo_ctx, "ntp", &service[2]) != EOK);
+
     /* Add servers. */
     fail_if(fo_add_server(service[0], "localhost", 20, NULL) != EOK);
     fail_if(fo_add_server(service[0], "127.0.0.1", 80, NULL) != EOK);
@@ -232,6 +236,8 @@ START_TEST(test_fo_resolve_service)
     fail_if(fo_add_server(service[1], "localhost", 30, NULL) != EOK);
     fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL) != EOK);
     fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL) != EEXIST);
+
+    fail_if(fo_add_server(service[2], NULL, 123, NULL) != EOK);
 
     /* Make requests. */
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, -1);
@@ -243,6 +249,8 @@ START_TEST(test_fo_resolve_service)
     get_request(ctx, service[1], EOK, 389, PORT_WORKING, -1);
     get_request(ctx, service[1], EOK, 389, -1, SERVER_NOT_WORKING);
     get_request(ctx, service[1], ENOENT, 0, -1, -1);
+
+    get_request(ctx, service[2], EOK, 123, -1, -1);
 
     talloc_free(ctx);
 }
