@@ -1026,12 +1026,14 @@ again:
                 return ret;
             }
         }
+        ret = EOK;
+
         break;
 
     default:
-        ret = EIO;
         DEBUG(2, ("proxy -> initgroups_dyn failed (%d)[%s]\n",
                   ret, strerror(ret)));
+        ret = EIO;
         break;
     }
 
