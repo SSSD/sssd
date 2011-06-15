@@ -806,6 +806,7 @@ libsss_proxy_la_SOURCES = \
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
+    libsss_util.la \
     $(PAM_LIBS)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
