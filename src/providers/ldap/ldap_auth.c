@@ -252,15 +252,6 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    mark = ldb_msg_find_attr_as_string(msg, SYSDB_PWD_ATTRIBUTE, NULL);
-    if (mark != NULL) {
-        DEBUG(9, ("Found pwdAttribute, "
-                  "assuming LDAP password policies are active.\n"));
-
-        *type = PWEXPIRE_LDAP_PASSWORD_POLICY;
-        return EOK;
-    }
-
     if (strcasecmp(pwd_policy, PWD_POL_OPT_NONE) == 0) {
         DEBUG(9, ("No password policy requested.\n"));
         return EOK;
