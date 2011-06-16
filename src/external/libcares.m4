@@ -18,3 +18,6 @@ AC_CHECK_LIB([cares],
 )
 
 AM_CONDITIONAL(BUILD_ARES_DATA, test x$ares_data = x1)
+
+dnl Check if this particular version of c-ares support the new TTL structures
+AC_CHECK_TYPES([struct ares_addrttl, struct ares_addr6ttl], [], [], [#include <ares.h>])

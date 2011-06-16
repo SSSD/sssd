@@ -53,6 +53,14 @@
     _ares_malloc_data(data)
 #endif /* HAVE_ARES_DATA */
 
+#ifndef HAVE_STRUCT_ARES_ADDRTTL
+#define ares_addrttl addrttl
+#endif
+
+#ifndef HAVE_STRUCT_ARES_ADDR6TTL
+#define ares_addr6ttl addr6ttl
+#endif
+
 #define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
 #define DNS_HEADER_ANCOUNT(h)           DNS__16BIT((h) + 6)
 
