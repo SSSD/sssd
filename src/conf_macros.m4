@@ -331,3 +331,9 @@ AC_DEFUN([WITH_NOLOGIN_SHELL],
     fi
     AC_DEFINE_UNQUOTED(NOLOGIN_SHELL, "$nologin_shell", [The shell used to deny access to users])
   ])
+
+AC_ARG_ENABLE([all-experimental-features],
+              [AS_HELP_STRING([--enable-all-experimental-features],
+                              [build all experimental features])],
+              [build_all_experimental_features=$enableval],
+              [build_all_experimental_features=no])
