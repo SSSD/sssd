@@ -1545,6 +1545,7 @@ static void process_config_file(struct tevent_context *ev,
         struct tevent_timer *tev;
         tv.tv_sec = t.tv_sec+5;
         tv.tv_usec = t.tv_usec;
+        DEBUG(5, ("Restoring inotify watch.\n"));
 
         cb->retries = 0;
         rw_ctx = talloc(file_ctx, struct rewatch_ctx);
@@ -1574,6 +1575,10 @@ done:
     talloc_free(tmp_ctx);
 }
 
+errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
+                                     struct mt_ctx *ctx,
+                                     const char *file,
+                                     monitor_reconf_fn fn);
 static void rewatch_config_file(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval t, void *ptr)
@@ -1594,9 +1599,23 @@ static void rewatch_config_file(struct tevent_context *ev,
     /* Retry six times at five-second intervals before giving up */
     cb->retries++;
     if (cb->retries > 6) {
-        DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
+        DEBUG(0, ("Could not restore inotify watch. Switching to polling!\n"));
         close(file_ctx->mt_ctx->inotify_fd);
-        kill(getpid(), SIGTERM);
+        err = monitor_config_file_fallback(file_ctx->parent_ctx,
+                                           file_ctx->mt_ctx,
+                                           cb->filename,
+                                           cb->fn);
+        if (err != EOK)
+            kill(getpid(), SIGTERM);
+
+        cb->fn(file_ctx, cb->filename);
+        talloc_free(rw_ctx);
+
+        /* A new callback was created in monitor_config_file_fallback()*/
+        DLIST_REMOVE(file_ctx->callbacks, cb);
+        talloc_free(cb);
+
+        return;
     }
 
     cb->wd = inotify_add_watch(file_ctx->mt_ctx->inotify_fd,
@@ -1756,9 +1775,7 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
 {
     int ret, err;
     bool use_inotify;
-    struct timeval tv;
     struct stat file_stat;
-    struct config_file_callback *cb = NULL;
 
     ret = stat(file, &file_stat);
     if (ret < 0) {
@@ -1793,31 +1810,54 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
 
     if (!use_inotify) {
         /* Could not monitor file with inotify, fall back to polling */
-        cb = talloc_zero(ctx->file_ctx, struct config_file_callback);
-        if (!cb) {
-            talloc_free(ctx->file_ctx);
-            return ENOMEM;
-        }
-        cb->filename = talloc_strdup(cb, file);
-        if (!cb->filename) {
-            talloc_free(ctx->file_ctx);
-            return ENOMEM;
-        }
-        cb->fn = fn;
-        cb->modified = file_stat.st_mtime;
+        ret = monitor_config_file_fallback(mem_ctx, ctx, file, fn);
+    }
 
-        DLIST_ADD(ctx->file_ctx->callbacks, cb);
+    return ret;
+}
 
-        if(!ctx->file_ctx->timer) {
-            gettimeofday(&tv, NULL);
-            tv.tv_sec += CONFIG_FILE_POLL_INTERVAL;
-            tv.tv_usec = 0;
-            ctx->file_ctx->timer = tevent_add_timer(ctx->ev, mem_ctx, tv,
-                                   poll_config_file, ctx->file_ctx);
-            if (!ctx->file_ctx->timer) {
-                talloc_free(ctx->file_ctx);
-                return EIO;
-            }
+errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
+                                     struct mt_ctx *ctx,
+                                     const char *file,
+                                     monitor_reconf_fn fn)
+{
+    struct config_file_callback *cb = NULL;
+    struct stat file_stat;
+    int ret, err;
+    struct timeval tv;
+
+    ret = stat(file, &file_stat);
+    if (ret < 0) {
+        err = errno;
+        DEBUG(0, ("Could not stat file [%s]. Error [%d:%s]\n",
+                  file, err, strerror(err)));
+        return err;
+    }
+
+    cb = talloc_zero(ctx->file_ctx, struct config_file_callback);
+    if (!cb) {
+        talloc_free(ctx->file_ctx);
+        return ENOMEM;
+    }
+    cb->filename = talloc_strdup(cb, file);
+    if (!cb->filename) {
+        talloc_free(ctx->file_ctx);
+        return ENOMEM;
+    }
+    cb->fn = fn;
+    cb->modified = file_stat.st_mtime;
+
+    DLIST_ADD(ctx->file_ctx->callbacks, cb);
+
+    if(!ctx->file_ctx->timer) {
+        gettimeofday(&tv, NULL);
+        tv.tv_sec += CONFIG_FILE_POLL_INTERVAL;
+        tv.tv_usec = 0;
+        ctx->file_ctx->timer = tevent_add_timer(ctx->ev, mem_ctx, tv,
+                poll_config_file, ctx->file_ctx);
+        if (!ctx->file_ctx->timer) {
+            talloc_free(ctx->file_ctx);
+            return EIO;
         }
     }
 
