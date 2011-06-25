@@ -808,7 +808,7 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
             dctx->domain = dctx->domain->next;
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         } else {
-            /* nothing vailable */
+            /* nothing available */
             ret = ENOENT;
             goto done;
         }
@@ -1030,7 +1030,7 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
             dctx->domain = dctx->domain->next;
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         } else {
-            /* nothing vailable */
+            /* nothing available */
             ret = ENOENT;
             goto done;
         }
@@ -2075,7 +2075,7 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
             dctx->domain = dctx->domain->next;
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         } else {
-            /* nothing vailable */
+            /* nothing available */
             ret = ENOENT;
             goto done;
         }
@@ -2297,7 +2297,7 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
             dctx->domain = dctx->domain->next;
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         } else {
-            /* nothing vailable */
+            /* nothing available */
             ret = ENOENT;
             goto done;
         }
@@ -3116,7 +3116,7 @@ static void nss_cmd_initgroups_dp_callback(uint16_t err_maj, uint32_t err_min,
             dctx->domain = dctx->domain->next;
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         } else {
-            /* nothing vailable */
+            /* nothing available */
             ret = ENOENT;
             goto done;
         }
