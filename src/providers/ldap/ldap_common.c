@@ -530,13 +530,9 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx = NULL;
     struct sdap_service *service;
     struct resolv_hostent *srvaddr;
-    char *address;
-    const char *safe_address;
     struct sockaddr_storage *sockaddr;
     const char *tmp;
     char *new_uri;
-    LDAPURLDesc *lud;
-    int ret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -560,27 +556,10 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    address = resolv_get_string_address(tmp_ctx, srvaddr);
-    if (address == NULL) {
-        DEBUG(1, ("resolv_get_string_address failed.\n"));
-        talloc_free(tmp_ctx);
-        return;
-    }
-
     sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr,
                                            fo_get_server_port(server));
     if (sockaddr == NULL) {
         DEBUG(1, ("resolv_get_sockaddr_address failed.\n"));
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    safe_address = sss_ldap_escape_ip_address(tmp_ctx,
-                                              srvaddr->family,
-                                              address);
-    talloc_zfree(address);
-    if (safe_address == NULL) {
-        DEBUG(1, ("sss_ldap_escape_ip_address failed.\n"));
         talloc_free(tmp_ctx);
         return;
     }
@@ -591,24 +570,10 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
             tmp = SSS_LDAP_SRV_NAME;
         }
         new_uri = talloc_asprintf(service, "%s://%s:%d",
-                                  tmp, safe_address,
+                                  tmp, fo_get_server_name(server),
                                   fo_get_server_port(server));
     } else {
-        if (tmp && ldap_is_ldap_url(tmp)) {
-            ret = ldap_url_parse(tmp, &lud);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(0, ("Failed to parse ldap URI (%s)!\n", tmp));
-                talloc_free(tmp_ctx);
-                return;
-            }
-            new_uri = talloc_asprintf(service, "%s://%s:%d",
-                                      lud->lud_scheme,
-                                      safe_address,
-                                      fo_get_server_port(server));
-            ldap_free_urldesc(lud);
-        } else {
-            new_uri = talloc_asprintf(service, "ldap://%s", safe_address);
-        }
+        new_uri = talloc_strdup(service, tmp);
     }
 
     if (!new_uri) {
