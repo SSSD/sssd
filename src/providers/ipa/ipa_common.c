@@ -643,7 +643,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    new_uri = talloc_asprintf(service, "ldap://%s", safe_address);
+    new_uri = talloc_asprintf(service, "ldap://%s", fo_get_server_name(server));
     if (!new_uri) {
         DEBUG(2, ("Failed to copy URI ...\n"));
         talloc_free(tmp_ctx);
