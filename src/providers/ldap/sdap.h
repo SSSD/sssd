@@ -108,6 +108,7 @@ struct sdap_service {
     char *name;
     char *uri;
     char *kinit_service_name;
+    struct sockaddr_storage *sockaddr;
 };
 
 struct sdap_ppolicy_data {

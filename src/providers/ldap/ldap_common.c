@@ -532,6 +532,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     struct resolv_hostent *srvaddr;
     char *address;
     const char *safe_address;
+    struct sockaddr_storage *sockaddr;
     const char *tmp;
     char *new_uri;
     LDAPURLDesc *lud;
@@ -562,6 +563,14 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     address = resolv_get_string_address(tmp_ctx, srvaddr);
     if (address == NULL) {
         DEBUG(1, ("resolv_get_string_address failed.\n"));
+        talloc_free(tmp_ctx);
+        return;
+    }
+
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr,
+                                           fo_get_server_port(server));
+    if (sockaddr == NULL) {
+        DEBUG(1, ("resolv_get_sockaddr_address failed.\n"));
         talloc_free(tmp_ctx);
         return;
     }
@@ -613,6 +622,8 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     /* free old one and replace with new one */
     talloc_zfree(service->uri);
     service->uri = new_uri;
+    talloc_zfree(service->sockaddr);
+    service->sockaddr = talloc_steal(service, sockaddr);
     talloc_free(tmp_ctx);
 }
 

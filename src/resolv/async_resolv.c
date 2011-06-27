@@ -1296,6 +1296,42 @@ resolv_get_string_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent)
     return address;
 }
 
+struct sockaddr_storage *
+resolv_get_sockaddr_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
+                            int port)
+{
+    struct sockaddr_storage *sockaddr;
+
+    if (!hostent) return NULL;
+
+    sockaddr = talloc_zero(mem_ctx, struct sockaddr_storage);
+    if (sockaddr == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        return NULL;
+    }
+
+    switch(hostent->family) {
+        case AF_INET:
+            sockaddr->ss_family = AF_INET;
+            memcpy(&((struct sockaddr_in *) sockaddr)->sin_addr,
+                   hostent->addr_list[0]->ipaddr, sizeof(struct in_addr));
+            ((struct sockaddr_in *) sockaddr)->sin_port = (in_port_t) htons(port);
+
+            break;
+        case AF_INET6:
+            sockaddr->ss_family = AF_INET6;
+            memcpy(&((struct sockaddr_in6 *) sockaddr)->sin6_addr,
+                   hostent->addr_list[0]->ipaddr, sizeof(struct in6_addr));
+            ((struct sockaddr_in6 *) sockaddr)->sin6_port = (in_port_t) htons(port);
+            break;
+        default:
+            DEBUG(1, ("Unknown address family %d\n"));
+            return NULL;
+    }
+
+    return sockaddr;
+}
+
 /*
  * A simple helper function that will take an array of struct ares_srv_reply that
  * was allocated by malloc() in c-ares and copies it using talloc. The old one
