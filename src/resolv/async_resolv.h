@@ -114,6 +114,10 @@ int resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 char *
 resolv_get_string_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent);
 
+struct sockaddr_storage *
+resolv_get_sockaddr_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
+                            int port);
+
 /** Get SRV record **/
 struct tevent_req *resolv_getsrv_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,

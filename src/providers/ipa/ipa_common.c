@@ -593,6 +593,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx = NULL;
     struct ipa_service *service;
     struct resolv_hostent *srvaddr;
+    struct sockaddr_storage *sockaddr;
     char *address;
     const char *safe_address;
     char *new_uri;
@@ -615,6 +616,13 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     if (!srvaddr) {
         DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
                   fo_get_server_name(server)));
+        talloc_free(tmp_ctx);
+        return;
+    }
+
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
+    if (sockaddr == NULL) {
+        DEBUG(1, ("resolv_get_sockaddr_address failed.\n"));
         talloc_free(tmp_ctx);
         return;
     }
@@ -646,6 +654,8 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     /* free old one and replace with new one */
     talloc_zfree(service->sdap->uri);
     service->sdap->uri = new_uri;
+    talloc_zfree(service->sdap->sockaddr);
+    service->sdap->sockaddr = talloc_steal(service, sockaddr);
     talloc_zfree(service->krb5_service->address);
     service->krb5_service->address = talloc_steal(service, address);
 
