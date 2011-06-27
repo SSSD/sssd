@@ -273,3 +273,41 @@ errno_t sdap_set_connected(struct sdap_handle *sh, struct tevent_context *ev)
 
     return ret;
 }
+
+errno_t sdap_call_conn_cb(const char *uri,int fd, struct sdap_handle *sh)
+{
+#ifdef HAVE_LDAP_CONNCB
+    int ret;
+    Sockbuf *sb;
+    LDAPURLDesc *lud;
+
+    sb = ber_sockbuf_alloc();
+    if (sb == NULL) {
+        DEBUG(1, ("ber_sockbuf_alloc failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = ber_sockbuf_ctrl(sb, LBER_SB_OPT_SET_FD, &fd);
+    if (ret != 1) {
+        DEBUG(1, ("ber_sockbuf_ctrl failed.\n"));
+        return EFAULT;
+    }
+
+    ret = ldap_url_parse(uri, &lud);
+    if (ret != 0) {
+        ber_sockbuf_free(sb);
+        DEBUG(1, ("ber_sockbuf_ctrl failed.\n"));
+        return EFAULT;
+    }
+
+    ret = sdap_ldap_connect_callback_add(NULL, sb, lud, NULL,
+                                         sh->sdap_fd_events->conncb);
+
+    ldap_free_urldesc(lud);
+    ber_sockbuf_free(sb);
+    return ret;
+#else
+    DEBUG(9, ("LDAP connection callbacks are not supported.\n"));
+    return EOK;
+#endif
+}
