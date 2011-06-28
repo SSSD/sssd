@@ -20,9 +20,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <unistd.h>
+#include <fcntl.h>
 #include <sasl/sasl.h>
 #include "util/util.h"
 #include "util/sss_krb5.h"
+#include "util/sss_ldap.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
@@ -61,6 +64,8 @@ struct sdap_connect_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
+    const char *uri;
+    bool use_start_tls;
 
     struct sdap_op *op;
 
@@ -68,6 +73,7 @@ struct sdap_connect_state {
     int result;
 };
 
+static void sdap_sys_connect_done(struct tevent_req *subreq);
 static void sdap_connect_done(struct sdap_op *op,
                               struct sdap_msg *reply,
                               int error, void *pvt);
@@ -76,21 +82,13 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      const char *uri,
+                                     struct sockaddr_storage *sockaddr,
                                      bool use_start_tls)
 {
     struct tevent_req *req;
+    struct tevent_req *subreq;
     struct sdap_connect_state *state;
-    struct timeval tv;
-    int ver;
-    int lret;
-    int optret;
-    int ret = EOK;
-    int msgid;
-    char *errmsg = NULL;
-    bool ldap_referrals;
-    const char *ldap_deref;
-    int ldap_deref_val;
-    struct sdap_rebind_proc_params *rebind_proc_params;
+    int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -103,6 +101,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
+    state->uri = uri;
+    state->use_start_tls = use_start_tls;
     state->sh = sdap_handle_create(state);
     if (!state->sh) {
         talloc_zfree(req);
@@ -112,11 +112,65 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     state->sh->page_size = dp_opt_get_int(state->opts->basic,
                                           SDAP_PAGE_SIZE);
 
-    /* Initialize LDAP handler */
-    lret = ldap_initialize(&state->sh->ldap, uri);
-    if (lret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_initialize failed: %s\n", ldap_err2string(lret)));
+    subreq = sss_ldap_init_send(state, ev, uri, sockaddr,
+                                sizeof(struct sockaddr_storage));
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        DEBUG(1, ("sss_ldap_init_send failed.\n"));
         goto fail;
+    }
+
+    tevent_req_set_callback(subreq, sdap_sys_connect_done, req);
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sdap_sys_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_connect_state *state = tevent_req_data(req,
+                                                     struct sdap_connect_state);
+    struct timeval tv;
+    int ver;
+    int lret;
+    int optret;
+    int ret = EOK;
+    int msgid;
+    char *errmsg = NULL;
+    bool ldap_referrals;
+    const char *ldap_deref;
+    int ldap_deref_val;
+    struct sdap_rebind_proc_params *rebind_proc_params;
+    int sd;
+
+    ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(1, ("sdap_async_connect_call request failed.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = setup_ldap_connection_callbacks(state->sh, state->ev);
+    if (ret != EOK) {
+        DEBUG(1, ("setup_ldap_connection_callbacks failed.\n"));
+        goto fail;
+    }
+
+    /* If sss_ldap_init_recv() does not return a valid file descriptor we have
+     * to assume that the connection callback will be called by internally by
+     * the OpenLDAP client library. */
+    if (sd != -1) {
+        ret = sdap_call_conn_cb(state->uri, sd, state->sh);
+        if (ret != EOK) {
+            DEBUG(1, ("sdap_call_conn_cb failed.\n"));
+            goto fail;
+        }
     }
 
     /* Force ldap version to 3 */
@@ -135,27 +189,27 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
 
     /* Set Network Timeout */
-    tv.tv_sec = dp_opt_get_int(opts->basic, SDAP_NETWORK_TIMEOUT);
+    tv.tv_sec = dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT);
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_NETWORK_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set network timeout to %d\n",
-                  dp_opt_get_int(opts->basic, SDAP_NETWORK_TIMEOUT)));
+                  dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT)));
         goto fail;
     }
 
     /* Set Default Timeout */
-    tv.tv_sec = dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT);
+    tv.tv_sec = dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT);
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set default timeout to %d\n",
-                  dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT)));
+                  dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT)));
         goto fail;
     }
 
     /* Set Referral chasing */
-    ldap_referrals = dp_opt_get_bool(opts->basic, SDAP_REFERRALS);
+    ldap_referrals = dp_opt_get_bool(state->opts->basic, SDAP_REFERRALS);
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_REFERRALS,
                            (ldap_referrals ? LDAP_OPT_ON : LDAP_OPT_OFF));
     if (lret != LDAP_OPT_SUCCESS) {
@@ -173,9 +227,9 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
             goto fail;
         }
 
-        rebind_proc_params->opts = opts;
+        rebind_proc_params->opts = state->opts;
         rebind_proc_params->sh = state->sh;
-        rebind_proc_params->use_start_tls = use_start_tls;
+        rebind_proc_params->use_start_tls = state->use_start_tls;
 
         lret = ldap_set_rebind_proc(state->sh->ldap, sdap_rebind_proc,
                                     rebind_proc_params);
@@ -186,7 +240,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
 
     /* Set alias dereferencing */
-    ldap_deref = dp_opt_get_string(opts->basic, SDAP_DEREF);
+    ldap_deref = dp_opt_get_string(state->opts->basic, SDAP_DEREF);
     if (ldap_deref != NULL) {
         ret = deref_string_to_val(ldap_deref, &ldap_deref_val);
         if (ret != EOK) {
@@ -202,18 +256,11 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     }
 
-    ret = setup_ldap_connection_callbacks(state->sh, state->ev);
-    if (ret != EOK) {
-        DEBUG(1, ("setup_ldap_connection_callbacks failed.\n"));
-        goto fail;
-    }
-
     /* if we do not use start_tls the connection is not really connected yet
      * just fake an async procedure and leave connection to the bind call */
-    if (!use_start_tls) {
+    if (!state->use_start_tls) {
         tevent_req_done(req);
-        tevent_req_post(req, ev);
-        return req;
+        return;
     }
 
     DEBUG(4, ("Executing START TLS\n"));
@@ -243,14 +290,14 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     if (ret) goto fail;
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
-    ret = sdap_op_add(state, ev, state->sh, msgid,
+    ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_connect_done, req, 5, &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
         goto fail;
     }
 
-    return req;
+    return;
 
 fail:
     if (ret) {
@@ -262,8 +309,7 @@ fail:
             tevent_req_error(req, EIO);
         }
     }
-    tevent_req_post(req, ev);
-    return req;
+    return;
 }
 
 static void sdap_connect_done(struct sdap_op *op,
@@ -1149,6 +1195,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
 
     subreq = sdap_connect_send(state, state->ev, state->opts,
                                state->service->uri,
+                               state->service->sockaddr,
                                use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);

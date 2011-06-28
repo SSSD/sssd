@@ -22,6 +22,8 @@
 #ifndef _SDAP_ASYNC_H_
 #define _SDAP_ASYNC_H_
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <talloc.h>
 #include <tevent.h>
 #include "providers/dp_backend.h"
@@ -32,6 +34,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      const char *uri,
+                                     struct sockaddr_storage *sockaddr,
                                      bool use_start_tls);
 int sdap_connect_recv(struct tevent_req *req,
                       TALLOC_CTX *memctx,

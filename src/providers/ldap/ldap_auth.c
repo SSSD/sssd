@@ -558,7 +558,8 @@ static void auth_resolve_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
-                               state->sdap_service->uri, use_tls);
+                               state->sdap_service->uri,
+                               state->sdap_service->sockaddr, use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

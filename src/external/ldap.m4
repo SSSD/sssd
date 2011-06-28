@@ -43,7 +43,7 @@ SAVE_CFLAGS=$CFLAGS
 SAVE_LIBS=$LIBS
 CFLAGS="$CFLAGS $OPENLDAP_CFLAGS"
 LIBS="$LIBS $OPENLDAP_LIBS"
-AC_CHECK_FUNCS([ldap_control_create])
+AC_CHECK_FUNCS([ldap_control_create ldap_init_fd])
 AC_CHECK_MEMBERS([struct ldap_conncb.lc_arg],
                  [AC_RUN_IFELSE(
                    [AC_LANG_PROGRAM(

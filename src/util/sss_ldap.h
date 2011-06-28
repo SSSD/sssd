@@ -21,8 +21,11 @@
 #ifndef __SSS_LDAP_H__
 #define __SSS_LDAP_H__
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <ldap.h>
 #include <talloc.h>
+#include <tevent.h>
 
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
@@ -31,4 +34,11 @@ int sss_ldap_control_create(const char *oid, int iscritical,
 inline const char *
 sss_ldap_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
 
+struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      const char *uri,
+                                      struct sockaddr_storage *addr,
+                                      int addr_len);
+
+int sss_ldap_init_recv(struct tevent_req *req, LDAP **ldap, int *sd);
 #endif /* __SSS_LDAP_H__ */
