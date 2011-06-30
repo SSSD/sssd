@@ -122,7 +122,12 @@ int resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                               struct resolv_hostent **rhostent);
 
 char *
-resolv_get_string_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent);
+resolv_get_string_address_index(TALLOC_CTX *mem_ctx,
+                                struct resolv_hostent *hostent,
+                                unsigned int addrindex);
+
+#define resolv_get_string_address(mem_ctx, hostent) \
+        resolv_get_string_address_index(mem_ctx, hostent, 0)
 
 struct sockaddr_storage *
 resolv_get_sockaddr_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,

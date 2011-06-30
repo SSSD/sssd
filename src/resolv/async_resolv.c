@@ -1314,7 +1314,9 @@ resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 }
 
 char *
-resolv_get_string_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent)
+resolv_get_string_address_index(TALLOC_CTX *mem_ctx,
+                                struct resolv_hostent *hostent,
+                                unsigned int addrindex)
 {
     char *address;
 
@@ -1327,7 +1329,7 @@ resolv_get_string_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent)
     }
 
     errno = 0;
-    if (inet_ntop(hostent->family, hostent->addr_list[0]->ipaddr,
+    if (inet_ntop(hostent->family, hostent->addr_list[addrindex]->ipaddr,
                   address, 128) == NULL) {
         DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
         talloc_free(address);
