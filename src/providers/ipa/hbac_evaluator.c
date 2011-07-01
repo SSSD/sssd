@@ -155,8 +155,10 @@ static bool hbac_evaluate_element(struct hbac_rule_element *rule_el,
     /* First check the name list */
     if (rule_el->names) {
         for (i = 0; rule_el->names[i]; i++) {
-            if (strcmp(rule_el->names[i], req_el->name) == 0) {
-                return true;
+            if (req_el->name != NULL) {
+                if (strcmp(rule_el->names[i], req_el->name) == 0) {
+                    return true;
+                }
             }
         }
     }

@@ -558,17 +558,14 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
 
     /* Get the source host */
     if (pd->rhost == NULL || pd->rhost[0] == '\0') {
-            /* If we haven't been passed an rhost, we
-             * have to assume it's coming from the
-             * target host
+            /* If we haven't been passed an rhost,
+             * the rhost is unknown. This will fail
+             * to match any rule requiring the
+             * source host.
              */
-        rhost = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
+        rhost = NULL;
     } else {
         rhost = pd->rhost;
-    }
-    if (rhost == NULL) {
-        ret = EINVAL;
-        goto done;
     }
 
     ret = hbac_eval_host_element(eval_req, sysdb, domain,
@@ -808,6 +805,19 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
 
     host->name = hostname;
 
+    if (host->name == NULL) {
+        /* We don't know the host (probably an rhost)
+         * So we can't determine it's groups either.
+         */
+        host->groups = talloc_array(host, const char *, 1);
+        if (host->groups == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        host->groups[0] = NULL;
+        ret = EOK;
+        goto done;
+    }
 
     host_filter = talloc_asprintf(tmp_ctx,
                                   "(objectClass=%s)",
@@ -862,10 +872,12 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     }
     host->groups[i] = NULL;
 
-    *host_element = talloc_steal(mem_ctx, host);
     ret = EOK;
 
 done:
+    if (ret == EOK) {
+        *host_element = talloc_steal(mem_ctx, host);
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
