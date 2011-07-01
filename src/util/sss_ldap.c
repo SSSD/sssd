@@ -18,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <stdlib.h>
-#include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -91,13 +90,6 @@ int sss_ldap_control_create(const char *oid, int iscritical,
 
     return LDAP_SUCCESS;
 #endif
-}
-
-inline const char *
-sss_ldap_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr)
-{
-    return family == AF_INET6 ? talloc_asprintf(mem_ctx, "[%s]", addr) :
-                                talloc_strdup(mem_ctx, addr);
 }
 
 #ifdef HAVE_LDAP_INIT_FD

@@ -639,9 +639,9 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    safe_address = sss_ldap_escape_ip_address(tmp_ctx,
-                                              srvaddr->family,
-                                              address);
+    safe_address = sss_escape_ip_address(tmp_ctx,
+                                         srvaddr->family,
+                                         address);
     if (safe_address == NULL) {
         DEBUG(1, ("sss_ldap_escape_ip_address failed.\n"));
         talloc_free(tmp_ctx);

@@ -405,4 +405,7 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
                             const char *input,
                             char **sanitized);
 
+char *
+sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
+
 #endif /* __SSSD_UTIL_H__ */

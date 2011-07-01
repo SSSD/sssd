@@ -19,6 +19,7 @@
 */
 
 #include <ctype.h>
+#include <netdb.h>
 
 #include "talloc.h"
 #include "util/util.h"
@@ -588,4 +589,11 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
     }
 
     return EOK;
+}
+
+char *
+sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr)
+{
+    return family == AF_INET6 ? talloc_asprintf(mem_ctx, "[%s]", addr) :
+                                talloc_strdup(mem_ctx, addr);
 }

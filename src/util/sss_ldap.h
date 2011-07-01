@@ -49,9 +49,6 @@ int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
                             LDAPControl **ctrlp);
 
-inline const char *
-sss_ldap_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
-
 struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
                                       const char *uri,
