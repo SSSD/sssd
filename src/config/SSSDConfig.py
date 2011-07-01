@@ -98,6 +98,7 @@ option_strings = {
     'ipa_dyndns_iface' : _("The interface whose IP should be used for dynamic DNS updates"),
     'ipa_hbac_search_base' : _("Search base for HBAC related objects"),
     'ipa_hbac_refresh' : _("The amount of time between lookups of the HBAC rules against the IPA server"),
+    'ipa_hbac_treat_deny_as' : _("If DENY rules are present, either DENY_ALL or IGNORE"),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

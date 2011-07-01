@@ -97,6 +97,7 @@ void ipa_access_handler(struct be_req *be_req)
 {
     struct pam_data *pd;
     struct hbac_ctx *hbac_ctx;
+    const char *deny_method;
     int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
     int ret;
@@ -108,7 +109,7 @@ void ipa_access_handler(struct be_req *be_req)
         DEBUG(1, ("talloc failed.\n"));
         goto fail;
     }
-    hbac_ctx->get_deny_rules = true; /* make this a config option */
+
     hbac_ctx->be_req = be_req;
     hbac_ctx->pd = pd;
     ipa_access_ctx = talloc_get_type(
@@ -123,6 +124,14 @@ void ipa_access_handler(struct be_req *be_req)
     if (hbac_ctx->hbac_search_base == NULL) {
         DEBUG(1, ("No HBAC search base found.\n"));
         goto fail;
+    }
+
+    deny_method = dp_opt_get_string(hbac_ctx->ipa_options,
+                                    IPA_HBAC_DENY_METHOD);
+    if (strcasecmp(deny_method, "IGNORE") == 0) {
+        hbac_ctx->get_deny_rules = false;
+    } else {
+        hbac_ctx->get_deny_rules = true;
     }
 
     ret = hbac_retry(hbac_ctx);
