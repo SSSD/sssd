@@ -379,11 +379,20 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     struct krb5_service *krb5_service;
     struct resolv_hostent *srvaddr;
     char *address;
+    char *safe_address;
     int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed\n"));
+        return;
+    }
 
     krb5_service = talloc_get_type(private_data, struct krb5_service);
     if (!krb5_service) {
         DEBUG(1, ("FATAL: Bad private_data\n"));
+        talloc_free(tmp_ctx);
         return;
     }
 
@@ -391,31 +400,44 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     if (!srvaddr) {
         DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
                   fo_get_server_name(server)));
+        talloc_free(tmp_ctx);
         return;
     }
 
     address = resolv_get_string_address(krb5_service, srvaddr);
     if (address == NULL) {
         DEBUG(1, ("resolv_get_string_address failed.\n"));
+        talloc_free(tmp_ctx);
         return;
     }
 
-    address = talloc_asprintf_append(address, ":%d",
-                                     fo_get_server_port(server));
-    if (address == NULL) {
+    safe_address = sss_escape_ip_address(tmp_ctx,
+                                         srvaddr->family,
+                                         address);
+    if (safe_address == NULL) {
+        DEBUG(1, ("sss_escape_ip_address failed.\n"));
+        talloc_free(tmp_ctx);
+        return;
+    }
+
+    safe_address = talloc_asprintf_append(safe_address, ":%d",
+                                          fo_get_server_port(server));
+    if (safe_address == NULL) {
         DEBUG(1, ("talloc_asprintf_append failed.\n"));
+        talloc_free(tmp_ctx);
         return;
     }
 
     talloc_zfree(krb5_service->address);
     krb5_service->address = address;
 
-    ret = write_krb5info_file(krb5_service->realm, address,
+    ret = write_krb5info_file(krb5_service->realm, safe_address,
                               krb5_service->name);
     if (ret != EOK) {
         DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
     }
 
+    talloc_free(tmp_ctx);
     return;
 }
 

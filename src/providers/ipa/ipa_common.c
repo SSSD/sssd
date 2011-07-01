@@ -639,15 +639,6 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    safe_address = sss_escape_ip_address(tmp_ctx,
-                                         srvaddr->family,
-                                         address);
-    if (safe_address == NULL) {
-        DEBUG(1, ("sss_ldap_escape_ip_address failed.\n"));
-        talloc_free(tmp_ctx);
-        return;
-    }
-
     new_uri = talloc_asprintf(service, "ldap://%s", fo_get_server_name(server));
     if (!new_uri) {
         DEBUG(2, ("Failed to copy URI ...\n"));
@@ -664,7 +655,16 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     talloc_zfree(service->krb5_service->address);
     service->krb5_service->address = talloc_steal(service, address);
 
-    ret = write_krb5info_file(service->krb5_service->realm, address,
+    safe_address = sss_escape_ip_address(tmp_ctx,
+                                         srvaddr->family,
+                                         address);
+    if (safe_address == NULL) {
+        DEBUG(1, ("sss_escape_ip_address failed.\n"));
+        talloc_free(tmp_ctx);
+        return;
+    }
+
+    ret = write_krb5info_file(service->krb5_service->realm, safe_address,
                               SSS_KRB5KDC_FO_SRV);
     if (ret != EOK) {
         DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
