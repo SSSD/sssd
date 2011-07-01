@@ -359,7 +359,9 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
     return req;
 
 fail:
-    close(state->sd);
+    if(state->sd >= 0) {
+        close(state->sd);
+    }
     tevent_req_error(req, ret);
 #else
     DEBUG(3, ("ldap_init_fd not available, "
