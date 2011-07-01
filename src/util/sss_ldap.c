@@ -123,6 +123,7 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
     struct sdap_async_sys_connect_state *state;
     long flags;
     int ret;
+    int fret;
 
     flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
@@ -150,7 +151,6 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
 
     ret = connect(fd, addr, addr_len);
     if (ret == EOK) {
-        tevent_req_done(req);
         goto done;
     }
 
@@ -175,14 +175,17 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
     }
 
 done:
-    if (ret != EOK) {
+    fret = fcntl(fd, F_SETFL, flags);
+    if (fret != EOK) {
+        DEBUG(1, ("fcntl F_SETFL failed.\n"));
+    }
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
         tevent_req_error(req, ret);
     }
 
-    ret = fcntl(fd, F_SETFL, flags);
-    if (ret != EOK) {
-        DEBUG(1, ("fcntl F_SETFL failed.\n"));
-    }
     tevent_req_post(req, ev);
     return req;
 }
@@ -195,6 +198,7 @@ static void sdap_async_sys_connect_done(struct tevent_context *ev,
     struct sdap_async_sys_connect_state *state = tevent_req_data(req,
                                           struct sdap_async_sys_connect_state);
     int ret = EOK;
+    int fret;
 
     /* I found the following comment in samba's lib/async_req/async_sock.c:
      * Stevens, Network Programming says that if there's a
@@ -220,16 +224,18 @@ static void sdap_async_sys_connect_done(struct tevent_context *ev,
 
 done:
     talloc_zfree(fde);
+
+    fret = fcntl(state->fd, F_SETFL, state->old_flags);
+    if (fret != EOK) {
+        DEBUG(1, ("fcntl F_SETFL failed.\n"));
+    }
+
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
     }
 
-    ret = fcntl(state->fd, F_SETFL, state->old_flags);
-    if (ret != EOK) {
-        DEBUG(1, ("fcntl F_SETFL failed.\n"));
-    }
     return;
 }
 
