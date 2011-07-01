@@ -35,9 +35,9 @@
 #if defined(NSCD_PATH) && defined(HAVE_NSCD)
 int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db)
 {
-    char *cmd = NULL;
     const char *service;
-    int ret;
+    pid_t nscd_pid;
+    int ret, status;
 
     switch(flush_db) {
         case NSCD_DB_PASSWD:
@@ -54,30 +54,38 @@ int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db)
             goto done;
     }
 
-    cmd = talloc_asprintf(mem_ctx, "%s %s %s", NSCD_PATH,
-                                               NSCD_RELOAD_ARG,
-                                               service);
-    if (!cmd) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = system(cmd);
-    if (ret) {
-        if (ret == -1) {
-            DEBUG(1, ("system(3) failed\n"));
-            ret = EFAULT;
-            goto done;
+    nscd_pid = fork();
+    switch (nscd_pid) {
+    case 0:
+        execl(NSCD_PATH, "nscd", NSCD_RELOAD_ARG, service, NULL);
+        /* if this returns it is an error */
+        DEBUG(1, ("execl(3) failed: %d(%s)\n", errno, strerror(errno)));
+        exit(errno);
+    case -1:
+        DEBUG(1, ("fork failed\n"));
+        ret = EFAULT;
+        break;
+    default:
+        do {
+            errno = 0;
+            ret = waitpid(nscd_pid, &status, 0);
+        } while (ret == -1 && errno == EINTR);
+        if (ret == 0) {
+            if (WIFEXITED(status)) {
+                ret = WEXITSTATUS(status);
+                if (ret > 0) {
+                    /* The flush fails if nscd is not running, so do not care
+                    * about the return code */
+                    DEBUG(8, ("Error flushing cache, is nscd running?\n"));
+                }
+            }
+        } else {
+            DEBUG(5, ("Failed to wait for children %d\n", nscd_pid));
+            ret = EIO;
         }
-        /* The flush fails if nscd is not running, so do not care
-         * about the return code */
-        DEBUG(8, ("Error flushing cache, perhaps nscd is not running\n"));
     }
 
-
-    ret = EOK;
 done:
-    talloc_free(cmd);
     return ret;
 }
 
