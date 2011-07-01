@@ -652,8 +652,6 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     service->sdap->uri = new_uri;
     talloc_zfree(service->sdap->sockaddr);
     service->sdap->sockaddr = talloc_steal(service, sockaddr);
-    talloc_zfree(service->krb5_service->address);
-    service->krb5_service->address = talloc_steal(service, address);
 
     safe_address = sss_escape_ip_address(tmp_ctx,
                                          srvaddr->family,

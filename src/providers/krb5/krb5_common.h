@@ -76,7 +76,6 @@ struct tgt_times {
 
 struct krb5_service {
     char *name;
-    char *address;
     char *realm;
 };
 

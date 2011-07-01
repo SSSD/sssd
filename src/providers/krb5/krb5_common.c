@@ -404,7 +404,7 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    address = resolv_get_string_address(krb5_service, srvaddr);
+    address = resolv_get_string_address(tmp_ctx, srvaddr);
     if (address == NULL) {
         DEBUG(1, ("resolv_get_string_address failed.\n"));
         talloc_free(tmp_ctx);
@@ -427,9 +427,6 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         talloc_free(tmp_ctx);
         return;
     }
-
-    talloc_zfree(krb5_service->address);
-    krb5_service->address = address;
 
     ret = write_krb5info_file(krb5_service->realm, safe_address,
                               krb5_service->name);
