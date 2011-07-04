@@ -180,6 +180,60 @@ void ipa_dyndns_update(void *pvt)
     tevent_req_set_callback(req, ipa_dyndns_update_done, NULL);
 }
 
+static bool ok_for_dns(struct sockaddr *sa)
+{
+    char straddr[INET6_ADDRSTRLEN];
+
+    if (sa->sa_family == AF_INET6) {
+        struct in6_addr *addr = &((struct sockaddr_in6 *) sa)->sin6_addr;
+
+        if (inet_ntop(AF_INET6, addr, straddr, INET6_ADDRSTRLEN) == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("inet_ntop failed, won't log IP addresses\n"));
+            snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
+        }
+
+        if (IN6_IS_ADDR_LINKLOCAL(addr)) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Link local IPv6 address %s\n", straddr));
+            return false;
+        } else if (IN6_IS_ADDR_LOOPBACK(addr)) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv6 address %s\n", straddr));
+            return false;
+        } else if (IN6_IS_ADDR_MULTICAST(addr)) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv6 address %s\n", straddr));
+            return false;
+        }
+    } else if (sa->sa_family == AF_INET) {
+        struct in_addr *addr = &((struct sockaddr_in *) sa)->sin_addr;
+
+        if (inet_ntop(AF_INET, addr, straddr, INET6_ADDRSTRLEN) == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("inet_ntop failed, won't log IP addresses\n"));
+            snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
+        }
+
+        if (IN_MULTICAST(addr->s_addr)) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv4 address %s\n", straddr));
+            return false;
+        } else if (inet_netof(*addr) == IN_LOOPBACKNET) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv4 address %s\n", straddr));
+            return false;
+        } else if ((addr->s_addr & 0xffff0000) == 0xa9fe0000) {
+            /* 169.254.0.0/16 */
+            DEBUG(SSSDBG_FUNC_DATA, ("Link-local IPv4 address %s\n", straddr));
+            return false;
+        } else if (addr->s_addr == htonl(INADDR_BROADCAST)) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Broadcast IPv4 address %s\n", straddr));
+            return false;
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+        return false;
+    }
+
+    return true;
+}
+
 static void ipa_dyndns_sdap_connect_done(struct tevent_req *subreq);
 static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
                                      struct sdap_handle *sh);
@@ -233,7 +287,9 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
             /* Add IP addresses to the list */
             if((ifa->ifa_addr->sa_family == AF_INET ||
                 ifa->ifa_addr->sa_family == AF_INET6) &&
-               strcasecmp(ifa->ifa_name, iface) == 0) {
+               strcasecmp(ifa->ifa_name, iface) == 0 &&
+               ok_for_dns(ifa->ifa_addr)) {
+
                 /* Add this address to the IP address list */
                 address = talloc_zero(state, struct ipa_ipaddress);
                 if (!address) {
