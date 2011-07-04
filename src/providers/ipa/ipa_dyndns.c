@@ -45,7 +45,7 @@ struct ipa_ipaddress {
     struct ipa_ipaddress *next;
     struct ipa_ipaddress *prev;
 
-    struct sockaddr *addr;
+    struct sockaddr_storage *addr;
     bool matched;
 };
 
@@ -93,6 +93,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     struct ifaddrs *ifa;
     struct ipa_ipaddress *address;
     struct tevent_req *req, *subreq;
+    size_t addrsize;
 
     DEBUG (9, ("Performing update\n"));
 
@@ -132,8 +133,12 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
                     goto failed;
                 }
 
+                addrsize = ifa->ifa_addr->sa_family == AF_INET ? \
+                                    sizeof(struct sockaddr_in) : \
+                                    sizeof(struct sockaddr_in6);
+
                 address->addr = talloc_memdup(address, ifa->ifa_addr,
-                                              sizeof(struct sockaddr));
+                                              addrsize);
                 if(address->addr == NULL) {
                     goto failed;
                 }
@@ -219,8 +224,8 @@ static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
     int ret;
     int fd;
     struct ipa_ipaddress *address;
-    struct sockaddr sa;
-    socklen_t sa_len = sizeof(sa);
+    struct sockaddr_storage ss;
+    socklen_t ss_len = sizeof(ss);
 
     if (!sh) {
         return EINVAL;
@@ -232,21 +237,21 @@ static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
         return ret;
     }
 
-    ret = getsockname(fd, &sa, &sa_len);
+    ret = getsockname(fd, (struct sockaddr *) &ss, &ss_len);
     if (ret == -1) {
         DEBUG(0,("Failed to get socket name\n"));
         return errno;
     }
 
-    switch(sa.sa_family) {
+    switch(ss.ss_family) {
     case AF_INET:
     case AF_INET6:
         address = talloc(state, struct ipa_ipaddress);
         if (!address) {
             return ENOMEM;
         }
-        address->addr = talloc_memdup(address, &sa,
-                                      sizeof(struct sockaddr));
+        address->addr = talloc_memdup(address, &ss,
+                                      sizeof(struct sockaddr_storage));
         if(address->addr == NULL) {
             talloc_zfree(address);
             return ENOMEM;
@@ -425,9 +430,9 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
     }
 
     DLIST_FOR_EACH(new_record, ctx->dyndns_ctx->addresses) {
-        switch(new_record->addr->sa_family) {
+        switch(new_record->addr->ss_family) {
         case AF_INET:
-            ip = inet_ntop(new_record->addr->sa_family,
+            ip = inet_ntop(new_record->addr->ss_family,
                            &(((struct sockaddr_in *)new_record->addr)->sin_addr),
                            ip_addr, INET6_ADDRSTRLEN);
             if (ip == NULL) {
@@ -437,7 +442,7 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
             break;
 
         case AF_INET6:
-            ip = inet_ntop(new_record->addr->sa_family,
+            ip = inet_ntop(new_record->addr->ss_family,
                            &(((struct sockaddr_in6 *)new_record->addr)->sin6_addr),
                            ip_addr, INET6_ADDRSTRLEN);
             if (ip == NULL) {
@@ -457,7 +462,7 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
                 ctx->update_msg,
                 "update add %s. 86400 in %s %s\n",
                 ctx->dyndns_ctx->hostname,
-                new_record->addr->sa_family == AF_INET ? "A" : "AAAA",
+                new_record->addr->ss_family == AF_INET ? "A" : "AAAA",
                 ip_addr);
         if (ctx->update_msg == NULL) {
             ret = ENOMEM;
