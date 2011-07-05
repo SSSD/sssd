@@ -422,6 +422,21 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
         return;
     }
 
+    if (ldap_is_ldaps_url(state->uri)) {
+        lret = ldap_install_tls(state->ldap);
+        if (lret != LDAP_SUCCESS) {
+            if (lret == LDAP_LOCAL_ERROR) {
+                DEBUG(5, ("TLS/SSL already in place.\n"));
+            } else {
+                DEBUG(1, ("ldap_install_tls failed: %s\n",
+                          ldap_err2string(lret)));
+
+                tevent_req_error(req, EIO);
+                return;
+            }
+        }
+    }
+
     tevent_req_done(req);
     return;
 }
