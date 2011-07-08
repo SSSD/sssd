@@ -96,15 +96,23 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
     errno_t ret;
     char *clean_subtree;
     struct ldb_dn *dn = NULL;
+    TALLOC_CTX *tmp_ctx;
 
-    ret = sysdb_dn_sanitize(NULL, subtree_name, &clean_subtree);
+    tmp_ctx = talloc_new(memctx);
+    if (!tmp_ctx) return NULL;
+
+    ret = sysdb_dn_sanitize(tmp_ctx, subtree_name, &clean_subtree);
     if (ret != EOK) {
+        talloc_free(tmp_ctx);
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+    dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
                         clean_subtree, domain);
-    talloc_free(clean_subtree);
+    if (dn) {
+        talloc_steal(memctx, dn);
+    }
+    talloc_free(tmp_ctx);
 
     return dn;
 }
