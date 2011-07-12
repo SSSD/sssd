@@ -70,7 +70,7 @@ py_strdup(const char *string)
 }
 
 static char *
-py_strcat_realloc(char *first, char *second)
+py_strcat_realloc(char *first, const char *second)
 {
     char *new_first;
     new_first = PyMem_Realloc(first, strlen(first) + strlen(second) + 1);
@@ -229,7 +229,7 @@ native_category(PyObject *pycat)
 }
 
 static char *
-str_concat_sequence(PyObject *seq, char *delim)
+str_concat_sequence(PyObject *seq, const char *delim)
 {
     Py_ssize_t size;
     Py_ssize_t i;
@@ -284,7 +284,7 @@ static void
 set_hbac_exception(PyObject *exc, struct hbac_info *error)
 {
     PyErr_SetObject(exc,
-                    Py_BuildValue(discard_const_p(char, "(i,s)"),
+                    Py_BuildValue("(i,s)",
                                   error->code,
                                   error->rule_name ? \
                                         error->rule_name : "no rule"));
@@ -367,7 +367,7 @@ HbacRuleElement_init(HbacRuleElement *self, PyObject *args, PyObject *kwargs)
     PyObject *tmp = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     discard_const_p(char, "|OOO"),
+                                     "|OOO",
                                      discard_const_p(char *, kwlist),
                                      &names, &groups, &category)) {
         return -1;
@@ -711,7 +711,7 @@ HbacRule_init(HbacRuleObject *self, PyObject *args, PyObject *kwargs)
     PyObject *empty_tuple = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     discard_const_p(char, "O|i"),
+                                     "O|i",
                                      discard_const_p(char *, kwlist),
                                      &name, &self->enabled)) {
         return -1;
@@ -736,6 +736,73 @@ HbacRule_init(HbacRuleObject *self, PyObject *args, PyObject *kwargs)
 
     Py_DECREF(empty_tuple);
     return 0;
+}
+
+static int
+hbac_rule_set_enabled(HbacRuleObject *self, PyObject *enabled, void *closure)
+{
+    CHECK_ATTRIBUTE_DELETE(enabled, "enabled");
+
+    if (PyString_Check(enabled) || PyUnicode_Check(enabled)) {
+        PyObject *utf8_str;
+        char *str;
+
+        utf8_str = get_utf8_string(enabled, "enabled");
+        if (!utf8_str) return -1;
+        str = PyString_AsString(utf8_str);
+        if (!str) {
+            Py_DECREF(utf8_str);
+            return -1;
+        }
+
+        if (strcasecmp(str, "true") == 0) {
+            self->enabled = true;
+        } else if (strcasecmp(str, "false") == 0) {
+            self->enabled = false;
+        } else {
+            PyErr_Format(PyExc_ValueError,
+                         "enabled only accepts 'true' of 'false' "
+                         "string literals");
+            Py_DECREF(utf8_str);
+            return -1;
+        }
+
+        Py_DECREF(utf8_str);
+        return 0;
+    } else if (PyBool_Check(enabled)) {
+        self->enabled = (enabled == Py_True);
+        return 0;
+    } else if (PyInt_Check(enabled)) {
+        switch(PyInt_AsLong(enabled)) {
+            case 0:
+                self->enabled = false;
+                break;
+            case 1:
+                self->enabled = true;
+                break;
+            default:
+                PyErr_Format(PyExc_ValueError,
+                            "enabled only accepts '0' of '1' "
+                            "integer constants");
+                return -1;
+        }
+        return 0;
+    }
+
+    PyErr_Format(PyExc_TypeError, "enabled must be a boolean, an integer "
+                                  "1 or 0 or a string constant true/false");
+    return -1;
+
+}
+
+static PyObject *
+hbac_rule_get_enabled(HbacRuleObject *self, void *closure)
+{
+    if (self->enabled) {
+        Py_RETURN_TRUE;
+    }
+
+    Py_RETURN_FALSE;
 }
 
 static int
@@ -811,8 +878,6 @@ HbacRule_repr(HbacRuleObject *self)
     return o;
 }
 
-PyDoc_STRVAR(HbacRuleObject_enabled__doc__,
-"(bool) Is the rule enabled");
 PyDoc_STRVAR(HbacRuleObject_users__doc__,
 "(HbacRuleElement) Users and user groups for which this rule applies");
 PyDoc_STRVAR(HbacRuleObject_services__doc__,
@@ -823,10 +888,6 @@ PyDoc_STRVAR(HbacRuleObject_srchosts__doc__,
 "(HbacRuleElement) Source hosts for which this rule applies");
 
 static PyMemberDef py_hbac_rule_members[] = {
-    { discard_const_p(char, "enabled"), T_BOOL,
-      offsetof(HbacRuleObject, enabled), 0,
-      HbacRuleObject_enabled__doc__ },
-
     { discard_const_p(char, "users"), T_OBJECT_EX,
       offsetof(HbacRuleObject, users), 0,
       HbacRuleObject_users__doc__ },
@@ -846,10 +907,18 @@ static PyMemberDef py_hbac_rule_members[] = {
     { NULL, 0, 0, 0, NULL } /* Sentinel */
 };
 
+PyDoc_STRVAR(HbacRuleObject_enabled__doc__,
+"(bool) Is the rule enabled");
 PyDoc_STRVAR(HbacRuleObject_name__doc__,
 "(string) The name of the rule");
 
 static PyGetSetDef py_hbac_rule_getset[] = {
+    { discard_const_p(char, "enabled"),
+      (getter) hbac_rule_get_enabled,
+      (setter) hbac_rule_set_enabled,
+      HbacRuleObject_enabled__doc__,
+      NULL },
+
     { discard_const_p(char, "name"),
       (getter) hbac_rule_get_name,
       (setter) hbac_rule_set_name,
@@ -1023,7 +1092,7 @@ HbacRequestElement_init(HbacRequestElement *self,
     PyObject *groups = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     discard_const_p(char, "|OO"),
+                                     "|OO",
                                      discard_const_p(char *, kwlist),
                                      &name, &groups)) {
         return -1;
@@ -1272,6 +1341,7 @@ HbacRequest_clear(HbacRequest *self)
     Py_CLEAR(self->user);
     Py_CLEAR(self->targethost);
     Py_CLEAR(self->srchost);
+    Py_CLEAR(self->rule_name);
     return 0;
 }
 
