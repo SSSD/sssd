@@ -150,6 +150,7 @@ if test x$HAVE_PYTHON_BINDINGS != x; then
     AM_CHECK_PYTHON_HEADERS([],
                             AC_MSG_ERROR([Could not find python headers]))
     AM_PYTHON_CONFIG
+    AM_CHECK_PYTHON_COMPAT
 fi
 
 if test x$HAVE_SELINUX != x; then

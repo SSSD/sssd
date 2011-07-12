@@ -22,18 +22,16 @@
 #include <structmember.h>
 
 #include "util/util.h"
+#include "util/sss_python.h"
 #include "providers/ipa/ipa_hbac.h"
 
 #define PYTHON_MODULE_NAME  "pyhbac"
 
-#define TYPE_READY(module, type, name) do {         \
-    if (PyType_Ready(&type) < 0)                    \
-        return;                                     \
-    Py_INCREF(&type);                               \
-    PyModule_AddObject(module,                      \
-                       discard_const_p(char, name), \
-                       (PyObject *) &type);         \
-} while(0);                                         \
+#ifndef PYHBAC_ENCODING
+#define PYHBAC_ENCODING "UTF-8"
+#endif
+
+#define PYHBAC_ENCODING_ERRORS "strict"
 
 #define CHECK_ATTRIBUTE_DELETE(attr, attrname) do {         \
     if (attr == NULL) {                                     \
@@ -42,14 +40,6 @@
                       attrname);                            \
         return -1;                                          \
     }                                                       \
-} while(0);
-
-#define SAFE_SET(old, new) do {         \
-    PyObject *__simple_set_tmp = NULL;  \
-    __simple_set_tmp = old;             \
-    Py_INCREF(new);                     \
-    old = new;                          \
-    Py_XDECREF(__simple_set_tmp);       \
 } while(0);
 
 static PyObject *PyExc_HbacError;
@@ -284,7 +274,7 @@ static void
 set_hbac_exception(PyObject *exc, struct hbac_info *error)
 {
     PyErr_SetObject(exc,
-                    Py_BuildValue("(i,s)",
+                    Py_BuildValue(sss_py_const_p(char, "(i,s)"),
                                   error->code,
                                   error->rule_name ? \
                                         error->rule_name : "no rule"));
@@ -310,7 +300,7 @@ HbacRuleElement_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    self->category = PySet_New(NULL);
+    self->category = sss_python_set_new();
     self->names = PyList_New(0);
     self->groups = PyList_New(0);
     if (!self->names || !self->groups || !self->category) {
@@ -367,7 +357,7 @@ HbacRuleElement_init(HbacRuleElement *self, PyObject *args, PyObject *kwargs)
     PyObject *tmp = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     "|OOO",
+                                     sss_py_const_p(char, "|OOO"),
                                      discard_const_p(char *, kwlist),
                                      &names, &groups, &category)) {
         return -1;
@@ -395,7 +385,7 @@ HbacRuleElement_init(HbacRuleElement *self, PyObject *args, PyObject *kwargs)
             return -1;
         }
 
-        if (PySet_Add(self->category, tmp) != 0) {
+        if (sss_python_set_add(self->category, tmp) != 0) {
             return -1;
         }
     }
@@ -458,7 +448,7 @@ hbac_rule_element_set_category(HbacRuleElement *self,
 
     CHECK_ATTRIBUTE_DELETE(category, "category");
 
-    if (!PySet_Check(category)) {
+    if (!sss_python_set_check(category)) {
         PyErr_Format(PyExc_TypeError, "The category must be a set type\n");
         return -1;
     }
@@ -497,7 +487,12 @@ HbacRuleElement_repr(HbacRuleElement *self)
     char *strnames = NULL;
     char *strgroups = NULL;
     uint32_t category;
-    PyObject *o;
+    PyObject *o, *format, *args;
+
+    format = sss_python_unicode_from_string("<category %lu names [%s] groups [%s]>");
+    if (format == NULL) {
+        return NULL;
+    }
 
     strnames = str_concat_sequence(self->names,
                                    discard_const_p(char, ","));
@@ -507,13 +502,25 @@ HbacRuleElement_repr(HbacRuleElement *self)
     if (strnames == NULL || strgroups == NULL || category == -1) {
         PyMem_Free(strnames);
         PyMem_Free(strgroups);
+        Py_DECREF(format);
         return NULL;
     }
 
-    o = PyUnicode_FromFormat("<category %lu names [%s] groups [%s]>",
-                             category, strnames, strgroups);
+    args = Py_BuildValue(sss_py_const_p(char, "Kss"),
+                         (unsigned long long ) category,
+                         strnames, strgroups);
+    if (args == NULL) {
+        PyMem_Free(strnames);
+        PyMem_Free(strgroups);
+        Py_DECREF(format);
+        return NULL;
+    }
+
+    o = PyUnicode_Format(format, args);
     PyMem_Free(strnames);
     PyMem_Free(strgroups);
+    Py_DECREF(format);
+    Py_DECREF(args);
     return o;
 }
 
@@ -554,7 +561,7 @@ PyDoc_STRVAR(HbacRuleElement__doc__,
 
 static PyTypeObject pyhbac_hbacrule_element_type = {
     PyObject_HEAD_INIT(NULL)
-    .tp_name = "pyhbac.HbacRuleElement",
+    .tp_name = sss_py_const_p(char, "pyhbac.HbacRuleElement"),
     .tp_basicsize = sizeof(HbacRuleElement),
     .tp_new = HbacRuleElement_new,
     .tp_dealloc = (destructor) HbacRuleElement_dealloc,
@@ -635,7 +642,7 @@ HbacRule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    self->name = PyUnicode_FromString("");
+    self->name = sss_python_unicode_from_string("");
     if (self->name == NULL) {
         Py_DECREF(self);
         PyErr_NoMemory();
@@ -692,11 +699,11 @@ HbacRule_dealloc(HbacRuleObject *self)
 static int
 HbacRule_traverse(HbacRuleObject *self, visitproc visit, void *arg)
 {
-    Py_VISIT(self->name);
-    Py_VISIT(self->services);
-    Py_VISIT(self->users);
-    Py_VISIT(self->targethosts);
-    Py_VISIT(self->srchosts);
+    Py_VISIT((PyObject *) self->name);
+    Py_VISIT((PyObject *) self->services);
+    Py_VISIT((PyObject *) self->users);
+    Py_VISIT((PyObject *) self->targethosts);
+    Py_VISIT((PyObject *) self->srchosts);
     return 0;
 }
 
@@ -711,7 +718,7 @@ HbacRule_init(HbacRuleObject *self, PyObject *args, PyObject *kwargs)
     PyObject *empty_tuple = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     "O|i",
+                                     sss_py_const_p(char, "O|i"),
                                      discard_const_p(char *, kwlist),
                                      &name, &self->enabled)) {
         return -1;
@@ -826,7 +833,8 @@ hbac_rule_get_name(HbacRuleObject *self, void *closure)
         Py_INCREF(self->name);
         return self->name;
     } else if (PyString_Check(self->name)) {
-        return PyUnicode_FromObject(self->name);
+        return PyUnicode_FromEncodedObject(self->name,
+                                           PYHBAC_ENCODING, PYHBAC_ENCODING_ERRORS);
     }
 
     /* setter does typechecking but let us be paranoid */
@@ -837,15 +845,16 @@ hbac_rule_get_name(HbacRuleObject *self, void *closure)
 static PyObject *
 HbacRule_repr(HbacRuleObject *self)
 {
-    PyObject *utf_name;
     PyObject *users_repr;
     PyObject *services_repr;
     PyObject *targethosts_repr;
     PyObject *srchosts_repr;
-    PyObject *o;
+    PyObject *o, *format, *args;
 
-    utf_name = get_utf8_string(self->name, "name");
-    if (utf_name == NULL) {
+    format = sss_python_unicode_from_string("<name %s enabled %d "
+                                            "users %s services %s "
+                                            "targethosts %s srchosts %s>");
+    if (format == NULL) {
         return NULL;
     }
 
@@ -855,26 +864,34 @@ HbacRule_repr(HbacRuleObject *self)
     srchosts_repr = HbacRuleElement_repr(self->srchosts);
     if (users_repr == NULL || services_repr == NULL ||
         targethosts_repr == NULL || srchosts_repr == NULL) {
-        Py_DECREF(utf_name);
         Py_XDECREF(users_repr);
         Py_XDECREF(services_repr);
         Py_XDECREF(targethosts_repr);
         Py_XDECREF(srchosts_repr);
+        Py_DECREF(format);
         return NULL;
     }
 
-    o = PyUnicode_FromFormat("<name %s enabled %d "
-                             "users %U services %U "
-                             "targethosts %U srchosts %U>",
-                             PyString_AsString(utf_name),
-                             self->enabled,
-                             users_repr, services_repr,
-                             targethosts_repr, srchosts_repr);
-    Py_DECREF(utf_name);
+    args = Py_BuildValue(sss_py_const_p(char, "OiOOOO"),
+                         self->name, self->enabled,
+                         users_repr, services_repr,
+                         targethosts_repr, srchosts_repr);
+    if (args == NULL) {
+        Py_DECREF(users_repr);
+        Py_DECREF(services_repr);
+        Py_DECREF(targethosts_repr);
+        Py_DECREF(srchosts_repr);
+        Py_DECREF(format);
+        return NULL;
+    }
+
+    o = PyUnicode_Format(format, args);
     Py_DECREF(users_repr);
     Py_DECREF(services_repr);
     Py_DECREF(targethosts_repr);
     Py_DECREF(srchosts_repr);
+    Py_DECREF(format);
+    Py_DECREF(args);
     return o;
 }
 
@@ -937,7 +954,7 @@ PyDoc_STRVAR(HbacRuleObject__doc__,
 
 static PyTypeObject pyhbac_hbacrule_type = {
     PyObject_HEAD_INIT(NULL)
-    .tp_name = "pyhbac.HbacRule",
+    .tp_name = sss_py_const_p(char, "pyhbac.HbacRule"),
     .tp_basicsize = sizeof(HbacRuleObject),
     .tp_new = HbacRule_new,
     .tp_dealloc = (destructor) HbacRule_dealloc,
@@ -1031,7 +1048,7 @@ HbacRequestElement_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    self->name = PyUnicode_FromString("");
+    self->name = sss_python_unicode_from_string("");
     if (self->name == NULL) {
         PyErr_NoMemory();
         Py_DECREF(self);
@@ -1092,7 +1109,7 @@ HbacRequestElement_init(HbacRequestElement *self,
     PyObject *groups = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     "|OO",
+                                     sss_py_const_p(char, "|OO"),
                                      discard_const_p(char *, kwlist),
                                      &name, &groups)) {
         return -1;
@@ -1136,7 +1153,8 @@ hbac_request_element_get_name(HbacRequestElement *self, void *closure)
         Py_INCREF(self->name);
         return self->name;
     } else if (PyString_Check(self->name)) {
-        return PyUnicode_FromObject(self->name);
+        return PyUnicode_FromEncodedObject(self->name,
+                                           PYHBAC_ENCODING, PYHBAC_ENCODING_ERRORS);
     }
 
     /* setter does typechecking but let us be paranoid */
@@ -1169,25 +1187,28 @@ hbac_request_element_get_groups(HbacRequestElement *self, void *closure)
 static PyObject *
 HbacRequestElement_repr(HbacRequestElement *self)
 {
-    PyObject *utf_name;
     char *strgroups;
-    PyObject *o;
+    PyObject *o, *format, *args;
 
-    utf_name = get_utf8_string(self->name, "name");
-    if (utf_name == NULL) {
+    format = sss_python_unicode_from_string("<name %s groups [%s]>");
+    if (format == NULL) {
         return NULL;
     }
 
     strgroups = str_concat_sequence(self->groups, discard_const_p(char, ","));
     if (strgroups == NULL) {
-        Py_DECREF(utf_name);
+        Py_DECREF(format);
         return NULL;
     }
 
-    o = PyUnicode_FromFormat("<name %s groups [%s]>",
-                             PyString_AsString(utf_name), strgroups);
-    Py_DECREF(utf_name);
+    args = Py_BuildValue(sss_py_const_p(char, "Os"), self->name, strgroups);
+    if (args == NULL) {
+    }
+
+    o = PyUnicode_Format(format, args);
     PyMem_Free(strgroups);
+    Py_DECREF(format);
+    Py_DECREF(args);
     return o;
 }
 
@@ -1220,7 +1241,7 @@ PyDoc_STRVAR(HbacRequestElement__doc__,
 
 static PyTypeObject pyhbac_hbacrequest_element_type = {
     PyObject_HEAD_INIT(NULL)
-    .tp_name = "pyhbac.HbacRequestElement",
+    .tp_name = sss_py_const_p(char, "pyhbac.HbacRequestElement"),
     .tp_basicsize = sizeof(HbacRequestElement),
     .tp_new = HbacRequestElement_new,
     .tp_dealloc = (destructor) HbacRequestElement_dealloc,
@@ -1355,10 +1376,10 @@ HbacRequest_dealloc(HbacRequest *self)
 static int
 HbacRequest_traverse(HbacRequest *self, visitproc visit, void *arg)
 {
-    Py_VISIT(self->service);
-    Py_VISIT(self->user);
-    Py_VISIT(self->targethost);
-    Py_VISIT(self->srchost);
+    Py_VISIT((PyObject *) self->service);
+    Py_VISIT((PyObject *) self->user);
+    Py_VISIT((PyObject *) self->targethost);
+    Py_VISIT((PyObject *) self->srchost);
     return 0;
 }
 
@@ -1430,7 +1451,7 @@ py_hbac_evaluate(HbacRequest *self, PyObject *args)
     PyObject *ret = NULL;
     long i;
 
-    if (!PyArg_ParseTuple(args, "O", &py_rules_list)) {
+    if (!PyArg_ParseTuple(args, sss_py_const_p(char, "O"), &py_rules_list)) {
         goto fail;
     }
 
@@ -1484,7 +1505,7 @@ py_hbac_evaluate(HbacRequest *self, PyObject *args)
     eres = hbac_evaluate(rules, hbac_req, &info);
     switch (eres) {
     case HBAC_EVAL_ALLOW:
-        self->rule_name = PyUnicode_FromString(info->rule_name);
+        self->rule_name = sss_python_unicode_from_string(info->rule_name);
         if (!self->rule_name) {
             PyErr_NoMemory();
             goto fail;
@@ -1535,7 +1556,13 @@ HbacRequest_repr(HbacRequest *self)
     PyObject *service_repr;
     PyObject *targethost_repr;
     PyObject *srchost_repr;
-    PyObject *o;
+    PyObject *o, *format, *args;
+
+    format = sss_python_unicode_from_string("<user %s service %s "
+                                            "targethost %s srchost %s>");
+    if (format == NULL) {
+        return NULL;
+    }
 
     user_repr = HbacRequestElement_repr(self->user);
     service_repr = HbacRequestElement_repr(self->service);
@@ -1547,22 +1574,34 @@ HbacRequest_repr(HbacRequest *self)
         Py_XDECREF(service_repr);
         Py_XDECREF(targethost_repr);
         Py_XDECREF(srchost_repr);
+        Py_DECREF(format);
         return NULL;
     }
 
-    o = PyUnicode_FromFormat("<user %U service %U "
-                             "targethost %U srchost %U>",
-                             user_repr, service_repr,
-                             targethost_repr, srchost_repr);
+    args = Py_BuildValue(sss_py_const_p(char, "OOOO"),
+                         user_repr, service_repr,
+                         targethost_repr, srchost_repr);
+    if (args == NULL) {
+        Py_DECREF(user_repr);
+        Py_DECREF(service_repr);
+        Py_DECREF(targethost_repr);
+        Py_DECREF(srchost_repr);
+        Py_DECREF(format);
+    }
+
+    o = PyUnicode_Format(format, args);
     Py_DECREF(user_repr);
     Py_DECREF(service_repr);
     Py_DECREF(targethost_repr);
     Py_DECREF(srchost_repr);
+    Py_DECREF(format);
+    Py_DECREF(args);
     return o;
 }
 
 static PyMethodDef py_hbac_request_methods[] = {
-    { "evaluate", (PyCFunction) py_hbac_evaluate,
+    { sss_py_const_p(char, "evaluate"),
+      (PyCFunction) py_hbac_evaluate,
       METH_VARARGS, py_hbac_evaluate__doc__
     },
     { NULL, NULL, 0, NULL }        /* Sentinel */
@@ -1626,7 +1665,7 @@ PyDoc_STRVAR(HbacRequest__doc__,
 
 static PyTypeObject pyhbac_hbacrequest_type = {
     PyObject_HEAD_INIT(NULL)
-    .tp_name = "pyhbac.HbacRequest",
+    .tp_name = sss_py_const_p(char, "pyhbac.HbacRequest"),
     .tp_basicsize = sizeof(HbacRequest),
     .tp_new = HbacRequest_new,
     .tp_dealloc = (destructor) HbacRequest_dealloc,
@@ -1698,7 +1737,7 @@ py_hbac_result_string(PyObject *module, PyObject *args)
     enum hbac_eval_result result;
     const char *str;
 
-    if (!PyArg_ParseTuple(args, "i", &result)) {
+    if (!PyArg_ParseTuple(args, sss_py_const_p(char, "i"), &result)) {
         return NULL;
     }
 
@@ -1709,7 +1748,7 @@ py_hbac_result_string(PyObject *module, PyObject *args)
         return Py_None;
     }
 
-    return PyUnicode_FromString(str);
+    return sss_python_unicode_from_string(str);
 }
 
 PyDoc_STRVAR(py_hbac_error_string__doc__,
@@ -1722,7 +1761,7 @@ py_hbac_error_string(PyObject *module, PyObject *args)
     enum hbac_error_code code;
     const char *str;
 
-    if (!PyArg_ParseTuple(args, "i", &code)) {
+    if (!PyArg_ParseTuple(args, sss_py_const_p(char, "i"), &code)) {
         return NULL;
     }
 
@@ -1733,17 +1772,17 @@ py_hbac_error_string(PyObject *module, PyObject *args)
         return Py_None;
     }
 
-    return PyUnicode_FromString(str);
+    return sss_python_unicode_from_string(str);
 }
 
 static PyMethodDef pyhbac_module_methods[] = {
-        { "hbac_result_string",
+        {  sss_py_const_p(char, "hbac_result_string"),
            (PyCFunction) py_hbac_result_string,
            METH_VARARGS,
            py_hbac_result_string__doc__,
         },
 
-        { "hbac_error_string",
+        { sss_py_const_p(char, "hbac_error_string"),
            (PyCFunction) py_hbac_error_string,
            METH_VARARGS,
            py_hbac_error_string__doc__,
@@ -1766,16 +1805,16 @@ initpyhbac(void)
     PyObject *m;
     int ret;
 
-    m = Py_InitModule(PYTHON_MODULE_NAME, pyhbac_module_methods);
+    m = Py_InitModule(sss_py_const_p(char, PYTHON_MODULE_NAME), pyhbac_module_methods);
     if (m == NULL) return;
 
     /* The HBAC module exception */
-    PyExc_HbacError = PyErr_NewExceptionWithDoc(
+    PyExc_HbacError = sss_exception_with_doc(
                         discard_const_p(char, "hbac.HbacError"),
                         HbacError__doc__,
                         PyExc_EnvironmentError, NULL);
     Py_INCREF(PyExc_HbacError);
-    ret = PyModule_AddObject(m, "HbacError", PyExc_HbacError);
+    ret = PyModule_AddObject(m, sss_py_const_p(char, "HbacError"), PyExc_HbacError);
     if (ret == -1) return;
 
     /* HBAC rule categories */
