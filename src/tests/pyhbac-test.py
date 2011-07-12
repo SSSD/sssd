@@ -137,8 +137,31 @@ class PyHbacRuleTest(unittest.TestCase):
         rule.enabled = False
         self.assertEqual(rule.enabled, False)
 
+        rule.enabled = "TRUE"
+        self.assertEqual(rule.enabled, True)
+        rule.enabled = "FALSE"
+        self.assertEqual(rule.enabled, False)
+
+        rule.enabled = "true"
+        self.assertEqual(rule.enabled, True)
+        rule.enabled = "false"
+        self.assertEqual(rule.enabled, False)
+
+        rule.enabled = "True"
+        self.assertEqual(rule.enabled, True)
+        rule.enabled = "False"
+        self.assertEqual(rule.enabled, False)
+
+        rule.enabled = 1
+        self.assertEqual(rule.enabled, True)
+        rule.enabled = 0
+        self.assertEqual(rule.enabled, False)
+
         # negative test
         self.assertRaises(TypeError, rule.__setattr__, "enabled", None)
+        self.assertRaises(TypeError, rule.__setattr__, "enabled", [])
+        self.assertRaises(ValueError, rule.__setattr__, "enabled", "foo")
+        self.assertRaises(ValueError, rule.__setattr__, "enabled", 5)
 
     def testRuleElementInRule(self):
         users = [ "foo", "bar" ]
