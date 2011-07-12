@@ -11,10 +11,10 @@ if not srcdir:
 MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
 
 def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
-    return self.assertEqual(sorted(expected_seq), sorted(actual_seq))
+    return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
 
 def compat_assertIsInstance(this, obj, cls, msg=None):
-    return self.assertTrue(isinstance(obj, cls))
+    return this.assertTrue(isinstance(obj, cls))
 
 # add compat methods for old unittest.TestCase versions
 # (python < 2.7, RHEL5 for instance)
@@ -312,7 +312,8 @@ class PyHbacRequestTest(unittest.TestCase):
     def testRuleName(self):
         req = pyhbac.HbacRequest()
         self.assertEqual(req.rule_name, None)
-        self.assertRaises(AttributeError, req.__setattr__, "rule_name", "foo")
+        # python 2.4 raises TypError, 2.7 raises AttributeError
+        self.assertRaises((TypeError, AttributeError), req.__setattr__, "rule_name", "foo")
 
     def testEvaluate(self):
         name = "someuser"

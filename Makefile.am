@@ -311,6 +311,7 @@ dist_noinst_HEADERS = \
     src/util/util.h \
     src/util/strtonum.h \
     src/util/sss_ldap.h \
+    src/util/sss_python.h \
     src/util/sss_krb5.h \
     src/util/refcount.h \
     src/util/find_uid.h \
@@ -998,7 +999,8 @@ pysss_la_LDFLAGS = \
     -module
 
 pyhbac_la_SOURCES = \
-    src/python/pyhbac.c
+    src/python/pyhbac.c \
+    src/util/sss_python.c
 pyhbac_la_CFLAGS = \
     $(AM_CFLAGS)  \
     $(PYTHON_CFLAGS)
