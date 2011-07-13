@@ -778,7 +778,7 @@ resolv_gethostbyname_dns_query(struct tevent_req *req,
     DEBUG(4, ("Trying to resolve %s record of '%s' in DNS\n",
               state->family == AF_INET ? "A" : "AAAA", state->name));
 
-    ares_query(state->resolv_ctx->channel,
+    ares_search(state->resolv_ctx->channel,
                state->name, ns_c_in,
                (state->family == AF_INET) ? ns_t_a : ns_t_aaaa,
                resolv_gethostbyname_dns_query_done, req);
