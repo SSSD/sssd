@@ -758,7 +758,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     /* check that the gid is valid for this domain */
-    if (posix_group || gid != 0) {
+    if (posix_group) {
         if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
                       name));
@@ -2033,7 +2033,10 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                 ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
                                                SYSDB_GIDNUM,
                                                &gid);
-                if (ret == ENOENT) {
+                if (ret == ENOENT || (ret == EOK && gid == 0)) {
+                    DEBUG(9, ("The group %s gid was %s\n",
+                              name, ret == ENOENT ? "missing" : "zero"));
+                    DEBUG(8, ("Marking group %s as non-posix and setting GID=0!\n", name));
                     gid = 0;
                     posix = false;
                 } else if (ret) {
@@ -2217,7 +2220,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s>=1))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_name,
                              opts->group_map[SDAP_OC_GROUP].name,
@@ -3288,14 +3291,18 @@ static struct tevent_req *sdap_nested_group_process_send(
     ret = sysdb_attrs_get_uint32_t(group,
                                    opts->group_map[SDAP_AT_GROUP_GID].name,
                                    &gid);
-    if (ret == ENOENT) {
+    if (ret == ENOENT || (ret == EOK && gid == 0)) {
+        DEBUG(9, ("The group's gid was %s\n", ret == ENOENT ? "missing" : "zero"));
         DEBUG(8, ("Marking group as non-posix and setting GID=0!\n"));
-        ret = sysdb_attrs_add_uint32(group,
-                                     opts->group_map[SDAP_AT_GROUP_GID].name,
-                                     0);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to add a GID to non-posix group!\n"));
-            goto immediate;
+
+        if (ret == ENOENT) {
+            ret = sysdb_attrs_add_uint32(group,
+                                      opts->group_map[SDAP_AT_GROUP_GID].name,
+                                      0);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to add a GID to non-posix group!\n"));
+                goto immediate;
+            }
         }
 
         ret = sysdb_attrs_add_bool(group, SYSDB_POSIX, false);
