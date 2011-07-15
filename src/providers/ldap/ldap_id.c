@@ -346,7 +346,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    base_filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
+    base_filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s>=1))",
                                 attr_name, clean_name,
                                 ctx->opts->group_map[SDAP_OC_GROUP].name,
                                 ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
