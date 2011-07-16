@@ -1375,7 +1375,7 @@ fo_get_server_port(struct fo_server *server)
     return server->port;
 }
 
-const char *fo_get_server_name(struct fo_server *server)
+const char *fo_get_server_str_name(struct fo_server *server)
 {
     if (!server->common) {
         if (fo_is_srv_lookup(server)) {

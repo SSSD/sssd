@@ -406,7 +406,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
             return;
         }
         DEBUG(6, ("Couldn't resolve server (%s), resolver returned (%d)\n",
-                  fo_get_server_name(state->srv), ret));
+                  fo_get_server_str_name(state->srv), ret));
 
         state->attempts++;
         if (state->attempts >= 10) {
@@ -438,7 +438,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
         srvaddr = fo_get_server_hostent(state->srv);
         if (!srvaddr) {
             DEBUG(3, ("FATAL: No hostent available for server (%s)\n",
-                      fo_get_server_name(state->srv)));
+                      fo_get_server_str_name(state->srv)));
             tevent_req_error(req, EFAULT);
             return;
         }
@@ -447,7 +447,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                   ipaddr, 128);
 
         DEBUG(4, ("Found address for server %s: [%s] TTL %d\n",
-                  fo_get_server_name(state->srv), ipaddr,
+                  fo_get_server_str_name(state->srv), ipaddr,
                   srvaddr->addr_list[0]->ttl));
     }
 

@@ -561,7 +561,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
         DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
-                  fo_get_server_name(server)));
+                  fo_get_server_str_name(server)));
         talloc_free(tmp_ctx);
         return;
     }
@@ -580,7 +580,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
             tmp = SSS_LDAP_SRV_NAME;
         }
         new_uri = talloc_asprintf(service, "%s://%s:%d",
-                                  tmp, fo_get_server_name(server),
+                                  tmp, fo_get_server_str_name(server),
                                   fo_get_server_port(server));
     } else {
         new_uri = talloc_strdup(service, tmp);
