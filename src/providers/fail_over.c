@@ -1375,6 +1375,15 @@ fo_get_server_port(struct fo_server *server)
     return server->port;
 }
 
+const char *
+fo_get_server_name(struct fo_server *server)
+{
+    if (!server->common) {
+        return NULL;
+    }
+    return server->common->name;
+}
+
 const char *fo_get_server_str_name(struct fo_server *server)
 {
     if (!server->common) {

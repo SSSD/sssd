@@ -432,7 +432,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
 
     /* all fine we got the server */
 
-    if (debug_level >= 4) {
+    if (debug_level >= 4 && fo_get_server_name(state->srv)) {
         struct resolv_hostent *srvaddr;
         char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);

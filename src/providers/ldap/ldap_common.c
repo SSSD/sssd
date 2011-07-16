@@ -542,6 +542,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     struct resolv_hostent *srvaddr;
     struct sockaddr_storage *sockaddr;
     const char *tmp;
+    const char *srv_name;
     char *new_uri;
 
     tmp_ctx = talloc_new(NULL);
@@ -579,8 +580,16 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
             DEBUG(1, ("Unknown service, using ldap\n"));
             tmp = SSS_LDAP_SRV_NAME;
         }
+
+        srv_name = fo_get_server_name(server);
+        if (srv_name == NULL) {
+            DEBUG(1, ("Could not get server host name\n"));
+            talloc_free(tmp_ctx);
+            return;
+        }
+
         new_uri = talloc_asprintf(service, "%s://%s:%d",
-                                  tmp, fo_get_server_str_name(server),
+                                  tmp, srv_name,
                                   fo_get_server_port(server));
     } else {
         new_uri = talloc_strdup(service, tmp);
