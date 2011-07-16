@@ -456,6 +456,13 @@ static void be_resolve_server_done(struct tevent_req *subreq)
         struct resolv_hostent *srvaddr;
         char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);
+        if (!srvaddr) {
+            DEBUG(3, ("FATAL: No hostent available for server (%s)\n",
+                      fo_get_server_name(state->srv)));
+            tevent_req_error(req, EFAULT);
+            return;
+        }
+
         inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
                   ipaddr, 128);
 
