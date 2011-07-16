@@ -841,16 +841,23 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
             goto done;
         }
 
+        if (lud->lud_host == NULL) {
+            DEBUG(2, ("The LDAP URI (%s) did not contain a host name\n",
+                      list[i]));
+            ldap_free_urldesc(lud);
+            continue;
+        }
+
         DEBUG(6, ("Added URI %s\n", list[i]));
 
         talloc_steal(service, list[i]);
 
         ret = be_fo_add_server(ctx, service->name,
                                lud->lud_host, lud->lud_port, list[i]);
+        ldap_free_urldesc(lud);
         if (ret) {
             goto done;
         }
-        ldap_free_urldesc(lud);
     }
 
     ret = be_fo_service_add_callback(memctx, ctx, service->name,
