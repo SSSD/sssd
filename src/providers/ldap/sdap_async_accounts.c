@@ -663,6 +663,39 @@ done:
     /* FIXME: support non legacy */
     /* FIXME: support storing additional attributes */
 
+static errno_t
+sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *ctx,
+                          struct sss_domain_info *domain,
+                          const char *name,
+                          gid_t gid,
+                          struct sysdb_attrs *group_attrs,
+                          uint64_t cache_timeout,
+                          bool posix_group)
+{
+    errno_t ret;
+
+    /* make sure that non-posix (empty or explicit gid=0) groups have the
+     * gidNumber set to zero even if updating existing group */
+    if (!posix_group) {
+        ret = sysdb_attrs_add_uint32(mem_ctx, SYSDB_GIDNUM, 0);
+        if (ret) {
+            DEBUG(2, ("Could not set explicit GID 0 for %s\n", name));
+            return ret;
+        }
+    }
+
+    ret = sysdb_store_group(mem_ctx, ctx, domain,
+                            name, gid, group_attrs,
+                            cache_timeout);
+    if (ret) {
+        DEBUG(2, ("Could not store group %s\n", name));
+        return ret;
+    }
+
+    return ret;
+}
+
 static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sysdb_ctx *ctx,
                            struct sdap_options *opts,
@@ -725,12 +758,14 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     /* check that the gid is valid for this domain */
-    if ((posix_group || gid != 0) &&
-        OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
+    if (posix_group || gid != 0) {
+        if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
                       name));
-        ret = EINVAL;
-        goto fail;
+            ret = EINVAL;
+            goto fail;
+        }
+        /* Group ID OK */
     }
 
     ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
@@ -822,10 +857,11 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for group %s\n", name));
 
-    ret = sysdb_store_group(group_attrs, ctx, dom,
-                            name, gid, group_attrs,
-                            dp_opt_get_int(opts->basic,
-                                           SDAP_ENTRY_CACHE_TIMEOUT));
+    ret = sdap_store_group_with_gid(group_attrs, ctx, dom,
+                                    name, gid, group_attrs,
+                                    dp_opt_get_int(opts->basic,
+                                                   SDAP_ENTRY_CACHE_TIMEOUT),
+                                    posix_group);
     if (ret) goto fail;
 
     if (_usn_value) {
