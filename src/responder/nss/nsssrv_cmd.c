@@ -2921,7 +2921,7 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     uint8_t *body;
     size_t blen;
     gid_t gid;
-    int ret, i, num;
+    int ret, i, num, bindex;
     int skipped = 0;
     const char *posix;
 
@@ -2939,6 +2939,7 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     sss_packet_get_body(packet, &body, &blen);
 
     /* skip first entry, it's the user entry */
+    bindex = 0;
     for (i = 0; i < num; i++) {
         gid = ldb_msg_find_attr_as_uint64(res->msgs[i + 1], SYSDB_GIDNUM, 0);
         posix = ldb_msg_find_attr_as_string(res->msgs[i + 1], SYSDB_POSIX, NULL);
@@ -2951,7 +2952,8 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
                 return EFAULT;
             }
         }
-        ((uint32_t *)body)[2 + i] = gid;
+        ((uint32_t *)body)[2 + bindex] = gid;
+        bindex++;
     }
 
     ((uint32_t *)body)[0] = num-skipped; /* num results */
