@@ -208,8 +208,10 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
                        void **pvt_data)
 {
     struct ipa_auth_ctx *ipa_auth_ctx;
+    struct ipa_id_ctx *id_ctx;
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_auth_ctx *sdap_auth_ctx;
+    struct bet_ops *id_ops;
     FILE *debug_filep;
     unsigned v;
     int ret;
@@ -233,6 +235,13 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         return ENOMEM;
     }
     ipa_options->auth_ctx = ipa_auth_ctx;
+
+    ret = sssm_ipa_id_init(bectx, &id_ops, (void **) &id_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("sssm_ipa_id_init failed.\n"));
+        goto done;
+    }
+    ipa_auth_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
 
     ret = dp_copy_options(ipa_auth_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_auth_ctx->ipa_options);

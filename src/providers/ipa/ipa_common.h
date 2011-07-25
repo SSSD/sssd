@@ -80,6 +80,7 @@ enum ipa_host_attrs {
 
 struct ipa_auth_ctx {
     struct krb5_ctx *krb5_auth_ctx;
+    struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_auth_ctx *sdap_auth_ctx;
     struct dp_option *ipa_options;
 };
