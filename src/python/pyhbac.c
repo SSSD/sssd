@@ -257,10 +257,6 @@ str_concat_sequence(PyObject *seq, const char *delim)
             if (s == NULL) goto fail;
         }
         Py_DECREF(item);
-        if (s == NULL) {
-            PyErr_NoMemory();
-            goto fail;
-        }
     }
 
     return s;
