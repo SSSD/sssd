@@ -1199,6 +1199,9 @@ HbacRequestElement_repr(HbacRequestElement *self)
 
     args = Py_BuildValue(sss_py_const_p(char, "Os"), self->name, strgroups);
     if (args == NULL) {
+        PyMem_Free(strgroups);
+        Py_DECREF(format);
+        return NULL;
     }
 
     o = PyUnicode_Format(format, args);
