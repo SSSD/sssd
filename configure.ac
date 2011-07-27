@@ -114,6 +114,7 @@ m4_include([src/external/libkeyutils.m4])
 m4_include([src/external/libnl.m4])
 m4_include([src/external/systemd.m4])
 m4_include([src/util/signal.m4])
+m4_include([src/external/libunistring.m4])
 
 WITH_INITSCRIPT
 if test x$initscript = xsystemd; then

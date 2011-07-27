@@ -25,7 +25,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistr.h>
+#include <unicase.h>
+#include <errno.h>
 #include "providers/ipa/ipa_hbac.h"
+
+#ifndef HAVE_ERRNO_T
+#define HAVE_ERRNO_T
+typedef int errno_t;
+#endif
+
+#ifndef EOK
+#define EOK 0
+#endif
 
 /* Placeholder structure for future HBAC time-based
  * evaluation rules
@@ -102,13 +114,17 @@ done:
     return result;
 }
 
-static bool hbac_evaluate_element(struct hbac_rule_element *rule_el,
-                                  struct hbac_request_element *req_el);
+static errno_t hbac_evaluate_element(struct hbac_rule_element *rule_el,
+                                     struct hbac_request_element *req_el,
+                                     bool *matched);
 
 enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
                                              struct hbac_eval_req *hbac_req,
                                              enum hbac_error_code *error)
 {
+    errno_t ret;
+    bool matched;
+
     if (!rule->enabled) return HBAC_EVAL_UNMATCHED;
 
     /* Make sure we have all elements */
@@ -121,43 +137,90 @@ enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
     }
 
     /* Check users */
-    if (!hbac_evaluate_element(rule->users, hbac_req->user)) {
+    ret = hbac_evaluate_element(rule->users,
+                                hbac_req->user,
+                                &matched);
+    if (ret != EOK) {
+        *error = HBAC_ERROR_UNPARSEABLE_RULE;
+        return HBAC_EVAL_MATCH_ERROR;
+    } else if (!matched) {
         return HBAC_EVAL_UNMATCHED;
     }
 
     /* Check services */
-    if (!hbac_evaluate_element(rule->services, hbac_req->service)) {
+    ret = hbac_evaluate_element(rule->services,
+                                hbac_req->service,
+                                &matched);
+    if (ret != EOK) {
+        *error = HBAC_ERROR_UNPARSEABLE_RULE;
+        return HBAC_EVAL_MATCH_ERROR;
+    } else if (!matched) {
         return HBAC_EVAL_UNMATCHED;
     }
 
     /* Check target hosts */
-    if (!hbac_evaluate_element(rule->targethosts, hbac_req->targethost)) {
+    ret = hbac_evaluate_element(rule->targethosts,
+                                hbac_req->targethost,
+                                &matched);
+    if (ret != EOK) {
+        *error = HBAC_ERROR_UNPARSEABLE_RULE;
+        return HBAC_EVAL_MATCH_ERROR;
+    } else if (!matched) {
         return HBAC_EVAL_UNMATCHED;
     }
 
     /* Check source hosts */
-    if (!hbac_evaluate_element(rule->srchosts, hbac_req->srchost)) {
+    ret = hbac_evaluate_element(rule->srchosts,
+                                hbac_req->srchost,
+                                &matched);
+    if (ret != EOK) {
+        *error = HBAC_ERROR_UNPARSEABLE_RULE;
+        return HBAC_EVAL_MATCH_ERROR;
+    } else if (!matched) {
         return HBAC_EVAL_UNMATCHED;
     }
-
     return HBAC_EVAL_MATCHED;
 }
 
-static bool hbac_evaluate_element(struct hbac_rule_element *rule_el,
-                                  struct hbac_request_element *req_el)
+static errno_t hbac_evaluate_element(struct hbac_rule_element *rule_el,
+                                     struct hbac_request_element *req_el,
+                                     bool *matched)
 {
     size_t i, j;
+    const uint8_t *rule_name;
+    const uint8_t *req_name;
+    int result;
+    int ret;
 
     if (rule_el->category & HBAC_CATEGORY_ALL) {
-        return true;
+        *matched = true;
+        return EOK;
     }
 
     /* First check the name list */
     if (rule_el->names) {
         for (i = 0; rule_el->names[i]; i++) {
             if (req_el->name != NULL) {
-                if (strcmp(rule_el->names[i], req_el->name) == 0) {
-                    return true;
+                rule_name = (const uint8_t *) rule_el->names[i];
+                req_name = (const uint8_t *) req_el->name;
+
+                /* Do a case-insensitive comparison.
+                 * The input must be encoded in UTF8.
+                 * We have no way of knowing the language,
+                 * so we'll pass NULL for the language and
+                 * hope for the best.
+                 */
+                errno = 0;
+                ret = u8_casecmp(rule_name, u8_strlen(rule_name),
+                                 req_name, u8_strlen(req_name),
+                                 NULL, NULL, &result);
+                if (ret < 0) {
+                    return errno;
+                }
+
+                if (result == 0) {
+                    *matched = true;
+                    return EOK;
                 }
             }
         }
@@ -168,17 +231,36 @@ static bool hbac_evaluate_element(struct hbac_rule_element *rule_el,
          * Check for group membership
          */
         for (i = 0; rule_el->groups[i]; i++) {
+            rule_name = (const uint8_t *) rule_el->groups[i];
+
             for (j = 0; req_el->groups[j]; j++) {
-                if (strcmp(rule_el->groups[i],
-                           req_el->groups[j]) == 0) {
-                    return true;
+                req_name = (const uint8_t *) req_el->groups[j];
+
+                /* Do a case-insensitive comparison.
+                 * The input must be encoded in UTF8.
+                 * We have no way of knowing the language,
+                 * so we'll pass NULL for the language and
+                 * hope for the best.
+                 */
+                errno = 0;
+                ret = u8_casecmp(rule_name, u8_strlen(rule_name),
+                                 req_name, u8_strlen(req_name),
+                                 NULL, NULL, &result);
+                if (ret < 0) {
+                    return errno;
+                }
+
+                if (result == 0) {
+                    *matched = true;
+                    return EOK;
                 }
             }
         }
     }
 
     /* Not found in groups either */
-    return false;
+    *matched = false;
+    return EOK;
 }
 
 const char *hbac_result_string(enum hbac_eval_result result)
