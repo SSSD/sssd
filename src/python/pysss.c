@@ -25,6 +25,7 @@
 #include <grp.h>
 
 #include "util/util.h"
+#include "util/sss_python.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
@@ -802,22 +803,22 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
  * sss.local object methods
  */
 static PyMethodDef sss_local_methods[] = {
-    { "useradd", (PyCFunction) py_sss_useradd,
+    { sss_py_const_p(char, "useradd"), (PyCFunction) py_sss_useradd,
       METH_KEYWORDS, py_sss_useradd__doc__
     },
-    { "userdel", (PyCFunction) py_sss_userdel,
+    { sss_py_const_p(char, "userdel"), (PyCFunction) py_sss_userdel,
       METH_KEYWORDS, py_sss_userdel__doc__
     },
-    { "usermod", (PyCFunction) py_sss_usermod,
+    { sss_py_const_p(char, "usermod"), (PyCFunction) py_sss_usermod,
       METH_KEYWORDS, py_sss_usermod__doc__
     },
-    { "groupadd", (PyCFunction) py_sss_groupadd,
+    { sss_py_const_p(char, "groupadd"), (PyCFunction) py_sss_groupadd,
       METH_KEYWORDS, py_sss_groupadd__doc__
     },
-    { "groupdel", (PyCFunction) py_sss_groupdel,
+    { sss_py_const_p(char, "groupdel"), (PyCFunction) py_sss_groupdel,
       METH_KEYWORDS, py_sss_groupdel__doc__
     },
-    { "groupmod", (PyCFunction) py_sss_groupmod,
+    { sss_py_const_p(char, "groupmod"), (PyCFunction) py_sss_groupmod,
       METH_KEYWORDS, py_sss_groupmod__doc__
     },
     {NULL, NULL, 0, NULL}        /* Sentinel */
@@ -836,14 +837,14 @@ static PyMemberDef sss_local_members[] = {
  */
 static PyTypeObject pysss_local_type = {
     PyObject_HEAD_INIT(NULL)
-    .tp_name = "sss.local",
+    .tp_name = sss_py_const_p(char, "sss.local"),
     .tp_basicsize = sizeof(PySssLocalObject),
     .tp_new = PySssLocalObject_new,
     .tp_dealloc = (destructor) PySssLocalObject_dealloc,
     .tp_methods = sss_local_methods,
     .tp_members = sss_local_members,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_doc   = "SSS DB manipulation",
+    .tp_doc   = sss_py_const_p(char, "SSS DB manipulation"),
 };
 
 /* ==================== obfuscation python wrappers ========================*/
@@ -893,7 +894,7 @@ static PyObject *py_sss_encrypt(PySssPasswordObject *self,
         goto fail;
     }
 
-    retval = Py_BuildValue("s", obfpwd);
+    retval = Py_BuildValue(sss_py_const_p(char, "s"), obfpwd);
     if (retval == NULL) {
         goto fail;
     }
@@ -979,7 +980,7 @@ static PyObject *PySssPasswordObject_new(PyTypeObject *type,
  * sss.password object methods
  */
 static PyMethodDef sss_password_methods[] = {
-    { "encrypt", (PyCFunction) py_sss_encrypt,
+    { sss_py_const_p(char, "encrypt"), (PyCFunction) py_sss_encrypt,
       METH_VARARGS | METH_STATIC, py_sss_encrypt__doc__
     },
 #if 0
@@ -1004,14 +1005,14 @@ static PyMemberDef sss_password_members[] = {
  */
 static PyTypeObject pysss_password_type = {
     PyObject_HEAD_INIT(NULL)
-    .tp_name = "sss.password",
+    .tp_name = sss_py_const_p(char, "sss.password"),
     .tp_basicsize = sizeof(PySssPasswordObject),
     .tp_new = PySssPasswordObject_new,
     .tp_dealloc = (destructor) PySssPasswordObject_dealloc,
     .tp_methods = sss_password_methods,
     .tp_members = sss_password_members,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_doc   = "SSS password obfuscation",
+    .tp_doc   = sss_py_const_p(char, "SSS password obfuscation"),
 };
 
 /* ==================== the sss module initialization =======================*/
