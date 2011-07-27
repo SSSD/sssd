@@ -78,6 +78,7 @@ BuildRequires: libnl-devel
 BuildRequires: nscd
 BuildRequires: gettext-devel
 BuildRequires: pkgconfig
+BuildRequires: libunistring-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and

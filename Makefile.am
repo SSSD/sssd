@@ -371,7 +371,8 @@ dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c
 libipa_hbac_la_LDFLAGS = \
-    -version 0:0:0
+    -version 0:1:0 \
+    -lunistring
 
 include_HEADERS = \
     src/providers/ipa/ipa_hbac.h
