@@ -131,12 +131,20 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                                  enum sdap_result *result,
                                  char **user_error_msg);
 
+enum connect_tls {
+    CON_TLS_DFL,
+    CON_TLS_ON,
+    CON_TLS_OFF
+};
+
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_options *opts,
                                          struct be_ctx *be,
                                          struct sdap_service *service,
-                                         bool skip_rootdse);
+                                         bool skip_rootdse,
+                                         enum connect_tls force_tls,
+                                         bool skip_auth);
 int sdap_cli_connect_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,
                           bool *can_retry,

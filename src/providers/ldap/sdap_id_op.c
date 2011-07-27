@@ -465,7 +465,9 @@ static int sdap_id_op_connect_step(struct tevent_req *req)
     subreq = sdap_cli_connect_send(conn_data, state->ev,
                                    state->id_ctx->opts,
                                    state->id_ctx->be,
-                                   state->id_ctx->service, false);
+                                   state->id_ctx->service, false,
+                                   CON_TLS_DFL, false);
+
     if (!subreq) {
         ret = ENOMEM;
         goto done;

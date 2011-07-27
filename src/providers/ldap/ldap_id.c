@@ -672,7 +672,8 @@ void sdap_check_online(struct be_req *be_req)
                           struct sdap_id_ctx);
 
     req = sdap_cli_connect_send(be_req, be_req->be_ctx->ev, ctx->opts,
-                                be_req->be_ctx, ctx->service, false);
+                                be_req->be_ctx, ctx->service, false,
+                                CON_TLS_DFL, false);
     if (req == NULL) {
         DEBUG(1, ("sdap_cli_connect_send failed.\n"));
         goto done;

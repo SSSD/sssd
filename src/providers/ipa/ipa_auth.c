@@ -92,7 +92,7 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
 
     subreq = sdap_cli_connect_send(state, ev, sdap_auth_ctx->opts,
                                    sdap_auth_ctx->be, sdap_auth_ctx->service,
-                                   true);
+                                   true, CON_TLS_DFL, false);
     if (subreq == NULL) {
         DEBUG(1, ("sdap_cli_connect_send failed.\n"));
         goto fail;

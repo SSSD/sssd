@@ -1125,6 +1125,9 @@ struct sdap_cli_connect_state {
     struct fo_server *srv;
 
     struct sdap_server_opts *srv_opts;
+
+    enum connect_tls force_tls;
+    bool do_auth;
 };
 
 static int sdap_cli_resolve_next(struct tevent_req *req);
@@ -1142,7 +1145,9 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct sdap_options *opts,
                                          struct be_ctx *be,
                                          struct sdap_service *service,
-                                         bool skip_rootdse)
+                                         bool skip_rootdse,
+                                         enum connect_tls force_tls,
+                                         bool skip_auth)
 {
     struct sdap_cli_connect_state *state;
     struct tevent_req *req;
@@ -1159,6 +1164,8 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
     state->srv_opts = NULL;
     state->be = be;
     state->use_rootdse = !skip_rootdse;
+    state->force_tls = force_tls;
+    state->do_auth = !skip_auth;
 
     ret = sdap_cli_resolve_next(req);
     if (ret) {
@@ -1196,8 +1203,16 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     int ret;
-    bool use_tls = dp_opt_get_bool(state->opts->basic,
-                                   SDAP_ID_TLS);
+    bool use_tls;
+
+    switch (state->force_tls) {
+        case CON_TLS_DFL:
+            use_tls = dp_opt_get_bool(state->opts->basic, SDAP_ID_TLS);
+        case CON_TLS_ON:
+            use_tls = true;
+        case CON_TLS_OFF:
+            use_tls = false;
+    }
 
     ret = be_resolve_server_recv(subreq, &state->srv);
     talloc_zfree(subreq);
@@ -1256,7 +1271,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
-    if (sasl_mech && state->use_rootdse) {
+    if (state->do_auth && sasl_mech && state->use_rootdse) {
         /* check if server claims to support GSSAPI */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
@@ -1264,7 +1279,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
         }
     }
 
-    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+    if (state->do_auth && sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
         if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             sdap_cli_kinit_step(req);
             return;
@@ -1367,7 +1382,7 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
-    if (sasl_mech && state->use_rootdse) {
+    if (state->do_auth && sasl_mech && state->use_rootdse) {
         /* check if server claims to support GSSAPI */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
@@ -1375,7 +1390,7 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
         }
     }
 
-    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+    if (state->do_auth && sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
         if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             sdap_cli_kinit_step(req);
             return;
@@ -1458,6 +1473,12 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
+
+    if (!state->do_auth) {
+        /* No authentication requested or GSSAPI auth forced off */
+        tevent_req_done(req);
+        return;
+    }
 
     subreq = sdap_auth_send(state,
                             state->ev,
