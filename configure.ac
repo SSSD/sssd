@@ -177,6 +177,18 @@ AC_CHECK_HEADERS([sys/inotify.h])
 
 AC_CHECK_HEADERS([sasl/sasl.h],,AC_MSG_ERROR([Could not find SASL headers]))
 
+AC_CACHE_CHECK([whether compiler supports __attribute__((destructor))],
+               sss_client_cv_attribute_destructor,
+               [AC_COMPILE_IFELSE(
+                    [AC_LANG_SOURCE([__attribute__((destructor)) static void cleanup(void) { }])],
+                    sss_client_cv_attribute_destructor=yes)
+               ])
+
+if test x"$sss_client_cv_attribute_destructor" = xyes ; then
+   AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR, 1,
+             [whether compiler supports __attribute__((destructor))])
+fi
+
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
 if test x$have_check = x; then
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
