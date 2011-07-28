@@ -55,6 +55,9 @@
 int sss_cli_sd = -1; /* the sss client socket descriptor */
 struct stat sss_cli_sb; /* the sss client stat buffer */
 
+#if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
+__attribute__((destructor))
+#endif
 static void sss_cli_close_socket(void)
 {
     if (sss_cli_sd != -1) {
