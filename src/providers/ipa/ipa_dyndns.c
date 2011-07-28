@@ -70,7 +70,7 @@ void ipa_dyndns_update(void *pvt)
         DEBUG(1, ("Could not update DNS\n"));
         return;
     }
-    tevent_req_set_callback(req, ipa_dyndns_update_done, req);
+    tevent_req_set_callback(req, ipa_dyndns_update_done, NULL);
 }
 
 static void ipa_dyndns_sdap_connect_done(struct tevent_req *subreq);
