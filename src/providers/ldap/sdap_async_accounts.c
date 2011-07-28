@@ -678,7 +678,7 @@ sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
     /* make sure that non-posix (empty or explicit gid=0) groups have the
      * gidNumber set to zero even if updating existing group */
     if (!posix_group) {
-        ret = sysdb_attrs_add_uint32(mem_ctx, SYSDB_GIDNUM, 0);
+        ret = sysdb_attrs_add_uint32(group_attrs, SYSDB_GIDNUM, 0);
         if (ret) {
             DEBUG(2, ("Could not set explicit GID 0 for %s\n", name));
             return ret;
