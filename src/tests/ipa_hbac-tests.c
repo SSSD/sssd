@@ -50,6 +50,23 @@
 #define HBAC_TEST_SRCHOSTGROUP2 "corp_hosts"
 #define HBAC_TEST_INVALID_SRCHOSTGROUP "nosuchsrchostgroup"
 
+
+/* These don't make sense for a user/group/service but they do the job and
+ * every one is from a different codepage */
+/* Latin Extended A - "Czech" */
+const uint8_t user_utf8_lowcase[] = { 0xC4, 0x8D, 'e', 'c', 'h', 0x0 };
+const uint8_t user_utf8_upcase[] = { 0xC4, 0x8C, 'e', 'c', 'h', 0x0 };
+const uint8_t user_utf8_lowcase_neg[] = { 0xC4, 0x8E, 'e', 'c', 'h', 0x0 };
+/* Latin 1 Supplement - "Munchen" */
+const uint8_t service_utf8_lowcase[] = { 'm', 0xC3, 0xBC, 'n', 'c', 'h', 'e', 'n', 0x0 };
+const uint8_t service_utf8_upcase[] = { 'M', 0xC3, 0x9C, 'N', 'C', 'H', 'E', 'N', 0x0 };
+/* Greek - "AlphaBetaGamma" */
+const uint8_t srchost_utf8_lowcase[] = { 0xCE, 0xB1, 0xCE, 0xB2, 0xCE, 0xB3, 0x0  };
+const uint8_t srchost_utf8_upcase[] = { 0xCE, 0x91, 0xCE, 0x92, 0xCE, 0x93, 0x0 };
+/* Turkish "capital I" and "dotless i" */
+const uint8_t user_lowcase_tr[] = { 0xC4, 0xB1, 0x0 };
+const uint8_t user_upcase_tr[] = { 0x49, 0x0 };
+
 static void get_allow_all_rule(TALLOC_CTX *mem_ctx,
                                struct hbac_rule **allow_rule)
 {
@@ -252,6 +269,105 @@ START_TEST(ipa_hbac_test_allow_user)
 
     /* Negative test */
     rules[0]->users->names[0] = HBAC_TEST_INVALID_USER;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_allow_utf8)
+{
+    enum hbac_eval_result result;
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule **rules;
+    struct hbac_eval_req *eval_req;
+    struct hbac_info *info;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    /* Create a request */
+    eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
+    fail_if (eval_req == NULL);
+
+    get_test_user(eval_req, &eval_req->user);
+    get_test_service(eval_req, &eval_req->service);
+    get_test_srchost(eval_req, &eval_req->srchost);
+
+    /* Override the with UTF8 values */
+    eval_req->user->name = (const char *) &user_utf8_lowcase;
+    eval_req->srchost->name = (const char *) &srchost_utf8_lowcase;
+    eval_req->service->name = (const char *) &service_utf8_lowcase;
+
+    /* Create the rules to evaluate against */
+    rules = talloc_array(test_ctx, struct hbac_rule *, 2);
+    fail_if (rules == NULL);
+
+    get_allow_all_rule(rules, &rules[0]);
+
+    rules[0]->name = talloc_strdup(rules[0], "Allow user");
+    fail_if(rules[0]->name == NULL);
+    rules[0]->users->category = HBAC_CATEGORY_NULL;
+
+    /* Modify the rule to allow only a specific user */
+    rules[0]->users->names = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->users->names == NULL);
+
+    rules[0]->users->names[0] = (const char *) &user_utf8_upcase;
+    rules[0]->users->names[1] = NULL;
+
+    /* Modify the rule to allow only a specific service */
+    rules[0]->services->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->services->names = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->services->names == NULL);
+
+    rules[0]->services->names[0] = (const char *) &service_utf8_upcase;
+    rules[0]->services->names[1] = NULL;
+
+    /* Modify the rule to allow only a specific service */
+    rules[0]->srchosts->category = HBAC_CATEGORY_NULL;
+
+    rules[0]->srchosts->names = talloc_array(rules[0], const char *, 2);
+    fail_if(rules[0]->services->names == NULL);
+
+    rules[0]->srchosts->names[0] = (const char *) &srchost_utf8_upcase;
+    rules[0]->services->names[1] = NULL;
+
+    rules[1] = NULL;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_ALLOW,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_ALLOW),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test - a different letter */
+    rules[0]->users->names[0] = (const char *) &user_utf8_lowcase_neg;
+
+    /* Evaluate the rules */
+    result = hbac_evaluate(rules, eval_req, &info);
+    fail_unless(result == HBAC_EVAL_DENY,
+                "Expected [%s], got [%s]; "
+                "Error: [%s]",
+                hbac_result_string(HBAC_EVAL_DENY),
+                hbac_result_string(result),
+                info ? hbac_error_string(info->code):"Unknown");
+
+    /* Negative test - Turkish dotless i. We cannot know that capital I
+     * casefolds into dotless i unless we know the language is Turkish */
+    eval_req->user->name = (const char *) &user_lowcase_tr;
+    rules[0]->users->names[0] = (const char *) &user_upcase_tr;
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -595,6 +711,7 @@ Suite *hbac_test_suite (void)
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_svcgroup);
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_srchost);
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_srchostgroup);
+    tcase_add_test(tc_hbac, ipa_hbac_test_allow_utf8);
 
     suite_add_tcase(s, tc_hbac);
     return s;
