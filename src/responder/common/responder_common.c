@@ -224,117 +224,67 @@ static void client_fd_handler(struct tevent_context *ev,
     }
 }
 
-/* TODO: this is a copy of accept_fd_handler, maybe both can be put into on
- * handler.  */
-static void accept_priv_fd_handler(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *ptr)
-{
-    /* accept and attach new event handler */
-    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
-    struct cli_ctx *cctx;
-    socklen_t len;
-    struct stat stat_buf;
-    int ret;
-
-    ret = stat(rctx->priv_sock_name, &stat_buf);
-    if (ret == -1) {
-        DEBUG(1, ("stat on privileged pipe failed: [%d][%s].\n", errno,
-                  strerror(errno)));
-        return;
-    }
-
-    if ( ! (stat_buf.st_uid == 0 && stat_buf.st_gid == 0 &&
-           (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
-        DEBUG(1, ("privileged pipe has an illegal status.\n"));
-/* TODO: what is the best response to this condition? Terminate? */
-        return;
-    }
-
-
-    cctx = talloc_zero(rctx, struct cli_ctx);
-    if (!cctx) {
-        struct sockaddr_un addr;
-        int fd;
-        DEBUG(0, ("Out of memory trying to setup client context on privileged pipe!\n"));
-        /* accept and close to signal the client we have a problem */
-        memset(&addr, 0, sizeof(addr));
-        len = sizeof(addr);
-        fd = accept(rctx->priv_lfd, (struct sockaddr *)&addr, &len);
-        if (fd == -1) {
-            return;
-        }
-        close(fd);
-        return;
-    }
-
-    len = sizeof(cctx->addr);
-    cctx->cfd = accept(rctx->priv_lfd, (struct sockaddr *)&cctx->addr, &len);
-    if (cctx->cfd == -1) {
-        DEBUG(1, ("Accept failed [%s]\n", strerror(errno)));
-        talloc_free(cctx);
-        return;
-    }
-
-    cctx->priv = 1;
-
-    ret = get_client_cred(cctx);
-    if (ret != EOK) {
-        DEBUG(2, ("get_client_cred failed, "
-                  "client cred may not be available.\n"));
-    }
-
-    cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
-                               TEVENT_FD_READ, client_fd_handler, cctx);
-    if (!cctx->cfde) {
-        close(cctx->cfd);
-        talloc_free(cctx);
-        DEBUG(2, ("Failed to queue client handler on privileged pipe\n"));
-    }
-
-    cctx->ev = ev;
-    cctx->rctx = rctx;
-
-    talloc_set_destructor(cctx, client_destructor);
-
-    DEBUG(4, ("Client connected to privileged pipe!\n"));
-
-    return;
-}
+struct accept_fd_ctx {
+    struct resp_ctx *rctx;
+    bool is_private;
+};
 
 static void accept_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
     /* accept and attach new event handler */
-    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
+    struct accept_fd_ctx *accept_ctx =
+            talloc_get_type(ptr, struct accept_fd_ctx);
+    struct resp_ctx *rctx = accept_ctx->rctx;
     struct cli_ctx *cctx;
     socklen_t len;
+    struct stat stat_buf;
     int ret;
+    int fd = accept_ctx->is_private ? rctx->priv_lfd : rctx->lfd;
+    int client_fd;
+
+    if (accept_ctx->is_private) {
+        ret = stat(rctx->priv_sock_name, &stat_buf);
+        if (ret == -1) {
+            DEBUG(1, ("stat on privileged pipe failed: [%d][%s].\n", errno,
+                      strerror(errno)));
+            return;
+        }
+
+        if ( ! (stat_buf.st_uid == 0 && stat_buf.st_gid == 0 &&
+               (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
+            DEBUG(1, ("privileged pipe has an illegal status.\n"));
+    /* TODO: what is the best response to this condition? Terminate? */
+            return;
+        }
+    }
 
     cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
         struct sockaddr_un addr;
-        int fd;
-        DEBUG(0, ("Out of memory trying to setup client context!\n"));
+        DEBUG(0, ("Out of memory trying to setup client context%s!\n",
+                  accept_ctx->is_private ? " on privileged pipe": ""));
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
         len = sizeof(addr);
-        fd = accept(rctx->lfd, (struct sockaddr *)&addr, &len);
-        if (fd == -1) {
+        client_fd = accept(fd, (struct sockaddr *)&addr, &len);
+        if (client_fd == -1) {
             return;
         }
-        close(fd);
+        close(client_fd);
         return;
     }
 
     len = sizeof(cctx->addr);
-    cctx->cfd = accept(rctx->lfd, (struct sockaddr *)&cctx->addr, &len);
+    cctx->cfd = accept(fd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
         DEBUG(1, ("Accept failed [%s]\n", strerror(errno)));
         talloc_free(cctx);
         return;
     }
+
+    cctx->priv = accept_ctx->is_private;
 
     ret = get_client_cred(cctx);
     if (ret != EOK) {
@@ -347,7 +297,8 @@ static void accept_fd_handler(struct tevent_context *ev,
     if (!cctx->cfde) {
         close(cctx->cfd);
         talloc_free(cctx);
-        DEBUG(2, ("Failed to queue client handler\n"));
+        DEBUG(2, ("Failed to queue client handler%\n",
+                accept_ctx->is_private ? " on privileged pipe" : ""));
     }
 
     cctx->ev = ev;
@@ -355,7 +306,8 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     talloc_set_destructor(cctx, client_destructor);
 
-    DEBUG(4, ("Client connected!\n"));
+    DEBUG(4, ("Client connected%s!\n",
+              accept_ctx->is_private ? " to privileged pipe" : ""));
 
     return;
 }
@@ -409,6 +361,7 @@ static int set_unix_socket(struct resp_ctx *rctx)
 {
     struct sockaddr_un addr;
     errno_t ret;
+    struct accept_fd_ctx *accept_ctx;
 
 /* for future use */
 #if 0
@@ -483,8 +436,14 @@ static int set_unix_socket(struct resp_ctx *rctx)
             goto failed;
         }
 
+        accept_ctx = talloc_zero(rctx, struct accept_fd_ctx);
+        if(!accept_ctx) goto failed;
+        accept_ctx->rctx = rctx;
+        accept_ctx->is_private = false;
+
         rctx->lfde = tevent_add_fd(rctx->ev, rctx, rctx->lfd,
-                                   TEVENT_FD_READ, accept_fd_handler, rctx);
+                                   TEVENT_FD_READ, accept_fd_handler,
+                                   accept_ctx);
         if (!rctx->lfde) {
             DEBUG(0, ("Failed to queue handler on pipe\n"));
             goto failed;
@@ -527,8 +486,14 @@ static int set_unix_socket(struct resp_ctx *rctx)
             goto failed;
         }
 
+        accept_ctx = talloc_zero(rctx, struct accept_fd_ctx);
+        if(!accept_ctx) goto failed;
+        accept_ctx->rctx = rctx;
+        accept_ctx->is_private = true;
+
         rctx->priv_lfde = tevent_add_fd(rctx->ev, rctx, rctx->priv_lfd,
-                                   TEVENT_FD_READ, accept_priv_fd_handler, rctx);
+                                   TEVENT_FD_READ, accept_fd_handler,
+                                   accept_ctx);
         if (!rctx->priv_lfde) {
             DEBUG(0, ("Failed to queue handler on privileged pipe\n"));
             goto failed;
