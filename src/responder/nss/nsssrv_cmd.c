@@ -314,7 +314,18 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
 
     user_shell = ldb_msg_find_attr_as_string(msg, SYSDB_SHELL, NULL);
     if (!user_shell) return NULL;
-    if (!nctx->allowed_shells) return talloc_strdup(mem_ctx, user_shell);
+    if (!nctx->allowed_shells && !nctx->vetoed_shells) return talloc_strdup(mem_ctx, user_shell);
+
+    if (nctx->vetoed_shells)
+    {
+        for (i=0; nctx->vetoed_shells[i]; i++) {
+            if (strcmp(nctx->vetoed_shells[i], user_shell) == 0) {
+                DEBUG(5, ("The shell '%s' is vetoed. "
+                         "Using fallback\n", user_shell));
+                return talloc_strdup(mem_ctx, nctx->shell_fallback);
+            }
+        }
+    }
 
     for (i=0; nctx->etc_shells[i]; i++) {
         if (strcmp(user_shell, nctx->etc_shells[i]) == 0) {

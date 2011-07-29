@@ -74,6 +74,7 @@
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
 #define CONFDB_NSS_PWFIELD  "pwfield"
 #define CONFDB_NSS_OVERRIDE_HOMEDIR "override_homedir"
+#define CONFDB_NSS_VETOED_SHELL  "vetoed_shells"
 #define CONFDB_NSS_ALLOWED_SHELL "allowed_shells"
 #define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
 

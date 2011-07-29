@@ -424,6 +424,14 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>vetoed_shells (string)</term>
+                    <listitem>
+                        <para>
+                            Replace any instance of these shells with the shell_fallback
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>shell_fallback (string)</term>
                     <listitem>
                         <para>
