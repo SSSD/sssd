@@ -151,4 +151,27 @@ const char *hbac_error_string(enum hbac_error_code code);
 
 void hbac_free_info(struct hbac_info *info);
 
+
+#define HBAC_RULE_ELEMENT_USERS       0x01
+#define HBAC_RULE_ELEMENT_SERVICES    0x02
+#define HBAC_RULE_ELEMENT_TARGETHOSTS 0x04
+#define HBAC_RULE_ELEMENT_SOURCEHOSTS 0x08
+
+/**
+ * @brief Evaluate whether an HBAC rule contains all necessary elements
+ *
+ * @param[in] rule           An HBAC rule to evaluate
+ * @param[out] missing_attrs A list of attributes missing from the rule
+ *                           This is a bitmask that may contain one or more
+ *                           of HBAC_RULE_ELEMENT_USERS,
+ *                           HBAC_RULE_ELEMENT_SERVICES,
+ *                           HBAC_RULE_ELEMENT_TARGETHOSTS and
+ *                           HBAC_RULE_ELEMENT_SOURCEHOSTS
+ *
+ * @return True if the rule contains all mandatory attributes
+ *
+ * @note This function does not care if the rule is enabled or disabled
+ */
+bool hbac_rule_is_complete(struct hbac_rule *rule, uint32_t *missing_attrs);
+
 #endif /* IPA_HBAC_H_ */

@@ -52,6 +52,57 @@ enum hbac_eval_result_int {
     HBAC_EVAL_UNMATCHED
 };
 
+static bool hbac_rule_element_is_complete(struct hbac_rule_element *el)
+{
+    if (el == NULL) return false;
+    if (el->category == HBAC_CATEGORY_ALL) return true;
+
+    if (el->names == NULL && el->groups == NULL) return false;
+
+    if ((el->names && el->names[0] != NULL)
+            || (el->groups && el->groups[0] != NULL))
+        return true;
+
+    /* If other categories are added, handle them here */
+
+    return false;
+}
+
+bool hbac_rule_is_complete(struct hbac_rule *rule, uint32_t *missing_attrs)
+{
+    bool complete = true;
+
+    *missing_attrs = 0;
+
+    if (rule == NULL) {
+        /* No rule passed in? */
+        return false;
+    }
+
+    /* Make sure we have all elements */
+    if (!hbac_rule_element_is_complete(rule->users)) {
+        complete = false;
+        *missing_attrs |= HBAC_RULE_ELEMENT_USERS;
+    }
+
+    if (!hbac_rule_element_is_complete(rule->services)) {
+        complete = false;
+        *missing_attrs |= HBAC_RULE_ELEMENT_SERVICES;
+    }
+
+    if (!hbac_rule_element_is_complete(rule->targethosts)) {
+        complete = false;
+        *missing_attrs |= HBAC_RULE_ELEMENT_TARGETHOSTS;
+    }
+
+    if (!hbac_rule_element_is_complete(rule->srchosts)) {
+        complete = false;
+        *missing_attrs |= HBAC_RULE_ELEMENT_SOURCEHOSTS;
+    }
+
+    return complete;
+}
+
 enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
                                              struct hbac_eval_req *hbac_req,
                                              enum hbac_error_code *error);
