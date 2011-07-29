@@ -539,7 +539,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     if (tmp_ctx == NULL) return ENOMEM;
 
     eval_req = talloc_zero(tmp_ctx, struct hbac_eval_req);
-    if (tmp_ctx == NULL) {
+    if (eval_req == NULL) {
         ret = ENOMEM;
         goto done;
     }
