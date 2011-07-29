@@ -188,6 +188,10 @@ static int nss_get_config(struct nss_ctx *nctx,
                                     &nctx->allowed_shells);
     if (ret != EOK && ret != ENOENT) goto done;
 
+    ret = confdb_get_string_as_list(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_VETOED_SHELL,
+                                    &nctx->vetoed_shells);
+    if (ret != EOK && ret != ENOENT) goto done;
     ret = nss_get_etc_shells(nctx, &nctx->etc_shells);
     if (ret != EOK) goto done;
 

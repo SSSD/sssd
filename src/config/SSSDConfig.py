@@ -60,6 +60,7 @@ option_strings = {
     'pwfield' : _('The value of the password field the NSS provider should return'),
     'override_homedir' : _('Override homedir value from the identity provider with this value'),
     'allowed_shells' : _('The list of shells users are allowed to log in with'),
+    'vetoed_shells' : _('The list of shells that will be vetoed, and replaced with the fallback shell'),
     'shell_fallback' : _('If a shell stored in central directory is allowed but not available, use this fallback'),
 
     # [pam]
