@@ -188,6 +188,8 @@ START_TEST(ipa_hbac_test_allow_all)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -207,6 +209,11 @@ START_TEST(ipa_hbac_test_allow_all)
     rules[0]->name = talloc_strdup(rules[0], "Allow All");
     fail_if(rules[0]->name == NULL);
     rules[1] = NULL;
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -228,6 +235,8 @@ START_TEST(ipa_hbac_test_allow_user)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -258,6 +267,11 @@ START_TEST(ipa_hbac_test_allow_user)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -269,6 +283,11 @@ START_TEST(ipa_hbac_test_allow_user)
 
     /* Negative test */
     rules[0]->users->names[0] = HBAC_TEST_INVALID_USER;
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -290,6 +309,8 @@ START_TEST(ipa_hbac_test_allow_utf8)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -343,6 +364,11 @@ START_TEST(ipa_hbac_test_allow_utf8)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -369,6 +395,11 @@ START_TEST(ipa_hbac_test_allow_utf8)
     eval_req->user->name = (const char *) &user_lowcase_tr;
     rules[0]->users->names[0] = (const char *) &user_upcase_tr;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_DENY,
@@ -389,6 +420,8 @@ START_TEST(ipa_hbac_test_allow_group)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -420,6 +453,11 @@ START_TEST(ipa_hbac_test_allow_group)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -431,6 +469,11 @@ START_TEST(ipa_hbac_test_allow_group)
 
     /* Negative test */
     rules[0]->users->groups[0] = HBAC_TEST_INVALID_GROUP;
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -452,6 +495,8 @@ START_TEST(ipa_hbac_test_allow_svc)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -482,6 +527,11 @@ START_TEST(ipa_hbac_test_allow_svc)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -493,6 +543,11 @@ START_TEST(ipa_hbac_test_allow_svc)
 
     /* Negative test */
     rules[0]->services->names[0] = HBAC_TEST_INVALID_SERVICE;
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -514,6 +569,8 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -545,6 +602,11 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -556,6 +618,11 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
 
     /* Negative test */
     rules[0]->services->groups[0] = HBAC_TEST_INVALID_SERVICEGROUP;
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -577,6 +644,8 @@ START_TEST(ipa_hbac_test_allow_srchost)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -607,6 +676,11 @@ START_TEST(ipa_hbac_test_allow_srchost)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -618,6 +692,11 @@ START_TEST(ipa_hbac_test_allow_srchost)
 
     /* Negative test */
     rules[0]->srchosts->names[0] = HBAC_TEST_INVALID_SRCHOST;
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -639,6 +718,8 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
     struct hbac_info *info;
+    bool is_valid;
+    uint32_t missing_attrs;
 
     test_ctx = talloc_new(global_talloc_context);
 
@@ -670,6 +751,11 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
 
     rules[1] = NULL;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_ALLOW,
@@ -682,6 +768,11 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
     /* Negative test */
     rules[0]->srchosts->groups[0] = HBAC_TEST_INVALID_SRCHOSTGROUP;
 
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
+    fail_unless(is_valid);
+    fail_unless(missing_attrs == 0);
+
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_DENY,
@@ -690,6 +781,29 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(ipa_hbac_test_incomplete)
+{
+    TALLOC_CTX *test_ctx;
+    struct hbac_rule *rule;
+    bool is_valid;
+    uint32_t missing_attrs;
+
+    test_ctx = talloc_new(global_talloc_context);
+
+    rule = talloc_zero(test_ctx, struct hbac_rule);
+
+    /* Validate this rule */
+    is_valid = hbac_rule_is_complete(rule, &missing_attrs);
+    fail_if(is_valid);
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_USERS);
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_SERVICES);
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_TARGETHOSTS);
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_SOURCEHOSTS);
 
     talloc_free(test_ctx);
 }
@@ -712,6 +826,7 @@ Suite *hbac_test_suite (void)
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_srchost);
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_srchostgroup);
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_utf8);
+    tcase_add_test(tc_hbac, ipa_hbac_test_incomplete);
 
     suite_add_tcase(s, tc_hbac);
     return s;
