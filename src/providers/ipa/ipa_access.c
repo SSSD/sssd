@@ -596,6 +596,7 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
     }
 
     DEBUG(3, ("Access denied by HBAC rules\n"));
+    hbac_free_info(info);
     ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
 }
 
