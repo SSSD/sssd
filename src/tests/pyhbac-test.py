@@ -232,6 +232,30 @@ class PyHbacRuleTest(unittest.TestCase):
                                         "srchosts <category 0 names [%s] groups []>>" %
                                         (name, service, targethost, srchost))
 
+    def testValidate(self):
+        r = pyhbac.HbacRule('valid_rule')
+
+        valid, missing = r.validate()
+        self.assertEqual(valid, False)
+        self.assertItemsEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_USERS,
+                                         pyhbac.HBAC_RULE_ELEMENT_SERVICES,
+                                         pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
+                                         pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS ))
+
+        r.users.names = [ "someuser" ]
+        r.services.names = [ "ssh" ]
+
+        valid, missing = r.validate()
+        self.assertEqual(valid, False)
+        self.assertItemsEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
+                                         pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS ))
+
+        r.srchosts.names = [ "host1" ]
+        r.targethosts.names = [ "host2" ]
+
+        valid, missing = r.validate()
+        self.assertEqual(valid, True)
+
 class PyHbacRequestElementTest(unittest.TestCase):
     def testInstantiateEmpty(self):
         el = pyhbac.HbacRequestElement()
@@ -427,6 +451,12 @@ class PyHbacModuleTest(unittest.TestCase):
     def testHasCategories(self):
         assert hasattr(pyhbac, "HBAC_CATEGORY_NULL")
         assert hasattr(pyhbac, "HBAC_CATEGORY_ALL")
+
+    def testHasRuleElementTypes(self):
+        assert hasattr(pyhbac, "HBAC_RULE_ELEMENT_USERS")
+        assert hasattr(pyhbac, "HBAC_RULE_ELEMENT_SERVICES")
+        assert hasattr(pyhbac, "HBAC_RULE_ELEMENT_TARGETHOSTS")
+        assert hasattr(pyhbac, "HBAC_RULE_ELEMENT_SOURCEHOSTS")
 
     def testHbacResultString(self):
         results = [ pyhbac.HBAC_EVAL_ALLOW, pyhbac.HBAC_EVAL_DENY,

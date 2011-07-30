@@ -382,6 +382,7 @@ HbacRuleElement_init(HbacRuleElement *self, PyObject *args, PyObject *kwargs)
         }
 
         if (sss_python_set_add(self->category, tmp) != 0) {
+            Py_DECREF(tmp);
             return -1;
         }
     }
@@ -626,6 +627,11 @@ typedef struct {
     HbacRuleElement *targethosts;
     HbacRuleElement *srchosts;
 } HbacRuleObject;
+
+static void
+free_hbac_rule(struct hbac_rule *rule);
+static struct hbac_rule *
+HbacRule_to_native(HbacRuleObject *pyrule);
 
 static PyObject *
 HbacRule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -891,6 +897,88 @@ HbacRule_repr(HbacRuleObject *self)
     return o;
 }
 
+static PyObject *
+py_hbac_rule_validate(HbacRuleObject *self, PyObject *args)
+{
+    struct hbac_rule *rule;
+    bool is_valid;
+    uint32_t missing;
+    uint32_t attr;
+    PyObject *ret = NULL;
+    PyObject *py_is_valid = NULL;
+    PyObject *py_missing = NULL;
+    PyObject *py_attr = NULL;
+
+    rule = HbacRule_to_native(self);
+    if (!rule) {
+        /* Make sure there is at least a generic exception */
+        if (!PyErr_Occurred()) {
+            PyErr_Format(PyExc_IOError,
+                         "Could not convert HbacRule to native type\n");
+        }
+        goto fail;
+    }
+
+    is_valid = hbac_rule_is_complete(rule, &missing);
+    free_hbac_rule(rule);
+
+    ret = PyTuple_New(2);
+    if (!ret) {
+        PyErr_NoMemory();
+        goto fail;
+    }
+
+    py_is_valid = PyBool_FromLong(is_valid);
+    py_missing = sss_python_set_new();
+    if (!py_missing || !py_is_valid) {
+        PyErr_NoMemory();
+        goto fail;
+    }
+
+    for (attr = HBAC_RULE_ELEMENT_USERS;
+         attr <= HBAC_RULE_ELEMENT_SOURCEHOSTS;
+         attr <<= 1) {
+        if (!(missing & attr)) continue;
+
+        py_attr = PyInt_FromLong(attr);
+        if (!py_attr) {
+            PyErr_NoMemory();
+            goto fail;
+        }
+
+        if (sss_python_set_add(py_missing, py_attr) != 0) {
+            /* If the set-add succeeded, it would steal the reference */
+            Py_DECREF(py_attr);
+            goto fail;
+        }
+    }
+
+    PyTuple_SET_ITEM(ret, 0, py_is_valid);
+    PyTuple_SET_ITEM(ret, 1, py_missing);
+    return ret;
+
+fail:
+    Py_XDECREF(ret);
+    Py_XDECREF(py_missing);
+    Py_XDECREF(py_is_valid);
+    return NULL;
+}
+
+PyDoc_STRVAR(py_hbac_rule_validate__doc__,
+"validate() -> (valid, missing)\n\n"
+"Validate an HBAC rule\n"
+"Returns a tuple of (bool, set). The boolean value describes whether\n"
+"the rule is valid. If it is False, then the set lists all the missing "
+"rule elements as HBAC_RULE_ELEMENT_* constants\n");
+
+static PyMethodDef py_hbac_rule_methods[] = {
+    { sss_py_const_p(char, "validate"),
+      (PyCFunction) py_hbac_rule_validate,
+      METH_VARARGS, py_hbac_rule_validate__doc__,
+    },
+    { NULL, NULL, 0, NULL }        /* Sentinel */
+};
+
 PyDoc_STRVAR(HbacRuleObject_users__doc__,
 "(HbacRuleElement) Users and user groups for which this rule applies");
 PyDoc_STRVAR(HbacRuleObject_services__doc__,
@@ -959,6 +1047,7 @@ static PyTypeObject pyhbac_hbacrule_type = {
     .tp_init = (initproc) HbacRule_init,
     .tp_repr = (reprfunc) HbacRule_repr,
     .tp_members = py_hbac_rule_members,
+    .tp_methods = py_hbac_rule_methods,
     .tp_getset = py_hbac_rule_getset,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .tp_doc   = HbacRuleObject__doc__
@@ -1820,6 +1909,16 @@ initpyhbac(void)
     ret = PyModule_AddIntMacro(m, HBAC_CATEGORY_NULL);
     if (ret == -1) return;
     ret = PyModule_AddIntMacro(m, HBAC_CATEGORY_ALL);
+    if (ret == -1) return;
+
+    /* HBAC rule elements */
+    ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_USERS);
+    if (ret == -1) return;
+    ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_SERVICES);
+    if (ret == -1) return;
+    ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_TARGETHOSTS);
+    if (ret == -1) return;
+    ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_SOURCEHOSTS);
     if (ret == -1) return;
 
     /* enum hbac_eval_result */
