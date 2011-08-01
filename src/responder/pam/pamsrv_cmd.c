@@ -409,9 +409,10 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
                     }
                     memcpy(&expire_warn, resp->data + sizeof(uint32_t),
                            sizeof(uint32_t));
-                    if(expire_warn > pam_expiration_warning * (60 * 60 * 24)) {
-                        resp->do_not_send_to_client = true;
-                    }
+                    /* TODO: Add an option to limit the display of the
+                     * expiration warning to a specified number of
+                     * days (e.g. 14)
+                     */
                     break;
                 default:
                     DEBUG(7, ("User info type [%d] not filtered.\n"));
