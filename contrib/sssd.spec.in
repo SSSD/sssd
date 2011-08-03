@@ -185,9 +185,8 @@ make install DESTDIR=$RPM_BUILD_ROOT
 # Prepare language files
 /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sssd
 
-# Copy default sssd.conf file
+# Copy SSSDConfig API files
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
-install -m600 src/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.conf
 install -m444 src/config/etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
 install -m444 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
 
@@ -241,6 +240,7 @@ rm -rf $RPM_BUILD_ROOT
 %files -f sssd.lang
 %defattr(-,root,root,-)
 %doc COPYING
+%doc src/examples/sssd-example.conf
 %{_initrddir}/%{name}
 %{_sbindir}/sssd
 %{_libexecdir}/%{servicename}/
@@ -253,12 +253,11 @@ rm -rf $RPM_BUILD_ROOT
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(711,root,root) %dir %{_sysconfdir}/sssd
-%config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %config %{_sysconfdir}/sssd/sssd.api.conf
 %attr(755,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
-%config %{_sysconfdir}/sssd/sssd.api.d/
+%config %{_sysconfdir}/sssd/sssd.api.d/*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*

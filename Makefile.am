@@ -441,7 +441,7 @@ endif
 
 
 dist_noinst_DATA += \
-    src/examples/sssd.conf \
+    src/examples/sssd-example.conf \
     src/examples/sssdproxytest \
     src/examples/sudo \
     src/examples/logrotate \
