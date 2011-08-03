@@ -117,7 +117,7 @@
         <filename>pam_sss_pw_reset_message.txt</filename> is displayed. Root
         must be the owner of the files and only root may have read and write
         permissions while all other users must have only read
-        permisssions.</para>
+        permissions.</para>
 
         <para>These files are searched in the directory
         <filename>/etc/sssd/customize/DOMAIN_NAME/</filename>. If no matching
