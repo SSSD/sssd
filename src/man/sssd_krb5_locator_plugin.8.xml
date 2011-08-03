@@ -32,7 +32,7 @@
                 <refentrytitle>krb5.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry>
-            which is always read by the Kerberos libraries. To simplyfy the
+            which is always read by the Kerberos libraries. To simplify the
             configuration the Realm and the KDC can be defined in
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
