@@ -35,7 +35,6 @@ const char *debug_prg_name = "sssd";
 
 int debug_level = SSSDBG_UNRESOLVED;
 int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
-
 int debug_to_file = 0;
 const char *debug_log_file = "sssd";
 FILE *debug_file = NULL;
@@ -63,12 +62,9 @@ int debug_convert_old_level(int old_level)
     if ((old_level != 0) && !(old_level & 0x000F))
         return old_level;
 
-    if( old_level == SSS_UNRESOLVED_DEBUG_LEVEL )
-        return SSSDBG_UNRESOLVED;
-
     int new_level = SSSDBG_FATAL_FAILURE;
 
-    if (old_level == 0)
+    if (old_level <= 0)
         return new_level;
 
     if (old_level >= 1)
@@ -117,9 +113,6 @@ int debug_get_level(int old_level)
 {
     if ((old_level != 0) && !(old_level & 0x000F))
         return old_level;
-
-    if( old_level == SSS_UNRESOLVED_DEBUG_LEVEL )
-        return SSSDBG_UNRESOLVED;
 
     if ((old_level > 9) || (old_level < 0))
         return SSSDBG_FATAL_FAILURE;

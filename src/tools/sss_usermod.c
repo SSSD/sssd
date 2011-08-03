@@ -40,7 +40,7 @@ int main(int argc, const char **argv)
     char *pc_gecos = NULL;
     char *pc_home = NULL;
     char *pc_shell = NULL;
-    int pc_debug = 0;
+    int pc_debug = SSSDBG_DEFAULT;
     const char *pc_selinux_user = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP

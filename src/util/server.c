@@ -459,7 +459,7 @@ int server_setup(const char *name, int flags,
         return ret;
     }
 
-    if (debug_level == SSS_UNRESOLVED_DEBUG_LEVEL) {
+    if (debug_level == SSSDBG_UNRESOLVED) {
         /* set debug level if any in conf_entry */
         ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
                              CONFDB_SERVICE_DEBUG_LEVEL,

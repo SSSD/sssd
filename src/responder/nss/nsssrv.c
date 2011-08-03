@@ -340,6 +340,9 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
+    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    debug_level = SSSDBG_INVALID;
+
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
@@ -353,7 +356,7 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    debug_level = debug_convert_old_level(debug_level);
+    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
    /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_nss";

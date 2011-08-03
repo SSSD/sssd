@@ -943,7 +943,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     }
 
     if (!svc->command) {
-        if (cmdline_debug_level == SSS_UNRESOLVED_DEBUG_LEVEL) {
+        if (cmdline_debug_level == SSSDBG_UNRESOLVED) {
             svc->command = talloc_asprintf(svc, "%s/sssd_%s %s%s",
                                            SSSD_LIBEXEC_PATH,
                                            svc->name,
@@ -1089,7 +1089,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
 
     /* if there are no custom commands, build a default one */
     if (!svc->command) {
-        if (cmdline_debug_level == SSS_UNRESOLVED_DEBUG_LEVEL) {
+        if (cmdline_debug_level == SSSDBG_UNRESOLVED) {
             svc->command = talloc_asprintf(svc,
                                 "%s/sssd_be --domain %s%s%s",
                                 SSSD_LIBEXEC_PATH,
@@ -2321,6 +2321,9 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
+    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    debug_level = SSSDBG_INVALID;
+
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
@@ -2331,7 +2334,8 @@ int main(int argc, const char *argv[])
             return 1;
         }
     }
-    debug_level = debug_convert_old_level(debug_level);
+
+    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
     /* If the level was passed at the command-line, we want
      * to save it and pass it to the children later.

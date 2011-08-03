@@ -770,6 +770,9 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
+    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    debug_level = SSSDBG_INVALID;
+
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
@@ -790,7 +793,8 @@ int main(int argc, const char *argv[])
         }
     }
     poptFreeContext(pc);
-    debug_level = debug_convert_old_level(debug);
+
+    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
     if (!use_net_test) {
         printf("Network tests disabled. Rerun with the \"-n\" "

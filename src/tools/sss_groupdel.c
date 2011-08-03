@@ -32,7 +32,7 @@
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
-    int pc_debug = 0;
+    int pc_debug = SSSDBG_DEFAULT;
     const char *pc_groupname = NULL;
     struct tools_ctx *tctx = NULL;
 

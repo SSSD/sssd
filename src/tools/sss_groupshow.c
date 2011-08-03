@@ -601,7 +601,7 @@ static void print_recursive(struct group_info **group_members, int level)
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
-    int pc_debug = 0;
+    int pc_debug = SSSDBG_DEFAULT;
     bool pc_recursive = false;
     const char *pc_groupname = NULL;
     struct tools_ctx *tctx = NULL;

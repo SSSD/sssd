@@ -61,8 +61,6 @@ int debug_get_level(int old_level);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
 
-#define SSS_UNRESOLVED_DEBUG_LEVEL SSSDBG_UNRESOLVED
-
 #define SSSDBG_FATAL_FAILURE  0x0010   /* level 0 */
 #define SSSDBG_CRIT_FAILURE   0x0020   /* level 1 */
 #define SSSDBG_OP_FAILURE     0x0040   /* level 2 */
@@ -74,7 +72,8 @@ errno_t set_debug_file_from_fd(const int fd);
 #define SSSDBG_TRACE_INTERNAL 0x2000   /* level 8 */
 #define SSSDBG_TRACE_ALL      0x4000   /* level 9 */
 
-#define SSSDBG_UNRESOLVED     -1
+#define SSSDBG_INVALID        -1
+#define SSSDBG_UNRESOLVED     0
 #define SSSDBG_MASK_ALL       0xFFF0   /* enable all debug levels */
 #define SSSDBG_DEFAULT        SSSDBG_FATAL_FAILURE
 
@@ -153,7 +152,13 @@ errno_t set_debug_file_from_fd(const int fd);
 
     \param level the debug level, please use one of the SSSDBG*_ macros
 */
-#define DEBUG_IS_SET(level) ((debug_level > 0) && (debug_level & (level)))
+#define DEBUG_IS_SET(level) (debug_level & (level))
+
+#define CONVERT_AND_SET_DEBUG_LEVEL(new_value) debug_level = ( \
+    ((new_value) != SSSDBG_INVALID) \
+    ? debug_convert_old_level(new_value) \
+    : SSSDBG_UNRESOLVED /* Debug level should be loaded from config file. */ \
+);
 
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)

@@ -49,11 +49,6 @@ START_TEST(test_debug_convert_old_level_old_format)
         SSSDBG_TRACE_ALL
     };
 
-    fail_unless(
-        debug_convert_old_level(SSS_UNRESOLVED_DEBUG_LEVEL) == SSSDBG_UNRESOLVED,
-        "Invalid conversion of SSS_UNRESOLVED_DEBUG_LEVEL"
-    );
-
     for (old_level = 0; old_level <= 9; old_level++) {
         expected_level |= levels[old_level];
 
@@ -68,7 +63,7 @@ END_TEST
 START_TEST(test_debug_convert_old_level_new_format)
 {
     fail_unless(
-        debug_convert_old_level(SSSDBG_UNRESOLVED) == SSSDBG_UNRESOLVED,
+        debug_convert_old_level(SSSDBG_UNRESOLVED) == SSSDBG_FATAL_FAILURE,
         "Invalid conversion of SSSDBG_UNRESOLVED"
     );
     fail_unless(
@@ -120,7 +115,6 @@ END_TEST
 
 START_TEST(test_debug_get_level_old_format)
 {
-    fail_unless(debug_get_level(SSS_UNRESOLVED_DEBUG_LEVEL) == SSSDBG_UNRESOLVED, "Invalid conversion of -1");
     fail_unless(debug_get_level(0) == SSSDBG_FATAL_FAILURE, "Invalid conversion of 0");
     fail_unless(debug_get_level(1) == SSSDBG_CRIT_FAILURE, "Invalid conversion of 1");
     fail_unless(debug_get_level(2) == SSSDBG_OP_FAILURE, "Invalid conversion of 2");
@@ -137,7 +131,7 @@ END_TEST
 START_TEST(test_debug_get_level_new_format)
 {
     fail_unless(
-        debug_get_level(SSSDBG_UNRESOLVED) == SSSDBG_UNRESOLVED,
+        debug_get_level(SSSDBG_UNRESOLVED) == SSSDBG_FATAL_FAILURE,
         "Invalid conversion of SSSDBG_UNRESOLVED"
     );
     fail_unless(

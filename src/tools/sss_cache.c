@@ -250,7 +250,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     char *group = NULL;
     char *netgroup = NULL;
     char *domain = NULL;
-    int debug = 0;
+    int debug = SSSDBG_DEFAULT;
     errno_t ret = EOK;
 
     poptContext pc = NULL;
