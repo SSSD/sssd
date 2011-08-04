@@ -554,9 +554,10 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     if (ctx->srv_opts && ctx->srv_opts->max_group_value && !purge) {
         state->filter = talloc_asprintf(
                 state,
-                "(&(objectclass=%s)(%s=*)(%s=*)(%s>=%s)(!(%s=%s)))",
+                "(&(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0)))(%s>=%s)(!(%s=%s)))",
                 ctx->opts->group_map[SDAP_OC_GROUP].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
                 ctx->srv_opts->max_group_value,
@@ -565,9 +566,10 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     } else {
         state->filter = talloc_asprintf(
                 state,
-                "(&(objectclass=%s)(%s=*)(%s=*))",
+                "(&(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
                 ctx->opts->group_map[SDAP_OC_GROUP].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     }
     if (!state->filter) {

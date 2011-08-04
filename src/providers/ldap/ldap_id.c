@@ -336,10 +336,12 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     }
 
     state->filter =
-            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s>=1))",
+            talloc_asprintf(state,
+                            "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
                             attr_name, clean_name,
                             ctx->opts->group_map[SDAP_OC_GROUP].name,
                             ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                            ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                             ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));

@@ -2220,11 +2220,13 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)(%s>=1))",
+    filter = talloc_asprintf(state,
+                             "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_name,
                              opts->group_map[SDAP_OC_GROUP].name,
                              opts->group_map[SDAP_AT_GROUP_NAME].name,
+                             opts->group_map[SDAP_AT_GROUP_GID].name,
                              opts->group_map[SDAP_AT_GROUP_GID].name);
     if (!filter) {
         talloc_zfree(req);
