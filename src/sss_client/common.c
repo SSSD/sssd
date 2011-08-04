@@ -39,6 +39,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <time.h>
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
