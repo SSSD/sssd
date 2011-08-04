@@ -258,20 +258,6 @@ static errno_t set_fd_flags_and_opts(int fd)
         return ret;
     }
 
-    flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(1, ("fcntl F_GETFL failed [%d][%s].\n", ret, strerror(ret)));
-        return ret;
-    }
-
-    flags = fcntl(fd, F_SETFL, flags| O_NONBLOCK);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(1, ("fcntl F_SETFL failed [%d][%s].\n", ret, strerror(ret)));
-        return ret;
-    }
-
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
     ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &dummy, sizeof(dummy));
