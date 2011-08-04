@@ -710,6 +710,8 @@ HbacRule_traverse(HbacRuleObject *self, visitproc visit, void *arg)
 }
 
 static int
+hbac_rule_set_enabled(HbacRuleObject *self, PyObject *enabled, void *closure);
+static int
 hbac_rule_set_name(HbacRuleObject *self, PyObject *name, void *closure);
 
 static int
@@ -718,12 +720,19 @@ HbacRule_init(HbacRuleObject *self, PyObject *args, PyObject *kwargs)
     const char * const kwlist[] = { "name", "enabled", NULL };
     PyObject *name = NULL;
     PyObject *empty_tuple = NULL;
+    PyObject *enabled=NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs,
-                                     sss_py_const_p(char, "O|i"),
+                                     sss_py_const_p(char, "O|O"),
                                      discard_const_p(char *, kwlist),
-                                     &name, &self->enabled)) {
+                                     &name, &enabled)) {
         return -1;
+    }
+
+    if (enabled) {
+        if (hbac_rule_set_enabled(self, enabled, NULL) == -1) {
+            return -1;
+        }
     }
 
     if (hbac_rule_set_name(self, name, NULL) == -1) {
