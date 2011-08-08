@@ -135,11 +135,7 @@ static int nss_get_config(struct nss_ctx *nctx,
                           struct resp_ctx *rctx,
                           struct confdb_ctx *cdb)
 {
-    TALLOC_CTX *tmpctx;
     int ret;
-
-    tmpctx = talloc_new(nctx);
-    if (!tmpctx) return ENOMEM;
 
     ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENUM_CACHE_TIMEOUT, 120,
@@ -203,7 +199,6 @@ static int nss_get_config(struct nss_ctx *nctx,
 
     ret = 0;
 done:
-    talloc_free(tmpctx);
     return ret;
 }
 
