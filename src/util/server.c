@@ -473,17 +473,19 @@ int server_setup(const char *name, int flags,
     }
 
     /* same for debug timestamps */
-    dt = (debug_timestamps != 0);
-    ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
-                          CONFDB_SERVICE_DEBUG_TIMESTAMPS,
-                          dt, &dt);
-    if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
-        return ret;
+    if (debug_timestamps == SSSDBG_TIMESTAMP_UNRESOLVED) {
+        ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+                              CONFDB_SERVICE_DEBUG_TIMESTAMPS,
+                              SSSDBG_TIMESTAMP_DEFAULT,
+                              &dt);
+        if (ret != EOK) {
+            DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                      ret, strerror(ret)));
+            return ret;
+        }
+        if (dt) debug_timestamps = 1;
+        else debug_timestamps = 0;
     }
-    if (dt) debug_timestamps = 1;
-    else debug_timestamps = 0;
 
     /* same for debug to file */
     dl = (debug_to_file != 0);

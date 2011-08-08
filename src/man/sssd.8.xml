@@ -55,13 +55,18 @@
                 </listitem>
             </varlistentry>
             <varlistentry>
-                <term>debug_timestamps (bool)</term>
+                <term>
+                    <option>--debug-timestamps=</option><replaceable>mode</replaceable>
+                </term>
                 <listitem>
                     <para>
-                        Add a timestamp to the debug messages
+                        <emphasis>1</emphasis>: Add a timestamp to the debug messages
                     </para>
                     <para>
-                        Default: false
+                        <emphasis>0</emphasis>: Disable timestamp in the debug messages
+                    </para>
+                    <para>
+                        Default: 1
                     </para>
                 </listitem>
             </varlistentry>

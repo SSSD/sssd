@@ -62,6 +62,9 @@ errno_t set_debug_file_from_fd(const int fd);
 #define SSS_DEFAULT_DEBUG_LEVEL 0
 #define SSS_UNRESOLVED_DEBUG_LEVEL -1
 
+#define SSSDBG_TIMESTAMP_UNRESOLVED   -1
+#define SSSDBG_TIMESTAMP_DEFAULT       1
+
 #define SSSD_DEBUG_OPTS \
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0, \
          _("Debug level"), NULL}, \

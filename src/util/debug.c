@@ -34,7 +34,7 @@
 const char *debug_prg_name = "sssd";
 
 int debug_level = SSS_UNRESOLVED_DEBUG_LEVEL;
-int debug_timestamps = 1;
+int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 
 int debug_to_file = 0;
 const char *debug_log_file = "sssd";
