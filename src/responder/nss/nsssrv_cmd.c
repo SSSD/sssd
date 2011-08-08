@@ -316,8 +316,7 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     if (!user_shell) return NULL;
     if (!nctx->allowed_shells && !nctx->vetoed_shells) return talloc_strdup(mem_ctx, user_shell);
 
-    if (nctx->vetoed_shells)
-    {
+    if (nctx->vetoed_shells) {
         for (i=0; nctx->vetoed_shells[i]; i++) {
             if (strcmp(nctx->vetoed_shells[i], user_shell) == 0) {
                 DEBUG(5, ("The shell '%s' is vetoed. "
@@ -327,24 +326,28 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
         }
     }
 
-    for (i=0; nctx->etc_shells[i]; i++) {
-        if (strcmp(user_shell, nctx->etc_shells[i]) == 0) {
-            DEBUG(9, ("Shell %s found in /etc/shells\n",
-                      nctx->etc_shells[i]));
-            break;
+    if (nctx->etc_shells) {
+        for (i=0; nctx->etc_shells[i]; i++) {
+            if (strcmp(user_shell, nctx->etc_shells[i]) == 0) {
+                DEBUG(9, ("Shell %s found in /etc/shells\n",
+                        nctx->etc_shells[i]));
+                break;
+            }
+        }
+
+        if (nctx->etc_shells[i]) {
+            DEBUG(9, ("Using original shell '%s'\n", user_shell));
+            return talloc_strdup(mem_ctx, user_shell);
         }
     }
 
-    if (nctx->etc_shells[i]) {
-        DEBUG(9, ("Using original shell '%s'\n", user_shell));
-        return talloc_strdup(mem_ctx, user_shell);
-    }
-
-    for (i=0; nctx->allowed_shells[i]; i++) {
-        if (strcmp(nctx->allowed_shells[i], user_shell) == 0) {
-            DEBUG(5, ("The shell '%s' is allowed but does not exist. "
-                      "Using fallback\n", user_shell));
-            return talloc_strdup(mem_ctx, nctx->shell_fallback);
+    if (nctx->allowed_shells) {
+        for (i=0; nctx->allowed_shells[i]; i++) {
+            if (strcmp(nctx->allowed_shells[i], user_shell) == 0) {
+                DEBUG(5, ("The shell '%s' is allowed but does not exist. "
+                        "Using fallback\n", user_shell));
+                return talloc_strdup(mem_ctx, nctx->shell_fallback);
+            }
         }
     }
 
