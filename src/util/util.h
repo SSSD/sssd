@@ -93,7 +93,8 @@ errno_t set_debug_file_from_fd(const int fd);
 /** \def DEBUG(level, body)
     \brief macro to generate debug messages
 
-    \param level the debug level, please respect the following guidelines:
+    \param level the debug level, please use one of the SSSDBG_* macros
+      Old format:
       - 1 is for critical errors users may find it difficult to understand but
         are still quite clear
       - 2-4 is for stuff developers are interested in in general, but
@@ -105,21 +106,55 @@ errno_t set_debug_file_from_fd(const int fd);
     \param body the debug message you want to send, should end with \n
 */
 #define DEBUG(level, body) do { \
-    if (level <= debug_level) { \
+    int __debug_macro_newlevel = debug_get_level(level); \
+    if (DEBUG_IS_SET(__debug_macro_newlevel)) { \
         if (debug_timestamps) { \
             time_t rightnow = time(NULL); \
             char stamp[25]; \
             memcpy(stamp, ctime(&rightnow), 24); \
             stamp[24] = '\0'; \
-            debug_fn("(%s) [%s] [%s] (%d): ", \
-                     stamp, debug_prg_name, __FUNCTION__, level); \
+            debug_fn("(%s) [%s] [%s] (%#.4x): ", \
+                     stamp, debug_prg_name, __FUNCTION__, __debug_macro_newlevel); \
         } else { \
-            debug_fn("[%s] [%s] (%d): ", \
-                     debug_prg_name, __FUNCTION__, level); \
+            debug_fn("[%s] [%s] (%#.4x): ", \
+                     debug_prg_name, __FUNCTION__, __debug_macro_newlevel); \
         } \
         debug_fn body; \
     } \
 } while(0);
+
+/** \def DEBUG_MSG(level, function, message)
+    \brief macro to generate debug messages with message from variable
+
+    \param level the debug level, please use one of the SSSDBG_* macros
+
+    \param function name of the function where DEBUG_MSG is called
+
+    \param message message to be send (should not end with \n)
+*/
+#define DEBUG_MSG(level, function, message) do { \
+    int __debug_macro_newlevel = debug_get_level(level); \
+    if (DEBUG_IS_SET(__debug_macro_newlevel)) { \
+        if (debug_timestamps) { \
+            time_t rightnow = time(NULL); \
+            char stamp[25]; \
+            memcpy(stamp, ctime(&rightnow), 24); \
+            stamp[24] = '\0'; \
+            debug_fn("(%s) [%s] [%s] (%#.4x): %s\n", \
+                     stamp, debug_prg_name, function, __debug_macro_newlevel, message); \
+        } else { \
+            debug_fn("[%s] [%s] (%#.4x): %s\n", \
+                     debug_prg_name, function, __debug_macro_newlevel, message); \
+        } \
+    } \
+} while(0);
+
+/** \def DEBUG_IS_SET(level)
+    \brief checks whether level (must be in new format) is set in debug_level
+
+    \param level the debug level, please use one of the SSSDBG*_ macros
+*/
+#define DEBUG_IS_SET(level) ((debug_level > 0) && (debug_level & (level)))
 
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)
