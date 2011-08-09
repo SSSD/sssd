@@ -58,6 +58,49 @@ errno_t set_debug_file_from_fd(const int fd)
     return EOK;
 }
 
+int debug_convert_old_level(int old_level)
+{
+    if ((old_level != 0) && !(old_level & 0x000F))
+        return old_level;
+
+    if( old_level == SSS_UNRESOLVED_DEBUG_LEVEL )
+        return SSSDBG_UNRESOLVED;
+
+    int new_level = SSSDBG_FATAL_FAILURE;
+
+    if (old_level == 0)
+        return new_level;
+
+    if (old_level >= 1)
+        new_level |= SSSDBG_CRIT_FAILURE;
+
+    if (old_level >= 2)
+        new_level |= SSSDBG_OP_FAILURE;
+
+    if (old_level >= 3)
+        new_level |= SSSDBG_MINOR_FAILURE;
+
+    if (old_level >= 4)
+        new_level |= SSSDBG_CONF_SETTINGS;
+
+    if (old_level >= 5)
+        new_level |= SSSDBG_FUNC_DATA;
+
+    if (old_level >= 6)
+        new_level |= SSSDBG_TRACE_FUNC;
+
+    if (old_level >= 7)
+        new_level |= SSSDBG_TRACE_LIBS;
+
+    if (old_level >= 8)
+        new_level |= SSSDBG_TRACE_INTERNAL;
+
+    if (old_level >= 9)
+        new_level |= SSSDBG_TRACE_ALL;
+
+    return new_level;
+}
+
 void debug_fn(const char *format, ...)
 {
     va_list ap;
@@ -68,6 +111,33 @@ void debug_fn(const char *format, ...)
     fflush(debug_file ? debug_file : stderr);
 
     va_end(ap);
+}
+
+int debug_get_level(int old_level)
+{
+    if ((old_level != 0) && !(old_level & 0x000F))
+        return old_level;
+
+    if( old_level == SSS_UNRESOLVED_DEBUG_LEVEL )
+        return SSSDBG_UNRESOLVED;
+
+    if ((old_level > 9) || (old_level < 0))
+        return SSSDBG_FATAL_FAILURE;
+
+    int levels[] = {
+        SSSDBG_FATAL_FAILURE,   /* 0 */
+        SSSDBG_CRIT_FAILURE,
+        SSSDBG_OP_FAILURE,
+        SSSDBG_MINOR_FAILURE,
+        SSSDBG_CONF_SETTINGS,
+        SSSDBG_FUNC_DATA,
+        SSSDBG_TRACE_FUNC,
+        SSSDBG_TRACE_LIBS,
+        SSSDBG_TRACE_INTERNAL,
+        SSSDBG_TRACE_ALL        /* 9 */
+    };
+
+    return levels[old_level];
 }
 
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
