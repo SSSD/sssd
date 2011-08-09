@@ -320,6 +320,8 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
+    debug_level = debug_convert_old_level(debug_level);
+
     tests_set_cwd();
 
     ret = clean_db_dir();

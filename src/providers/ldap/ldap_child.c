@@ -378,6 +378,8 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    debug_level = debug_convert_old_level(debug_level);
+
     DEBUG(7, ("ldap_child started.\n"));
 
     main_ctx = talloc_new(NULL);

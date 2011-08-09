@@ -432,7 +432,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
 
     /* all fine we got the server */
 
-    if (debug_level >= 4 && fo_get_server_name(state->srv)) {
+    if (DEBUG_IS_SET(SSSDBG_CONF_SETTINGS) && fo_get_server_name(state->srv)) {
         struct resolv_hostent *srvaddr;
         char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);
@@ -447,8 +447,8 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                   ipaddr, 128);
 
         DEBUG(4, ("Found address for server %s: [%s] TTL %d\n",
-                  fo_get_server_str_name(state->srv), ipaddr,
-                  srvaddr->addr_list[0]->ttl));
+                fo_get_server_str_name(state->srv), ipaddr,
+                srvaddr->addr_list[0]->ttl));
     }
 
     srv_status_change = fo_get_server_hostname_last_change(state->srv);

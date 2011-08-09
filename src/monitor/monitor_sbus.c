@@ -204,7 +204,8 @@ errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,
     }
 
     if (debug_level != old_debug_level) {
-        DEBUG(0, ("Debug level changed to %d\n", debug_level));
+        DEBUG(0, ("Debug level changed to %#.4x\n", debug_level));
+        debug_level = debug_convert_old_level(debug_level);
     }
 
     return EOK;

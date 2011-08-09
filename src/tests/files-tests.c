@@ -318,7 +318,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
     poptFreeContext(pc);
-    debug_level = debug;
+    debug_level = debug_convert_old_level(debug);
 
     tests_set_cwd();
 

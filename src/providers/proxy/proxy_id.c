@@ -395,7 +395,7 @@ done:
 
 #define DEBUG_GR_MEM(level, grp) \
     do { \
-        if (debug_level >= level) { \
+        if (DEBUG_IS_SET(debug_get_level(level))) { \
             if (!grp->gr_mem || !grp->gr_mem[0]) { \
                 DEBUG(level, ("Group %s has no members!\n", \
                               grp->gr_name)); \

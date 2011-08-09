@@ -61,7 +61,6 @@ int debug_get_level(int old_level);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
 
-#define SSS_DEFAULT_DEBUG_LEVEL SSSDBG_DEFAULT
 #define SSS_UNRESOLVED_DEBUG_LEVEL SSSDBG_UNRESOLVED
 
 #define SSSDBG_FATAL_FAILURE  0x0010   /* level 0 */

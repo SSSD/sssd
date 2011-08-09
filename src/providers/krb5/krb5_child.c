@@ -1573,6 +1573,8 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    debug_level = debug_convert_old_level(debug_level);
+
     DEBUG(7, ("krb5_child started.\n"));
 
     pd = talloc_zero(NULL, struct pam_data);

@@ -400,7 +400,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 
     argv[--argc] = NULL;
 
-    argv[--argc] = talloc_asprintf(argv, "--debug-level=%d",
+    argv[--argc] = talloc_asprintf(argv, "--debug-level=%#.4x",
                               debug_level);
     if (argv[argc] == NULL) {
         ret = ENOMEM;

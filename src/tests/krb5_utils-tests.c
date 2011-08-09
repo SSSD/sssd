@@ -654,6 +654,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
+    debug_level = debug_convert_old_level(debug_level);
 
     ret = mkdir(TESTS_PATH, 0775);
     if (ret != EOK) {

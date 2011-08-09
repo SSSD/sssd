@@ -981,7 +981,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
 
     DEBUG(6, ("calling ldap_search_ext with [%s][%s].\n", state->filter,
                                                           state->search_base));
-    if (debug_level >= 7) {
+    if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
         int i;
 
         if (state->attrs) {

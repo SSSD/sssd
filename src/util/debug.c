@@ -33,7 +33,7 @@
 
 const char *debug_prg_name = "sssd";
 
-int debug_level = SSS_UNRESOLVED_DEBUG_LEVEL;
+int debug_level = SSSDBG_UNRESOLVED;
 int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 
 int debug_to_file = 0;
@@ -143,22 +143,22 @@ int debug_get_level(int old_level)
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap)
 {
-    int loglevel = -1;
+    int loglevel = SSSDBG_UNRESOLVED;
     int ret;
     char * message = NULL;
 
     switch(level) {
     case LDB_DEBUG_FATAL:
-        loglevel = 0;
+        loglevel = SSSDBG_FATAL_FAILURE;
         break;
     case LDB_DEBUG_ERROR:
-        loglevel = 1;
+        loglevel = SSSDBG_CRIT_FAILURE;
         break;
     case LDB_DEBUG_WARNING:
-        loglevel = 6;
+        loglevel = SSSDBG_TRACE_FUNC;
         break;
     case LDB_DEBUG_TRACE:
-        loglevel = 9;
+        loglevel = SSSDBG_TRACE_ALL;
         break;
     }
 
@@ -168,19 +168,8 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         return;
     }
 
-    if (loglevel <= debug_level) {
-        if (debug_timestamps) {
-            time_t rightnow = time(NULL);
-            char stamp[25];
-            memcpy(stamp, ctime(&rightnow), 24);
-            stamp[24] = '\0';
-            debug_fn("(%s) [%s] [ldb] (%d): %s\n",
-                     stamp, debug_prg_name, loglevel, message);
-        } else {
-            debug_fn("[%s] [ldb] (%d): %s\n",
-                     debug_prg_name, loglevel, message);
-        }
-    }
+    DEBUG_MSG(loglevel, "ldb", message);
+
     free(message);
 }
 

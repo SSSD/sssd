@@ -463,13 +463,15 @@ int server_setup(const char *name, int flags,
         /* set debug level if any in conf_entry */
         ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
                              CONFDB_SERVICE_DEBUG_LEVEL,
-                             SSS_DEFAULT_DEBUG_LEVEL,
+                             SSSDBG_DEFAULT,
                              &debug_level);
         if (ret != EOK) {
             DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
                       ret, strerror(ret)));
             return ret;
         }
+
+        debug_level = debug_convert_old_level(debug_level);
     }
 
     /* same for debug timestamps */

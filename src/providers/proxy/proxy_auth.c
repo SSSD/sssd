@@ -240,7 +240,7 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
     state->child_ctx = child_ctx;
 
     state->command = talloc_asprintf(req,
-            "%s/proxy_child -d %d%s%s --domain %s --id %d",
+            "%s/proxy_child -d %#.4x%s%s --domain %s --id %d",
             SSSD_LIBEXEC_PATH, debug_level,
             (debug_timestamps ? "" : " --debug-timestamps=0"),
             (debug_to_file ? " --debug-to-files" : ""),

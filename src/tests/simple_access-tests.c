@@ -162,6 +162,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
+    debug_level = debug_convert_old_level(debug_level);
 
     Suite *s = access_simple_suite();
     SRunner *sr = srunner_create(s);

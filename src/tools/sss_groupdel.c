@@ -61,7 +61,7 @@ int main(int argc, const char **argv)
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
-    debug_level = pc_debug;
+    debug_level = debug_convert_old_level(pc_debug);
 
     pc_groupname = poptGetArg(pc);
     if (pc_groupname == NULL) {

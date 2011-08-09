@@ -121,19 +121,7 @@ static void sss_semanage_error_callback(void *varg,
         return;
     }
 
-    if (level <= debug_level) {
-        if (debug_timestamps) {
-            time_t rightnow = time(NULL);
-            char stamp[25];
-            memcpy(stamp, ctime(&rightnow), 24);
-            stamp[24] = '\0';
-            debug_fn("(%s) [%s] [libsemanage] (%d): %s\n",
-                     stamp, debug_prg_name, level, message);
-        } else {
-            debug_fn("[%s] [libsemanage] (%d): %s\n",
-                     debug_prg_name, level, message);
-        }
-    }
+    DEBUG_MSG(level, "libsemanage", message);
     free(message);
 }
 

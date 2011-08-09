@@ -790,7 +790,7 @@ int main(int argc, const char *argv[])
         }
     }
     poptFreeContext(pc);
-    debug_level = debug;
+    debug_level = debug_convert_old_level(debug);
 
     if (!use_net_test) {
         printf("Network tests disabled. Rerun with the \"-n\" "

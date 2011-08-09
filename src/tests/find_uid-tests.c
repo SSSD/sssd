@@ -114,7 +114,7 @@ Suite *find_uid_suite (void)
 
 int main(void)
 {
-    debug_level = 255;
+    debug_level = SSSDBG_MASK_ALL;
     int number_failed;
 
     tests_set_cwd();

@@ -507,6 +507,7 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    debug_level = debug_convert_old_level(debug_level);
 
     /* set up things like debug , signals, daemonization, etc... */
     debug_log_file = talloc_asprintf(NULL, "proxy_child_%s", domain);

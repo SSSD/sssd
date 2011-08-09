@@ -226,7 +226,7 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
         }
     }
 
-    if (debug_level >= 8) {
+    if (DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
 #ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
         fd = dbus_watch_get_unix_fd(dbus_watch);
 #else
