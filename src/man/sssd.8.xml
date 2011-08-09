@@ -46,13 +46,7 @@
                     <option>-d</option>,<option>--debug-level</option>
                     <replaceable>LEVEL</replaceable>
                 </term>
-                <listitem>
-                    <para>
-                        Debug level to run the daemon with. 0 is the default as well
-                        as the lowest allowed value, 10 is the most verbose mode. This setting
-                        overrides the settings from config file. This parameter implies <option>-i</option>.
-                    </para>
-                </listitem>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
             </varlistentry>
             <varlistentry>
                 <term>

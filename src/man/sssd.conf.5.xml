@@ -208,16 +208,7 @@
             <variablelist>
                 <varlistentry>
                     <term>debug_level (integer)</term>
-                    <listitem>
-                        <para>
-                            Sets the debug level for the service. The
-                            value can be in range from 0 (only critical
-                            messages) to 10 (very verbose).
-                        </para>
-                        <para>
-                            Default: 0
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
                 </varlistentry>
                 <varlistentry>
                     <term>debug_timestamps (bool)</term>
