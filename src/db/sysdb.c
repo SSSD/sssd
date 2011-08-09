@@ -794,6 +794,27 @@ static int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static int finish_upgrade(int result, struct ldb_context *ldb,
+                          const char *next_ver, const char **ver)
+{
+    int ret = result;
+
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(ldb);
+        ret = sysdb_error_to_errno(ret);
+        if (ret == EOK) {
+            *ver = next_ver;
+        }
+    }
+
+    if (ret != EOK) {
+        ret = ldb_transaction_cancel(ldb);
+        ret = sysdb_error_to_errno(ret);
+    }
+
+    return ret;
+}
+
 /* serach all groups that have a memberUid attribute.
  * change it into a member attribute for a user of same domain.
  * remove the memberUid attribute
@@ -937,18 +958,7 @@ static int sysdb_upgrade_01(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
-    if (ret != EOK) {
-        ldb_transaction_cancel(ldb);
-    } else {
-        ret = ldb_transaction_commit(ldb);
-        if (ret != LDB_SUCCESS) {
-            return EIO;
-        }
-
-        *ver = SYSDB_VERSION_0_2;
-    }
-
-    return ret;
+    return finish_upgrade(ret, ldb, SYSDB_VERSION_0_2, ver);
 }
 
 static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
@@ -1356,18 +1366,8 @@ static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    talloc_zfree(tmp_ctx);
-
-    if (ret != EOK) {
-        ret = ldb_transaction_cancel(ctx->ldb);
-    } else {
-        ret = ldb_transaction_commit(ctx->ldb);
-        *ver = SYSDB_VERSION_0_4;
-    }
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-    }
-
+    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_4, ver);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -1469,18 +1469,8 @@ static int sysdb_upgrade_04(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    talloc_zfree(tmp_ctx);
-
-    if (ret != EOK) {
-        ret = ldb_transaction_cancel(ctx->ldb);
-    } else {
-        ret = ldb_transaction_commit(ctx->ldb);
-        *ver = SYSDB_VERSION_0_5;
-    }
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-    }
-
+    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_5, ver);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -1577,18 +1567,8 @@ static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    talloc_zfree(tmp_ctx);
-
-    if (ret != EOK) {
-        ret = ldb_transaction_cancel(ctx->ldb);
-    } else {
-        ret = ldb_transaction_commit(ctx->ldb);
-        *ver = SYSDB_VERSION_0_6;
-    }
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-    }
-
+    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_6, ver);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -1673,18 +1653,8 @@ static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
     ret = EOK;
 
 done:
-    talloc_zfree(tmp_ctx);
-
-    if (ret != EOK) {
-        ret = ldb_transaction_cancel(ctx->ldb);
-    } else {
-        ret = ldb_transaction_commit(ctx->ldb);
-        *ver = SYSDB_VERSION_0_7;
-    }
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-    }
-
+    ret = finish_upgrade(ret, ctx->ldb, SYSDB_VERSION_0_7, ver);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
