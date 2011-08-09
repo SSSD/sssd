@@ -1920,12 +1920,12 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     }
 
 done:
+    talloc_free(tmp_ctx);
     if (ret == EOK) {
         *_ctx = ctx;
     } else {
         talloc_free(ctx);
     }
-    talloc_free(tmp_ctx);
     return ret;
 }
 
