@@ -84,6 +84,7 @@ if HAVE_CHECK
         simple_access-tests \
         crypto-tests \
         util-tests \
+        debug-tests \
         ipa_hbac-tests
 endif
 
@@ -715,6 +716,16 @@ util_tests_LDADD = \
     $(CHECK_LIBS) \
     libsss_util.la \
     libsss_test_common.la
+
+debug_tests_SOURCES = \
+    src/tests/debug-tests.c
+debug_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+debug_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    libsss_util.la
 
 crypto_tests_SOURCES = \
     $(SSS_CRYPT_SOURCES) \
