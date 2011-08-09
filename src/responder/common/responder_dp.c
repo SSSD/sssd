@@ -107,22 +107,24 @@ static int sss_dp_req_destructor(void *ptr)
     return 0;
 }
 
-static bool reconnect_handler(hash_entry_t *item, void *user_data)
-{
-    struct sss_dp_req *sdp_req = talloc_get_type(item->value.ptr,
-                                                 struct sss_dp_req);
-
-    return (talloc_free(sdp_req) == EOK ? true : false);
-}
-
 void handle_requests_after_reconnect(void)
 {
     int ret;
+    hash_value_t *values;
+    unsigned long count, i;
+    struct sss_dp_req *sdp_req;
 
-    ret = hash_iterate(dp_requests, reconnect_handler, NULL);
+    ret = hash_values(dp_requests, &count, &values);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("hash_iterate failed, "
+        DEBUG(1, ("hash_values failed, "
                   "not all request might be handled after reconnect.\n"));
+        return;
+    }
+
+    DEBUG(7, ("Will handle %lu requests after reconnect\n", count));
+    for (i=0; i<count; i++) {
+        sdp_req = talloc_get_type(values[i].ptr, struct sss_dp_req);
+        talloc_free(sdp_req);
     }
 }
 
