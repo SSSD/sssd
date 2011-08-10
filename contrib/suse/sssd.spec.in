@@ -176,6 +176,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_groupdel
 %{_sbindir}/sss_groupmod
 %{_sbindir}/sss_groupshow
+%{_sbindir}/sss_debuglevel
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so
@@ -202,6 +203,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_useradd.8*
 %{_mandir}/man8/sss_userdel.8*
 %{_mandir}/man8/sss_usermod.8*
+%{_mandir}/man8/sss_debuglevel.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*

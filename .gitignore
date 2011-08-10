@@ -52,6 +52,7 @@ sss_useradd
 sss_userdel
 sss_usermod
 sss_groupshow
+sss_debuglevel
 sssd
 sssd_be
 sssd_dp

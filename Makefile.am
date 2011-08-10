@@ -59,7 +59,8 @@ sbin_PROGRAMS = \
     sss_usermod \
     sss_groupmod \
     sss_groupshow \
-    sss_cache
+    sss_cache \
+    sss_debuglevel
 
 sssdlibexec_PROGRAMS = \
     sssd_nss \
@@ -509,6 +510,13 @@ sss_cache_SOURCES = \
     src/tools/sss_cache.c \
     $(SSSD_TOOLS_OBJ)
 sss_cache_LDADD = \
+    libsss_util.la \
+    $(TOOLS_LIBS)
+
+sss_debuglevel_SOURCES = \
+    src/tools/sss_debuglevel.c \
+    $(SSSD_TOOLS_OBJ)
+sss_debuglevel_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
 
