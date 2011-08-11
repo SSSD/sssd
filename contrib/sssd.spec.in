@@ -193,6 +193,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 
 # Copy SSSDConfig API files
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
+touch $RPM_BUILD_ROOT/%{_sysconfdir}/sssd/sssd.conf
 install -m444 src/config/etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
 install -m444 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
 
