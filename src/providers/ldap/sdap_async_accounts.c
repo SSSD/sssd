@@ -3269,7 +3269,7 @@ static struct tevent_req *sdap_nested_group_process_send(
     key.type = HASH_KEY_STRING;
 
     ret = sysdb_attrs_primary_name(sysdb, group,
-                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                   opts->group_map[SDAP_AT_GROUP_NAME].sys_name,
                                    &groupname);
     if (ret != EOK) {
         goto immediate;
@@ -3291,7 +3291,7 @@ static struct tevent_req *sdap_nested_group_process_send(
     }
 
     ret = sysdb_attrs_get_uint32_t(group,
-                                   opts->group_map[SDAP_AT_GROUP_GID].name,
+                                   opts->group_map[SDAP_AT_GROUP_GID].sys_name,
                                    &gid);
     if (ret == ENOENT || (ret == EOK && gid == 0)) {
         DEBUG(9, ("The group's gid was %s\n", ret == ENOENT ? "missing" : "zero"));
@@ -3299,7 +3299,7 @@ static struct tevent_req *sdap_nested_group_process_send(
 
         if (ret == ENOENT) {
             ret = sysdb_attrs_add_uint32(group,
-                                      opts->group_map[SDAP_AT_GROUP_GID].name,
+                                      opts->group_map[SDAP_AT_GROUP_GID].sys_name,
                                       0);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to add a GID to non-posix group!\n"));
