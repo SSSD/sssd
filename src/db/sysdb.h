@@ -185,7 +185,7 @@ struct sysdb_attrs {
 };
 
 /* sysdb_attrs helper functions */
-struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx);
+struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx);
 
 /* values are copied in the structure, allocated on "attrs" */
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
@@ -240,30 +240,30 @@ errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
 int sysdb_error_to_errno(int ldberr);
 
 /* DNs related helper functions */
-errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, void *memctx,
+errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, void *mem_ctx,
                       const char *_dn, char **_name, char **_val);
-struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                              const char *domain, const char *name);
-struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                               const char *domain, const char *name);
-struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                                  const char *domain, const char *name);
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                                       const char *domain);
-errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, void *memctx,
+errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, void *mem_ctx,
                             const char *dn_str, char **name);
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                                const char *domain);
-struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                                 const char *domain, const char *object_name,
                                 const char *subtree_name);
-struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, void *memctx,
+struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
                                        const char *domain,
                                        const char *subtree_name);
 
-char *sysdb_user_strdn(TALLOC_CTX *memctx,
+char *sysdb_user_strdn(TALLOC_CTX *mem_ctx,
                        const char *domain, const char *name);
-char *sysdb_group_strdn(TALLOC_CTX *memctx,
+char *sysdb_group_strdn(TALLOC_CTX *mem_ctx,
                         const char *domain, const char *name);
 
 
@@ -661,7 +661,7 @@ int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
 int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
                           const char *name);
 
-errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
+errno_t sysdb_attrs_to_list(TALLOC_CTX *mem_ctx,
                             struct sysdb_attrs **attrs,
                             int attr_count,
                             const char *attr_name,

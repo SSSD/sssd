@@ -32,31 +32,31 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    const char *name,
                    struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     char *sanitized_name;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_USER_BASE, sysdb->domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmpctx, name, &sanitized_name);
+    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_PWNAM_FILTER,
                      sanitized_name);
     if (ret) {
@@ -67,7 +67,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -76,26 +76,26 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    uid_t uid,
                    struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     unsigned long int ul_uid = uid;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_USER_BASE, sysdb->domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_PWUID_FILTER, ul_uid);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
@@ -105,7 +105,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -113,25 +113,25 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
                     struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_USER_BASE, sysdb->domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_PWENT_FILTER);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
@@ -141,7 +141,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -194,7 +194,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    const char *name,
                    struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *fmt_filter;
     char *sanitized_name;
@@ -202,18 +202,18 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
     if (sysdb->mpg) {
         fmt_filter = SYSDB_GRNAM_MPG_FILTER;
-        base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+        base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_DOM_BASE, sysdb->domain->name);
     } else {
         fmt_filter = SYSDB_GRNAM_FILTER;
-        base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+        base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
     }
     if (!base_dn) {
@@ -221,12 +221,12 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmpctx, name, &sanitized_name);
+    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, fmt_filter,
                      sanitized_name);
     if (ret) {
@@ -242,7 +242,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -251,7 +251,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    gid_t gid,
                    struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     unsigned long int ul_gid = gid;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *fmt_filter;
@@ -259,18 +259,18 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
     if (sysdb->mpg) {
         fmt_filter = SYSDB_GRGID_MPG_FILTER;
-        base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+        base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_DOM_BASE, sysdb->domain->name);
     } else {
         fmt_filter = SYSDB_GRGID_FILTER;
-        base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+        base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
     }
     if (!base_dn) {
@@ -278,7 +278,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
@@ -293,7 +293,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -301,25 +301,25 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
                     struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *fmt_filter;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
     if (sysdb->mpg) {
         fmt_filter = SYSDB_GRENT_MPG_FILTER;
-        base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+        base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_DOM_BASE, sysdb->domain->name);
     } else {
         fmt_filter = SYSDB_GRENT_FILTER;
-        base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+        base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
     }
     if (!base_dn) {
@@ -327,7 +327,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, fmt_filter);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
@@ -342,7 +342,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -351,7 +351,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      const char *name,
                      struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     struct ldb_dn *user_dn;
     struct ldb_request *req;
@@ -360,12 +360,12 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
     static const char *attrs[] = SYSDB_INITGR_ATTRS;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    ret = sysdb_getpwnam(tmpctx, sysdb, name, &res);
+    ret = sysdb_getpwnam(tmp_ctx, sysdb, name, &res);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_getpwnam failed: [%d][%s]\n",
                   ret, strerror(ret)));
@@ -392,7 +392,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
      * change so it is ok to already have a result (from the getpwnam)
      * even before we call the next search */
 
-    ctrl = talloc_array(tmpctx, struct ldb_control *, 2);
+    ctrl = talloc_array(tmp_ctx, struct ldb_control *, 2);
     if (!ctrl) {
         ret = ENOMEM;
         goto done;
@@ -419,7 +419,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
     control->src_attr_len = strlen(control->source_attribute);
     ctrl[0]->data = control;
 
-    ret = ldb_build_search_req(&req, sysdb->ldb, tmpctx,
+    ret = ldb_build_search_req(&req, sysdb->ldb, tmp_ctx,
                                user_dn, LDB_SCOPE_BASE,
                                SYSDB_INITGR_FILTER, attrs, ctrl,
                                res, ldb_search_default_callback,
@@ -441,7 +441,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -451,30 +451,30 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         const char **attributes,
                         struct ldb_result **_res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     char *sanitized_name;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_USER_BASE, sysdb->domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmpctx, name, &sanitized_name);
+    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &res, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
                      SYSDB_PWNAM_FILTER, sanitized_name);
     if (ret) {
@@ -485,7 +485,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     *_res = talloc_steal(mem_ctx, res);
 
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -805,30 +805,30 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             const char **attributes,
                             struct ldb_result **res)
 {
-    TALLOC_CTX *tmpctx;
+    TALLOC_CTX *tmp_ctx;
     struct ldb_dn *base_dn;
     struct ldb_result *result;
     char *sanitized_netgroup;
     int ret;
 
-    tmpctx = talloc_new(NULL);
-    if (!tmpctx) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_NETGROUP_BASE, sysdb->domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmpctx, netgrname, &sanitized_netgroup);
+    ret = sss_filter_sanitize(tmp_ctx, netgrname, &sanitized_netgroup);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmpctx, &result, base_dn,
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
                      SYSDB_NETGR_FILTER,
                      sanitized_netgroup);
@@ -839,6 +839,6 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
 
     *res = talloc_steal(mem_ctx, result);
 done:
-    talloc_zfree(tmpctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
