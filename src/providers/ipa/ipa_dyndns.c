@@ -646,10 +646,8 @@ ipa_dyndns_update_get_addrs_done(struct tevent_req *subreq)
         /* If the resolver is set to honor both address families
          * retry the second one
          */
-        if (((state->family_order == IPV4_FIRST &&
-              rhostent->family == AF_INET) ||
-            (state->family_order == IPV6_FIRST &&
-             rhostent->family == AF_INET6))) {
+        if (state->family_order == IPV4_FIRST ||
+            state->family_order == IPV6_FIRST) {
 
             state->family_order = (state->family_order == IPV4_FIRST) ? \
                                    IPV6_ONLY : IPV4_ONLY;
