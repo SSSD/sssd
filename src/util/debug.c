@@ -43,11 +43,14 @@ FILE *debug_file = NULL;
 errno_t set_debug_file_from_fd(const int fd)
 {
     FILE *dummy;
+    errno_t ret;
 
+    errno = 0;
     dummy = fdopen(fd, "a");
     if (dummy == NULL) {
-        DEBUG(1, ("fdopen failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+        ret = errno;
+        DEBUG(1, ("fdopen failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
     }
 
     debug_file = dummy;
