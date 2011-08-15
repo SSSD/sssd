@@ -89,6 +89,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     struct tevent_req *subreq;
     struct sdap_connect_state *state;
     int ret;
+    int timeout;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -112,8 +113,11 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     state->sh->page_size = dp_opt_get_int(state->opts->basic,
                                           SDAP_PAGE_SIZE);
 
+    timeout = dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT);
+
     subreq = sss_ldap_init_send(state, ev, uri, sockaddr,
-                                sizeof(struct sockaddr_storage));
+                                sizeof(struct sockaddr_storage),
+                                timeout);
     if (subreq == NULL) {
         ret = ENOMEM;
         DEBUG(1, ("sss_ldap_init_send failed.\n"));
