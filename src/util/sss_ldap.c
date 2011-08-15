@@ -293,12 +293,19 @@ static errno_t set_fd_flags_and_opts(int fd)
 extern int ldap_init_fd(ber_socket_t fd, int proto, const char *url, LDAP **ld);
 
 static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq);
+static void sdap_async_sys_connect_timeout(struct tevent_context *ev,
+                                           struct tevent_timer *te,
+                                           struct timeval tv, void *pvt);
 #endif
 
 struct sss_ldap_init_state {
     LDAP *ldap;
     int sd;
     const char *uri;
+
+#ifdef HAVE_LDAP_INIT_FD
+    struct tevent_timer *connect_timeout;
+#endif
 };
 
 
@@ -306,7 +313,7 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
                                       const char *uri,
                                       struct sockaddr_storage *addr,
-                                      int addr_len)
+                                      int addr_len, int timeout)
 {
     int ret = EOK;
     struct tevent_req *req;
@@ -323,6 +330,7 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
 
 #ifdef HAVE_LDAP_INIT_FD
     struct tevent_req *subreq;
+    struct timeval tv;
 
     state->sd = socket(addr->ss_family, SOCK_STREAM, 0);
     if (state->sd == -1) {
@@ -344,6 +352,18 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
     if (subreq == NULL) {
         ret = ENOMEM;
         DEBUG(1, ("sdap_async_sys_connect_send failed.\n"));
+        goto fail;
+    }
+
+    DEBUG(6, ("Setting %d seconds timeout for connecting\n", timeout));
+    tv = tevent_timeval_current_ofs(timeout, 0);
+
+    state->connect_timeout = tevent_add_timer(ev, subreq, tv,
+                                              sdap_async_sys_connect_timeout,
+                                              subreq);
+    if (state->connect_timeout == NULL) {
+        DEBUG(1, ("tevent_add_timer failed.\n"));
+        ret = ENOMEM;
         goto fail;
     }
 
@@ -377,6 +397,18 @@ fail:
 }
 
 #ifdef HAVE_LDAP_INIT_FD
+static void sdap_async_sys_connect_timeout(struct tevent_context *ev,
+                                           struct tevent_timer *te,
+                                           struct timeval tv, void *pvt)
+{
+    struct tevent_req *connection_request;
+
+    DEBUG(4, ("The LDAP connection timed out\n"));
+
+    connection_request = talloc_get_type(pvt, struct tevent_req);
+    tevent_req_error(connection_request, ETIMEDOUT);
+}
+
 static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -385,6 +417,8 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
                                                     struct sss_ldap_init_state);
     int ret;
     int lret;
+
+    talloc_zfree(state->connect_timeout);
 
     ret = sdap_async_sys_connect_recv(subreq);
     talloc_zfree(subreq);
