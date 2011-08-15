@@ -53,7 +53,7 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
                                       const char *uri,
                                       struct sockaddr_storage *addr,
-                                      int addr_len);
+                                      int addr_len, int timeout);
 
 int sss_ldap_init_recv(struct tevent_req *req, LDAP **ldap, int *sd);
 #endif /* __SSS_LDAP_H__ */
