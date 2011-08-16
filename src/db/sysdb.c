@@ -2131,9 +2131,10 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
          * We have no way of resolving this deterministically,
          * so we'll punt.
          */
-        DEBUG(1, ("Cannot save entry. It has multiple names and the RDN "
-                  "attribute does not match\n"));
-        ret = EINVAL;
+        DEBUG(3, ("The entry has multiple names and the RDN attribute does "
+                  "not match. Will use the first value as fallback.\n"));
+        *_primary = (const char *)sysdb_name_el->values[0].data;
+        ret = EOK;
         goto done;
     }
 
