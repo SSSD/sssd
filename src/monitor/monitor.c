@@ -56,6 +56,7 @@
 #define MONITOR_DEF_PING_TIME 10
 
 int cmdline_debug_level;
+int cmdline_debug_timestamps;
 
 struct svc_spy;
 
@@ -943,33 +944,42 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     }
 
     if (!svc->command) {
-        if (cmdline_debug_level == SSSDBG_UNRESOLVED) {
-            svc->command = talloc_asprintf(svc, "%s/sssd_%s %s%s",
-                                           SSSD_LIBEXEC_PATH,
-                                           svc->name,
-                                           debug_timestamps?
-                                                  "": "--debug-timestamps=0 ",
-                                           debug_to_file?
-                                                  "--debug-to-files":"");
-        } else {
-            /* If the debug level was specified at the command-line,
-             * make sure to pass it into the children, overriding the
-             * config file.
-             */
-            svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %#.4x%s%s",
-                                           SSSD_LIBEXEC_PATH,
-                                           svc->name,
-                                           cmdline_debug_level,
-                                           debug_timestamps ?
-                                               "" :
-                                               " --debug-timestamps=0",
-                                           debug_to_file ?
-                                               " --debug-to-files" :
-                                               "");
-        }
+        svc->command = talloc_asprintf(
+            svc, "%s/sssd_%s", SSSD_LIBEXEC_PATH, svc->name
+        );
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
+        }
+
+        if (cmdline_debug_level != SSSDBG_UNRESOLVED) {
+            svc->command = talloc_asprintf_append(
+                svc->command, " -d %#.4x", cmdline_debug_level
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        }
+
+        if (cmdline_debug_timestamps != SSSDBG_TIMESTAMP_UNRESOLVED) {
+            svc->command = talloc_asprintf_append(
+                svc->command, " --debug-timestamps=%d", cmdline_debug_timestamps
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        }
+
+        if (debug_to_file) {
+            svc->command = talloc_strdup_append(
+                svc->command, " --debug-to-files"
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
         }
     }
 
@@ -1089,28 +1099,42 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
 
     /* if there are no custom commands, build a default one */
     if (!svc->command) {
-        if (cmdline_debug_level == SSSDBG_UNRESOLVED) {
-            svc->command = talloc_asprintf(svc,
-                                "%s/sssd_be --domain %s%s%s",
-                                SSSD_LIBEXEC_PATH,
-                                svc->name,
-                                debug_timestamps ? ""
-                                                 : " --debug-timestamps=0",
-                                debug_to_file ? " --debug-to-files" : "");
-        } else {
-            svc->command = talloc_asprintf(svc,
-                                "%s/sssd_be --domain %s -d %#.4x%s%s ",
-                                SSSD_LIBEXEC_PATH,
-                                svc->name,
-                                cmdline_debug_level,
-                                debug_timestamps ? ""
-                                                 : " --debug-timestamps=0",
-                                debug_to_file ? " --debug-to-files" : "");
-        }
-
+        svc->command = talloc_asprintf(
+            svc, "%s/sssd_be --domain %s", SSSD_LIBEXEC_PATH, svc->name
+        );
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
+        }
+
+        if (cmdline_debug_level != SSSDBG_UNRESOLVED) {
+            svc->command = talloc_asprintf_append(
+                svc->command, " -d %#.4x", cmdline_debug_level
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        }
+
+        if (cmdline_debug_timestamps != SSSDBG_TIMESTAMP_UNRESOLVED) {
+            svc->command = talloc_asprintf_append(
+                svc->command, " --debug-timestamps=%d", cmdline_debug_timestamps
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        }
+
+        if (debug_to_file) {
+            svc->command = talloc_strdup_append(
+                svc->command, " --debug-to-files"
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
         }
     }
 
@@ -2337,10 +2361,11 @@ int main(int argc, const char *argv[])
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
-    /* If the level was passed at the command-line, we want
+    /* If the level or timestamps was passed at the command-line, we want
      * to save it and pass it to the children later.
      */
     cmdline_debug_level = debug_level;
+    cmdline_debug_timestamps = debug_timestamps;
 
     if (opt_daemon && opt_interactive) {
         fprintf(stderr, "Option -i|--interactive is not allowed together with -D|--daemon\n");
