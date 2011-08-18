@@ -725,6 +725,40 @@ done:
     return ret;
 }
 
+static const char *
+sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
+{
+    char *krb5_realm = NULL;
+    const char *realm;
+    krb5_error_code krberr;
+    krb5_context context = NULL;
+
+    krberr = krb5_init_context(&context);
+    if (krberr) {
+        DEBUG(2, ("Failed to init kerberos context\n"));
+        goto done;
+    }
+
+    krberr = krb5_get_default_realm(context, &krb5_realm);
+    if (krberr) {
+        DEBUG(2, ("Failed to get default realm name: %s\n",
+                  sss_krb5_get_error_message(context, krberr)));
+        goto done;
+    }
+
+    realm = talloc_strdup(mem_ctx, krb5_realm);
+    krb5_free_default_realm(context, krb5_realm);
+    if (!realm) {
+        DEBUG(0, ("Out of memory\n"));
+        goto done;
+    }
+
+    DEBUG(7, ("Will use default realm %s\n", realm));
+done:
+    if (context) krb5_free_context(context);
+    return realm;
+}
+
 int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
                      struct dp_option *opts,
                      struct be_ctx *bectx,
@@ -734,16 +768,33 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     int ret;
     const char *krb5_servers;
     const char *krb5_realm;
+    const char *krb5_opt_realm;
     struct krb5_service *service = NULL;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) return ENOMEM;
 
     krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDC);
     if (krb5_servers == NULL) {
         DEBUG(1, ("Missing krb5_server option, using service discovery!\n"));
     }
 
-    krb5_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
-    if (krb5_realm == NULL) {
-        DEBUG(0, ("Missing krb5_realm option, will use libkrb default\n"));
+    krb5_opt_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
+    if (krb5_opt_realm == NULL) {
+        DEBUG(2, ("Missing krb5_realm option, will use libkrb default\n"));
+        krb5_realm = sdap_gssapi_get_default_realm(tmp_ctx);
+        if (krb5_realm == NULL) {
+            DEBUG(0, ("Cannot determine the Kerberos realm, aborting\n"));
+            ret = EIO;
+            goto done;
+        }
+    } else {
+        krb5_realm = talloc_strdup(tmp_ctx, krb5_opt_realm);
+        if (krb5_realm == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     ret = krb5_service_init(mem_ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
@@ -776,6 +827,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     ret = EOK;
     *krb5_service = service;
 done:
+    talloc_free(tmp_ctx);
     if (ret != EOK) talloc_free(service);
     return ret;
 }
