@@ -2492,7 +2492,12 @@ static void sdap_nested_group_process_group(struct tevent_req *subreq)
 
 skip:
     if (state->derefctx) {
-        state->derefctx->expired_groups_index++;
+        if (state->derefctx->expired_groups_index <
+            state->derefctx->expired_groups_num) {
+            state->derefctx->expired_groups_index++;
+        } else {
+            state->derefctx->missing_dns_index++;
+        }
         ret = sdap_nested_group_process_noderef(req);
     } else {
         state->member_index++;
