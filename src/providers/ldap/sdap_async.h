@@ -152,7 +152,7 @@ int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);
 
-bool sdap_has_deref_support(struct sdap_handle *sh);
+bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts);
 
 struct tevent_req *
 sdap_deref_search_send(TALLOC_CTX *memctx,

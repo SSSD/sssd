@@ -1819,13 +1819,19 @@ int sdap_deref_search_recv(struct tevent_req *req,
     return EOK;
 }
 
-bool sdap_has_deref_support(struct sdap_handle *sh)
+bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
 {
     const char *deref_oids[][2] = { { LDAP_SERVER_ASQ_OID, "ASQ" },
                                     { LDAP_CONTROL_X_DEREF, "OpenLDAP" },
                                     { NULL, NULL }
                                   };
     int i;
+    int deref_threshold;
+
+    deref_threshold = dp_opt_get_int(opts->basic, SDAP_DEREF_THRESHOLD);
+    if (deref_threshold == 0) {
+        return false;
+    }
 
     for (i=0; deref_oids[i][0]; i++) {
         if (sdap_is_control_supported(sh, deref_oids[i][0])) {

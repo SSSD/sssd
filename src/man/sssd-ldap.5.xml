@@ -934,6 +934,10 @@
                             they are looked up individually.
                         </para>
                         <para>
+                            You can turn off dereference lookups completely by
+                            setting the value to 0.
+                        </para>
+                        <para>
                             A dereference lookup is a means of fetching all
                             group members in a single LDAP call.
                             Different LDAP servers may implement different

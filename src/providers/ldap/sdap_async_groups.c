@@ -1751,7 +1751,7 @@ static struct tevent_req *sdap_nested_group_process_send(
 
     state->member_index = 0;
 
-    if (sdap_has_deref_support(state->sh)) {
+    if (sdap_has_deref_support(state->sh, state->opts)) {
         state->derefctx = talloc_zero(state, struct sdap_deref_ctx);
         if (!state->derefctx) goto immediate;
 
