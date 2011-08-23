@@ -24,6 +24,7 @@
 #include <talloc.h>
 #include <tevent.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #define __USE_GNU /* needed for struct ucred */
 #include <sys/socket.h>
 #include <unistd.h>
@@ -36,6 +37,7 @@
 #include <linux/if.h>
 #include <linux/socket.h>
 #include <linux/rtnetlink.h>
+#include <linux/wireless.h>
 #include <netlink/netlink.h>
 #include <netlink/utils.h>
 #include <netlink/route/addr.h>
@@ -55,6 +57,14 @@
 #define nlw_object_match nl_object_match_filter
 #define NLW_OK NL_OK
 
+#define SYSFS_IFACE_TEMPLATE "/sys/class/net/%s/type"
+#define SYSFS_IFACE_PATH_MAX (21+IFNAMSIZ)
+
+#define PHY_80211_SUBDIR   "phy80211"
+#define SYSFS_SUBDIR_PATH_MAX (SYSFS_IFACE_PATH_MAX+9)
+
+#define BUFSIZE 8
+
 struct netlink_ctx {
 #ifdef HAVE_LIBNL
     struct nl_handle *nlh;
@@ -73,6 +83,141 @@ static int netlink_ctx_destructor(void *ptr)
 
     nl_handle_destroy(nlctx->nlh);
     return 0;
+}
+
+/*******************************************************************
+ *                      Utility functions
+ *******************************************************************/
+
+static bool has_wireless_extension(const char *ifname)
+{
+    int s;
+    errno_t ret;
+    struct iwreq iwr;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s == -1) {
+        ret = errno;
+        DEBUG(2, ("Could not open socket: [%d] %s\n", ret, strerror(ret)));
+        return false;
+    }
+
+    strncpy(iwr.ifr_ifrn.ifrn_name, ifname, IFNAMSIZ);
+    /* Does the interface support a wireless extension? */
+    ret = ioctl(s, SIOCGIWNAME, &iwr);
+    close(s);
+
+    return ret == 0;
+}
+
+static bool has_ethernet_encapsulation(const char *sysfs_path)
+{
+    errno_t ret;
+    int fd = -1;
+    char buf[BUFSIZE];
+
+    fd = open(sysfs_path, O_RDONLY);
+    if (fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not open sysfs file %s: [%d] %s\n",
+              sysfs_path, ret, strerror(ret)));
+        return false;
+    }
+
+    memset(buf, 0, BUFSIZE);
+    while ((ret = read(fd, buf, BUFSIZE)) != 0) {
+        if (ret == -1) {
+            ret = errno;
+            if (ret == EINTR || ret == EAGAIN) {
+                continue;
+            }
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("read failed [%d][%s].\n", ret, strerror(ret)));
+            close(fd);
+            return false;
+        }
+    }
+    close(fd);
+
+    return strncmp(buf, "1\n", BUFSIZE) == 0;
+}
+
+static bool has_phy_80211_subdir(const char *sysfs_path)
+{
+    char phy80211_path[SYSFS_IFACE_PATH_MAX];
+    struct stat statbuf;
+    errno_t ret;
+
+    ret = snprintf(phy80211_path, SYSFS_SUBDIR_PATH_MAX,
+                   "%s/%s", sysfs_path, PHY_80211_SUBDIR);
+    if (ret < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("snprintf failed"));
+        return false;
+    } else if (ret >= SYSFS_SUBDIR_PATH_MAX) {
+        DEBUG(SSSDBG_OP_FAILURE, ("path too long?!?!\n"));
+        return false;
+    }
+
+    errno = 0;
+    ret = stat(phy80211_path, &statbuf);
+    if (ret == -1) {
+        ret = errno;
+        if (ret == ENOENT || ret == ENOTDIR) {
+            DEBUG(SSSDBG_TRACE_LIBS, ("No %s directory in sysfs, probably "
+                  "not a wireless interface\n", PHY_80211_SUBDIR));
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, ("stat failed: [%d] %s\n",
+                  ret, strerror(ret)));
+        }
+        return false;
+    }
+
+    if (statbuf.st_mode & S_IFDIR) {
+        DEBUG(SSSDBG_TRACE_LIBS, ("Directory %s found in sysfs, looks like "
+              "a wireless iface\n", PHY_80211_SUBDIR));
+        return true;
+    }
+
+    return false;
+}
+
+static bool discard_iff_up(const char *ifname)
+{
+    char path[SYSFS_IFACE_PATH_MAX];
+    errno_t ret;
+
+    /* This catches most of the new 80211 drivers */
+    if (has_wireless_extension(ifname)) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("%s has a wireless extension\n", ifname));
+        return true;
+    }
+
+    ret = snprintf(path, SYSFS_IFACE_PATH_MAX, SYSFS_IFACE_TEMPLATE, ifname);
+    if (ret < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("snprintf failed"));
+        return false;
+    } else if (ret >= SYSFS_IFACE_PATH_MAX) {
+        DEBUG(SSSDBG_OP_FAILURE, ("path too long?!?!\n"));
+        return false;
+    }
+
+    /* This will filter PPP and such. Both wired and wireless
+     * interfaces have the encapsulation. */
+    if (!has_ethernet_encapsulation(path)) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("%s does not have ethernet encapsulation, "
+              "filtering out\n", ifname));
+        return true;
+    }
+
+    /* This captures old WEXT drivers, the new mac8011 would
+     * be caught by the ioctl check */
+    if (has_phy_80211_subdir(path)) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("%s has a 802_11 subdir, filtering out\n",
+              ifname));
+        return true;
+    }
+
+    return false;
 }
 
 /*******************************************************************
@@ -237,8 +382,10 @@ static void link_msg_handler(struct nl_object *obj, void *arg)
 {
     struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
     struct rtnl_link *link_obj;
-    int flags;
+    unsigned int flags;
+    char str_flags[512];
     int ifidx;
+    const char *ifname;
 
     if (!nlw_is_link_object(obj)) return;
 
@@ -246,10 +393,15 @@ static void link_msg_handler(struct nl_object *obj, void *arg)
     flags = rtnl_link_get_flags(link_obj);
     ifidx = rtnl_link_get_ifindex(link_obj);
 
-    DEBUG(8, ("netlink link message: iface idx %d flags 0x%X\n", ifidx, flags));
+    rtnl_link_flags2str(flags, str_flags, 512);
+
+    ifname = rtnl_link_get_name(link_obj);
+    DEBUG(SSSDBG_TRACE_LIBS, ("netlink link message: iface idx %u (%s) "
+          "flags 0x%X (%s)\n", ifidx, ifname, flags, str_flags));
 
     /* IFF_LOWER_UP is the indicator of carrier status */
-    if (flags & IFF_LOWER_UP) {
+    if ((flags & IFF_RUNNING) && (flags & IFF_LOWER_UP) &&
+         !discard_iff_up(ifname)) {
         ctx->change_cb(ctx->cb_data);
     }
 }
