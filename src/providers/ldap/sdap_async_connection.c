@@ -151,6 +151,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     int ldap_deref_val;
     struct sdap_rebind_proc_params *rebind_proc_params;
     int sd;
+    bool sasl_nocanon;
 
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
@@ -258,6 +259,16 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
             goto fail;
         }
 
+    }
+
+    /* Set host name canonicalization for LDAP SASL bind */
+    sasl_nocanon = !dp_opt_get_bool(state->opts->basic, SDAP_SASL_CANONICALIZE);
+    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_NOCANON,
+                           sasl_nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF);
+    if (lret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to set LDAP SASL nocanon option to %s\n",
+                   sasl_nocanon ? "true" : "false"));
+        goto fail;
     }
 
     /* if we do not use start_tls the connection is not really connected yet

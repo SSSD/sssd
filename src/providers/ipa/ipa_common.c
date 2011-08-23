@@ -97,7 +97,8 @@ struct dp_option ipa_def_ldap_opts[] = {
      */
     { "ldap_auth_disable_tls_never_use_in_production", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_page_size", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
-    { "ldap_deref_threshold", DP_OPT_NUMBER, { .number = 10 }, NULL_NUMBER }
+    { "ldap_deref_threshold", DP_OPT_NUMBER, { .number = 10 }, NULL_NUMBER },
+    { "ldap_sasl_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
 };
 
 struct sdap_attr_map ipa_attr_map[] = {

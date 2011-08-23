@@ -199,6 +199,7 @@ enum sdap_basic_opt {
     SDAP_DISABLE_AUTH_TLS,
     SDAP_PAGE_SIZE,
     SDAP_DEREF_THRESHOLD,
+    SDAP_SASL_CANONICALIZE,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
