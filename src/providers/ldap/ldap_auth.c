@@ -278,8 +278,9 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
             }
         } else {
             DEBUG(1, ("No Kerberos password expiration attributes found, "
-                      "but MIT Kerberos password policy was requested.\n"));
-            return EINVAL;
+                      "but MIT Kerberos password policy was requested. "
+                      "Access will be denied.\n"));
+            return EACCES;
         }
     } else if (strcasecmp(pwd_policy, PWD_POL_OPT_SHADOW) == 0) {
         mark = ldb_msg_find_attr_as_string(msg, SYSDB_SHADOWPW_LASTCHANGE, NULL);
@@ -321,8 +322,9 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
             return EOK;
         } else {
             DEBUG(1, ("No shadow password attributes found, "
-                      "but shadow password policy was requested.\n"));
-            return EINVAL;
+                      "but shadow password policy was requested. "
+                      "Access will be denied.\n"));
+            return EACCES;
         }
     }
 
@@ -660,6 +662,9 @@ int auth_recv(struct tevent_req *req,
         case TEVENT_REQ_USER_ERROR:
             if (err == ETIMEDOUT) {
                 *result = SDAP_UNAVAIL;
+                return EOK;
+            } else if (err == EACCES) {
+                *result = SDAP_AUTH_FAILED;
                 return EOK;
             } else {
                 *result = SDAP_ERROR;
