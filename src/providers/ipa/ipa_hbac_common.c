@@ -186,17 +186,31 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                 goto done;
             }
 
-            lret = ldb_msg_add_empty(msg, SYSDB_MEMBER, LDB_FLAG_MOD_ADD, NULL);
-            if (lret != LDB_SUCCESS) {
-                ret = sysdb_error_to_errno(lret);
-                goto done;
-            }
-
             ret = sysdb_attrs_get_string_array(groups[i],
                                                SYSDB_ORIG_MEMBER,
                                                tmp_ctx,
                                                &orig_member_dns);
-            if (ret != EOK) {
+
+            if (ret == EOK) {
+                /* One or more members were detected, prep the LDB message */
+                lret = ldb_msg_add_empty(msg, SYSDB_MEMBER, LDB_FLAG_MOD_ADD, NULL);
+                if (lret != LDB_SUCCESS) {
+                    ret = sysdb_error_to_errno(lret);
+                    goto done;
+                }
+            } else if (ret == ENOENT) {
+                /* Useless group, has no members */
+                orig_member_dns = talloc_array(tmp_ctx, const char *, 1);
+                if (!orig_member_dns) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+
+                /* Just set the member list to zero length so we skip
+                 * processing it below
+                 */
+                orig_member_dns[0] = NULL;
+            } else {
                 DEBUG(1, ("Could not determine original members\n"));
                 goto done;
             }
