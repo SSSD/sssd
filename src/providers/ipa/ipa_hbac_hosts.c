@@ -257,7 +257,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     struct hbac_rule_element *new_hosts;
-    const char *attrs[] = { IPA_HOST_FQDN, NULL };
+    const char *attrs[] = { IPA_HOST_FQDN, IPA_CN, NULL };
     struct ldb_message_element *el;
     size_t num_hosts = 0;
     size_t num_hostgroups = 0;
@@ -351,7 +351,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                                IPA_HOST_FQDN,
                                                NULL);
             if (name == NULL) {
-                DEBUG(1, ("Attribute is missing!\n"));
+                DEBUG(1, ("FQDN is missing!\n"));
                 ret = EFAULT;
                 goto done;
             }
@@ -384,9 +384,9 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 }
 
                 /* Original DN matched a single group. Get the groupname */
-                name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
+                name = ldb_msg_find_attr_as_string(msgs[0], IPA_CN, NULL);
                 if (name == NULL) {
-                    DEBUG(1, ("Attribute is missing!\n"));
+                    DEBUG(1, ("Hostgroup name is missing!\n"));
                     ret = EFAULT;
                     goto done;
                 }
