@@ -86,7 +86,8 @@ struct dp_option default_basic_opts[] = {
      * manpages or SSSDConfig API
      */
     { "ldap_auth_disable_tls_never_use_in_production", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_page_size", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER }
+    { "ldap_page_size", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
+    { "ldap_sasl_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
 };
 
 struct sdap_attr_map generic_attr_map[] = {

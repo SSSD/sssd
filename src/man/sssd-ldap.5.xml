@@ -1020,6 +1020,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_sasl_canonicalize (boolean)</term>
+                    <listitem>
+                        <para>
+                            If set to true, the LDAP library would perform
+                            a reverse lookup to canonicalize the host name
+                            during a SASL bind.
+                        </para>
+                        <para>
+                            Default: false;
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_krb5_keytab (string)</term>
                     <listitem>
                         <para>
