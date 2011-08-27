@@ -44,8 +44,6 @@
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 
-#define SSS_NSS_PIPE_NAME "nss"
-
 #define DEFAULT_PWFIELD "*"
 
 #define SHELL_REALLOC_INCREMENT 5
