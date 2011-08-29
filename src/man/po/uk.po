@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.5.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2011-08-05 07:34-0300\n"
+"POT-Creation-Date: 2011-08-29 10:42-0300\n"
 "PO-Revision-Date: 2011-01-25 20:56+0200\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
@@ -132,7 +132,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><title>
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:72 sssd.conf.5.xml:1106 sssd-ldap.5.xml:1418
+#: sss_groupmod.8.xml:72 sssd.conf.5.xml:1106 sssd-ldap.5.xml:1432
 #: pam_sss.8.xml:128 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143
 #: sssd-ipa.5.xml:248 sssd.8.xml:166 sss_obfuscate.8.xml:103
 #: sss_useradd.8.xml:167 sssd-krb5.5.xml:424 sss_groupadd.8.xml:58
@@ -579,8 +579,8 @@ msgstr "Додати часову позначку до діагностични
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:229 sssd.conf.5.xml:353 sssd-ldap.5.xml:1044
-#: sssd-ldap.5.xml:1149 sssd-ipa.5.xml:155
+#: sssd.conf.5.xml:229 sssd.conf.5.xml:353 sssd-ldap.5.xml:1058
+#: sssd-ldap.5.xml:1163 sssd-ipa.5.xml:155
 msgid "Default: true"
 msgstr "Типове значення: true"
 
@@ -1827,7 +1827,7 @@ msgstr "Типове значення: None, не виконувати жодн�
 
 # type: Content of: <reference><refentry><refsect1><title>
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:1071 sssd-ldap.5.xml:1386 sssd-simple.5.xml:126
+#: sssd.conf.5.xml:1071 sssd-ldap.5.xml:1400 sssd-simple.5.xml:126
 #: sssd-ipa.5.xml:230 sssd-krb5.5.xml:405
 msgid "EXAMPLE"
 msgstr "ПРИКЛАД"
@@ -3164,7 +3164,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1003 sssd-ldap.5.xml:1131
+#: sssd-ldap.5.xml:1003 sssd-ldap.5.xml:1145
 msgid "Default: none"
 msgstr "Типове значення: none"
 
@@ -3191,30 +3191,53 @@ msgstr "Типове значення: вузол/комп’ютер.fqdn@ОБ�
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1023
+#, fuzzy
+#| msgid "ldap_krb5_init_creds (boolean)"
+msgid "ldap_sasl_canonicalize (boolean)"
+msgstr "ldap_krb5_init_creds (булеве значення)"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1026
+msgid ""
+"If set to true, the LDAP library would perform a reverse lookup to "
+"canonicalize the host name during a SASL bind."
+msgstr ""
+
+# type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1031
+#, fuzzy
+#| msgid "Default: false"
+msgid "Default: false;"
+msgstr "Типове значення: false"
+
+# type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ldap.5.xml:1037
 msgid "ldap_krb5_keytab (string)"
 msgstr "ldap_krb5_keytab (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1026
+#: sssd-ldap.5.xml:1040
 msgid "Specify the keytab to use when using SASL/GSSAPI."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1029
+#: sssd-ldap.5.xml:1043
 msgid "Default: System keytab, normally <filename>/etc/krb5.keytab</filename>"
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1035
+#: sssd-ldap.5.xml:1049
 msgid "ldap_krb5_init_creds (boolean)"
 msgstr "ldap_krb5_init_creds (булеве значення)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1038
+#: sssd-ldap.5.xml:1052
 msgid ""
 "Specifies that the id_provider should init Kerberos credentials (TGT).  This "
 "action is performed only if SASL is used and the mechanism selected is "
@@ -3223,31 +3246,31 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1050
+#: sssd-ldap.5.xml:1064
 msgid "ldap_krb5_ticket_lifetime (integer)"
 msgstr "ldap_krb5_ticket_lifetime (ціле число)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1053
+#: sssd-ldap.5.xml:1067
 msgid "Specifies the lifetime in seconds of the TGT if GSSAPI is used."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1057
+#: sssd-ldap.5.xml:1071
 msgid "Default: 86400 (24 hours)"
 msgstr "Типове значення: 86400 (24 години)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1063 sssd-krb5.5.xml:74
+#: sssd-ldap.5.xml:1077 sssd-krb5.5.xml:74
 msgid "krb5_server (string)"
 msgstr "krb5_server (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1066 sssd-krb5.5.xml:77
+#: sssd-ldap.5.xml:1080 sssd-krb5.5.xml:77
 msgid ""
 "Specifies the list of IP addresses or hostnames of the Kerberos servers to "
 "which SSSD should connect in the order of preference. For more information "
@@ -3258,7 +3281,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1078 sssd-krb5.5.xml:89
+#: sssd-ldap.5.xml:1092 sssd-krb5.5.xml:89
 msgid ""
 "When using service discovery for KDC or kpasswd servers, SSSD first searches "
 "for DNS entries that specify _udp as the protocol and falls back to _tcp if "
@@ -3267,7 +3290,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1083 sssd-krb5.5.xml:94
+#: sssd-ldap.5.xml:1097 sssd-krb5.5.xml:94
 msgid ""
 "This option was named <quote>krb5_kdcip</quote> in earlier releases of SSSD. "
 "While the legacy name is recognized for the time being, users are advised to "
@@ -3276,19 +3299,19 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1092 sssd-ipa.5.xml:165 sssd-krb5.5.xml:103
+#: sssd-ldap.5.xml:1106 sssd-ipa.5.xml:165 sssd-krb5.5.xml:103
 msgid "krb5_realm (string)"
 msgstr "krb5_realm (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1095
+#: sssd-ldap.5.xml:1109
 msgid "Specify the Kerberos REALM (for SASL/GSSAPI auth)."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1098
+#: sssd-ldap.5.xml:1112
 msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
 msgstr ""
 "Типове значення: типове значення системи, див. <filename>/etc/krb5.conf</"
@@ -3296,13 +3319,13 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1104
+#: sssd-ldap.5.xml:1118
 msgid "ldap_pwd_policy (string)"
 msgstr "ldap_pwd_policy (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1107
+#: sssd-ldap.5.xml:1121
 msgid ""
 "Select the policy to evaluate the password expiration on the client side. "
 "The following values are allowed:"
@@ -3310,7 +3333,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1112
+#: sssd-ldap.5.xml:1126
 msgid ""
 "<emphasis>none</emphasis> - No evaluation on the client side. This option "
 "cannot disable server-side password policies."
@@ -3318,7 +3341,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1117
+#: sssd-ldap.5.xml:1131
 msgid ""
 "<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
 "refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes to "
@@ -3328,7 +3351,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1125
+#: sssd-ldap.5.xml:1139
 msgid ""
 "<emphasis>mit_kerberos</emphasis> - Use the attributes used by MIT Kerberos "
 "to determine if the password has expired. Use chpass_provider=krb5 to update "
@@ -3337,19 +3360,19 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1137
+#: sssd-ldap.5.xml:1151
 msgid "ldap_referrals (boolean)"
 msgstr "ldap_referrals (булеве значення)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1140
+#: sssd-ldap.5.xml:1154
 msgid "Specifies whether automatic referral chasing should be enabled."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1144
+#: sssd-ldap.5.xml:1158
 msgid ""
 "Please note that sssd only supports referral chasing when it is compiled "
 "with OpenLDAP version 2.4.13 or higher."
@@ -3357,49 +3380,49 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1155
+#: sssd-ldap.5.xml:1169
 msgid "ldap_dns_service_name (string)"
 msgstr "ldap_dns_service_name (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1158
+#: sssd-ldap.5.xml:1172
 msgid "Specifies the service name to use when service discovery is enabled."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1162
+#: sssd-ldap.5.xml:1176
 msgid "Default: ldap"
 msgstr "Типове значення: ldap"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1168
+#: sssd-ldap.5.xml:1182
 msgid "ldap_chpass_dns_service_name (string)"
 msgstr "ldap_chpass_dns_service_name (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1171
+#: sssd-ldap.5.xml:1185
 msgid ""
 "Specifies the service name to use to find an LDAP server which allows "
 "password changes when service discovery is enabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1176
+#: sssd-ldap.5.xml:1190
 msgid "Default: not set, i.e. service discovery is disabled"
 msgstr "Типове значення: не встановлено, тобто пошук служб вимкнено"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1182
+#: sssd-ldap.5.xml:1196
 msgid "ldap_access_filter (string)"
 msgstr "ldap_access_filter (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1185
+#: sssd-ldap.5.xml:1199
 msgid ""
 "If using access_provider = ldap, this option is mandatory. It specifies an "
 "LDAP search filter criteria that must be met for the user to be granted "
@@ -3410,13 +3433,13 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1195
+#: sssd-ldap.5.xml:1209
 msgid "Example:"
 msgstr "Приклад:"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
-#: sssd-ldap.5.xml:1198
+#: sssd-ldap.5.xml:1212
 #, no-wrap
 msgid ""
 "access_provider = ldap\n"
@@ -3429,7 +3452,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1202
+#: sssd-ldap.5.xml:1216
 msgid ""
 "This example means that access to this host is restricted to members of the "
 "\"allowedusers\" group in ldap."
@@ -3437,7 +3460,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1207
+#: sssd-ldap.5.xml:1221
 msgid ""
 "Offline caching for this feature is limited to determining whether the "
 "user's last online login was granted access permission. If they were granted "
@@ -3447,25 +3470,25 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1215 sssd-ldap.5.xml:1256
+#: sssd-ldap.5.xml:1229 sssd-ldap.5.xml:1270
 msgid "Default: Empty"
 msgstr "Типове значення: порожній рядок"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1221
+#: sssd-ldap.5.xml:1235
 msgid "ldap_account_expire_policy (string)"
 msgstr "ldap_account_expire_policy (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1224
+#: sssd-ldap.5.xml:1238
 msgid ""
 "With this option a client side evaluation of access control attributes can "
 "be enabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1228
+#: sssd-ldap.5.xml:1242
 msgid ""
 "Please note that it is always recommended to use server side access control, "
 "i.e. the LDAP server should deny the bind request with a suitable error code "
@@ -3473,19 +3496,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1235
+#: sssd-ldap.5.xml:1249
 msgid "The following values are allowed:"
 msgstr "Можна використовувати такі значення:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1238
+#: sssd-ldap.5.xml:1252
 msgid ""
 "<emphasis>shadow</emphasis>: use the value of ldap_user_shadow_expire to "
 "determine if the account is expired."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1243
+#: sssd-ldap.5.xml:1257
 msgid ""
 "<emphasis>ad</emphasis>: use the value of the 32bit field "
 "ldap_user_ad_user_account_control and allow access if the second bit is not "
@@ -3494,7 +3517,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1250
+#: sssd-ldap.5.xml:1264
 msgid ""
 "<emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>, <emphasis>389ds</"
 "emphasis>: use the value of ldap_ns_account_lock to check if access is "
@@ -3503,12 +3526,12 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1262
+#: sssd-ldap.5.xml:1276
 msgid "ldap_access_order (string)"
 msgstr "ldap_access_order (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1265
+#: sssd-ldap.5.xml:1279
 msgid "Comma separated list of access control options.  Allowed values are:"
 msgstr ""
 "Список відокремлених комами параметрів керування доступом. Можливі значення "
@@ -3516,18 +3539,18 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1269
+#: sssd-ldap.5.xml:1283
 msgid "<emphasis>filter</emphasis>: use ldap_access_filter"
 msgstr "<emphasis>filter</emphasis>: використовувати ldap_access_filter"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1272
+#: sssd-ldap.5.xml:1286
 msgid "<emphasis>expire</emphasis>: use ldap_account_expire_policy"
 msgstr ""
 "<emphasis>expire</emphasis>: використовувати ldap_account_expire_policy"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1276
+#: sssd-ldap.5.xml:1290
 msgid ""
 "<emphasis>authorized_service</emphasis>: use the authorizedService attribute "
 "to determine access"
@@ -3537,12 +3560,12 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1281
+#: sssd-ldap.5.xml:1295
 msgid "Default: filter"
 msgstr "Типове значення: filter"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1284
+#: sssd-ldap.5.xml:1298
 msgid ""
 "Please note that it is a configuration error if a value is used more than "
 "once."
@@ -3550,13 +3573,13 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1291
+#: sssd-ldap.5.xml:1305
 msgid "ldap_deref (string)"
 msgstr "ldap_deref (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1294
+#: sssd-ldap.5.xml:1308
 msgid ""
 "Specifies how alias dereferencing is done when performing a search. The "
 "following options are allowed:"
@@ -3564,13 +3587,13 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1299
+#: sssd-ldap.5.xml:1313
 msgid "<emphasis>never</emphasis>: Aliases are never dereferenced."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1303
+#: sssd-ldap.5.xml:1317
 msgid ""
 "<emphasis>searching</emphasis>: Aliases are dereferenced in subordinates of "
 "the base object, but not in locating the base object of the search."
@@ -3578,7 +3601,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1308
+#: sssd-ldap.5.xml:1322
 msgid ""
 "<emphasis>finding</emphasis>: Aliases are only dereferenced when locating "
 "the base object of the search."
@@ -3586,7 +3609,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1313
+#: sssd-ldap.5.xml:1327
 msgid ""
 "<emphasis>always</emphasis>: Aliases are dereferenced both in searching and "
 "in locating the base object of the search."
@@ -3594,7 +3617,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1318
+#: sssd-ldap.5.xml:1332
 msgid ""
 "Default: Empty (this is handled as <emphasis>never</emphasis> by the LDAP "
 "client libraries)"
@@ -3612,55 +3635,55 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><title>
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1330
+#: sssd-ldap.5.xml:1344
 msgid "ADVANCED OPTIONS"
 msgstr "ДОДАТКОВІ ПАРАМЕТРИ"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1337
+#: sssd-ldap.5.xml:1351
 msgid "ldap_netgroup_search_base (string)"
 msgstr "ldap_netgroup_search_base (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1340
+#: sssd-ldap.5.xml:1354
 msgid ""
 "An optional base DN to restrict netgroup searches to a specific subtree."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1344 sssd-ldap.5.xml:1358 sssd-ldap.5.xml:1372
+#: sssd-ldap.5.xml:1358 sssd-ldap.5.xml:1372 sssd-ldap.5.xml:1386
 msgid "Default: the value of <emphasis>ldap_search_base</emphasis>"
 msgstr "Типове значення: значення <emphasis>ldap_search_base</emphasis>"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1351
+#: sssd-ldap.5.xml:1365
 msgid "ldap_user_search_base (string)"
 msgstr "ldap_user_search_base (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1354
+#: sssd-ldap.5.xml:1368
 msgid "An optional base DN to restrict user searches to a specific subtree."
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1365
+#: sssd-ldap.5.xml:1379
 msgid "ldap_group_search_base (string)"
 msgstr "ldap_group_search_base (рядок)"
 
 # type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1368
+#: sssd-ldap.5.xml:1382
 msgid "An optional base DN to restrict group searches to a specific subtree."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1332
+#: sssd-ldap.5.xml:1346
 msgid ""
 "These options are supported by LDAP domains, but they should be used with "
 "caution. Please include them in your configuration only if you know what you "
@@ -3669,7 +3692,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1388
+#: sssd-ldap.5.xml:1402
 msgid ""
 "The following example assumes that SSSD is correctly configured and LDAP is "
 "set to one of the domains in the <replaceable>[domains]</replaceable> "
@@ -3678,7 +3701,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para><programlisting>
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:1394
+#: sssd-ldap.5.xml:1408
 #, no-wrap
 msgid ""
 "    [domain/LDAP]\n"
@@ -3700,20 +3723,20 @@ msgstr ""
 "    enumerate = true\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1393 sssd-simple.5.xml:134 sssd-ipa.5.xml:238
+#: sssd-ldap.5.xml:1407 sssd-simple.5.xml:134 sssd-ipa.5.xml:238
 #: sssd-krb5.5.xml:414
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><title>
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1407 sssd_krb5_locator_plugin.8.xml:61
+#: sssd-ldap.5.xml:1421 sssd_krb5_locator_plugin.8.xml:61
 msgid "NOTES"
 msgstr "ЗАУВАЖЕННЯ"
 
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1409
+#: sssd-ldap.5.xml:1423
 msgid ""
 "The descriptions of some of the configuration options in this manual page "
 "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
@@ -3723,7 +3746,7 @@ msgstr ""
 
 # type: Content of: <reference><refentry><refsect1><para>
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1420
+#: sssd-ldap.5.xml:1434
 msgid ""
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
