@@ -54,6 +54,7 @@ typedef int errno_t;
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
+extern int debug_microseconds;
 extern int debug_to_file;
 extern const char *debug_log_file;
 void debug_fn(const char *format, ...);
@@ -80,13 +81,18 @@ errno_t set_debug_file_from_fd(const int fd);
 #define SSSDBG_TIMESTAMP_UNRESOLVED   -1
 #define SSSDBG_TIMESTAMP_DEFAULT       1
 
+#define SSSDBG_MICROSECONDS_UNRESOLVED   -1
+#define SSSDBG_MICROSECONDS_DEFAULT       0
+
 #define SSSD_DEBUG_OPTS \
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0, \
          _("Debug level"), NULL}, \
         {"debug-to-files", 'f', POPT_ARG_NONE, &debug_to_file, 0, \
          _("Send the debug output to files instead of stderr"), NULL }, \
         {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0, \
-         _("Add debug timestamps"), NULL},
+         _("Add debug timestamps"), NULL}, \
+         {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0, \
+          _("Show timestamps with microseconds"), NULL},
 
 /** \def DEBUG(level, body)
     \brief macro to generate debug messages
@@ -107,12 +113,26 @@ errno_t set_debug_file_from_fd(const int fd);
     int __debug_macro_newlevel = debug_get_level(level); \
     if (DEBUG_IS_SET(__debug_macro_newlevel)) { \
         if (debug_timestamps) { \
-            time_t rightnow = time(NULL); \
-            char stamp[25]; \
-            memcpy(stamp, ctime(&rightnow), 24); \
-            stamp[24] = '\0'; \
-            debug_fn("(%s) [%s] [%s] (%#.4x): ", \
-                     stamp, debug_prg_name, __FUNCTION__, __debug_macro_newlevel); \
+            struct timeval __debug_macro_tv; \
+            struct tm *__debug_macro_tm; \
+            char __debug_macro_datetime[20]; \
+            int __debug_macro_year; \
+            gettimeofday(&__debug_macro_tv, NULL); \
+            __debug_macro_tm = localtime(&__debug_macro_tv.tv_sec); \
+            __debug_macro_year = __debug_macro_tm->tm_year + 1900; \
+            /* get date time without year */ \
+            memcpy(__debug_macro_datetime, ctime(&__debug_macro_tv.tv_sec), 19); \
+            __debug_macro_datetime[19] = '\0'; \
+            if (debug_microseconds) { \
+                debug_fn("(%s:%.6d %d) [%s] [%s] (%#.4x): ", \
+                         __debug_macro_datetime, __debug_macro_tv.tv_usec, \
+                         __debug_macro_year, debug_prg_name, \
+                         __FUNCTION__, __debug_macro_newlevel); \
+            } else { \
+                debug_fn("(%s %d) [%s] [%s] (%#.4x): ", \
+                         __debug_macro_datetime, __debug_macro_year, \
+                         debug_prg_name, __FUNCTION__, __debug_macro_newlevel); \
+            } \
         } else { \
             debug_fn("[%s] [%s] (%#.4x): ", \
                      debug_prg_name, __FUNCTION__, __debug_macro_newlevel); \
@@ -134,12 +154,27 @@ errno_t set_debug_file_from_fd(const int fd);
     int __debug_macro_newlevel = debug_get_level(level); \
     if (DEBUG_IS_SET(__debug_macro_newlevel)) { \
         if (debug_timestamps) { \
-            time_t rightnow = time(NULL); \
-            char stamp[25]; \
-            memcpy(stamp, ctime(&rightnow), 24); \
-            stamp[24] = '\0'; \
-            debug_fn("(%s) [%s] [%s] (%#.4x): %s\n", \
-                     stamp, debug_prg_name, function, __debug_macro_newlevel, message); \
+            struct timeval __debug_macro_tv; \
+            struct tm *__debug_macro_tm; \
+            char __debug_macro_datetime[20]; \
+            int __debug_macro_year; \
+            gettimeofday(&__debug_macro_tv, NULL); \
+            __debug_macro_tm = localtime(&__debug_macro_tv.tv_sec); \
+            __debug_macro_year = __debug_macro_tm->tm_year + 1900; \
+            /* get date time without year */ \
+            memcpy(__debug_macro_datetime, ctime(&__debug_macro_tv.tv_sec), 19); \
+            __debug_macro_datetime[19] = '\0'; \
+            if (debug_microseconds) { \
+                debug_fn("(%s:%.6d %d) [%s] [%s] (%#.4x): %s\n", \
+                         __debug_macro_datetime, __debug_macro_tv.tv_usec, \
+                         __debug_macro_year, debug_prg_name, \
+                         function, __debug_macro_newlevel, message); \
+            } else { \
+                debug_fn("(%s %d) [%s] [%s] (%#.4x): %s\n", \
+                         __debug_macro_datetime, __debug_macro_year, \
+                         debug_prg_name, function, __debug_macro_newlevel, \
+                         message); \
+            } \
         } else { \
             debug_fn("[%s] [%s] (%#.4x): %s\n", \
                      debug_prg_name, function, __debug_macro_newlevel, message); \

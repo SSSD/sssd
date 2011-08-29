@@ -378,19 +378,25 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                   const char *binary,
                                   char ***_argv)
 {
-    uint_t argc = 4; /* program name, debug_level, debug_timestamps and NULL */
+    /*
+     * program name, debug_level, debug_timestamps,
+     * debug_microseconds and NULL
+     */
+    uint_t argc = 5;
     char ** argv;
     errno_t ret = EINVAL;
 
     /* Save the current state in case an interrupt changes it */
     bool child_debug_to_file = debug_to_file;
     bool child_debug_timestamps = debug_timestamps;
+    bool child_debug_microseconds = debug_microseconds;
 
     if (child_debug_to_file) argc++;
 
-    /* program name, debug_level,
-     * debug_to_file, debug_timestamps
-     * and NULL */
+    /*
+     * program name, debug_level, debug_to_file, debug_timestamps,
+     * debug_microseconds and NULL
+     */
     argv  = talloc_array(mem_ctx, char *, argc);
     if (argv == NULL) {
         DEBUG(1, ("talloc_array failed.\n"));
@@ -417,6 +423,13 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 
     argv[--argc] = talloc_asprintf(argv, "--debug-timestamps=%d",
                                    child_debug_timestamps);
+    if (argv[argc] == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
+                                       child_debug_microseconds);
     if (argv[argc] == NULL) {
         ret = ENOMEM;
         goto fail;

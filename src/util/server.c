@@ -382,6 +382,7 @@ int server_setup(const char *name, int flags,
     int ret = EOK;
     bool dt;
     bool dl;
+    bool dm;
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
 
@@ -487,6 +488,21 @@ int server_setup(const char *name, int flags,
         }
         if (dt) debug_timestamps = 1;
         else debug_timestamps = 0;
+    }
+
+    /* same for debug microseconds */
+    if (debug_microseconds == SSSDBG_MICROSECONDS_UNRESOLVED) {
+        ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+                              CONFDB_SERVICE_DEBUG_MICROSECONDS,
+                              SSSDBG_MICROSECONDS_DEFAULT,
+                              &dm);
+        if (ret != EOK) {
+            DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                      ret, strerror(ret)));
+            return ret;
+        }
+        if (dm) debug_microseconds = 1;
+        else debug_microseconds = 0;
     }
 
     /* same for debug to file */

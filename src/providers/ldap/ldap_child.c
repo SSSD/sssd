@@ -360,6 +360,8 @@ int main(int argc, const char *argv[])
          _("Debug level"), NULL},
         {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
          _("Add debug timestamps"), NULL},
+        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
+         _("Show timestamps with microseconds"), NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         POPT_TABLEEND

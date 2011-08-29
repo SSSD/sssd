@@ -62,6 +62,7 @@
 
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
+int cmdline_debug_microseconds;
 
 struct svc_spy;
 
@@ -975,6 +976,17 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
             }
         }
 
+        if (cmdline_debug_microseconds != SSSDBG_MICROSECONDS_UNRESOLVED) {
+            svc->command = talloc_asprintf_append(
+                svc->command, " --debug-microseconds=%d",
+                cmdline_debug_microseconds
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        }
+
         if (debug_to_file) {
             svc->command = talloc_strdup_append(
                 svc->command, " --debug-to-files"
@@ -1123,6 +1135,17 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         if (cmdline_debug_timestamps != SSSDBG_TIMESTAMP_UNRESOLVED) {
             svc->command = talloc_asprintf_append(
                 svc->command, " --debug-timestamps=%d", cmdline_debug_timestamps
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        }
+
+        if (cmdline_debug_microseconds != SSSDBG_MICROSECONDS_UNRESOLVED) {
+            svc->command = talloc_asprintf_append(
+                svc->command, " --debug-microseconds=%d",
+                cmdline_debug_microseconds
             );
             if (!svc->command) {
                 talloc_free(svc);
@@ -2390,11 +2413,12 @@ int main(int argc, const char *argv[])
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
-    /* If the level or timestamps was passed at the command-line, we want
-     * to save it and pass it to the children later.
+    /* If the level, timestamps or microseconds was passed at the command-line,
+     * we want to save it and pass it to the children later.
      */
     cmdline_debug_level = debug_level;
     cmdline_debug_timestamps = debug_timestamps;
+    cmdline_debug_microseconds = debug_microseconds;
 
     if (opt_daemon && opt_interactive) {
         fprintf(stderr, "Option -i|--interactive is not allowed together with -D|--daemon\n");
