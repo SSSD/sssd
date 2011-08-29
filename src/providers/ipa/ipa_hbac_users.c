@@ -73,7 +73,8 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
 
     if (ldb_dn_get_comp_num(dn) < 4) {
         /* RDN, groups, accounts, and at least one DC= */
-        ret = EINVAL;
+        /* If it's fewer, it's not a group DN */
+        ret = ENOENT;
         goto done;
     }
 
