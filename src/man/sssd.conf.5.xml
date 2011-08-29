@@ -242,6 +242,17 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>debug_microseconds (bool)</term>
+                    <listitem>
+                        <para>
+                            Add microseconds to the timestamp in debug messages
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>reconnection_retries (integer)</term>
                     <listitem>
                         <para>

@@ -66,6 +66,22 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>--debug-microseconds=</option><replaceable>mode</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        <emphasis>1</emphasis>: Add microseconds to the timestamp in debug messages
+                    </para>
+                    <para>
+                        <emphasis>0</emphasis>: Disable microseconds in timestamp
+                    </para>
+                    <para>
+                        Default: 0
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>-f</option>,<option>--debug-to-files</option>
                 </term>
                 <listitem>
