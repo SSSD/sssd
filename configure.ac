@@ -26,6 +26,9 @@ AM_GNU_GETTEXT_VERSION([0.14])
 AC_SUBST([PRERELEASE_VERSION],
          PRERELEASE_VERSION_NUMBER)
 
+AC_DEFINE([PRERELEASE_VERSION], "PRERELEASE_VERSION_NUMBER",
+          [Prerelease version number of package])
+
 AM_CONDITIONAL([GIT_CHECKOUT], [git log -1 &>/dev/null])
 
 m4_pattern_allow([AM_SILENT_RULES])
@@ -71,6 +74,7 @@ AC_SUBST(pammoddir)
 m4_include([src/external/platform.m4])
 
 m4_include(src/conf_macros.m4)
+WITH_DISTRO_VERSION
 WITH_DB_PATH
 WITH_PLUGIN_PATH
 WITH_PID_PATH
@@ -223,4 +227,3 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/sysv/systemd/sssd.service po/Makefile.in src/man/Makefile
                  src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy])
 AC_OUTPUT
-

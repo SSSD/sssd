@@ -2386,6 +2386,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int opt_daemon = 0;
     int opt_interactive = 0;
+    int opt_version = 0;
     char *opt_config_file = NULL;
     char *config_file = NULL;
     int flags = 0;
@@ -2404,6 +2405,8 @@ int main(int argc, const char *argv[])
          _("Run interactive (not a daemon)"), NULL}, \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \
+         {"version", '\0', POPT_ARG_NONE, &opt_version, 0, \
+          _("Print version number and exit"), NULL }, \
         POPT_TABLEEND
     };
 
@@ -2423,8 +2426,13 @@ int main(int argc, const char *argv[])
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
-    /* If the level, timestamps or microseconds was passed at the command-line,
-     * we want to save it and pass it to the children later.
+    if (opt_version) {
+        puts(VERSION""DISTRO_VERSION""PRERELEASE_VERSION);
+        return EXIT_SUCCESS;
+    }
+
+    /* If the level or timestamps was passed at the command-line, we want
+     * to save it and pass it to the children later.
      */
     cmdline_debug_level = debug_level;
     cmdline_debug_timestamps = debug_timestamps;

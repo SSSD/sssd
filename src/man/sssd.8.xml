@@ -130,6 +130,16 @@
                 </listitem>
             </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+            <varlistentry>
+                <term>
+                    <option>--version</option>
+                </term>
+                <listitem>
+                    <para>
+                        Print version number and exit.
+                    </para>
+                </listitem>
+            </varlistentry>
         </variablelist>
     </refsect1>
 
