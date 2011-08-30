@@ -266,6 +266,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'sbus_timeout',
             're_expression',
             'full_name_format',
+            'krb5_rcache_dir',
             'debug_level',
             'debug_timestamps',
             'debug_to_files',

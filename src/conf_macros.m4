@@ -161,6 +161,21 @@ AC_DEFUN([WITH_KRB5_PLUGIN_PATH],
     AC_SUBST(krb5pluginpath)
   ])
 
+AC_DEFUN([WITH_KRB5_RCACHE_DIR],
+  [ AC_ARG_WITH([krb5-rcache-dir],
+                [AC_HELP_STRING([--with-krb5-rcache-dir=PATH],
+                                [Path to store Kerberos replay caches [__LIBKRB5_DEFAULTS__]]
+                               )
+                ]
+               )
+    krb5rcachedir="__LIBKRB5_DEFAULTS__"
+    if test x"$with_krb5_rcache_dir" != x; then
+        krb5rcachedir=$with_krb5_rcache_dir
+    fi
+    AC_SUBST(krb5rcachedir)
+    AC_DEFINE_UNQUOTED(KRB5_RCACHE_DIR, "$krb5rcachedir", [Directory used for storing Kerberos replay caches])
+  ])
+
 AC_DEFUN([WITH_PYTHON_BINDINGS],
   [ AC_ARG_WITH([python-bindings],
                 [AC_HELP_STRING([--with-python-bindings],

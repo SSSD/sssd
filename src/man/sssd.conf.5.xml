@@ -185,6 +185,26 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>krb5_rcache_dir (string)</term>
+                        <listitem>
+                            <para>
+                                Directory on the filesystem where SSSD should
+                                store Kerberos replay cache files.
+                            </para>
+                            <para>
+                                This option accepts a special value
+                                __LIBKRB5_DEFAULTS__ that will instruct SSSD
+                                to let libkrb5 decide the appropriate
+                                location for the replay cache.
+                            </para>
+                            <para>
+                                Default: Distribution-specific and specified
+                                at build-time. (__LIBKRB5_DEFAULTS__ if not
+                                configured)
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>

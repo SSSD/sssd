@@ -57,6 +57,11 @@
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
 
+/* Special value to leave the Kerberos Replay Cache set to use
+ * the libkrb5 defaults
+ */
+#define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
+
 struct svc_spy;
 
 struct mt_svc {
@@ -1871,8 +1876,34 @@ int monitor_process_init(struct mt_ctx *ctx,
     struct sysdb_ctx_list *db_list;
     struct tevent_signal *tes;
     struct sss_domain_info *dom;
+    char *rcachedir;
     int num_providers;
     int ret;
+    int error;
+
+    /* Set up the environment variable for the Kerberos Replay Cache */
+    ret = confdb_get_string(ctx->cdb, ctx,
+                            CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_KRB5_RCACHEDIR,
+                            KRB5_RCACHE_DIR,
+                            &rcachedir);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (strcmp(rcachedir, KRB5_RCACHE_DIR_DISABLE) != 0)
+    {
+        errno = 0;
+        ret = setenv("KRB5RCACHEDIR", rcachedir, 1);
+        if (ret < 0) {
+            error = errno;
+            DEBUG(1,
+                  ("Unable to set KRB5RCACHEDIR: %s."
+                   "Will attempt to use libkrb5 defaults\n",
+                   strerror(error)));
+        }
+        talloc_zfree(rcachedir);
+    }
 
     /* Set up an event handler for a SIGHUP */
     tes = tevent_add_signal(ctx->ev, ctx, SIGHUP, 0,

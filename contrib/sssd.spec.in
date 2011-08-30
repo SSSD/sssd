@@ -157,6 +157,7 @@ autoreconf -ivf
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
+    --with-krb5rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --enable-nsslibdir=/%{_lib} \
     --enable-pammoddir=/%{_lib}/security \
     --disable-static \
@@ -239,6 +240,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/
 %{ldb_modulesdir}/memberof.so
 %dir %{sssdstatedir}
+%dir %{_localstatedir}/cache/krb5rcache
 %attr(700,root,root) %dir %{dbpath}
 %attr(755,root,root) %dir %{pipepath}
 %attr(755,root,root) %dir %{pubconfpath}
