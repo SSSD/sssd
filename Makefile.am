@@ -34,6 +34,7 @@ systemdunitdir = @systemdunitdir@
 logpath = @logpath@
 pubconfpath = @pubconfpath@
 pkgconfigdir = $(libdir)/pkgconfig
+krb5rcachedir = @krb5rcachedir@
 
 AM_CFLAGS =
 if WANT_AUX_INFO
@@ -1126,6 +1127,9 @@ install-data-hook:
 	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \
        $(DESTDIR)/$(nsslibdir)/libnss_sss.so
 	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2.0.0 $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
+	if [ ! $(krb5rcachedir) = "__LIBKRB5_DEFAULTS__" ]; then \
+        mkdir -p $(DESTDIR)/$(krb5rcachedir) ; \
+	fi
 
 uninstall-hook:
 	if [ -f $(abs_builddir)/src/config/.files ]; then \

@@ -49,6 +49,7 @@ option_strings = {
     'sbus_timeout' : _('Timeout for messages sent over the SBUS'),
     're_expression' : _('Regex to parse username and domain'),
     'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
+    'krb5_rcache_dir' : _('Directory on the filesystem where SSSD should store Kerberos replay cache files.'),
 
     # [nss]
     'enum_cache_timeout' : _('Enumeration cache timeout length (seconds)'),
