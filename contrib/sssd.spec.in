@@ -157,7 +157,7 @@ autoreconf -ivf
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
-    --with-krb5rcache-dir=%{_localstatedir}/cache/krb5rcache \
+    --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --enable-nsslibdir=/%{_lib} \
     --enable-pammoddir=/%{_lib}/security \
     --disable-static \
