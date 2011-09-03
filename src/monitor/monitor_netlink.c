@@ -250,9 +250,7 @@ static void link_msg_handler(struct nl_object *obj, void *arg)
 
     /* IFF_LOWER_UP is the indicator of carrier status */
     if (flags & IFF_LOWER_UP) {
-        ctx->change_cb(NL_ROUTE_UP, ctx->cb_data);
-    } else {
-        ctx->change_cb(NL_ROUTE_DOWN, ctx->cb_data);
+        ctx->change_cb(ctx->cb_data);
     }
 }
 

@@ -154,15 +154,13 @@ static int mark_service_as_started(struct mt_svc *svc);
 
 static int monitor_cleanup(void);
 
-static void network_status_change_cb(enum network_change state,
-                                     void *cb_data)
+static void network_status_change_cb(void *cb_data)
 {
     struct mt_svc *iter;
     struct mt_ctx *ctx = (struct mt_ctx *) cb_data;
 
-    if (state != NL_ROUTE_UP) return;
-
-    DEBUG(9, ("A new route has appeared, signaling providers to reset offline status\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("A networking status change detected "
+          "signaling providers to reset offline status\n"));
     for (iter = ctx->svc_list; iter; iter = iter->next) {
         /* Don't signal services, only providers */
         if (iter->provider) {

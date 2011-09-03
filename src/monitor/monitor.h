@@ -43,12 +43,7 @@ int monitor_process_init(struct mt_ctx *ctx,
 /* from monitor_netlink.c */
 struct netlink_ctx;
 
-enum network_change {
-    NL_ROUTE_UP,
-    NL_ROUTE_DOWN
-};
-
-typedef void (*network_change_cb)(enum network_change, void *);
+typedef void (*network_change_cb)(void *);
 
 int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                   network_change_cb change_cb, void *cb_data,
