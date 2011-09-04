@@ -27,6 +27,8 @@
 #include <sys/ioctl.h>
 #define __USE_GNU /* needed for struct ucred */
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -43,6 +45,7 @@
 #include <netlink/route/addr.h>
 #include <netlink/route/link.h>
 #include <netlink/route/rtnl.h>
+#include <netlink/route/route.h>
 #include <netlink/handlers.h>
 #endif
 
@@ -64,6 +67,13 @@
 #define SYSFS_SUBDIR_PATH_MAX (SYSFS_IFACE_PATH_MAX+9)
 
 #define BUFSIZE 8
+
+enum nlw_msg_type {
+    NLW_LINK,
+    NLW_ROUTE,
+    NLW_ADDR,
+    NLW_OTHER
+};
 
 struct netlink_ctx {
 #ifdef HAVE_LIBNL
@@ -220,6 +230,26 @@ static bool discard_iff_up(const char *ifname)
     return false;
 }
 
+static void nladdr_to_string(struct nl_addr *nl, char *buf, size_t bufsize)
+{
+    int addr_family;
+    void *addr;
+
+    addr_family = nl_addr_get_family(nl);
+    if (addr_family != AF_INET && addr_family != AF_INET6) {
+        strncpy(buf, "unknown", bufsize);
+        return;
+    }
+
+    addr = nl_addr_get_binary_addr(nl);
+    if (!addr) return;
+
+    if (inet_ntop(addr_family, addr, buf, bufsize) == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("inet_ntop failed\n"));
+        snprintf(buf, bufsize, "unknown");
+    }
+}
+
 /*******************************************************************
  * Wrappers for different capabilities of different libnl versions
  *******************************************************************/
@@ -257,6 +287,48 @@ static bool nlw_accept_message(struct nl_handle *nlh,
     return accept_msg;
 }
 
+static bool nlw_is_addr_object(struct nl_object *obj)
+{
+    bool is_addr_object = true;
+    struct rtnl_addr *filter;
+
+    filter = rtnl_addr_alloc();
+    if (!filter) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error!\n"));
+        is_addr_object = false;
+    }
+
+    /* Ensure it's an addr object */
+    if (!nlw_object_match(obj, OBJ_CAST(filter))) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Not an addr object\n"));
+        is_addr_object = false;
+    }
+
+    rtnl_addr_put(filter);
+    return is_addr_object;
+}
+
+static bool nlw_is_route_object(struct nl_object *obj)
+{
+    bool is_route_object = true;
+    struct rtnl_route *filter;
+
+    filter = rtnl_route_alloc();
+    if (!filter) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error!\n"));
+        is_route_object = false;
+    }
+
+    /* Ensure it's a route object */
+    if (!nlw_object_match(obj, OBJ_CAST(filter))) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Not a route object\n"));
+        is_route_object = false;
+    }
+
+    rtnl_route_put(filter);
+    return is_route_object;
+}
+
 static bool nlw_is_link_object(struct nl_object *obj)
 {
     bool is_link_object = true;
@@ -287,19 +359,18 @@ static int nlw_enable_passcred(struct nl_handle *nlh)
 #endif
 }
 
-static int nlw_group_subscribe(struct nl_handle *nlh)
+static int nlw_group_subscribe(struct nl_handle *nlh, int group)
 {
     int ret;
 
 #ifdef HAVE_NL_SOCKET_ADD_MEMBERSHIP
-    ret = nl_socket_add_membership(nlh, RTNLGRP_LINK);
+    ret = nl_socket_add_membership(nlh, group);
     if (ret != 0) {
         DEBUG(1, ("Unable to add membership: %s\n", nl_geterror()));
         return ret;
     }
 #else
      int nlfd = nlw_get_fd(nlh);
-     int group = RTNLGRP_LINK;
 
      errno = 0;
      ret = setsockopt(nlfd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
@@ -312,6 +383,19 @@ static int nlw_group_subscribe(struct nl_handle *nlh)
 #endif
 
      return 0;
+}
+
+static int nlw_groups_subscribe(struct nl_handle *nlh, int *groups)
+{
+    int ret;
+    int i;
+
+    for (i=0; groups[i]; i++) {
+        ret = nlw_group_subscribe(nlh, groups[i]);
+        if (ret != EOK) return ret;
+    }
+
+    return EOK;
 }
 
 /*******************************************************************
@@ -343,10 +427,50 @@ static int event_msg_recv(struct nl_msg *msg, void *arg)
 }
 
 static void link_msg_handler(struct nl_object *obj, void *arg);
+static void route_msg_handler(struct nl_object *obj, void *arg);
+static void addr_msg_handler(struct nl_object *obj, void *arg);
+
+static enum nlw_msg_type message_type(struct nlmsghdr *hdr)
+{
+    DEBUG(SSSDBG_FUNC_DATA, ("netlink Message type: %d\n", hdr->nlmsg_type));
+    switch (hdr->nlmsg_type) {
+        /* network interface added */
+        case RTM_NEWLINK:
+            return NLW_LINK;
+        /* routing table changed */
+        case RTM_NEWROUTE:
+        case RTM_DELROUTE:
+            return NLW_ROUTE;
+        /* IP address added or deleted */
+        case RTM_NEWADDR:
+        case RTM_DELADDR:
+            return NLW_ADDR;
+        /* Something else happened, but we don't care (typically RTM_GET* ) */
+        default:
+            return NLW_OTHER;
+    }
+
+    return NLW_OTHER;
+}
 
 static int event_msg_ready(struct nl_msg *msg, void *arg)
 {
-    nl_msg_parse(msg, &link_msg_handler, arg);
+    struct nlmsghdr *hdr = nlmsg_hdr(msg);
+
+    switch (message_type(hdr)) {
+        case NLW_LINK:
+            nl_msg_parse(msg, &link_msg_handler, arg);
+            break;
+        case NLW_ROUTE:
+            nl_msg_parse(msg, &route_msg_handler, arg);
+            break;
+        case NLW_ADDR:
+            nl_msg_parse(msg, &addr_msg_handler, arg);
+            break;
+        default:
+            return EOK; /* Don't care */
+    }
+
     return NLW_OK;
 }
 
@@ -376,6 +500,119 @@ static int nlw_set_callbacks(struct nl_handle *nlh, void *data)
     }
 
     return ret;
+}
+
+static void route_msg_debug_print(struct rtnl_route *route_obj)
+{
+    int prefixlen;
+    char buf[INET6_ADDRSTRLEN];
+    struct nl_addr *nl;
+
+    nl = rtnl_route_get_dst(route_obj);
+    if (nl) {
+        nladdr_to_string(nl, buf, INET6_ADDRSTRLEN);
+        prefixlen = nl_addr_get_prefixlen(nl);
+    } else {
+        strncpy(buf, "unknown", INET6_ADDRSTRLEN);
+        prefixlen = 0;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("route idx %d flags %#X family %d addr %s/%d\n",
+          rtnl_route_get_oif(route_obj), rtnl_route_get_flags(route_obj),
+          rtnl_route_get_family(route_obj), buf, prefixlen));
+}
+
+/*
+ * If a bridge interface is configured it sets up a timer to requery for
+ * multicast group memberships periodically. We need to discard such
+ * messages.
+ */
+static bool route_is_multicast(struct rtnl_route *route_obj)
+{
+    struct nl_addr *nl;
+    struct in6_addr *addr6 = NULL;
+    struct in_addr *addr4 = NULL;
+
+    nl = rtnl_route_get_dst(route_obj);
+    if (!nl) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("A route with no destination?\n"));
+        return false;
+    }
+
+    if (nl_addr_get_family(nl) == AF_INET) {
+        addr4 = nl_addr_get_binary_addr(nl);
+        if (!addr4) {
+            return false;
+        }
+
+        return IN_MULTICAST(addr4->s_addr);
+    } else if (nl_addr_get_family(nl) == AF_INET6) {
+        addr6 = nl_addr_get_binary_addr(nl);
+        if (!addr6) {
+            return false;
+        }
+
+        return IN6_IS_ADDR_MULTICAST(addr6);
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, ("Unknown route address family\n"));
+    return false;
+}
+
+static void route_msg_handler(struct nl_object *obj, void *arg)
+{
+    struct rtnl_route *route_obj;
+    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
+
+    if (!nlw_is_route_object(obj)) return;
+
+    route_obj = (struct rtnl_route *) obj;
+
+    if (route_is_multicast(route_obj)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Discarding multicast route message\n"));
+        return;
+    }
+
+    if (debug_level & SSSDBG_TRACE_LIBS) {
+        route_msg_debug_print(route_obj);
+    }
+
+    ctx->change_cb(ctx->cb_data);
+}
+
+static void addr_msg_debug_print(struct rtnl_addr *addr_obj)
+{
+    unsigned int flags;
+    char str_flags[512];
+    int ifidx;
+    struct nl_addr *local_addr;
+    char buf[INET6_ADDRSTRLEN];
+
+    flags = rtnl_addr_get_flags(addr_obj);
+    ifidx = rtnl_addr_get_ifindex(addr_obj);
+    local_addr = rtnl_addr_get_local(addr_obj);
+
+    rtnl_addr_flags2str(flags, str_flags, 512);
+    nladdr_to_string(local_addr, buf, INET6_ADDRSTRLEN);
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("netlink addr message: iface idx %u "
+          "addr %s flags 0x%X (%s)\n", ifidx, buf, flags, str_flags));
+}
+
+static void addr_msg_handler(struct nl_object *obj, void *arg)
+{
+    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
+    struct rtnl_addr *addr_obj;
+
+    if (!nlw_is_addr_object(obj)) return;
+
+    addr_obj = (struct rtnl_addr *) obj;
+    if (debug_level & SSSDBG_TRACE_LIBS) {
+        addr_msg_debug_print(addr_obj);
+    }
+
+    ctx->change_cb(ctx->cb_data);
 }
 
 static void link_msg_handler(struct nl_object *obj, void *arg)
@@ -436,6 +673,8 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     int ret;
     int nlfd;
     unsigned flags;
+    int groups[] = { RTNLGRP_LINK, RTNLGRP_IPV4_ROUTE, RTNLGRP_IPV6_ROUTE,
+                     RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR, 0 };
 
     nlctx = talloc_zero(mem_ctx, struct netlink_ctx);
     if (!nlctx) return ENOMEM;
@@ -477,7 +716,7 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     }
 
     /* Subscribe to the LINK group for internal carrier signals */
-    ret = nlw_group_subscribe(nlctx->nlh);
+    ret = nlw_groups_subscribe(nlctx->nlh, groups);
     if (ret != 0) {
         DEBUG(1, ("Unable to subscribe to netlink monitor\n"));
         ret = EIO;
