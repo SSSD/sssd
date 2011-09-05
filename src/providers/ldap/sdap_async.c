@@ -637,7 +637,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     }
 
     DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
-              ldap_err2string(state->result), state->result, errmsg));
+            sss_ldap_err2string(state->result), state->result, errmsg));
 
     if (state->result != LDAP_SUCCESS) {
         if (errmsg) {
@@ -1016,7 +1016,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     ldap_control_free(page_control);
     state->serverctrls[state->nserverctrls] = NULL;
     if (lret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
+        DEBUG(3, ("ldap_search_ext failed: %s\n", sss_ldap_err2string(lret)));
         if (lret == LDAP_SERVER_DOWN) {
             ret = ETIMEDOUT;
             optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
@@ -1027,7 +1027,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
             }
             else {
                 sss_log(SSS_LOG_ERR, "LDAP connection error, %s",
-                                     ldap_err2string(lret));
+                                     sss_ldap_err2string(lret));
             }
         }
 
@@ -1103,11 +1103,11 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
         }
 
         DEBUG(6, ("Search result: %s(%d), %s\n",
-                  ldap_err2string(result), result, errmsg));
+                  sss_ldap_err2string(result), result, errmsg));
 
         if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(2, ("Unexpected result from ldap: %s(%d), %s\n",
-                      ldap_err2string(result), result, errmsg));
+                      sss_ldap_err2string(result), result, errmsg));
         }
         ldap_memfree(errmsg);
 
