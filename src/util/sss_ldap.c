@@ -387,7 +387,7 @@ fail:
     if (ret == LDAP_SUCCESS) {
         tevent_req_done(req);
     } else {
-        DEBUG(1, ("ldap_initialize failed [%s].\n", ldap_err2string(ret)));
+        DEBUG(1, ("ldap_initialize failed [%s].\n", sss_ldap_err2string(ret)));
         if (ret == LDAP_SERVER_DOWN) {
             tevent_req_error(req, ETIMEDOUT);
         } else {
@@ -436,7 +436,7 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 
     lret = ldap_init_fd(state->sd, LDAP_PROTO_TCP, state->uri, &state->ldap);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_init_fd failed: %s\n", ldap_err2string(lret)));
+        DEBUG(1, ("ldap_init_fd failed: %s\n", sss_ldap_err2string(lret)));
         close(state->sd);
         if (lret == LDAP_SERVER_DOWN) {
             tevent_req_error(req, ETIMEDOUT);
@@ -453,7 +453,7 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
                 DEBUG(5, ("TLS/SSL already in place.\n"));
             } else {
                 DEBUG(1, ("ldap_install_tls failed: %s\n",
-                          ldap_err2string(lret)));
+                          sss_ldap_err2string(lret)));
 
                 tevent_req_error(req, EIO);
                 return;

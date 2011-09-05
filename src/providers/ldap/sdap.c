@@ -106,7 +106,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (ret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("ldap_set_option failed [%s], ignored.\n",
-                  ldap_err2string(ret)));
+                  sss_ldap_err2string(ret)));
     }
 
     attrs = sysdb_new_attrs(memctx);
@@ -116,7 +116,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
         DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
-                  lerrno, ldap_err2string(lerrno)));
+                  lerrno, sss_ldap_err2string(lerrno)));
         ret = EIO;
         goto fail;
     }
@@ -164,7 +164,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
         DEBUG(1, ("Entry has no attributes [%d(%s)]!?\n",
-                  lerrno, ldap_err2string(lerrno)));
+                  lerrno, sss_ldap_err2string(lerrno)));
         if (map) {
             ret = EINVAL;
             goto fail;
@@ -203,7 +203,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 if (lerrno != LDAP_SUCCESS) {
                     DEBUG(1, ("LDAP Library error: %d(%s)",
-                              lerrno, ldap_err2string(lerrno)));
+                              lerrno, sss_ldap_err2string(lerrno)));
                     ret = EIO;
                     goto fail;
                 }
@@ -235,7 +235,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
         DEBUG(1, ("LDAP Library error: %d(%s)",
-                  lerrno, ldap_err2string(lerrno)));
+                  lerrno, sss_ldap_err2string(lerrno)));
         ret = EIO;
         goto fail;
     }
@@ -449,14 +449,14 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (ret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("ldap_set_option failed [%s], ignored.\n",
-                  ldap_err2string(ret)));
+                  sss_ldap_err2string(ret)));
     }
 
     str = ldap_get_dn(sh->ldap, sm->msg);
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
         DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
-                  lerrno, ldap_err2string(lerrno)));
+                  lerrno, sss_ldap_err2string(lerrno)));
         return EIO;
     }
 
@@ -498,7 +498,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT,
                               &ldap_opt_x_tls_require_cert);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
             return EIO;
         }
     }
@@ -507,7 +507,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
             return EIO;
         }
     }
@@ -516,7 +516,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
             return EIO;
         }
     }
@@ -525,7 +525,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
             return EIO;
         }
     }
@@ -534,7 +534,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
             return EIO;
         }
     }
@@ -543,7 +543,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
             return EIO;
         }
     }
@@ -910,7 +910,7 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
         ret = sss_ldap_control_create(oid, iscritical, value, dupval, ctrlp);
         if (ret != LDAP_SUCCESS) {
             DEBUG(1, ("sss_ldap_control_create failed [%d][%s].\n",
-                      ret, ldap_err2string(ret)));
+                      ret, sss_ldap_err2string(ret)));
         }
     } else {
         DEBUG(3, ("Server does not support the requested control [%s].\n", oid));
