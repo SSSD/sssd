@@ -30,6 +30,18 @@
 #include "util/sss_ldap.h"
 #include "util/util.h"
 
+const char* sss_ldap_err2string(int err)
+{
+    static const char *password_expired = "Password expired";
+
+    switch (err) {
+    case LDAP_X_SSSD_PASSWORD_EXPIRED:
+        return password_expired;
+    default:
+        return ldap_err2string(err);
+    }
+}
+
 int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx, LDAP *ld, char **_errmsg)
 {
     char *errmsg = NULL;

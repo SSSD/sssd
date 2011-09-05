@@ -27,6 +27,8 @@
 #include <talloc.h>
 #include <tevent.h>
 
+#define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
+
 #ifdef LDAP_OPT_DIAGNOSTIC_MESSAGE
 #define SDAP_DIAGNOSTIC_MESSAGE LDAP_OPT_DIAGNOSTIC_MESSAGE
 #else
@@ -36,6 +38,8 @@
 #error No extended diagnostic message available
 #endif
 #endif
+
+const char* sss_ldap_err2string(int err);
 
 int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx,
                                 LDAP *ld,
