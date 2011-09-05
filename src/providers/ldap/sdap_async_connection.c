@@ -29,8 +29,6 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
-#define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
-
 errno_t deref_string_to_val(const char *str, int *val)
 {
     if (strcasecmp(str, "never") == 0) {
