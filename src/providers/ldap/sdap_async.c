@@ -1299,6 +1299,7 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
                                        LDAPControl **ctrl);
 
 static void sdap_x_deref_search_done(struct tevent_req *subreq);
+static int sdap_x_deref_search_ctrls_destructor(void *ptr);
 
 static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
                                         struct sdap_msg *msg,
@@ -1307,6 +1308,7 @@ struct sdap_x_deref_search_state {
     struct sdap_handle *sh;
     struct sdap_op *op;
     struct sdap_attr_map_info *maps;
+    LDAPControl **ctrls;
 
     struct sdap_deref_reply dreply;
     int num_maps;
@@ -1322,7 +1324,6 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct sdap_x_deref_search_state *state;
-    LDAPControl *ctrls[2] = { NULL, NULL };
     int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_x_deref_search_state);
@@ -1332,8 +1333,16 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->maps = maps;
     state->op = NULL;
     state->num_maps = num_maps;
+    state->ctrls = talloc_zero_array(state, LDAPControl *, 2);
+    if (state->ctrls == NULL) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    talloc_set_destructor((TALLOC_CTX *) state->ctrls,
+                          sdap_x_deref_search_ctrls_destructor);
 
-    ret = sdap_x_deref_create_control(sh, deref_attr, attrs, &ctrls[0]);
+    ret = sdap_x_deref_create_control(sh, deref_attr,
+                                      attrs, &state->ctrls[0]);
     if (ret != EOK) {
         DEBUG(1, ("Could not create OpenLDAP deref control\n"));
         talloc_zfree(req);
@@ -1343,10 +1352,9 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     DEBUG(6, ("Dereferencing entry [%s] using OpenLDAP deref\n", base_dn));
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
                                        LDAP_SCOPE_BASE, NULL, attrs,
-                                       false, ctrls, NULL, 0, timeout,
+                                       false, state->ctrls, NULL, 0, timeout,
                                        sdap_x_deref_parse_entry,
                                        state);
-    ldap_control_free(ctrls[0]);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -1485,6 +1493,17 @@ static void sdap_x_deref_search_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+static int sdap_x_deref_search_ctrls_destructor(void *ptr)
+{
+    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);;
+
+    if (ctrls && ctrls[0]) {
+        ldap_control_free(ctrls[0]);
+    }
+
+    return 0;
+}
+
 static int
 sdap_x_deref_search_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx,
@@ -1506,6 +1525,7 @@ sdap_x_deref_search_recv(struct tevent_req *req,
 struct sdap_asq_search_state {
     struct sdap_attr_map_info *maps;
     int num_maps;
+    LDAPControl **ctrls;
 
     struct sdap_deref_reply dreply;
 };
@@ -1513,6 +1533,7 @@ struct sdap_asq_search_state {
 static int sdap_asq_search_create_control(struct sdap_handle *sh,
                                           const char *attr,
                                           LDAPControl **ctrl);
+static int sdap_asq_search_ctrls_destructor(void *ptr);
 static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
                                            struct sdap_msg *msg,
                                            void *pvt);
@@ -1529,15 +1550,21 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     struct tevent_req *subreq = NULL;
     struct sdap_asq_search_state *state;
     int ret;
-    LDAPControl *ctrls[2] = { NULL, NULL };
 
     req = tevent_req_create(memctx, &state, struct sdap_asq_search_state);
     if (!req) return NULL;
 
     state->maps = maps;
     state->num_maps = num_maps;
+    state->ctrls = talloc_zero_array(state, LDAPControl *, 2);
+    if (state->ctrls == NULL) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    talloc_set_destructor((TALLOC_CTX *) state->ctrls,
+                          sdap_asq_search_ctrls_destructor);
 
-    ret = sdap_asq_search_create_control(sh, deref_attr, &ctrls[0]);
+    ret = sdap_asq_search_create_control(sh, deref_attr, &state->ctrls[0]);
     if (ret != EOK) {
         talloc_zfree(req);
         DEBUG(1, ("Could not create ASQ control\n"));
@@ -1547,10 +1574,9 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     DEBUG(6, ("Dereferencing entry [%s] using ASQ\n", base_dn));
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
                                        LDAP_SCOPE_BASE, NULL, attrs,
-                                       false, ctrls, NULL, 0, timeout,
+                                       false, state->ctrls, NULL, 0, timeout,
                                        sdap_asq_search_parse_entry,
                                        state);
-    ldap_control_free(ctrls[0]);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -1689,6 +1715,17 @@ static void sdap_asq_search_done(struct tevent_req *subreq)
     }
 
     tevent_req_done(req);
+}
+
+static int sdap_asq_search_ctrls_destructor(void *ptr)
+{
+    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);;
+
+    if (ctrls && ctrls[0]) {
+        ldap_control_free(ctrls[0]);
+    }
+
+    return 0;
 }
 
 int sdap_asq_search_recv(struct tevent_req *req,
