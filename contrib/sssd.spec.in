@@ -80,6 +80,7 @@ BuildRequires: nscd
 BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: libunistring-devel
+BuildRequires: findutils
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -193,19 +194,7 @@ mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/rwtab.d
 install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 
 # Remove .la files created by libtool
-rm -f \
-    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
-    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
-    $RPM_BUILD_ROOT/%{ldb_modulesdir}/memberof.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_krb5.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ipa.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_simple.la \
-    $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libipa_hbac.la \
-    $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la \
-    $RPM_BUILD_ROOT/%{python_sitearch}/pyhbac.la
+find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
 
 # Older versions of rpmbuild can only handle one -f option
 # So we need to append to the sssd.lang file
