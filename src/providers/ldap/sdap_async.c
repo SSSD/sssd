@@ -615,14 +615,21 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req,
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
 
-    *result = SDAP_ERROR;
     *user_error_message = talloc_steal(mem_ctx, state->user_error_message);
 
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    if (state->result == LDAP_SUCCESS) {
-        *result = SDAP_SUCCESS;
+    switch (state->result) {
+        case LDAP_SUCCESS:
+            *result = SDAP_SUCCESS;
+            break;
+        case LDAP_CONSTRAINT_VIOLATION:
+            *result = SDAP_AUTH_PW_CONSTRAINT_VIOLATION;
+            break;
+        default:
+            *result = SDAP_ERROR;
+            break;
     }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
