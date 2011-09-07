@@ -499,10 +499,10 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        for (idx = host_count; idx <= host_count + el->num_values; idx++) {
+        for (idx = host_count; idx < host_count + el->num_values; idx++) {
             shosts->names[idx] =
                     talloc_strdup(shosts->names,
-                                  (const char *)el->values[idx].data);
+                               (const char *)el->values[idx - host_count].data);
             if (shosts->names[idx] == NULL) {
                 ret = ENOMEM;
                 goto done;
