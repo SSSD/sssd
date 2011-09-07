@@ -38,6 +38,7 @@ option_strings = {
     # [service]
     'debug_level' : _('Set the verbosity of the debug logging'),
     'debug_timestamps' : _('Include timestamps in debug logs'),
+    'debug_microseconds' : _('Include microseconds in timestamps in debug logs'),
     'debug_to_files' : _('Write debug messages to logfiles'),
     'timeout' : _('Ping timeout before restarting service'),
     'command' : _('Command to start service'),

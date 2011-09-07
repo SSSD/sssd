@@ -269,6 +269,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'krb5_rcache_dir',
             'debug_level',
             'debug_timestamps',
+            'debug_microseconds',
             'debug_to_files',
             'command',
             'reconnection_retries']
