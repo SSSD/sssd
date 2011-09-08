@@ -153,7 +153,7 @@ static int nss_get_config(struct nss_ctx *nctx,
     if (ret != EOK) goto done;
 
     ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_CACHE_NOWAIT_PERCENTAGE, 0,
+                         CONFDB_NSS_ENTRY_CACHE_NOWAIT_PERCENTAGE, 50,
                          &nctx->cache_refresh_percent);
     if (ret != EOK) goto done;
     if (nctx->cache_refresh_percent < 0 ||
