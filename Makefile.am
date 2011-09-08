@@ -1073,6 +1073,7 @@ installsssddirs::
 if HAVE_DOXYGEN
 docs:
 	$(DOXYGEN) src/doxy.config
+	$(DOXYGEN) src/providers/ipa/ipa_hbac.doxy
 else
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"
