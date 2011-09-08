@@ -329,7 +329,7 @@
                             (0 disables this feature)
                         </para>
                         <para>
-                            Default: 0
+                            Default: 50
                         </para>
                     </listitem>
                 </varlistentry>
