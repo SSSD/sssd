@@ -699,6 +699,10 @@
                             in the local LDB cache
                         </para>
                         <para>
+                            User credentials are stored in a SHA512 hash, not
+                            in plaintext
+                        </para>
+                        <para>
                             Default: FALSE
                         </para>
                     </listitem>
