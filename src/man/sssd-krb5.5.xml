@@ -260,7 +260,10 @@
                         </para>
                         <para>
                             Please note that this feature currently only
-                            available on a Linux platform.
+                            available on a Linux platform. Passwords stored in
+                            this way are kept in plaintext in the kernel
+                            keyring and are potentially accessible by the root
+                            user (with difficulty).
                         </para>
                         <para>
                             Default: false
