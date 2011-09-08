@@ -164,7 +164,7 @@ autoreconf -ivf
     --disable-static \
     --disable-rpath
 
-make %{?_smp_mflags}
+make %{?_smp_mflags} all docs
 
 %check
 export CK_TIMEOUT_MULTIPLIER=10
@@ -195,6 +195,9 @@ install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 
 # Remove .la files created by libtool
 find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
+
+# Suppress developer-only documentation
+rm -Rf ${RPM_BUILD_ROOT}/%{_docdir}/%{name}/doc
 
 # Older versions of rpmbuild can only handle one -f option
 # So we need to append to the sssd.lang file
@@ -287,6 +290,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n libipa_hbac-devel
 %defattr(-,root,root,-)
+%doc hbac_doc/html
 %{_includedir}/ipa_hbac.h
 %{_libdir}/libipa_hbac.so
 %{_libdir}/pkgconfig/ipa_hbac.pc
