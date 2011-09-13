@@ -300,9 +300,6 @@ struct sdap_options {
         SDAP_SCHEMA_IPA_V1 = 3,     /* member/memberof */
         SDAP_SCHEMA_AD = 4          /* AD's member/memberof */
     } schema_type;
-
-    struct ldb_dn *users_base;
-    struct ldb_dn *groups_base;
 };
 
 struct sdap_server_opts {
