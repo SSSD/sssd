@@ -133,7 +133,7 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 
     list[l] = NULL; /* terminate list */
 
-    if (size) *size = l + 1;
+    if (size) *size = l;
     *_list = list;
 
     return EOK;

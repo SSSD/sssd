@@ -55,7 +55,7 @@ struct bet_ops sdap_access_ops = {
 };
 
 /* Please use this only for short lists */
-errno_t check_order_list_for_duplicates(char **list, size_t len,
+errno_t check_order_list_for_duplicates(char **list,
                                         bool case_sensitive)
 {
     size_t c;
@@ -285,20 +285,20 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         order = "filter";
     }
 
-    ret = split_on_separator(access_ctx, order, ',', true, &order_list,
-                             &order_list_len);
+    ret = split_on_separator(access_ctx, order, ',', true,
+                             &order_list, &order_list_len);
     if (ret != EOK) {
         DEBUG(1, ("split_on_separator failed.\n"));
         goto done;
     }
 
-    ret = check_order_list_for_duplicates(order_list, order_list_len, false);
+    ret = check_order_list_for_duplicates(order_list, false);
     if (ret != EOK) {
         DEBUG(1, ("check_order_list_for_duplicates failed.\n"));
         goto done;
     }
 
-    if (order_list_len -1 > LDAP_ACCESS_LAST) {
+    if (order_list_len > LDAP_ACCESS_LAST) {
         DEBUG(1, ("Currently only [%d] different access rules are supported.\n"));
         ret = EINVAL;
         goto done;
