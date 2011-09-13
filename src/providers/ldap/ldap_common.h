@@ -170,4 +170,9 @@ errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
                          struct ldb_message **msgs,
                          struct sysdb_attrs ***attrs);
 
+errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct sdap_options *opts,
+                               enum sdap_basic_opt class,
+                               struct sdap_search_base ***_search_bases);
+
 #endif /* _LDAP_COMMON_H_ */

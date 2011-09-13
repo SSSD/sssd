@@ -286,6 +286,12 @@ struct sdap_attr_map {
     char *name;
 };
 
+struct sdap_search_base {
+    const char *basedn;
+    int scope;
+    const char *filter;
+};
+
 struct sdap_options {
     struct dp_option *basic;
     struct sdap_attr_map *gen_map;
@@ -300,6 +306,11 @@ struct sdap_options {
         SDAP_SCHEMA_IPA_V1 = 3,     /* member/memberof */
         SDAP_SCHEMA_AD = 4          /* AD's member/memberof */
     } schema_type;
+
+    struct sdap_search_base **search_bases;
+    struct sdap_search_base **user_search_bases;
+    struct sdap_search_base **group_search_bases;
+    struct sdap_search_base **netgroup_search_bases;
 };
 
 struct sdap_server_opts {

@@ -690,40 +690,97 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
     return naming_context;
 }
 
+static errno_t sdap_set_search_base(struct sdap_options *opts,
+                                    enum sdap_basic_opt class,
+                                    char *naming_context)
+{
+    errno_t ret;
+    struct sdap_search_base ***bases;
+
+    switch(class) {
+    case SDAP_SEARCH_BASE:
+        bases = &opts->search_bases;
+        break;
+    case SDAP_USER_SEARCH_BASE:
+        bases = &opts->user_search_bases;
+        break;
+    case SDAP_GROUP_SEARCH_BASE:
+        bases = &opts->group_search_bases;
+        break;
+    case SDAP_NETGROUP_SEARCH_BASE:
+        bases = &opts->netgroup_search_bases;
+        break;
+    default:
+        return EINVAL;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Setting option [%s] to [%s].\n",
+            opts->basic[class].opt_name, naming_context));
+
+    ret = dp_opt_set_string(opts->basic, class, naming_context);
+    if (ret != EOK) {
+        DEBUG(1, ("dp_opt_set_string failed.\n"));
+        goto done;
+    }
+
+    ret = sdap_parse_search_base(opts, opts, class, bases);
+    if (ret != EOK) goto done;
+
+    ret = EOK;
+done:
+    return ret;
+}
+
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                              struct sdap_handle *sh,
                                              struct sdap_options *opts)
 {
     int ret;
     char *naming_context = NULL;
-    const int search_base_options[] = { SDAP_SEARCH_BASE,
-                                        SDAP_USER_SEARCH_BASE,
-                                        SDAP_GROUP_SEARCH_BASE,
-                                        SDAP_NETGROUP_SEARCH_BASE,
-                                        -1 };
-    size_t c;
 
-    for (c = 0; search_base_options[c] != -1; c++) {
-        if (dp_opt_get_string(opts->basic, search_base_options[c]) == NULL) {
-            if (naming_context == NULL) {
-                naming_context = get_naming_context(opts->basic, rootdse);
-                if (naming_context == NULL) {
-                    DEBUG(1, ("get_naming_context failed.\n"));
-                    ret = EINVAL;
-                    goto done;
-                }
-            }
-
-            DEBUG(3, ("Setting option [%s] to [%s].\n",
-                      opts->basic[search_base_options[c]].opt_name,
-                      naming_context));
-            ret = dp_opt_set_string(opts->basic, search_base_options[c],
-                                    naming_context);
-            if (ret != EOK) {
-                DEBUG(1, ("dp_opt_set_string failed.\n"));
-                goto done;
-            }
+    if (!opts->search_bases
+            ||!opts->user_search_bases
+            || !opts->group_search_bases
+            || !opts->netgroup_search_bases) {
+        naming_context = get_naming_context(opts->basic, rootdse);
+        if (naming_context == NULL) {
+            DEBUG(1, ("get_naming_context failed.\n"));
+            ret = EINVAL;
+            goto done;
         }
+    }
+
+    /* Default */
+    if (!opts->search_bases) {
+        ret = sdap_set_search_base(opts,
+                                   SDAP_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* Users */
+    if (!opts->user_search_bases) {
+        ret = sdap_set_search_base(opts,
+                                   SDAP_USER_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* Groups */
+    if (!opts->group_search_bases) {
+        ret = sdap_set_search_base(opts,
+                                   SDAP_GROUP_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* Netgroups */
+    if (!opts->netgroup_search_bases) {
+        ret = sdap_set_search_base(opts,
+                                   SDAP_NETGROUP_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
     }
 
     ret = EOK;

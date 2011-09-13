@@ -249,6 +249,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
+    /* Handle search bases */
     search_base = dp_opt_get_string(opts->basic, SDAP_SEARCH_BASE);
     if (search_base != NULL) {
         /* set user/group/netgroup search bases if they are not */
@@ -269,6 +270,30 @@ int ldap_get_options(TALLOC_CTX *memctx,
         DEBUG(5, ("Search base not set, trying to discover it later when "
                   "connecting to the LDAP server.\n"));
     }
+
+    /* Default search */
+    ret = sdap_parse_search_base(opts, opts,
+                                 SDAP_SEARCH_BASE,
+                                 &opts->search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* User search */
+    ret = sdap_parse_search_base(opts, opts,
+                                 SDAP_USER_SEARCH_BASE,
+                                 &opts->user_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* Group search base */
+    ret = sdap_parse_search_base(opts, opts,
+                                 SDAP_GROUP_SEARCH_BASE,
+                                 &opts->group_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* Netgroup search */
+    ret = sdap_parse_search_base(opts, opts,
+                                 SDAP_NETGROUP_SEARCH_BASE,
+                                 &opts->netgroup_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
     if (pwd_policy == NULL) {
@@ -465,6 +490,242 @@ done:
     if (ret != EOK) {
         talloc_zfree(opts);
     }
+    return ret;
+}
+
+errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct sdap_options *opts,
+                               enum sdap_basic_opt class,
+                               struct sdap_search_base ***_search_bases)
+{
+    errno_t ret;
+    struct sdap_search_base **search_bases;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_context *ldb;
+    struct ldb_dn *ldn;
+    struct ldb_parse_tree *tree;
+    const char *class_name;
+    char *unparsed_base;
+    char **split_bases;
+    char *filter;
+    int count;
+    int i, c;
+
+    *_search_bases = NULL;
+
+    switch (class) {
+    case SDAP_SEARCH_BASE:
+        class_name = "DEFAULT";
+        break;
+    case SDAP_USER_SEARCH_BASE:
+        class_name = "USER";
+        break;
+    case SDAP_GROUP_SEARCH_BASE:
+        class_name = "GROUP";
+        break;
+    case SDAP_NETGROUP_SEARCH_BASE:
+        class_name = "NETGROUP";
+        break;
+    default:
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Unknown search base type: [%d]\n", class));
+        class_name = "UNKNOWN";
+        /* Non-fatal */
+    }
+
+    unparsed_base = dp_opt_get_string(opts->basic, class);
+    if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Create a throwaway LDB context for validating the DN */
+    ldb = ldb_init(tmp_ctx, NULL);
+    if (!ldb) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = split_on_separator(tmp_ctx, unparsed_base, '?', false,
+                             &split_bases, &count);
+    if (ret != EOK) goto done;
+
+    /* The split must be either exactly one value or a multiple of
+     * three in order to be valid.
+     * One value: just a base, backwards-compatible with pre-1.7.0 versions
+     * Multiple: search_base?scope?filter[?search_base?scope?filter]*
+     */
+    if (count > 1 && (count % 3)) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unparseable search base: [%s][%d]\n", unparsed_base, count));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (count == 1) {
+        search_bases = talloc_array(tmp_ctx, struct sdap_search_base *, 2);
+        if (!search_bases) {
+            ret = ENOMEM;
+            goto done;
+        }
+        search_bases[0] = talloc_zero(search_bases, struct sdap_search_base);
+        if (!search_bases[0]) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        search_bases[0]->basedn = talloc_strdup(search_bases[0],
+                                                unparsed_base);
+        if (!search_bases[0]->basedn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Validate the basedn */
+        ldn = ldb_dn_new(tmp_ctx, ldb, unparsed_base);
+        if (!ldn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (!ldb_dn_validate(ldn)) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Invalid base DN [%s]\n",
+                   unparsed_base));
+            ret = EINVAL;
+            goto done;
+        }
+        talloc_zfree(ldn);
+
+        search_bases[0]->scope = LDAP_SCOPE_SUBTREE;
+        search_bases[0]->filter = NULL;
+
+
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Search base added: [%s][%s][%s][%s]\n",
+               class_name,
+               search_bases[0]->basedn,
+               "SUBTREE",
+               search_bases[0]->filter ? search_bases[0]->filter : ""));
+
+        search_bases[1] = NULL;
+    } else {
+        search_bases = talloc_array(tmp_ctx, struct sdap_search_base *,
+                                    (count / 3) + 1);
+        if (!search_bases) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        i = 0;
+        for (c = 0; c < count; c += 3) {
+            search_bases[i] = talloc_zero(search_bases,
+                                          struct sdap_search_base);
+            if (!search_bases[i]) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            if (split_bases[c][0] == '\0') {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Zero-length search base: [%s]\n", unparsed_base));
+                ret = EINVAL;
+                goto done;
+            }
+
+            /* Validate the basedn */
+            ldn = ldb_dn_new(tmp_ctx, ldb, split_bases[c]);
+            if (!ldn) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            if (!ldb_dn_validate(ldn)) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Invalid base DN [%s]\n",
+                       split_bases[c]));
+                ret = EINVAL;
+                goto done;
+            }
+            talloc_zfree(ldn);
+
+            /* Set the search base DN */
+            search_bases[i]->basedn = talloc_strdup(search_bases[i],
+                                                    split_bases[c]);
+            if (!search_bases[i]->basedn) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            /* Set the search scope for this base DN */
+            if ((split_bases[c+1][0] == '\0')
+                    || strcasecmp(split_bases[c+1], "sub") == 0
+                    || strcasecmp(split_bases[c+1], "subtree") == 0) {
+                /* If unspecified, default to subtree */
+                search_bases[i]->scope = LDAP_SCOPE_SUBTREE;
+            } else if (strcasecmp(split_bases[c+1], "one") == 0
+                    || strcasecmp(split_bases[c+1], "onelevel") == 0) {
+                search_bases[i]->scope = LDAP_SCOPE_ONELEVEL;
+            } else if (strcasecmp(split_bases[c+1], "base") == 0) {
+                search_bases[i]->scope = LDAP_SCOPE_BASE;
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Unknown search scope: [%s]\n", split_bases[c+1]));
+                ret = EINVAL;
+                goto done;
+            }
+
+            /* Get a specialized filter if provided */
+            if (split_bases[c+2][0] == '\0') {
+                search_bases[i]->filter = NULL;
+            } else {
+                if (split_bases[c+2][0] != '(') {
+                    /* Filters need to be enclosed in parentheses
+                     * to be validated properly by ldb_parse_tree()
+                     */
+                    filter = talloc_asprintf(tmp_ctx, "(%s)",
+                                             split_bases[c+2]);
+                } else {
+                    filter = talloc_strdup(tmp_ctx, split_bases[c+2]);
+                }
+                if (!filter) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+
+                tree = ldb_parse_tree(tmp_ctx, filter);
+                if(!tree) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("Invalid search filter: [%s]\n", filter));
+                    ret = EINVAL;
+                    goto done;
+                }
+                talloc_zfree(tree);
+
+                search_bases[i]->filter = talloc_steal(search_bases[i],
+                                                       filter);
+            }
+
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  ("Search base added: [%s][%s][%s][%s]\n",
+                   class_name,
+                   search_bases[i]->basedn,
+                   split_bases[c+1][0] ? split_bases[c+1] : "SUBTREE",
+                   search_bases[i]->filter ? search_bases[i]->filter : ""));
+
+            i++;
+        }
+        search_bases[i] = NULL;
+    }
+
+    *_search_bases = talloc_steal(mem_ctx, search_bases);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 

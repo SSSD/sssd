@@ -332,10 +332,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         if (ret != EOK) {
             goto done;
         }
+
         DEBUG(6, ("Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)));
     }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+                                 SDAP_SEARCH_BASE,
+                                 &ipa_opts->id->search_bases);
+    if (ret != EOK) goto done;
 
     /* set krb realm */
     if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)) {
@@ -414,11 +419,16 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         if (ret != EOK) {
             goto done;
         }
+
         DEBUG(6, ("Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_USER_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_USER_SEARCH_BASE)));
     }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+                                 SDAP_USER_SEARCH_BASE,
+                                 &ipa_opts->id->user_search_bases);
+    if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_GROUP_SEARCH_BASE)) {
@@ -428,11 +438,16 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         if (ret != EOK) {
             goto done;
         }
+
         DEBUG(6, ("Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_GROUP_SEARCH_BASE)));
     }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+                                 SDAP_GROUP_SEARCH_BASE,
+                                 &ipa_opts->id->group_search_bases);
+    if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_NETGROUP_SEARCH_BASE)) {
@@ -461,11 +476,16 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 #endif
+
         DEBUG(6, ("Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_NETGROUP_SEARCH_BASE)));
     }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+                                 SDAP_NETGROUP_SEARCH_BASE,
+                                 &ipa_opts->id->netgroup_search_bases);
+    if (ret != EOK) goto done;
 
     value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);
     if (value != NULL) {
