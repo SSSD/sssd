@@ -86,7 +86,6 @@ struct mt_svc {
 
     int restarts;
     time_t last_restart;
-    time_t last_ping;
     int failed_pongs;
 
     int debug_level;
@@ -550,22 +549,14 @@ static void tasks_check_handler(struct tevent_context *ev,
             break;
         }
 
-        if (svc->last_ping != 0) {
-            if ((now - svc->last_ping) > (svc->ping_time)) {
-                svc->failed_pongs++;
-            } else {
-                svc->failed_pongs = 0;
-            }
-            if (svc->failed_pongs > 3) {
-                /* too long since we last heard of this process */
-                DEBUG(1, ("Killing service [%s], not responding to pings!\n",
-                          svc->name));
-                monitor_kill_service(svc);
-                process_alive = false;
-            }
+        if (svc->failed_pongs >= 3) {
+            /* too long since we last heard of this process */
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Killing service [%s], not responding to pings!\n",
+                   svc->name));
+            monitor_kill_service(svc);
+            process_alive = false;
         }
-
-        svc->last_ping = now;
     }
 
     if (!process_alive) {
@@ -2194,7 +2185,7 @@ static int service_send_ping(struct mt_svc *svc)
     }
 
     ret = sbus_conn_send(svc->conn, msg,
-                         svc->mt_ctx->service_id_timeout,
+                         svc->ping_time,
                          ping_check, svc, NULL);
     dbus_message_unref(msg);
     return ret;
@@ -2205,6 +2196,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
     struct mt_svc *svc;
     DBusMessage *reply;
     const char *dbus_error_name;
+    size_t len;
     int type;
 
     svc = talloc_get_type(data, struct mt_svc);
@@ -2237,13 +2229,26 @@ static void ping_check(DBusPendingCall *pending, void *data)
     case DBUS_MESSAGE_TYPE_ERROR:
 
         dbus_error_name = dbus_message_get_error_name(reply);
+        if (!dbus_error_name) {
+            dbus_error_name = "<UNKNOWN>";
+        }
 
-        /* timeouts are handled in the main service check function */
-        if (strcmp(dbus_error_name, DBUS_ERROR_TIMEOUT) == 0)
+        len = strlen(DBUS_ERROR_NO_REPLY);
+
+        /* Increase failed pong count */
+        if (strnlen(dbus_error_name, len + 1) == len
+                && strncmp(dbus_error_name, DBUS_ERROR_NO_REPLY, len) == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("A service PING timed out on [%s]. "
+                   "Attempt [%d]\n",
+                   svc->name, svc->failed_pongs));
+            svc->failed_pongs++;
             break;
+        }
 
-        DEBUG(0,("A service PING returned an error [%s], closing connection.\n",
-                 dbus_error_name));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("A service PING returned an error [%s], closing connection.\n",
+               dbus_error_name));
         /* Falling through to default intentionally*/
     default:
         /*
