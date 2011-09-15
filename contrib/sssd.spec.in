@@ -172,7 +172,18 @@ autoreconf -ivf
     --disable-static \
     --disable-rpath
 
-make %{?_smp_mflags} all docs
+make %{?_smp_mflags} all
+
+
+# Only build docs on recent distros
+%if 0{?fedora}
+make %{?_smp_mflags} docs
+%endif
+
+%if 0{?rhel} >= 6
+make %{?_smp_mflags} docs
+%endif
+
 
 %check
 export CK_TIMEOUT_MULTIPLIER=10
@@ -300,7 +311,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n libipa_hbac-devel
 %defattr(-,root,root,-)
+%if 0%{?fedora}
 %doc hbac_doc/html
+%endif
+%if 0%{?rhel} >= 6
+%doc hbac_doc/html
+%endif
 %{_includedir}/ipa_hbac.h
 %{_libdir}/libipa_hbac.so
 %{_libdir}/pkgconfig/ipa_hbac.pc
