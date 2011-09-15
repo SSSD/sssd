@@ -176,11 +176,11 @@ make %{?_smp_mflags} all
 
 
 # Only build docs on recent distros
-%if 0{?fedora}
+%if 0%{?fedora}
 make %{?_smp_mflags} docs
 %endif
 
-%if 0{?rhel} >= 6
+%if 0%{?rhel} >= 6
 make %{?_smp_mflags} docs
 %endif
 
