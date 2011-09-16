@@ -468,6 +468,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'min_id',
             'max_id',
             'timeout',
+            'try_inotify',
             'command',
             'enumerate',
             'cache_credentials',
@@ -519,7 +520,13 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.add_provider('local', 'id')
         control_list.extend(
             ['default_shell',
-             'base_directory'])
+             'base_directory',
+             'create_homedir',
+             'remove_homedir',
+             'homedir_umask',
+             'skel_dir',
+             'mail_dir',
+             'userdel_cmd'])
 
         options = domain.list_options()
 
@@ -799,6 +806,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'min_id',
             'max_id',
             'timeout',
+            'try_inotify',
             'command',
             'enumerate',
             'cache_credentials',
@@ -850,7 +858,13 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.add_provider('local', 'id')
         control_list.extend(
             ['default_shell',
-             'base_directory'])
+             'base_directory',
+             'create_homedir',
+             'remove_homedir',
+             'homedir_umask',
+             'skel_dir',
+             'mail_dir',
+             'userdel_cmd'])
 
         options = domain.list_options()
 
