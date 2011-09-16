@@ -163,8 +163,8 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
 bool sdap_is_secure_uri(const char *uri);
 
 char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
-                                  char *base_filter,
-                                  char *extra_filter);
+                                  const char *base_filter,
+                                  const char *extra_filter);
 
 errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
                          struct ldb_message **msgs,
