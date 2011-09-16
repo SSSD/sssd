@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/ldap_common.h"
 
 static bool is_dn(const char *str)
 {
@@ -570,13 +571,19 @@ struct sdap_get_netgroups_state {
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     const char **attrs;
-    const char *filter;
+    const char *base_filter;
+    char *filter;
+    int timeout;
 
     char *higher_timestamp;
     struct sysdb_attrs **netgroups;
     size_t count;
+
+    size_t base_iter;
+    struct sdap_search_base **search_bases;
 };
 
+static errno_t sdap_get_netgroups_next_base(struct tevent_req *req);
 static void sdap_get_netgroups_process(struct tevent_req *subreq);
 static void netgr_translate_members_done(struct tevent_req *subreq);
 
@@ -585,12 +592,14 @@ struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
                                            struct sss_domain_info *dom,
                                            struct sysdb_ctx *sysdb,
                                            struct sdap_options *opts,
+                                           struct sdap_search_base **search_bases,
                                            struct sdap_handle *sh,
                                            const char **attrs,
                                            const char *filter,
                                            int timeout)
 {
-    struct tevent_req *req, *subreq;
+    errno_t ret;
+    struct tevent_req *req;
     struct sdap_get_netgroups_state *state;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_netgroups_state);
@@ -601,26 +610,55 @@ struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->sh = sh;
     state->sysdb = sysdb;
-    state->filter = filter;
     state->attrs = attrs;
     state->higher_timestamp = NULL;
     state->netgroups =  NULL;
     state->count = 0;
+    state->timeout = timeout;
+    state->base_filter = filter;
+    state->base_iter = 0;
+    state->search_bases = search_bases;
 
-    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   dp_opt_get_string(state->opts->basic,
-                                                     SDAP_NETGROUP_SEARCH_BASE),
-                                   LDAP_SCOPE_SUBTREE,
-                                   state->filter, state->attrs,
-                                   state->opts->netgroup_map,
-                                   SDAP_OPTS_NETGROUP, timeout);
+    ret = sdap_get_netgroups_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, state->ev);
+    }
+    return req;
+}
+
+static errno_t sdap_get_netgroups_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_get_netgroups_state *state;
+
+    state = tevent_req_data(req, struct sdap_get_netgroups_state);
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_get_id_specific_filter(state,
+                        state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for netgroups with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(
+            state, state->ev, state->opts, state->sh,
+            state->search_bases[state->base_iter]->basedn,
+            state->search_bases[state->base_iter]->scope,
+            state->filter, state->attrs,
+            state->opts->netgroup_map, SDAP_OPTS_NETGROUP,
+            state->timeout);
     if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
+        return ENOMEM;
     }
     tevent_req_set_callback(subreq, sdap_get_netgroups_process, req);
 
-    return req;
+    return EOK;
 }
 
 static void sdap_get_netgroups_process(struct tevent_req *subreq)
@@ -642,6 +680,17 @@ static void sdap_get_netgroups_process(struct tevent_req *subreq)
     DEBUG(6, ("Search for netgroups, returned %d results.\n", state->count));
 
     if (state->count == 0) {
+        /* No netgroups found in this search */
+        state->base_iter++;
+        if (state->search_bases[state->base_iter]) {
+            /* There are more search bases to try */
+            ret = sdap_get_netgroups_next_base(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ENOENT);
+            }
+            return;
+        }
+
         tevent_req_error(req, ENOENT);
         return;
     }
