@@ -1193,7 +1193,9 @@ struct sdap_get_groups_state {
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     const char **attrs;
-    const char *filter;
+    const char *base_filter;
+    char *filter;
+    int timeout;
 
     char *higher_usn;
     struct sysdb_attrs **groups;
@@ -1202,8 +1204,12 @@ struct sdap_get_groups_state {
 
     hash_table_t *user_hash;
     hash_table_t *group_hash;
+
+    size_t base_iter;
+    struct sdap_search_base **search_bases;
 };
 
+static errno_t sdap_get_groups_next_base(struct tevent_req *req);
 static void sdap_get_groups_process(struct tevent_req *subreq);
 static void sdap_get_groups_done(struct tevent_req *subreq);
 
@@ -1212,12 +1218,14 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct sss_domain_info *dom,
                                        struct sysdb_ctx *sysdb,
                                        struct sdap_options *opts,
+                                       struct sdap_search_base **search_bases,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
                                        int timeout)
 {
-    struct tevent_req *req, *subreq;
+    errno_t ret;
+    struct tevent_req *req;
     struct sdap_get_groups_state *state;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
@@ -1228,26 +1236,56 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->sh = sh;
     state->sysdb = sysdb;
-    state->filter = filter;
     state->attrs = attrs;
     state->higher_usn = NULL;
     state->groups =  NULL;
     state->count = 0;
+    state->timeout = timeout;
+    state->base_filter = filter;
+    state->base_iter = 0;
+    state->search_bases = search_bases;
 
-    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   dp_opt_get_string(state->opts->basic,
-                                                     SDAP_GROUP_SEARCH_BASE),
-                                   LDAP_SCOPE_SUBTREE,
-                                   state->filter, state->attrs,
-                                   state->opts->group_map, SDAP_OPTS_GROUP,
-                                   timeout);
+    ret = sdap_get_groups_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t sdap_get_groups_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_get_groups_state *state;
+
+    state = tevent_req_data(req, struct sdap_get_groups_state);
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_get_id_specific_filter(state,
+                        state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for groups with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(
+            state, state->ev, state->opts, state->sh,
+            state->search_bases[state->base_iter]->basedn,
+            state->search_bases[state->base_iter]->scope,
+            state->filter, state->attrs,
+            state->opts->group_map, SDAP_OPTS_GROUP,
+            state->timeout);
     if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
+        return ENOMEM;
     }
     tevent_req_set_callback(subreq, sdap_get_groups_process, req);
 
-    return req;
+    return EOK;
 }
 
 static struct tevent_req *sdap_nested_group_process_send(
@@ -1281,6 +1319,17 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     switch(state->count) {
     case 0:
+        /* No groups found in this search */
+        state->base_iter++;
+        if (state->search_bases[state->base_iter]) {
+            /* There are more search bases to try */
+            ret = sdap_get_groups_next_base(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+
         tevent_req_error(req, ENOENT);
         return;
 

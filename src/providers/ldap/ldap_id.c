@@ -422,7 +422,9 @@ static void groups_get_connect_done(struct tevent_req *subreq)
 
     subreq = sdap_get_groups_send(state, state->ev,
                                   state->domain, state->sysdb,
-                                  state->ctx->opts, sdap_id_op_handle(state->op),
+                                  state->ctx->opts,
+                                  state->ctx->opts->group_search_bases,
+                                  sdap_id_op_handle(state->op),
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->ctx->opts->basic,
                                                  SDAP_SEARCH_TIMEOUT));
