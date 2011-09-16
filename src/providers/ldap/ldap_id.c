@@ -178,6 +178,7 @@ static void users_get_connect_done(struct tevent_req *subreq)
     subreq = sdap_get_users_send(state, state->ev,
                                  state->domain, state->sysdb,
                                  state->ctx->opts,
+                                 state->ctx->opts->user_search_bases,
                                  sdap_id_op_handle(state->op),
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,

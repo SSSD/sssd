@@ -480,10 +480,15 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                SDAP_OPTS_USER, &state->attrs);
     if (ret != EOK) goto fail;
 
+    /* TODO: restrict the enumerations to using a single
+     * search base at a time.
+     */
+
     subreq = sdap_get_users_send(state, state->ev,
                                  state->ctx->be->domain,
                                  state->ctx->be->sysdb,
                                  state->ctx->opts,
+                                 state->ctx->opts->user_search_bases,
                                  sdap_id_op_handle(state->op),
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
