@@ -81,7 +81,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sysdb_attrs *attrs,
                    const char **ldap_attrs,
                    bool is_initgr,
-                   char **_usn_value);
+                   char **_usn_value,
+                   time_t now);
 
 int sdap_save_users(TALLOC_CTX *memctx,
                     struct sysdb_ctx *sysdb,

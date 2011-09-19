@@ -44,6 +44,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     int ret;
     bool in_transaction = false;
     bool posix;
+    time_t now;
 
     /* There are no groups in LDAP but we should add user to groups ?? */
     if (ldap_groups_count == 0) return EOK;
@@ -90,6 +91,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
         goto done;
     }
 
+    now = time(NULL);
     for (i=0; missing[i]; i++) {
         /* The group is not in sysdb, need to add a fake entry */
         for (ai=0; ai < ldap_groups_count; ai++) {
@@ -127,7 +129,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
                 DEBUG(8, ("Adding fake group %s to sysdb\n", name));
                 ret = sysdb_add_incomplete_group(sysdb, name, gid, original_dn,
-                                                 posix);
+                                                 posix, now);
                 if (ret != EOK) {
                     goto fail;
                 }
@@ -1832,7 +1834,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     ret = sdap_save_user(state, state->sysdb,
                          state->opts, state->dom,
                          state->orig_user, state->ldap_attrs,
-                         true, NULL);
+                         true, NULL, 0);
     if (ret) {
         sysdb_transaction_cancel(state->sysdb);
         tevent_req_error(req, ret);

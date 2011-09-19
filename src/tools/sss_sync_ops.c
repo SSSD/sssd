@@ -472,7 +472,7 @@ int useradd(TALLOC_CTX *mem_ctx,
     int ret;
 
     ret = sysdb_add_user(sysdb, data->name, data->uid, data->gid,
-                         data->gecos, data->home, data->shell, NULL, 0);
+                         data->gecos, data->home, data->shell, NULL, 0, 0);
     if (ret) {
         goto done;
     }
@@ -537,7 +537,7 @@ int groupadd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_group(sysdb, data->name, data->gid, NULL, 0);
+    ret = sysdb_add_group(sysdb, data->name, data->gid, NULL, 0, 0);
     if (ret == EOK) {
         flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
     }

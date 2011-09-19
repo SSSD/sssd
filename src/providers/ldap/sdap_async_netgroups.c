@@ -40,7 +40,8 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
                                   struct sdap_options *opts,
                                   struct sss_domain_info *dom,
                                   struct sysdb_attrs *attrs,
-                                  char **_timestamp)
+                                  char **_timestamp,
+                                  time_t now)
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *netgroup_attrs;
@@ -167,7 +168,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
 
     ret = sysdb_add_netgroup(ctx, name, NULL, netgroup_attrs,
                              dp_opt_get_int(opts->basic,
-                                            SDAP_ENTRY_CACHE_TIMEOUT));
+                                            SDAP_ENTRY_CACHE_TIMEOUT), now);
     if (ret) goto fail;
 
     if (_timestamp) {
@@ -666,6 +667,7 @@ static void netgr_translate_members_done(struct tevent_req *subreq)
                                                struct sdap_get_netgroups_state);
     int ret;
     size_t c;
+    time_t now;
 
     ret = netgroup_translate_ldap_members_recv(subreq, state, &state->count,
                                                &state->netgroups);
@@ -675,11 +677,13 @@ static void netgr_translate_members_done(struct tevent_req *subreq)
         return;
     }
 
+    now = time(NULL);
     for (c = 0; c < state->count; c++) {
         ret = sdap_save_netgroup(state, state->sysdb,
                                  state->opts, state->dom,
                                  state->netgroups[c],
-                                 &state->higher_timestamp);
+                                 &state->higher_timestamp,
+                                 now);
         if (ret) {
             DEBUG(2, ("Failed to store netgroups.\n"));
             tevent_req_error(req, ret);

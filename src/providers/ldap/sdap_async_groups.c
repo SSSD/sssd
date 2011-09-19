@@ -185,7 +185,8 @@ sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
                           gid_t gid,
                           struct sysdb_attrs *group_attrs,
                           uint64_t cache_timeout,
-                          bool posix_group)
+                          bool posix_group,
+                          time_t now)
 {
     errno_t ret;
 
@@ -199,7 +200,7 @@ sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_store_group(ctx, name, gid, group_attrs, cache_timeout);
+    ret = sysdb_store_group(ctx, name, gid, group_attrs, cache_timeout, now);
     if (ret) {
         DEBUG(2, ("Could not store group %s\n", name));
         return ret;
@@ -215,7 +216,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sysdb_attrs *attrs,
                            bool store_members,
                            bool populate_members,
-                           char **_usn_value)
+                           char **_usn_value,
+                           time_t now)
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
@@ -389,7 +391,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                     name, gid, group_attrs,
                                     dp_opt_get_int(opts->basic,
                                                    SDAP_ENTRY_CACHE_TIMEOUT),
-                                    posix_group);
+                                    posix_group, now);
     if (ret) goto fail;
 
     if (_usn_value) {
@@ -417,7 +419,8 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
                             struct sysdb_ctx *ctx,
                             struct sdap_options *opts,
                             struct sss_domain_info *dom,
-                            struct sysdb_attrs *attrs)
+                            struct sysdb_attrs *attrs,
+                            time_t now)
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs = NULL;
@@ -459,7 +462,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 
     ret = sysdb_store_group(ctx, name, 0, group_attrs,
                             dp_opt_get_int(opts->basic,
-                                           SDAP_ENTRY_CACHE_TIMEOUT));
+                                           SDAP_ENTRY_CACHE_TIMEOUT), now);
     if (ret) goto fail;
 
     return EOK;
@@ -489,6 +492,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
     int i;
     struct sysdb_attrs **saved_groups = NULL;
     int nsaved_groups = 0;
+    time_t now;
 
     switch (opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
@@ -524,13 +528,14 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         }
     }
 
+    now = time(NULL);
     for (i = 0; i < num_groups; i++) {
         usn_value = NULL;
 
         /* if 2 pass savemembers = false */
         ret = sdap_save_group(tmpctx, sysdb,
                               opts, dom, groups[i],
-                              (!twopass), populate_members, &usn_value);
+                              (!twopass), populate_members, &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -563,7 +568,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
 
         for (i = 0; i < nsaved_groups; i++) {
 
-            ret = sdap_save_grpmem(tmpctx, sysdb, opts, dom, saved_groups[i]);
+            ret = sdap_save_grpmem(tmpctx, sysdb, opts, dom, saved_groups[i], now);
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
             if (ret) {
@@ -891,7 +896,8 @@ sdap_add_group_member_2307(struct sdap_process_group_state *state,
 
 static int
 sdap_process_missing_member_2307(struct sdap_process_group_state *state,
-                                 char *member_name, bool *in_transaction)
+                                 char *member_name, bool *in_transaction,
+                                 time_t now)
 {
     int ret, sret;
     TALLOC_CTX *tmp_ctx;
@@ -946,7 +952,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         *in_transaction = true;
     }
 
-    ret = sysdb_add_fake_user(state->sysdb, username, NULL);
+    ret = sysdb_add_fake_user(state->sysdb, username, NULL, now);
     if (ret != EOK) {
         DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
                   ret, strerror(ret)));
@@ -989,8 +995,10 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
     char *member_name;
     int ret;
     errno_t sret;
+    time_t now;
     int i;
 
+    now = time(NULL);
     for (i=0; i < memberel->num_values; i++) {
         member_name = (char *)memberel->values[i].data;
 
@@ -1017,7 +1025,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
                        i, member_name));
 
             ret = sdap_process_missing_member_2307(state, member_name,
-                                                   &in_transaction);
+                                                   &in_transaction, now);
             if (ret != EOK) {
                 DEBUG(1, ("Error processing missing member #%d (%s):\n",
                           i, member_name));
@@ -1529,6 +1537,7 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
     struct sysdb_attrs *attrs;
     static const char *search_attrs[] = { SYSDB_NAME, NULL };
     size_t count;
+    time_t now;
 
     if (num_users == 0) {
         /* Nothing to do if there are no users */
@@ -1544,6 +1553,7 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
         goto done;
     }
 
+    now = time(NULL);
     for (i = 0; i < num_users; i++) {
         ret = sysdb_attrs_primary_name(sysdb, users[i],
                                     opts->user_map[SDAP_AT_USER_NAME].name,
@@ -1613,7 +1623,7 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
         }
 
         /* If the entry does not exist add a fake user record */
-        ret = sysdb_add_fake_user(sysdb, username, original_dn);
+        ret = sysdb_add_fake_user(sysdb, username, original_dn, now);
         if (ret != EOK) {
             DEBUG(1, ("Cannot store fake user entry, ignoring: [%d]: %s\n",
                       ret, strerror(ret)));

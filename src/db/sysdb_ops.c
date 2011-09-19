@@ -811,13 +811,13 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                    const char *homedir,
                    const char *shell,
                    struct sysdb_attrs *attrs,
-                   int cache_timeout)
+                   int cache_timeout,
+                   time_t now)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     struct sysdb_attrs *id_attrs;
     uint32_t id;
-    time_t now;
     int ret;
 
     struct sss_domain_info *domain = sysdb->domain;
@@ -913,7 +913,9 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
         }
     }
 
-    now = time(NULL);
+    if (!now) {
+        now = time(NULL);
+    }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
@@ -939,11 +941,11 @@ done:
 
 int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
                         const char *name,
-                        const char *original_dn)
+                        const char *original_dn,
+                        time_t now)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
-    time_t now;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -968,7 +970,9 @@ int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
     ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
     if (ret) goto done;
 
-    now = time(NULL);
+    if (!now) {
+        now = time(NULL);
+    }
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
                     (unsigned long) now);
@@ -1061,12 +1065,12 @@ done:
 int sysdb_add_group(struct sysdb_ctx *sysdb,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
-                    int cache_timeout)
+                    int cache_timeout,
+                    time_t now)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     uint32_t id;
-    time_t now;
     int ret;
     bool posix;
 
@@ -1144,7 +1148,9 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
         if (ret) goto done;
     }
 
-    now = time(NULL);
+    if (!now) {
+        now = time(NULL);
+    }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
@@ -1172,10 +1178,10 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
                                const char *name,
                                gid_t gid,
                                const char *original_dn,
-                               bool posix)
+                               bool posix,
+                               time_t now)
 {
     TALLOC_CTX *tmp_ctx;
-    time_t now;
     int ret;
     struct sysdb_attrs *attrs;
 
@@ -1194,7 +1200,9 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    now = time(NULL);
+    if (!now) {
+        now = time(NULL);
+    }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
@@ -1320,10 +1328,10 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
-                       int cache_timeout)
+                       int cache_timeout,
+                       time_t now)
 {
     TALLOC_CTX *tmp_ctx;
-    time_t now;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -1350,7 +1358,9 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
         }
     }
 
-    now = time(NULL);
+    if (!now) {
+        now = time(NULL);
+    }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
@@ -1390,11 +1400,11 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                      const char *shell,
                      struct sysdb_attrs *attrs,
                      char **remove_attrs,
-                     uint64_t cache_timeout)
+                     uint64_t cache_timeout,
+                     time_t now)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
-    time_t now;
     int ret;
     errno_t sret = EOK;
     bool in_transaction = false;
@@ -1428,10 +1438,15 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         goto done;
     }
 
+    /* get transaction timestamp */
+    if (!now) {
+        now = time(NULL);
+    }
+
     if (ret == ENOENT) {
         /* users doesn't exist, turn into adding a user */
         ret = sysdb_add_user(sysdb, name, uid, gid,
-                             gecos, homedir, shell, attrs, cache_timeout);
+                             gecos, homedir, shell, attrs, cache_timeout, now);
         goto done;
     }
 
@@ -1465,8 +1480,6 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         ret = sysdb_attrs_add_string(attrs, SYSDB_SHELL, shell);
         if (ret) goto done;
     }
-
-    now = time(NULL);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
@@ -1519,14 +1532,14 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,
-                      uint64_t cache_timeout)
+                      uint64_t cache_timeout,
+                      time_t now)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *src_attrs[] = { SYSDB_NAME, SYSDB_GIDNUM,
                                        SYSDB_ORIG_MODSTAMP, NULL };
     struct ldb_message *msg;
     bool new_group = false;
-    time_t now;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -1551,12 +1564,17 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
         }
     }
 
+    /* get transaction timestamp */
+    if (!now) {
+        now = time(NULL);
+    }
+
     /* FIXME: use the remote modification timestamp to know if the
      * group needs any update */
 
     if (new_group) {
         /* group doesn't exist, turn into adding a group */
-        ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout);
+        ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout, now);
         goto done;
     }
 
@@ -1565,8 +1583,6 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
         if (ret) goto done;
     }
-
-    now = time(NULL);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;

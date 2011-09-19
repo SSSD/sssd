@@ -473,11 +473,13 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                    const char *homedir,
                    const char *shell,
                    struct sysdb_attrs *attrs,
-                   int cache_timeout);
+                   int cache_timeout,
+                   time_t now);
 
 int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
                         const char *name,
-                        const char *original_dn);
+                        const char *original_dn,
+                        time_t now);
 
 /* Add group (only basic attrs and w/o checks) */
 int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
@@ -487,12 +489,14 @@ int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
 int sysdb_add_group(struct sysdb_ctx *sysdb,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
-                    int cache_timeout);
+                    int cache_timeout,
+                    time_t now);
 
 int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
                                const char *name,
                                gid_t gid,
-                               const char *original_dn, bool posix);
+                               const char *original_dn, bool posix,
+                               time_t now);
 
 /* Add netgroup (only basic attrs and w/o checks) */
 int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
@@ -502,7 +506,8 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
-                       int cache_timeout);
+                       int cache_timeout,
+                       time_t now);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
 int sysdb_mod_group_member(struct sysdb_ctx *sysdb,
@@ -519,13 +524,15 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                      const char *shell,
                      struct sysdb_attrs *attrs,
                      char **remove_attrs,
-                     uint64_t cache_timeout);
+                     uint64_t cache_timeout,
+                     time_t now);
 
 int sysdb_store_group(struct sysdb_ctx *sysdb,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,
-                      uint64_t cache_timeout);
+                      uint64_t cache_timeout,
+                      time_t now);
 
 enum sysdb_member_type {
     SYSDB_MEMBER_USER,

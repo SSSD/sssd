@@ -37,7 +37,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sysdb_attrs *attrs,
                    const char **ldap_attrs,
                    bool is_initgr,
-                   char **_usn_value)
+                   char **_usn_value,
+                   time_t now)
 {
     struct ldb_message_element *el;
     int ret;
@@ -315,7 +316,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     DEBUG(6, ("Storing info for user %s\n", name));
 
     ret = sysdb_store_user(ctx, name, pwd, uid, gid, gecos, homedir, shell,
-                           user_attrs, missing, cache_timeout);
+                           user_attrs, missing, cache_timeout, now);
     if (ret) goto fail;
 
     if (_usn_value) {
@@ -350,6 +351,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
     char *usn_value;
     int ret;
     int i;
+    time_t now;
 
     if (num_users == 0) {
         /* Nothing to do if there are no users */
@@ -366,12 +368,13 @@ int sdap_save_users(TALLOC_CTX *memctx,
         goto done;
     }
 
+    now = time(NULL);
     for (i = 0; i < num_users; i++) {
         usn_value = NULL;
 
         ret = sdap_save_user(tmpctx, sysdb, opts, dom,
                              users[i], attrs, false,
-                             &usn_value);
+                             &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */

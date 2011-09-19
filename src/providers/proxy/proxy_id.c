@@ -106,7 +106,8 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
                                pwd->pw_dir,
                                pwd->pw_shell,
                                NULL, NULL,
-                               ctx->entry_cache_timeout);
+                               ctx->entry_cache_timeout,
+                               0);
         if (ret) {
             goto done;
         }
@@ -221,7 +222,8 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
                                pwd->pw_dir,
                                pwd->pw_shell,
                                NULL, NULL,
-                               ctx->entry_cache_timeout);
+                               ctx->entry_cache_timeout,
+                               0);
         if (ret) {
             goto done;
         }
@@ -361,7 +363,8 @@ again:
                                pwd->pw_dir,
                                pwd->pw_shell,
                                NULL, NULL,
-                               ctx->entry_cache_timeout);
+                               ctx->entry_cache_timeout,
+                               0);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -519,7 +522,8 @@ again:
                                 grp->gr_name,
                                 grp->gr_gid,
                                 members,
-                                ctx->entry_cache_timeout);
+                                ctx->entry_cache_timeout,
+                                0);
         if (ret) {
             goto done;
         }
@@ -568,7 +572,8 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
                       struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom,
-                      gid_t gid)
+                      gid_t gid,
+                      time_t now)
 {
     TALLOC_CTX *tmpctx;
     struct group *grp;
@@ -670,7 +675,8 @@ again:
                                 grp->gr_name,
                                 grp->gr_gid,
                                 members,
-                                ctx->entry_cache_timeout);
+                                ctx->entry_cache_timeout,
+                                now);
         if (ret) {
             goto done;
         }
@@ -825,7 +831,8 @@ again:
                                 grp->gr_name,
                                 grp->gr_gid,
                                 members,
-                                ctx->entry_cache_timeout);
+                                ctx->entry_cache_timeout,
+                                0);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -937,7 +944,8 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
                                pwd->pw_dir,
                                pwd->pw_shell,
                                NULL, NULL,
-                               ctx->entry_cache_timeout);
+                               ctx->entry_cache_timeout,
+                               0);
         if (ret) {
             goto done;
         }
@@ -983,6 +991,7 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
     gid_t *gids;
     int ret;
     int i;
+    time_t now;
 
     num_gids = 0;
     limit = 4096;
@@ -1020,8 +1029,9 @@ again:
         DEBUG(4, ("User [%s] appears to be member of %lu groups\n",
                   pwd->pw_name, num_gids));
 
+        now = time(NULL);
         for (i = 0; i < num_gids; i++) {
-            ret = get_gr_gid(memctx, ctx, sysdb, dom, gids[i]);
+            ret = get_gr_gid(memctx, ctx, sysdb, dom, gids[i], now);
             if (ret) {
                 return ret;
             }
@@ -1107,7 +1117,7 @@ void proxy_get_account_info(struct be_req *breq)
                 return proxy_reply(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
             }
-            ret = get_gr_gid(breq, ctx, sysdb, domain, gid);
+            ret = get_gr_gid(breq, ctx, sysdb, domain, gid, 0);
             break;
         default:
             return proxy_reply(breq, DP_ERR_FATAL,

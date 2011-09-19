@@ -192,7 +192,7 @@ static int test_add_user(struct test_data *data)
 
     ret = sysdb_add_user(data->ctx->sysdb, data->username,
                          data->uid, 0, gecos, homedir, "/bin/bash",
-                         NULL, 0);
+                         NULL, 0, 0);
     return ret;
 }
 
@@ -208,7 +208,7 @@ static int test_store_user(struct test_data *data)
     ret = sysdb_store_user(data->ctx->sysdb, data->username, "x",
                            data->uid, 0, gecos, homedir,
                            data->shell ? data->shell : "/bin/bash",
-                           NULL, NULL, -1);
+                           NULL, NULL, -1, 0);
     return ret;
 }
 
@@ -253,7 +253,7 @@ static int test_add_group(struct test_data *data)
     int ret;
 
     ret = sysdb_add_group(data->ctx->sysdb, data->groupname,
-                          data->gid, NULL, 0);
+                          data->gid, NULL, 0, 0);
     return ret;
 }
 
@@ -262,7 +262,7 @@ static int test_add_incomplete_group(struct test_data *data)
     int ret;
 
     ret = sysdb_add_incomplete_group(data->ctx->sysdb, data->groupname,
-                                     data->gid, NULL, true);
+                                     data->gid, NULL, true, 0);
     return ret;
 }
 
@@ -271,7 +271,7 @@ static int test_store_group(struct test_data *data)
     int ret;
 
     ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
-                            data->gid, NULL, -1);
+                            data->gid, NULL, -1, 0);
     return ret;
 }
 
@@ -420,7 +420,7 @@ static int test_memberof_store_group(struct test_data *data)
     }
 
     ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
-                            data->gid, attrs, -1);
+                            data->gid, attrs, -1, 0);
     return ret;
 }
 
@@ -474,7 +474,7 @@ static int test_set_netgroup_attr(struct test_data *data)
         return ret;
     }
 
-    ret = sysdb_set_netgroup_attr(data->ctx->sysdb, 
+    ret = sysdb_set_netgroup_attr(data->ctx->sysdb,
                                   data->netgrname, attrs, SYSDB_MOD_REP);
     return ret;
 }
@@ -2701,7 +2701,7 @@ START_TEST(test_odd_characters)
 
     /* Add */
     ret = sysdb_add_incomplete_group(test_ctx->sysdb,
-                                     odd_groupname, 20000, NULL, true);
+                                     odd_groupname, 20000, NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -2784,7 +2784,7 @@ START_TEST(test_odd_characters)
     /* Add */
     ret = sysdb_add_netgroup(test_ctx->sysdb,
                              odd_netgroupname, "No description",
-                             NULL, 30);
+                             NULL, 30, 0);
     fail_unless(ret == EOK, "sysdb_add_netgroup error [%d][%s]",
                             ret, strerror(ret));
 
@@ -2861,14 +2861,14 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
     ret = sysdb_add_incomplete_group(test_ctx->sysdb,
                                      "case_sensitive_group1", 29000,
                                      "cn=case_sensitive_group1,cn=example,cn=com",
-                                     true);
+                                     true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
     ret = sysdb_add_incomplete_group(test_ctx->sysdb,
                                      "case_sensitive_group2", 29001,
                                      "cn=CASE_SENSITIVE_GROUP1,cn=EXAMPLE,cn=COM",
-                                     true);
+                                     true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
