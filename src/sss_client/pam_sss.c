@@ -1069,7 +1069,7 @@ static void print_pam_items(struct pam_items *pi)
 }
 
 static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
-                            enum sss_cli_command task)
+                            enum sss_cli_command task, bool quiet_mode)
 {
     int ret;
     int errnop;
@@ -1124,17 +1124,27 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                    pi->login_name, getuid(), (unsigned long) geteuid(),
                    pi->pam_tty, pi->pam_ruser, pi->pam_rhost, pi->pam_user);
             if (pam_status != PAM_SUCCESS) {
+                /* don't log if quiet_mode is on and pam_status is
+                 * User not known to the underlying authentication module
+                 */
+                if (!quiet_mode || pam_status != 10) {
                    logger(pamh, LOG_NOTICE, "received for user %s: %d (%s)",
                           pi->pam_user, pam_status,
                           pam_strerror(pamh,pam_status));
+                }
             }
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
             if (pam_status != PAM_SUCCESS) {
+                /* don't log if quiet_mode is on and pam_status is
+                 * User not known to the underlying authentication module
+                 */
+                if (!quiet_mode || pam_status != 10) {
                    logger(pamh, LOG_NOTICE,
                           "Authentication failed for user %s: %d (%s)",
                           pi->pam_user, pam_status,
                           pam_strerror(pamh,pam_status));
+                }
             }
             break;
         case SSS_PAM_CHAUTHTOK:
@@ -1147,10 +1157,15 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
             break;
         case SSS_PAM_ACCT_MGMT:
             if (pam_status != PAM_SUCCESS) {
+                /* don't log if quiet_mode is on and pam_status is
+                 * User not known to the underlying authentication module
+                 */
+                if (!quiet_mode || pam_status != 10) {
                    logger(pamh, LOG_NOTICE,
                           "Access denied for user %s: %d (%s)",
                           pi->pam_user, pam_status,
                           pam_strerror(pamh,pam_status));
+                }
             }
             break;
         case SSS_PAM_SETCRED:
@@ -1236,9 +1251,11 @@ static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
 }
 
 static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
-                      uint32_t *flags, int *retries)
+                      uint32_t *flags, int *retries, bool *quiet_mode)
 {
     char *ep;
+
+    *quiet_mode = false;
 
     for (; argc-- > 0; ++argv) {
         if (strcmp(*argv, "forward_pass") == 0) {
@@ -1269,6 +1286,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
                     *retries = 0;
                 }
             }
+        } else if (strcmp(*argv, "quiet") == 0) {
+            *quiet_mode = true;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -1319,7 +1338,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     int ret;
     int *exp_data = NULL;
     pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data);
-    
+
     /* we query for the old password during PAM_PRELIM_CHECK to make
      * pam_sss work e.g. with pam_cracklib */
     if (pam_flags & PAM_PRELIM_CHECK) {
@@ -1394,13 +1413,14 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     uint32_t flags = 0;
     int *exp_data;
     bool retry = false;
+    bool quiet_mode = false;
     int retries = 0;
 
     bindtextdomain(PACKAGE, LOCALEDIR);
 
     D(("Hello pam_sssd: %d", task));
 
-    eval_argv(pamh, argc, argv, &flags, &retries);
+    eval_argv(pamh, argc, argv, &flags, &retries, &quiet_mode);
 
     ret = get_pam_items(pamh, &pi);
     if (ret != PAM_SUCCESS) {
@@ -1441,7 +1461,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 return PAM_SYSTEM_ERR;
         }
 
-        pam_status = send_and_receive(pamh, &pi, task);
+        pam_status = send_and_receive(pamh, &pi, task, quiet_mode);
 
         switch (task) {
             case SSS_PAM_AUTHENTICATE:
