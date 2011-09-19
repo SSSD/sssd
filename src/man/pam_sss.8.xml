@@ -23,6 +23,9 @@
         <cmdsynopsis>
             <command>pam_sss.so</command>
             <arg choice='opt'>
+                <replaceable>quiet</replaceable>
+            </arg>
+            <arg choice='opt'>
                 <replaceable>forward_pass</replaceable>
             </arg>
             <arg choice='opt'>
@@ -47,6 +50,14 @@
     <refsect1 id='options'>
         <title>OPTIONS</title>
         <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>quiet</option>
+                </term>
+                <listitem>
+                    <para>Suppress log messages for unknown users.</para>
+                </listitem>
+            </varlistentry>
             <varlistentry>
                 <term>
                     <option>forward_pass</option>
