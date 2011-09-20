@@ -712,7 +712,7 @@ static const char *
 sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
 {
     char *krb5_realm = NULL;
-    const char *realm;
+    const char *realm = NULL;
     krb5_error_code krberr;
     krb5_context context = NULL;
 
