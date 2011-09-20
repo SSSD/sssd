@@ -64,7 +64,8 @@
 #define SYSFS_IFACE_PATH_MAX (21+IFNAMSIZ)
 
 #define PHY_80211_SUBDIR   "phy80211"
-#define SYSFS_SUBDIR_PATH_MAX (SYSFS_IFACE_PATH_MAX+9)
+/* 9 = strlen(PHY_80211_SUBDIR)+1, 1 = path delimeter */
+#define SYSFS_SUBDIR_PATH_MAX (SYSFS_IFACE_PATH_MAX+9+1)
 
 #define BUFSIZE 8
 
@@ -154,7 +155,7 @@ static bool has_ethernet_encapsulation(const char *sysfs_path)
 
 static bool has_phy_80211_subdir(const char *sysfs_path)
 {
-    char phy80211_path[SYSFS_IFACE_PATH_MAX];
+    char phy80211_path[SYSFS_SUBDIR_PATH_MAX];
     struct stat statbuf;
     errno_t ret;
 
