@@ -2410,7 +2410,7 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
     if (strcasecmp(rdn_attr, ldap_attr) != 0) {
         /* Multiple entries, and the RDN attribute doesn't match.
          * We have no way of resolving this deterministically,
-         * so we'll punt.
+         * so we'll use the first value as a fallback.
          */
         DEBUG(3, ("The entry has multiple names and the RDN attribute does "
                   "not match. Will use the first value as fallback.\n"));
@@ -2446,6 +2446,64 @@ done:
         DEBUG(1, ("Could not determine primary name: [%d][%s]\n",
                   ret, strerror(ret)));
     }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/*
+ * An entity with multiple names would have multiple SYSDB_NAME attributes
+ * after being translated into sysdb names using a map.
+ * Given a primary name returned by sysdb_attrs_primary_name(), this function
+ * returns the other SYSDB_NAME attribute values so they can be saved as
+ * SYSDB_NAME_ALIAS into cache.
+ */
+errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
+                                struct sysdb_attrs *attrs,
+                                const char *primary,
+                                const char ***_aliases)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_message_element *sysdb_name_el;
+    size_t i, ai;
+    errno_t ret;
+    const char **aliases = NULL;
+    const char *name;
+
+    if (_aliases == NULL) return EINVAL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_get_el(attrs,
+                             SYSDB_NAME,
+                             &sysdb_name_el);
+    if (sysdb_name_el->num_values == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    aliases = talloc_array(tmp_ctx, const char *,
+                           sysdb_name_el->num_values);
+    if (!aliases) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ai = 0;
+    for (i=0; i < sysdb_name_el->num_values; i++) {
+        name = (const char *)sysdb_name_el->values[i].data;
+        if (strcmp(primary, name) != 0) {
+            aliases[ai] = name;
+            ai++;
+        }
+    }
+
+    aliases[ai] = NULL;
+    ret = EOK;
+done:
+    *_aliases = talloc_steal(mem_ctx, aliases);
     talloc_free(tmp_ctx);
     return ret;
 }
