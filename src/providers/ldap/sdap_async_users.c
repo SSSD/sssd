@@ -56,6 +56,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *usn_value = NULL;
     size_t c;
     char **missing = NULL;
+    const char **aliases = NULL;
     TALLOC_CTX *tmpctx = NULL;
 
     DEBUG(9, ("Save user\n"));
@@ -282,6 +283,20 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
+    ret = sysdb_attrs_get_aliases(tmpctx, attrs, name, &aliases);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to get the alias list"));
+        goto fail;
+    }
+
+    for (i = 0; aliases[i]; i++) {
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS,
+                                     aliases[i]);
+        if (ret) {
+            goto fail;
+        }
+    }
+
     /* Make sure that any attributes we requested from LDAP that we
      * did not receive are also removed from the sysdb
      */
@@ -364,6 +379,12 @@ int sdap_save_users(TALLOC_CTX *memctx,
             DEBUG(2, ("Failed to store user %d. Ignoring.\n", i));
         } else {
             DEBUG(9, ("User %d processed!\n", i));
+        }
+
+        ret = sdap_check_aliases(sysdb, users[i], dom,
+                                 opts, true);
+        if (ret) {
+            DEBUG(2, ("Failed to check aliases for user %d. Ignoring.\n", i));
         }
 
         if (usn_value) {
