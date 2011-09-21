@@ -46,6 +46,7 @@
 #define SYSDB_NETGROUP_CLASS "netgroup"
 
 #define SYSDB_NAME "name"
+#define SYSDB_NAME_ALIAS "nameAlias"
 #define SYSDB_OBJECTCLASS "objectClass"
 
 #define SYSDB_NEXTID "nextID"
@@ -229,6 +230,10 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
                                  struct sysdb_attrs *attrs,
                                  const char *ldap_attr,
                                  const char **_primary);
+errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
+                                struct sysdb_attrs *attrs,
+                                const char *primary,
+                                const char ***_aliases);
 errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
                                       TALLOC_CTX *mem_ctx,
                                       struct sysdb_attrs **attr_list,
