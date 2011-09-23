@@ -144,8 +144,8 @@ if test x$HAVE_MANPAGES != x; then
                      [http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
                      [Docbook XSL templates])
     AC_CHECK_PROG([PO4A],[po4a],[po4a],[no])
-    AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 fi
+AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 
 if test x$HAVE_PYTHON_BINDINGS != x; then
     AM_PATH_PYTHON([2.4])
