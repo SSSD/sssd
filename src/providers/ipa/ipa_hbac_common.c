@@ -347,7 +347,7 @@ hbac_ctx_to_rules(TALLOC_CTX *mem_ctx,
         if (ret == EPERM) {
             goto done;
         } else if (ret != EOK) {
-            DEBUG(1, ("Could not construct rules\n"))
+            DEBUG(1, ("Could not construct rules\n"));
             goto done;
         }
     }

@@ -2347,7 +2347,8 @@ static void service_startup_handler(struct tevent_context *ev,
     mt_svc->pid = fork();
     if (mt_svc->pid != 0) {
         if (mt_svc->pid == -1) {
-            DEBUG(0, ("Could not fork child to start service [%s]. Continuing.\n", mt_svc->name))
+            DEBUG(0, ("Could not fork child to start service [%s]. "
+                      "Continuing.\n", mt_svc->name));
             return;
         }
 

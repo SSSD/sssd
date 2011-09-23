@@ -125,7 +125,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_string_array(ipa_host, SYSDB_ORIG_MEMBEROF,
                                        tmp_ctx, &memberof_list);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, ("Could not identify "))
+        DEBUG(1, ("Could not identify "));
     } if (ret == ENOENT) {
         /* This host is not a member of any hostgroups */
         memberof_list = talloc_array(tmp_ctx, const char *, 1);

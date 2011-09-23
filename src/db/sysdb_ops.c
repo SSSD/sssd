@@ -72,7 +72,7 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
     return l;
 }
 
-#define ERROR_OUT(v, r, l) do { v = r; goto l; } while(0);
+#define ERROR_OUT(v, r, l) do { v = r; goto l; } while(0)
 
 
 /* =Remove-Entry-From-Sysdb=============================================== */

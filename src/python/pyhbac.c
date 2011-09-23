@@ -40,7 +40,7 @@
                       attrname);                            \
         return -1;                                          \
     }                                                       \
-} while(0);
+} while(0)
 
 static PyObject *PyExc_HbacError;
 

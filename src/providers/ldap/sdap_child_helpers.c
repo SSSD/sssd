@@ -479,7 +479,7 @@ int setup_child(struct sdap_id_ctx *ctx)
                                                        SDAP_KRB5_KEYTAB));
 
         if (ret != EOK) {
-            DEBUG(0, ("Could not verify keytab\n"))
+            DEBUG(0, ("Could not verify keytab\n"));
             return ret;
         }
 

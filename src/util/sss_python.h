@@ -50,7 +50,7 @@ sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);
     PyModule_AddObject(module,                      \
                        discard_const_p(char, name), \
                        (PyObject *) &type);         \
-} while(0);                                         \
+} while(0)                                          \
 
 #define SAFE_SET(old, new) do {         \
     PyObject *__simple_set_tmp = NULL;  \
@@ -58,6 +58,6 @@ sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);
     Py_INCREF(new);                     \
     old = new;                          \
     Py_XDECREF(__simple_set_tmp);       \
-} while(0);
+} while(0)
 
 #endif /* __SSS_PYTHON_H__ */

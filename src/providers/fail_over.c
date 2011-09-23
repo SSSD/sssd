@@ -224,7 +224,8 @@ collapse_srv_lookup(struct fo_server *server)
     struct fo_server *tmp, *meta;
 
     meta = server->srv_data->meta;
-    DEBUG(4, ("Need to refresh SRV lookup for domain %s\n", meta->srv_data->dns_domain))
+    DEBUG(4, ("Need to refresh SRV lookup for domain %s\n",
+              meta->srv_data->dns_domain));
 
     if (server != meta) {
         while (server->prev && server->prev->srv_data == meta->srv_data) {

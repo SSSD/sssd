@@ -49,7 +49,7 @@
     if (ctx->debug) { \
         debug_fn body; \
     } \
-} while(0);
+} while(0)
 
 struct sssd_ctx {
     char *sssd_realm;

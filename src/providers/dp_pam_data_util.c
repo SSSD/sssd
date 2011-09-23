@@ -33,7 +33,7 @@
             goto failed; \
         } \
     } \
-} while(0);
+} while(0)
 
 #define PD_MEM_COPY(el, size) do { \
     if (old_pd->el != NULL) { \
@@ -43,7 +43,7 @@
             goto failed; \
         } \
     } \
-} while(0);
+} while(0)
 
 static const char *pamcmd2str(int cmd) {
     switch (cmd) {

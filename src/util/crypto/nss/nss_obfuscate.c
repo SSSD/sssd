@@ -49,7 +49,7 @@
     (sitem)->type = (siBuffer); \
     (sitem)->data = (sdata);    \
     (sitem)->len  = (slen);     \
-} while(0);
+} while(0)
 
 struct sss_nss_crypto_ctx {
     PK11SlotInfo *slot;

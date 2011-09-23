@@ -263,7 +263,7 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
     } else if (strcasecmp(pwd_policy, PWD_POL_OPT_MIT) == 0) {
         mark = ldb_msg_find_attr_as_string(msg, SYSDB_KRBPW_LASTCHANGE, NULL);
         if (mark != NULL) {
-            DEBUG(9, ("Found Kerberos password expiration attributes.\n"))
+            DEBUG(9, ("Found Kerberos password expiration attributes.\n"));
             val = ldb_msg_find_attr_as_string(msg, SYSDB_KRBPW_EXPIRATION,
                                               NULL);
             if (val != NULL) {
@@ -285,7 +285,7 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
     } else if (strcasecmp(pwd_policy, PWD_POL_OPT_SHADOW) == 0) {
         mark = ldb_msg_find_attr_as_string(msg, SYSDB_SHADOWPW_LASTCHANGE, NULL);
         if (mark != NULL) {
-            DEBUG(9, ("Found shadow password expiration attributes.\n"))
+            DEBUG(9, ("Found shadow password expiration attributes.\n"));
             spwd = talloc_zero(mem_ctx, struct spwd);
             if (spwd == NULL) {
                 DEBUG(1, ("talloc failed.\n"));

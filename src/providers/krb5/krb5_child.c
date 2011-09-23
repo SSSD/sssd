@@ -104,7 +104,7 @@ static const char *__krb5_error_msg;
     __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
     DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
     sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
-} while(0);
+} while(0)
 
 static void sss_krb5_expire_callback_func(krb5_context context, void *data,
                                           krb5_timestamp password_expiration,

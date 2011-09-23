@@ -43,7 +43,7 @@
         ERROR(msg "\n"); \
         goto done; \
     } \
-} while(0);
+} while(0)
 
 struct debuglevel_tool_ctx {
     struct confdb_ctx *confdb;

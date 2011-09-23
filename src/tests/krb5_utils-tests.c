@@ -52,7 +52,7 @@ struct krb5child_req *kr;
     ret = rmdir(__dir__); \
     fail_unless(ret == EOK, "rmdir [%s] failed, [%d][%s].", __dir__, \
                 errno, strerror(errno)); \
-} while(0);
+} while(0)
 
 void setup_create_dir(void)
 {

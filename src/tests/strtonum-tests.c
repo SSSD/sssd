@@ -58,7 +58,7 @@
 #define CHECK_ZERO_ENDPTR(endptr) \
     do { \
         fail_unless(endptr && *endptr == '\0', "Invalid endptr"); \
-    } while(0);
+    } while(0)
 
 /******************
  * strtoint tests *

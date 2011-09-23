@@ -139,7 +139,7 @@ errno_t set_debug_file_from_fd(const int fd);
         } \
         debug_fn body; \
     } \
-} while(0);
+} while(0)
 
 /** \def DEBUG_MSG(level, function, message)
     \brief macro to generate debug messages with message from variable
@@ -180,7 +180,7 @@ errno_t set_debug_file_from_fd(const int fd);
                      debug_prg_name, function, __debug_macro_newlevel, message); \
         } \
     } \
-} while(0);
+} while(0)
 
 /** \def DEBUG_IS_SET(level)
     \brief checks whether level (must be in new format) is set in debug_level
