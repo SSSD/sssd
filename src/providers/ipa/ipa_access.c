@@ -380,7 +380,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
             goto fail;
         }
 
-        if (strcmp(hostname, ipa_hostname) == 0) {
+        if (strcasecmp(hostname, ipa_hostname) == 0) {
             hbac_ctx->ipa_host = hbac_ctx->hosts[i];
             break;
         }
