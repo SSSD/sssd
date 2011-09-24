@@ -242,14 +242,22 @@ struct sdap_initgr_rfc2307_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    const char **attrs;
     const char *name;
+    const char *base_filter;
+    char *filter;
+    int timeout;
 
     struct sdap_op *op;
 
     struct sysdb_attrs **ldap_groups;
     size_t ldap_groups_count;
+
+    size_t base_iter;
+    struct sdap_search_base **search_bases;
 };
 
+static errno_t sdap_initgr_rfc2307_next_base(struct tevent_req *req);
 static void sdap_initgr_rfc2307_process(struct tevent_req *subreq);
 struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
@@ -260,10 +268,8 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
                                             const char *base_dn,
                                             const char *name)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct sdap_initgr_rfc2307_state *state;
-    const char *filter;
-    const char **attrs;
     char *clean_name;
     errno_t ret;
 
@@ -276,6 +282,12 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->sh = sh;
     state->op = NULL;
+    state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
+    state->ldap_groups = NULL;
+    state->ldap_groups_count = 0;
+    state->base_iter = 0;
+    state->search_bases = opts->group_search_bases;
+
     state->name = talloc_strdup(state, name);
     if (!state->name) {
         talloc_zfree(req);
@@ -283,7 +295,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     }
 
     ret = build_attrs_from_map(state, opts->group_map,
-                               SDAP_OPTS_GROUP, &attrs);
+                               SDAP_OPTS_GROUP, &state->attrs);
     if (ret != EOK) {
         talloc_free(req);
         return NULL;
@@ -295,7 +307,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(state,
+    state->base_filter = talloc_asprintf(state,
                              "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_name,
@@ -303,25 +315,55 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
                              opts->group_map[SDAP_AT_GROUP_NAME].name,
                              opts->group_map[SDAP_AT_GROUP_GID].name,
                              opts->group_map[SDAP_AT_GROUP_GID].name);
-    if (!filter) {
+    if (!state->base_filter) {
         talloc_zfree(req);
         return NULL;
     }
     talloc_zfree(clean_name);
 
-    subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   state->sh, base_dn, LDAP_SCOPE_SUBTREE,
-                                   filter, attrs,
-                                   state->opts->group_map, SDAP_OPTS_GROUP,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
+    ret = sdap_initgr_rfc2307_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
     }
-    tevent_req_set_callback(subreq, sdap_initgr_rfc2307_process, req);
 
     return req;
+}
+
+static errno_t sdap_initgr_rfc2307_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_initgr_rfc2307_state *state;
+
+    state = tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+
+    talloc_zfree(state->filter);
+
+    state->filter = sdap_get_id_specific_filter(
+            state, state->base_filter,
+            state->search_bases[state->base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for groups with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(
+            state, state->ev, state->opts, state->sh,
+            state->search_bases[state->base_iter]->basedn,
+            state->search_bases[state->base_iter]->scope,
+            state->filter, state->attrs,
+            state->opts->group_map, SDAP_OPTS_GROUP,
+            state->timeout);
+    if (!subreq) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, sdap_initgr_rfc2307_process, req);
+
+    return EOK;
 }
 
 static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
@@ -344,6 +386,43 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Add this batch of groups to the list */
+    if (count > 0) {
+        state->ldap_groups =
+                talloc_realloc(state,
+                               state->ldap_groups,
+                               struct sysdb_attrs *,
+                               state->ldap_groups_count + count + 1);
+        if (!state->ldap_groups) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        /* Copy the new groups into the list.
+         * They're already allocated on 'state'.
+         */
+        for (i = 0; i < count; i++) {
+            state->ldap_groups[state->ldap_groups_count + i] = ldap_groups[i];
+        }
+
+        state->ldap_groups_count += count;
+
+        state->ldap_groups[state->ldap_groups_count] = NULL;
+    }
+
+    state->base_iter++;
+
+    /* Check for additional search bases, and iterate
+     * through again.
+     */
+    if (state->search_bases[state->base_iter] != NULL) {
+        ret = sdap_initgr_rfc2307_next_base(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
         return;
     }
 
@@ -386,8 +465,11 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
      * memberships */
     ret = sdap_initgr_common_store(state->sysdb, state->opts,
                                    state->dom, state->name,
-                                   SYSDB_MEMBER_USER, sysdb_grouplist,
-                                   ldap_groups, count, true);
+                                   SYSDB_MEMBER_USER,
+                                   sysdb_grouplist,
+                                   state->ldap_groups,
+                                   state->ldap_groups_count,
+                                   true);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
