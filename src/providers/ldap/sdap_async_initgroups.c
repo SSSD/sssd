@@ -1978,11 +1978,18 @@ struct sdap_get_initgr_state {
     struct sdap_id_ctx *id_ctx;
     const char *name;
     const char **grp_attrs;
-    const char **ldap_attrs;
+    const char **user_attrs;
+    const char *user_base_filter;
+    char *filter;
+    int timeout;
 
     struct sysdb_attrs *orig_user;
+
+    size_t user_base_iter;
+    struct sdap_search_base **user_search_bases;
 };
 
+static errno_t sdap_get_initgr_next_base(struct tevent_req *req);
 static void sdap_get_initgr_user(struct tevent_req *subreq);
 static void sdap_get_initgr_done(struct tevent_req *subreq);
 
@@ -1993,10 +2000,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         const char *name,
                                         const char **grp_attrs)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct sdap_get_initgr_state *state;
-    const char *base_dn;
-    char *filter;
     int ret;
     char *clean_name;
 
@@ -2014,49 +2019,73 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->name = name;
     state->grp_attrs = grp_attrs;
     state->orig_user = NULL;
+    state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
+    state->user_base_iter = 0;
+    state->user_search_bases = id_ctx->opts->user_search_bases;
 
     ret = sss_filter_sanitize(state, name, &clean_name);
     if (ret != EOK) {
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                        state->opts->user_map[SDAP_AT_USER_NAME].name,
-                        clean_name,
-                        state->opts->user_map[SDAP_OC_USER].name);
-    if (!filter) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    base_dn = dp_opt_get_string(state->opts->basic,
-                                SDAP_USER_SEARCH_BASE);
-    if (!base_dn) {
+    state->user_base_filter =
+            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                            state->opts->user_map[SDAP_AT_USER_NAME].name,
+                            clean_name,
+                            state->opts->user_map[SDAP_OC_USER].name);
+    if (!state->user_base_filter) {
         talloc_zfree(req);
         return NULL;
     }
 
     ret = build_attrs_from_map(state, state->opts->user_map,
-                               SDAP_OPTS_USER, &state->ldap_attrs);
+                               SDAP_OPTS_USER, &state->user_attrs);
     if (ret) {
         talloc_zfree(req);
         return NULL;
     }
 
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->opts, state->sh,
-                                   base_dn, LDAP_SCOPE_SUBTREE,
-                                   filter, state->ldap_attrs,
-                                   state->opts->user_map, SDAP_OPTS_USER,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
+    ret = sdap_get_initgr_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
     }
-    tevent_req_set_callback(subreq, sdap_get_initgr_user, req);
 
     return req;
+}
+
+static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_get_initgr_state *state;
+
+    state = tevent_req_data(req, struct sdap_get_initgr_state);
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_get_id_specific_filter(
+            state,
+            state->user_base_filter,
+            state->user_search_bases[state->user_base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for users with base [%s]\n",
+           state->user_search_bases[state->user_base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(
+            state, state->ev, state->opts, state->sh,
+            state->user_search_bases[state->user_base_iter]->basedn,
+            state->user_search_bases[state->user_base_iter]->scope,
+            state->filter, state->user_attrs,
+            state->opts->user_map, SDAP_OPTS_USER,
+            state->timeout);
+    if (!subreq) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, sdap_get_initgr_user, req);
+    return EOK;
 }
 
 static struct tevent_req *sdap_initgr_rfc2307bis_send(
@@ -2089,7 +2118,20 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         return;
     }
 
-    if (count != 1) {
+    if (count == 0) {
+        /* No users found in this search */
+        state->user_base_iter++;
+        if (state->user_search_bases[state->user_base_iter]) {
+            /* There are more search bases to try */
+            ret = sdap_get_initgr_next_base(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+
+        tevent_req_error(req, ENOENT);
+    } else if (count != 1) {
         DEBUG(2, ("Expected one user entry and got %d\n", count));
         tevent_req_error(req, ENOENT);
         return;
@@ -2107,7 +2149,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     ret = sdap_save_user(state, state->sysdb,
                          state->opts, state->dom,
-                         state->orig_user, state->ldap_attrs,
+                         state->orig_user, state->user_attrs,
                          true, NULL, 0);
     if (ret) {
         sysdb_transaction_cancel(state->sysdb);
