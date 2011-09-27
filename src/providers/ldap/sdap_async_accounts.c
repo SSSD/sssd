@@ -2702,20 +2702,13 @@ static int sdap_initgr_nested_store_group(struct sysdb_ctx *sysdb,
                                           int ngroups)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *member_filter;
     const char *group_orig_dn;
     const char *group_name;
-    const char *group_dn;
     int ret;
-    int i;
-    struct ldb_message **direct_sysdb_groups = NULL;
-    size_t direct_sysdb_count = 0;
-    static const char *group_attrs[] = { SYSDB_NAME, NULL };
     struct ldb_dn *basedn;
     int ndirect;
     struct sysdb_attrs **direct_groups;
     char **sysdb_grouplist = NULL;
-    const char *tmp_str;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -2741,58 +2734,13 @@ static int sdap_initgr_nested_store_group(struct sysdb_ctx *sysdb,
     }
 
     /* Get direct sysdb parents */
-    group_dn = sysdb_group_strdn(tmp_ctx, dom->name, group_name);
-    if (!group_dn) {
-        ret = ENOMEM;
+    ret = sysdb_get_direct_parents(tmp_ctx, sysdb, dom, SYSDB_MEMBER_GROUP,
+                                   group_name, &sysdb_grouplist);
+    if (ret) {
+        DEBUG(1, ("Could not get direct parents for %s: %d [%s]\n",
+                    group_name, ret, strerror(ret)));
         goto done;
     }
-
-    member_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(%s=%s))",
-                                    SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS,
-                                    SYSDB_MEMBER, group_dn);
-    if (!member_filter) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(8, ("searching sysdb with filter %s\n", member_filter));
-
-    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn,
-                             LDB_SCOPE_SUBTREE, member_filter, group_attrs,
-                             &direct_sysdb_count, &direct_sysdb_groups);
-    if (ret == EOK) {
-        /* Get the list of sysdb groups by name */
-        sysdb_grouplist = talloc_array(tmp_ctx, char *, direct_sysdb_count+1);
-        if (!sysdb_grouplist) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        for(i = 0; i < direct_sysdb_count; i++) {
-            tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
-                                                SYSDB_NAME, NULL);
-            if (!tmp_str) {
-                /* This should never happen, but if it does, just continue */
-                continue;
-            }
-
-            sysdb_grouplist[i] = talloc_strdup(sysdb_grouplist, tmp_str);
-            if (!sysdb_grouplist[i]) {
-                DEBUG(1, ("A group with no name?\n"));
-                ret = EIO;
-                goto done;
-            }
-        }
-        sysdb_grouplist[i] = NULL;
-    } else if (ret == ENOENT) {
-        direct_sysdb_groups = NULL;
-        direct_sysdb_count = 0;
-    } else {
-        DEBUG(2, ("sysdb_search_entry failed: [%d]: %s\n", ret, strerror(ret)));
-        goto done;
-    }
-    DEBUG(7, ("The group %s is a member of %d sysdb groups\n",
-              group_name, direct_sysdb_count));
 
     /* Filter only parents from full set */
     ret = sdap_initgr_nested_get_direct_parents(tmp_ctx, group, groups,

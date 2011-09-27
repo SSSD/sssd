@@ -740,4 +740,11 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
                            enum sysdb_member_type type,
                            char **remove_attrs);
 
+errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *dom,
+                                 enum sysdb_member_type mtype,
+                                 const char *name,
+                                 char ***_direct_parents);
+
 #endif /* __SYS_DB_H__ */
