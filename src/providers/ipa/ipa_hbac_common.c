@@ -805,7 +805,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs;
     const char *group_name;
     struct ldb_dn *host_dn;
-    const char *attrs[] = { IPA_HOST_FQDN, NULL };
+    const char *attrs[] = { IPA_CN, NULL };
     const char *host_filter;
 
     tmp_ctx = talloc_new(mem_ctx);
@@ -842,7 +842,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     }
 
     host_dn = sysdb_custom_dn(sysdb, tmp_ctx, domain->name,
-                             host->name, HBAC_SERVICES_SUBDIR);
+                             host->name, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -867,7 +867,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
 
     for (i = 0; i < count; i++) {
         group_name = ldb_msg_find_attr_as_string(msgs[i],
-                                                 IPA_HOST_FQDN,
+                                                 IPA_CN,
                                                  NULL);
         if (group_name == NULL) {
             DEBUG(1, ("Group with no name?\n"));
