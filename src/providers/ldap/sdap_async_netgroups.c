@@ -223,7 +223,9 @@ static errno_t update_dn_list(struct dn_item *dn_list, const size_t count,
             }
         }
 
-        not_resolved = true;
+        if (dn_item->cn == NULL) {
+            not_resolved = true;
+        }
     }
 
     *all_resolved = !not_resolved;
