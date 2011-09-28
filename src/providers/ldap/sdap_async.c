@@ -1881,3 +1881,93 @@ bool sdap_has_deref_support(struct sdap_handle *sh)
 
     return false;
 }
+
+errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
+                           struct sysdb_attrs *user_attrs,
+                           struct sss_domain_info *dom,
+                           struct sdap_options *opts,
+                           bool steal_memberships)
+{
+    errno_t ret;
+    const char **aliases = NULL;
+    const char *name = NULL;
+    struct ldb_message *msg;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char **parents;
+    uid_t alias_uid;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    ret = sysdb_attrs_primary_name(sysdb, user_attrs,
+                                   opts->user_map[SDAP_AT_USER_NAME].name,
+                                   &name);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not get the primary name\n"));
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_aliases(tmp_ctx, user_attrs, name, &aliases);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to get the alias list\n"));
+        goto done;
+    }
+
+    for (i = 0; aliases[i]; i++) {
+        /* In RFC2307 schema, another group might be referencing user
+         * using secondary name, so there might be fake users in the cache
+         * from a previous getgr call */
+        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, dom,
+                                        aliases[i], NULL, &msg);
+        if (ret && ret != ENOENT) {
+            DEBUG(1, ("Error searching the cache\n"));
+            goto done;
+        } else if (ret == ENOENT) {
+            DEBUG(9, ("No user with primary name same as alias %s\n", aliases[i]));
+            continue;
+        }
+
+        alias_uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        if (alias_uid) {
+            DEBUG(1, ("Cache contains non-fake user with same name "
+                      "as alias %s\n", aliases[i]));
+            ret = EIO;
+            goto done;
+        }
+        DEBUG(7, ("%s is a fake user\n", aliases[i]));
+
+        if (steal_memberships) {
+            /* Get direct sysdb parents */
+            ret = sysdb_get_direct_parents(tmp_ctx, sysdb, dom,
+                                           SYSDB_MEMBER_USER,
+                                           aliases[i], &parents);
+            if (ret) {
+                DEBUG(1, ("Could not get direct parents for %s: %d [%s]\n",
+                          aliases[i], ret, strerror(ret)));
+                goto done;
+            }
+
+            ret = sysdb_update_members(sysdb, dom, name, SYSDB_MEMBER_USER,
+                                       (const char *const *) parents,
+                                       NULL);
+            if (ret != EOK) {
+                DEBUG(1, ("Membership update failed [%d]: %s\n",
+                          ret, strerror(ret)));
+                goto done;
+            }
+        }
+
+        ret = sysdb_delete_user(tmp_ctx, sysdb, dom, aliases[i], alias_uid);
+        if (ret) {
+            DEBUG(1, ("Error deleting fake user %s\n", aliases[i]));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+

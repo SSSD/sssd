@@ -169,4 +169,10 @@ int sdap_deref_search_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            size_t *reply_count,
                            struct sdap_deref_attrs ***reply);
+
+errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
+                           struct sysdb_attrs *user_attrs,
+                           struct sss_domain_info *dom,
+                           struct sdap_options *opts,
+                           bool steal_memberships);
 #endif /* _SDAP_ASYNC_H_ */
