@@ -265,11 +265,12 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
 
     if (res->count < 1) {
         DEBUG(4, ("No user found with filter ["SYSDB_PWNAM_FILTER"]\n",
-                  pd->user));
+                  pd->user, pd->user));
         pd->pam_status = PAM_USER_UNKNOWN;
         goto done;
     } else if (res->count > 1) {
-        DEBUG(4, ("More than one object found with filter ["SYSDB_PWNAM_FILTER"]\n"));
+        DEBUG(4, ("More than one object found with filter ["SYSDB_PWNAM_FILTER"]\n",
+                  pd->user, pd->user));
         lreq->error = EFAULT;
         goto done;
     }

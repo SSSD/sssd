@@ -63,7 +63,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_PWNAM_FILTER,
-                     sanitized_name);
+                     sanitized_name, sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -248,7 +248,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, fmt_filter,
-                     sanitized_name);
+                     sanitized_name, sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -512,7 +512,8 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
-                     SYSDB_PWNAM_FILTER, sanitized_name);
+                     SYSDB_PWNAM_FILTER, sanitized_name,
+                     sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
