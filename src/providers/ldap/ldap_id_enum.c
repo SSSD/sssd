@@ -429,7 +429,6 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct enum_users_state *state;
-    char *base_filter;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct enum_users_state);
@@ -440,7 +439,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     state->op = op;
 
     if (ctx->srv_opts && ctx->srv_opts->max_user_value && !purge) {
-        base_filter = talloc_asprintf(
+        state->filter = talloc_asprintf(
                 state,
                 "(&(objectclass=%s)(%s=*)(%s=*)(%s=*)(%s>=%s)(!(%s=%s)))",
                 ctx->opts->user_map[SDAP_OC_USER].name,
@@ -452,7 +451,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                 ctx->opts->user_map[SDAP_AT_USER_USN].name,
                 ctx->srv_opts->max_user_value);
     } else {
-        base_filter = talloc_asprintf(
+        state->filter = talloc_asprintf(
                 state,
                 "(&(objectclass=%s)(%s=*)(%s=*)(%s=*))",
                 ctx->opts->user_map[SDAP_OC_USER].name,
@@ -460,17 +459,8 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                 ctx->opts->user_map[SDAP_AT_USER_UID].name,
                 ctx->opts->user_map[SDAP_AT_USER_GID].name);
     }
-    if (!base_filter) {
-        DEBUG(2, ("Failed to build base filter\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    state->filter = sdap_get_id_specific_filter(state, base_filter,
-           dp_opt_get_string(ctx->opts->basic, SDAP_USER_SEARCH_FILTER));
-    talloc_zfree(base_filter);
     if (!state->filter) {
-        DEBUG(2, ("Failed to build user filter\n"));
+        DEBUG(2, ("Failed to build base filter\n"));
         ret = ENOMEM;
         goto fail;
     }
@@ -563,7 +553,6 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct enum_groups_state *state;
-    char *base_filter;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct enum_groups_state);
@@ -574,7 +563,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->op = op;
 
     if (ctx->srv_opts && ctx->srv_opts->max_group_value && !purge) {
-        base_filter = talloc_asprintf(
+        state->filter = talloc_asprintf(
                 state,
                 "(&(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0)))(%s>=%s)(!(%s=%s)))",
                 ctx->opts->group_map[SDAP_OC_GROUP].name,
@@ -586,7 +575,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                 ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
                 ctx->srv_opts->max_group_value);
     } else {
-        base_filter = talloc_asprintf(
+        state->filter = talloc_asprintf(
                 state,
                 "(&(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
                 ctx->opts->group_map[SDAP_OC_GROUP].name,
@@ -594,17 +583,8 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                 ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     }
-    if (!base_filter) {
-        DEBUG(2, ("Failed to build filter\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    state->filter = sdap_get_id_specific_filter(state, base_filter,
-           dp_opt_get_string(ctx->opts->basic, SDAP_GROUP_SEARCH_FILTER));
-    talloc_zfree(base_filter);
     if (!state->filter) {
-        DEBUG(2, ("Failed to build group filter\n"));
+        DEBUG(2, ("Failed to build filter\n"));
         ret = ENOMEM;
         goto fail;
     }

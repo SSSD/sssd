@@ -508,6 +508,7 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
     char *unparsed_base;
     char **split_bases;
     char *filter;
+    const char *old_filter = NULL;
     int count;
     int i, c;
 
@@ -519,9 +520,11 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_USER_SEARCH_BASE:
         class_name = "USER";
+        old_filter = dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_FILTER);
         break;
     case SDAP_GROUP_SEARCH_BASE:
         class_name = "GROUP";
+        old_filter = dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_FILTER);
         break;
     case SDAP_NETGROUP_SEARCH_BASE:
         class_name = "NETGROUP";
@@ -601,8 +604,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         talloc_zfree(ldn);
 
         search_bases[0]->scope = LDAP_SCOPE_SUBTREE;
-        search_bases[0]->filter = NULL;
 
+        /* Use a search filter specified in the old style if available */
+        search_bases[0]->filter = old_filter;
 
         DEBUG(SSSDBG_CONF_SETTINGS,
               ("Search base added: [%s][%s][%s][%s]\n",
