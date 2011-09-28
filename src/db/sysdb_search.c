@@ -888,3 +888,104 @@ done:
     talloc_zfree(tmpctx);
     return ret;
 }
+
+errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *dom,
+                                 enum sysdb_member_type mtype,
+                                 const char *name,
+                                 char ***_direct_parents)
+{
+    errno_t ret;
+    const char *dn;
+    struct ldb_dn *basedn;
+    static const char *group_attrs[] = { SYSDB_NAME, NULL };
+    const char *member_filter;
+    size_t direct_sysdb_count = 0;
+    struct ldb_message **direct_sysdb_groups = NULL;
+    char **direct_parents = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int i, pi;
+    const char *tmp_str;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    if (mtype == SYSDB_MEMBER_USER) {
+        dn = sysdb_user_strdn(tmp_ctx, dom->name, name);
+    } else if (mtype == SYSDB_MEMBER_USER) {
+        dn = sysdb_group_strdn(tmp_ctx, dom->name, name);
+    } else {
+        DEBUG(1, ("Unknown member type\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    member_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(%s=%s))",
+                                    SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS,
+                                    SYSDB_MEMBER, dn);
+    if (!member_filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb_ctx_get_ldb(sysdb),
+                            SYSDB_TMPL_GROUP_BASE, dom->name);
+    if (!basedn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(8, ("searching sysdb with filter [%s]\n", member_filter));
+
+    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn,
+                             LDB_SCOPE_SUBTREE, member_filter, group_attrs,
+                             &direct_sysdb_count, &direct_sysdb_groups);
+    if (ret == ENOENT) {
+        direct_sysdb_count = 0;
+    } else if (ret != EOK && ret != ENOENT) {
+        DEBUG(2, ("sysdb_search_entry failed: [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    /* EOK */
+    /* Get the list of sysdb groups by name */
+    direct_parents = talloc_array(tmp_ctx, char *, direct_sysdb_count+1);
+    if (!direct_parents) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    pi = 0;
+    for(i = 0; i < direct_sysdb_count; i++) {
+        tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
+                                                SYSDB_NAME, NULL);
+        if (!tmp_str) {
+            /* This should never happen, but if it does, just continue */
+            continue;
+        }
+
+        direct_parents[pi] = talloc_strdup(direct_parents, tmp_str);
+        if (!direct_parents[pi]) {
+            DEBUG(1, ("A group with no name?\n"));
+            ret = EIO;
+            goto done;
+        }
+        pi++;
+    }
+    direct_parents[pi] = NULL;
+
+    DEBUG(7, ("%s is a member of %d sysdb groups\n",
+              name, direct_sysdb_count));
+    *_direct_parents = talloc_steal(mem_ctx, direct_parents);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
