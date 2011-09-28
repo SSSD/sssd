@@ -109,7 +109,39 @@
                             performing LDAP user operations.
                         </para>
                         <para>
-                            Default: If not set the value of the
+                            Starting with SSSD 1.7.0, SSSD supports multiple
+                            search bases using the syntax:
+                        </para>
+                        <para>
+                            search_base[?scope?[filter][?search_base?scope?[filter]]*]
+                        </para>
+                        <para>
+                            The scope can be one of "base", "onelevel" or "subtree".
+                        </para>
+                        <para>
+                            The filter must be a valid LDAP search filter as
+                            specified by http://www.ietf.org/rfc/rfc2254.txt
+                        </para>
+                        <para>
+                            Examples:
+                        </para>
+                        <para>
+                            ldap_search_base = dc=example,dc=com
+                            (which is equivalent to)
+                            ldap_search_base = dc=example,dc=com?subtree?
+                        </para>
+                        <para>
+                            ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?(host=thishost)?dc=example.com?subtree?
+                        </para>
+                        <para>
+                            Note: It is unsupported to have multiple search
+                            bases which reference identically-named objects
+                            (for example, groups with the same name in two
+                            different search bases). This will lead to
+                            unpredictable behavior on client machines.
+                        </para>
+                        <para>
+                            Default: If not set, the value of the
                             defaultNamingContext or namingContexts attribute
                             from the RootDSE of the LDAP server is
                             used. If defaultNamingContext does not exists or
@@ -1456,6 +1488,11 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             to a specific subtree.
                         </para>
                         <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
                             Default: the value of
                             <emphasis>ldap_search_base</emphasis>
                         </para>
@@ -1468,6 +1505,11 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         <para>
                             An optional base DN to restrict user searches
                             to a specific subtree.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
                         </para>
                         <para>
                             Default: the value of
@@ -1484,6 +1526,11 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             to a specific subtree.
                         </para>
                         <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
                             Default: the value of
                             <emphasis>ldap_search_base</emphasis>
                         </para>
@@ -1496,6 +1543,10 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         <para>
                             This option specifies an additional LDAP search
                             filter criteria that restrict user searches.
+                        </para>
+                        <para>
+                            This option is <emphasis>deprecated</emphasis> in
+                            favor of the syntax used by ldap_user_search_base.
                         </para>
                         <para>
                             Default: not set
@@ -1519,6 +1570,10 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         <para>
                             This option specifies an additional LDAP search
                             filter criteria that restrict group searches.
+                        </para>
+                        <para>
+                            This option is <emphasis>deprecated</emphasis> in
+                            favor of the syntax used by ldap_group_search_base.
                         </para>
                         <para>
                             Default: not set
