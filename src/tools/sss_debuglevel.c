@@ -369,7 +369,7 @@ pid_t parse_pid(const char *strpid)
     char *endptr;
 
     errno = 0;
-    value = strtol(strpid, &endptr, 0);
+    value = strtol(strpid, &endptr, 10);
     if ((errno != 0) || (endptr == strpid)
         || ((*endptr != '\0') && (*endptr != '\n'))) {
         return 0;

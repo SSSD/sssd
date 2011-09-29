@@ -90,7 +90,7 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
     }
 
     errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 0);
+    timestamp = strtoull((const char *)data.dptr, &ep, 10);
     if (errno != 0 || *ep != '\0') {
         /* Malformed entry, remove it and return no entry */
         expired = true;
@@ -330,7 +330,7 @@ static int delete_permanent(struct tdb_context *tdb,
     }
 
     errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 0);
+    timestamp = strtoull((const char *)data.dptr, &ep, 10);
     if (errno != 0 || *ep != '\0') {
         /* Malformed entry, remove it */
         remove_key = true;
