@@ -60,7 +60,7 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
     }
 
     errno = 0;
-    l = strtoll((const char *)v->data, NULL, 0);
+    l = strtoll((const char *)v->data, NULL, 10);
     if (errno) {
         return (uint32_t)-1;
     }
