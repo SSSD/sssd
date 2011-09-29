@@ -364,7 +364,7 @@ int sysdb_attrs_get_uint32_t(struct sysdb_attrs *attrs, const char *name,
     }
 
     errno = 0;
-    val = strtouint32((const char *) el->values[0].data, &endptr, 0);
+    val = strtouint32((const char *) el->values[0].data, &endptr, 10);
     if (errno != 0) return errno;
     if (*endptr) return EINVAL;
 

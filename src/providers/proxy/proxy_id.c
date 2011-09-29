@@ -1078,7 +1078,7 @@ void proxy_get_account_info(struct be_req *breq)
             break;
 
         case BE_FILTER_IDNUM:
-            uid = (uid_t) strtouint32(ar->filter_value, &endptr, 0);
+            uid = (uid_t) strtouint32(ar->filter_value, &endptr, 10);
             if (errno || *endptr || (ar->filter_value == endptr)) {
                 return proxy_reply(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
@@ -1100,7 +1100,7 @@ void proxy_get_account_info(struct be_req *breq)
             ret = get_gr_name(breq, ctx, sysdb, domain, ar->filter_value);
             break;
         case BE_FILTER_IDNUM:
-            gid = (gid_t) strtouint32(ar->filter_value, &endptr, 0);
+            gid = (gid_t) strtouint32(ar->filter_value, &endptr, 10);
             if (errno || *endptr || (ar->filter_value == endptr)) {
                 return proxy_reply(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
