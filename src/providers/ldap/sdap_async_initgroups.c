@@ -629,12 +629,13 @@ struct sdap_initgr_nested_state {
 
     struct sysdb_attrs *user;
     const char *username;
+    const char *orig_dn;
 
     const char **grp_attrs;
 
+    struct ldb_message_element *memberof;
     char *filter;
     char **group_dns;
-    int count;
     int cur;
 
     struct sdap_op *op;
@@ -643,6 +644,8 @@ struct sdap_initgr_nested_state {
     int groups_cur;
 };
 
+static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req);
+static errno_t sdap_initgr_nested_noderef_search(struct tevent_req *req);
 static void sdap_initgr_nested_search(struct tevent_req *subreq);
 static void sdap_initgr_nested_store(struct tevent_req *req);
 static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
@@ -654,11 +657,10 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
                                                   struct sysdb_attrs *user,
                                                   const char **grp_attrs)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct sdap_initgr_nested_state *state;
-    struct ldb_message_element *el;
-    int i;
     errno_t ret;
+    int deref_threshold;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_nested_state);
     if (!req) return NULL;
@@ -677,57 +679,84 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
                                    &state->username);
     if (ret != EOK) {
         DEBUG(1, ("User entry had no username\n"));
-        talloc_free(req);
-        return NULL;
+        goto immediate;
     }
 
-    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*))",
-                                    opts->group_map[SDAP_OC_GROUP].name,
-                                    opts->group_map[SDAP_AT_GROUP_NAME].name);
-    if (!state->filter) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    /* TODO: test rootDSE for deref support and use it if available */
-    /* TODO: or test rootDSE for ASQ support and use it if available */
-
-    ret = sysdb_attrs_get_el(user, SYSDB_MEMBEROF, &el);
-    if (ret || !el || el->num_values == 0) {
+    ret = sysdb_attrs_get_el(state->user, SYSDB_MEMBEROF, &state->memberof);
+    if (ret || !state->memberof || state->memberof->num_values == 0) {
         DEBUG(4, ("User entry lacks original memberof ?\n"));
         /* We can't find any groups for this user, so we'll
          * have to assume there aren't any. Just return
          * success here.
          */
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
-        return req;
+        ret = EOK;
+        goto immediate;
     }
-    state->count = el->num_values;
 
     state->groups = talloc_zero_array(state, struct sysdb_attrs *,
-                                      state->count + 1);;
+                                      state->memberof->num_values + 1);;
     if (!state->groups) {
-        talloc_zfree(req);
-        return NULL;
+        ret = ENOMEM;
+        goto immediate;
     }
     state->groups_cur = 0;
 
-    state->group_dns = talloc_array(state, char *, state->count + 1);
-    if (!state->group_dns) {
-        talloc_zfree(req);
-        return NULL;
+    deref_threshold = dp_opt_get_int(state->opts->basic,
+                                     SDAP_DEREF_THRESHOLD);
+    if (sdap_has_deref_support(state->sh, state->opts) &&
+        deref_threshold < state->memberof->num_values) {
+        ret = sysdb_attrs_get_string(user, SYSDB_ORIG_DN,
+                                     &state->orig_dn);
+        if (ret != EOK) goto immediate;
+
+        ret = sdap_initgr_nested_deref_search(req);
+        if (ret != EAGAIN) goto immediate;
+    } else {
+        ret = sdap_initgr_nested_noderef_search(req);
+        if (ret != EAGAIN) goto immediate;
     }
-    for (i = 0; i < state->count; i++) {
+
+    return req;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static errno_t sdap_initgr_nested_noderef_search(struct tevent_req *req)
+{
+    int i;
+    struct tevent_req *subreq;
+    struct sdap_initgr_nested_state *state;
+
+    state = tevent_req_data(req, struct sdap_initgr_nested_state);
+
+    state->group_dns = talloc_array(state, char *,
+                                    state->memberof->num_values + 1);
+    if (!state->group_dns) {
+        return ENOMEM;
+    }
+    for (i = 0; i < state->memberof->num_values; i++) {
         state->group_dns[i] = talloc_strdup(state->group_dns,
-                                            (char *)el->values[i].data);
+                                    (char *)state->memberof->values[i].data);
         if (!state->group_dns[i]) {
-            talloc_zfree(req);
-            return NULL;
+            return ENOMEM;
         }
     }
     state->group_dns[i] = NULL; /* terminate */
     state->cur = 0;
+
+    state->filter = talloc_asprintf(state, "(&(objectclass=%s)(%s=*))",
+                            state->opts->group_map[SDAP_OC_GROUP].name,
+                            state->opts->group_map[SDAP_AT_GROUP_NAME].name);
+    if (!state->filter) {
+        return ENOMEM;
+    }
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    state->group_dns[state->cur],
@@ -737,12 +766,92 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
                                    dp_opt_get_int(state->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT));
     if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
+        return ENOMEM;
     }
     tevent_req_set_callback(subreq, sdap_initgr_nested_search, req);
 
-    return req;
+    return EAGAIN;
+}
+
+static void sdap_initgr_nested_deref_done(struct tevent_req *subreq);
+
+static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_attr_map_info *maps;
+    const int num_maps = 1;
+    const char **sdap_attrs;
+    errno_t ret;
+    int timeout;
+    struct sdap_initgr_nested_state *state;
+
+    state = tevent_req_data(req, struct sdap_initgr_nested_state);
+
+    maps = talloc_array(state, struct sdap_attr_map_info, num_maps+1);
+    if (!maps) return ENOMEM;
+
+    maps[0].map = state->opts->group_map;
+    maps[0].num_attrs = SDAP_OPTS_GROUP;
+    maps[1].map = NULL;
+
+    ret = build_attrs_from_map(state, state->opts->group_map,
+                               SDAP_OPTS_GROUP, &sdap_attrs);
+    if (ret != EOK) goto fail;
+
+    timeout = dp_opt_get_int(state->opts->basic, SDAP_ENTRY_CACHE_TIMEOUT);
+
+    subreq = sdap_deref_search_send(state, state->ev, state->opts,
+                    state->sh, state->orig_dn,
+                    state->opts->user_map[SDAP_AT_USER_MEMBEROF].name,
+                    sdap_attrs, num_maps, maps, timeout);
+    if (!subreq) {
+        ret = EIO;
+        goto fail;
+    }
+    talloc_steal(subreq, sdap_attrs);
+    talloc_steal(subreq, maps);
+
+    tevent_req_set_callback(subreq, sdap_initgr_nested_deref_done, req);
+    return EAGAIN;
+
+fail:
+    talloc_free(sdap_attrs);
+    talloc_free(maps);
+    return ret;
+}
+
+static void sdap_initgr_nested_deref_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct sdap_initgr_nested_state *state;
+    size_t num_results;
+    size_t i;
+    struct sdap_deref_attrs **deref_result;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_initgr_nested_state);
+
+    ret = sdap_deref_search_recv(subreq, state,
+                                 &num_results,
+                                 &deref_result);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret == ENOENT || deref_result == NULL) {
+        /* Nothing could be dereferenced. Done. */
+        tevent_req_done(req);
+        return;
+    }
+
+    for (i=0; i < num_results; i++) {
+        state->groups[i] = talloc_steal(state->groups,
+                                        deref_result[i]->attrs);
+    }
+
+    state->groups_cur = num_results;
+    sdap_initgr_nested_store(req);
 }
 
 static void sdap_initgr_nested_search(struct tevent_req *subreq)
@@ -773,10 +882,10 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
     }
 
     state->cur++;
-    /* note that state->count is the count of original memberOf which might not
-     * be only groups, but permissions, etc. Use state->groups_cur for
-     * group index cap */
-    if (state->cur < state->count) {
+    /* note that state->memberof->num_values is the count of original
+     * memberOf which might not be only groups, but permissions, etc.
+     * Use state->groups_cur for group index cap */
+    if (state->cur < state->memberof->num_values) {
         subreq = sdap_get_generic_send(state, state->ev,
                                        state->opts, state->sh,
                                        state->group_dns[state->cur],
