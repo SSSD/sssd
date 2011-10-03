@@ -433,6 +433,7 @@ struct sdap_get_users_state {
     const char *base_filter;
     char *filter;
     int timeout;
+    bool enumeration;
 
     char *higher_usn;
     struct sysdb_attrs **users;
@@ -454,7 +455,8 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
-                                       int timeout)
+                                       int timeout,
+                                       bool enumeration)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -476,6 +478,7 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->base_filter = filter;
     state->base_iter = 0;
     state->search_bases = search_bases;
+    state->enumeration = enumeration;
 
     ret = sdap_get_users_next_base(req);
     if (ret != EOK) {
@@ -527,19 +530,49 @@ static void sdap_get_users_process(struct tevent_req *subreq)
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
     int ret;
+    size_t count, i;
+    struct sysdb_attrs **users;
+    bool next_base = false;
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->count, &state->users);
+                                &count, &users);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
 
-    DEBUG(6, ("Search for users, returned %d results.\n", state->count));
+    DEBUG(6, ("Search for users, returned %d results.\n", count));
 
-    if (state->count == 0) {
-        /* No users found in this search */
+    if (state->enumeration || count == 0) {
+        /* No users found in this search or enumerating */
+        next_base = true;
+    }
+
+    /* Add this batch of users to the list */
+    if (count > 0) {
+        state->users =
+                talloc_realloc(state,
+                               state->users,
+                               struct sysdb_attrs *,
+                               state->count + count + 1);
+        if (!state->users) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        /* Copy the new users into the list
+         * They're already allocated on 'state'
+         */
+        for (i = 0; i < count; i++) {
+            state->users[state->count + i] = users[i];
+        }
+
+        state->count += count;
+        state->users[state->count] = NULL;
+    }
+
+    if (next_base) {
         state->base_iter++;
         if (state->search_bases[state->base_iter]) {
             /* There are more search bases to try */
@@ -549,7 +582,12 @@ static void sdap_get_users_process(struct tevent_req *subreq)
             }
             return;
         }
+    }
 
+    /* No more search bases
+     * Return ENOENT if no users were found
+     */
+    if (state->count == 0) {
         tevent_req_error(req, ENOENT);
         return;
     }

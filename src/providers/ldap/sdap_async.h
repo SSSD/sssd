@@ -49,7 +49,8 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
-                                       int timeout);
+                                       int timeout,
+                                       bool enumeration);
 int sdap_get_users_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx, char **timestamp);
 
