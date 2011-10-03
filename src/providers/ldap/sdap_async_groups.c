@@ -1196,6 +1196,7 @@ struct sdap_get_groups_state {
     const char *base_filter;
     char *filter;
     int timeout;
+    bool enumeration;
 
     char *higher_usn;
     struct sysdb_attrs **groups;
@@ -1222,7 +1223,8 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
-                                       int timeout)
+                                       int timeout,
+                                       bool enumeration)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -1241,6 +1243,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->groups =  NULL;
     state->count = 0;
     state->timeout = timeout;
+    state->enumeration = enumeration;
     state->base_filter = filter;
     state->base_iter = 0;
     state->search_bases = search_bases;
@@ -1305,21 +1308,89 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                         tevent_req_data(req, struct sdap_get_groups_state);
     int ret;
     int i;
-    bool enumeration = false;
+    bool next_base = false;
+    size_t count;
+    struct sysdb_attrs **groups;
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->count, &state->groups);
+                                &count, &groups);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
 
-    DEBUG(6, ("Search for groups, returned %d results.\n", state->count));
+    DEBUG(6, ("Search for groups, returned %d results.\n", count));
 
-    switch(state->count) {
-    case 0:
-        /* No groups found in this search */
+    if (!state->enumeration && count > 1) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Individual group search returned multiple results\n"));
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->enumeration || count == 0) {
+        next_base = true;
+    }
+
+    /* Add this batch of groups to the list */
+    if (count > 0) {
+        state->groups =
+                talloc_realloc(state,
+                               state->groups,
+                               struct sysdb_attrs *,
+                               state->count + count + 1);
+        if (!state->groups) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        /* Copy the new groups into the list
+         * They're already allocated on 'state'
+         */
+        for (i = 0; i < count; i++) {
+            state->groups[state->count + i] = groups[i];
+        }
+
+        state->count += count;
+        state->groups[state->count] = NULL;
+    }
+
+    if (!state->enumeration && count > 1) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Individual group search returned multiple results\n"));
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->enumeration || count == 0) {
+        next_base = true;
+    }
+
+    /* Add this batch of groups to the list */
+    if (count > 0) {
+        state->groups =
+                talloc_realloc(state,
+                               state->groups,
+                               struct sysdb_attrs *,
+                               state->count + count + 1);
+        if (!state->groups) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        /* Copy the new groups into the list
+         * They're already allocated on 'state'
+         */
+        for (i = 0; i < count; i++) {
+            state->groups[state->count + i] = groups[i];
+        }
+
+        state->count += count;
+        state->groups[state->count] = NULL;
+    }
+
+    if (next_base) {
         state->base_iter++;
         if (state->search_bases[state->base_iter]) {
             /* There are more search bases to try */
@@ -1329,12 +1400,22 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
             }
             return;
         }
+    }
 
+    /* No more search bases
+     * Return ENOENT if no groups were found
+     */
+    if (state->count == 0) {
         tevent_req_error(req, ENOENT);
         return;
+    }
 
-    case 1:
-        /* Single group search */
+    /* Check whether we need to do nested searches
+     * for RFC2307bis/FreeIPA/ActiveDirectory
+     * We don't need to do this for enumeration,
+     * because all groups will be picked up anyway.
+     */
+    if (!state->enumeration) {
         if ((state->opts->schema_type != SDAP_SCHEMA_RFC2307) &&
             (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)) {
 
@@ -1368,17 +1449,10 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
             tevent_req_set_callback(subreq, sdap_nested_done, req);
             return;
-        } else {
-            /* RFC2307 or disabled nested groups */
-            break;
         }
-
-    default:
-        /* Enumeration */
-        enumeration = true;
-        break;
     }
 
+    /* We have all of the groups. Save them to the sysdb */
     state->check_count = state->count;
 
     ret = sysdb_transaction_start(state->sysdb);
@@ -1388,9 +1462,9 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         return;
     }
 
-    if (enumeration && (state->opts->schema_type != SDAP_SCHEMA_RFC2307) &&
-        (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)) {
-
+    if (state->enumeration
+            && state->opts->schema_type != SDAP_SCHEMA_RFC2307
+            && dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0) {
         DEBUG(9, ("Saving groups without members first "
                   "to allow unrolling of nested groups.\n"));
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
@@ -1406,7 +1480,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         subreq = sdap_process_group_send(state, state->ev, state->dom,
                                          state->sysdb, state->opts,
                                          state->sh, state->groups[i],
-                                         enumeration);
+                                         state->enumeration);
 
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
