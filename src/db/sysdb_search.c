@@ -868,7 +868,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
 
     if (mtype == SYSDB_MEMBER_USER) {
         dn = sysdb_user_strdn(tmp_ctx, dom->name, name);
-    } else if (mtype == SYSDB_MEMBER_USER) {
+    } else if (mtype == SYSDB_MEMBER_GROUP) {
         dn = sysdb_group_strdn(tmp_ctx, dom->name, name);
     } else {
         DEBUG(1, ("Unknown member type\n"));
