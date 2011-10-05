@@ -2420,7 +2420,7 @@ int main(int argc, const char *argv[])
     }
 
     /* Warn if nscd seems to be running */
-    ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL);
+    ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL, false);
     if (ret == EOK) {
         sss_log(SSS_LOG_NOTICE,
                 "nscd socket was detected.  Nscd caching capabilities "
