@@ -354,6 +354,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb.c \
     src/db/sysdb_ops.c \
     src/db/sysdb_search.c \
+    src/db/sysdb_upgrade.c \
     src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \

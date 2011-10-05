@@ -74,4 +74,25 @@ struct sysdb_ctx {
     char *ldb_file;
 };
 
+/* Internal utility functions */
+int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
+                      const char *provider, const char *name,
+                      const char *base_path, char **_ldb_file);
+errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
+                          struct ldb_context **_ldb);
+int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               const char *db_path,
+                               bool allow_upgrade,
+                               struct sysdb_ctx **_ctx);
+
+/* Upgrade routines */
+int sysdb_upgrade_01(struct ldb_context *ldb, const char **ver);
+int sysdb_check_upgrade_02(struct sss_domain_info *domains,
+                           const char *db_path);
+int sysdb_upgrade_03(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_04(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_05(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver);
+
 #endif /* __INT_SYS_DB_H__ */
