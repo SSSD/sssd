@@ -98,17 +98,8 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                     const char *group_subdir, const char *groupattr_name,
                     size_t group_count, struct sysdb_attrs **groups)
 {
-    int lret;
     errno_t ret, sret;
     bool in_transaction = false;
-    const char **orig_member_dns;
-    size_t i, j, member_count;
-    struct ldb_message **members;
-    TALLOC_CTX *tmp_ctx = NULL;
-    const char *member_dn;
-    const char *group_id;
-    struct ldb_message *msg;
-    char *member_filter;
 
     if ((primary_count == 0 || primary == NULL)
         || (group_count > 0 && groups == NULL)) {
@@ -149,117 +140,6 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                       group_subdir, ret, strerror(ret)));
             goto done;
         }
-
-        /* Third, save the memberships */
-        for (i = 0; i < group_count; i++) {
-            if (!groups[i]) {
-                ret = EINVAL;
-                goto done;
-            }
-
-            talloc_free(tmp_ctx);
-            tmp_ctx = talloc_new(NULL);
-            if (tmp_ctx == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            ret = sysdb_attrs_get_string(groups[i],
-                                         groupattr_name,
-                                         &group_id);
-            if (ret != EOK) {
-                DEBUG(1, ("Could not determine group attribute name\n"));
-                goto done;
-            }
-
-            msg = ldb_msg_new(tmp_ctx);
-            if (msg == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            msg->dn = sysdb_custom_dn(sysdb, msg, domain->name,
-                                      group_id, group_subdir);
-            if (msg->dn == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            ret = sysdb_attrs_get_string_array(groups[i],
-                                               SYSDB_ORIG_MEMBER,
-                                               tmp_ctx,
-                                               &orig_member_dns);
-
-            if (ret == EOK) {
-                /* One or more members were detected, prep the LDB message */
-                lret = ldb_msg_add_empty(msg, SYSDB_MEMBER, LDB_FLAG_MOD_ADD, NULL);
-                if (lret != LDB_SUCCESS) {
-                    ret = sysdb_error_to_errno(lret);
-                    goto done;
-                }
-            } else if (ret == ENOENT) {
-                /* Useless group, has no members */
-                orig_member_dns = talloc_array(tmp_ctx, const char *, 1);
-                if (!orig_member_dns) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                /* Just set the member list to zero length so we skip
-                 * processing it below
-                 */
-                orig_member_dns[0] = NULL;
-            } else {
-                DEBUG(1, ("Could not determine original members\n"));
-                goto done;
-            }
-
-            for (j = 0; orig_member_dns[j]; j++) {
-                member_filter = talloc_asprintf(tmp_ctx, "%s=%s",
-                                                SYSDB_ORIG_DN,
-                                                orig_member_dns[j]);
-                if (member_filter == NULL) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                ret = sysdb_search_custom(tmp_ctx, sysdb, 
-                                          member_filter, primary_subdir,
-                                          NULL, &member_count, &members);
-                talloc_zfree(member_filter);
-                if (ret != EOK && ret != ENOENT) {
-                    goto done;
-                } else if (ret == ENOENT || member_count == 0) {
-                    /* No member exists with this orig_dn. Skip it */
-                    DEBUG(6, ("[%s] does not exist\n", orig_member_dns[j]));
-                    continue;
-                } else if (member_count > 1) {
-                    /* This probably means corruption in the cache, but
-                     * we'll try to proceed anyway.
-                     */
-                    DEBUG(1, ("More than one result for DN [%s], skipping\n"));
-                    continue;
-                }
-
-                member_dn = ldb_dn_get_linearized(members[0]->dn);
-                if (!member_dn) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-                lret = ldb_msg_add_fmt(msg, SYSDB_MEMBER, "%s", member_dn);
-                if (lret != LDB_SUCCESS) {
-                    ret = sysdb_error_to_errno(lret);
-                    goto done;
-                }
-            }
-
-            lret = ldb_modify(sysdb_ctx_get_ldb(sysdb), msg);
-            if (lret != LDB_SUCCESS) {
-                ret = sysdb_error_to_errno(lret);
-                goto done;
-            }
-        }
-        talloc_zfree(tmp_ctx);
     }
 
     ret = sysdb_transaction_commit(sysdb);
