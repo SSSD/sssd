@@ -449,3 +449,112 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t
+get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *sysdb,
+                         const char *service_dn,
+                         char **servicegroupname)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    const char *rdn_name;
+    const char *svc_comp_name;
+    const char *hbac_comp_name;
+    const struct ldb_val *rdn_val;
+    const struct ldb_val *svc_comp_val;
+    const struct ldb_val *hbac_comp_val;
+
+    /* This is an IPA-specific hack. It may not
+     * work for non-IPA servers and will need to
+     * be changed if SSSD ever supports HBAC on
+     * a non-IPA server.
+     */
+    *servicegroupname = NULL;
+
+    dn = ldb_dn_new(mem_ctx, sysdb_ctx_get_ldb(sysdb), service_dn);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (!ldb_dn_validate(dn)) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ldb_dn_get_comp_num(dn) < 4) {
+        /* RDN, services, hbac, and at least one DC= */
+        /* If it's fewer, it's not a group DN */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* If the RDN name is 'cn' */
+    rdn_name = ldb_dn_get_rdn_name(dn);
+    if (rdn_name == NULL) {
+        /* Shouldn't happen if ldb_dn_validate()
+         * passed, but we'll be careful.
+         */
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strcasecmp("cn", rdn_name) != 0) {
+        /* RDN has the wrong attribute name.
+         * It's not a service.
+         */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* and the second component is "cn=hbacservicegroups" */
+    svc_comp_name = ldb_dn_get_component_name(dn, 1);
+    if (strcasecmp("cn", svc_comp_name) != 0) {
+        /* The second component name is not "cn" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    svc_comp_val = ldb_dn_get_component_val(dn, 1);
+    if (strncasecmp("hbacservicegroups",
+                    (const char *) svc_comp_val->data,
+                    svc_comp_val->length) != 0) {
+        /* The second component value is not "hbacservicegroups" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* and the third component is "hbac" */
+    hbac_comp_name = ldb_dn_get_component_name(dn, 2);
+    if (strcasecmp("cn", hbac_comp_name) != 0) {
+        /* The third component name is not "cn" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    hbac_comp_val = ldb_dn_get_component_val(dn, 2);
+    if (strncasecmp("hbac",
+                    (const char *) hbac_comp_val->data,
+                    hbac_comp_val->length) != 0) {
+        /* The third component value is not "hbac" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* Then the value of the RDN is the group name */
+    rdn_val = ldb_dn_get_rdn_val(dn);
+    *servicegroupname = talloc_strndup(mem_ctx,
+                                       (const char *)rdn_val->data,
+                                       rdn_val->length);
+    if (*servicegroupname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(dn);
+    return ret;
+}
