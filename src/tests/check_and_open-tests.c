@@ -100,11 +100,37 @@ START_TEST(test_symlink)
     ret = symlink(filename, newpath);
     fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
 
-    ret = check_file(newpath, uid, gid, mode, CHECK_REG, NULL);
+    ret = check_file(newpath, uid, gid, mode, CHECK_REG, NULL, false);
     unlink(newpath);
 
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded on symlink");
+}
+END_TEST
+
+START_TEST(test_follow_symlink)
+{
+    int ret;
+    char *newpath;
+    size_t newpath_length;
+
+    newpath_length = strlen(filename) + strlen(SUFFIX) + 1;
+    newpath = malloc((newpath_length) * sizeof(char));
+    fail_unless(newpath != NULL, "malloc failed");
+
+    ret = snprintf(newpath, newpath_length, "%s%s", filename, SUFFIX);
+    fail_unless(ret == newpath_length - 1,
+                "snprintf failed: expected [%d] got [%d]", newpath_length -1,
+                                                           ret);
+
+    ret = symlink(filename, newpath);
+    fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
+
+    ret = check_file(newpath, uid, gid, mode, CHECK_REG, NULL, true);
+    unlink(newpath);
+
+    fail_unless(ret == EOK,
+                "check_and_open_readonly failed on symlink with follow=true");
 }
 END_TEST
 
@@ -196,6 +222,7 @@ Suite *check_and_open_suite (void)
     tcase_add_test (tc_check_and_open_readonly, test_wrong_filename);
     tcase_add_test (tc_check_and_open_readonly, test_not_regular_file);
     tcase_add_test (tc_check_and_open_readonly, test_symlink);
+    tcase_add_test (tc_check_and_open_readonly, test_follow_symlink);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_uid);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_gid);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_permission);
