@@ -1530,13 +1530,13 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
     static const char *search_attrs[] = { SYSDB_NAME, NULL };
     size_t count;
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
     if (num_users == 0) {
         /* Nothing to do if there are no users */
         return EOK;
     }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
