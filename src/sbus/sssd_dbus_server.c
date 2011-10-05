@@ -120,7 +120,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = check_file(filename, 0, 0, -1, CHECK_SOCK, &stat_buf);
+    ret = check_file(filename, 0, 0, -1, CHECK_SOCK, &stat_buf, false);
     if (ret != EOK) {
         DEBUG(1, ("check_file failed for [%s].\n", filename));
         return EIO;

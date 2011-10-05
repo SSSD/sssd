@@ -35,7 +35,7 @@ static errno_t perform_checks(struct stat *stat_buf,
 
 errno_t check_file(const char *filename, const int uid, const int gid,
                    const int mode, enum check_file_type type,
-                   struct stat *caller_stat_buf)
+                   struct stat *caller_stat_buf, bool follow_symlink)
 {
     int ret;
     struct stat local_stat_buf;
@@ -47,7 +47,8 @@ errno_t check_file(const char *filename, const int uid, const int gid,
         stat_buf = caller_stat_buf;
     }
 
-    ret = lstat(filename, stat_buf);
+    ret = follow_symlink ? stat(filename, stat_buf) : \
+                           lstat(filename, stat_buf);
     if (ret == -1) {
         DEBUG(1, ("lstat for [%s] failed: [%d][%s].\n", filename, errno,
                                                         strerror(errno)));

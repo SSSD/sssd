@@ -333,7 +333,7 @@ enum check_file_type {
  */
 errno_t check_file(const char *filename, const int uid, const int gid,
                    const int mode, enum check_file_type type,
-                   struct stat *caller_stat_buf);
+                   struct stat *caller_stat_buf, bool follow_symlink);
 
 /* check_fd()
  * Verify that an open file descriptor has certain permissions and/or
