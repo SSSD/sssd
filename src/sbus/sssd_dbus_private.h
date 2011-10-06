@@ -58,6 +58,7 @@ struct sbus_connection {
     void *reconnect_pvt;
 
     /* server related stuff */
+    char *symlink;
     struct sbus_interface *server_intf;
     sbus_server_conn_init_fn srv_init_fn;
     void *srv_init_data;

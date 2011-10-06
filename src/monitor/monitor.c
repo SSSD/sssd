@@ -461,7 +461,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
 
     ret = sbus_new_server(ctx, ctx->ev,
                           monitor_address, &monitor_server_interface,
-                          &ctx->sbus_srv, monitor_service_init, ctx);
+                          false, &ctx->sbus_srv, monitor_service_init, ctx);
 
     talloc_free(monitor_address);
 

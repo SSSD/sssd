@@ -907,7 +907,7 @@ static int be_srv_init(struct be_ctx *ctx)
     }
 
     ret = sbus_new_server(ctx, ctx->ev, sbus_address,
-                          &be_interface, &ctx->sbus_srv,
+                          &be_interface, true, &ctx->sbus_srv,
                           be_client_init, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not set up sbus server.\n"));
