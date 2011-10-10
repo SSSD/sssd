@@ -219,6 +219,11 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 
+AM_CONDITIONAL([BUILD_SUDO], [test x$build_all_experimental_features != xno])
+if test x$build_all_experimental_features != xno; then
+   AC_DEFINE(BUILD_SUDO, 1, [whether to build with SUDO support])
+fi
+
 abs_build_dir=`pwd`
 AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the build directory])
 AC_SUBST([abs_builddir], $abs_build_dir)

@@ -37,6 +37,7 @@ typedef int errno_t;
 
 #define SSS_NSS_PROTOCOL_VERSION 1
 #define SSS_PAM_PROTOCOL_VERSION 3
+#define SSS_SUDO_PROTOCOL_VERSION 0
 
 /**
  * @defgroup sss_cli_command SSS client commands
@@ -444,6 +445,11 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,
                                      uint8_t **repbuf, size_t *replen,
                                      int *errnop);
+
+int sss_sudo_make_request(enum sss_cli_command cmd,
+                          struct sss_cli_req_data *rd,
+                          uint8_t **repbuf, size_t *replen,
+                          int *errnop);
 
 #ifndef SAFEALIGN_COPY_UINT32
 static inline void
