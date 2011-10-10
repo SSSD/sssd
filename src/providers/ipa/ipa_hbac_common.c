@@ -691,14 +691,14 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
                        struct hbac_request_element **host_element)
 {
     errno_t ret;
-    size_t i, count;
+    size_t i, j, count;
     TALLOC_CTX *tmp_ctx;
     struct hbac_request_element *host;
     struct ldb_message **msgs;
-    const char *group_name;
+    struct ldb_message_element *el;
     struct ldb_dn *host_dn;
-    const char *attrs[] = { IPA_CN, NULL };
-    const char *host_filter;
+    const char *memberof_attrs[] = { SYSDB_ORIG_MEMBEROF, NULL };
+    char *name;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -715,68 +715,74 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
         /* We don't know the host (probably an rhost)
          * So we can't determine it's groups either.
          */
-        host->groups = talloc_array(host, const char *, 1);
-        if (host->groups == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-        host->groups[0] = NULL;
+        host->groups = NULL;
         ret = EOK;
         goto done;
     }
 
-    host_filter = talloc_asprintf(tmp_ctx,
-                                  "(objectClass=%s)",
-                                  IPA_HOSTGROUP);
-    if (host_filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     host_dn = sysdb_custom_dn(sysdb, tmp_ctx, domain->name,
-                             host->name, HBAC_HOSTS_SUBDIR);
+                              host->name, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* Find the host groups */
-    ret = sysdb_asq_search(tmp_ctx, sysdb, host_dn,
-                           host_filter, SYSDB_MEMBEROF,
-                           attrs, &count, &msgs);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, ("Could not look up host groups\n"));
+    /* Look up the host to get its originalMemberOf entries */
+    ret = sysdb_search_entry(tmp_ctx, sysdb, host_dn,
+                             LDB_SCOPE_BASE, NULL,
+                             memberof_attrs,
+                             &count, &msgs);
+    if (ret == ENOENT || count == 0) {
+        /* We won't be able to identify any groups
+         * This rule will only match the name or
+         * a host category of ALL
+         */
+        host->groups = NULL;
+        ret =  EOK;
         goto done;
-    } else if (ret == ENOENT) {
-        count = 0;
+    } else if (ret != EOK) {
+        goto done;
+    } else if (count > 1) {
+        DEBUG(1, ("More than one result for a BASE search!\n"));
+        ret = EIO;
+        goto done;
     }
 
-    host->groups = talloc_array(host, const char *, count + 1);
+    el = ldb_msg_find_element(msgs[0], SYSDB_ORIG_MEMBEROF);
+    if (!el) {
+        /* Host is not a member of any groups
+         * This rule will only match the name or
+         * a host category of ALL
+         */
+        host->groups = NULL;
+        ret = EOK;
+        goto done;
+    }
+
+
+    host->groups = talloc_array(host, const char *, el->num_values + 1);
     if (host->groups == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    for (i = 0; i < count; i++) {
-        group_name = ldb_msg_find_attr_as_string(msgs[i],
-                                                 IPA_CN,
-                                                 NULL);
-        if (group_name == NULL) {
-            DEBUG(1, ("Group with no name?\n"));
-            ret = EINVAL;
-            goto done;
-        }
-        host->groups[i] = talloc_strdup(host->groups,
-                                       group_name);
-        if (host->groups[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
+    for (i = j = 0; i < el->num_values; i++) {
+        ret = get_ipa_hostgroupname(tmp_ctx, sysdb,
+                                    (const char *)el->values[i].data,
+                                    &name);
+        if (ret != EOK && ret != ENOENT) goto done;
 
-        DEBUG(6, ("Added host group [%s] to the eval request\n",
-                  host->groups[i]));
+        /* ENOENT means we had a memberOf entry that wasn't a
+         * host group. We'll just ignore those (could be
+         * HBAC rules)
+         */
+
+        if (ret == EOK) {
+            host->groups[j] = talloc_steal(host->groups, name);
+            j++;
+        }
     }
-    host->groups[i] = NULL;
+    host->groups[j] = NULL;
 
     ret = EOK;
 

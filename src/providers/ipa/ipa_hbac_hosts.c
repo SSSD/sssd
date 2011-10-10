@@ -522,3 +522,112 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t
+get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *sysdb,
+                      const char *host_dn,
+                      char **hostgroupname)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    const char *rdn_name;
+    const char *hostgroup_comp_name;
+    const char *account_comp_name;
+    const struct ldb_val *rdn_val;
+    const struct ldb_val *hostgroup_comp_val;
+    const struct ldb_val *account_comp_val;
+
+    /* This is an IPA-specific hack. It may not
+     * work for non-IPA servers and will need to
+     * be changed if SSSD ever supports HBAC on
+     * a non-IPA server.
+     */
+    *hostgroupname = NULL;
+
+    dn = ldb_dn_new(mem_ctx, sysdb_ctx_get_ldb(sysdb), host_dn);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (!ldb_dn_validate(dn)) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ldb_dn_get_comp_num(dn) < 4) {
+        /* RDN, hostgroups, accounts, and at least one DC= */
+        /* If it's fewer, it's not a group DN */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* If the RDN name is 'cn' */
+    rdn_name = ldb_dn_get_rdn_name(dn);
+    if (rdn_name == NULL) {
+        /* Shouldn't happen if ldb_dn_validate()
+         * passed, but we'll be careful.
+         */
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strcasecmp("cn", rdn_name) != 0) {
+        /* RDN has the wrong attribute name.
+         * It's not a host.
+         */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* and the second component is "cn=hostgroups" */
+    hostgroup_comp_name = ldb_dn_get_component_name(dn, 1);
+    if (strcasecmp("cn", hostgroup_comp_name) != 0) {
+        /* The second component name is not "cn" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    hostgroup_comp_val = ldb_dn_get_component_val(dn, 1);
+    if (strncasecmp("hostgroups",
+                    (const char *) hostgroup_comp_val->data,
+                    hostgroup_comp_val->length) != 0) {
+        /* The second component value is not "hostgroups" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* and the third component is "accounts" */
+    account_comp_name = ldb_dn_get_component_name(dn, 2);
+    if (strcasecmp("cn", account_comp_name) != 0) {
+        /* The third component name is not "cn" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    account_comp_val = ldb_dn_get_component_val(dn, 2);
+    if (strncasecmp("accounts",
+                    (const char *) account_comp_val->data,
+                    account_comp_val->length) != 0) {
+        /* The third component value is not "accounts" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* Then the value of the RDN is the group name */
+    rdn_val = ldb_dn_get_rdn_val(dn);
+    *hostgroupname = talloc_strndup(mem_ctx,
+                                    (const char *)rdn_val->data,
+                                    rdn_val->length);
+    if (*hostgroupname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(dn);
+    return ret;
+}
