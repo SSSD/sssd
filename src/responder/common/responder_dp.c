@@ -114,6 +114,11 @@ void handle_requests_after_reconnect(void)
     unsigned long count, i;
     struct sss_dp_req *sdp_req;
 
+    if (!dp_requests) {
+        DEBUG(7, ("No requests to handle after reconnect\n"));
+        return;
+    }
+
     ret = hash_values(dp_requests, &count, &values);
     if (ret != HASH_SUCCESS) {
         DEBUG(1, ("hash_values failed, "
