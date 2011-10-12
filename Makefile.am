@@ -915,6 +915,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_init.c \
     src/providers/ipa/ipa_common.c \
     src/providers/ipa/ipa_utils.c \
+    src/providers/ipa/ipa_id.c \
     src/providers/ipa/ipa_netgroups.c \
     src/providers/ipa/ipa_auth.c \
     src/providers/ipa/ipa_access.c \

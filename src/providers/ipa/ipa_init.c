@@ -30,6 +30,7 @@
 #include "providers/child_common.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_dyndns.h"
@@ -38,7 +39,7 @@ struct ipa_options *ipa_options = NULL;
 
 /* Id Handler */
 struct bet_ops ipa_id_ops = {
-    .handler = sdap_account_info_handler,
+    .handler = ipa_account_info_handler,
     .finalize = NULL,
     .check_online = sdap_check_online
 };
