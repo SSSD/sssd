@@ -85,7 +85,7 @@
                     <term>ldap_chpass_uri (string)</term>
                     <listitem>
                         <para>
-                            Specifies the list of URIs of the LDAP servers to
+                            Specifies the comma-separated list of URIs of the LDAP servers to
                             which SSSD should connect in the order of preference
                             to change the password of a user. Refer to the
                             <quote>FAILOVER</quote> section for more information
@@ -1077,7 +1077,7 @@
                     <term>krb5_server (string)</term>
                     <listitem>
                         <para>
-                            Specifies the list of IP addresses or hostnames
+                            Specifies the comma-separated list of IP addresses or hostnames
                             of the Kerberos servers to which SSSD should
                             connect in the order of preference. For more
                             information on failover and server redundancy,
