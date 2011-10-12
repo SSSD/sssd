@@ -26,6 +26,21 @@
 #include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async.h"
 
+struct dn_item {
+    const char *dn;
+    /* Parent netgroup containing this record */
+    struct sysdb_attrs *netgroup;
+    char *cn;
+    struct dn_item *next;
+    struct dn_item *prev;
+};
+
+bool is_dn(const char *str);
+errno_t update_dn_list(struct dn_item *dn_list,
+                       const size_t count,
+                       struct ldb_message **res,
+                       bool *all_resolved);
+
 void make_realm_upper_case(const char *upn);
 struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx);
 

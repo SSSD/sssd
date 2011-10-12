@@ -136,11 +136,11 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 int groups_get_recv(struct tevent_req *req, int *dp_error_out);
 
 
-struct tevent_req *netgroup_get_send(TALLOC_CTX *memctx,
-                                                      struct tevent_context *ev,
-                                                      struct sdap_id_ctx *ctx,
-                                                      const char *name);
-int netgroup_get_recv(struct tevent_req *req, int *dp_error_out);
+struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx,
+                                          const char *name);
+int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out);
 /* setup child logging */
 int setup_child(struct sdap_id_ctx *ctx);
 

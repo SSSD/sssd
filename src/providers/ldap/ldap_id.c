@@ -815,7 +815,7 @@ void sdap_account_info_handler(struct be_req *breq)
             break;
         }
 
-        req = netgroup_get_send(breq, breq->be_ctx->ev, ctx, ar->filter_value);
+        req = ldap_netgroup_get_send(breq, breq->be_ctx->ev, ctx, ar->filter_value);
         if (!req) {
             return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
@@ -893,7 +893,7 @@ static void sdap_account_info_netgroups_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     int ret, dp_error;
 
-    ret = netgroup_get_recv(req, &dp_error);
+    ret = ldap_netgroup_get_recv(req, &dp_error);
     talloc_zfree(req);
 
     sdap_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");

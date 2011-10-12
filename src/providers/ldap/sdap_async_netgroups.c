@@ -27,7 +27,7 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
-static bool is_dn(const char *str)
+bool is_dn(const char *str)
 {
     int ret;
     LDAPDN dn;
@@ -182,16 +182,8 @@ fail:
     return ret;
 }
 
-struct dn_item {
-    const char *dn;
-    struct sysdb_attrs *netgroup;
-    char *cn;
-    struct dn_item *next;
-    struct dn_item *prev;
-};
-
-static errno_t update_dn_list(struct dn_item *dn_list, const size_t count,
-                              struct ldb_message **res, bool *all_resolved)
+errno_t update_dn_list(struct dn_item *dn_list, const size_t count,
+                       struct ldb_message **res, bool *all_resolved)
 {
     struct dn_item *dn_item;
     size_t c;

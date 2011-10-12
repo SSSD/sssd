@@ -299,6 +299,7 @@ struct sdap_options {
     struct sdap_attr_map *user_map;
     struct sdap_attr_map *group_map;
     struct sdap_attr_map *netgroup_map;
+    struct sdap_attr_map *host_map;
 
     /* supported schema types */
     enum schema_type {

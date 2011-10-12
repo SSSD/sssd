@@ -30,7 +30,7 @@
 #include "providers/ldap/sdap_async.h"
 
 
-struct netgroup_get_state {
+struct ldap_netgroup_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     struct sdap_id_op *op;
@@ -49,21 +49,21 @@ struct netgroup_get_state {
     int dp_error;
 };
 
-static int netgroup_get_retry(struct tevent_req *req);
-static void netgroup_get_connect_done(struct tevent_req *subreq);
-static void netgroup_get_done(struct tevent_req *subreq);
+static int ldap_netgroup_get_retry(struct tevent_req *req);
+static void ldap_netgroup_get_connect_done(struct tevent_req *subreq);
+static void ldap_netgroup_get_done(struct tevent_req *subreq);
 
-struct tevent_req *netgroup_get_send(TALLOC_CTX *memctx,
+struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_id_ctx *ctx,
                                      const char *name)
 {
     struct tevent_req *req;
-    struct netgroup_get_state *state;
+    struct ldap_netgroup_get_state *state;
     char *clean_name;
     int ret;
 
-    req = tevent_req_create(memctx, &state, struct netgroup_get_state);
+    req = tevent_req_create(memctx, &state, struct ldap_netgroup_get_state);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -102,7 +102,7 @@ struct tevent_req *netgroup_get_send(TALLOC_CTX *memctx,
                                SDAP_OPTS_NETGROUP, &state->attrs);
     if (ret != EOK) goto fail;
 
-    ret = netgroup_get_retry(req);
+    ret = ldap_netgroup_get_retry(req);
     if (ret != EOK) {
         goto fail;
     }
@@ -115,10 +115,10 @@ fail:
     return req;
 }
 
-static int netgroup_get_retry(struct tevent_req *req)
+static int ldap_netgroup_get_retry(struct tevent_req *req)
 {
-    struct netgroup_get_state *state = tevent_req_data(req,
-                                                    struct netgroup_get_state);
+    struct ldap_netgroup_get_state *state = tevent_req_data(req,
+                                                    struct ldap_netgroup_get_state);
     struct tevent_req *subreq;
     int ret = EOK;
 
@@ -127,16 +127,16 @@ static int netgroup_get_retry(struct tevent_req *req)
         return ret;
     }
 
-    tevent_req_set_callback(subreq, netgroup_get_connect_done, req);
+    tevent_req_set_callback(subreq, ldap_netgroup_get_connect_done, req);
     return EOK;
 }
 
-static void netgroup_get_connect_done(struct tevent_req *subreq)
+static void ldap_netgroup_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct netgroup_get_state *state = tevent_req_data(req,
-                                                    struct netgroup_get_state);
+    struct ldap_netgroup_get_state *state = tevent_req_data(req,
+                                                    struct ldap_netgroup_get_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
 
@@ -160,17 +160,17 @@ static void netgroup_get_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, netgroup_get_done, req);
+    tevent_req_set_callback(subreq, ldap_netgroup_get_done, req);
 
     return;
 }
 
-static void netgroup_get_done(struct tevent_req *subreq)
+static void ldap_netgroup_get_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct netgroup_get_state *state = tevent_req_data(req,
-                                                    struct netgroup_get_state);
+    struct ldap_netgroup_get_state *state = tevent_req_data(req,
+                                                    struct ldap_netgroup_get_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
 
@@ -181,7 +181,7 @@ static void netgroup_get_done(struct tevent_req *subreq)
 
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
-        ret = netgroup_get_retry(req);
+        ret = ldap_netgroup_get_retry(req);
         if (ret != EOK) {
             tevent_req_error(req, ret);
             return;
@@ -216,10 +216,10 @@ static void netgroup_get_done(struct tevent_req *subreq)
     return;
 }
 
-int netgroup_get_recv(struct tevent_req *req, int *dp_error_out)
+int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out)
 {
-    struct netgroup_get_state *state = tevent_req_data(req,
-                                                    struct netgroup_get_state);
+    struct ldap_netgroup_get_state *state = tevent_req_data(req,
+                                                    struct ldap_netgroup_get_state);
 
     if (dp_error_out) {
         *dp_error_out = state->dp_error;
