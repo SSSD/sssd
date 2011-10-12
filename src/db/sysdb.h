@@ -44,6 +44,7 @@
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
 #define SYSDB_NETGROUP_CLASS "netgroup"
+#define SYSDB_HOST_CLASS "host"
 
 #define SYSDB_NAME "name"
 #define SYSDB_NAME_ALIAS "nameAlias"
@@ -85,7 +86,14 @@
 
 #define SYSDB_NETGROUP_TRIPLE "netgroupTriple"
 #define SYSDB_ORIG_NETGROUP_MEMBER "originalMemberNisNetgroup"
+#define SYSDB_ORIG_NETGROUP_MEMBER_USER "originalMemberUser"
+#define SYSDB_ORIG_NETGROUP_MEMBER_HOST "originalMemberHost"
+#define SYSDB_ORIG_NETGROUP_EXTERNAL_HOST "originalExternalHost"
+#define SYSDB_NETGROUP_DOMAIN "nisDomain"
 #define SYSDB_NETGROUP_MEMBER "memberNisNetgroup"
+#define SYSDB_NETGROUP_MEMBER_USER "memberUser"
+#define SYSDB_NETGROUP_MEMBER_HOST "memberHost"
+#define SYSDB_NETGROUP_MEMBER_EXTERNAL_HOST "memberExternalHost"
 #define SYSDB_DESCRIPTION   "description"
 
 #define SYSDB_CACHEDPWD "cachedPassword"

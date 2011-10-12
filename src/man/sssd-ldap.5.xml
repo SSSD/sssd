@@ -794,6 +794,10 @@
                             The object class of a netgroup entry in LDAP.
                         </para>
                         <para>
+                            In IPA provider, ipa_netgroup_object_class should
+                            be used instead.
+                        </para>
+                        <para>
                             Default: nisNetgroup
                         </para>
                     </listitem>
@@ -805,6 +809,10 @@
                         <para>
                             The LDAP attribute that corresponds to
                             the netgroup name.
+                        </para>
+                        <para>
+                            In IPA provider, ipa_netgroup_name should
+                            be used instead.
                         </para>
                         <para>
                             Default: cn
@@ -820,6 +828,10 @@
                             the netgroup's members.
                         </para>
                         <para>
+                            In IPA provider, ipa_netgroup_member should
+                            be used instead.
+                        </para>
+                        <para>
                             Default: memberNisNetgroup
                         </para>
                     </listitem>
@@ -831,6 +843,9 @@
                         <para>
                             The LDAP attribute that contains the (host, user,
                             domain) netgroup triples.
+                        </para>
+                        <para>
+                            This option is not available in IPA provider.
                         </para>
                         <para>
                             Default: nisNetgroupTriple
@@ -846,6 +861,10 @@
                             an LDAP netgroup object.
                         </para>
                         <para>
+                            In IPA provider, ipa_netgroup_uuid should
+                            be used instead.
+                        </para>
+                        <para>
                             Default: nsUniqueId
                         </para>
                     </listitem>
@@ -857,6 +876,9 @@
                         <para>
                             The LDAP attribute that contains timestamp of the
                             last modification of the parent object.
+                        </para>
+                        <para>
+                            This option is not available in IPA provider.
                         </para>
                         <para>
                             Default: modifyTimestamp

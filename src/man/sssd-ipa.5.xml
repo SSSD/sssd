@@ -48,7 +48,10 @@
             <citerefentry>
                 <refentrytitle>sssd-krb5</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> authentication provider.
+            </citerefentry> authentication provider with some exceptions described
+            below.
+        </para>
+        <para>
             However, it is neither necessary nor recommended to set these options.
             IPA provider can also be used as an access and chpass provider. As an
             access provider it uses HBAC (host-based access control) rules. Please
@@ -235,6 +238,90 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ipa_netgroup_member_of (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that lists netgroup's
+                            memberships.
+                        </para>
+                        <para>
+                            Default: memberOf
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_netgroup_member_user (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that lists system users
+                            and groups that are direct members of the
+                            netgroup.
+                        </para>
+                        <para>
+                            Default: memberUser
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_netgroup_member_host (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that lists hosts and host groups
+                            that are direct members of the netgroup.
+                        </para>
+                        <para>
+                            Default: memberHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_netgroup_member_ext_host (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that lists FQDNs of hosts
+                            and host groups that are members of the netgroup.
+                        </para>
+                        <para>
+                            Default: externalHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_netgroup_domain (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains NIS domain
+                            name of the netgroup.
+                        </para>
+                        <para>
+                            Default: nisDomainName
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_host_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a host entry in LDAP.
+                        </para>
+                        <para>
+                            Default: ipaHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_host_fqdn (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains FQDN of the host.
+                        </para>
+                        <para>
+                            Default: fqdn
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
     </refsect1>

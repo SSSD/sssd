@@ -49,11 +49,33 @@ enum ipa_basic_opt {
     IPA_DYNDNS_UPDATE,
     IPA_DYNDNS_IFACE,
     IPA_HBAC_SEARCH_BASE,
+    IPA_HOST_SEARCH_BASE,
     IPA_KRB5_REALM,
     IPA_HBAC_REFRESH,
     IPA_HBAC_DENY_METHOD,
 
     IPA_OPTS_BASIC /* opts counter */
+};
+
+enum ipa_netgroup_attrs {
+    IPA_OC_NETGROUP = 0,
+    IPA_AT_NETGROUP_NAME,
+    IPA_AT_NETGROUP_MEMBER,
+    IPA_AT_NETGROUP_MEMBER_OF,
+    IPA_AT_NETGROUP_MEMBER_USER,
+    IPA_AT_NETGROUP_MEMBER_HOST,
+    IPA_AT_NETGROUP_EXTERNAL_HOST,
+    IPA_AT_NETGROUP_DOMAIN,
+    IPA_AT_NETGROUP_UUID,
+
+    IPA_OPTS_NETGROUP /* attrs counter */
+};
+
+enum ipa_host_attrs {
+    IPA_OC_HOST = 0,
+    IPA_AT_HOST_FQDN,
+
+    IPA_OPTS_HOST /* attrs counter */
 };
 
 struct ipa_auth_ctx {
@@ -65,6 +87,7 @@ struct ipa_auth_ctx {
 struct ipa_options {
     struct dp_option *basic;
 
+    struct sdap_search_base **host_search_bases;
     struct ipa_service *service;
 
     /* id provider */
