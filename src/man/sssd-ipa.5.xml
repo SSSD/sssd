@@ -80,7 +80,7 @@
                     <term>ipa_server (string)</term>
                     <listitem>
                         <para>
-                            The list of IP addresses or hostnames of the
+                            The comma-separated list of IP addresses or hostnames of the
                             IPA servers to which SSSD should connect in
                             the order of preference. For more information
                             on failover and server redundancy, see the
