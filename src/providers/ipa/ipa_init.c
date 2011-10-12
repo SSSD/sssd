@@ -89,7 +89,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
                      struct bet_ops **ops,
                      void **pvt_data)
 {
-    struct sdap_id_ctx *ctx;
+    struct ipa_id_ctx *ipa_ctx;
+    struct sdap_id_ctx *sdap_ctx;
     struct stat stat_buf;
     errno_t err;
     int ret;
@@ -108,17 +109,24 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         return EOK;
     }
 
-    ctx = talloc_zero(ipa_options, struct sdap_id_ctx);
-    if (!ctx) {
+    ipa_ctx = talloc_zero(ipa_options, struct ipa_id_ctx);
+    if (!ipa_ctx) {
         return ENOMEM;
     }
-    ctx->be = bectx;
-    ctx->service = ipa_options->service->sdap;
-    ipa_options->id_ctx = ctx;
+    ipa_options->id_ctx = ipa_ctx;
+    ipa_ctx->ipa_options = ipa_options;
+
+    sdap_ctx = talloc_zero(ipa_options, struct sdap_id_ctx);
+    if (!sdap_ctx) {
+        return ENOMEM;
+    }
+    sdap_ctx->be = bectx;
+    sdap_ctx->service = ipa_options->service->sdap;
+    ipa_ctx->sdap_id_ctx = sdap_ctx;
 
     ret = ipa_get_id_options(ipa_options, bectx->cdb,
                              bectx->conf_path,
-                             &ctx->opts);
+                             &sdap_ctx->opts);
     if (ret != EOK) {
         goto done;
     }
@@ -149,7 +157,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
             /* nsupdate is available. Dynamic updates
              * are supported
              */
-            ret = ipa_dyndns_init(ctx->be, ipa_options);
+            ret = ipa_dyndns_init(sdap_ctx->be, ipa_options);
             if (ret != EOK) {
                 DEBUG(1, ("Failure setting up automatic DNS update\n"));
                 /* We will continue without DNS updating */
@@ -159,24 +167,24 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
 
 
-    ret = setup_tls_config(ctx->opts->basic);
+    ret = setup_tls_config(sdap_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
                   ret, strerror(ret)));
         goto done;
     }
 
-    ret = sdap_id_conn_cache_create(ctx, ctx, &ctx->conn_cache);
+    ret = sdap_id_conn_cache_create(sdap_ctx, sdap_ctx, &sdap_ctx->conn_cache);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = sdap_id_setup_tasks(ctx);
+    ret = sdap_id_setup_tasks(sdap_ctx);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = setup_child(ctx);
+    ret = setup_child(sdap_ctx);
     if (ret != EOK) {
         DEBUG(1, ("setup_child failed [%d][%s].\n",
                   ret, strerror(ret)));
@@ -184,7 +192,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     }
 
     *ops = &ipa_id_ops;
-    *pvt_data = ctx;
+    *pvt_data = ipa_ctx;
     ret = EOK;
 
 done:

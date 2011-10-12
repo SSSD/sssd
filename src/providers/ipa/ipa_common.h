@@ -84,6 +84,11 @@ struct ipa_auth_ctx {
     struct dp_option *ipa_options;
 };
 
+struct ipa_id_ctx {
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct ipa_options *ipa_options;
+};
+
 struct ipa_options {
     struct dp_option *basic;
 
@@ -92,7 +97,7 @@ struct ipa_options {
 
     /* id provider */
     struct sdap_options *id;
-    struct sdap_id_ctx *id_ctx;
+    struct ipa_id_ctx *id_ctx;
     struct resolv_ctx *resolv;
 
     /* auth and chpass provider */

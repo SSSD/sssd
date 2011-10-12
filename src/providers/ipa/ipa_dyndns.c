@@ -263,7 +263,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
 
     else {
         /* Detect DYNDNS interface from LDAP connection */
-        state->sdap_op = sdap_id_op_create(state, state->ipa_ctx->id_ctx->conn_cache);
+        state->sdap_op = sdap_id_op_create(state, state->ipa_ctx->id_ctx->sdap_id_ctx->conn_cache);
         if (!state->sdap_op) {
             DEBUG(1, ("sdap_id_op_create failed\n"));
             ret = ENOMEM;
@@ -430,11 +430,11 @@ static int ipa_dyndns_gss_tsig_update_step(struct tevent_req *req)
 static errno_t
 ipa_dyndns_gss_tsig_update_setup_check(struct ipa_dyndns_ctx *state)
 {
+    struct sdap_id_ctx *id_ctx = state->ipa_ctx->id_ctx->sdap_id_ctx;
     errno_t ret;
 
     if (dp_opt_get_string(state->ipa_ctx->basic, IPA_DYNDNS_IFACE)) {
-        ret = resolv_get_family_order(state->ipa_ctx->id_ctx->be->cdb,
-                                      state->ipa_ctx->id_ctx->be->conf_path,
+        ret = resolv_get_family_order(id_ctx->be->cdb, id_ctx->be->conf_path,
                                       &state->family_order);
         if (ret != EOK) {
             return ret;
@@ -573,6 +573,7 @@ ipa_dyndns_update_get_addrs_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct tevent_req *req;
     struct ipa_dyndns_update_get_addrs_state *state;
+    struct sdap_id_ctx *id_ctx = ctx->ipa_ctx->id_ctx->sdap_id_ctx;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_dyndns_update_get_addrs_state);
@@ -598,7 +599,7 @@ ipa_dyndns_update_get_addrs_send(TALLOC_CTX *mem_ctx,
 immediate:
     if (ret != EOK) {
         tevent_req_error(req, ret);
-        tevent_req_post(req, ctx->ipa_ctx->id_ctx->be->ev);
+        tevent_req_post(req, id_ctx->be->ev);
     }
     return req;
 }
@@ -609,9 +610,10 @@ ipa_dyndns_update_get_addrs_step(struct tevent_req *req)
     struct tevent_req *subreq;
     struct ipa_dyndns_update_get_addrs_state *state = tevent_req_data(req,
                                         struct ipa_dyndns_update_get_addrs_state);
+    struct ipa_id_ctx *ipa_id_ctx = state->dctx->ipa_ctx->id_ctx;
 
     subreq = resolv_gethostbyname_send(state,
-                                       state->dctx->ipa_ctx->id_ctx->be->ev,
+                                       ipa_id_ctx->sdap_id_ctx->be->ev,
                                        state->dctx->ipa_ctx->resolv,
                                        state->dctx->hostname,
                                        state->family_order,
@@ -995,7 +997,7 @@ fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx)
 
         /* Write the update message to the nsupdate child */
         subreq = write_pipe_send(req,
-                                 ctx->dyndns_ctx->ipa_ctx->id_ctx->be->ev,
+                                 ctx->dyndns_ctx->ipa_ctx->id_ctx->sdap_id_ctx->be->ev,
                                  (uint8_t *)ctx->update_msg,
                                  strlen(ctx->update_msg)+1,
                                  ctx->pipefd_to_child);
@@ -1005,7 +1007,7 @@ fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx)
         tevent_req_set_callback(subreq, ipa_dyndns_stdin_done, req);
 
         /* Set up SIGCHLD handler */
-        ret = child_handler_setup(ctx->dyndns_ctx->ipa_ctx->id_ctx->be->ev,
+        ret = child_handler_setup(ctx->dyndns_ctx->ipa_ctx->id_ctx->sdap_id_ctx->be->ev,
                                   pid, ipa_dyndns_child_handler, req);
         if (ret != EOK) {
             return NULL;
@@ -1014,7 +1016,7 @@ fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx)
         /* Set up timeout handler */
         tv = tevent_timeval_current_ofs(IPA_DYNDNS_TIMEOUT, 0);
         ctx->timeout_handler = tevent_add_timer(
-                ctx->dyndns_ctx->ipa_ctx->id_ctx->be->ev,
+                ctx->dyndns_ctx->ipa_ctx->id_ctx->sdap_id_ctx->be->ev,
                 req, tv, ipa_dyndns_timeout, req);
         if(ctx->timeout_handler == NULL) {
             return NULL;
