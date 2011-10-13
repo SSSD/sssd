@@ -1,6 +1,10 @@
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb
 
-SUBDIRS = po src/man
+SUBDIRS = po
+
+if HAVE_MANPAGES
+SUBDIRS += src/man
+endif
 
 # Some old versions of automake don't define builddir
 builddir ?= .
@@ -1063,7 +1067,9 @@ endif
 # TRANSLATIONS #
 ################
 update-po:
+if HAVE_MANPAGES
 	$(MAKE) -C src/man update-po
+endif
 	$(MAKE) -C po update-po
 
 #######################

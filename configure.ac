@@ -145,6 +145,7 @@ if test x$HAVE_MANPAGES != x; then
                      [Docbook XSL templates])
     AC_CHECK_PROG([PO4A],[po4a],[po4a],[no])
 fi
+AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 
 if test x$HAVE_PYTHON_BINDINGS != x; then
