@@ -103,8 +103,10 @@ create_socket_symlink(const char *filename, const char *symlink_filename)
     ret = symlink(filename, symlink_filename);
     if (ret != 0 && errno == EEXIST) {
         /* Perhaps cruft after a previous server? */
+        errno = 0;
         ret = unlink(symlink_filename);
         if (ret != 0) {
+            ret = errno;
             DEBUG(1, ("Cannot remove old symlink: [%d][%s].\n",
                       ret, strerror(ret)));
             return EIO;
