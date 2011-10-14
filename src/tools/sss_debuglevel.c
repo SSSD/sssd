@@ -351,7 +351,8 @@ errno_t get_sssd_pid(pid_t *out_pid)
     if (*out_pid == 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("File \"%s\" contains invalid pid.\n", SSSD_PIDFILE));
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     ret = EOK;
