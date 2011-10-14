@@ -132,7 +132,7 @@ remove_socket_symlink(const char *symlink_name)
     ssize_t numread = 0;
 
     errno = 0;
-    numread = readlink(symlink_name, target, PATH_MAX);
+    numread = readlink(symlink_name, target, PATH_MAX-1);
     if (numread < 0) {
         ret = errno;
         DEBUG(2, ("readlink failed [%d]: %s\n", ret, strerror(ret)));
