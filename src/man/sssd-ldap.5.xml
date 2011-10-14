@@ -1017,6 +1017,13 @@
                             Directory.
                         </para>
                         <para>
+                            <emphasis>Note:</emphasis>
+                            If any of the search bases specifies a search
+                            filter, then the dereference lookup performance
+                            enhancement will be disabled regardless of this
+                            setting.
+                        </para>
+                        <para>
                             Default: 10
                         </para>
                     </listitem>

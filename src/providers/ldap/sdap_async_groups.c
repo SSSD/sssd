@@ -1295,7 +1295,7 @@ static struct tevent_req *sdap_nested_group_process_send(
         struct sysdb_ctx *sysdb, struct sysdb_attrs *group,
         hash_table_t *users, hash_table_t *groups,
         struct sdap_options *opts, struct sdap_handle *sh,
-        uint32_t nesting);
+        bool enable_deref, uint32_t nesting);
 static void sdap_nested_done(struct tevent_req *req);
 static errno_t sdap_nested_group_process_recv(struct tevent_req *req);
 static void sdap_get_groups_process(struct tevent_req *subreq)
@@ -1309,6 +1309,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     bool next_base = false;
     size_t count;
     struct sysdb_attrs **groups;
+    bool enable_deref = true;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &count, &groups);
@@ -1407,6 +1408,32 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                 return;
             }
 
+            /*
+             * If any search base contains filter, disable dereference.
+             */
+            enable_deref = true;
+            for (i = 0; state->opts->user_search_bases[i] != NULL; i++) {
+                if (state->opts->user_search_bases[i]->filter != NULL) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          ("User search base contains filter, "
+                           "dereference will be disabled\n"));
+                    enable_deref = false;
+                    break;
+                }
+            }
+
+            if (enable_deref) {
+                for (i = 0; state->opts->group_search_bases[i] != NULL; i++) {
+                    if (state->opts->group_search_bases[i]->filter != NULL) {
+                        DEBUG(SSSDBG_TRACE_FUNC,
+                              ("Group search base contains filter, "
+                               "dereference will be disabled\n"));
+                        enable_deref = false;
+                        break;
+                    }
+                }
+            }
+
             subreq = sdap_nested_group_process_send(state,
                                                     state->ev,
                                                     state->dom,
@@ -1416,6 +1443,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                                                     state->group_hash,
                                                     state->opts,
                                                     state->sh,
+                                                    enable_deref,
                                                     0);
             if (!subreq) {
                 tevent_req_error(req, EIO);
@@ -1810,6 +1838,7 @@ struct sdap_nested_group_ctx {
     uint32_t member_index;
     char *member_dn;
 
+    bool enable_deref;
     struct sdap_deref_ctx *derefctx;
 };
 
@@ -1822,7 +1851,7 @@ static struct tevent_req *sdap_nested_group_process_send(
         struct sysdb_ctx *sysdb, struct sysdb_attrs *group,
         hash_table_t *users, hash_table_t *groups,
         struct sdap_options *opts, struct sdap_handle *sh,
-        uint32_t nesting)
+        bool enable_deref, uint32_t nesting)
 {
     errno_t ret;
     int hret;
@@ -1845,6 +1874,7 @@ static struct tevent_req *sdap_nested_group_process_send(
     state->groups = groups;
     state->opts = opts;
     state->sh = sh;
+    state->enable_deref = enable_deref;
     state->nesting_level = nesting;
 
     /* If this is too many levels deep, just return success */
@@ -1936,7 +1966,7 @@ static struct tevent_req *sdap_nested_group_process_send(
 
     state->member_index = 0;
 
-    if (sdap_has_deref_support(state->sh, state->opts)) {
+    if (enable_deref && sdap_has_deref_support(state->sh, state->opts)) {
         state->derefctx = talloc_zero(state, struct sdap_deref_ctx);
         if (!state->derefctx) {
             ret = ENOMEM;
@@ -2460,10 +2490,45 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
 {
     const char **sdap_attrs;
     char *filter;
+    char *search_bases_filter = NULL;
     struct tevent_req *subreq;
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
+    errno_t ret;
 
+    /*
+     * If dn is not in user search base and object may be group
+     * continue with group lookup. If it can't be group, skip it.
+     */
+    if (!sss_ldap_dn_in_search_bases(state, state->member_dn,
+                                     state->opts->user_search_bases,
+                                     &search_bases_filter)) {
+        if (fn == sdap_nested_group_process_ldap_user) {
+            return sdap_nested_group_lookup_group(req);
+        } else if (fn == sdap_nested_group_process_user) {
+            if (state->derefctx) {
+                state->derefctx->expired_users_index++;
+                ret = sdap_nested_group_process_noderef(req);
+            } else {
+                state->member_index++;
+                talloc_zfree(state->member_dn);
+                ret = sdap_nested_group_process_step(req);
+            }
+
+            if (ret == EOK) {
+                /* EOK means it's complete */
+                tevent_req_done(req);
+                tevent_req_post(req, state->ev);
+            } else if (ret != EAGAIN) {
+                return ret;
+            }
+
+            return EOK;
+        }
+        /*
+         * Something else? Continue.
+         */
+    }
 
     /* Only pull down username and originalDN */
     sdap_attrs = talloc_array(state, const char *, 3);
@@ -2472,9 +2537,14 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
     sdap_attrs[1] = state->opts->user_map[SDAP_AT_USER_NAME].name;
     sdap_attrs[2] = NULL;
 
-    filter = talloc_asprintf(
-            sdap_attrs, "(objectclass=%s)",
-            state->opts->user_map[SDAP_OC_USER].name);
+    if (search_bases_filter != NULL) {
+        filter = talloc_asprintf(sdap_attrs, "(&%s(objectclass=%s))",
+                                 search_bases_filter,
+                                 state->opts->user_map[SDAP_OC_USER].name);
+    } else {
+        filter = talloc_asprintf(sdap_attrs, "(objectclass=%s)",
+                                 state->opts->user_map[SDAP_OC_USER].name);
+    }
     if (!filter) {
         talloc_free(sdap_attrs);
         return ENOMEM;
@@ -2504,9 +2574,41 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
     errno_t ret;
     const char **sdap_attrs;
     char *filter;
+    char *search_bases_filter = NULL;
     struct tevent_req *subreq;
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    /*
+     * If dn is not in group search base, skip it.
+     */
+    if (!sss_ldap_dn_in_search_bases(state, state->member_dn,
+                                     state->opts->group_search_bases,
+                                     &filter)) {
+        if (state->derefctx) {
+            if (state->derefctx->expired_groups_index <
+                state->derefctx->expired_groups_num) {
+                state->derefctx->expired_groups_index++;
+            } else {
+                state->derefctx->missing_dns_index++;
+            }
+            ret = sdap_nested_group_process_noderef(req);
+        } else {
+            state->member_index++;
+            talloc_zfree(state->member_dn);
+            ret = sdap_nested_group_process_step(req);
+        }
+
+        if (ret == EOK) {
+            /* EOK means it's complete */
+            tevent_req_done(req);
+            tevent_req_post(req, state->ev);
+        } else if (ret != EAGAIN) {
+            return ret;
+        }
+
+        return EOK;
+    }
 
     ret = build_attrs_from_map(state, state->opts->group_map,
                                SDAP_OPTS_GROUP, &sdap_attrs);
@@ -2514,10 +2616,16 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
         return ret;
     }
 
-    filter = talloc_asprintf(
-            sdap_attrs, "(&(objectclass=%s)(%s=*))",
-            state->opts->group_map[SDAP_OC_GROUP].name,
-            state->opts->group_map[SDAP_AT_GROUP_NAME].name);
+    if (search_bases_filter != NULL) {
+        filter = talloc_asprintf(sdap_attrs, "(&%s(objectclass=%s)(%s=*))",
+                                 search_bases_filter,
+                                 state->opts->group_map[SDAP_OC_GROUP].name,
+                                 state->opts->group_map[SDAP_AT_GROUP_NAME].name);
+    } else {
+        filter = talloc_asprintf(sdap_attrs, "(&(objectclass=%s)(%s=*))",
+                                 state->opts->group_map[SDAP_OC_GROUP].name,
+                                 state->opts->group_map[SDAP_AT_GROUP_NAME].name);
+    }
     if (!filter) {
         talloc_free(sdap_attrs);
         return ENOMEM;
@@ -2666,6 +2774,7 @@ static void sdap_nested_group_process_group(struct tevent_req *subreq)
                                             state->sysdb, replies[0],
                                             state->users, state->groups,
                                             state->opts, state->sh,
+                                            state->enable_deref,
                                             state->nesting_level + 1);
     if (!subreq) {
         tevent_req_error(req, EIO);
@@ -2892,6 +3001,7 @@ sdap_nested_group_process_deref_result(struct tevent_req *req)
     while (dctx->result_index < dctx->num_results) {
         if (dctx->deref_result[dctx->result_index]->map == \
             state->opts->user_map) {
+
             /* Add to appropriate hash table */
             ret = sysdb_attrs_get_string(
                     dctx->deref_result[dctx->result_index]->attrs,
@@ -2899,6 +3009,14 @@ sdap_nested_group_process_deref_result(struct tevent_req *req)
             if (ret != EOK) {
                 DEBUG(2, ("The entry has no originalDN\n"));
                 return ret;
+            }
+
+            /* check if the user is in search base */
+            if (!sss_ldap_dn_in_search_bases(state, orig_dn,
+                                             state->opts->user_search_bases,
+                                             NULL)) {
+                dctx->result_index++;
+                continue;
             }
 
             DEBUG(9, ("Found member user [%s]\n", orig_dn));
@@ -2926,12 +3044,29 @@ sdap_nested_group_process_deref_result(struct tevent_req *req)
                 return EIO;
             }
 
+            ret = sysdb_attrs_get_string(
+                    dctx->deref_result[dctx->result_index]->attrs,
+                    SYSDB_ORIG_DN, &orig_dn);
+            if (ret != EOK) {
+                DEBUG(2, ("The entry has no originalDN\n"));
+                return ret;
+            }
+
+            /* check if the group is in search base */
+            if (!sss_ldap_dn_in_search_bases(state, orig_dn,
+                                             state->opts->group_search_bases,
+                                             NULL)) {
+                dctx->result_index++;
+                continue;
+            }
+
             DEBUG(6, ("Recursing down a nested group\n"));
             subreq = sdap_nested_group_process_send(state, state->ev,
                                 state->domain, state->sysdb,
                                 dctx->deref_result[dctx->result_index]->attrs,
                                 state->users, state->groups,
                                 state->opts, state->sh,
+                                state->enable_deref,
                                 state->nesting_level + 1);
             if (!subreq) return EIO;
 
