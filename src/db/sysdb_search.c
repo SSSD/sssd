@@ -899,6 +899,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     const char *dn;
+    char *sanitized_dn;
     struct ldb_dn *basedn;
     static const char *group_attrs[] = { SYSDB_NAME, NULL };
     const char *member_filter;
@@ -927,9 +928,14 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmp_ctx, dn, &sanitized_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
     member_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(%s=%s))",
                                     SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS,
-                                    SYSDB_MEMBER, dn);
+                                    SYSDB_MEMBER, sanitized_dn);
     if (!member_filter) {
         ret = ENOMEM;
         goto done;
