@@ -29,8 +29,9 @@
 #include <string.h>
 #include "util/util.h"
 
-#define DEBUG_TEST_NOK      -1
-#define DEBUG_TEST_NOK_TS   -2
+#define DEBUG_TEST_ERROR    -1
+#define DEBUG_TEST_NOK      1
+#define DEBUG_TEST_NOK_TS   2
 
 START_TEST(test_debug_convert_old_level_old_format)
 {
@@ -188,27 +189,30 @@ int test_helper_debug_check_message(int level, int msgmode)
     int filesize;
     int fsize;
     int fd;
-    int set_fd_result;
     int ret;
+    int _errno = 0;
     FILE *file = NULL;
 
     strncpy(filename, "sssd_debug_tests.XXXXXX", 24);
     fd = mkstemp(filename);
     if (fd == -1) {
-        ret = errno;
+        _errno = errno;
         talloc_free(ctx);
-        return errno;
+        errno = _errno;
+        return DEBUG_TEST_ERROR;
     }
 
     file = fdopen(fd, "r");
     if (file == NULL) {
-        ret = errno;
+        _errno = errno;
+        ret = DEBUG_TEST_ERROR;
         goto done;
     }
 
-    set_fd_result = set_debug_file_from_fd(fd);
-    if (set_fd_result != EOK) {
-        ret = set_fd_result;
+    ret = set_debug_file_from_fd(fd);
+    if (ret != EOK) {
+        _errno = ret;
+        ret = DEBUG_TEST_ERROR;
         goto done;
     }
 
@@ -218,19 +222,32 @@ int test_helper_debug_check_message(int level, int msgmode)
         DEBUG_MSG(level, __FUNCTION__, "some error");
     }
 
-    fseek(file, 0, SEEK_END);
+    ret = fseek(file, 0, SEEK_END);
+    if (ret == -1) {
+        _errno = errno;
+        ret = DEBUG_TEST_ERROR;
+        goto done;
+    }
+
     filesize = ftell(file);
+    if (filesize == -1) {
+        _errno = errno;
+        ret = DEBUG_TEST_ERROR;
+        goto done;
+    }
 
     rewind(file);
 
     msg = talloc_array(ctx, char, filesize+1);
     if (msg == NULL) {
-        ret = ENOMEM;
+        _errno = ENOMEM;
+        ret = DEBUG_TEST_ERROR;
         goto done;
     }
     fsize = fread(msg, sizeof(char), filesize, file);
     if (fsize != filesize) {
-        ret = EIO;
+        _errno = EIO;
+        ret = DEBUG_TEST_ERROR;
         goto done;
     }
     msg[fsize] = '\0';
@@ -261,7 +278,8 @@ int test_helper_debug_check_message(int level, int msgmode)
                                          time_hour, time_min, time_sec, time_year,
                                          debug_prg_name, function, level, body);
             if (compare_to == NULL) {
-                ret = ENOMEM;
+                _errno = ENOMEM;
+                ret = DEBUG_TEST_ERROR;
                 goto done;
             }
         } else {
@@ -280,7 +298,8 @@ int test_helper_debug_check_message(int level, int msgmode)
                                          time_hour, time_min, time_sec, time_usec,
                                          time_year, debug_prg_name, function, level, body);
             if (compare_to == NULL) {
-                ret = ENOMEM;
+                _errno = ENOMEM;
+                ret = DEBUG_TEST_ERROR;
                 goto done;
             }
         }
@@ -288,7 +307,8 @@ int test_helper_debug_check_message(int level, int msgmode)
         compare_to = talloc_asprintf(ctx, "[%s] [%s] (%#.4x): %s",
                                      debug_prg_name, function, level, body);
         if (compare_to == NULL) {
-            ret = ENOMEM;
+            _errno = ENOMEM;
+            ret = DEBUG_TEST_ERROR;
             goto done;
         }
     }
@@ -296,8 +316,11 @@ int test_helper_debug_check_message(int level, int msgmode)
 
 done:
     talloc_free(ctx);
-    fclose(file);
+    if (file != NULL) {
+        fclose(file);
+    }
     remove(filename);
+    errno = _errno;
     return ret;
 }
 
@@ -306,24 +329,27 @@ int test_helper_debug_is_empty_message(int level, int msgmode)
     char filename[24] = {'\0'};
     int fd;
     int filesize;
-    int set_fd_result;
     int ret;
+    int _errno = 0;
     FILE *file;
 
     strncpy(filename, "sssd_debug_tests.XXXXXX", 24);
     fd = mkstemp(filename);
-    if (fd == -1)
-        return errno;
+    if (fd == -1) {
+        return DEBUG_TEST_ERROR;
+    }
 
     file = fdopen(fd, "r");
     if (file == NULL) {
-        ret = errno;
+        _errno = errno;
+        ret = DEBUG_TEST_ERROR;
         goto done;
     }
 
-    set_fd_result = set_debug_file_from_fd(fd);
-    if (set_fd_result != EOK) {
-        ret = set_fd_result;
+    ret = set_debug_file_from_fd(fd);
+    if (ret != EOK) {
+        _errno = ret;
+        ret = DEBUG_TEST_ERROR;
         goto done;
     }
 
@@ -332,14 +358,29 @@ int test_helper_debug_is_empty_message(int level, int msgmode)
     } else {
         DEBUG_MSG(level, __FUNCTION__, "some error");
     }
-    fseek(file, 0, SEEK_END);
+
+    ret = fseek(file, 0, SEEK_END);
+    if (ret == -1) {
+        _errno = errno;
+        ret = DEBUG_TEST_ERROR;
+        goto done;
+    }
+
     filesize = ftell(file);
+    if (filesize == -1) {
+        _errno = errno;
+        ret = DEBUG_TEST_ERROR;
+        goto done;
+    }
 
     ret = filesize == 0 ? EOK : DEBUG_TEST_NOK;
 
 done:
-    fclose(file);
+    if (file != NULL) {
+        fclose(file);
+    }
     remove(filename);
+    errno = _errno;
     return ret;
 }
 
@@ -368,10 +409,14 @@ START_TEST(test_debug_is_set_single_no_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
+
+        errno = 0;
         result = test_helper_debug_check_message(levels[i], 0);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
@@ -406,10 +451,14 @@ START_TEST(test_debug_is_set_single_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
+
+        errno = 0;
         result = test_helper_debug_check_message(levels[i], 0);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
 
@@ -449,10 +498,14 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
+
+        errno = 0;
         result = test_helper_debug_check_message(levels[i], 0);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
 
@@ -493,16 +546,21 @@ START_TEST(test_debug_is_notset_no_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
+
+        errno = 0;
         result = test_helper_debug_is_empty_message(levels[i], 0);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL,
                               "Test of level %#.4x failed - message has been written",
                               levels[i]);
         fail_unless(result == EOK, msg);
+        talloc_free(msg);
     }
 }
 END_TEST
@@ -533,10 +591,14 @@ START_TEST(test_debug_is_notset_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
+
+        errno = 0;
         result = test_helper_debug_is_empty_message(levels[i], 0);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL,
@@ -574,10 +636,14 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
+
+        errno = 0;
         result = test_helper_debug_is_empty_message(levels[i], 0);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL,
@@ -614,14 +680,19 @@ START_TEST(test_debug_msg_is_set_single_no_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
+
+        errno = 0;
         result = test_helper_debug_check_message(levels[i], 1);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
         fail_unless(result == EOK, msg);
+        talloc_free(msg);
     }
 }
 END_TEST
@@ -651,10 +722,14 @@ START_TEST(test_debug_msg_is_set_single_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
+
+        errno = 0;
         result = test_helper_debug_check_message(levels[i], 1);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
 
@@ -694,10 +769,14 @@ START_TEST(test_debug_msg_is_set_single_timestamp_microseconds)
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
+
+        errno = 0;
         result = test_helper_debug_check_message(levels[i], 1);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
 
@@ -738,10 +817,14 @@ START_TEST(test_debug_msg_is_notset_no_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
+
+        errno = 0;
         result = test_helper_debug_is_empty_message(levels[i], 1);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message has been written", levels[i]);
@@ -777,10 +860,14 @@ START_TEST(test_debug_msg_is_notset_timestamp)
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
+
+        errno = 0;
         result = test_helper_debug_is_empty_message(levels[i], 1);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message has been written", levels[i]);
@@ -816,10 +903,14 @@ START_TEST(test_debug_msg_is_notset_timestamp_microseconds)
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
+
+        errno = 0;
         result = test_helper_debug_is_empty_message(levels[i], 1);
 
-        error_msg = strerror(result);
-        fail_unless(result == EOK || result == DEBUG_TEST_NOK || result == DEBUG_TEST_NOK_TS, error_msg);
+        if (result == DEBUG_TEST_ERROR) {
+            error_msg = strerror(errno);
+            fail(error_msg);
+        }
 
         char *msg = NULL;
         msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message has been written", levels[i]);
