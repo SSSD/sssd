@@ -2109,7 +2109,7 @@ static int service_send_ping(struct mt_svc *svc)
     }
 
     ret = sbus_conn_send(svc->conn, msg,
-                         svc->ping_time,
+                         svc->ping_time * 1000, /* milliseconds */
                          ping_check, svc, NULL);
     dbus_message_unref(msg);
     return ret;
