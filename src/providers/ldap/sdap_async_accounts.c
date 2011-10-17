@@ -2408,6 +2408,125 @@ static int sdap_initgr_rfc2307_recv(struct tevent_req *req)
     return EOK;
 }
 
+/* ==Common code for pure RFC2307bis and IPA/AD========================= */
+static errno_t
+sdap_nested_groups_store(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *dom,
+                         struct sdap_options *opts,
+                         struct sysdb_attrs **groups,
+                         unsigned long count)
+{
+    errno_t ret, tret;
+    TALLOC_CTX *tmp_ctx;
+    char **groupnamelist = NULL;
+    bool in_transaction = false;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    if (count > 0) {
+        ret = sysdb_attrs_primary_name_list(sysdb, tmp_ctx,
+                                            groups, count,
+                                            opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                            &groupnamelist);
+        if (ret != EOK) {
+            DEBUG(3, ("sysdb_attrs_primary_name_list failed [%d]: %s\n",
+                    ret, strerror(ret)));
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to start transaction\n"));
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = sdap_add_incomplete_groups(sysdb, opts, dom, groupnamelist,
+                                     groups, count);
+    if (ret != EOK) {
+        DEBUG(6, ("Could not add incomplete groups [%d]: %s\n",
+                   ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to commit transaction\n"));
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(sysdb);
+        if (tret != EOK) {
+            DEBUG(1, ("Failed to cancel transaction\n"));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+struct membership_diff {
+    struct membership_diff *prev;
+    struct membership_diff *next;
+
+    const char *name;
+    char **add;
+    char **del;
+};
+
+static errno_t
+build_membership_diff(TALLOC_CTX *mem_ctx, const char *name,
+                      char **ldap_parent_names, char **sysdb_parent_names,
+                      struct membership_diff **_mdiff)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct membership_diff *mdiff;
+    errno_t ret;
+    char **add_groups;
+    char **del_groups;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mdiff = talloc_zero(tmp_ctx, struct membership_diff);
+    if (!mdiff) {
+        ret = ENOMEM;
+        goto done;
+    }
+    mdiff->name = talloc_strdup(mdiff, name);
+    if (!mdiff->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Find the differences between the sysdb and ldap lists
+     * Groups in ldap only must be added to the sysdb;
+     * groups in the sysdb only must be removed.
+     */
+    ret = diff_string_lists(tmp_ctx,
+                            ldap_parent_names, sysdb_parent_names,
+                            &add_groups, &del_groups, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+    mdiff->add = talloc_steal(mdiff, add_groups);
+    mdiff->del = talloc_steal(mdiff, del_groups);
+
+    ret = EOK;
+    *_mdiff = talloc_steal(mem_ctx, mdiff);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 /* ==Initgr-call-(groups-a-user-is-member-of)-nested-groups=============== */
 
