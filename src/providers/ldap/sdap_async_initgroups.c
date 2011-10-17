@@ -454,7 +454,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
 
     ret = EOK;
 done:
-    if (ret != EOK && in_transaction) {
+    if (in_transaction) {
         tret = sysdb_transaction_cancel(sysdb);
         if (tret != EOK) {
             DEBUG(1, ("Failed to cancel transaction\n"));
@@ -801,6 +801,7 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
     TALLOC_CTX *tmp_ctx;
     struct membership_diff *miter;
     struct membership_diff *memberships = NULL;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -829,6 +830,7 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
         DEBUG(1, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     DLIST_FOR_EACH(miter, memberships) {
         ret = sysdb_update_members(state->sysdb, miter->name,
@@ -836,10 +838,7 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
                                    (const char *const *) miter->add,
                                    (const char *const *) miter->del);
         if (ret != EOK) {
-            tret = sysdb_transaction_cancel(state->sysdb);
-            if (tret != EOK) {
-                DEBUG(1, ("Failed to cancel transaction\n"));
-            }
+            DEBUG(3, ("Failed to update memberships\n"));
             goto done;
         }
     }
@@ -849,9 +848,16 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
         DEBUG(1, ("Failed to commit transaction\n"));
         goto done;
     }
+    in_transaction = false;
 
     ret = EOK;
 done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(state->sysdb);
+        if (tret != EOK) {
+            DEBUG(1, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -873,6 +879,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     char **add_groups;
     char **del_groups;
     TALLOC_CTX *tmp_ctx;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -951,6 +958,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
         DEBUG(1, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     DEBUG(8, ("Updating memberships for %s\n", state->username));
     ret = sysdb_update_members(state->sysdb, state->username, SYSDB_MEMBER_USER,
@@ -959,10 +967,6 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     if (ret != EOK) {
         DEBUG(1, ("Could not update sysdb memberships for %s: %d [%s]\n",
                   state->username, ret, strerror(ret)));
-        tret = sysdb_transaction_cancel(state->sysdb);
-        if (tret != EOK) {
-            DEBUG(1, ("Failed to cancel transaction\n"));
-        }
         goto done;
     }
 
@@ -970,9 +974,16 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     if (ret != EOK) {
         goto done;
     }
+    in_transaction = false;
 
     ret = EOK;
 done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(state->sysdb);
+        if (tret != EOK) {
+            DEBUG(1, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -1441,6 +1452,7 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
     TALLOC_CTX *tmp_ctx;
     struct rfc2307bis_group_memberships_state *membership_state;
     struct membership_diff *iter;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -1470,6 +1482,7 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
         DEBUG(1, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     DLIST_FOR_EACH(iter, membership_state->memberships) {
         ret = sysdb_update_members(state->sysdb, iter->name,
@@ -1477,10 +1490,7 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
                                   (const char *const *) iter->add,
                                   (const char *const *) iter->del);
         if (ret != EOK) {
-            tret = sysdb_transaction_cancel(state->sysdb);
-            if (tret != EOK) {
-                DEBUG(1, ("Failed to cancel transaction\n"));
-            }
+            DEBUG(3, ("Failed to update memberships\n"));
             goto done;
         }
     }
@@ -1490,9 +1500,16 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
         DEBUG(1, ("Failed to commit transaction\n"));
         goto done;
     }
+    in_transaction = false;
 
     ret = EOK;
 done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(state->sysdb);
+        if (tret != EOK) {
+            DEBUG(1, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -1624,6 +1641,7 @@ errno_t save_rfc2307bis_user_memberships(
     if (ret != EOK) {
         goto error;
     }
+    in_transaction = false;
 
     return EOK;
 
