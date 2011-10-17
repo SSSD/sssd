@@ -646,6 +646,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
          */
         svc->groups = NULL;
         ret = EOK;
+        goto done;
     }
 
 
