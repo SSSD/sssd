@@ -2,6 +2,7 @@ ar
 as
 bal
 bn_IN
+bn
 ca
 cs_CZ
 cs
@@ -11,6 +12,7 @@ de
 el
 en_GB
 es
+et
 fa_IR
 fa
 fi
@@ -27,6 +29,7 @@ ja
 kn
 ko
 lt_LT
+lt
 mai
 ml
 mr
@@ -43,6 +46,8 @@ ro
 ru
 sk
 sl
+sq
+sr
 sv
 ta_IN
 ta
@@ -50,7 +55,9 @@ te
 tr
 uk
 ur
+vi
 vi_VN
 zh_CN
 zh_HK
 zh_TW
+
