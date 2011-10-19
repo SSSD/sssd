@@ -565,7 +565,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_renewable_lifetime',
              'krb5_lifetime',
              'krb5_renew_interval',
-             'krb5_use_fast'])
+             'krb5_use_fast',
+             'krb5_fast_principal'])
 
         options = domain.list_options()
 
@@ -717,7 +718,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'krb5_renewable_lifetime',
             'krb5_lifetime',
             'krb5_renew_interval',
-            'krb5_use_fast']
+            'krb5_use_fast',
+            'krb5_fast_principal']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -879,7 +881,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_renewable_lifetime',
              'krb5_lifetime',
              'krb5_renew_interval',
-             'krb5_use_fast'])
+             'krb5_use_fast',
+             'krb5_fast_principal'])
 
         options = domain.list_options()
 
