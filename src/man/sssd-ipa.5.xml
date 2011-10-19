@@ -175,6 +175,23 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_canonicalize (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies if the host and user pricipal should be
+                            canonicalized when connecting to IPA LDAP and also for AS
+                            requests. This feature is available with MIT
+                            Kerberos >= 1.7
+                        </para>
+
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>ipa_hbac_refresh (integer)</term>
                     <listitem>

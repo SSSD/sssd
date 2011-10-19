@@ -120,6 +120,7 @@ option_strings = {
     'krb5_renew_interval' : _("Time between two checks for renewal"),
     'krb5_use_fast' : _("Enables FAST"),
     'krb5_fast_principal' : _("Selects the principal to use for FAST"),
+    'krb5_canonicalize' : _("Enables principal canonicalization"),
 
     # [provider/krb5/chpass]
     'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),

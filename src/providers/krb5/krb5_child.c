@@ -586,6 +586,18 @@ done:
 
 }
 
+static void krb5_set_canonicalize(krb5_get_init_creds_opt *opts)
+{
+    int canonicalize = 0;
+    char *tmp_str;
+
+    tmp_str = getenv(SSSD_KRB5_CANONICALIZE);
+    if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
+        canonicalize = 1;
+    }
+    sss_krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
+}
+
 static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
                                                     krb5_principal princ,
                                                     krb5_keytab keytab,
@@ -601,6 +613,7 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     krb5_get_init_creds_opt_set_address_list(&options, NULL);
     krb5_get_init_creds_opt_set_forwardable(&options, 0);
     krb5_get_init_creds_opt_set_proxiable(&options, 0);
+    krb5_set_canonicalize(&options);
 
     kerr = krb5_get_init_creds_keytab(ctx, &creds, princ, keytab, 0, NULL,
                                       &options);
@@ -1444,6 +1457,8 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
     }
 
     if (!offline) {
+        krb5_set_canonicalize(kr->options);
+
         use_fast_str = getenv(SSSD_KRB5_USE_FAST);
         if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
             DEBUG(9, ("Not using FAST.\n"));

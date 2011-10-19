@@ -45,7 +45,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
 };
 
 errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
@@ -167,6 +168,12 @@ errno_t check_and_export_options(struct dp_option *opts,
                 }
             }
         }
+    }
+
+    if (dp_opt_get_bool(opts, KRB5_CANONICALIZE)) {
+        setenv(SSSD_KRB5_CANONICALIZE, "true", 1);
+    } else {
+        setenv(SSSD_KRB5_CANONICALIZE, "false", 1);
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
