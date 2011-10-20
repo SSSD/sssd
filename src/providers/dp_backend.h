@@ -24,6 +24,7 @@
 
 #include "providers/data_provider.h"
 #include "providers/fail_over.h"
+#include "providers/child_common.h"
 #include "db/sysdb.h"
 
 /* a special token, if used in place of the hostname, denotes that real
@@ -94,6 +95,7 @@ struct be_ctx {
     const char *identity;
     const char *conf_path;
     struct be_failover_ctx *be_fo;
+    struct sss_sigchild_ctx *sigchld_ctx;
 
     /* Functions to be invoked when the
      * backend goes online or offline

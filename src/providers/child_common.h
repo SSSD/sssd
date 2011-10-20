@@ -45,6 +45,31 @@ struct io_buffer {
     size_t size;
 };
 
+/* COMMON SIGCHLD HANDLING */
+typedef void (*sss_child_fn_t)(int pid, int wait_status, void *pvt);
+
+struct sss_sigchild_ctx;
+struct sss_child_ctx;
+
+/* Create a new child context to manage callbacks */
+errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sss_sigchild_ctx **child_ctx);
+
+errno_t sss_child_register(TALLOC_CTX *mem_ctx,
+                           struct sss_sigchild_ctx *sigchld_ctx,
+                           pid_t pid,
+                           sss_child_fn_t cb,
+                           void *pvt,
+                           struct sss_child_ctx **child_ctx);
+
+void sss_child_handler(struct tevent_context *ev,
+                       struct tevent_signal *se,
+                       int signum,
+                       int count,
+                       void *siginfo,
+                       void *private_data);
+
 /* Callback to be invoked when a sigchld handler is called.
  * The tevent_signal * associated with the handler will be
  * freed automatically when this function returns.
