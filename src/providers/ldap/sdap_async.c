@@ -1402,8 +1402,6 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
 {
     errno_t ret;
     LDAPControl **ctrls = NULL;
-    LDAPControl **next = NULL;
-    LDAPControl **start = NULL;
     LDAPControl *derefctrl = NULL;
     LDAPDerefRes    *deref_res = NULL;
     LDAPDerefRes    *dref;
@@ -1419,55 +1417,58 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
     ret = ldap_get_entry_controls(state->sh->ldap, msg->msg,
                                   &ctrls);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_parse_result failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_result failed\n"));
         goto done;
     }
 
     if (!ctrls) {
-        DEBUG(4, ("No controls found for entry\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No controls found for entry\n"));
         ret = ENOENT;
         goto done;
     }
 
-    start = ctrls;
     res = NULL;
-    do {
-        derefctrl = ldap_control_find(LDAP_CONTROL_X_DEREF, start, &next);
-        if (!derefctrl) break;
 
-        DEBUG(9, ("Got deref control\n"));
-        start = next;
+    derefctrl = ldap_control_find(LDAP_CONTROL_X_DEREF, ctrls, NULL);
+    if (!derefctrl) {
+        DEBUG(SSSDBG_FUNC_DATA, ("No deref controls found\n"));
+        ret = EOK;
+        goto done;
+    }
 
-        ret = ldap_parse_derefresponse_control(state->sh->ldap,
-                                               derefctrl,
-                                               &deref_res);
-        if (ret != LDAP_SUCCESS) {
-            DEBUG(1, ("ldap_parse_derefresponse_control failed: %s\n",
-                      ldap_err2string(ret)));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Got deref control\n"));
+
+    ret = ldap_parse_derefresponse_control(state->sh->ldap,
+                                            derefctrl,
+                                            &deref_res);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("ldap_parse_derefresponse_control failed: %s\n",
+               ldap_err2string(ret)));
+        goto done;
+    }
+
+    for (dref = deref_res; dref; dref=dref->next) {
+        ret = sdap_parse_deref(tmp_ctx, state->maps, state->num_maps,
+                                state->sh, dref, &res);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sdap_parse_deref failed [%d]: %s\n",
+                  ret, strerror(ret)));
             goto done;
         }
 
-        for (dref = deref_res; dref; dref=dref->next) {
-            ret = sdap_parse_deref(tmp_ctx, state->maps, state->num_maps,
-                                   state->sh, dref, &res);
-            if (ret) {
-                DEBUG(1, ("sdap_parse_deref failed [%d]: %s\n",
-                          ret, strerror(ret)));
-                goto done;
-            }
-
-            ret = add_to_deref_reply(state, state->num_maps,
-                                     &state->dreply, res);
-            if (ret != EOK) {
-                DEBUG(1, ("add_to_deref_reply failed.\n"));
-                goto done;
-            }
+        ret = add_to_deref_reply(state, state->num_maps,
+                                    &state->dreply, res);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("add_to_deref_reply failed.\n"));
+            goto done;
         }
+    }
 
-        DEBUG(9, ("All deref results from a single control parsed\n"));
-        ldap_derefresponse_free(deref_res);
-        deref_res = NULL;
-    } while (derefctrl);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("All deref results from a single control parsed\n"));
+    ldap_derefresponse_free(deref_res);
+    deref_res = NULL;
 
     ret = EOK;
 done:
