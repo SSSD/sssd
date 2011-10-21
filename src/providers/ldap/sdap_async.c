@@ -1371,12 +1371,14 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
 {
     struct berval derefval;
     int ret;
-    static LDAPDerefSpec ds;
+    struct LDAPDerefSpec ds[2];
 
-    ds.derefAttr = discard_const(deref_attr);
-    ds.attributes = discard_const(attrs);
+    ds[0].derefAttr = discard_const(deref_attr);
+    ds[0].attributes = discard_const(attrs);
 
-    ret = ldap_create_deref_control_value(sh->ldap, &ds, &derefval);
+    ds[1].derefAttr = NULL; /* sentinel */
+
+    ret = ldap_create_deref_control_value(sh->ldap, ds, &derefval);
     if (ret != LDAP_SUCCESS) {
         DEBUG(1, ("sss_ldap_control_create failed: %s\n",
                   ldap_err2string(ret)));
