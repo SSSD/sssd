@@ -446,12 +446,14 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     }
 
     if (!entry_dn || attrs->num == 0) {
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     msg = ldb_msg_new(tmp_ctx);
     if (!msg) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     msg->dn = entry_dn;
@@ -459,7 +461,7 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     msg->elements = talloc_array(msg, struct ldb_message_element, attrs->num);
     if (!msg->elements) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     for (i = 0; i < attrs->num; i++) {
@@ -472,11 +474,11 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     ret = ldb_modify(sysdb->ldb, msg);
     ret = sysdb_error_to_errno(ret);
 
-fail:
+done:
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
-    talloc_zfree(msg);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -490,6 +492,7 @@ int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
 {
     struct ldb_dn *dn;
     TALLOC_CTX *tmp_ctx;
+    errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -498,10 +501,19 @@ int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
 
     dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain->name, name);
     if (!dn) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
-    return sysdb_set_entry_attr(sysdb, dn, attrs, mod_op);
+    ret = sysdb_set_entry_attr(sysdb, dn, attrs, mod_op);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
 }
 
 
@@ -514,18 +526,29 @@ int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
 {
     struct ldb_dn *dn;
     TALLOC_CTX *tmp_ctx;
+    errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, name);
     if (!dn) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
-    return sysdb_set_entry_attr(sysdb, dn, attrs, mod_op);
+    ret = sysdb_set_entry_attr(sysdb, dn, attrs, mod_op);
+    if (ret) {
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 /* =Replace-Attributes-On-Netgroup=========================================== */
@@ -743,7 +766,8 @@ int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
 
     msg = ldb_msg_new(tmp_ctx);
     if (!msg) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     /* user dn */
@@ -797,7 +821,7 @@ done:
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
-    talloc_zfree(msg);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -1025,7 +1049,8 @@ int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
 
     msg = ldb_msg_new(tmp_ctx);
     if (!msg) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     /* group dn */
@@ -1055,7 +1080,7 @@ done:
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
-    talloc_zfree(msg);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -2049,7 +2074,8 @@ int sysdb_asq_search(TALLOC_CTX *mem_ctx,
 
     res = talloc_zero(tmp_ctx, struct ldb_result);
     if (!res) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto fail;
     }
 
     ret = ldb_build_search_req(&ldb_req, sysdb->ldb, tmp_ctx,
@@ -2427,7 +2453,8 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
     if (ret != EOK) {
         DEBUG(1, ("Failed to read the number of allowed failed login "
                   "attempts.\n"));
-        return EIO;
+        ret = EIO;
+        goto done;
     }
     ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_FAILED_LOGIN_DELAY,
@@ -2435,7 +2462,8 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                          &failed_login_delay);
     if (ret != EOK) {
         DEBUG(1, ("Failed to read the failed login delay.\n"));
-        return EIO;
+        ret = EIO;
+        goto done;
     }
     DEBUG(9, ("Failed login attempts [%d], allowed failed login attempts [%d], "
               "failed login delay [%d].\n", *failed_login_attempts,
@@ -2452,16 +2480,21 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                 } else {
                     DEBUG(7, ("login delayed until %lld.\n", (long long) end));
                     *delayed_until = end;
-                    return EACCES;
+                    ret = EACCES;
+                    goto done;
                 }
             } else {
                 DEBUG(4, ("Too many failed logins.\n"));
-                return EACCES;
+                ret = EACCES;
+                goto done;
             }
         }
     }
 
-    return EOK;
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int sysdb_cache_auth(struct sysdb_ctx *sysdb,
@@ -2675,6 +2708,7 @@ done:
             ret = EINVAL;
         }
     }
+    talloc_free(tmp_ctx);
     return ret;
 }
 
