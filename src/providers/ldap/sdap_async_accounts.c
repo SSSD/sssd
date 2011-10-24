@@ -2161,6 +2161,7 @@ fail:
     if (in_transaction) {
         sysdb_transaction_cancel(sysdb);
     }
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -4640,6 +4641,7 @@ errno_t save_rfc2307bis_user_memberships(
     }
     in_transaction = false;
 
+    talloc_free(tmp_ctx);
     return EOK;
 
 error:
@@ -4816,6 +4818,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
                             rfc2307bis_nested_groups_process,
                             req);
 
+    talloc_free(tmp_ctx);
     return EAGAIN;
 
 error:
