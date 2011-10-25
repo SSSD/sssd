@@ -987,6 +987,9 @@ class SSSDDomain(SSSDConfigObject):
                 if option_schema[0] == bool and \
                 type(value) == str:
                     value = self.schema.bool_lookup[value.lower()]
+                elif option_schema[0] == int and type(value) == str:
+                    # Make sure we handle any reasonable base
+                    value = int(value, 0)
                 else:
                     value = option_schema[0](value)
             except ValueError:
