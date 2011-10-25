@@ -796,6 +796,7 @@ static void run_proxy_child_queue(struct tevent_context *ev,
             break;
         }
     }
+    free(iter);
 
     if (!entry) {
         /* Nothing pending on the queue */
