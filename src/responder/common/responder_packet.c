@@ -217,6 +217,11 @@ int sss_packet_send(struct sss_packet *packet, int fd)
     size_t len;
     void *buf;
 
+    if (!packet) {
+        /* No packet object to write to? */
+        return EINVAL;
+    }
+
     buf = packet->buffer + packet->iop;
     len = *packet->len - packet->iop;
 
