@@ -101,6 +101,7 @@
 #define CONFDB_DOMAIN_AUTH_PROVIDER "auth_provider"
 #define CONFDB_DOMAIN_ACCESS_PROVIDER "access_provider"
 #define CONFDB_DOMAIN_CHPASS_PROVIDER "chpass_provider"
+#define CONFDB_DOMAIN_SUDO_PROVIDER "sudo_provider"
 #define CONFDB_DOMAIN_COMMAND "command"
 #define CONFDB_DOMAIN_TIMEOUT "timeout"
 #define CONFDB_DOMAIN_ATTR "cn"
