@@ -927,7 +927,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
         state->rhostent = resolv_copy_hostent_ares(state, hostent,
                                                    state->family,
                                                    addr, naddrttls);
-        free(hostent);
+        ares_free_hostent(hostent);
         if (state->rhostent == NULL) {
             ret = ENOMEM;
             goto fail;
