@@ -4881,17 +4881,23 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
          * Move on to the next group
          */
         state->group_iter++;
-        if (state->group_iter < state->num_groups) {
-            do {
-                ret = rfc2307bis_nested_groups_step(req);
-                if (ret != EOK && ret != EAGAIN) {
-                    tevent_req_error(req, ret);
-                    return;
-                }
-            } while (ret == EOK);
+        while (state->group_iter < state->num_groups) {
+            ret = rfc2307bis_nested_groups_step(req);
+            if (ret == EAGAIN) {
+                /* Looking up parent groups.. */
+                return;
+            } else if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+
             /* EOK means this group has already been processed
-             * in another level */
-        } else {
+             * in another nesting level */
+            state->group_iter++;
+        }
+
+        if (state->group_iter == state->num_groups) {
+            /* All groups processed. Done. */
             tevent_req_done(req);
         }
         return;
@@ -4936,18 +4942,25 @@ static void rfc2307bis_nested_groups_done(struct tevent_req *subreq)
     }
 
     state->group_iter++;
-    if (state->group_iter < state->num_groups) {
-        do {
-            ret = rfc2307bis_nested_groups_step(req);
-            if (ret != EOK && ret != EAGAIN) {
-                tevent_req_error(req, ret);
-                return;
-            }
-        } while (ret == EOK);
+    while (state->group_iter < state->num_groups) {
+        ret = rfc2307bis_nested_groups_step(req);
+        if (ret == EAGAIN) {
+            /* Looking up parent groups.. */
+            return;
+        } else if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
         /* EOK means this group has already been processed
-         * in another level */
-    } else {
+         * in another nesting level */
+        state->group_iter++;
+    }
+
+    if (state->group_iter == state->num_groups) {
+        /* All groups processed. Done. */
         tevent_req_done(req);
+        return;
     }
 }
 
