@@ -1476,6 +1476,306 @@ done:
     return ret;
 }
 
+static int sysdb_upgrade_05(struct sysdb_ctx *ctx, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_message *msg;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_6));
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    /* Add new indexes */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@INDEXLIST");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Add Index for dataExpireTimestamp */
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "@IDXATTR", "dataExpireTimestamp");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Add index to speed up ONELEVEL searches */
+    ret = ldb_msg_add_empty(msg, "@IDXONE", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "@IDXONE", "1");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_6);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    if (ret != EOK) {
+        ret = ldb_transaction_cancel(ctx->ldb);
+    } else {
+        ret = ldb_transaction_commit(ctx->ldb);
+        *ver = SYSDB_VERSION_0_6;
+    }
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+    }
+
+    return ret;
+}
+
+static int sysdb_upgrade_06(struct sysdb_ctx *ctx, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_message *msg;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_7));
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    /* Add new indexes */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@ATTRIBUTES");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Case insensitive search for originalDN */
+    ret = ldb_msg_add_empty(msg, SYSDB_ORIG_DN, LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, SYSDB_ORIG_DN, "CASE_INSENSITIVE");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_7);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    if (ret != EOK) {
+        ret = ldb_transaction_cancel(ctx->ldb);
+    } else {
+        ret = ldb_transaction_commit(ctx->ldb);
+        *ver = SYSDB_VERSION_0_7;
+    }
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+    }
+
+    return ret;
+}
+
+static int sysdb_upgrade_07(struct sysdb_ctx *ctx, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_message *msg;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_8));
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    /* Add new indexes */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@INDEXLIST");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Add Index for nameAlias */
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "@IDXATTR", "nameAlias");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, SYSDB_BASE);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_8);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    if (ret != EOK) {
+        ret = ldb_transaction_cancel(ctx->ldb);
+    } else {
+        ret = ldb_transaction_commit(ctx->ldb);
+        *ver = SYSDB_VERSION_0_8;
+    }
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+    }
+
+    return ret;
+}
+
 static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
                                       const char *db_path,
@@ -1582,6 +1882,48 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
             if (strcmp(version, SYSDB_VERSION_0_4) == 0) {
                 ret = sysdb_upgrade_04(ctx, &version);
+                if (ret != EOK) {
+                    goto done;
+                }
+            }
+
+            if (strcmp(version, SYSDB_VERSION_0_5) == 0) {
+                ret = sysdb_upgrade_05(ctx, &version);
+                if (ret != EOK) {
+                    goto done;
+                }
+            }
+
+            if (strcmp(version, SYSDB_VERSION_0_6) == 0) {
+                ret = sysdb_upgrade_06(ctx, &version);
+                if (ret != EOK) {
+                    goto done;
+                }
+            }
+
+            if (strcmp(version, SYSDB_VERSION_0_7) == 0) {
+                ret = sysdb_upgrade_07(ctx, &version);
+                if (ret != EOK) {
+                    goto done;
+                }
+            }
+
+            /* The version should now match SYSDB_VERSION.
+             * If not, it means we didn't match any of the
+             * known older versions. The DB might be
+             * corrupt or generated by a newer version of
+             * SSSD.
+             */
+            if (strcmp(version, SYSDB_VERSION) == 0) {
+                /* The cache has been upgraded.
+                 * We need to reopen the LDB to ensure that
+                 * any changes made above take effect.
+                 */
+                talloc_zfree(ctx->ldb);
+                ret = sysdb_ldb_connect(ctx, ctx->ldb_file, &ctx->ldb);
+                if (ret != EOK) {
+                    DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+                }
                 goto done;
             }
         }
