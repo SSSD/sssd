@@ -167,14 +167,14 @@ static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                                     enum sysdb_member_type type,
                                     char **sysdb_grouplist,
                                     struct sysdb_attrs **ldap_groups,
-                                    int ldap_groups_count,
-                                    bool add_fake)
+                                    int ldap_groups_count)
 {
     TALLOC_CTX *tmp_ctx;
     char **ldap_grouplist = NULL;
     char **add_groups;
     char **del_groups;
-    int ret;
+    int ret, tret;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -205,10 +205,17 @@ static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                             &add_groups, &del_groups, NULL);
     if (ret != EOK) goto done;
 
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to start transaction\n"));
+        goto done;
+    }
+    in_transaction = true;
+
     /* Add fake entries for any groups the user should be added as
      * member of but that are not cached in sysdb
      */
-    if (add_fake && add_groups && add_groups[0]) {
+    if (add_groups && add_groups[0]) {
         ret = sdap_add_incomplete_groups(sysdb, opts, dom,
                                          add_groups, ldap_groups,
                                          ldap_groups_count);
@@ -228,8 +235,21 @@ static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
         goto done;
     }
 
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to commit transaction\n"));
+        goto done;
+    }
+    in_transaction = false;
+
     ret = EOK;
 done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(sysdb);
+        if (tret != EOK) {
+            DEBUG(1, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -469,8 +489,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
                                    SYSDB_MEMBER_USER,
                                    sysdb_grouplist,
                                    state->ldap_groups,
-                                   state->ldap_groups_count,
-                                   true);
+                                   state->ldap_groups_count);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
