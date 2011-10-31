@@ -3104,7 +3104,6 @@ static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-
     direct_groups = talloc_zero_array(tmp_ctx, struct sysdb_attrs *,
                                       ngroups + 1);
     if (!direct_groups) {
@@ -3146,7 +3145,7 @@ static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
 
     DEBUG(9, ("The group [%s] has %d direct parents\n", orig_dn, ndirect));
 
-    *_direct_parents = direct_groups;
+    *_direct_parents = talloc_steal(mem_ctx, direct_groups);
     *_ndirect = ndirect;
     ret = EOK;
 done:
