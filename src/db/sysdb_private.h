@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_8 "0.8"
 #define SYSDB_VERSION_0_7 "0.7"
 #define SYSDB_VERSION_0_6 "0.6"
 #define SYSDB_VERSION_0_5 "0.5"
@@ -31,7 +32,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_7
+#define SYSDB_VERSION SYSDB_VERSION_0_8
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -53,6 +54,7 @@
      "@IDXATTR: lastUpdate\n" \
      "@IDXATTR: dataExpireTimestamp\n" \
      "@IDXATTR: originalDN\n" \
+     "@IDXATTR: nameAlias\n" \
      "@IDXONE: 1\n" \
      "\n" \
      "dn: @MODULES\n" \
