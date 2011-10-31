@@ -1537,11 +1537,13 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
 
 static void sdap_nested_done(struct tevent_req *subreq)
 {
-    errno_t ret;
+    errno_t ret, tret;
     int hret;
     unsigned long i;
-    unsigned long count;
+    unsigned long user_count;
+    unsigned long group_count;
     hash_value_t *values;
+    bool in_transaction = false;
     struct sysdb_attrs **users = NULL;
     struct sysdb_attrs **groups = NULL;
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -1554,67 +1556,89 @@ static void sdap_nested_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(1, ("Nested group processing failed: [%d][%s]\n",
                   ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    hret = hash_values(state->user_hash, &count, &values);
+    hret = hash_values(state->user_hash, &user_count, &values);
     if (hret != HASH_SUCCESS) {
-        tevent_req_error(req, EIO);
+        ret = EIO;
+        goto fail;
     }
 
-    if (count) {
-        users = talloc_array(state, struct sysdb_attrs *, count);
+    if (user_count) {
+        users = talloc_array(state, struct sysdb_attrs *, user_count);
         if (!users) {
             talloc_free(values);
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto fail;
         }
 
-        for (i = 0; i < count; i++) {
+        for (i = 0; i < user_count; i++) {
             users[i] = talloc_get_type(values[i].ptr, struct sysdb_attrs);
         }
         talloc_zfree(values);
     }
 
-    /* Save all of the users first so that they are in
-     * place for the groups to add them.
-     */
-    ret = sdap_nested_group_populate_users(state->sysdb, state->dom,
-                                           state->opts, users, count);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
     /* Users are all saved. Now save groups */
-    hret = hash_values(state->group_hash, &count, &values);
+    hret = hash_values(state->group_hash, &group_count, &values);
     if (hret != HASH_SUCCESS) {
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto fail;
     }
 
-    groups = talloc_array(state, struct sysdb_attrs *, count);
+    groups = talloc_array(state, struct sysdb_attrs *, group_count);
     if (!groups) {
         talloc_free(values);
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto fail;
     }
 
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < group_count; i++) {
         groups[i] = talloc_get_type(values[i].ptr, struct sysdb_attrs);
     }
     talloc_zfree(values);
 
-    ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                           groups, count, false, &state->higher_usn);
+    /* Save all of the users first so that they are in
+     * place for the groups to add them.
+     */
+    ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        DEBUG(1, ("Failed to start transaction\n"));
+        goto fail;
     }
+    in_transaction = true;
+
+    ret = sdap_nested_group_populate_users(state->sysdb, state->dom,
+                                           state->opts, users, user_count);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
+                           groups, group_count, false, &state->higher_usn);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_transaction_commit(state->sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to commit transaction\n"));
+        goto fail;
+    }
+    in_transaction = false;
 
     /* Processing complete */
     tevent_req_done(req);
+    return;
+
+fail:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(state->sysdb);
+        if (tret != EOK) {
+            DEBUG(1, ("Failed to cancel transaction\n"));
+        }
+    }
+    tevent_req_error(req, ret);
 }
 
 static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
