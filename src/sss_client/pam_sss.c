@@ -747,15 +747,9 @@ static int user_info_offline_auth_delayed(pam_handle_t *pamh, size_t buflen,
     return PAM_SUCCESS;
 }
 
-static int user_info_offline_chpass(pam_handle_t *pamh, size_t buflen,
-                                    uint8_t *buf)
+static int user_info_offline_chpass(pam_handle_t *pamh)
 {
     int ret;
-
-    if (buflen != sizeof(uint32_t)) {
-        D(("User info response data has the wrong size"));
-        return PAM_BUF_ERR;
-    }
 
     ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
                               _("System is offline, password change not possible"),
@@ -851,7 +845,7 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
             ret = user_info_offline_auth_delayed(pamh, buflen, buf);
             break;
         case SSS_PAM_USER_INFO_OFFLINE_CHPASS:
-            ret = user_info_offline_chpass(pamh, buflen, buf);
+            ret = user_info_offline_chpass(pamh);
             break;
         case SSS_PAM_USER_INFO_CHPASS_ERROR:
             ret = user_info_chpass_error(pamh, buflen, buf);

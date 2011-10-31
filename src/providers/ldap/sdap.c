@@ -281,7 +281,6 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
 errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,
                          size_t num_maps,
-                         struct sdap_handle *sh,
                          LDAPDerefRes *dref,
                          struct sdap_deref_attrs ***_res)
 {
@@ -733,7 +732,6 @@ done:
 }
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
-                                             struct sdap_handle *sh,
                                              struct sdap_options *opts)
 {
     int ret;

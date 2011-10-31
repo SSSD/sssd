@@ -933,6 +933,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->attrs = attrs;
     state->attrsonly = attrsonly;
     state->op = NULL;
+    state->sizelimit = sizelimit;
     state->timeout = timeout;
     state->cookie.bv_len = 0;
     state->cookie.bv_val = NULL;
@@ -1452,7 +1453,7 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
 
     for (dref = deref_res; dref; dref=dref->next) {
         ret = sdap_parse_deref(tmp_ctx, state->maps, state->num_maps,
-                                state->sh, dref, &res);
+                               dref, &res);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("sdap_parse_deref failed [%d]: %s\n",
                   ret, strerror(ret)));

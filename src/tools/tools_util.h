@@ -80,10 +80,8 @@ int check_group_names(struct tools_ctx *tctx,
                       char **grouplist,
                       char **badgroup);
 
-int create_homedir(TALLOC_CTX *mem_ctx,
-                   const char *skeldir,
+int create_homedir(const char *skeldir,
                    const char *homedir,
-                   const char *username,
                    uid_t uid,
                    gid_t gid,
                    mode_t default_umask);
@@ -114,7 +112,7 @@ enum nscd_db {
     NSCD_DB_GROUP
 };
 
-int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db);
+int flush_nscd_cache(enum nscd_db flush_db);
 
 /* from selinux.c */
 int selinux_file_context(const char *dst_name);

@@ -103,7 +103,6 @@ struct tevent_req *
 ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *dom,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
                         const char *search_base);
@@ -119,7 +118,6 @@ ipa_hbac_host_info_recv(struct tevent_req *req,
 errno_t
 hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
                          struct hbac_rule_element **thosts);
@@ -127,7 +125,6 @@ hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
 errno_t
 hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
                          struct hbac_rule_element **source_hosts);
@@ -142,7 +139,6 @@ struct tevent_req *
 ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *dom,
                            struct sdap_handle *sh,
                            struct sdap_options *opts,
                            const char *search_base);
@@ -158,7 +154,6 @@ ipa_hbac_service_info_recv(struct tevent_req *req,
 errno_t
 hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
                            const char *rule_name,
                            struct sysdb_attrs *rule_attrs,
                            struct hbac_rule_element **services);
@@ -173,8 +168,6 @@ struct tevent_req *
 ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
                         bool get_deny_rules,
                         struct tevent_context *ev,
-                        struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *dom,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
                         const char *search_base,
@@ -190,7 +183,6 @@ ipa_hbac_rule_info_recv(struct tevent_req *req,
 errno_t
 hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
                         const char *rule_name,
                         struct sysdb_attrs *rule_attrs,
                         struct hbac_rule_element **users);

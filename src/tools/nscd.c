@@ -33,7 +33,7 @@
 #endif
 
 #if defined(NSCD_PATH) && defined(HAVE_NSCD)
-int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db)
+int flush_nscd_cache(enum nscd_db flush_db)
 {
     const char *service;
     pid_t nscd_pid;
@@ -90,7 +90,7 @@ done:
 }
 
 #else   /* defined(NSCD_PATH) && defined(HAVE_NSCD) */
-int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db)
+int flush_nscd_cache(enum nscd_db flush_db)
 {
     return EOK;
 }

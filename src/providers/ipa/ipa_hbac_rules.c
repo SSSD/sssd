@@ -38,8 +38,6 @@ struct tevent_req *
 ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
                         bool get_deny_rules,
                         struct tevent_context *ev,
-                        struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *dom,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
                         const char *search_base,

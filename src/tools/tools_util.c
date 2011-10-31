@@ -465,10 +465,8 @@ fail:
     return ret;
 }
 
-int create_homedir(TALLOC_CTX *mem_ctx,
-                   const char *skeldir,
+int create_homedir(const char *skeldir,
                    const char *homedir,
-                   const char *username,
                    uid_t uid,
                    gid_t gid,
                    mode_t default_umask)

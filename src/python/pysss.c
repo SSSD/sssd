@@ -41,7 +41,7 @@ static char **PyList_AsStringList(TALLOC_CTX *mem_ctx, PyObject *list,
     char **ret;
     int i;
 
-    ret = talloc_array(NULL, char *, PyList_Size(list)+1);
+    ret = talloc_array(mem_ctx, char *, PyList_Size(list)+1);
     for (i = 0; i < PyList_Size(list); i++) {
         PyObject *item = PyList_GetItem(list, i);
         if (!PyString_Check(item)) {
@@ -106,8 +106,7 @@ static void PyErr_SetSssError(int ret)
 /*
  * Common init of all methods
  */
-struct tools_ctx *init_ctx(TALLOC_CTX *mem_ctx,
-                           PySssLocalObject *self)
+static struct tools_ctx *init_ctx(PySssLocalObject *self)
 {
     struct ops_ctx *octx = NULL;
     struct tools_ctx *tctx = NULL;
@@ -190,7 +189,7 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
         goto fail;
     }
 
-    tctx = init_ctx(self->mem_ctx, self);
+    tctx = init_ctx(self);
     if (!tctx) {
         PyErr_NoMemory();
         return NULL;
@@ -264,10 +263,8 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
             }
         }
 
-        ret = create_homedir(tctx,
-                             tctx->octx->skeldir,
+        ret = create_homedir(tctx->octx->skeldir,
                              tctx->octx->home,
-                             tctx->octx->name,
                              tctx->octx->uid,
                              tctx->octx->gid,
                              tctx->octx->umask);
@@ -326,7 +323,7 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
         goto fail;
     }
 
-    tctx = init_ctx(self->mem_ctx, self);
+    tctx = init_ctx(self);
     if (!tctx) {
         PyErr_NoMemory();
         return NULL;
@@ -450,7 +447,7 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
         goto fail;
     }
 
-    tctx = init_ctx(self->mem_ctx, self);
+    tctx = init_ctx(self);
     if (!tctx) {
         PyErr_NoMemory();
         return NULL;
@@ -546,7 +543,7 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
         goto fail;
     }
 
-    tctx = init_ctx(self->mem_ctx, self);
+    tctx = init_ctx(self);
     if (!tctx) {
         PyErr_NoMemory();
         return NULL;
@@ -563,7 +560,7 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
     }
 
     /* groupadd */
-    tctx->error = groupadd(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = groupadd(tctx->sysdb, tctx->octx);
     if (tctx->error) {
         /* cancel transaction */
         sysdb_transaction_cancel(tctx->sysdb);
@@ -604,7 +601,7 @@ static PyObject *py_sss_groupdel(PySssLocalObject *self,
         goto fail;
     }
 
-    tctx = init_ctx(self->mem_ctx, self);
+    tctx = init_ctx(self);
     if (!tctx) {
         PyErr_NoMemory();
         return NULL;
@@ -664,7 +661,7 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
         goto fail;
     }
 
-    tctx = init_ctx(self->mem_ctx, self);
+    tctx = init_ctx(self);
     if (!tctx) {
         PyErr_NoMemory();
         return NULL;

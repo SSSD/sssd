@@ -52,8 +52,7 @@ struct sync_op_res {
 /*
  * Generic modify groups member
  */
-static int mod_groups_member(TALLOC_CTX *mem_ctx,
-                             struct sysdb_ctx *sysdb,
+static int mod_groups_member(struct sysdb_ctx *sysdb,
                              char **grouplist,
                              struct ldb_dn *member_dn,
                              int optype)
@@ -93,11 +92,11 @@ done:
     return ret;
 }
 
-#define add_to_groups(memctx, sysdb, data, member_dn) \
-    mod_groups_member(memctx, sysdb, data->addgroups, member_dn, \
+#define add_to_groups(sysdb, data, member_dn) \
+    mod_groups_member(sysdb, data->addgroups, member_dn, \
                       LDB_FLAG_MOD_ADD)
-#define remove_from_groups(memctx, sysdb, data, member_dn) \
-    mod_groups_member(memctx, sysdb, data->rmgroups, member_dn, \
+#define remove_from_groups(sysdb, data, member_dn) \
+    mod_groups_member(sysdb, data->rmgroups, member_dn, \
                       LDB_FLAG_MOD_DELETE)
 
 /*
@@ -229,21 +228,21 @@ int usermod(TALLOC_CTX *mem_ctx,
     }
 
     if (data->rmgroups != NULL) {
-        ret = remove_from_groups(mem_ctx, sysdb, data, member_dn);
+        ret = remove_from_groups(sysdb, data, member_dn);
         if (ret) {
             return ret;
         }
     }
 
     if (data->addgroups != NULL) {
-        ret = add_to_groups(mem_ctx, sysdb, data, member_dn);
+        ret = add_to_groups(sysdb, data, member_dn);
         if (ret) {
             return ret;
         }
     }
 
-    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+    flush_nscd_cache(NSCD_DB_PASSWD);
+    flush_nscd_cache(NSCD_DB_GROUP);
 
     return EOK;
 }
@@ -284,20 +283,20 @@ int groupmod(TALLOC_CTX *mem_ctx,
     }
 
     if (data->rmgroups != NULL) {
-        ret = remove_from_groups(mem_ctx, sysdb, data, member_dn);
+        ret = remove_from_groups(sysdb, data, member_dn);
         if (ret) {
             return ret;
         }
     }
 
     if (data->addgroups != NULL) {
-        ret = add_to_groups(mem_ctx, sysdb, data, member_dn);
+        ret = add_to_groups(sysdb, data, member_dn);
         if (ret) {
             return ret;
         }
     }
 
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+    flush_nscd_cache(NSCD_DB_GROUP);
 
     return EOK;
 }
@@ -487,14 +486,14 @@ int useradd(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = add_to_groups(mem_ctx, sysdb, data, member_dn);
+        ret = add_to_groups(sysdb, data, member_dn);
         if (ret) {
             goto done;
         }
     }
 
-    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+    flush_nscd_cache(NSCD_DB_PASSWD);
+    flush_nscd_cache(NSCD_DB_GROUP);
 
 done:
     return ret;
@@ -522,8 +521,8 @@ int userdel(TALLOC_CTX *mem_ctx,
         DEBUG(2, ("Removing user failed: %s (%d)\n", strerror(ret), ret));
     }
 
-    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+    flush_nscd_cache(NSCD_DB_PASSWD);
+    flush_nscd_cache(NSCD_DB_GROUP);
 
     return ret;
 }
@@ -531,15 +530,14 @@ int userdel(TALLOC_CTX *mem_ctx,
 /*
  * Public interface for adding groups
  */
-int groupadd(TALLOC_CTX *mem_ctx,
-            struct sysdb_ctx *sysdb,
-            struct ops_ctx *data)
+int groupadd(struct sysdb_ctx *sysdb,
+             struct ops_ctx *data)
 {
     int ret;
 
     ret = sysdb_add_group(sysdb, data->name, data->gid, NULL, 0, 0);
     if (ret == EOK) {
-        flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+        flush_nscd_cache(NSCD_DB_GROUP);
     }
     return ret;
 }
@@ -566,7 +564,7 @@ int groupdel(TALLOC_CTX *mem_ctx,
         DEBUG(2, ("Removing group failed: %s (%d)\n", strerror(ret), ret));
     }
 
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+    flush_nscd_cache(NSCD_DB_GROUP);
 
     return ret;
 }

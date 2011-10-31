@@ -28,7 +28,6 @@
 struct ipa_hbac_host_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
-    struct sss_domain_info *dom;
     struct sdap_handle *sh;
     struct sdap_options *opts;
     const char *search_base;
@@ -52,7 +51,6 @@ struct tevent_req *
 ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *dom,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
                         const char *search_base)
@@ -70,7 +68,6 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sysdb = sysdb;
-    state->dom = dom;
     state->sh = sh;
     state->opts = opts;
     state->search_base = search_base;
@@ -246,7 +243,6 @@ ipa_hbac_host_info_recv(struct tevent_req *req,
  */
 static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                        struct sysdb_ctx *sysdb,
-                                       struct sss_domain_info *domain,
                                        const char *rule_name,
                                        struct sysdb_attrs *rule_attrs,
                                        const char *category_attr,
@@ -441,14 +437,13 @@ done:
 errno_t
 hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
                          struct hbac_rule_element **thosts)
 {
     DEBUG(7, ("Processing target hosts for rule [%s]\n", rule_name));
 
-    return hbac_host_attrs_to_rule(mem_ctx, sysdb, domain,
+    return hbac_host_attrs_to_rule(mem_ctx, sysdb,
                                    rule_name, rule_attrs,
                                    IPA_HOST_CATEGORY, IPA_MEMBER_HOST,
                                    NULL, thosts);
@@ -457,7 +452,6 @@ hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
 errno_t
 hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
                          struct hbac_rule_element **source_hosts)
@@ -471,7 +465,7 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     DEBUG(7, ("Processing source hosts for rule [%s]\n", rule_name));
 
-    ret = hbac_host_attrs_to_rule(tmp_ctx, sysdb, domain,
+    ret = hbac_host_attrs_to_rule(tmp_ctx, sysdb,
                                   rule_name, rule_attrs,
                                   IPA_SOURCE_HOST_CATEGORY, IPA_SOURCE_HOST,
                                   &host_count, &shosts);

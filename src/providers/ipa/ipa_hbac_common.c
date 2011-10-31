@@ -299,7 +299,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the users */
     ret = hbac_user_attrs_to_rule(new_rule,
                                   hbac_ctx_sysdb(hbac_ctx),
-                                  hbac_ctx_be(hbac_ctx)->domain,
                                   new_rule->name,
                                   hbac_ctx->rules[idx],
                                   &new_rule->users);
@@ -312,7 +311,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the services */
     ret = hbac_service_attrs_to_rule(new_rule,
                                      hbac_ctx_sysdb(hbac_ctx),
-                                     hbac_ctx_be(hbac_ctx)->domain,
                                      new_rule->name,
                                      hbac_ctx->rules[idx],
                                      &new_rule->services);
@@ -325,7 +323,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the target hosts */
     ret = hbac_thost_attrs_to_rule(new_rule,
                                    hbac_ctx_sysdb(hbac_ctx),
-                                   hbac_ctx_be(hbac_ctx)->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    &new_rule->targethosts);
@@ -338,7 +335,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the source hosts */
     ret = hbac_shost_attrs_to_rule(new_rule,
                                    hbac_ctx_sysdb(hbac_ctx),
-                                   hbac_ctx_be(hbac_ctx)->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    &new_rule->srchosts);
@@ -396,7 +392,6 @@ done:
 static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
                        const char *username,
                        struct hbac_request_element **user_element);
 
@@ -440,7 +435,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     eval_req->request_time = time(NULL);
 
     /* Get user the user name and groups */
-    ret = hbac_eval_user_element(eval_req, sysdb, domain,
+    ret = hbac_eval_user_element(eval_req, sysdb,
                                  pd->user, &eval_req->user);
     if (ret != EOK) goto done;
 
@@ -489,7 +484,6 @@ done:
 static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
                        const char *username,
                        struct hbac_request_element **user_element)
 {

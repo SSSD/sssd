@@ -357,7 +357,6 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
 errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,
                          size_t num_maps,
-                         struct sdap_handle *sh,
                          LDAPDerefRes *dref,
                          struct sdap_deref_attrs ***_res);
 
@@ -387,7 +386,6 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
                         struct berval *value, int dupval, LDAPControl **ctrlp);
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
-                                             struct sdap_handle *sh,
                                              struct sdap_options *opts);
 int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                                       const char *server,

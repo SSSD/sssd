@@ -132,7 +132,6 @@ done:
 }
 
 static int nss_get_config(struct nss_ctx *nctx,
-                          struct resp_ctx *rctx,
                           struct confdb_ctx *cdb)
 {
     int ret;
@@ -294,7 +293,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
     nctx->rctx->pvt_ctx = nctx;
 
-    ret = nss_get_config(nctx, nctx->rctx, cdb);
+    ret = nss_get_config(nctx, cdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error getting nss config\n"));
         return ret;

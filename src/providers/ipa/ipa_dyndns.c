@@ -138,8 +138,7 @@ fail:
 }
 
 
-errno_t ipa_dyndns_init(TALLOC_CTX *mem_ctx,
-                        struct be_ctx *be_ctx,
+errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
                         struct ipa_options *ctx)
 {
     errno_t ret;

@@ -71,7 +71,6 @@ static void sdap_access_filter_done(struct tevent_req *subreq);
 
 static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
-                                             struct be_ctx *be_ctx,
                                              struct sdap_access_ctx *access_ctx,
                                              struct pam_data *pd,
                                              struct ldb_message *user_entry);
@@ -82,7 +81,6 @@ static void sdap_access_service_done(struct tevent_req *subreq);
 static struct tevent_req *sdap_access_service_send(
         TALLOC_CTX *mem_ctx,
         struct tevent_context *ev,
-        struct sdap_access_ctx *access_ctx,
         struct pam_data *pd,
         struct ldb_message *user_entry);
 
@@ -95,8 +93,6 @@ static void sdap_access_host_done(struct tevent_req *subreq);
 static struct tevent_req *sdap_access_host_send(
         TALLOC_CTX *mem_ctx,
         struct tevent_context *ev,
-        struct sdap_access_ctx *access_ctx,
-        struct pam_data *pd,
         struct ldb_message *user_entry);
 
 static void sdap_access_done(struct tevent_req *req);
@@ -247,7 +243,7 @@ static errno_t select_next_rule(struct tevent_req *req)
             return EOK;
 
         case LDAP_ACCESS_EXPIRE:
-            subreq = sdap_account_expired_send(state, state->ev, state->be_ctx,
+            subreq = sdap_account_expired_send(state, state->ev,
                                                state->access_ctx,
                                                state->pd,
                                                state->user_entry);
@@ -261,7 +257,6 @@ static errno_t select_next_rule(struct tevent_req *req)
 
         case LDAP_ACCESS_SERVICE:
             subreq = sdap_access_service_send(state, state->ev,
-                                              state->access_ctx,
                                               state->pd,
                                               state->user_entry);
             if (subreq == NULL) {
@@ -273,9 +268,7 @@ static errno_t select_next_rule(struct tevent_req *req)
 
         case LDAP_ACCESS_HOST:
             subreq = sdap_access_host_send(state, state->ev,
-                                              state->access_ctx,
-                                              state->pd,
-                                              state->user_entry);
+                                           state->user_entry);
             if (subreq == NULL) {
                 DEBUG(1, ("sdap_access_host_send failed.\n"));
                 return ENOMEM;
@@ -645,7 +638,6 @@ struct sdap_account_expired_req_ctx {
 
 static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
-                                             struct be_ctx *be_ctx,
                                              struct sdap_access_ctx *access_ctx,
                                              struct pam_data *pd,
                                              struct ldb_message *user_entry)
@@ -1126,7 +1118,6 @@ struct sdap_access_service_ctx {
 static struct tevent_req *sdap_access_service_send(
         TALLOC_CTX *mem_ctx,
         struct tevent_context *ev,
-        struct sdap_access_ctx *access_ctx,
         struct pam_data *pd,
         struct ldb_message *user_entry)
 {
@@ -1260,8 +1251,6 @@ struct sdap_access_host_ctx {
 static struct tevent_req *sdap_access_host_send(
         TALLOC_CTX *mem_ctx,
         struct tevent_context *ev,
-        struct sdap_access_ctx *access_ctx,
-        struct pam_data *pd,
         struct ldb_message *user_entry)
 {
     errno_t ret;

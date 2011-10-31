@@ -148,7 +148,6 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
 
 static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
                            const char *name,
                            const char *ccname,
                            int mod_op)
@@ -212,21 +211,19 @@ done:
 
 static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
-                            struct sss_domain_info *domain,
                             const char *name,
                             const char *ccname)
 {
-    return krb5_mod_ccname(mem_ctx, sysdb, domain, name, ccname,
+    return krb5_mod_ccname(mem_ctx, sysdb, name, ccname,
                            SYSDB_MOD_REP);
 }
 
 static int krb5_delete_ccname(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain,
                               const char *name,
                               const char *ccname)
 {
-    return krb5_mod_ccname(mem_ctx, sysdb, domain, name, ccname,
+    return krb5_mod_ccname(mem_ctx, sysdb, name, ccname,
                            SYSDB_MOD_DEL);
 }
 
@@ -848,7 +845,6 @@ static void krb5_child_done(struct tevent_req *subreq)
                 }
 
                 ret = krb5_delete_ccname(state, state->be_ctx->sysdb,
-                                         state->be_ctx->domain,
                                          pd->user, kr->old_ccname);
                 if (ret != EOK) {
                     DEBUG(1, ("krb5_delete_ccname failed.\n"));
@@ -922,7 +918,6 @@ static void krb5_child_done(struct tevent_req *subreq)
     }
 
     ret = krb5_save_ccname(state, state->be_ctx->sysdb,
-                           state->be_ctx->domain,
                            pd->user, kr->ccname);
     if (ret) {
         DEBUG(1, ("krb5_save_ccname failed.\n"));

@@ -27,7 +27,6 @@
 struct ipa_hbac_service_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
-    struct sss_domain_info *dom;
     struct sdap_handle *sh;
     struct sdap_options *opts;
     const char *search_base;
@@ -50,7 +49,6 @@ struct tevent_req *
 ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *dom,
                            struct sdap_handle *sh,
                            struct sdap_options *opts,
                            const char *search_base)
@@ -69,7 +67,6 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sysdb = sysdb;
-    state->dom = dom;
     state->sh = sh;
     state->opts = opts;
     state->search_base = search_base;
@@ -260,7 +257,6 @@ ipa_hbac_service_info_recv(struct tevent_req *req,
 errno_t
 hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
                            const char *rule_name,
                            struct sysdb_attrs *rule_attrs,
                            struct hbac_rule_element **services)

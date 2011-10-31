@@ -110,7 +110,7 @@ int main(int argc, const char **argv)
     }
 
     /* groupadd */
-    tctx->error = groupadd(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = groupadd(tctx->sysdb, tctx->octx);
     if (tctx->error) {
         /* cancel transaction */
         sysdb_transaction_cancel(tctx->sysdb);

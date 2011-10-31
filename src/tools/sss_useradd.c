@@ -220,10 +220,8 @@ int main(int argc, const char **argv)
             }
         }
 
-        ret = create_homedir(tctx,
-                             tctx->octx->skeldir,
+        ret = create_homedir(tctx->octx->skeldir,
                              tctx->octx->home,
-                             tctx->octx->name,
                              tctx->octx->uid,
                              tctx->octx->gid,
                              tctx->octx->umask);

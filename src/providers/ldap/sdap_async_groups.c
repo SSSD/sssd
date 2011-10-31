@@ -178,9 +178,7 @@ done:
     /* FIXME: support storing additional attributes */
 
 static errno_t
-sdap_store_group_with_gid(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *ctx,
-                          struct sss_domain_info *domain,
+sdap_store_group_with_gid(struct sysdb_ctx *ctx,
                           const char *name,
                           gid_t gid,
                           struct sysdb_attrs *group_attrs,
@@ -387,7 +385,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for group %s\n", name));
 
-    ret = sdap_store_group_with_gid(group_attrs, ctx, dom,
+    ret = sdap_store_group_with_gid(ctx,
                                     name, gid, group_attrs,
                                     dp_opt_get_int(opts->basic,
                                                    SDAP_ENTRY_CACHE_TIMEOUT),
@@ -1530,7 +1528,6 @@ int sdap_get_groups_recv(struct tevent_req *req,
 }
 
 static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
-                                                struct sss_domain_info *dom,
                                                 struct sdap_options *opts,
                                                 struct sysdb_attrs **users,
                                                 int num_users);
@@ -1608,8 +1605,8 @@ static void sdap_nested_done(struct tevent_req *subreq)
     }
     in_transaction = true;
 
-    ret = sdap_nested_group_populate_users(state->sysdb, state->dom,
-                                           state->opts, users, user_count);
+    ret = sdap_nested_group_populate_users(state->sysdb, state->opts,
+                                           users, user_count);
     if (ret != EOK) {
         goto fail;
     }
@@ -1642,7 +1639,6 @@ fail:
 }
 
 static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
-                                                struct sss_domain_info *dom,
                                                 struct sdap_options *opts,
                                                 struct sysdb_attrs **users,
                                                 int num_users)
@@ -1970,7 +1966,6 @@ immediate:
 static errno_t sdap_nested_group_check_hash(struct sdap_nested_group_ctx *);
 static errno_t sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                                     struct sysdb_ctx *sysdb,
-                                    struct sss_domain_info *domain,
                                     struct sdap_options *opts,
                                     char *member_dn,
                                     struct ldb_message ***_msgs,
@@ -2026,7 +2021,7 @@ static errno_t sdap_nested_group_process_deref_step(struct tevent_req *req)
         }
 
         ret = sdap_nested_group_check_cache(state, state->sysdb,
-                                            state->domain, state->opts,
+                                            state->opts,
                                             state->member_dn,
                                             &msgs, &mtype);
         if (ret == EOK) {
@@ -2132,7 +2127,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
         }
 
         ret = sdap_nested_group_check_cache(state, state->sysdb,
-                                            state->domain, state->opts,
+                                            state->opts,
                                             state->member_dn,
                                             &msgs, &mtype);
         if (ret == EOK) {
@@ -2225,7 +2220,6 @@ sdap_nested_group_check_hash(struct sdap_nested_group_ctx *state)
 static errno_t
 sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain,
                               struct sdap_options *opts,
                               char *dn,
                               struct ldb_message ***_msgs,

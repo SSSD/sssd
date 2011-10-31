@@ -62,7 +62,7 @@ int be_fo_is_srv_identifier(const char *server)
     return server && strcasecmp(server, BE_SRV_IDENTIFIER) == 0;
 }
 
-static int be_fo_get_options(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
+static int be_fo_get_options(struct be_ctx *ctx,
                              struct fo_options *opts)
 {
     errno_t ret;
@@ -108,7 +108,7 @@ int be_init_failover(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = be_fo_get_options(ctx->be_fo, ctx, &fopts);
+    ret = be_fo_get_options(ctx, &fopts);
     if (ret != EOK) {
         talloc_zfree(ctx->be_fo);
         return ret;

@@ -181,8 +181,7 @@ done:
     return ret;
 }
 
-static int nss_encrypt_decrypt_init(TALLOC_CTX *mem_ctx,
-                                    struct crypto_mech_data *mech_props,
+static int nss_encrypt_decrypt_init(struct crypto_mech_data *mech_props,
                                     bool do_encrypt,
                                     struct sss_nss_crypto_ctx *cctx)
 {
@@ -315,7 +314,7 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         goto done;
     }
 
-    ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, true, cctx);
+    ret = nss_encrypt_decrypt_init(mech_props, true, cctx);
     if (ret) {
         DEBUG(1, ("Cannot initialize NSS context properties\n"));
         goto done;
@@ -500,7 +499,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     MAKE_SECITEM(ivbuf, mech_props->bsize, cctx->iv);
     MAKE_SECITEM(keybuf, mech_props->keylen, cctx->key);
 
-    ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, false, cctx);
+    ret = nss_encrypt_decrypt_init(mech_props, false, cctx);
     if (ret) {
         goto done;
     }

@@ -982,8 +982,7 @@ struct sdap_auth_state {
 };
 
 static void sdap_auth_done(struct tevent_req *subreq);
-static int sdap_auth_get_authtok(TALLOC_CTX *memctx,
-                                 const char *authtok_type,
+static int sdap_auth_get_authtok(const char *authtok_type,
                                  struct dp_opt_blob authtok,
                                  struct berval *pw);
 
@@ -1006,7 +1005,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
 
     state->user_dn = user_dn;
 
-    ret = sdap_auth_get_authtok(state, authtok_type, authtok, &state->pw);
+    ret = sdap_auth_get_authtok(authtok_type, authtok, &state->pw);
     if (ret != EOK) {
         if (ret == ENOSYS) {
             DEBUG(1, ("Getting authtok is not supported with the "
@@ -1039,8 +1038,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
     return req;
 }
 
-static int sdap_auth_get_authtok(TALLOC_CTX *mem_ctx,
-                                 const char *authtok_type,
+static int sdap_auth_get_authtok(const char *authtok_type,
                                  struct dp_opt_blob authtok,
                                  struct berval *pw)
 {
@@ -1353,8 +1351,7 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
             return;
         }
 
-        ret = sdap_set_config_options_with_rootdse(rootdse, state->sh,
-                                                   state->opts);
+        ret = sdap_set_config_options_with_rootdse(rootdse, state->opts);
         if (ret) {
             DEBUG(1, ("sdap_set_config_options_with_rootdse failed.\n"));
             tevent_req_error(req, ret);
@@ -1680,8 +1677,7 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
 
         user_dn = dp_opt_get_string(p->opts->basic, SDAP_DEFAULT_BIND_DN);
         if (user_dn != NULL) {
-            ret = sdap_auth_get_authtok(tmp_ctx,
-                                        dp_opt_get_string(p->opts->basic,
+            ret = sdap_auth_get_authtok(dp_opt_get_string(p->opts->basic,
                                                      SDAP_DEFAULT_AUTHTOK_TYPE),
                                         dp_opt_get_blob(p->opts->basic,
                                                         SDAP_DEFAULT_AUTHTOK),

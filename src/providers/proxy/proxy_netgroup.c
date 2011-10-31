@@ -65,7 +65,6 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
 
 errno_t get_netgroup(struct proxy_id_ctx *ctx,
                      struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *dom,
                      const char *name)
 {
     struct __netgrent result;
