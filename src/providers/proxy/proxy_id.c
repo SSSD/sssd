@@ -42,6 +42,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
+    const char *shell;
 
     DEBUG(7, ("Searching user by name (%s)\n", name));
 
@@ -97,6 +98,12 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
             break;
         }
 
+        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
+            shell = pwd->pw_shell;
+        } else {
+            shell = NULL;
+        }
+
         ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
@@ -104,7 +111,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
                                pwd->pw_gid,
                                pwd->pw_gecos,
                                pwd->pw_dir,
-                               pwd->pw_shell,
+                               shell,
                                NULL, NULL,
                                ctx->entry_cache_timeout,
                                0);
@@ -163,6 +170,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     size_t buflen;
     bool del_user = false;
     int ret;
+    const char *shell;
 
     DEBUG(7, ("Searching user by uid (%d)\n", uid));
 
@@ -213,6 +221,12 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
             break;
         }
 
+        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
+            shell = pwd->pw_shell;
+        } else {
+            shell = NULL;
+        }
+
         ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
@@ -220,7 +234,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
                                pwd->pw_gid,
                                pwd->pw_gecos,
                                pwd->pw_dir,
-                               pwd->pw_shell,
+                               shell,
                                NULL, NULL,
                                ctx->entry_cache_timeout,
                                0);
@@ -272,6 +286,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
     char *buffer;
     char *newbuf;
     int ret;
+    const char *shell;
 
     DEBUG(7, ("Enumerating users\n"));
 
@@ -354,6 +369,12 @@ again:
             goto again; /* skip */
         }
 
+        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
+            shell = pwd->pw_shell;
+        } else {
+            shell = NULL;
+        }
+
         ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
@@ -361,7 +382,7 @@ again:
                                pwd->pw_gid,
                                pwd->pw_gecos,
                                pwd->pw_dir,
-                               pwd->pw_shell,
+                               shell,
                                NULL, NULL,
                                ctx->entry_cache_timeout,
                                0);
@@ -883,6 +904,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
+    const char *shell;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -935,6 +957,12 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
             break;
         }
 
+        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
+            shell = pwd->pw_shell;
+        } else {
+            shell = NULL;
+        }
+
         ret = sysdb_store_user(sysdb,
                                pwd->pw_name,
                                pwd->pw_passwd,
@@ -942,7 +970,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
                                pwd->pw_gid,
                                pwd->pw_gecos,
                                pwd->pw_dir,
-                               pwd->pw_shell,
+                               shell,
                                NULL, NULL,
                                ctx->entry_cache_timeout,
                                0);
