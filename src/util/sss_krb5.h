@@ -112,4 +112,7 @@ krb5_error_code
 sss_krb5_unparse_name_flags(krb5_context context, krb5_const_principal principal,
                             int flags, char **name);
 
+void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
+                                                  int canonicalize);
+
 #endif /* __SSS_KRB5_H__ */

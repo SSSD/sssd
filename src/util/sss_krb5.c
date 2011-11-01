@@ -913,3 +913,13 @@ cleanup:
     return ret;
 #endif /* HAVE_KRB5_UNPARSE_NAME_FLAGS */
 }
+
+void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
+                                                  int canonicalize)
+{
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE
+    return krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
+#else
+    DEBUG(SSSDBG_OP_FAILURE, ("Kerberos principal canonicalization is not avaliable!\n"));
+#endif
+}
