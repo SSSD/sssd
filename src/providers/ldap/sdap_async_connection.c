@@ -784,6 +784,7 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    const char *keytab,
                                    const char *principal,
                                    const char *realm,
+                                   bool canonicalize,
                                    int lifetime)
 {
     struct tevent_req *req;
@@ -819,6 +820,18 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
             talloc_free(req);
             return NULL;
         }
+    }
+
+    if (canonicalize) {
+        ret = setenv("KRB5_CANONICALIZE", "true", 1);
+    } else {
+        ret = setenv("KRB5_CANONICALIZE", "false", 1);
+    }
+    if (ret == -1) {
+        DEBUG(2, ("Failed to set KRB5_CANONICALIZE to %s\n",
+                  ((canonicalize)?"true":"false")));
+        talloc_free(req);
+        return NULL;
     }
 
     subreq = sdap_kinit_next_kdc(req);
@@ -1400,6 +1413,8 @@ static void sdap_cli_kinit_step(struct tevent_req *req)
                         dp_opt_get_string(state->opts->basic,
                                                    SDAP_SASL_AUTHID),
                         realm,
+                        dp_opt_get_bool(state->opts->basic,
+                                                   SDAP_KRB5_CANONICALIZE),
                         dp_opt_get_int(state->opts->basic,
                                                    SDAP_KRB5_TICKET_LIFETIME));
     if (!subreq) {

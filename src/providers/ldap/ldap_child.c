@@ -139,6 +139,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     char *realm_name = NULL;
     char *full_princ = NULL;
     char *default_realm = NULL;
+    char *tmp_str = NULL;
     krb5_context context = NULL;
     krb5_keytab keytab = NULL;
     krb5_ccache ccache = NULL;
@@ -147,6 +148,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_get_init_creds_opt options;
     krb5_error_code krberr;
     krb5_timestamp kdc_time_offset;
+    int canonicalize = 0;
     int kdc_time_offset_usec;
     int ret;
 
@@ -252,6 +254,12 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_get_init_creds_opt_set_forwardable(&options, 0);
     krb5_get_init_creds_opt_set_proxiable(&options, 0);
     krb5_get_init_creds_opt_set_tkt_life(&options, lifetime);
+
+    tmp_str = getenv("KRB5_CANONICALIZE");
+    if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
+        canonicalize = 1;
+    }
+    sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
 
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                         keytab, 0, NULL, &options);
