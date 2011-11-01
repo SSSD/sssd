@@ -245,6 +245,7 @@ struct sdap_initgr_rfc2307_state {
     const char **attrs;
     const char *name;
     const char *base_filter;
+    const char *orig_dn;
     char *filter;
     int timeout;
 
@@ -1242,6 +1243,14 @@ struct sdap_initgr_rfc2307bis_state {
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
     const char *name;
+    const char *base_filter;
+    const char **attrs;
+    const char *orig_dn;
+
+    int timeout;
+
+    size_t base_iter;
+    struct sdap_search_base **search_bases;
 
     struct sdap_op *op;
 
@@ -1256,6 +1265,7 @@ struct sdap_nested_group {
     size_t parents_count;
 };
 
+static errno_t sdap_initgr_rfc2307bis_next_base(struct tevent_req *req);
 static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq);
 static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq);
 errno_t save_rfc2307bis_user_memberships(
@@ -1275,16 +1285,12 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         struct sysdb_ctx *sysdb,
         struct sss_domain_info *dom,
         struct sdap_handle *sh,
-        const char *base_dn,
         const char *name,
         const char *orig_dn)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct sdap_initgr_rfc2307bis_state *state;
-    const char *filter;
-    const char **attrs;
     char *clean_orig_dn;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307bis_state);
@@ -1297,6 +1303,11 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     state->sh = sh;
     state->op = NULL;
     state->name = name;
+    state->direct_groups = NULL;
+    state->num_direct_parents = 0;
+    state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
+    state->base_iter = 0;
+    state->search_bases = opts->group_search_bases;
 
     ret = sss_hash_create(state, 32, &state->group_hash);
     if (ret != EOK) {
@@ -1305,61 +1316,126 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     }
 
     ret = build_attrs_from_map(state, opts->group_map,
-                               SDAP_OPTS_GROUP, &attrs);
-    if (ret != EOK) {
-        talloc_free(req);
-        return NULL;
-    }
+                               SDAP_OPTS_GROUP, &state->attrs);
+    if (ret != EOK) goto done;
 
     ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
-    if (ret != EOK) {
-        talloc_free(req);
-        return NULL;
-    }
+    if (ret != EOK) goto done;
 
-    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*))",
-                             opts->group_map[SDAP_AT_GROUP_MEMBER].name,
-                             clean_orig_dn,
-                             opts->group_map[SDAP_OC_GROUP].name,
-                             opts->group_map[SDAP_AT_GROUP_NAME].name);
-    if (!filter) {
-        talloc_zfree(req);
-        return NULL;
+    state->base_filter =
+            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*))",
+                            opts->group_map[SDAP_AT_GROUP_MEMBER].name,
+                            clean_orig_dn,
+                            opts->group_map[SDAP_OC_GROUP].name,
+                            opts->group_map[SDAP_AT_GROUP_NAME].name);
+    if (!state->base_filter) {
+        ret = ENOMEM;
+        goto done;
     }
     talloc_zfree(clean_orig_dn);
 
-    DEBUG(6, ("Looking up parent groups for user [%s]\n", orig_dn));
-    subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   state->sh, base_dn, LDAP_SCOPE_SUBTREE,
-                                   filter, attrs,
-                                   state->opts->group_map, SDAP_OPTS_GROUP,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+    ret = sdap_initgr_rfc2307bis_next_base(req);
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static errno_t sdap_initgr_rfc2307bis_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_initgr_rfc2307_state *state;
+
+    state = tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_get_id_specific_filter(
+            state,
+            state->base_filter,
+            state->search_bases[state->base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for parent groups for user [%s] with base [%s]\n",
+           state->orig_dn, state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(
+            state, state->ev, state->opts, state->sh,
+            state->search_bases[state->base_iter]->basedn,
+            state->search_bases[state->base_iter]->scope,
+            state->filter, state->attrs,
+            state->opts->group_map, SDAP_OPTS_GROUP,
+            state->timeout);
     if (!subreq) {
         talloc_zfree(req);
-        return NULL;
+        return ENOMEM;
     }
     tevent_req_set_callback(subreq, sdap_initgr_rfc2307bis_process, req);
 
-    return req;
-
+    return EOK;
 }
 
 static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_initgr_rfc2307bis_state *state;
+    struct sysdb_attrs **ldap_groups;
+    size_t count;
+    size_t i;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_initgr_rfc2307bis_state);
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->num_direct_parents,
-                                &state->direct_groups);
+                                &count,
+                                &ldap_groups);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Add this batch of groups to the list */
+    if (count > 0) {
+        state->direct_groups =
+                talloc_realloc(state,
+                               state->direct_groups,
+                               struct sysdb_attrs *,
+                               state->num_direct_parents + count + 1);
+        if (!state->direct_groups) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        /* Copy the new groups into the list.
+         * They're already allocated on 'state'.
+         */
+        for (i = 0; i < count; i++) {
+            state->direct_groups[state->num_direct_parents + i] =
+                    ldap_groups[i];
+        }
+
+        state->num_direct_parents += count;
+
+        state->direct_groups[state->num_direct_parents] = NULL;
+    }
+
+    state->base_iter++;
+
+    /* Check for additional search bases, and iterate
+     * through again.
+     */
+    if (state->search_bases[state->base_iter] != NULL) {
+        ret = sdap_initgr_rfc2307bis_next_base(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
         return;
     }
 
@@ -1745,6 +1821,11 @@ struct sdap_rfc2307bis_nested_ctx {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    int timeout;
+    const char *base_filter;
+    char *filter;
+    const char *orig_dn;
+    const char **attrs;
     struct sysdb_attrs **groups;
     size_t num_groups;
 
@@ -1758,6 +1839,9 @@ struct sdap_rfc2307bis_nested_ctx {
     const char *primary_name;
 
     struct sysdb_handle *handle;
+
+    size_t base_iter;
+    struct sdap_search_base **search_bases;
 };
 
 static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req);
@@ -1794,6 +1878,12 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     state->group_iter = 0;
     state->nesting_level = nesting;
     state->group_hash = group_hash;
+    state->filter = NULL;
+    state->timeout = dp_opt_get_int(state->opts->basic,
+                                    SDAP_SEARCH_TIMEOUT);
+    state->base_iter = 0;
+    state->search_bases = opts->group_search_bases;
+
 
     ret = rfc2307bis_nested_groups_step(req);
     if (ret == EOK) {
@@ -1809,15 +1899,12 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     return req;
 }
 
+static errno_t rfc2307bis_nested_groups_next_base(struct tevent_req *req);
 static void rfc2307bis_nested_groups_process(struct tevent_req *subreq);
 static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
 {
     errno_t ret;
-    struct tevent_req *subreq;
     TALLOC_CTX *tmp_ctx = NULL;
-    char *filter;
-    const char *orig_dn;
-    const char **attrs;
     char *clean_orig_dn;
     hash_key_t key;
     struct sdap_rfc2307bis_nested_ctx *state =
@@ -1826,7 +1913,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     tmp_ctx = talloc_new(state);
     if (!tmp_ctx) {
         ret = ENOMEM;
-        goto error;
+        goto done;
     }
 
     ret = sysdb_attrs_primary_name(
@@ -1835,81 +1922,102 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
             state->opts->group_map[SDAP_AT_GROUP_NAME].name,
             &state->primary_name);
     if (ret != EOK) {
-        goto error;
+        goto done;
     }
 
     key.type = HASH_KEY_STRING;
     key.str = talloc_strdup(state, state->primary_name);
     if (!key.str) {
         ret = ENOMEM;
-        goto error;
+        goto done;
     }
 
     DEBUG(6, ("Processing group [%s]\n", state->primary_name));
 
     if (hash_has_key(state->group_hash, &key)) {
         talloc_free(key.str);
-        talloc_free(tmp_ctx);
-        return EOK;
+        ret = EOK;
+        goto done;
     }
 
     /* Get any parent groups for this group */
     ret = sysdb_attrs_get_string(state->groups[state->group_iter],
                                  SYSDB_ORIG_DN,
-                                 &orig_dn);
+                                 &state->orig_dn);
     if (ret != EOK) {
-        goto error;
+        goto done;
     }
 
-    ret = build_attrs_from_map(tmp_ctx, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &attrs);
+    ret = build_attrs_from_map(state, state->opts->group_map,
+                               SDAP_OPTS_GROUP, &state->attrs);
     if (ret != EOK) {
-        goto error;
+        goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, orig_dn, &clean_orig_dn);
+    ret = sss_filter_sanitize(tmp_ctx, state->orig_dn, &clean_orig_dn);
     if (ret != EOK) {
-        goto error;
+        goto done;
     }
 
-    filter = talloc_asprintf(
-            tmp_ctx, "(&(%s=%s)(objectclass=%s)(%s=*))",
+    state->base_filter = talloc_asprintf(
+            state, "(&(%s=%s)(objectclass=%s)(%s=*))",
             state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
             clean_orig_dn,
             state->opts->group_map[SDAP_OC_GROUP].name,
             state->opts->group_map[SDAP_AT_GROUP_NAME].name);
-    if (!filter) {
+    if (!state->base_filter) {
         ret = ENOMEM;
-        goto error;
+        goto done;
     }
-    talloc_zfree(clean_orig_dn);
 
-    DEBUG(6, ("Looking up parent groups for group [%s]\n", orig_dn));
-    subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   state->sh,
-                                   dp_opt_get_string(state->opts->basic,
-                                                     SDAP_GROUP_SEARCH_BASE),
-                                   LDAP_SCOPE_SUBTREE,
-                                   filter, attrs,
-                                   state->opts->group_map, SDAP_OPTS_GROUP,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
-    if (!subreq) {
-        ret = EIO;
-        goto error;
+    ret = rfc2307bis_nested_groups_next_base(req);
+    if (ret != EOK) goto done;
+
+    /* Still processing parent groups */
+    ret = EAGAIN;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t rfc2307bis_nested_groups_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_rfc2307bis_nested_ctx *state;
+
+    state = tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_get_id_specific_filter(
+            state, state->base_filter,
+            state->search_bases[state->base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
     }
-    talloc_steal(subreq, tmp_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for parent groups of group [%s] with base [%s]\n",
+           state->orig_dn,
+           state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(
+            state, state->ev, state->opts, state->sh,
+            state->search_bases[state->base_iter]->basedn,
+            state->search_bases[state->base_iter]->scope,
+            state->filter, state->attrs,
+            state->opts->group_map, SDAP_OPTS_GROUP,
+            state->timeout);
+    if (!subreq) {
+        return ENOMEM;
+    }
     tevent_req_set_callback(subreq,
                             rfc2307bis_nested_groups_process,
                             req);
 
-    talloc_free(tmp_ctx);
-    return EAGAIN;
-
-error:
-    talloc_free(tmp_ctx);
-    return ret;
+    return EOK;
 }
+
 
 static void rfc2307bis_nested_groups_done(struct tevent_req *subreq);
 static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
@@ -1919,19 +2027,62 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_rfc2307bis_nested_ctx *state =
             tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
+    size_t count;
+    size_t i;
+    struct sysdb_attrs **ldap_groups;
     struct sdap_nested_group *ngr;
     hash_value_t value;
     hash_key_t key;
     int hret;
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->parents_count,
-                                &state->ldap_parents);
+                                &count,
+                                &ldap_groups);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
+
+    /* Add this batch of groups to the list */
+    if (count > 0) {
+        state->ldap_parents =
+                talloc_realloc(state,
+                               state->ldap_parents,
+                               struct sysdb_attrs *,
+                               state->parents_count + count + 1);
+        if (!state->ldap_parents) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        /* Copy the new groups into the list.
+         * They're already allocated on 'state'.
+         */
+        for (i = 0; i < count; i++) {
+            state->ldap_parents[state->parents_count + i] = ldap_groups[i];
+        }
+
+        state->parents_count += count;
+
+        state->ldap_parents[state->parents_count] = NULL;
+    }
+
+    state->base_iter++;
+
+    /* Check for additional search bases, and iterate
+     * through again.
+     */
+    if (state->search_bases[state->base_iter] != NULL) {
+        ret = rfc2307bis_nested_groups_next_base(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* Reset the base iterator for future lookups */
+    state->base_iter = 0;
 
     ngr = talloc_zero(state->group_hash, struct sdap_nested_group);
     if (!ngr) {
@@ -2177,7 +2328,6 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         struct sysdb_ctx *sysdb,
         struct sss_domain_info *dom,
         struct sdap_handle *sh,
-        const char *base_dn,
         const char *name,
         const char *orig_dn);
 static void sdap_get_initgr_user(struct tevent_req *subreq)
@@ -2282,8 +2432,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         subreq = sdap_initgr_rfc2307bis_send(
                 state, state->ev, state->opts, state->sysdb,
                 state->dom, state->sh,
-                dp_opt_get_string(state->opts->basic,
-                                  SDAP_GROUP_SEARCH_BASE),
                 state->name, orig_dn);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
