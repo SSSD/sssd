@@ -56,6 +56,4 @@ struct sdap_access_ctx {
     int access_rule[LDAP_ACCESS_LAST + 1];
 };
 
-void ldap_pam_access_handler(struct be_req *breq);
-
 #endif /* SDAP_ACCESS_H_ */
