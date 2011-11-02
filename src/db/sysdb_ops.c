@@ -1103,7 +1103,7 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
                                         domain, gid, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) {
-                ret = sysdb_delete_group(sysdb, NULL, gid);
+                ret = sysdb_delete_group(tmpctx, ctx, domain, NULL, gid);
             }
 
             if (ret != EOK) {
