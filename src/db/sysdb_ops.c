@@ -1102,8 +1102,13 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
         ret = sysdb_search_group_by_gid(tmpctx, ctx,
                                         domain, gid, NULL, &msg);
         if (ret != ENOENT) {
-            if (ret == EOK) ret = EEXIST;
-            goto done;
+            if (ret == EOK) {
+                ret = sysdb_delete_group(sysdb, NULL, gid);
+            }
+
+            if (ret != EOK) {
+                goto done;
+            }
         }
     }
 
