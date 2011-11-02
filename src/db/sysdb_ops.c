@@ -1139,8 +1139,13 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
         ret = sysdb_search_group_by_gid(tmp_ctx, sysdb,
                                         gid, NULL, &msg);
         if (ret != ENOENT) {
-            if (ret == EOK) ret = EEXIST;
-            goto done;
+            if (ret == EOK) {
+                ret = sysdb_delete_group(sysdb, NULL, gid);
+            }
+
+            if (ret != EOK) {
+                goto done;
+            }
         }
     }
 
