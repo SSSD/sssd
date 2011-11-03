@@ -409,7 +409,7 @@
                     <term>krb5_canonicalize (boolean)</term>
                     <listitem>
                         <para>
-                            Specifies if the host and user pricipal should be
+                            Specifies if the host and user principal should be
                             canonicalized. This feature is available with MIT
                             Kerberos >= 1.7
                         </para>

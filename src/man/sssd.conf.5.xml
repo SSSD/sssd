@@ -513,7 +513,7 @@
                             If set to 0 the user cannot authenticate offline if
                             offline_failed_login_attempts has been reached. Only
                             a successful online authentication can enable
-                            enable offline authentication again.
+                            offline authentication again.
                         </para>
                         <para>
                             Default: 5
