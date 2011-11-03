@@ -2363,9 +2363,10 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         }
 
         tevent_req_error(req, ENOENT);
+        return;
     } else if (count != 1) {
         DEBUG(2, ("Expected one user entry and got %d\n", count));
-        tevent_req_error(req, ENOENT);
+        tevent_req_error(req, EINVAL);
         return;
     }
 
