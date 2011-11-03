@@ -1244,6 +1244,7 @@ struct sdap_initgr_rfc2307bis_state {
     struct sdap_handle *sh;
     const char *name;
     const char *base_filter;
+    char *filter;
     const char **attrs;
     const char *orig_dn;
 
@@ -1347,9 +1348,9 @@ done:
 static errno_t sdap_initgr_rfc2307bis_next_base(struct tevent_req *req)
 {
     struct tevent_req *subreq;
-    struct sdap_initgr_rfc2307_state *state;
+    struct sdap_initgr_rfc2307bis_state *state;
 
-    state = tevent_req_data(req, struct sdap_initgr_rfc2307_state);
+    state = tevent_req_data(req, struct sdap_initgr_rfc2307bis_state);
 
     talloc_zfree(state->filter);
     state->filter = sdap_get_id_specific_filter(
