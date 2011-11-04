@@ -94,15 +94,17 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         if (error == ENOENT) {
             DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
                       path));
-            return EOK;
+            error = EOK;
+            goto fail_fd;
         }
         DEBUG(1, ("fstat failed [%d][%s].\n", error, strerror(error)));
-        return error;
+        goto fail_fd;
     }
 
     if (!S_ISREG(stat_buf.st_mode)) {
         DEBUG(1, ("not a regular file\n"));
-        return EINVAL;
+        error = EINVAL;
+        goto fail_fd;
     }
 
     while ((ret = read(fd, buf, BUFSIZE)) != 0) {
@@ -112,7 +114,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
                 continue;
             }
             DEBUG(1, ("read failed [%d][%s].\n", error, strerror(error)));
-            return error;
+            goto fail_fd;
         }
     }
 
@@ -156,6 +158,10 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     *uid = num;
 
     return EOK;
+
+fail_fd:
+    close(fd);
+    return error;
 }
 
 static errno_t name_to_pid(const char *name, pid_t *pid)
