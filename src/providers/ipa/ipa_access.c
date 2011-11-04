@@ -298,6 +298,10 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
                                     hbac_ctx_sysdb(hbac_ctx),
                                     sdap_id_op_handle(hbac_ctx->sdap_op),
                                     hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                                    dp_opt_get_bool(hbac_ctx->ipa_options,
+                                                    IPA_HBAC_SUPPORT_SRCHOST),
+                                    dp_opt_get_string(hbac_ctx->ipa_options,
+                                                      IPA_HOSTNAME),
                                     hbac_ctx->hbac_search_base);
     if (req == NULL) {
         DEBUG(1, ("Could not get host info\n"));

@@ -33,12 +33,25 @@ struct ipa_hbac_host_state {
     const char *search_base;
     const char **attrs;
 
+    bool support_srchost;
+    const char *hostname;
+
     /* Return values */
     size_t host_count;
     struct sysdb_attrs **hosts;
 
     size_t hostgroup_count;
     struct sysdb_attrs **hostgroups;
+    struct sdap_attr_map_info *hostgroup_map;
+};
+
+#define HOSTGROUP_MAP_ATTRS_COUNT 5
+static struct sdap_attr_map hostgroup_map[] = {
+    {"objectclass", "ipahostgroup", "hostgroup", NULL},
+    {"name_attr", IPA_CN, IPA_CN, NULL},
+    {"member", IPA_MEMBER, SYSDB_ORIG_MEMBER, NULL},
+    {"memberof", IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF, NULL},
+    {"ipa_id", IPA_UNIQUE_ID, IPA_UNIQUE_ID, NULL}
 };
 
 static void
@@ -53,6 +66,8 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
+                        bool support_srchost,
+                        const char *hostname,
                         const char *search_base)
 {
     errno_t ret;
@@ -70,9 +85,20 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
     state->sysdb = sysdb;
     state->sh = sh;
     state->opts = opts;
+    state->support_srchost = support_srchost;
+    state->hostname = hostname;
     state->search_base = search_base;
 
-    host_filter = talloc_asprintf(state, "(objectClass=%s)", IPA_HOST);
+    if (support_srchost) {
+        host_filter = talloc_asprintf(state, "(objectClass=%s)", IPA_HOST);
+    } else {
+        if (hostname == NULL) {
+            ret = EINVAL;
+            goto immediate;
+        }
+        host_filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=%s))",
+                                      IPA_HOST, IPA_HOST_FQDN, hostname);
+    }
     if (host_filter == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -126,6 +152,8 @@ ipa_hbac_host_info_done(struct tevent_req *subreq)
     struct ipa_hbac_host_state *state =
             tevent_req_data(req, struct ipa_hbac_host_state);
     char *hostgroup_filter;
+    const char *host_dn;
+    int i;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &state->host_count,
@@ -150,23 +178,64 @@ ipa_hbac_host_info_done(struct tevent_req *subreq)
         return;
     }
 
-    hostgroup_filter = talloc_asprintf(state, "(objectClass=%s)",
-                                              IPA_HOSTGROUP);
-    if (hostgroup_filter == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    /* Complete the map */
+    for (i = 0; i < HOSTGROUP_MAP_ATTRS_COUNT; i++) {
+        /* These are allocated on the state, so the next time they'll
+         * have to be allocated again
+         */
+        hostgroup_map[i].name = talloc_strdup(state,
+                                              hostgroup_map[i].def_name);
+        if (hostgroup_map[i].name == NULL) {
+            tevent_req_error(req, ret);
+            return;
+        }
     }
 
     /* Look up host groups */
-    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   state->search_base, LDAP_SCOPE_SUB,
-                                   hostgroup_filter, state->attrs, NULL, 0,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
-    if (subreq == NULL) {
-        DEBUG(1, ("Error requesting host info\n"));
-        tevent_req_error(req, EIO);
-        return;
+    if (state->support_srchost) {
+        hostgroup_filter = talloc_asprintf(state, "(objectClass=%s)",
+                                                  IPA_HOSTGROUP);
+        if (hostgroup_filter == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                       state->search_base, LDAP_SCOPE_SUB,
+                                       hostgroup_filter, state->attrs, hostgroup_map,
+                                       HOSTGROUP_MAP_ATTRS_COUNT,
+                                       dp_opt_get_int(state->opts->basic,
+                                                      SDAP_ENUM_SEARCH_TIMEOUT));
+        if (subreq == NULL) {
+            DEBUG(1, ("Error requesting host info\n"));
+            tevent_req_error(req, EIO);
+            return;
+        }
+    } else {
+        state->hostgroup_map = talloc_zero(state, struct sdap_attr_map_info);
+        if (state->hostgroup_map == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        state->hostgroup_map->map = hostgroup_map;
+        state->hostgroup_map->num_attrs = HOSTGROUP_MAP_ATTRS_COUNT;
+
+        ret = sysdb_attrs_get_string(state->hosts[0], SYSDB_ORIG_DN, &host_dn);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        subreq = sdap_deref_search_send(state, state->ev, state->opts, state->sh,
+                                        host_dn, IPA_MEMBEROF, state->attrs,
+                                        1, state->hostgroup_map,
+                                        dp_opt_get_int(state->opts->basic,
+                                                       SDAP_ENUM_SEARCH_TIMEOUT));
+        if (subreq == NULL) {
+            DEBUG(1, ("Error requesting host info\n"));
+            tevent_req_error(req, EIO);
+            return;
+        }
     }
     tevent_req_set_callback(subreq, ipa_hbac_hostgroup_info_done, req);
 }
@@ -180,26 +249,43 @@ ipa_hbac_hostgroup_info_done(struct tevent_req *subreq)
     struct ipa_hbac_host_state *state =
             tevent_req_data(req, struct ipa_hbac_host_state);
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &state->hostgroup_count,
-                                &state->hostgroups);
-    talloc_zfree(subreq);
-    if (ret != EOK) goto done;
+    struct sdap_deref_attrs **deref_result;
+    const char *hostgroup_name;
+    int i;
 
-    ret = replace_attribute_name(IPA_MEMBER, SYSDB_ORIG_MEMBER,
-                                 state->hostgroup_count,
-                                 state->hostgroups);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
-        goto done;
-    }
+    if (state->support_srchost) {
+        ret = sdap_get_generic_recv(subreq, state,
+                                    &state->hostgroup_count,
+                                    &state->hostgroups);
+        talloc_zfree(subreq);
+    } else {
+        ret = sdap_deref_search_recv(subreq, state,
+                                     &state->hostgroup_count,
+                                     &deref_result);
+        talloc_zfree(subreq);
+        if (ret != EOK) goto done;
 
-    ret = replace_attribute_name(IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF,
-                                 state->hostgroup_count,
-                                 state->hostgroups);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
-        goto done;
+        if (state->hostgroup_count == 0) {
+            DEBUG(SSSDBG_FUNC_DATA, ("No host groups were dereferenced\n"));
+        } else {
+            state->hostgroups = talloc_zero_array(state, struct sysdb_attrs *,
+                                                  state->hostgroup_count);
+            if (state->hostgroups == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            for (i = 0; i < state->hostgroup_count; i++) {
+                ret = sysdb_attrs_get_string(deref_result[i]->attrs,
+                                             IPA_CN, &hostgroup_name);
+                if (ret != EOK) goto done;
+
+                DEBUG(SSSDBG_FUNC_DATA, ("Dereferenced host group: %s\n",
+                                        hostgroup_name));
+                state->hostgroups[i] = talloc_steal(state->hostgroups,
+                                                    deref_result[i]->attrs);
+            }
+        }
     }
 
 done:
@@ -454,16 +540,33 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
+                         bool support_srchost,
                          struct hbac_rule_element **source_hosts)
 {
     errno_t ret;
     size_t host_count;
-    TALLOC_CTX *tmp_ctx = talloc_new(mem_ctx);
+    TALLOC_CTX *tmp_ctx;
     size_t idx;
     struct ldb_message_element *el;
     struct hbac_rule_element *shosts;
 
-    DEBUG(7, ("Processing source hosts for rule [%s]\n", rule_name));
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing source hosts for rule [%s]\n", rule_name));
+
+    if (!support_srchost) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Source hosts disabled, setting ALL\n"));
+        shosts = talloc_zero(tmp_ctx, struct hbac_rule_element);
+        if (shosts == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        shosts->category = HBAC_CATEGORY_ALL;
+        ret = EOK;
+        goto done;
+    }
 
     ret = hbac_host_attrs_to_rule(tmp_ctx, sysdb,
                                   rule_name, rule_attrs,
