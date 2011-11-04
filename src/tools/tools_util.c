@@ -408,7 +408,7 @@ int create_mail_spool(TALLOC_CTX *mem_ctx,
                       uid_t uid, gid_t gid)
 {
     char *spool_file = NULL;
-    int fd;
+    int fd = -1;
     int ret;
 
     spool_file = talloc_asprintf(mem_ctx, "%s/%s", maildir, username);
@@ -448,18 +448,18 @@ int create_mail_spool(TALLOC_CTX *mem_ctx,
         ret = errno;
         DEBUG(1, ("Cannot fsync() the spool file: [%d][%s]\n",
                   ret, strerror(ret)));
-        goto fail;
-    }
-
-    ret = close(fd);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot close() the spool file: [%d][%s]\n",
-                  ret, strerror(ret)));
-        goto fail;
     }
 
 fail:
+    if (fd >= 0) {
+        ret = close(fd);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(1, ("Cannot close() the spool file: [%d][%s]\n",
+                      ret, strerror(ret)));
+        }
+    }
+
     reset_selinux_file_context();
     talloc_free(spool_file);
     return ret;
