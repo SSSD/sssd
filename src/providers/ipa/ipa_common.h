@@ -52,6 +52,7 @@ enum ipa_basic_opt {
     IPA_KRB5_REALM,
     IPA_HBAC_REFRESH,
     IPA_HBAC_DENY_METHOD,
+    IPA_HBAC_SUPPORT_SRCHOST,
 
     IPA_OPTS_BASIC /* opts counter */
 };

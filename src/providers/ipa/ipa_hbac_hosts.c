@@ -34,12 +34,24 @@ struct ipa_hbac_host_state {
     const char *search_base;
     const char **attrs;
 
+    bool support_srchost;
+    const char *hostname;
+
     /* Return values */
     size_t host_count;
     struct sysdb_attrs **hosts;
 
     size_t hostgroup_count;
     struct sysdb_attrs **hostgroups;
+};
+
+#define HOSTGROUP_MAP_ATTRS_COUNT 5
+static struct sdap_attr_map hostgroup_map[] = {
+    {"objectclass", "ipahostgroup", "hostgroup", NULL},
+    {"name_attr", IPA_CN, IPA_CN, NULL},
+    {"member", IPA_MEMBER, SYSDB_ORIG_MEMBER, NULL},
+    {"memberof", IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF, NULL},
+    {"ipa_id", IPA_UNIQUE_ID, IPA_UNIQUE_ID, NULL}
 };
 
 static void
@@ -55,6 +67,8 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *dom,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
+                        bool support_srchost,
+                        const char *hostname,
                         const char *search_base)
 {
     errno_t ret;
@@ -73,9 +87,20 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
     state->dom = dom;
     state->sh = sh;
     state->opts = opts;
+    state->support_srchost = support_srchost;
+    state->hostname = hostname;
     state->search_base = search_base;
 
-    host_filter = talloc_asprintf(state, "(objectClass=%s)", IPA_HOST);
+    if (support_srchost) {
+        host_filter = talloc_asprintf(state, "(objectClass=%s)", IPA_HOST);
+    } else {
+        if (hostname == NULL) {
+            ret = EINVAL;
+            goto immediate;
+        }
+        host_filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=%s))",
+                                      IPA_HOST, IPA_HOST_FQDN, hostname);
+    }
     if (host_filter == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -120,6 +145,20 @@ immediate:
     return req;
 }
 
+static errno_t
+ipa_hbac_get_hostgroups_recv(struct tevent_req *subreq,
+                             TALLOC_CTX *mem_ctx,
+                             size_t *count,
+                             struct sysdb_attrs ***parents);
+
+static struct tevent_req *
+ipa_hbac_get_hostgroups_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sdap_options *opts,
+                             struct sdap_handle *sh,
+                             size_t queue_len,
+                             char **queued_parents);
+
 static void
 ipa_hbac_host_info_done(struct tevent_req *subreq)
 {
@@ -129,49 +168,326 @@ ipa_hbac_host_info_done(struct tevent_req *subreq)
     struct ipa_hbac_host_state *state =
             tevent_req_data(req, struct ipa_hbac_host_state);
     char *hostgroup_filter;
+    const char *parent_dn;
+    struct ldb_message_element *parent_el;
+    char **queued_parents;
+    size_t queue_len;
+    int i;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &state->host_count,
                                 &state->hosts);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
+    if (ret != EOK) goto error;
 
-    if (state->host_count == 0) {
-        tevent_req_error(req, ENOENT);
-        return;
-    }
+    if (state->host_count == 0) goto error;
 
     ret = replace_attribute_name(IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF,
                                  state->host_count,
                                  state->hosts);
     if (ret != EOK) {
         DEBUG(1, ("Could not replace attribute names\n"));
-        tevent_req_error(req, ret);
-        return;
+        goto error;
     }
 
-    hostgroup_filter = talloc_asprintf(state, "(objectClass=%s)",
-                                              IPA_HOSTGROUP);
-    if (hostgroup_filter == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    /* Complete the map */
+    for (i = 0; i < HOSTGROUP_MAP_ATTRS_COUNT; i++) {
+        /* These are allocated on the state, so the next time they'll
+         * have to be allocated again
+         */
+        hostgroup_map[i].name = talloc_strdup(state,
+                                              hostgroup_map[i].def_name);
+        if (hostgroup_map[i].name == NULL) goto error;
     }
 
     /* Look up host groups */
-    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   state->search_base, LDAP_SCOPE_SUB,
-                                   hostgroup_filter, state->attrs, NULL, 0,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
-    if (subreq == NULL) {
-        DEBUG(1, ("Error requesting host info\n"));
-        tevent_req_error(req, EIO);
+    if (state->support_srchost) {
+        hostgroup_filter = talloc_asprintf(state, "(objectClass=%s)",
+                                                  IPA_HOSTGROUP);
+        if (hostgroup_filter == NULL) goto error;
+
+        subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                       state->search_base, LDAP_SCOPE_SUB,
+                                       hostgroup_filter, state->attrs, hostgroup_map,
+                                       HOSTGROUP_MAP_ATTRS_COUNT,
+                                       dp_opt_get_int(state->opts->basic,
+                                                      SDAP_ENUM_SEARCH_TIMEOUT));
+        if (subreq == NULL) {
+            DEBUG(1, ("Error requesting host info\n"));
+            goto error;
+        }
+        tevent_req_set_callback(subreq, ipa_hbac_hostgroup_info_done, req);
         return;
     }
+
+    /* Source host processing is disabled */
+
+    ret = sysdb_attrs_get_el_ext(state->hosts[0],
+                                 SYSDB_ORIG_MEMBEROF,
+                                 false,
+                                 &parent_el);
+    if (ret != EOK && ret != ENOENT) goto error;
+
+    if (ret == ENOENT) {
+        queue_len = 0;
+        queued_parents = NULL;
+    } else {
+        /* Iterate through the memberOf DNs and retrieve
+         * the hostgroup entries in parallel
+         */
+
+        /* We'll assume that all parents are hostgroups for efficiency */
+        queued_parents = talloc_array(state, char *,
+                                      parent_el->num_values);
+        if (!queued_parents) {
+            ret = ENOMEM;
+            goto error;
+        }
+        queue_len = 0;
+
+        for (i=0; i < parent_el->num_values; i++) {
+            parent_dn = (char *)parent_el->values[i].data;
+
+            ret = get_ipa_hostgroupname(NULL, state->sysdb, parent_dn, NULL);
+            if (ret == ENOENT) {
+                /* Skip this entry, it's not a hostgroup */
+                continue;
+            } else if (ret != EOK) goto error;
+
+            /* Enqueue this hostgroup for lookup */
+            queued_parents[queue_len] =
+                    talloc_strdup(queued_parents, parent_dn);
+            if (!queued_parents[queue_len]) {
+                ret = ENOMEM;
+                goto error;
+            }
+            queue_len++;
+        }
+    }
+
+    subreq = ipa_hbac_get_hostgroups_send(state,
+                                          state->ev,
+                                          state->opts,
+                                          state->sh,
+                                          queue_len,
+                                          queued_parents);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto error;
+    }
+
     tevent_req_set_callback(subreq, ipa_hbac_hostgroup_info_done, req);
+    return;
+
+error:
+    DEBUG(3, ("Error: [%s]\n", strerror(ret)));
+    tevent_req_error(req, ret);
+}
+
+#define HOSTGROUP_REQ_PARALLEL 50
+
+struct ipa_hbac_get_hostgroups_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+
+    const char **attrs;
+
+    char **queued_parents;
+    size_t queue_len;
+    size_t queue_iter;
+    size_t running;
+
+    /* Results */
+    struct sysdb_attrs **parents;
+    size_t parent_count;
+};
+
+static void
+ipa_hbac_get_hostgroups_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_hbac_get_hostgroups_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sdap_options *opts,
+                             struct sdap_handle *sh,
+                             size_t queue_len,
+                             char **queued_parents)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct ipa_hbac_get_hostgroups_state *state;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_hbac_get_hostgroups_state);
+    if (!req) return NULL;
+
+    if (queue_len == 0) {
+        /* This host is not in any hostgroups */
+        ret = ENOENT;
+        goto error;
+    }
+
+    state->ev = ev;
+    state->opts = opts;
+    state->sh = sh;
+
+    state->queued_parents = queued_parents;
+    state->queue_len = queue_len;
+    state->queue_iter = 0;
+    state->running = 0;
+
+    state->attrs = talloc_array(state, const char *, 6);
+    if (state->attrs == NULL) {
+        DEBUG(1, ("Failed to allocate hostgroup attribute list.\n"));
+        ret = ENOMEM;
+        goto error;
+    }
+    state->attrs[0] = "objectClass";
+    state->attrs[1] = IPA_UNIQUE_ID;
+    state->attrs[2] = IPA_MEMBER;
+    state->attrs[3] = IPA_MEMBEROF;
+    state->attrs[4] = IPA_CN;
+    state->attrs[5] = NULL;
+
+    /* Pre-create the result array assuming that all values
+     * return results (which they should, since FreeIPA is
+     * memberOf-guaranteed.
+     */
+    state->parents = talloc_array(state, struct sysdb_attrs *,
+                                  state->queue_len);
+    if (!state->parents) {
+        ret = ENOMEM;
+        goto error;
+    }
+    state->parent_count = 0;
+
+    /* Process the parents in parallel */
+    while (state->queue_iter < state->queue_len
+            && state->running < HOSTGROUP_REQ_PARALLEL) {
+        subreq = sdap_get_generic_send(
+                    state, state->ev, state->opts, state->sh,
+                    state->queued_parents[state->queue_iter],
+                    LDAP_SCOPE_BASE, NULL, state->attrs,
+                    hostgroup_map, HOSTGROUP_MAP_ATTRS_COUNT,
+                    dp_opt_get_int(state->opts->basic,
+                                   SDAP_ENUM_SEARCH_TIMEOUT));
+        if (!subreq) {
+            ret = ENOMEM;
+            goto error;
+        }
+        tevent_req_set_callback(subreq, ipa_hbac_get_hostgroups_done, req);
+        state->queue_iter++;
+        state->running++;
+    }
+
+    return req;
+
+error:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void
+ipa_hbac_get_hostgroups_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_hbac_get_hostgroups_state *state =
+            tevent_req_data(req, struct ipa_hbac_get_hostgroups_state);
+    size_t count;
+    struct sysdb_attrs **hostgroup_attrs = NULL;
+
+    /* Get the results and add them to the result array */
+    state->running--;
+
+    ret = sdap_get_generic_recv(subreq, NULL, &count, &hostgroup_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK || count != 1) {
+        /* We got an error retrieving the host group.
+         * We'll log it and continue. The worst-case
+         * here is that we'll deny too aggressively.
+         */
+        if (ret == EOK) {
+            /* We got back something other than a single entry on a
+             * base search?
+             */
+            ret = ENOENT;
+        }
+
+        DEBUG(1, ("Error [%s] while processing hostgroups. Skipping.\n",
+                  strerror(ret)));
+        goto next;
+    }
+
+    /* Add this hostgroup to the array */
+    state->parents[state->parent_count] =
+            talloc_steal(state->parents, hostgroup_attrs[0]);
+    state->parent_count++;
+
+next:
+    /* Check if there are more hostgroups to process */
+    if (state->queue_iter < state->queue_len) {
+        subreq = sdap_get_generic_send(
+                    state, state->ev, state->opts, state->sh,
+                    state->queued_parents[state->queue_iter],
+                    LDAP_SCOPE_BASE, NULL, state->attrs,
+                    hostgroup_map, HOSTGROUP_MAP_ATTRS_COUNT,
+                    dp_opt_get_int(state->opts->basic,
+                                   SDAP_ENUM_SEARCH_TIMEOUT));
+        if (!subreq) {
+            ret = ENOMEM;
+            goto done;
+        }
+        tevent_req_set_callback(subreq, ipa_hbac_get_hostgroups_done, req);
+        state->queue_iter++;
+        state->running++;
+    }
+
+    /* Continue processing until all parallel searches have
+     * completed successfully.
+     */
+    if (state->running != 0) {
+        /* There are still pending parallel requests.
+         * Re-enter the mainloop.
+         */
+        talloc_free(hostgroup_attrs);
+        return;
+    }
+
+    /* All searches are complete. Return the results */
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        DEBUG(3, ("Error [%d][%s]\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+    }
+
+    talloc_free(hostgroup_attrs);
+    return;
+}
+
+static errno_t
+ipa_hbac_get_hostgroups_recv(struct tevent_req *req,
+                             TALLOC_CTX *mem_ctx,
+                             size_t *reply_count,
+                             struct sysdb_attrs ***parents)
+{
+    struct ipa_hbac_get_hostgroups_state *state =
+            tevent_req_data(req, struct ipa_hbac_get_hostgroups_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->parent_count;
+    *parents = talloc_steal(mem_ctx, state->parents);
+
+    return EOK;
 }
 
 static void
@@ -183,29 +499,24 @@ ipa_hbac_hostgroup_info_done(struct tevent_req *subreq)
     struct ipa_hbac_host_state *state =
             tevent_req_data(req, struct ipa_hbac_host_state);
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &state->hostgroup_count,
-                                &state->hostgroups);
+    if (state->support_srchost) {
+        ret = sdap_get_generic_recv(subreq, state,
+                                    &state->hostgroup_count,
+                                    &state->hostgroups);
+    } else {
+        ret = ipa_hbac_get_hostgroups_recv(subreq, state,
+                                           &state->hostgroup_count,
+                                           &state->hostgroups);
+    }
     talloc_zfree(subreq);
-    if (ret != EOK) goto done;
 
-    ret = replace_attribute_name(IPA_MEMBER, SYSDB_ORIG_MEMBER,
-                                 state->hostgroup_count,
-                                 state->hostgroups);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
-        goto done;
+    if (ret == ENOENT) {
+        /* No hostgroups were found */
+        state->hostgroup_count = 0;
+        state->hostgroups = NULL;
+        ret = EOK;
     }
 
-    ret = replace_attribute_name(IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF,
-                                 state->hostgroup_count,
-                                 state->hostgroups);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
-        goto done;
-    }
-
-done:
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
@@ -460,16 +771,33 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
+                         bool support_srchost,
                          struct hbac_rule_element **source_hosts)
 {
     errno_t ret;
     size_t host_count;
-    TALLOC_CTX *tmp_ctx = talloc_new(mem_ctx);
+    TALLOC_CTX *tmp_ctx;
     size_t idx;
     struct ldb_message_element *el;
     struct hbac_rule_element *shosts;
 
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) return ENOMEM;
+
     DEBUG(7, ("Processing source hosts for rule [%s]\n", rule_name));
+
+    if (!support_srchost) {
+        DEBUG(8, ("Source hosts disabled, setting ALL\n"));
+        shosts = talloc_zero(tmp_ctx, struct hbac_rule_element);
+        if (shosts == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        shosts->category = HBAC_CATEGORY_ALL;
+        ret = EOK;
+        goto done;
+    }
 
     ret = hbac_host_attrs_to_rule(tmp_ctx, sysdb, domain,
                                   rule_name, rule_attrs,
@@ -543,7 +871,10 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
      * be changed if SSSD ever supports HBAC on
      * a non-IPA server.
      */
-    *hostgroupname = NULL;
+
+    if (hostgroupname) {
+        *hostgroupname = NULL;
+    }
 
     dn = ldb_dn_new(mem_ctx, sysdb_ctx_get_ldb(sysdb), host_dn);
     if (dn == NULL) {
@@ -617,12 +948,15 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
 
     /* Then the value of the RDN is the group name */
     rdn_val = ldb_dn_get_rdn_val(dn);
-    *hostgroupname = talloc_strndup(mem_ctx,
-                                    (const char *)rdn_val->data,
-                                    rdn_val->length);
-    if (*hostgroupname == NULL) {
-        ret = ENOMEM;
-        goto done;
+
+    if (hostgroupname) {
+        *hostgroupname = talloc_strndup(mem_ctx,
+                                        (const char *)rdn_val->data,
+                                        rdn_val->length);
+        if (*hostgroupname == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     ret = EOK;

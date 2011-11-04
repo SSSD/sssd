@@ -346,11 +346,14 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     }
 
     /* Get the source hosts */
+
     ret = hbac_shost_attrs_to_rule(new_rule,
                                    hbac_ctx_sysdb(hbac_ctx),
                                    hbac_ctx_be(hbac_ctx)->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
+                                   dp_opt_get_bool(hbac_ctx->ipa_options,
+                                                   IPA_HBAC_SUPPORT_SRCHOST),
                                    &new_rule->srchosts);
     if (ret != EOK) {
         DEBUG(1, ("Could not parse source hosts for rule [%s]\n",

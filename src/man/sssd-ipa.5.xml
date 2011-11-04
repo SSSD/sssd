@@ -222,6 +222,18 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>ipa_hbac_support_srchost (boolean)</term>
+                    <listitem>
+                        <para>
+                            If this is set to false, then srchost as given
+                            to SSSD by PAM will be ignored.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
 
             </variablelist>
         </para>

@@ -106,6 +106,8 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *dom,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
+                        bool support_srchost,
+                        const char *hostname,
                         const char *search_base);
 
 errno_t
@@ -130,6 +132,7 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
+                         bool support_srchost,
                          struct hbac_rule_element **source_hosts);
 errno_t
 get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
