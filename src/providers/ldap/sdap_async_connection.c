@@ -588,7 +588,8 @@ static void simple_bind_done(struct sdap_op *op,
     }
 
     DEBUG(3, ("Bind result: %s(%d), %s\n",
-              sss_ldap_err2string(state->result), state->result, errmsg));
+              sss_ldap_err2string(state->result), state->result,
+              errmsg ? errmsg : "no errmsg set"));
 
     ret = LDAP_SUCCESS;
 done:
@@ -792,8 +793,9 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
     struct sdap_kinit_state *state;
     int ret;
 
-    DEBUG(6, ("Attempting kinit (%s, %s, %s, %d)\n", keytab, principal, realm,
-                                                     lifetime));
+    DEBUG(6, ("Attempting kinit (%s, %s, %s, %d)\n",
+              keytab ? keytab : "default",
+              principal, realm, lifetime));
 
     if (lifetime < 0 || lifetime > INT32_MAX) {
         DEBUG(1, ("Ticket lifetime out of range.\n"));

@@ -1110,11 +1110,13 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
         }
 
         DEBUG(6, ("Search result: %s(%d), %s\n",
-                  sss_ldap_err2string(result), result, errmsg));
+                  sss_ldap_err2string(result), result,
+                  errmsg ? errmsg : "no errmsg set"));
 
         if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(2, ("Unexpected result from ldap: %s(%d), %s\n",
-                      sss_ldap_err2string(result), result, errmsg));
+                      sss_ldap_err2string(result), result,
+                      errmsg ? errmsg : "no errmsg set"));
         }
         ldap_memfree(errmsg);
 
