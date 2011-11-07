@@ -1367,29 +1367,6 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         next_base = true;
     }
 
-    /* Add this batch of groups to the list */
-    if (count > 0) {
-        state->groups =
-                talloc_realloc(state,
-                               state->groups,
-                               struct sysdb_attrs *,
-                               state->count + count + 1);
-        if (!state->groups) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        /* Copy the new groups into the list
-         * They're already allocated on 'state'
-         */
-        for (i = 0; i < count; i++) {
-            state->groups[state->count + i] = groups[i];
-        }
-
-        state->count += count;
-        state->groups[state->count] = NULL;
-    }
-
     if (next_base) {
         state->base_iter++;
         if (state->search_bases[state->base_iter]) {
