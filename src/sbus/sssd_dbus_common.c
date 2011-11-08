@@ -197,7 +197,7 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
     unsigned int flags;
     dbus_bool_t enabled;
     void *watch_data;
-    int fd;
+    int fd = -1;
 
     enabled = dbus_watch_get_enabled(dbus_watch);
     flags = dbus_watch_get_flags(dbus_watch);
@@ -226,18 +226,19 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
         }
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
+    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
 #ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
         fd = dbus_watch_get_unix_fd(dbus_watch);
 #else
         fd = dbus_watch_get_fd(dbus_watch);
 #endif
     }
-    DEBUG(8, ("%p/%p (%d), %s/%s (%s)\n",
-              watch, dbus_watch, fd,
-              ((flags & DBUS_WATCH_READABLE)?"R":"-"),
-              ((flags & DBUS_WATCH_WRITABLE)?"W":"-"),
-              enabled?"enabled":"disabled"));
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("%p/%p (%d), %s/%s (%s)\n",
+           watch, dbus_watch, fd,
+           ((flags & DBUS_WATCH_READABLE)?"R":"-"),
+           ((flags & DBUS_WATCH_WRITABLE)?"W":"-"),
+           enabled?"enabled":"disabled"));
 }
 
 /*
