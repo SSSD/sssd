@@ -390,7 +390,7 @@
                         <para>
                             Please note also that sssd supports fast only with
                             MIT Kerberos version 1.8 and above. If sssd used
-                            used with an older version using this option is a
+                            with an older version using this option is a
                             configuration error.
                         </para>
                     </listitem>

@@ -52,7 +52,7 @@
             puts the Realm and the name or IP address of the KDC into the
             environment variables SSSD_KRB5_REALM and SSSD_KRB5_KDC respectively.
             When <command>sssd_krb5_locator_plugin</command> is called by the
-            kerberos libraries it reads and evaluates these variable and returns
+            kerberos libraries it reads and evaluates these variables and returns
             them to the libraries.
         </para>
     </refsect1>
