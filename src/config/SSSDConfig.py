@@ -1760,7 +1760,7 @@ class SSSDConfig(SSSDChangeConf):
             domain.oldname = None;
 
         sectionname = 'domain/%s' % name
-        section_subtree = self.findOpts(self.opts, 'section', sectionname)
+        (no, section_subtree) = self.findOpts(self.opts, 'section', sectionname)
 
         if name not in self.list_domains():
             self.add_section(sectionname, []);
@@ -1768,7 +1768,7 @@ class SSSDConfig(SSSDChangeConf):
         for option in self.options(sectionname):
             if option['type'] == 'option':
                 if option['name'] not in domain.get_all_options():
-                    self.delete_option_subtree(section_subtree, 'option', option['name'], True)
+                    self.delete_option_subtree(section_subtree['values'], 'option', option['name'], True)
 
         for option,value in domain.get_all_options().items():
             if (type(value) == list):
