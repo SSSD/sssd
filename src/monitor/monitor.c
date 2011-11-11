@@ -51,6 +51,10 @@
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
 
+#ifdef USE_KEYRING
+#include <keyutils.h>
+#endif
+
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
@@ -2471,6 +2475,29 @@ int main(int argc, const char *argv[])
             return 7;
         }
     }
+
+#ifdef USE_KEYRING
+    /* Do this before all the forks, it sets the session key ring so all
+     * keys are private to the daemon and cannot be read by any other process
+     * tree */
+
+    /* make a new session */
+    ret = keyctl_join_session_keyring(NULL);
+    if (ret == -1) {
+        sss_log(SSS_LOG_ALERT,
+                "Could not create private keyring session. "
+                "If you store password there they may be easily accessible "
+                "to the root user. (%d, %s)", errno, strerror(errno));
+    }
+
+    ret = keyctl_setperm(KEY_SPEC_SESSION_KEYRING, KEY_POS_ALL);
+    if (ret == -1) {
+        sss_log(SSS_LOG_ALERT,
+                "Could not set permissions on private keyring. "
+                "If you store password there they may be easily accessible "
+                "to the root user. (%d, %s)", errno, strerror(errno));
+    }
+#endif
 
     /* Warn if nscd seems to be running */
     ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL, false);

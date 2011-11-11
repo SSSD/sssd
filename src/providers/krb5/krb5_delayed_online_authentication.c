@@ -258,7 +258,7 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
 
 #ifdef USE_KEYRING
     new_pd->key_serial = add_key("user", new_pd->user, new_pd->authtok,
-                                 new_pd->authtok_size, KEY_SPEC_THREAD_KEYRING);
+                                 new_pd->authtok_size, KEY_SPEC_SESSION_KEYRING);
     if (new_pd->key_serial == -1) {
         ret = errno;
         DEBUG(1, ("add_key fialed [%d][%s].\n", ret, strerror(ret)));

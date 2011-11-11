@@ -402,6 +402,7 @@ sssd_SOURCES = \
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(LIBNL_LIBS) \
+    $(KEYUTILS_LIBS) \
     libsss_util.la
 
 sssd_nss_SOURCES = \
