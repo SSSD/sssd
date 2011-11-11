@@ -230,8 +230,11 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
     *msg = talloc_steal(mem_ctx, msgs[0]);
 
 done:
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -282,8 +285,11 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
     *msg = talloc_steal(mem_ctx, msgs[0]);
 
 done:
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
 
     talloc_zfree(tmp_ctx);
@@ -326,8 +332,11 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
     *msg = talloc_steal(mem_ctx, msgs[0]);
 
 done:
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -378,8 +387,11 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
     *msg = talloc_steal(mem_ctx, msgs[0]);
 
 done:
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
 
     talloc_zfree(tmp_ctx);
@@ -422,8 +434,11 @@ int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
     *msg = talloc_steal(mem_ctx, msgs[0]);
 
 done:
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -475,8 +490,11 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     ret = sysdb_error_to_errno(ret);
 
 done:
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2108,7 +2126,12 @@ int sysdb_asq_search(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -2160,7 +2183,12 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -2271,7 +2299,12 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -2381,7 +2414,11 @@ int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Entry not found\n"));
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -2410,6 +2447,7 @@ int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
         goto done;
     } else if (ret == ENOENT) {
         DEBUG(6, ("Netgroup does not exist, nothing to delete\n"));
+        ret = EOK;
         goto done;
     }
 
