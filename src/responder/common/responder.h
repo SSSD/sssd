@@ -174,4 +174,6 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
 int responder_logrotate(DBusMessage *message,
                         struct sbus_connection *conn);
 
+bool sss_utf8_check(const uint8_t *s, size_t n);
+
 #endif /* __SSS_RESPONDER_H__ */
