@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <popt.h>
+#include <unistr.h>
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -626,4 +627,12 @@ int responder_logrotate(DBusMessage *message,
     if (ret != EOK) return ret;
 
     return monitor_common_pong(message, conn);
+}
+
+bool sss_utf8_check(const uint8_t *s, size_t n)
+{
+    if (u8_check(s, n) == NULL) {
+        return true;
+    }
+    return false;
 }

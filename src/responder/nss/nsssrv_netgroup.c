@@ -113,6 +113,13 @@ int nss_cmd_setnetgrent(struct cli_ctx *client)
         ret = EINVAL;
         goto done;
     }
+
+    /* If the body isn't valid UTF-8, fail */
+    if (!sss_utf8_check(body, blen)) {
+        ret = EINVAL;
+        goto done;
+    }
+
     rawname = (const char *)body;
 
     req = setnetgrent_send(cmdctx, rawname, cmdctx);
