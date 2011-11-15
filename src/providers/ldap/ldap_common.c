@@ -273,25 +273,25 @@ int ldap_get_options(TALLOC_CTX *memctx,
     }
 
     /* Default search */
-    ret = sdap_parse_search_base(opts, opts,
+    ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_SEARCH_BASE,
                                  &opts->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
-    ret = sdap_parse_search_base(opts, opts,
+    ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &opts->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
-    ret = sdap_parse_search_base(opts, opts,
+    ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &opts->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
-    ret = sdap_parse_search_base(opts, opts,
+    ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &opts->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
@@ -495,8 +495,7 @@ done:
 }
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
-                               struct sdap_options *opts,
-                               enum sdap_basic_opt class,
+                               struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
 {
     errno_t ret;
@@ -521,11 +520,11 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_USER_SEARCH_BASE:
         class_name = "USER";
-        old_filter = dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_FILTER);
+        old_filter = dp_opt_get_string(opts, SDAP_USER_SEARCH_FILTER);
         break;
     case SDAP_GROUP_SEARCH_BASE:
         class_name = "GROUP";
-        old_filter = dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_FILTER);
+        old_filter = dp_opt_get_string(opts, SDAP_GROUP_SEARCH_FILTER);
         break;
     case SDAP_NETGROUP_SEARCH_BASE:
         class_name = "NETGROUP";
@@ -537,7 +536,7 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         /* Non-fatal */
     }
 
-    unparsed_base = dp_opt_get_string(opts->basic, class);
+    unparsed_base = dp_opt_get_string(opts, class);
     if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
 
     tmp_ctx = talloc_new(NULL);

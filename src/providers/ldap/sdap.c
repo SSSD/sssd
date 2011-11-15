@@ -723,7 +723,7 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
         goto done;
     }
 
-    ret = sdap_parse_search_base(opts, opts, class, bases);
+    ret = sdap_parse_search_base(opts, opts->basic, class, bases);
     if (ret != EOK) goto done;
 
     ret = EOK;

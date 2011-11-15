@@ -339,7 +339,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   ipa_opts->id->basic[SDAP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SEARCH_BASE,
                                  &ipa_opts->id->search_bases);
     if (ret != EOK) goto done;
@@ -427,7 +427,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_USER_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &ipa_opts->id->user_search_bases);
     if (ret != EOK) goto done;
@@ -446,7 +446,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_GROUP_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &ipa_opts->id->group_search_bases);
     if (ret != EOK) goto done;
@@ -484,7 +484,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_NETGROUP_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id,
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &ipa_opts->id->netgroup_search_bases);
     if (ret != EOK) goto done;
