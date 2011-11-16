@@ -32,14 +32,24 @@ hash_table_t *dp_requests = NULL;
 
 struct sss_dp_req;
 
+struct dp_get_account_state {
+    struct resp_ctx *rctx;
+    struct sss_domain_info *dom;
+    const char *opt_name;
+    uint32_t opt_id;
+    hash_key_t *key;
+
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    char *err_msg;
+};
+
 struct sss_dp_callback {
     struct sss_dp_callback *prev;
     struct sss_dp_callback *next;
 
+    struct tevent_req *req;
     struct sss_dp_req *sdp_req;
-
-    sss_dp_callback_t callback;
-    void *callback_ctx;
 };
 
 struct sss_dp_req {
@@ -47,7 +57,7 @@ struct sss_dp_req {
     struct tevent_context *ev;
     DBusPendingCall *pending_reply;
 
-    char *key;
+    hash_key_t *key;
 
     struct tevent_timer *tev;
     struct sss_dp_callback *cb_list;
@@ -59,7 +69,8 @@ struct sss_dp_req {
 
 static int sss_dp_callback_destructor(void *ptr)
 {
-    struct sss_dp_callback *cb = talloc_get_type(ptr, struct sss_dp_callback);
+    struct sss_dp_callback *cb =
+            talloc_get_type(ptr, struct sss_dp_callback);
 
     DLIST_REMOVE(cb->sdp_req->cb_list, cb);
 
@@ -68,8 +79,9 @@ static int sss_dp_callback_destructor(void *ptr)
 
 static int sss_dp_req_destructor(void *ptr)
 {
+    struct sss_dp_callback *cb;
     struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
-    hash_key_t key;
+    struct dp_get_account_state *state;
 
     /* Cancel Dbus pending reply if still pending */
     if (sdp_req->pending_reply) {
@@ -77,15 +89,25 @@ static int sss_dp_req_destructor(void *ptr)
         sdp_req->pending_reply = NULL;
     }
 
-    /* Destroy the hash entry
-     * There are some situations when the entry has already
-     * been destroyed to avoid race condition, so don't check
-     * the result */
-    key.type = HASH_KEY_STRING;
-    key.str = sdp_req->key;
-    int hret = hash_delete(dp_requests, &key);
+    /* If there are callbacks that haven't been invoked, return
+     * an error now.
+     */
+    DLIST_FOR_EACH(cb, sdp_req->cb_list) {
+        state = tevent_req_data(cb->req, struct dp_get_account_state);
+        state->err_maj = DP_ERR_FATAL;
+        state->err_min = EIO;
+        tevent_req_error(cb->req, EIO);
+    }
+
+    /* Destroy the hash entry */
+    int hret = hash_delete(sdp_req->rctx->dp_request_table, sdp_req->key);
     if (hret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Could not clear entry from request queue\n"));
+        /* This should never happen */
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("BUG: Could not clear [%d:%d:%s] from request queue: [%s]\n",
+               sdp_req->key->type, sdp_req->key->ul, sdp_req->key->str,
+               hash_error_string(hret)));
+        return -1;
     }
 
     return 0;
@@ -116,416 +138,6 @@ void handle_requests_after_reconnect(void)
         talloc_free(sdp_req);
     }
 }
-
-static int sss_dp_get_reply(DBusPendingCall *pending,
-                            dbus_uint16_t *err_maj,
-                            dbus_uint32_t *err_min,
-                            char **err_msg);
-
-static void sss_dp_invoke_callback(struct tevent_context *ev,
-                                   struct tevent_timer *te,
-                                   struct timeval t, void *ptr)
-{
-    struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
-    struct sss_dp_callback *cb;
-
-    cb = sdp_req->cb_list;
-    /* Remove the callback from the list, the caller may free it, within the
-     * callback. */
-    talloc_set_destructor((TALLOC_CTX *)cb, NULL);
-    DLIST_REMOVE(sdp_req->cb_list, cb);
-
-    cb->callback(sdp_req->err_maj,
-                 sdp_req->err_min,
-                 sdp_req->err_msg,
-                 cb->callback_ctx);
-
-    /* If there are some more callbacks to be invoked,
-     * don't destroy the request */
-    if (sdp_req->cb_list != NULL) {
-        return;
-    }
-
-    /* steal te on rctx because it will be freed as soon as the handler
-     * returns. Causing a double free if we don't, as te is allocated on
-     * sdp_req and we are just going to free it */
-    talloc_steal(sdp_req->rctx, te);
-
-    talloc_zfree(sdp_req);
-}
-
-static void sdp_req_timeout(struct tevent_context *ev,
-                            struct tevent_timer *te,
-                            struct timeval t, void *ptr)
-{
-    struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
-    struct sss_dp_callback *cb, *next;
-    struct timeval tv;
-    struct tevent_timer *tev;
-    hash_key_t key;
-
-    sdp_req->err_maj = DP_ERR_FATAL;
-    sdp_req->err_min = ETIMEDOUT;
-    sdp_req->err_msg = discard_const_p(char, "Timed out");
-
-    /* Destroy the hash entry */
-    key.type = HASH_KEY_STRING;
-    key.str = sdp_req->key;
-    int hret = hash_delete(dp_requests, &key);
-    if (hret != HASH_SUCCESS) {
-        /* This should never happen */
-        DEBUG(0, ("Could not clear entry from request queue\n"));
-    }
-
-    /* Queue up all callbacks */
-    cb = sdp_req->cb_list;
-    tv = tevent_timeval_current();
-    while (cb) {
-        next = cb->next;
-        tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
-                               sss_dp_invoke_callback, sdp_req);
-        if (!tev) {
-            return;
-        }
-        cb = next;
-    }
-}
-
-static void sss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
-{
-    int ret;
-    struct sss_dp_req *sdp_req;
-    struct sss_dp_callback *cb, *next;
-    struct timeval tv;
-    struct tevent_timer *te;
-    hash_key_t key;
-
-    sdp_req = talloc_get_type(ptr, struct sss_dp_req);
-
-    /* prevent trying to cancel a reply that we already received */
-    sdp_req->pending_reply = NULL;
-
-    ret = sss_dp_get_reply(pending,
-                           &sdp_req->err_maj,
-                           &sdp_req->err_min,
-                           &sdp_req->err_msg);
-    if (ret != EOK) {
-        if (ret == ETIME) {
-            sdp_req->err_maj = DP_ERR_TIMEOUT;
-            sdp_req->err_min = ret;
-            sdp_req->err_msg = talloc_strdup(sdp_req, "Request timed out");
-        }
-        else {
-            sdp_req->err_maj = DP_ERR_FATAL;
-            sdp_req->err_min = ret;
-            sdp_req->err_msg =
-                talloc_strdup(sdp_req,
-                              "Failed to get reply from Data Provider");
-        }
-    }
-
-    /* Check whether we need to issue any callbacks */
-    if (sdp_req->cb_list == NULL) {
-        /* No callbacks to invoke. Destroy the hash entry */
-        talloc_zfree(sdp_req);
-        return;
-    }
-
-    /* Destroy the hash entry */
-    key.type = HASH_KEY_STRING;
-    key.str = sdp_req->key;
-    int hret = hash_delete(dp_requests, &key);
-    if (hret != HASH_SUCCESS) {
-        /* This should never happen */
-        DEBUG(0, ("Could not clear entry from request queue\n"));
-    }
-
-    /* Queue up all callbacks */
-    cb = sdp_req->cb_list;
-    tv = tevent_timeval_current();
-    while (cb) {
-        next = cb->next;
-        te = tevent_add_timer(sdp_req->ev, sdp_req, tv,
-                              sss_dp_invoke_callback, sdp_req);
-        if (!te) {
-            /* Out of memory or other serious error */
-            return;
-        }
-        cb = next;
-    }
-}
-
-static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
-                                       TALLOC_CTX *callback_memctx,
-                                       const char *domain,
-                                       uint32_t be_type,
-                                       char *filter,
-                                       int timeout,
-                                       sss_dp_callback_t callback,
-                                       void *callback_ctx,
-                                       struct sss_dp_req **ndp);
-
-int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
-                         sss_dp_callback_t callback, void *callback_ctx,
-                         int timeout, const char *domain,
-                         bool fast_reply, int type,
-                         const char *opt_name, uint32_t opt_id)
-{
-    int ret, hret;
-    uint32_t be_type;
-    char *filter;
-    hash_key_t key;
-    hash_value_t value;
-    TALLOC_CTX *tmp_ctx;
-    struct timeval tv;
-    struct sss_dp_req *sdp_req = NULL;
-    struct sss_dp_callback *cb;
-
-    /* either, or, not both */
-    if (opt_name && opt_id) {
-        return EINVAL;
-    }
-
-    if (!domain) {
-        return EINVAL;
-    }
-
-    switch (type) {
-    case SSS_DP_USER:
-        be_type = BE_REQ_USER;
-        break;
-    case SSS_DP_GROUP:
-        be_type = BE_REQ_GROUP;
-        break;
-    case SSS_DP_INITGROUPS:
-        be_type = BE_REQ_INITGROUPS;
-        break;
-    case SSS_DP_NETGR:
-        be_type = BE_REQ_NETGROUP;
-        break;
-    default:
-        return EINVAL;
-    }
-
-    if (fast_reply) {
-        be_type |= BE_REQ_FAST;
-    }
-
-    if (dp_requests == NULL) {
-        /* Create a hash table to handle queued update requests */
-        ret = hash_create(10, &dp_requests, NULL, NULL);
-        if (ret != HASH_SUCCESS) {
-            fprintf(stderr, "cannot create hash table (%s)\n", hash_error_string(ret));
-            return EIO;
-        }
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    key.type = HASH_KEY_STRING;
-    key.str = NULL;
-
-    if (opt_name) {
-        filter = talloc_asprintf(tmp_ctx, "name=%s", opt_name);
-        key.str = talloc_asprintf(tmp_ctx, "%d%s@%s", type, opt_name, domain);
-    } else if (opt_id) {
-        filter = talloc_asprintf(tmp_ctx, "idnumber=%u", opt_id);
-        key.str = talloc_asprintf(tmp_ctx, "%d%d@%s", type, opt_id, domain);
-    } else {
-        filter = talloc_strdup(tmp_ctx, ENUM_INDICATOR);
-        key.str = talloc_asprintf(tmp_ctx, "%d*@%s", type, domain);
-    }
-    if (!filter || !key.str) {
-        talloc_zfree(tmp_ctx);
-        return ENOMEM;
-    }
-
-    /* Check whether there's already a request in progress */
-    hret = hash_lookup(dp_requests, &key, &value);
-    switch (hret) {
-    case HASH_SUCCESS:
-        /* Request already in progress
-         * Add an additional callback if needed and return
-         */
-        DEBUG(2, ("Identical request in progress\n"));
-
-        if (callback) {
-            /* We have a new request asking for a callback */
-            sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
-            if (!sdp_req) {
-                DEBUG(0, ("Could not retrieve DP request context\n"));
-                ret = EIO;
-                goto done;
-            }
-
-            cb = talloc_zero(callback_memctx, struct sss_dp_callback);
-            if (!cb) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            cb->callback = callback;
-            cb->callback_ctx = callback_ctx;
-            cb->sdp_req = sdp_req;
-
-            DLIST_ADD_END(sdp_req->cb_list, cb, struct sss_dp_callback *);
-            talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
-        }
-
-        ret = EOK;
-        break;
-
-    case HASH_ERROR_KEY_NOT_FOUND:
-        /* No such request in progress
-         * Create a new request
-         */
-        ret = sss_dp_send_acct_req_create(rctx, callback_memctx, domain,
-                                          be_type, filter, timeout,
-                                          callback, callback_ctx,
-                                          &sdp_req);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        value.type = HASH_VALUE_PTR;
-        value.ptr = sdp_req;
-        hret = hash_enter(dp_requests, &key, &value);
-        if (hret != HASH_SUCCESS) {
-            DEBUG(0, ("Could not store request query (%s)\n",
-                      hash_error_string(hret)));
-            talloc_zfree(sdp_req);
-            ret = EIO;
-            goto done;
-        }
-
-        sdp_req->key = talloc_strdup(sdp_req, key.str);
-
-        tv = tevent_timeval_current_ofs(timeout, 0);
-        sdp_req->tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
-                                        sdp_req_timeout, sdp_req);
-        if (!sdp_req->tev) {
-            DEBUG(0, ("Out of Memory!?\n"));
-            talloc_zfree(sdp_req);
-            ret = ENOMEM;
-            goto done;
-        }
-
-        talloc_set_destructor((TALLOC_CTX *)sdp_req, sss_dp_req_destructor);
-
-        ret = EOK;
-        break;
-
-    default:
-        DEBUG(0,("Could not query request list (%s)\n",
-                  hash_error_string(hret)));
-        talloc_zfree(sdp_req);
-        ret = EIO;
-    }
-
-done:
-    talloc_zfree(tmp_ctx);
-    return ret;
-}
-
-static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
-                                       TALLOC_CTX *callback_memctx,
-                                       const char *domain,
-                                       uint32_t be_type,
-                                       char *filter,
-                                       int timeout,
-                                       sss_dp_callback_t callback,
-                                       void *callback_ctx,
-                                       struct sss_dp_req **ndp)
-{
-    DBusMessage *msg;
-    DBusPendingCall *pending_reply;
-    dbus_bool_t dbret;
-    struct sss_dp_callback *cb;
-    struct sss_dp_req *sdp_req;
-    uint32_t attrs = BE_ATTR_CORE;
-    struct be_conn *be_conn;
-    int ret;
-
-    /* double check dp_ctx has actually been initialized.
-     * in some pathological cases it may happen that nss starts up before
-     * dp connection code is actually able to establish a connection.
-     */
-    ret = sss_dp_get_domain_conn(rctx, domain, &be_conn);
-    if (ret != EOK) {
-        DEBUG(1, ("The Data Provider connection for %s is not available!"
-                  " This maybe a bug, it shouldn't happen!\n", domain));
-        return EIO;
-    }
-
-    /* create the message */
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       DP_INTERFACE,
-                                       DP_METHOD_GETACCTINFO);
-    if (msg == NULL) {
-        DEBUG(0,("Out of memory?!\n"));
-        return ENOMEM;
-    }
-
-    DEBUG(4, ("Sending request for [%s][%u][%d][%s]\n",
-              domain, be_type, attrs, filter));
-
-    dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_UINT32, &be_type,
-                                     DBUS_TYPE_UINT32, &attrs,
-                                     DBUS_TYPE_STRING, &filter,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(1,("Failed to build message\n"));
-        return EIO;
-    }
-
-    sdp_req = talloc_zero(rctx, struct sss_dp_req);
-    if (!sdp_req) {
-        dbus_message_unref(msg);
-        return ENOMEM;
-    }
-    sdp_req->rctx = rctx;
-
-    ret = sbus_conn_send(be_conn->conn, msg, timeout,
-                         sss_dp_send_acct_callback,
-                         sdp_req, &pending_reply);
-    dbus_message_unref(msg);
-    if (ret != EOK) {
-        /*
-         * Critical Failure
-         * We can't communicate on this connection
-         * We'll drop it using the default destructor.
-         */
-        DEBUG(0, ("D-BUS send failed.\n"));
-        return EIO;
-    }
-
-    sdp_req->ev = rctx->ev;
-    sdp_req->pending_reply = pending_reply;
-
-    if (callback) {
-        cb = talloc_zero(callback_memctx, struct sss_dp_callback);
-        if (!cb) {
-            talloc_zfree(sdp_req);
-            return ENOMEM;
-        }
-        cb->callback = callback;
-        cb->callback_ctx = callback_ctx;
-        cb->sdp_req = sdp_req;
-
-        DLIST_ADD(sdp_req->cb_list, cb);
-        talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
-    }
-
-    *ndp = sdp_req;
-
-    return EOK;
-}
-
 static int sss_dp_get_reply(DBusPendingCall *pending,
                             dbus_uint16_t *err_maj,
                             dbus_uint32_t *err_min,
@@ -545,7 +157,9 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Severe error. A reply callback was called but no reply "
+               "was received and no timeout occurred\n"));
 
         /* FIXME: Destroy this connection ? */
         err = EIO;
@@ -567,7 +181,6 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
             err = EIO;
             goto done;
         }
-
         DEBUG(4, ("Got reply (%u, %u, %s) from Data Provider\n",
                   (unsigned int)*err_maj, (unsigned int)*err_min, *err_msg));
 
@@ -602,3 +215,471 @@ done:
     return err;
 }
 
+static struct tevent_req *
+sss_dp_get_account_int_send(struct resp_ctx *rctx,
+                            hash_key_t *key,
+                            struct sss_domain_info *dom,
+                            uint32_t be_type,
+                            const char *filter);
+
+static void
+sss_dp_get_account_done(struct tevent_req *subreq);
+
+static errno_t
+sss_dp_get_account_int_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        dbus_uint16_t *err_maj,
+                        dbus_uint32_t *err_min,
+                        char **err_msg);
+
+
+/* Send a request to the data provider
+ * Once this function is called, the communication
+ * with the data provider will always run to
+ * completion. Freeing the returned tevent_req will
+ * cancel the notification of completion, but not
+ * the data provider action.
+ */
+struct tevent_req *
+sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
+                        struct resp_ctx *rctx,
+                        struct sss_domain_info *dom,
+                        bool fast_reply,
+                        int type,
+                        const char *opt_name,
+                        uint32_t opt_id)
+{
+    errno_t ret;
+    int hret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct dp_get_account_state *state;
+    struct sss_dp_req *sdp_req;
+    struct sss_dp_callback *cb;
+    char *filter;
+    uint32_t be_type;
+    hash_value_t value;
+
+    req = tevent_req_create(mem_ctx, &state, struct dp_get_account_state);
+    if (!req) {
+        return NULL;
+    }
+
+    /* either, or, not both */
+    if (opt_name && opt_id) {
+        ret = EINVAL;
+        goto error;
+    }
+
+    if (!dom) {
+        ret = EINVAL;
+        goto error;
+    }
+
+    state->rctx = rctx;
+    state->dom = dom;
+
+    switch (type) {
+    case SSS_DP_USER:
+        be_type = BE_REQ_USER;
+        break;
+    case SSS_DP_GROUP:
+        be_type = BE_REQ_GROUP;
+        break;
+    case SSS_DP_INITGROUPS:
+        be_type = BE_REQ_INITGROUPS;
+        break;
+    case SSS_DP_NETGR:
+        be_type = BE_REQ_NETGROUP;
+        break;
+    default:
+        ret = EINVAL;
+        goto error;
+    }
+
+    if (fast_reply) {
+        be_type |= BE_REQ_FAST;
+    }
+
+    /* Check whether there's already an identical request in progress */
+
+    state->key = talloc(state, hash_key_t);
+    if (!state->key) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    state->key->type = HASH_KEY_STRING;
+
+    if (opt_name) {
+        filter = talloc_asprintf(state, "name=%s", opt_name);
+        state->key->str = talloc_asprintf(state->key, "%d:%s@%s",
+                                          type, opt_name, dom->name);
+    } else if (opt_id) {
+        filter = talloc_asprintf(state, "idnumber=%u", opt_id);
+        state->key->str = talloc_asprintf(state->key, "%d:%d@%s",
+                                          type, opt_id, dom->name);
+    } else {
+        filter = talloc_strdup(state, ENUM_INDICATOR);
+        state->key->str = talloc_asprintf(state->key, "%d:*@%s",
+                                          type, dom->name);
+    }
+    if (!filter || !state->key->str) {
+        ret = ENOMEM;
+    }
+
+    /* Check the hash for existing references to this request */
+    hret = hash_lookup(rctx->dp_request_table, state->key, &value);
+    switch (hret) {
+    case HASH_SUCCESS:
+        /* Request already in progress */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Identical request in progress: [%s]\n", state->key->str));
+        break;
+
+    case HASH_ERROR_KEY_NOT_FOUND:
+        /* No such request in progress
+         * Create a new request
+         */
+
+        value.type = HASH_VALUE_PTR;
+        subreq = sss_dp_get_account_int_send(rctx, state->key, dom,
+                                             be_type, filter);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto error;
+        }
+        tevent_req_set_callback(subreq, sss_dp_get_account_done, NULL);
+
+        /* We should now be able to find the sdp_req in the hash table */
+        hret = hash_lookup(rctx->dp_request_table, state->key, &value);
+        if (hret != HASH_SUCCESS) {
+            /* Something must have gone wrong with creating the request */
+            talloc_zfree(subreq);
+            ret = EIO;
+            goto error;
+        }
+
+        break;
+
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not query request list (%s)\n",
+               hash_error_string(hret)));
+        ret = EIO;
+        goto error;
+    }
+
+    /* Register this request for results */
+    sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
+    if (!sdp_req) {
+        DEBUG(0, ("Could not retrieve DP request context\n"));
+        ret = EIO;
+        goto error;
+    }
+
+    cb = talloc_zero(state, struct sss_dp_callback);
+    if (!cb) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    cb->req = req;
+    cb->sdp_req = sdp_req;
+
+    /* Add it to the list of requests to call */
+    DLIST_ADD_END(sdp_req->cb_list, cb,
+                  struct sss_dp_callback *);
+    talloc_set_destructor((TALLOC_CTX *)cb,
+                          sss_dp_callback_destructor);
+
+    return req;
+
+error:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, rctx->ev);
+    return req;
+}
+
+static void
+sss_dp_get_account_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct dp_get_account_state *state =
+            tevent_req_data(req, struct dp_get_account_state);
+
+    ret = sss_dp_get_account_int_recv(state, req,
+                                      &state->err_maj,
+                                      &state->err_min,
+                                      &state->err_msg);
+    if (ret != EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+}
+
+errno_t
+sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        dbus_uint16_t *err_maj,
+                        dbus_uint32_t *err_min,
+                        char **err_msg)
+{
+    struct dp_get_account_state *state =
+            tevent_req_data(req, struct dp_get_account_state);
+
+    enum tevent_req_state TRROEstate;
+    uint64_t TRROEerr;
+
+    *err_maj = state->err_maj;
+    *err_min = state->err_min;
+    *err_msg = talloc_steal(mem_ctx, state->err_msg);
+
+    if (tevent_req_is_error(req, &TRROEstate, &TRROEerr)) {
+        if (TRROEstate == TEVENT_REQ_USER_ERROR) {
+            *err_maj = DP_ERR_FATAL;
+            *err_min = TRROEerr;
+        } else {
+            return EIO;
+        }
+    }
+
+    return EOK;
+}
+
+struct dp_get_account_int_state {
+    struct resp_ctx *rctx;
+    struct sss_domain_info *dom;
+    uint32_t be_type;
+    const char *filter;
+
+    struct sss_dp_req *sdp_req;
+    DBusPendingCall *pending_reply;
+};
+
+static void sss_dp_get_account_int_done(DBusPendingCall *pending, void *ptr);
+
+static struct tevent_req *
+sss_dp_get_account_int_send(struct resp_ctx *rctx,
+                            hash_key_t *key,
+                            struct sss_domain_info *dom,
+                            uint32_t be_type,
+                            const char *filter)
+{
+    errno_t ret;
+    int hret;
+    struct tevent_req *req;
+    struct dp_get_account_int_state *state;
+    struct be_conn *be_conn;
+    DBusMessage *msg;
+    dbus_bool_t dbret;
+    bool msg_created = false;
+    hash_value_t value;
+    uint32_t attrs = BE_ATTR_CORE;
+
+    /* Internal requests need to be allocated on the responder context
+     * so that they don't go away if a client disconnects. The worst-
+     * case scenario here is that the cache is updated without any
+     * client expecting a response.
+     */
+    req = tevent_req_create(rctx,
+                            &state,
+                            struct dp_get_account_int_state);
+    if (!req)  return NULL;
+
+    state->rctx = rctx;
+    state->dom = dom;
+    state->be_type = be_type;
+    state->filter = filter;
+
+    state->sdp_req = talloc_zero(state, struct sss_dp_req);
+    if (!state->sdp_req) {
+        ret = ENOMEM;
+        goto error;
+    }
+    state->sdp_req->rctx = rctx;
+    state->sdp_req->ev = rctx->ev;
+
+    /* Copy the key to use when calling the destructor
+     * It needs to be a copy because the original request
+     * might be freed if it no longer cares about the reply.
+     */
+    state->sdp_req->key = talloc_steal(state->sdp_req, key);
+
+    /* double check dp_ctx has actually been initialized.
+     * in some pathological cases it may happen that nss starts up before
+     * dp connection code is actually able to establish a connection.
+     */
+    ret = sss_dp_get_domain_conn(rctx, dom->name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("BUG: The Data Provider connection for %s is not available!",
+               dom->name));
+        ret = EIO;
+        goto error;
+    }
+
+    /* create the message */
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_PATH,
+                                       DP_INTERFACE,
+                                       DP_METHOD_GETACCTINFO);
+    if (msg == NULL) {
+        DEBUG(0,("Out of memory?!\n"));
+        ret = ENOMEM;
+        goto error;
+    }
+    msg_created = true;
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Sending request for [%s][%u][%d][%s]\n",
+           dom->name, be_type, attrs, filter));
+
+    dbret = dbus_message_append_args(msg,
+                                     DBUS_TYPE_UINT32, &be_type,
+                                     DBUS_TYPE_UINT32, &attrs,
+                                     DBUS_TYPE_STRING, &filter,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(1,("Failed to build message\n"));
+        ret = EIO;
+        goto error;
+    }
+
+    ret = sbus_conn_send(be_conn->conn, msg,
+                         SSS_CLI_SOCKET_TIMEOUT / 2,
+                         sss_dp_get_account_int_done,
+                         req,
+                         &state->sdp_req->pending_reply);
+    dbus_message_unref(msg);
+    msg_created = false;
+    if (ret != EOK) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("D-BUS send failed.\n"));
+        ret = EIO;
+        goto error;
+    }
+
+    /* Add this sdp_req to the hash table */
+    value.type = HASH_VALUE_PTR;
+    value.ptr = state->sdp_req;
+
+    hret = hash_enter(rctx->dp_request_table, key, &value);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not store request query (%s)\n",
+               hash_error_string(hret)));
+        ret = EIO;
+        goto error;
+    }
+    talloc_set_destructor((TALLOC_CTX *)state->sdp_req,
+                          sss_dp_req_destructor);
+
+    return req;
+
+error:
+    if (msg_created) {
+        dbus_message_unref(msg);
+    }
+
+    tevent_req_error(req, ret);
+    tevent_req_post(req, rctx->ev);
+    return req;
+}
+
+static void sss_dp_get_account_int_done(DBusPendingCall *pending, void *ptr)
+{
+    int ret;
+    struct tevent_req *req;
+    struct sss_dp_req *sdp_req;
+    struct sss_dp_callback *cb;
+    struct dp_get_account_int_state *state;
+    struct dp_get_account_state *cb_state;
+
+    req = talloc_get_type(ptr, struct tevent_req);
+    state = tevent_req_data(req, struct dp_get_account_int_state);
+    sdp_req = state->sdp_req;
+
+    /* prevent trying to cancel a reply that we already received */
+    sdp_req->pending_reply = NULL;
+
+    ret = sss_dp_get_reply(pending,
+                           &sdp_req->err_maj,
+                           &sdp_req->err_min,
+                           &sdp_req->err_msg);
+    if (ret != EOK) {
+        if (ret == ETIME) {
+            sdp_req->err_maj = DP_ERR_TIMEOUT;
+            sdp_req->err_min = ret;
+            sdp_req->err_msg = talloc_strdup(sdp_req, "Request timed out");
+        }
+        else {
+            sdp_req->err_maj = DP_ERR_FATAL;
+            sdp_req->err_min = ret;
+            sdp_req->err_msg =
+                talloc_strdup(sdp_req,
+                              "Failed to get reply from Data Provider");
+        }
+    }
+
+    /* Check whether we need to issue any callbacks */
+    DLIST_FOR_EACH(cb, sdp_req->cb_list) {
+        cb_state = tevent_req_data(cb->req, struct dp_get_account_state);
+        cb_state->err_maj = sdp_req->err_maj;
+        cb_state->err_min = sdp_req->err_min;
+        cb_state->err_msg = talloc_strdup(cb_state, sdp_req->err_msg);
+        /* Don't bother checking for NULL. If it fails due to ENOMEM,
+         * we can't really handle it annyway.
+         */
+
+        if (ret == EOK) {
+            tevent_req_done(cb->req);
+        } else {
+            tevent_req_error(cb->req, ret);
+        }
+
+        /* Remove each callback from the list as it's replied to */
+        DLIST_REMOVE(sdp_req->cb_list, cb);
+    }
+
+    /* We're done with this request. Free the sdp_req
+     * This will clean up the hash table entry as well
+     */
+    talloc_zfree(sdp_req);
+}
+
+static errno_t
+sss_dp_get_account_int_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        dbus_uint16_t *err_maj,
+                        dbus_uint32_t *err_min,
+                        char **err_msg)
+{
+    struct dp_get_account_int_state *state =
+            tevent_req_data(req, struct dp_get_account_int_state);
+
+    enum tevent_req_state TRROEstate;
+    uint64_t TRROEerr;
+
+    *err_maj = state->sdp_req->err_maj;
+    *err_min = state->sdp_req->err_min;
+    *err_msg = talloc_steal(mem_ctx, state->sdp_req->err_msg);
+
+    if (tevent_req_is_error(req, &TRROEstate, &TRROEerr)) {
+        if (TRROEstate == TEVENT_REQ_USER_ERROR) {
+            *err_maj = DP_ERR_FATAL;
+            *err_min = TRROEerr;
+        } else {
+            return EIO;
+        }
+    }
+
+    return EOK;
+}

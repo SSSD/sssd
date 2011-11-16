@@ -592,6 +592,14 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    /* Create DP request table */
+    ret = sss_hash_create(rctx, 30, &rctx->dp_request_table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not create hash table for the request queue\n"));
+        return ret;
+    }
+
     DEBUG(1, ("Responder Initialization complete\n"));
 
     *responder_ctx = rctx;

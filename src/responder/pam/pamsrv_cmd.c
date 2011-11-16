@@ -807,6 +807,8 @@ done:
     return pam_check_user_done(preq, ret);
 }
 
+static void pam_dp_send_acct_req_done(struct tevent_req *req);
+
 static int pam_check_user_search(struct pam_auth_req *preq)
 {
     struct sss_domain_info *dom = preq->domain;
@@ -815,6 +817,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     struct sysdb_ctx *sysdb;
     time_t cacheExpire;
     int ret;
+    struct tevent_req *dpreq;
+    struct dp_callback_ctx *cb_ctx;
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
@@ -904,24 +908,57 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         /* dont loop forever :-) */
         preq->check_provider = false;
 
-        ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
-                                   pam_check_user_dp_callback, preq,
-                                   SSS_CLI_SOCKET_TIMEOUT/2,
-                                   dom->name, false,
-                                   SSS_DP_INITGROUPS,
-                                   name, 0);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            preq->pd->pam_status = PAM_SYSTEM_ERR;
-            return EIO;
+        dpreq = sss_dp_get_account_send(preq, preq->cctx->rctx,
+                                        dom, false, SSS_DP_INITGROUPS,
+                                        name, 0);
+        if (!dpreq) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Out of memory sending data provider request\n"));
+            return ENOMEM;
         }
+
+        cb_ctx = talloc_zero(preq, struct dp_callback_ctx);
+        if(!cb_ctx) {
+            talloc_zfree(dpreq);
+            return ENOMEM;
+        }
+
+        cb_ctx->callback = pam_check_user_dp_callback;
+        cb_ctx->ptr = preq;
+        cb_ctx->cctx = preq->cctx;
+        cb_ctx->mem_ctx = preq;
+
+        tevent_req_set_callback(dpreq, pam_dp_send_acct_req_done, cb_ctx);
+
         /* tell caller we are in an async call */
         return EAGAIN;
     }
 
     DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
     return ENOENT;
+}
+
+static void pam_dp_send_acct_req_done(struct tevent_req *req)
+{
+    struct dp_callback_ctx *cb_ctx =
+            tevent_req_callback_data(req, struct dp_callback_ctx);
+
+    errno_t ret;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    char *err_msg;
+
+    ret = sss_dp_get_account_recv(cb_ctx->mem_ctx, req,
+                                  &err_maj, &err_min,
+                                  &err_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Fatal error, killing connection!\n"));
+        talloc_free(cb_ctx->cctx);
+        return;
+    }
+
+    cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
 }
 
 static int pam_check_user_done(struct pam_auth_req *preq, int ret)

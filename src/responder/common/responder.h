@@ -89,6 +89,8 @@ struct resp_ctx {
 
     struct sss_names_ctx *names;
 
+    hash_table_t *dp_request_table;
+
     void *pvt_ctx;
 };
 
@@ -163,16 +165,40 @@ struct cli_protocol_version *register_cli_protocol_version(void);
 typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
 
-void handle_requests_after_reconnect(void);
+struct dp_callback_ctx {
+    sss_dp_callback_t callback;
+    void *ptr;
 
-int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
-                         sss_dp_callback_t callback, void *callback_ctx,
-                         int timeout, const char *domain,
-                         bool fast_reply, int type,
-                         const char *opt_name, uint32_t opt_id);
+    void *mem_ctx;
+    struct cli_ctx *cctx;
+};
+
+void handle_requests_after_reconnect(void);
 
 int responder_logrotate(DBusMessage *message,
                         struct sbus_connection *conn);
+
+/* Send a request to the data provider
+ * Once this function is called, the communication
+ * with the data provider will always run to
+ * completion. Freeing the returned tevent_req will
+ * cancel the notification of completion, but not
+ * the data provider action.
+ */
+struct tevent_req *
+sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
+                        struct resp_ctx *rctx,
+                        struct sss_domain_info *dom,
+                        bool fast_reply,
+                        int type,
+                        const char *opt_name,
+                        uint32_t opt_id);
+errno_t
+sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        dbus_uint16_t *err_maj,
+                        dbus_uint32_t *err_min,
+                        char **err_msg);
 
 bool sss_utf8_check(const uint8_t *s, size_t n);
 

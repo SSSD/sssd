@@ -85,6 +85,7 @@ struct setent_step_ctx {
     struct nss_dom_ctx *dctx;
     struct getent_ctx *getent_ctx;
     struct resp_ctx *rctx;
+    struct cli_ctx *cctx;
     bool check_next;
 
     bool returned_to_mainloop;

@@ -533,6 +533,7 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
     return EOK;
 }
 
+static void nsssrv_dp_send_acct_req_done(struct tevent_req *req);
 
 /* FIXME: do not check res->count, but get in a msgs and check in parent */
 /* FIXME: do not sss_cmd_done, but return error and let parent do it */
@@ -546,7 +547,6 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
                     void *pvt)
 {
     errno_t ret;
-    int timeout;
     time_t now;
     uint64_t lastUpdate;
     uint64_t cacheExpire = 0;
@@ -554,6 +554,8 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     bool off_band_update = false;
+    struct tevent_req *req = NULL;
+    struct dp_callback_ctx *cb_ctx = NULL;
 
     /* when searching for a user or netgroup, more than one reply is a
      * db error
@@ -620,25 +622,26 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
     }
 
     if (off_band_update) {
-
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
         /* No callback required
          * This was an out-of-band update. We'll return EOK
          * so the calling function can return the cached entry
          * immediately.
          */
-        ret = sss_dp_send_acct_req(cctx->rctx, NULL, NULL, NULL,
-                                   timeout, dctx->domain->name,
-                                   true, req_type,
-                                   opt_name, opt_id);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
+        req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
+                                      req_type, opt_name, opt_id);
+        if (!req) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Out of memory sending out-of-band data provider "
+                   "request\n"));
+            /* This is non-fatal, so we'll continue here */
         } else {
-
-            DEBUG(3, ("Updating cache out-of-band\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Updating cache out-of-band\n"));
         }
+
+        /* We don't need to listen for a reply, so we will free the
+         * request here.
+         */
+        talloc_zfree(req);
 
     } else {
        /* This is a cache miss. Or the cache is expired.
@@ -647,32 +650,66 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
         /* keep around current data in case backend is offline */
         if (res->count) {
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   callback, pvt, timeout,
-                                   dctx->domain->name,
-                                   true, req_type,
-                                   opt_name, opt_id);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR_CODE(cctx, EIO);
-            }
-            sss_cmd_done(cctx, cmdctx);
+        req = sss_dp_get_account_send(dctx, cctx->rctx, dctx->domain, true,
+                                      req_type, opt_name, opt_id);
+        if (!req) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Out of memory sending data provider request\n"));
+            ret = ENOMEM;
+            goto error;
         }
+
+        cb_ctx = talloc_zero(dctx, struct dp_callback_ctx);
+        if(!cb_ctx) {
+            talloc_zfree(req);
+            ret = ENOMEM;
+            goto error;
+        }
+        cb_ctx->callback = callback;
+        cb_ctx->ptr = dctx;
+        cb_ctx->cctx = dctx->cmdctx->cctx;
+        cb_ctx->mem_ctx = dctx;
+
+        tevent_req_set_callback(req, nsssrv_dp_send_acct_req_done, cb_ctx);
 
         return EAGAIN;
     }
 
     return EOK;
+
+error:
+    ret = nss_cmd_send_error(cmdctx, ret);
+    if (ret != EOK) {
+        NSS_CMD_FATAL_ERROR_CODE(cctx, ret);
+    }
+    sss_cmd_done(cctx, cmdctx);
+    return EOK;
+}
+
+static void nsssrv_dp_send_acct_req_done(struct tevent_req *req)
+{
+    struct dp_callback_ctx *cb_ctx =
+            tevent_req_callback_data(req, struct dp_callback_ctx);
+
+    errno_t ret;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    char *err_msg;
+
+    ret = sss_dp_get_account_recv(cb_ctx->mem_ctx, req,
+                                  &err_maj, &err_min,
+                                  &err_msg);
+    if (ret != EOK) {
+        NSS_CMD_FATAL_ERROR(cb_ctx->cctx);
+    }
+
+    cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
 }
 
 static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -1274,6 +1311,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     step_ctx->nctx = state->nctx;
     step_ctx->getent_ctx = state->getent_ctx;
     step_ctx->rctx = client->rctx;
+    step_ctx->cctx = client;
     step_ctx->returned_to_mainloop = false;
 
     ret = nss_cmd_setpwent_step(step_ctx);
@@ -1315,7 +1353,8 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     struct setent_req_list *req;
     struct timeval tv;
     struct tevent_timer *te;
-    int timeout;
+    struct tevent_req *dpreq;
+    struct dp_callback_ctx *cb_ctx;
 
     while (dom) {
         while (dom && dom->enumerate == 0) {
@@ -1347,18 +1386,29 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
             step_ctx->returned_to_mainloop = true;
             /* Only do this once per provider */
             dctx->check_provider = false;
-            timeout = SSS_CLI_SOCKET_TIMEOUT;
 
-            ret = sss_dp_send_acct_req(rctx, step_ctx,
-                                       nss_cmd_setpwent_dp_callback, step_ctx,
-                                       timeout, dom->name, true,
-                                       SSS_DP_USER, NULL, 0);
-            if (ret == EOK) {
-                return EAGAIN;
+            dpreq = sss_dp_get_account_send(step_ctx, rctx, dctx->domain, true,
+                                          SSS_DP_USER, NULL, 0);
+            if (!dpreq) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Enum Cache refresh for domain [%s] failed."
+                       " Trying to return what we have in cache!\n",
+                       dom->name));
             } else {
-                DEBUG(2, ("Enum Cache refresh for domain [%s] failed."
-                          " Trying to return what we have in cache!\n",
-                          dom->name));
+                cb_ctx = talloc_zero(step_ctx, struct dp_callback_ctx);
+                if(!cb_ctx) {
+                    talloc_zfree(dpreq);
+                    return ENOMEM;
+                }
+
+                cb_ctx->callback = nss_cmd_setpwent_dp_callback;
+                cb_ctx->ptr = step_ctx;
+                cb_ctx->cctx = step_ctx->cctx;
+                cb_ctx->mem_ctx = step_ctx;
+
+                tevent_req_set_callback(dpreq, nsssrv_dp_send_acct_req_done, cb_ctx);
+
+                return EAGAIN;
             }
         }
 
@@ -2541,6 +2591,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     step_ctx->nctx = state->nctx;
     step_ctx->getent_ctx = state->getent_ctx;
     step_ctx->rctx = client->rctx;
+    step_ctx->cctx = client;
     step_ctx->returned_to_mainloop = false;
 
     ret = nss_cmd_setgrent_step(step_ctx);
@@ -2582,7 +2633,8 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     struct setent_req_list *req;
     struct timeval tv;
     struct tevent_timer *te;
-    int timeout;
+    struct tevent_req *dpreq;
+    struct dp_callback_ctx *cb_ctx;
 
     while (dom) {
         while (dom && dom->enumerate == 0) {
@@ -2613,19 +2665,28 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         if (dctx->check_provider) {
             step_ctx->returned_to_mainloop = true;
             /* Only do this once per provider */
-            dctx->check_provider = false;
-            timeout = SSS_CLI_SOCKET_TIMEOUT;
-
-            ret = sss_dp_send_acct_req(rctx, step_ctx,
-                                       nss_cmd_setgrent_dp_callback, step_ctx,
-                                       timeout, dom->name, true,
-                                       SSS_DP_GROUP, NULL, 0);
-            if (ret == EOK) {
-                return EAGAIN;
+            dpreq = sss_dp_get_account_send(step_ctx, rctx, dctx->domain, true,
+                                          SSS_DP_USER, NULL, 0);
+            if (!dpreq) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Enum Cache refresh for domain [%s] failed."
+                       " Trying to return what we have in cache!\n",
+                       dom->name));
             } else {
-                DEBUG(2, ("Enum Cache refresh for domain [%s] failed."
-                          " Trying to return what we have in cache!\n",
-                          dom->name));
+                cb_ctx = talloc_zero(step_ctx, struct dp_callback_ctx);
+                if(!cb_ctx) {
+                    talloc_zfree(dpreq);
+                    return ENOMEM;
+                }
+
+                cb_ctx->callback = nss_cmd_setgrent_dp_callback;
+                cb_ctx->ptr = step_ctx;
+                cb_ctx->cctx = step_ctx->cctx;
+                cb_ctx->mem_ctx = step_ctx;
+
+                tevent_req_set_callback(dpreq, nsssrv_dp_send_acct_req_done, cb_ctx);
+
+                return EAGAIN;
             }
         }
 
