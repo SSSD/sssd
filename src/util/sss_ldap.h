@@ -60,4 +60,12 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
                                       int addr_len, int timeout);
 
 int sss_ldap_init_recv(struct tevent_req *req, LDAP **ldap, int *sd);
+
+struct sdap_options;
+struct sdap_search_base;
+bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
+                                 const char *dn,
+                                 struct sdap_search_base **search_bases,
+                                 char **_filter);
+
 #endif /* __SSS_LDAP_H__ */

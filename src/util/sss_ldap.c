@@ -26,6 +26,7 @@
 
 #include "config.h"
 
+#include "providers/ldap/sdap.h"
 #include "util/sss_ldap.h"
 #include "util/util.h"
 
@@ -464,4 +465,127 @@ int sss_ldap_init_recv(struct tevent_req *req, LDAP **ldap, int *sd)
     *sd = state->sd;
 
     return EOK;
+}
+
+/*
+ * _filter will contain combined filters from all possible search bases
+ * or NULL if it should be empty
+ */
+bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
+                                 const char *dn,
+                                 struct sdap_search_base **search_bases,
+                                 char **_filter)
+{
+    struct sdap_search_base *base;
+    int basedn_len, dn_len;
+    int len_diff;
+    int i, j;
+    bool base_confirmed;
+    bool comma_found;
+    bool backslash_found;
+    char *filter = NULL;
+    bool ret = false;
+
+    if (dn == NULL) {
+        DEBUG(SSSDBG_FUNC_DATA, ("dn is NULL\n"));
+        ret = false;
+        goto done;
+    }
+
+    if (search_bases == NULL) {
+        DEBUG(SSSDBG_FUNC_DATA, ("search_bases is NULL\n"));
+        ret = false;
+        goto done;
+    }
+
+    dn_len = strlen(dn);
+    for (i = 0; search_bases[i] != NULL; i++) {
+        base = search_bases[i];
+        basedn_len = strlen(base->basedn);
+
+        if (basedn_len > dn_len) {
+            continue;
+        }
+
+        len_diff = dn_len - basedn_len;
+        base_confirmed = (strncasecmp(&dn[len_diff], base->basedn, basedn_len) == 0);
+        if (!base_confirmed) {
+            continue;
+        }
+
+        switch (base->scope) {
+        case LDAP_SCOPE_BASE:
+            /* dn > base? */
+            if (len_diff != 0) {
+                continue;
+            }
+            break;
+        case LDAP_SCOPE_ONELEVEL:
+            if (len_diff == 0) {
+                /* Base object doesn't belong to scope=one
+                 * search */
+                continue;
+            }
+
+            comma_found = false;
+            for (j = 0; j < len_diff - 1; j++) { /* ignore comma before base */
+                if (dn[j] == '\\') {
+                    backslash_found = true;
+                } else if (dn[j] == ',' && !backslash_found) {
+                    comma_found = true;
+                    break;
+                } else {
+                    backslash_found = false;
+                }
+            }
+
+            /* it has at least one more level */
+            if (comma_found) {
+                continue;
+            }
+
+            break;
+        case LDAP_SCOPE_SUBTREE:
+            /* dn length >= base dn length && base_confirmed == true */
+            break;
+        default:
+            DEBUG(SSSDBG_FUNC_DATA, ("Unsupported scope: %d\n", base->scope));
+            continue;
+        }
+
+        /*
+         *  If we get here, the dn is valid.
+         *  If no filter is set, than return true immediately.
+         *  Append filter otherwise.
+         */
+        ret = true;
+
+        if (base->filter == NULL || _filter == NULL) {
+            goto done;
+        } else {
+            filter = talloc_strdup_append(filter, base->filter);
+            if (filter == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup_append() failed\n"));
+                ret = false;
+                goto done;
+            }
+        }
+    }
+
+    if (_filter != NULL) {
+        if (filter != NULL) {
+            *_filter = talloc_asprintf(mem_ctx, "(|%s)", filter);
+            if (*_filter == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf_append() failed\n"));
+                ret = false;
+                goto done;
+            }
+        } else {
+            *_filter = NULL;
+        }
+    }
+
+done:
+    talloc_free(filter);
+    return ret;
 }
