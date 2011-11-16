@@ -1983,3 +1983,83 @@ done:
     return ret;
 }
 
+errno_t
+sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
+                         const char *attr_name,
+                         const char *attr_desc,
+                         bool multivalued,
+                         const char *name,
+                         struct sysdb_attrs *attrs)
+{
+    errno_t ret;
+    struct ldb_message_element *el;
+    const char *objname = name ?: "object";
+    const char *desc = attr_desc ?: attr_name;
+    unsigned int num_values, i;
+
+    ret = sysdb_attrs_get_el(ldap_attrs, attr_name, &el);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not get %s from the "
+              "list of the LDAP attributes [%d]: %s\n", ret, strerror(ret)));
+        return ret;
+    }
+
+    if (el->num_values == 0) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("%s is not available "
+              "for [%s].\n", desc, objname));
+    } else {
+        num_values = multivalued ? el->num_values : 1;
+        for (i = 0; i < num_values; i++) {
+            DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding %s [%s] to attributes "
+                  "of [%s].\n", desc, el->values[i].data, objname));
+
+            ret = sysdb_attrs_add_string(attrs, attr_name,
+                                         (const char *) el->values[i].data);
+            if (ret) {
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+
+errno_t
+sdap_save_all_names(const char *name,
+                    struct sysdb_attrs *ldap_attrs,
+                    struct sysdb_attrs *attrs)
+{
+    const char **aliases = NULL;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_aliases(tmp_ctx, ldap_attrs, name, &aliases);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get the alias list"));
+        goto done;
+    }
+
+    for (i = 0; aliases[i]; i++) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS,
+                                     aliases[i]);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to add alias [%s] into the "
+                                      "attribute list\n", aliases[i]));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+

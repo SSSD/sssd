@@ -29,7 +29,6 @@
 /* ==Save-User-Entry====================================================== */
 
 /* FIXME: support storing additional attributes */
-
 int sdap_save_user(TALLOC_CTX *memctx,
                    struct sysdb_ctx *ctx,
                    struct sdap_options *opts,
@@ -52,17 +51,14 @@ int sdap_save_user(TALLOC_CTX *memctx,
     struct sysdb_attrs *user_attrs;
     char *upn = NULL;
     size_t i;
-    char *val = NULL;
     int cache_timeout;
     char *usn_value = NULL;
-    size_t c;
     char **missing = NULL;
-    const char **aliases = NULL;
     TALLOC_CTX *tmpctx = NULL;
 
     DEBUG(9, ("Save user\n"));
 
-    tmpctx = talloc_new(memctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         ret = ENOMEM;
         goto fail;
@@ -151,56 +147,26 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
-    if (ret) {
+    ret = sdap_attrs_add_string(attrs, SYSDB_ORIG_DN,
+                                "original DN",
+                                name, user_attrs);
+    if (ret != EOK) {
         goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available for [%s].\n", name));
-    } else {
-        DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
-                  el->values[0].data, name));
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN,
-                                     (const char *) el->values[0].data);
-        if (ret) {
-            goto fail;
-        }
     }
 
-    ret = sysdb_attrs_get_el(attrs, SYSDB_MEMBEROF, &el);
-    if (ret) {
+    ret = sdap_attrs_add_list(attrs, SYSDB_MEMBEROF,
+                              "original memberOf",
+                              name, user_attrs);
+    if (ret != EOK) {
         goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("Original memberOf is not available for [%s].\n",
-                  name));
-    } else {
-        DEBUG(7, ("Adding original memberOf attributes to [%s].\n",
-                  name));
-        for (i = 0; i < el->num_values; i++) {
-            ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
-                                         (const char *) el->values[i].data);
-            if (ret) {
-                goto fail;
-            }
-        }
     }
 
-    ret = sysdb_attrs_get_el(attrs,
-                      opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name, &el);
-    if (ret) {
+    ret = sdap_attrs_add_string(attrs,
+                            opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name,
+                            "original mod-Timestamp",
+                            name, user_attrs);
+    if (ret != EOK) {
         goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("Original mod-Timestamp is not available for [%s].\n",
-                  name));
-    } else {
-        ret = sysdb_attrs_add_string(user_attrs,
-                          opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name,
-                          (const char*)el->values[0].data);
-        if (ret) {
-            goto fail;
-        }
     }
 
     ret = sysdb_attrs_get_el(attrs,
@@ -218,7 +184,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         if (ret) {
             goto fail;
         }
-        usn_value = talloc_strdup(memctx, (const char*)el->values[0].data);
+        usn_value = talloc_strdup(tmpctx, (const char*)el->values[0].data);
         if (!usn_value) {
             ret = ENOMEM;
             goto fail;
@@ -250,26 +216,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
 
     for (i = SDAP_FIRST_EXTRA_USER_AT; i < SDAP_OPTS_USER; i++) {
-        ret = sysdb_attrs_get_el(attrs, opts->user_map[i].sys_name, &el);
+        ret = sdap_attrs_add_list(attrs, opts->user_map[i].sys_name,
+                                  NULL, name, user_attrs);
         if (ret) {
             goto fail;
-        }
-        if (el->num_values > 0) {
-            for (c = 0; c < el->num_values; c++) {
-                DEBUG(9, ("Adding [%s]=[%s] to user attributes.\n",
-                          opts->user_map[i].sys_name,
-                          (const char*) el->values[c].data));
-                val = talloc_strdup(user_attrs, (const char*) el->values[c].data);
-                if (val == NULL) {
-                    ret = ENOMEM;
-                    goto fail;
-                }
-                ret = sysdb_attrs_add_string(user_attrs,
-                                             opts->user_map[i].sys_name, val);
-                if (ret) {
-                    goto fail;
-                }
-            }
         }
     }
 
@@ -284,18 +234,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_attrs_get_aliases(tmpctx, attrs, name, &aliases);
+    ret = sdap_save_all_names(name, attrs, user_attrs);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to get the alias list"));
+        DEBUG(1, ("Failed to save user names\n"));
         goto fail;
-    }
-
-    for (i = 0; aliases[i]; i++) {
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS,
-                                     aliases[i]);
-        if (ret) {
-            goto fail;
-        }
     }
 
     /* Make sure that any attributes we requested from LDAP that we
@@ -320,7 +262,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (ret) goto fail;
 
     if (_usn_value) {
-        *_usn_value = usn_value;
+        *_usn_value = talloc_steal(memctx, usn_value);
     }
 
     talloc_steal(memctx, user_attrs);

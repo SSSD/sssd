@@ -48,7 +48,6 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     const char *name = NULL;
     int ret;
     char *timestamp = NULL;
-    size_t c;
 
     ret = sysdb_attrs_get_el(attrs,
                              opts->netgroup_map[SDAP_AT_NETGROUP_NAME].sys_name,
@@ -66,20 +65,11 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
-    if (ret) {
+    ret = sdap_attrs_add_string(attrs, SYSDB_ORIG_DN,
+                                "original DN",
+                                name, netgroup_attrs);
+    if (ret != EOK) {
         goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available for [%s].\n", name));
-    } else {
-        DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
-                  el->values[0].data, name));
-        ret = sysdb_attrs_add_string(netgroup_attrs, SYSDB_ORIG_DN,
-                                     (const char *)el->values[0].data);
-        if (ret) {
-            goto fail;
-        }
     }
 
     ret = sysdb_attrs_get_el(attrs,
@@ -105,63 +95,26 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_attrs_get_el(attrs,
-                           opts->netgroup_map[SDAP_AT_NETGROUP_TRIPLE].sys_name,
-                           &el);
-    if (ret) {
-        goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("No netgroup triples for netgroup [%s].\n", name));
-    } else {
-        for(c = 0; c < el->num_values; c++) {
-            ret = sysdb_attrs_add_string(netgroup_attrs,
-                           opts->netgroup_map[SDAP_AT_NETGROUP_TRIPLE].sys_name,
-                            (const char*)el->values[c].data);
-            if (ret) {
-                goto fail;
-            }
-        }
-    }
-
-    ret = sysdb_attrs_get_el(attrs,
-                       opts->netgroup_map[SDAP_AT_NETGROUP_MEMBER].sys_name,
-                       &el);
+    ret = sdap_attrs_add_list(attrs,
+                        opts->netgroup_map[SDAP_AT_NETGROUP_TRIPLE].sys_name,
+                        "netgroup triple",
+                        name, netgroup_attrs);
     if (ret != EOK) {
         goto fail;
     }
-    if (el->num_values == 0) {
-        DEBUG(7, ("No original members for netgroup [%s]\n", name));
 
-    } else {
-        DEBUG(7, ("Adding original members to netgroup [%s]\n", name));
-        for(c = 0; c < el->num_values; c++) {
-            ret = sysdb_attrs_add_string(netgroup_attrs,
-                       opts->netgroup_map[SDAP_AT_NETGROUP_MEMBER].sys_name,
-                       (const char*)el->values[c].data);
-            if (ret) {
-                goto fail;
-            }
-        }
-    }
-
-
-    ret = sysdb_attrs_get_el(attrs, SYSDB_NETGROUP_MEMBER, &el);
+    ret = sdap_attrs_add_list(attrs,
+                        opts->netgroup_map[SDAP_AT_NETGROUP_MEMBER].sys_name,
+                        "original members",
+                        name, netgroup_attrs);
     if (ret != EOK) {
         goto fail;
     }
-    if (el->num_values == 0) {
-        DEBUG(7, ("No members for netgroup [%s]\n", name));
 
-    } else {
-        DEBUG(7, ("Adding members to netgroup [%s]\n", name));
-        for(c = 0; c < el->num_values; c++) {
-            ret = sysdb_attrs_add_string(netgroup_attrs, SYSDB_NETGROUP_MEMBER,
-                                         (const char*)el->values[c].data);
-            if (ret) {
-                goto fail;
-            }
-        }
+    ret = sdap_attrs_add_list(attrs, SYSDB_NETGROUP_MEMBER,
+                        "members", name, netgroup_attrs);
+    if (ret != EOK) {
+        goto fail;
     }
 
     DEBUG(6, ("Storing info for netgroup %s\n", name));

@@ -222,11 +222,9 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     const char *name = NULL;
     gid_t gid;
     int ret;
-    int i;
     char *usn_value = NULL;
     TALLOC_CTX *tmpctx = NULL;
     bool posix_group;
-    const char **aliases = NULL;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -282,37 +280,18 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         /* Group ID OK */
     }
 
-    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
-    if (ret) {
+    ret = sdap_attrs_add_string(attrs, SYSDB_ORIG_DN, "original DN",
+                                name, group_attrs);
+    if (ret != EOK) {
         goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available for [%s].\n", name));
-    } else {
-        DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
-                  el->values[0].data, name));
-        ret = sysdb_attrs_add_string(group_attrs, SYSDB_ORIG_DN,
-                                     (const char *) el->values[0].data);
-        if (ret) {
-            goto fail;
-        }
     }
 
-    ret = sysdb_attrs_get_el(attrs,
-                      opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name, &el);
-    if (ret) {
+    ret = sdap_attrs_add_string(attrs,
+                            opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name,
+                            "original mod-Timestamp",
+                            name, group_attrs);
+    if (ret != EOK) {
         goto fail;
-    }
-    if (el->num_values == 0) {
-        DEBUG(7, ("Original mod-Timestamp is not available for [%s].\n",
-                  name));
-    } else {
-        ret = sysdb_attrs_add_string(group_attrs,
-                          opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name,
-                          (const char*)el->values[0].data);
-        if (ret) {
-            goto fail;
-        }
     }
 
     ret = sysdb_attrs_get_el(attrs,
@@ -369,18 +348,10 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_attrs_get_aliases(tmpctx, attrs, name, &aliases);
+    ret = sdap_save_all_names(name, attrs, group_attrs);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to get the alias list\n"));
+        DEBUG(1, ("Failed to save user names\n"));
         goto fail;
-    }
-
-    for (i = 0; aliases[i]; i++) {
-        ret = sysdb_attrs_add_string(group_attrs, SYSDB_NAME_ALIAS,
-                                        aliases[i]);
-        if (ret) {
-            goto fail;
-        }
     }
 
     DEBUG(6, ("Storing info for group %s\n", name));
