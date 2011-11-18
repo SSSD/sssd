@@ -1938,7 +1938,10 @@ static struct tevent_req *sdap_nested_group_process_send(
 
     if (sdap_has_deref_support(state->sh, state->opts)) {
         state->derefctx = talloc_zero(state, struct sdap_deref_ctx);
-        if (!state->derefctx) goto immediate;
+        if (!state->derefctx) {
+            ret = ENOMEM;
+            goto immediate;
+        }
 
         ret = sysdb_attrs_get_string(group, SYSDB_ORIG_DN,
                                      &state->derefctx->orig_dn);
@@ -2849,7 +2852,7 @@ static void sdap_nested_group_process_deref(struct tevent_req *subreq)
     if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
-    } else if (ret == ENOENT || state->derefctx->deref_result == 0) {
+    } else if (ret == ENOENT || state->derefctx->deref_result == NULL) {
         /* Nothing could be dereferenced. Done. */
         tevent_req_done(req);
         return;
