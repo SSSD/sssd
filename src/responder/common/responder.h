@@ -171,4 +171,6 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          bool fast_reply, int type,
                          const char *opt_name, uint32_t opt_id);
 
+bool sss_utf8_check(const uint8_t *s, size_t n);
+
 #endif /* __SSS_RESPONDER_H__ */

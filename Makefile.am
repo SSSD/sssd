@@ -402,7 +402,8 @@ sssd_nss_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    -lunistring
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -413,7 +414,8 @@ sssd_pam_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
     $(TDB_LIBS) \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    -lunistring
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \

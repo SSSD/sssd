@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <popt.h>
+#include <unistr.h>
 #include "config.h"
 #include "util/util.h"
 #include "db/sysdb.h"
@@ -683,3 +684,10 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
     return EOK;
 }
 
+bool sss_utf8_check(const uint8_t *s, size_t n)
+{
+    if (u8_check(s, n) == NULL) {
+        return true;
+    }
+    return false;
+}
