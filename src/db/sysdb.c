@@ -817,7 +817,7 @@ static int sysdb_upgrade_01(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(ldb, mem_ctx, &res,
                      basedn, LDB_SCOPE_SUBTREE,
-                     attrs, filter);
+                     attrs, "%s", filter);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;

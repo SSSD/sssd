@@ -358,7 +358,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     }
 
     ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, fmt_filter);
+                     LDB_SCOPE_SUBTREE, attrs, "%s", fmt_filter);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
