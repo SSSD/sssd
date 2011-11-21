@@ -150,6 +150,8 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     struct sdap_rebind_proc_params *rebind_proc_params;
     int sd;
     bool sasl_nocanon;
+    const char *sasl_mech;
+    int sasl_minssf;
 
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
@@ -267,6 +269,21 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         DEBUG(1, ("Failed to set LDAP SASL nocanon option to %s\n",
                    sasl_nocanon ? "true" : "false"));
         goto fail;
+    }
+
+    sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
+    if (sasl_mech != NULL) {
+        sasl_minssf = dp_opt_get_int(state->opts->basic, SDAP_SASL_MINSSF);
+        if (sasl_minssf >= 0) {
+            lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_SSF_MIN,
+                                   &sasl_minssf);
+            if (lret != LDAP_OPT_SUCCESS) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to set LDAP MIN SSF option to %d\n",
+                       sasl_minssf));
+                goto fail;
+            }
+        }
     }
 
     /* if we do not use start_tls the connection is not really connected yet
