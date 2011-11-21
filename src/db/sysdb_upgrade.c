@@ -82,7 +82,7 @@ int sysdb_upgrade_01(struct ldb_context *ldb, const char **ver)
 
     ret = ldb_search(ldb, tmp_ctx, &res,
                      basedn, LDB_SCOPE_SUBTREE,
-                     attrs, filter);
+                     attrs, "%s", filter);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
