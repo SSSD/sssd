@@ -171,9 +171,12 @@ errno_t check_and_export_options(struct dp_option *opts,
     }
 
     if (dp_opt_get_bool(opts, KRB5_CANONICALIZE)) {
-        setenv(SSSD_KRB5_CANONICALIZE, "true", 1);
+        ret = setenv(SSSD_KRB5_CANONICALIZE, "true", 1);
     } else {
-        setenv(SSSD_KRB5_CANONICALIZE, "false", 1);
+        ret = setenv(SSSD_KRB5_CANONICALIZE, "false", 1);
+    }
+    if (ret != EOK) {
+        DEBUG(2, ("setenv [%s] failed.\n", SSSD_KRB5_CANONICALIZE));
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
