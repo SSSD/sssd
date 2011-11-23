@@ -331,6 +331,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_access.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
+    src/providers/ipa/ipa_id.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
