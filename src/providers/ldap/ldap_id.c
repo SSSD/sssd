@@ -732,16 +732,27 @@ static void sdap_account_info_users_done(struct tevent_req *req);
 static void sdap_account_info_groups_done(struct tevent_req *req);
 static void sdap_account_info_initgr_done(struct tevent_req *req);
 static void sdap_account_info_netgroups_done(struct tevent_req *req);
+void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
 
 void sdap_account_info_handler(struct be_req *breq)
 {
     struct sdap_id_ctx *ctx;
+
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
+    if (!ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get sdap ctx\n"));
+        return sdap_handler_done(breq, DP_ERR_FATAL,
+                                 EINVAL, "Invalid request data\n");
+    }
+    return sdap_handle_account_info(breq, ctx);
+}
+
+void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
+{
     struct be_acct_req *ar;
     struct tevent_req *req;
     const char *err = "Unknown Error";
     int ret = EOK;
-
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
 
     if (be_is_offline(ctx->be)) {
         return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");

@@ -80,7 +80,7 @@ void ipa_account_info_handler(struct be_req *breq)
     case BE_REQ_USER: /* user */
     case BE_REQ_GROUP: /* group */
     case BE_REQ_INITGROUPS: /* init groups for user */
-        return sdap_account_info_handler(breq);
+        return sdap_handle_account_info(breq, ctx);
 
     case BE_REQ_NETGROUP:
         if (ar->filter_type != BE_FILTER_NAME) {

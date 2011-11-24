@@ -351,6 +351,7 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
 {
     int ret;
     struct ipa_access_ctx *ipa_access_ctx;
+    struct ipa_id_ctx *id_ctx;
 
     ipa_access_ctx = talloc_zero(bectx, struct ipa_access_ctx);
     if (ipa_access_ctx == NULL) {
@@ -358,11 +359,12 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
         return ENOMEM;
     }
 
-    ret = sssm_ipa_id_init(bectx, ops, (void **) &ipa_access_ctx->sdap_ctx);
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
         DEBUG(1, ("sssm_ipa_id_init failed.\n"));
         goto done;
     }
+    ipa_access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
 
     ret = dp_copy_options(ipa_access_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_access_ctx->ipa_options);
