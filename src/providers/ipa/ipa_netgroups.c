@@ -387,7 +387,7 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
     }
 
     state->filter = talloc_asprintf_append(filter, ")");
-    if (filter == NULL) {
+    if (state->filter == NULL) {
         ret = ENOMEM;
         goto done;
     }
