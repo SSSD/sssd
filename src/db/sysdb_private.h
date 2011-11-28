@@ -96,6 +96,6 @@ int sysdb_upgrade_03(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_04(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_05(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_07(struct sysdb_ctx *ctx, const char **ver);
+int sysdb_upgrade_07(struct sysdb_ctx *sysdb, const char **ver);
 
 #endif /* __INT_SYS_DB_H__ */
