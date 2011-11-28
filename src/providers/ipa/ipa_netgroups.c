@@ -597,6 +597,12 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
         state->host_base_iter++;
         ret = ipa_netgr_fetch_hosts(state, req);
         table = state->new_hosts;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Invalid entity type given for processing: %d\n",
+               state->current_entity));
+        ret = EINVAL;
+        goto fail;
     }
 
     if (ret == EOK) {
