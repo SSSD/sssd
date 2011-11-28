@@ -459,8 +459,6 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     safealign_memcpy(dest, src, sizeof(uint32_t), pctr)
 #endif
 
-#endif /* _SSSCLI_H */
-
 #if 0
 
 /* GETSPNAM Request:
@@ -493,3 +491,5 @@ void sss_nss_lock(void);
 void sss_nss_unlock(void);
 void sss_pam_lock(void);
 void sss_pam_unlock(void);
+
+#endif /* _SSSCLI_H */
