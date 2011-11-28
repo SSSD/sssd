@@ -47,7 +47,8 @@ endif
 if HAVE_GCC
     AM_CFLAGS += -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith \
                  -Wcast-qual -Wcast-align -Wwrite-strings \
-                 -Werror-implicit-function-declaration
+                 -Werror-implicit-function-declaration \
+                 -fno-strict-aliasing
 endif
 
 dist_pkgconfig_DATA =
