@@ -424,6 +424,7 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
     struct netgr_translate_members_state *state = tevent_req_data(req,
                                           struct netgr_translate_members_state);
     const char **cn_attr;
+    char *filter = NULL;
     struct tevent_req *subreq;
     int ret;
 
@@ -447,6 +448,15 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
         return EOK;
     }
 
+    if (!sss_ldap_dn_in_search_bases(state, state->dn_item->dn,
+                                     state->opts->netgroup_search_bases,
+                                     &filter)) {
+        /* not in search base, skip it */
+        state->dn_idx = state->dn_item->next;
+        DLIST_REMOVE(state->dn_list, state->dn_item);
+        return netgr_translate_members_ldap_step(req);
+    }
+
     cn_attr = talloc_array(state, const char *, 3);
     if (cn_attr == NULL) {
         DEBUG(1, ("talloc_array failed.\n"));
@@ -458,7 +468,7 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
 
     DEBUG(9, ("LDAP base search for [%s].\n", state->dn_item->dn));
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   state->dn_item->dn, LDAP_SCOPE_BASE, NULL,
+                                   state->dn_item->dn, LDAP_SCOPE_BASE, filter,
                                    cn_attr, state->opts->netgroup_map,
                                    SDAP_OPTS_NETGROUP,
                                    dp_opt_get_int(state->opts->basic,
