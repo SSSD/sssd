@@ -1226,16 +1226,12 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     ret = sdap_connect_recv(subreq, state, &state->sh);
     talloc_zfree(subreq);
     if (ret) {
-        if (ret == ETIMEDOUT) { /* retry another server */
-            fo_set_port_status(state->srv, PORT_NOT_WORKING);
-            ret = sdap_cli_resolve_next(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
+        /* retry another server */
+        fo_set_port_status(state->srv, PORT_NOT_WORKING);
+        ret = sdap_cli_resolve_next(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
         }
-
-        tevent_req_error(req, ret);
         return;
     }
 
