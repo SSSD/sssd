@@ -560,6 +560,18 @@ sss_debuglevel_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
 
+if BUILD_SUDO
+sss_sudo_cli_SOURCES = \
+    src/sss_client/sudo_testcli/sudo_testcli.c \
+    src/sss_client/sudo/sss_sudo_response.c \
+    src/sss_client/sudo/sss_sudo.c \
+    src/sss_client/sudo/sss_sudo.h \
+    src/sss_client/sudo/sss_sudo_private.h \
+    src/sss_client/common.c \
+    src/sss_client/sss_cli.h
+sss_sudo_cli_CFLAGS = $(AM_CFLAGS)
+endif
+
 #################
 # Feature Tests #
 #################
@@ -812,6 +824,9 @@ stress_tests_LDADD = \
     libsss_test_common.la
 
 noinst_PROGRAMS = pam_test_client
+if BUILD_SUDO
+noinst_PROGRAMS += sss_sudo_cli
+endif
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
 pam_test_client_LDFLAGS = -lpam -lpam_misc
 
