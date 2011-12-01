@@ -1096,7 +1096,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
         if (errnop != 0) {
             logger(pamh, LOG_ERR, "Request to sssd failed. %s", ssscli_err2string(errnop));
         }
-        pam_status = PAM_SYSTEM_ERR;
+        pam_status = PAM_AUTHINFO_UNAVAIL;
         goto done;
     }
 
