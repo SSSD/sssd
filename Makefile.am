@@ -40,6 +40,8 @@ pubconfpath = @pubconfpath@
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
 
+UNICODE_LIBS=@UNICODE_LIBS@
+
 AM_CFLAGS =
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
@@ -195,6 +197,7 @@ AM_CPPFLAGS = \
     $(DHASH_CFLAGS) \
     $(LIBNL_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
+    $(GLIB2_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
@@ -291,6 +294,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ldap.h \
     src/util/sss_python.h \
     src/util/sss_krb5.h \
+    src/util/sss_utf8.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -373,19 +377,22 @@ libsss_util_la_SOURCES = \
     src/util/backup_file.c \
     src/util/strtonum.c \
     src/util/check_and_open.c \
-    src/util/refcount.c
+    src/util/refcount.c \
+    src/util/sss_utf8.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
+    $(UNICODE_LIBS) \
     libsss_crypt.la \
     libsss_debug.la
 
 lib_LTLIBRARIES = libipa_hbac.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
-    src/providers/ipa/hbac_evaluator.c
+    src/providers/ipa/hbac_evaluator.c \
+    src/util/sss_utf8.c
 libipa_hbac_la_LDFLAGS = \
     -version 1:0:1 \
-    -lunistring
+    $(UNICODE_LIBS)
 
 include_HEADERS = \
     src/providers/ipa/ipa_hbac.h
@@ -410,8 +417,7 @@ sssd_nss_SOURCES = \
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
-    libsss_util.la \
-    -lunistring
+    libsss_util.la
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -422,8 +428,7 @@ sssd_pam_SOURCES = \
 sssd_pam_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
-    libsss_util.la \
-    -lunistring
+    libsss_util.la
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \
