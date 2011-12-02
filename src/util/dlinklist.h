@@ -122,7 +122,7 @@ do { \
                     (list2)->prev = (el); \
                     tmp->next = (el)->next; \
                     (el)->next = (list2); \
-                    if ((el)->next != NULL) (el)->next->prev = tmp; \
+                    if (tmp->next != NULL) tmp->next->prev = tmp; \
     } \
 } while (0);
 
