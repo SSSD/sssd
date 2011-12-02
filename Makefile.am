@@ -39,6 +39,8 @@ pubconfpath = @pubconfpath@
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
 
+UNICODE_LIBS=@UNICODE_LIBS@
+
 AM_CFLAGS =
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
@@ -122,7 +124,8 @@ krb5plugin_LTLIBRARIES = \
 endif
 
 noinst_LTLIBRARIES = \
-    libsss_crypt.la
+    libsss_crypt.la \
+    libsss_utf8.la
 
 if HAVE_NSS
     SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_sha512crypt.c \
@@ -144,6 +147,9 @@ libsss_crypt_la_CFLAGS = \
     $(DHASH_CFLAGS)
 libsss_crypt_la_LIBADD = \
     $(SSS_CRYPT_LIBS)
+
+libsss_utf8_la_SOURCES = src/util/sss_utf8.c
+libsss_utf8_la_LIBADD = $(UNICODE_LIBS)
 
 if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
@@ -192,6 +198,7 @@ AM_CPPFLAGS = \
     $(INI_CONFIG_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(LIBNL_CFLAGS) \
+    $(GLIB2_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
@@ -272,7 +279,8 @@ SSSD_LIBS = \
     $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
     $(TDB_LIBS) \
-    libsss_crypt.la
+    libsss_crypt.la \
+    libsss_utf8.la
 
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
@@ -297,8 +305,9 @@ TOOLS_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-	$(OPENLDAP_LIBS) \
-	$(TDB_LIBS) \
+    $(OPENLDAP_LIBS) \
+    $(TDB_LIBS) \
+    $(UNICODE_LIBS) \
     libsss_crypt.la
 
 if BUILD_SELINUX
@@ -319,6 +328,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ldap.h \
     src/util/sss_python.h \
     src/util/sss_krb5.h \
+    src/util/sss_utf8.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -371,14 +381,13 @@ if HAVE_NSS
     dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
 endif
 
-
 lib_LTLIBRARIES = libipa_hbac.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c
 libipa_hbac_la_LDFLAGS = \
-    -version 1:0:1 \
-    -lunistring
+    -version 1:0:1
+libipa_hbac_la_LIBADD = libsss_utf8.la
 
 include_HEADERS = \
     src/providers/ipa/ipa_hbac.h
@@ -403,8 +412,7 @@ sssd_nss_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
-    $(SSSD_LIBS) \
-    -lunistring
+    $(SSSD_LIBS)
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -415,8 +423,7 @@ sssd_pam_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
     $(TDB_LIBS) \
-    $(SSSD_LIBS) \
-    -lunistring
+    $(SSSD_LIBS)
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \

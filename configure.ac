@@ -122,7 +122,19 @@ m4_include([src/external/nsupdate.m4])
 m4_include([src/external/libkeyutils.m4])
 m4_include([src/external/libnl.m4])
 m4_include([src/util/signal.m4])
-m4_include([src/external/libunistring.m4])
+
+WITH_UNICODE_LIB
+if test x$unicode_lib = xlibunistring; then
+    m4_include([src/external/libunistring.m4])
+            AC_DEFINE_UNQUOTED(HAVE_LIBUNISTRING, 1, [Using libunistring for unicode])
+            UNICODE_LIBS=-lunistring
+            AC_SUBST(UNICODE_LIBS)
+else
+    m4_include([src/external/glib.m4])
+            AC_DEFINE_UNQUOTED(HAVE_GLIB2, 1, [Using libunistring for unicode])
+            UNICODE_LIBS=$GLIB2_LIBS
+            AC_SUBST(UNICODE_LIBS)
+fi
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 dnl if test -n "`$PKG_CONFIG --modversion dbus-1 | grep '^0\.'`" ; then

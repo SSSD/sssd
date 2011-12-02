@@ -25,10 +25,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <unistr.h>
-#include <unicase.h>
 #include <errno.h>
 #include "providers/ipa/ipa_hbac.h"
+#include "util/sss_utf8.h"
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
@@ -240,7 +239,6 @@ static errno_t hbac_evaluate_element(struct hbac_rule_element *rule_el,
     size_t i, j;
     const uint8_t *rule_name;
     const uint8_t *req_name;
-    int result;
     int ret;
 
     if (rule_el->category & HBAC_CATEGORY_ALL) {
@@ -255,21 +253,11 @@ static errno_t hbac_evaluate_element(struct hbac_rule_element *rule_el,
                 rule_name = (const uint8_t *) rule_el->names[i];
                 req_name = (const uint8_t *) req_el->name;
 
-                /* Do a case-insensitive comparison.
-                 * The input must be encoded in UTF8.
-                 * We have no way of knowing the language,
-                 * so we'll pass NULL for the language and
-                 * hope for the best.
-                 */
-                errno = 0;
-                ret = u8_casecmp(rule_name, u8_strlen(rule_name),
-                                 req_name, u8_strlen(req_name),
-                                 NULL, NULL, &result);
-                if (ret < 0) {
-                    return errno;
-                }
-
-                if (result == 0) {
+                /* Do a case-insensitive comparison. */
+                ret = sss_utf8_case_eq(rule_name, req_name);
+                if (ret != EOK && ret != ENOMATCH) {
+                    return ret;
+                } else if (ret == EOK) {
                     *matched = true;
                     return EOK;
                 }
@@ -287,21 +275,11 @@ static errno_t hbac_evaluate_element(struct hbac_rule_element *rule_el,
             for (j = 0; req_el->groups[j]; j++) {
                 req_name = (const uint8_t *) req_el->groups[j];
 
-                /* Do a case-insensitive comparison.
-                 * The input must be encoded in UTF8.
-                 * We have no way of knowing the language,
-                 * so we'll pass NULL for the language and
-                 * hope for the best.
-                 */
-                errno = 0;
-                ret = u8_casecmp(rule_name, u8_strlen(rule_name),
-                                 req_name, u8_strlen(req_name),
-                                 NULL, NULL, &result);
-                if (ret < 0) {
-                    return errno;
-                }
-
-                if (result == 0) {
+                /* Do a case-insensitive comparison. */
+                ret = sss_utf8_case_eq(rule_name, req_name);
+                if (ret != EOK && ret != ENOMATCH) {
+                    return ret;
+                } else if (ret == EOK) {
                     *matched = true;
                     return EOK;
                 }

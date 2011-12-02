@@ -33,9 +33,9 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <popt.h>
-#include <unistr.h>
 #include "config.h"
 #include "util/util.h"
+#include "util/sss_utf8.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
@@ -682,12 +682,4 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
     *_conn = iter;
 
     return EOK;
-}
-
-bool sss_utf8_check(const uint8_t *s, size_t n)
-{
-    if (u8_check(s, n) == NULL) {
-        return true;
-    }
-    return false;
 }

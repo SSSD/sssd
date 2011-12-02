@@ -280,3 +280,23 @@ AC_DEFUN([WITH_NOLOGIN_SHELL],
     fi
     AC_DEFINE_UNQUOTED(NOLOGIN_SHELL, "$nologin_shell", [The shell used to deny access to users])
   ])
+
+AC_DEFUN([WITH_UNICODE_LIB],
+  [ AC_ARG_WITH([unicode-lib],
+                [AC_HELP_STRING([--with-unicode-lib=<library>],
+                                [Which library to use for unicode processing (libunistring, glib2) [libunistring]]
+                               )
+                ]
+               )
+    unicode_lib="libunistring"
+    if test x"$with_unicode_lib" != x; then
+        unicode_lib=$with_unicode_lib
+    fi
+
+    if test x"$unicode_lib" != x"libunistring" -a x"$unicode_lib" != x"glib2"; then
+        AC_MSG_ERROR([Unsupported unicode library])
+    fi
+
+    AM_CONDITIONAL([WITH_LIBUNISTRING], test x"$unicode_lib" = x"libunistring")
+    AM_CONDITIONAL([WITH_GLIB], test x"$unicode_lib" = x"glib2")
+  ])
