@@ -201,32 +201,20 @@ static void sdap_async_sys_connect_done(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(priv, struct tevent_req);
     struct sdap_async_sys_connect_state *state = tevent_req_data(req,
                                           struct sdap_async_sys_connect_state);
-    int ret = EOK;
+    int ret;
     int fret;
 
-    /* I found the following comment in samba's lib/async_req/async_sock.c:
-     * Stevens, Network Programming says that if there's a
-     * successful connect, the socket is only writable. Upon an
-     * error, it's both readable and writable.
-     */
-    if ((flags & (TEVENT_FD_READ|TEVENT_FD_WRITE)) ==
-        (TEVENT_FD_READ|TEVENT_FD_WRITE)) {
-
-        ret = connect(state->fd, (struct sockaddr *) &state->addr,
-                      state->addr_len);
-        if (ret == EOK) {
-            goto done;
-        }
-
+    errno = 0;
+    ret = connect(state->fd, (struct sockaddr *) &state->addr,
+                  state->addr_len);
+    if (ret != EOK) {
         ret = errno;
         if (ret == EINPROGRESS || ret == EINTR) {
-            return;
+            return; /* Try again later */
         }
-
         DEBUG(1, ("connect failed [%d][%s].\n", ret, strerror(ret)));
     }
 
-done:
     talloc_zfree(fde);
 
     fret = fcntl(state->fd, F_SETFL, state->old_flags);
