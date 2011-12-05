@@ -875,7 +875,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     }
 
     /* If the body isn't valid UTF-8, fail */
-    if (!sss_utf8_check(body, blen)) {
+    if (!sss_utf8_check(body, blen -1)) {
         ret = EINVAL;
         goto done;
     }
@@ -2149,7 +2149,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     }
 
     /* If the body isn't valid UTF-8, fail */
-    if (!sss_utf8_check(body, blen)) {
+    if (!sss_utf8_check(body, blen -1)) {
         ret = EINVAL;
         goto done;
     }
@@ -3196,7 +3196,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     }
 
     /* If the body isn't valid UTF-8, fail */
-    if (!sss_utf8_check(body, blen)) {
+    if (!sss_utf8_check(body, blen -1)) {
         ret = EINVAL;
         goto done;
     }
