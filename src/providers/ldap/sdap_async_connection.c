@@ -264,9 +264,15 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_NOCANON,
                            sasl_nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF);
     if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("Failed to set LDAP SASL nocanon option to %s\n",
-                   sasl_nocanon ? "true" : "false"));
-        goto fail;
+        /* Do not fail, just warn into both debug logs and syslog */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to set LDAP SASL nocanon option to %s. If your system "
+               "is configured to use SASL, LDAP operations might fail.\n",
+              sasl_nocanon ? "true" : "false"));
+        sss_log(SSS_LOG_INFO,
+                "Failed to set LDAP SASL nocanon option to %s. If your system "
+                "is configured to use SASL, LDAP operations might fail.\n",
+                sasl_nocanon ? "true" : "false");
     }
 
     /* if we do not use start_tls the connection is not really connected yet
