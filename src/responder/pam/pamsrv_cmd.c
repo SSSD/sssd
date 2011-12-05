@@ -71,7 +71,7 @@ static int extract_string(char **var, size_t size, uint8_t *body, size_t blen,
     if (str[size-1]!='\0') return EINVAL;
 
     /* If the string isn't valid UTF-8, fail */
-    if (!sss_utf8_check(str, size)) {
+    if (!sss_utf8_check(str, size-1)) {
         return EINVAL;
     }
 
