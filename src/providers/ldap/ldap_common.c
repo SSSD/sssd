@@ -1402,32 +1402,3 @@ char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
     }
     return filter; /* NULL or not */
 }
-
-errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
-                         struct ldb_message **msgs,
-                         struct sysdb_attrs ***attrs)
-{
-    int i;
-    struct sysdb_attrs **a;
-
-    a = talloc_array(mem_ctx, struct sysdb_attrs *, count);
-    if (a == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
-        return ENOMEM;
-    }
-
-    for (i = 0; i < count; i++) {
-        a[i] = talloc(a, struct sysdb_attrs);
-        if (a[i] == NULL) {
-            DEBUG(1, ("talloc_array failed.\n"));
-            talloc_free(a);
-            return ENOMEM;
-        }
-        a[i]->num = msgs[i]->num_elements;
-        a[i]->a = talloc_steal(a[i], msgs[i]->elements);
-    }
-
-    *attrs = a;
-
-    return EOK;
-}

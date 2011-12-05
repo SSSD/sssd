@@ -254,6 +254,10 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
                             const char *name,
                             const char **_cname);
 
+errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
+                        struct ldb_message **msgs,
+                        struct sysdb_attrs ***attrs);
+
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);
 

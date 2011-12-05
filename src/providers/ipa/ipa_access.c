@@ -644,7 +644,7 @@ static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
        count = 0;
     }
 
-    ret = msgs2attrs_array(mem_ctx, count, msgs, &hbac_ctx->rules);
+    ret = sysdb_msg2attrs(mem_ctx, count, msgs, &hbac_ctx->rules);
     if (ret != EOK) {
         DEBUG(1, ("Could not convert ldb message to sysdb_attrs\n"));
         goto done;
