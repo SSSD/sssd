@@ -45,19 +45,6 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
     return EOK;
 }
 
-struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
-                                    const char *domain)
-{
-    struct sss_domain_info *dom;
-
-    for (dom = doms; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, domain) == 0) break;
-    }
-    if (!dom) DEBUG(2, ("Unknown domain [%s]!\n", domain));
-
-    return dom;
-}
-
 int fill_empty(struct sss_packet *packet)
 {
     uint8_t *body;
@@ -932,7 +919,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
               cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(cctx->rctx->domains, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;
@@ -2219,7 +2206,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
               cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(cctx->rctx->domains, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;
@@ -3277,7 +3264,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
               cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(cctx->rctx->domains, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;

@@ -756,14 +756,11 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     /* now check user is valid */
     if (pd->domain) {
-        for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-            if (strcasecmp(dom->name, pd->domain) == 0) break;
-        }
-        if (!dom) {
+        preq->domain = responder_get_domain(cctx->rctx->domains, pd->domain);
+        if (preq->domain) {
             ret = ENOENT;
             goto done;
         }
-        preq->domain = dom;
     }
     else {
         for (dom = preq->cctx->rctx->domains; dom; dom = dom->next) {

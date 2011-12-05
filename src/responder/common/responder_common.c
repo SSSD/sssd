@@ -624,6 +624,19 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
     return EOK;
 }
 
+struct sss_domain_info *
+responder_get_domain(struct sss_domain_info *doms, const char *domain)
+{
+    struct sss_domain_info *dom;
+
+    for (dom = doms; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, domain) == 0) break;
+    }
+    if (!dom) DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown domain [%s]!\n", domain));
+
+    return dom;
+}
+
 int responder_logrotate(DBusMessage *message,
                         struct sbus_connection *conn)
 {

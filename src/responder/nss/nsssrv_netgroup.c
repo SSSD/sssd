@@ -204,7 +204,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
               state->netgr_shortname, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = nss_get_dom(client->rctx->domains, domname);
+        dctx->domain = responder_get_domain(client->rctx->domains, domname);
         if (!dctx->domain) {
             goto error;
         }
