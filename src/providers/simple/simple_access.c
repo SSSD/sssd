@@ -24,6 +24,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/sss_utf8.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
 #include "providers/simple/simple_access.h"
@@ -33,6 +34,15 @@
 
 #define CONFDB_SIMPLE_ALLOW_GROUPS "simple_allow_groups"
 #define CONFDB_SIMPLE_DENY_GROUPS "simple_deny_groups"
+
+static bool string_equal(bool cs, const char *s1, const char *s2)
+{
+    if (cs) {
+        return strcmp(s1, s2) == 0;
+    }
+
+    return sss_utf8_case_eq((const uint8_t *)s1, (const uint8_t *)s2) == EOK;
+}
 
 errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
                             bool *access_granted)
@@ -51,13 +61,14 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
     const char *primary_group;
     gid_t gid;
     bool matched;
+    bool cs = ctx->domain->case_sensitive;
 
     *access_granted = false;
 
     /* First, check whether the user is in the allowed users list */
     if (ctx->allow_users != NULL) {
         for(i = 0; ctx->allow_users[i] != NULL; i++) {
-            if (strcmp(username, ctx->allow_users[i]) == 0) {
+            if (string_equal(cs, username, ctx->allow_users[i])) {
                 DEBUG(9, ("User [%s] found in allow list, access granted.\n",
                       username));
 
@@ -78,7 +89,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
     /* Next check whether this user has been specifically denied */
     if (ctx->deny_users != NULL) {
         for(i = 0; ctx->deny_users[i] != NULL; i++) {
-            if (strcmp(username, ctx->deny_users[i]) == 0) {
+            if (string_equal(cs, username, ctx->deny_users[i])) {
                 DEBUG(9, ("User [%s] found in deny list, access denied.\n",
                       username));
 
@@ -189,7 +200,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
         matched = false;
         for (i = 0; ctx->allow_groups[i]; i++) {
             for(j = 0; groups[j]; j++) {
-                if (strcmp(groups[j], ctx->allow_groups[i])== 0) {
+                if (string_equal(cs, groups[j], ctx->allow_groups[i])) {
                     matched = true;
                     break;
                 }
@@ -210,7 +221,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
         matched = false;
         for (i = 0; ctx->deny_groups[i]; i++) {
             for(j = 0; groups[j]; j++) {
-                if (strcmp(groups[j], ctx->deny_groups[i])== 0) {
+                if (string_equal(cs, groups[j], ctx->deny_groups[i])) {
                     matched = true;
                     break;
                 }

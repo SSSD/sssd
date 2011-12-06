@@ -26,6 +26,7 @@
 #include <popt.h>
 #include <check.h>
 
+#include "confdb/confdb.h"
 #include "providers/simple/simple_access.h"
 
 const char *ulist_1[] = {"u1", "u2", NULL};
@@ -37,6 +38,10 @@ void setup_simple(void)
     fail_unless(ctx == NULL, "Simple context already initialized.");
     ctx = talloc_zero(NULL, struct simple_ctx);
     fail_unless(ctx != NULL, "Cannot create simple context.");
+
+    ctx->domain = talloc_zero(ctx, struct sss_domain_info);
+    fail_unless(ctx != NULL, "Cannot create domain in simple context.");
+    ctx->domain->case_sensitive = true;
 }
 
 void teardown_simple(void)
@@ -123,6 +128,30 @@ START_TEST(test_both_set)
 }
 END_TEST
 
+START_TEST(test_case)
+{
+    int ret;
+    bool access_granted = false;
+
+    ctx->allow_users = discard_const(ulist_1);
+    ctx->deny_users = NULL;
+
+    ret = simple_access_check(ctx, "U1", &access_granted);
+    fail_unless(ret == EOK, "access_simple_check failed.");
+    fail_unless(access_granted == false, "Access granted "
+                                         "for user with different case "
+                                         "in case-sensitive domain");
+
+    ctx->domain->case_sensitive = false;
+
+    ret = simple_access_check(ctx, "U1", &access_granted);
+    fail_unless(ret == EOK, "access_simple_check failed.");
+    fail_unless(access_granted == true, "Access denied "
+                                        "for user with different case "
+                                        "in case-insensitive domain");
+}
+END_TEST
+
 Suite *access_simple_suite (void)
 {
     Suite *s = suite_create("access_simple");
@@ -133,6 +162,7 @@ Suite *access_simple_suite (void)
     tcase_add_test(tc_allow_deny, test_allow_empty);
     tcase_add_test(tc_allow_deny, test_deny_empty);
     tcase_add_test(tc_allow_deny, test_both_set);
+    tcase_add_test(tc_allow_deny, test_case);
     suite_add_tcase(s, tc_allow_deny);
 
     return s;
