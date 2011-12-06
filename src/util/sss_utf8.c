@@ -24,6 +24,60 @@
 #include "sss_utf8.h"
 
 #ifdef HAVE_LIBUNISTRING
+void sss_utf8_free(void *ptr)
+{
+    return free(ptr);
+}
+#elif HAVE_GLIB2
+void sss_utf8_free(void *ptr)
+{
+    return g_free(ptr);
+}
+#else
+#error No unicode library
+#endif
+
+#ifdef HAVE_LIBUNISTRING
+uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *_nlen)
+{
+    size_t llen;
+    uint8_t *lower;
+
+    lower = u8_tolower(s, len, NULL, NULL, NULL, &llen);
+    if (!lower) return NULL;
+
+    if (_nlen) *_nlen = llen;
+    return lower;
+}
+#elif HAVE_GLIB2
+uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *_nlen)
+{
+    gchar *glower;
+    size_t nlen;
+    uint8_t *lower;
+
+    glower = g_utf8_strdown((const gchar *) s, len);
+    if (!glower) return NULL;
+
+    /* strlen() is safe here because g_utf8_strdown() always null-terminates */
+    nlen = strlen(glower);
+
+    lower = g_malloc(nlen);
+    if (!lower) {
+        g_free(glower);
+        return NULL;
+    }
+
+    memcpy(lower, glower, nlen);
+    g_free(glower);
+    if (_nlen) *_nlen = nlen;
+    return (uint8_t *) lower;
+}
+#else
+#error No unicode library
+#endif
+
+#ifdef HAVE_LIBUNISTRING
 bool sss_utf8_check(const uint8_t *s, size_t n)
 {
     if (u8_check(s, n) == NULL) {

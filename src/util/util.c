@@ -23,6 +23,7 @@
 
 #include "talloc.h"
 #include "util/util.h"
+#include "util/sss_utf8.h"
 #include "dhash.h"
 
 /* split a string into an allocated array of strings.

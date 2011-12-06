@@ -502,4 +502,10 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
 char *
 sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
 
+/* from sss_tc_utf8.c */
+char *
+sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);
+uint8_t *
+sss_tc_utf8_tolower(TALLOC_CTX *mem_ctx, const uint8_t *s, size_t len, size_t *_nlen);
+
 #endif /* __SSSD_UTIL_H__ */

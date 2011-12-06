@@ -382,7 +382,8 @@ libsss_util_la_SOURCES = \
     src/util/strtonum.c \
     src/util/check_and_open.c \
     src/util/refcount.c \
-    src/util/sss_utf8.c
+    src/util/sss_utf8.c \
+    src/util/sss_tc_utf8.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS) \
