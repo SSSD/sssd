@@ -444,8 +444,9 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     /* Search for all groups for which this user is a member */
     attrs[0] = SYSDB_MEMBEROF;
     attrs[1] = NULL;
-    ret = sysdb_search_user_by_name(state, state->sysdb, state->name, attrs,
-                                    &msg);
+
+    ret = sysdb_search_user_by_name(state, state->sysdb, state->name,
+                                    attrs, &msg);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -2462,6 +2463,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     size_t count;
     int ret;
     const char *orig_dn;
+    const char *cname;
 
     DEBUG(9, ("Receiving info for the user\n"));
 
@@ -2520,6 +2522,13 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         return;
     }
 
+    ret = sysdb_get_real_name(state, state->sysdb, state->name, &cname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot canonicalize username\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     DEBUG(9, ("Process user's groups\n"));
 
     switch (state->opts->schema_type) {
@@ -2533,7 +2542,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
         subreq = sdap_initgr_rfc2307_send(state, state->ev, state->opts,
                                           state->sysdb, state->sh,
-                                          state->name);
+                                          cname);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -2553,7 +2562,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         subreq = sdap_initgr_rfc2307bis_send(
                 state, state->ev, state->opts, state->sysdb,
                 state->dom, state->sh,
-                state->name, orig_dn);
+                cname, orig_dn);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;

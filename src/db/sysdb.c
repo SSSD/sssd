@@ -22,6 +22,7 @@
 
 #include "util/util.h"
 #include "util/strtonum.h"
+#include "util/sss_utf8.h"
 #include "db/sysdb_private.h"
 #include "confdb/confdb.h"
 #include <time.h>
@@ -1587,18 +1588,22 @@ done:
  * Given a primary name returned by sysdb_attrs_primary_name(), this function
  * returns the other SYSDB_NAME attribute values so they can be saved as
  * SYSDB_NAME_ALIAS into cache.
+ *
+ * If lowercase is set, all aliases are duplicated in lowercase as well.
  */
 errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
                                 struct sysdb_attrs *attrs,
                                 const char *primary,
+                                bool lowercase,
                                 const char ***_aliases)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_message_element *sysdb_name_el;
-    size_t i, ai;
+    size_t i, ai, num;
     errno_t ret;
     const char **aliases = NULL;
     const char *name;
+    char *lower;
 
     if (_aliases == NULL) return EINVAL;
 
@@ -1615,8 +1620,8 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    aliases = talloc_array(tmp_ctx, const char *,
-                           sysdb_name_el->num_values);
+    num = lowercase ? 2 * sysdb_name_el->num_values : sysdb_name_el->num_values;
+    aliases = talloc_array(tmp_ctx, const char *, num+1);
     if (!aliases) {
         ret = ENOMEM;
         goto done;
@@ -1626,8 +1631,31 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
     for (i=0; i < sysdb_name_el->num_values; i++) {
         name = (const char *)sysdb_name_el->values[i].data;
         if (strcmp(primary, name) != 0) {
-            aliases[ai] = name;
+            aliases[ai] = talloc_strdup(aliases, name);
+            if (!aliases[ai]) {
+                ret = ENOMEM;
+                goto done;
+            }
             ai++;
+        }
+    }
+
+    if (lowercase) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Domain is case-insensitive; will add lowercased aliases\n"));
+        for (i=0; i < sysdb_name_el->num_values; i++) {
+            name = (const char *)sysdb_name_el->values[i].data;
+            lower = sss_tc_utf8_str_tolower(tmp_ctx, name);
+            if (!lower) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            if (strcmp(name, lower) != 0) {
+                aliases[ai] = talloc_strdup(aliases, lower);
+                ai++;
+            }
+            talloc_free(lower);
         }
     }
 

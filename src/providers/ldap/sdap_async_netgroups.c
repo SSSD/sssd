@@ -38,6 +38,7 @@ bool is_dn(const char *str)
 
 static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
                                   struct sysdb_ctx *ctx,
+                                  struct sss_domain_info *dom,
                                   struct sdap_options *opts,
                                   struct sysdb_attrs *attrs,
                                   char **_timestamp,
@@ -118,6 +119,13 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     }
 
     DEBUG(6, ("Storing info for netgroup %s\n", name));
+
+    ret = sdap_save_all_names(name, attrs, !dom->case_sensitive,
+                              netgroup_attrs);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to save netgroup names\n"));
+        goto fail;
+    }
 
     ret = sysdb_add_netgroup(ctx, name, NULL, netgroup_attrs,
                              dp_opt_get_int(opts->basic,
@@ -681,6 +689,7 @@ static void netgr_translate_members_done(struct tevent_req *subreq)
     now = time(NULL);
     for (c = 0; c < state->count; c++) {
         ret = sdap_save_netgroup(state, state->sysdb,
+                                 state->dom,
                                  state->opts,
                                  state->netgroups[c],
                                  &state->higher_timestamp,

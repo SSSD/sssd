@@ -241,6 +241,7 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
 errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
                                 struct sysdb_attrs *attrs,
                                 const char *primary,
+                                bool lowercase,
                                 const char ***_aliases);
 errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
                                       TALLOC_CTX *mem_ctx,

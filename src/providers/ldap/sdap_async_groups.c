@@ -348,9 +348,9 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sdap_save_all_names(name, attrs, group_attrs);
+    ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, group_attrs);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to save user names\n"));
+        DEBUG(1, ("Failed to save group names\n"));
         goto fail;
     }
 

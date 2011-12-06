@@ -234,7 +234,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sdap_save_all_names(name, attrs, user_attrs);
+    ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, user_attrs);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save user names\n"));
         goto fail;

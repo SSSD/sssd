@@ -208,6 +208,7 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
 
 errno_t sdap_save_all_names(const char *name,
                             struct sysdb_attrs *ldap_attrs,
+                            bool lowercase,
                             struct sysdb_attrs *attrs);
 
 #endif /* _SDAP_ASYNC_H_ */

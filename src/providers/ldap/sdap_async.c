@@ -1920,7 +1920,8 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_attrs_get_aliases(tmp_ctx, user_attrs, name, &aliases);
+    ret = sysdb_attrs_get_aliases(tmp_ctx, user_attrs, name,
+                                  !dom->case_sensitive, &aliases);
     if (ret != EOK) {
         DEBUG(1, ("Failed to get the alias list\n"));
         goto done;
@@ -2024,10 +2025,10 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
     return EOK;
 }
 
-
 errno_t
 sdap_save_all_names(const char *name,
                     struct sysdb_attrs *ldap_attrs,
+                    bool lowercase,
                     struct sysdb_attrs *attrs)
 {
     const char **aliases = NULL;
@@ -2041,7 +2042,8 @@ sdap_save_all_names(const char *name,
         goto done;
     }
 
-    ret = sysdb_attrs_get_aliases(tmp_ctx, ldap_attrs, name, &aliases);
+    ret = sysdb_attrs_get_aliases(tmp_ctx, ldap_attrs, name,
+                                  lowercase, &aliases);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to get the alias list"));
         goto done;
@@ -2062,4 +2064,3 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
-
