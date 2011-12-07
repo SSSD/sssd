@@ -672,7 +672,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
             goto error;
         }
         cb_ctx->callback = callback;
-        cb_ctx->ptr = dctx;
+        cb_ctx->ptr = pvt;
         cb_ctx->cctx = dctx->cmdctx->cctx;
         cb_ctx->mem_ctx = dctx;
 
