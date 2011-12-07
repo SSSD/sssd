@@ -26,6 +26,7 @@
 #include "providers/fail_over.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/krb5/krb5_common.h"
+#include "db/sysdb_sudo.h"
 
 #include "util/sss_krb5.h"
 #include "util/crypto/sss_crypto.h"
@@ -49,6 +50,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -214,6 +216,20 @@ struct sdap_attr_map netgroup_map[] = {
     { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
+struct sdap_attr_map native_sudorule_map[] = {
+    { "ldap_sudorule_object_class", "sudoRole", SYSDB_SUDO_CACHE_AT_OC, NULL },
+    { "ldap_sudorule_name", "cn", SYSDB_SUDO_CACHE_AT_CN, NULL },
+    { "ldap_sudorule_command", "sudoCommand", SYSDB_SUDO_CACHE_AT_COMMAND, NULL },
+    { "ldap_sudorule_host", "sudoHost", SYSDB_SUDO_CACHE_AT_HOST, NULL },
+    { "ldap_sudorule_user", "sudoUser", SYSDB_SUDO_CACHE_AT_USER, NULL },
+    { "ldap_sudorule_option", "sudoOption", SYSDB_SUDO_CACHE_AT_OPTION, NULL },
+    { "ldap_sudorule_runasuser", "sudoRunAsUser", SYSDB_SUDO_CACHE_AT_RUNASUSER, NULL },
+    { "ldap_sudorule_runasgroup", "sudoRunAsGroup", SYSDB_SUDO_CACHE_AT_RUNASGROUP, NULL },
+    { "ldap_sudorule_notbefore", "sudoNotBefore", SYSDB_SUDO_CACHE_AT_NOTBEFORE, NULL },
+    { "ldap_sudorule_notafter", "sudoNotAfter", SYSDB_SUDO_CACHE_AT_NOTAFTER, NULL },
+    { "ldap_sudorule_order", "sudoOrder", SYSDB_SUDO_CACHE_AT_ORDER, NULL }
+};
+
 int ldap_get_options(TALLOC_CTX *memctx,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
@@ -255,7 +271,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     /* Handle search bases */
     search_base = dp_opt_get_string(opts->basic, SDAP_SEARCH_BASE);
     if (search_base != NULL) {
-        /* set user/group/netgroup search bases if they are not */
+        /* set user/group/netgroup/sudo search bases if they are not */
         for (o = 0; search_base_options[o] != -1; o++) {
             if (NULL == dp_opt_get_string(opts->basic, search_base_options[o])) {
                 ret = dp_opt_set_string(opts->basic, search_base_options[o],
@@ -496,6 +512,58 @@ done:
     return ret;
 }
 
+int ldap_get_sudo_options(TALLOC_CTX *memctx,
+                          struct confdb_ctx *cdb,
+                          const char *conf_path,
+                          struct sdap_options *opts)
+{
+    const char *search_base;
+    int ret;
+
+    /* search base */
+    search_base = dp_opt_get_string(opts->basic, SDAP_SEARCH_BASE);
+    if (search_base != NULL) {
+        /* set sudo search bases if they are not */
+        if (dp_opt_get_string(opts->basic, SDAP_SUDO_SEARCH_BASE) == NULL) {
+            ret = dp_opt_set_string(opts->basic, SDAP_SUDO_SEARCH_BASE,
+                                    search_base);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not set SUDO search base"
+                      "to default value\n"));
+                return ret;
+            }
+
+            DEBUG(SSSDBG_FUNC_DATA, ("Option %s set to %s\n",
+                  opts->basic[SDAP_SUDO_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(opts->basic, SDAP_SUDO_SEARCH_BASE)));
+        }
+    } else {
+        /* FIXME: try to discover it later */
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: no SUDO search base set\n"));
+        return ENOENT;
+    }
+
+    ret = sdap_parse_search_base(opts, opts->basic,
+                                 SDAP_SUDO_SEARCH_BASE,
+                                 &opts->sudo_search_bases);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse SUDO search base\n"));
+        return ret;
+    }
+
+    /* attrs map */
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       native_sudorule_map,
+                       SDAP_OPTS_SUDO,
+                       &opts->sudorule_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not get SUDO attribute map\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
@@ -530,6 +598,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_NETGROUP_SEARCH_BASE:
         class_name = "NETGROUP";
+        break;
+    case SDAP_SUDO_SEARCH_BASE:
+        class_name = "SUDO";
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,

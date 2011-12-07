@@ -60,6 +60,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ipa_v1" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
@@ -462,6 +463,44 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &ipa_opts->id->group_search_bases);
+    if (ret != EOK) goto done;
+
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_SUDO_SEARCH_BASE)) {
+#if 0
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_NETGROUP_SEARCH_BASE,
+                                dp_opt_get_string(ipa_opts->id->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+#else
+        /* We don't yet have support for the native representation
+         * of sudo in IPA. For now, we need to point at the
+         * compat tree
+         */
+        value = talloc_asprintf(tmpctx, "ou=SUDOers,%s", basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_SUDO_SEARCH_BASE,
+                                 value);
+        if (ret != EOK) {
+            goto done;
+        }
+#endif
+
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_SUDO_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic,
+                                    SDAP_SUDO_SEARCH_BASE)));
+    }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+                                 SDAP_SUDO_SEARCH_BASE,
+                                 &ipa_opts->id->sudo_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,

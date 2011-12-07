@@ -115,6 +115,11 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      const char *conf_path,
                      struct sdap_options **_opts);
 
+int ldap_get_sudo_options(TALLOC_CTX *memctx,
+                          struct confdb_ctx *cdb,
+                          const char *conf_path,
+                          struct sdap_options *opts);
+
 int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 

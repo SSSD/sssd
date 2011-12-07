@@ -164,6 +164,7 @@ enum sdap_basic_opt {
     SDAP_GROUP_SEARCH_BASE,
     SDAP_GROUP_SEARCH_SCOPE,
     SDAP_GROUP_SEARCH_FILTER,
+    SDAP_SUDO_SEARCH_BASE,
     SDAP_SCHEMA,
     SDAP_OFFLINE_TIMEOUT,
     SDAP_FORCE_UPPER_CASE_REALM,
@@ -282,6 +283,22 @@ enum sdap_netgroup_attrs {
     SDAP_OPTS_NETGROUP /* attrs counter */
 };
 
+enum sdap_sudorule_attrs {
+    SDAP_OC_SUDORULE = 0,
+    SDAP_AT_SUDO_NAME,
+    SDAP_AT_SUDO_COMMAND,
+    SDAP_AT_SUDO_HOST,
+    SDAP_AT_SUDO_USER,
+    SDAP_AT_SUDO_OPTION,
+    SDAP_AT_SUDO_RUNASUSER,
+    SDAP_AT_SUDO_RUNASGROUP,
+    SDAP_AT_SUDO_NOTBEFORE,
+    SDAP_AT_SUDO_NOTAFTER,
+    SDAP_AT_SUDO_ORDER,
+
+    SDAP_OPTS_SUDO  /* attrs counter */
+};
+
 struct sdap_attr_map {
     const char *opt_name;
     const char *def_name;
@@ -302,6 +319,8 @@ struct sdap_options {
     struct sdap_attr_map *group_map;
     struct sdap_attr_map *netgroup_map;
     struct sdap_attr_map *host_map;
+    /* FIXME - should this go to a special struct to avoid mixing with name-service-switch maps? */
+    struct sdap_attr_map *sudorule_map;
 
     /* supported schema types */
     enum schema_type {
@@ -315,6 +334,7 @@ struct sdap_options {
     struct sdap_search_base **user_search_bases;
     struct sdap_search_base **group_search_bases;
     struct sdap_search_base **netgroup_search_bases;
+    struct sdap_search_base **sudo_search_bases;
 };
 
 struct sdap_server_opts {
