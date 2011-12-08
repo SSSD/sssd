@@ -1229,12 +1229,18 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     bool use_tls;
 
     switch (state->force_tls) {
-        case CON_TLS_DFL:
-            use_tls = dp_opt_get_bool(state->opts->basic, SDAP_ID_TLS);
-        case CON_TLS_ON:
-            use_tls = true;
-        case CON_TLS_OFF:
-            use_tls = false;
+    case CON_TLS_DFL:
+        use_tls = dp_opt_get_bool(state->opts->basic, SDAP_ID_TLS);
+        break;
+    case CON_TLS_ON:
+        use_tls = true;
+        break;
+    case CON_TLS_OFF:
+        use_tls = false;
+        break;
+    default:
+        tevent_req_error(req, EINVAL);
+        break;
     }
 
     ret = be_resolve_server_recv(subreq, &state->srv);
