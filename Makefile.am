@@ -314,6 +314,7 @@ dist_noinst_HEADERS = \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_private.h \
     src/db/sysdb.h \
+    src/db/sysdb_sudo.h \
     src/db/sysdb_private.h \
     src/confdb/confdb.h \
     src/confdb/confdb_private.h \
@@ -390,6 +391,9 @@ libsss_util_la_LIBADD = \
     $(UNICODE_LIBS) \
     libsss_crypt.la \
     libsss_debug.la
+if BUILD_SUDO
+    libsss_util_la_SOURCES += src/db/sysdb_sudo.c
+endif
 
 lib_LTLIBRARIES = libipa_hbac.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
