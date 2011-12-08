@@ -965,6 +965,23 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_connection_expire_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies a timeout (in seconds) that a connection
+                            to an LDAP server will be maintained. After this
+                            time, the connection will be re-established. If
+                            used in parallel with SASL/GSSAPI, the sooner of
+                            the two values (this value vs. the TGT lifetime)
+                            will be used.
+                        </para>
+                        <para>
+                            Default: 900 (15 minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_page_size (integer)</term>
                     <listitem>
                         <para>

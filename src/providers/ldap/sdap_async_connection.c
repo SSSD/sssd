@@ -1502,11 +1502,23 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
+    time_t now;
+    int expire_timeout;
 
     if (!state->do_auth) {
         /* No authentication requested or GSSAPI auth forced off */
         tevent_req_done(req);
         return;
+    }
+
+    /* Set the LDAP expiration time
+     * If SASL has already set it, use the sooner of the two
+     */
+    now = time(NULL);
+    expire_timeout = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_TIMEOUT);
+    if (!state->sh->expire_time
+            || (state->sh->expire_time > (now + expire_timeout))) {
+        state->sh->expire_time = now + expire_timeout;
     }
 
     subreq = sdap_auth_send(state,

@@ -160,6 +160,8 @@ option_strings = {
     'ldap_entry_usn' : _('entryUSN attribute'),
     'ldap_rootdse_last_usn' : _('lastUSN attribute'),
 
+    'ldap_connection_expiration_timeout' : _('How long to retain a connection to the LDAP server before disconnecting'),
+
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),
     'ldap_enumeration_search_timeout' : _('Length of time to wait for a enumeration request'),
