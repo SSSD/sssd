@@ -115,7 +115,7 @@ int nss_cmd_setnetgrent(struct cli_ctx *client)
     }
 
     /* If the body isn't valid UTF-8, fail */
-    if (!sss_utf8_check(body, blen)) {
+    if (!sss_utf8_check(body, blen -1)) {
         ret = EINVAL;
         goto done;
     }
