@@ -265,7 +265,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
                            sasl_nocanon ? LDAP_OPT_ON : LDAP_OPT_OFF);
     if (lret != LDAP_OPT_SUCCESS) {
         /* Do not fail, just warn into both debug logs and syslog */
-        DEBUG(SSSDBG_MINOR_FAILURE,
+        DEBUG(3,
               ("Failed to set LDAP SASL nocanon option to %s. If your system "
                "is configured to use SASL, LDAP operations might fail.\n",
               sasl_nocanon ? "true" : "false"));
