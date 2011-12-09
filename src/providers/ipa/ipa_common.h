@@ -75,6 +75,7 @@ enum ipa_netgroup_attrs {
 enum ipa_host_attrs {
     IPA_OC_HOST = 0,
     IPA_AT_HOST_FQDN,
+    IPA_AT_HOST_MEMBER_OF,
 
     IPA_OPTS_HOST /* attrs counter */
 };

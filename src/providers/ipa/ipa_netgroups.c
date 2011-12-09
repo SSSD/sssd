@@ -887,9 +887,10 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
             }
             talloc_zfree(members);
         }
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracted %d netgroup members\n", j));
 
         /* Load all UIDs */
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracting user members of netgroup %d\n", i));
+        DEBUG(SSSDBG_TRACE_ALL, ("Extracting user members of netgroup %d\n", i));
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_NETGROUP_MEMBER_USER,
                               state->new_users,
@@ -897,8 +898,9 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         if (ret != EOK) {
             goto done;
         }
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracted %d user members\n", uids_count));
 
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracting host members of netgroup %d\n", i));
+        DEBUG(SSSDBG_TRACE_ALL, ("Extracting host members of netgroup %d\n", i));
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_NETGROUP_MEMBER_HOST,
                               state->new_hosts,
@@ -906,6 +908,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         if (ret != EOK) {
             goto done;
         }
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracted %d host members\n", hosts_count));
 
         ret = sysdb_attrs_get_el(state->netgroups[i],
                                  SYSDB_ORIG_NETGROUP_EXTERNAL_HOST,

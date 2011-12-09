@@ -171,6 +171,7 @@ struct sdap_attr_map ipa_netgroup_map[] = {
 struct sdap_attr_map ipa_host_map[] = {
     { "ipa_host_object_class", "ipaHost", SYSDB_HOST_CLASS, NULL },
     { "ipa_host_fqdn", "fqdn", SYSDB_NAME, NULL },
+    { "ipa_host_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
 };
 
 struct dp_option ipa_def_krb5_opts[] = {
