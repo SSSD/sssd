@@ -8,16 +8,14 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2011-12-09 10:00-0500\n"
-"PO-Revision-Date: 2010-12-23 15:35+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: Bosnian (http://www.transifex.net/projects/p/fedora/team/"
-"bs/)\n"
-"Language: bs\n"
+"PO-Revision-Date: 2011-12-09 09:58+0000\n"
+"Last-Translator: tajikfedora <victor.ibragimov@gmail.com>\n"
+"Language-Team: Tajik (http://www.transifex.net/projects/p/fedora/team/tg/)\n"
+"Language: tg\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -39,7 +37,7 @@ msgstr ""
 #: sss_groupadd.8.xml:11 sss_userdel.8.xml:11 sss_groupdel.8.xml:11
 #: sss_groupshow.8.xml:11 sss_usermod.8.xml:11
 msgid "8"
-msgstr ""
+msgstr "8"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupmod.8.xml:16
@@ -61,7 +59,7 @@ msgstr ""
 #: sssd-krb5.5.xml:21 sss_groupadd.8.xml:30 sss_userdel.8.xml:30
 #: sss_groupdel.8.xml:30 sss_groupshow.8.xml:30 sss_usermod.8.xml:30
 msgid "DESCRIPTION"
-msgstr ""
+msgstr "ШАРҲ"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupmod.8.xml:32
@@ -75,7 +73,7 @@ msgstr ""
 #: sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39
 #: sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39
 msgid "OPTIONS"
-msgstr ""
+msgstr "ИМКОНОТҲО"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:43 sss_usermod.8.xml:77
@@ -139,7 +137,7 @@ msgstr ""
 #: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
 #: sssd-ipa.5.xml:11 sssd-krb5.5.xml:11
 msgid "5"
-msgstr ""
+msgstr "5"
 
 #. type: Content of: <reference><refentry><refmeta><refmiscinfo>
 #: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
@@ -156,7 +154,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:21
 msgid "FILE FORMAT"
-msgstr ""
+msgstr "Формати файл"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:29
@@ -263,7 +261,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:101 sssd.conf.5.xml:262
 msgid "Default: 3"
-msgstr ""
+msgstr "Пешфарз: 3"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:106
@@ -444,7 +442,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:238
 msgid "Default: 0"
-msgstr ""
+msgstr "Пешфарз: 0"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:243 sssd.8.xml:58
@@ -460,7 +458,7 @@ msgstr ""
 #: sssd.conf.5.xml:249 sssd.conf.5.xml:373 sssd-ldap.5.xml:1142
 #: sssd-ldap.5.xml:1247 sssd-ipa.5.xml:155
 msgid "Default: true"
-msgstr ""
+msgstr "Пешфарз: true"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:267
@@ -507,7 +505,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:300
 msgid "Default: 120"
-msgstr ""
+msgstr "Пешфарз: 120"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:305
@@ -544,7 +542,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:332
 msgid "Default: 50"
-msgstr ""
+msgstr "Пешфарз: 50"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:337
@@ -562,7 +560,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:346 sssd-krb5.5.xml:223
 msgid "Default: 15"
-msgstr ""
+msgstr "Пешфарз: 15"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:351
@@ -581,7 +579,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:361
 msgid "Default: root"
-msgstr ""
+msgstr "Пешфарз: root"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:366
@@ -607,7 +605,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:388 sssd-krb5.5.xml:167
 msgid "login name"
-msgstr ""
+msgstr "Номи логин"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:391 sssd-krb5.5.xml:170
@@ -617,7 +615,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:392
 msgid "UID number"
-msgstr ""
+msgstr "Рақами UID"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:395 sssd-krb5.5.xml:188
@@ -733,7 +731,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:462
 msgid "Default: /bin/sh"
-msgstr ""
+msgstr "Пешфарз: /bin/sh"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:469
@@ -762,7 +760,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:484 sssd.conf.5.xml:497
 msgid "Default: 0 (No limit)"
-msgstr ""
+msgstr "Пешфарз: 0 (Номаҳдуд)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:490
@@ -799,7 +797,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:517 sssd.conf.5.xml:570 sssd.conf.5.xml:906
 msgid "Default: 5"
-msgstr ""
+msgstr "Пешфарз: 5"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:523
@@ -841,7 +839,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:548
 msgid "Default: 1"
-msgstr ""
+msgstr "Пешфарз: 1"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:553
@@ -886,7 +884,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:588
 msgid "Default: 7"
-msgstr ""
+msgstr "Пешфарз: 7"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:597
@@ -934,7 +932,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:633 sssd-ldap.5.xml:945
 msgid "Default: 10"
-msgstr ""
+msgstr "Пешфарз: 10"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:639
@@ -961,7 +959,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:652 sssd.conf.5.xml:704 sssd.conf.5.xml:758
 msgid "Default: FALSE"
-msgstr ""
+msgstr "Пешфарз: FALSE"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:655
@@ -1004,7 +1002,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:688
 msgid "Default: 5400"
-msgstr ""
+msgstr "Пешфарз: 5400"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:693
@@ -1038,7 +1036,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:719
 msgid "Default: 0 (unlimited)"
-msgstr ""
+msgstr "Пешфарз: 0 (номаҳдуд)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:725
@@ -1408,7 +1406,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1010 sssd.conf.5.xml:1022
 msgid "Default: TRUE"
-msgstr ""
+msgstr "Пешфарз: TRUE"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1015
@@ -1499,7 +1497,7 @@ msgstr ""
 #: sssd.conf.5.xml:1095 sssd-ldap.5.xml:1534 sssd-simple.5.xml:126
 #: sssd-ipa.5.xml:230 sssd-krb5.5.xml:417
 msgid "EXAMPLE"
-msgstr ""
+msgstr "НАМУНА"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:1101
@@ -1700,7 +1698,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:148
 msgid "Default: rfc2307"
-msgstr ""
+msgstr "Пешфарз: rfc2307"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:154
@@ -1730,7 +1728,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:174
 msgid "password"
-msgstr ""
+msgstr "парол"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:177
@@ -1740,7 +1738,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:180
 msgid "Default: password"
-msgstr ""
+msgstr "Пешфарз: парол"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:186
@@ -2172,7 +2170,7 @@ msgstr ""
 #: sssd-ldap.5.xml:560 sssd-ldap.5.xml:1074 sssd-ipa.5.xml:115 sssd.8.xml:64
 #: sssd-krb5.5.xml:235 sssd-krb5.5.xml:269
 msgid "Default: false"
-msgstr ""
+msgstr "Пешфарз: false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:566
@@ -2375,7 +2373,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:753
 msgid "Default: 2"
-msgstr ""
+msgstr "Пешфарз: 2"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:759
@@ -2473,7 +2471,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:851 sssd-ldap.5.xml:893 sssd-ldap.5.xml:908
 msgid "Default: 6"
-msgstr ""
+msgstr "Пешфарз: 6"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:857
@@ -2747,7 +2745,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1115
 msgid "Default: false;"
-msgstr ""
+msgstr "Пешфарз: false;"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1121
@@ -2943,7 +2941,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1293 sssd-ldap.5.xml:1500
 msgid "Example:"
-msgstr ""
+msgstr "Намуна:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:1296
@@ -3251,7 +3249,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1555 sssd_krb5_locator_plugin.8.xml:61
 msgid "NOTES"
-msgstr ""
+msgstr "ЭЗОҲҲО"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:1557
@@ -3389,7 +3387,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:117
 msgid "FILES"
-msgstr ""
+msgstr "ФАЙЛҲО"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:118
@@ -5030,7 +5028,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:9
 msgid "Configuration"
-msgstr ""
+msgstr "Ҷӯрсозӣ"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:11
@@ -5153,3 +5151,6 @@ msgstr ""
 #: include/param_help.xml:7
 msgid "Display help message and exit."
 msgstr ""
+
+#~ msgid "Examples:"
+#~ msgstr "Намунаҳо:"
