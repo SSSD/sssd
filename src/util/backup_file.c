@@ -68,7 +68,7 @@ int backup_file(const char *src_file, int dbglvl)
         dst_fd = open(dst_file, O_CREAT|O_EXCL|O_WRONLY, 0600);
         ret = errno;
 
-        if (dst_fd > 0) break;
+        if (dst_fd >= 0) break;
 
         if (ret != EEXIST) {
             DEBUG(dbglvl, ("Error (%d [%s]) opening destination file %s\n",
