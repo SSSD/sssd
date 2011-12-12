@@ -248,6 +248,10 @@ errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
                                       size_t attr_count,
                                       const char *ldap_attr,
                                       char ***name_list);
+errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
+                            struct sysdb_ctx *sysdb,
+                            const char *name,
+                            const char **_cname);
 
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);

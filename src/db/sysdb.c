@@ -1691,3 +1691,49 @@ done:
     }
     return ret;
 }
+
+errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
+                            struct sysdb_ctx *sysdb,
+                            const char *name,
+                            const char **_cname)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    const char *cname;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_getpwnam(tmp_ctx, sysdb, name, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot canonicalize username\n"));
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* User is not cached yet */
+        ret = ENOENT;
+        goto done;
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("sysdb_getpwnam returned count: [%d]\n", res->count));
+        ret = EIO;
+        goto done;
+    }
+
+    cname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    if (!cname) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no name?\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = EOK;
+    *_cname = talloc_steal(mem_ctx, cname);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
