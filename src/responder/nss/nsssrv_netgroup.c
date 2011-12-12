@@ -378,6 +378,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     struct sss_domain_info *dom = step_ctx->dctx->domain;
     struct getent_ctx *netgr;
     struct sysdb_ctx *sysdb;
+    char *name = NULL;
 
     /* Check each domain for this netgroup name */
     while (dom) {
@@ -400,8 +401,13 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         /* make sure to update the dctx if we changed domain */
         step_ctx->dctx->domain = dom;
 
+        talloc_free(name);
+        name = dom->case_sensitive ? \
+                    talloc_strdup(step_ctx, step_ctx->name) :
+                    sss_tc_utf8_str_tolower(step_ctx, step_ctx->name);
+
         DEBUG(4, ("Requesting info for [%s@%s]\n",
-                  step_ctx->name, dom->name));
+                  name, dom->name));
         ret = sysdb_get_ctx_from_list(step_ctx->rctx->db_list, dom, &sysdb);
         if (ret != EOK) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
@@ -409,7 +415,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         }
 
         /* Look up the netgroup in the cache */
-        ret = sysdb_getnetgr(step_ctx->dctx, sysdb, step_ctx->name,
+        ret = sysdb_getnetgr(step_ctx->dctx, sysdb, name,
                              &step_ctx->dctx->res);
         if (ret == ENOENT) {
             /* This netgroup was not found in this domain */
@@ -442,7 +448,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         if (ret == ENOENT) {
             /* This netgroup was not found in this domain */
             DEBUG(2, ("No results for netgroup %s (domain %s)\n",
-                      step_ctx->name, dom->name));
+                      name, dom->name));
 
             if (!step_ctx->dctx->check_provider) {
                 if (step_ctx->check_next) {
@@ -469,7 +475,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                               step_ctx->nctx,
                               step_ctx->dctx->res,
                               SSS_DP_NETGR,
-                              step_ctx->name, 0,
+                              name, 0,
                               lookup_netgr_dp_callback,
                               step_ctx);
             if (ret != EOK) {
@@ -482,7 +488,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
         /* Results found */
         DEBUG(6, ("Returning info for netgroup [%s@%s]\n",
-                  step_ctx->name, dom->name));
+                  name, dom->name));
         netgr->ready = true;
         netgr->found = true;
         set_netgr_lifetime(dom->entry_cache_timeout, step_ctx, netgr);
@@ -490,8 +496,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     }
 
     /* If we've gotten here, then no domain contained this netgroup */
-    DEBUG(2, ("No matching domain found for [%s], fail!\n",
-              step_ctx->name));
+    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
 
     netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
     if (netgr == NULL) {
@@ -501,7 +506,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         netgr->found = false;
         netgr->entries = NULL;
         netgr->lookup_table = step_ctx->nctx->netgroups;
-        netgr->name = talloc_strdup(netgr, step_ctx->name);
+        netgr->name = talloc_strdup(netgr, name);
         if (netgr->name == NULL) {
             DEBUG(1, ("talloc_strdup failed.\n"));
             talloc_free(netgr);

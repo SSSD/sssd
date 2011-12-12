@@ -394,7 +394,7 @@ static int fill_pwent(struct sss_packet *packet,
         if (filter_users) {
             ncret = sss_ncache_check_user(nctx->ncache,
                                         nctx->neg_timeout,
-                                        domain, name);
+                                        dom, name);
             if (ncret == EEXIST) {
                 DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
                           name, domain));
@@ -715,7 +715,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    const char *name = cmdctx->name;
+    char *name = NULL;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -740,10 +740,15 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
+        talloc_free(name);
+        name = dom->case_sensitive ? talloc_strdup(dctx, cmdctx->name) :
+                                  sss_tc_utf8_str_tolower(dctx, cmdctx->name);
+        if (!name) return ENOMEM;
+
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
         ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                    dom->name, name);
+                                    dom, name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -781,7 +786,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_user(nctx->ncache, false, dom->name, name);
+            ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
             if (ret != EOK) {
                 return ret;
             }
@@ -1788,7 +1793,7 @@ static int fill_grent(struct sss_packet *packet,
 
         if (filter_groups) {
             ret = sss_ncache_check_group(nctx->ncache,
-                                         nctx->neg_timeout, domain, name);
+                                         nctx->neg_timeout, dom, name);
             if (ret == EEXIST) {
                 DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
                           name, domain));
@@ -1866,7 +1871,7 @@ static int fill_grent(struct sss_packet *packet,
                 if (nctx->filter_users_in_groups) {
                     ret = sss_ncache_check_user(nctx->ncache,
                                                 nctx->neg_timeout,
-                                                domain, name);
+                                                dom, name);
                     if (ret == EEXIST) {
                         DEBUG(6, ("Group [%s] member [%s@%s] filtered out!"
                                   " (negative cache)\n",
@@ -2002,7 +2007,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    const char *name = cmdctx->name;
+    char *name = NULL;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -2027,10 +2032,15 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
+        talloc_free(name);
+        name = dom->case_sensitive ? talloc_strdup(dctx, cmdctx->name) :
+                                sss_tc_utf8_str_tolower(dctx, cmdctx->name);
+        if (!name) return ENOMEM;
+
         /* verify this group has not yet been negatively cached,
         * or has been permanently filtered */
         ret = sss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
-                                     dom->name, name);
+                                     dom, name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -2068,7 +2078,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_group(nctx->ncache, false, dom->name, name);
+            ret = sss_ncache_set_group(nctx->ncache, false, dom, name);
             if (ret != EOK) {
                 return ret;
             }
@@ -3068,7 +3078,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    const char *name = cmdctx->name;
+    char *name = NULL;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -3093,10 +3103,15 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
+        talloc_free(name);
+        name = dom->case_sensitive ? talloc_strdup(dctx, cmdctx->name) :
+                                    sss_tc_utf8_str_tolower(dctx, cmdctx->name);
+        if (!name) return ENOMEM;
+
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
         ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                    dom->name, name);
+                                    dom, name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -3130,7 +3145,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_user(nctx->ncache, false, dom->name, name);
+            ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
             if (ret != EOK) {
                 return ret;
             }

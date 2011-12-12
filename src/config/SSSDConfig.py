@@ -92,6 +92,7 @@ option_strings = {
     'dns_resolver_timeout' : _('How long to wait for replies from DNS when resolving servers (seconds)'),
     'dns_discovery_domain' : _('The domain part of service discovery DNS query'),
     'override_gid' : _('Override GID value from the identity provider with this value'),
+    'case_sensitive' : _('Treat usernames as case sensitive'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

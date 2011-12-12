@@ -33,7 +33,6 @@
 #include <errno.h>
 #include <popt.h>
 #include "util/util.h"
-#include "util/sss_utf8.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"

@@ -931,6 +931,20 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>case_sensitive (boolean)</term>
+                    <listitem>
+                        <para>
+                            Treat user and group names as case sensitive. At
+                            the moment, this option is not supported in
+                            the local provider.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

@@ -787,7 +787,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             if (dom->fqnames) continue;
 
             ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
-                                          dom->name, pd->user);
+                                          dom, pd->user);
             if (ncret == ENOENT) {
                 /* User not found in the negative cache
                  * Proceed with PAM actions
@@ -830,7 +830,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 {
     struct sss_domain_info *dom = preq->domain;
     struct cli_ctx *cctx = preq->cctx;
-    const char *name = preq->pd->user;
+    char *name = NULL;
     struct sysdb_ctx *sysdb;
     time_t cacheExpire;
     int ret;
@@ -854,6 +854,10 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         /* make sure to update the preq if we changed domain */
         preq->domain = dom;
+
+        talloc_free(name);
+        name = dom->case_sensitive ? talloc_strdup(preq, preq->pd->user) :
+                                sss_tc_utf8_str_tolower(preq, preq->pd->user);
 
         /* Refresh the user's cache entry on any PAM query
          * We put a timeout in the client context so that we limit

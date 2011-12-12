@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
+#include "responder/common/responder.h"
 #include <fcntl.h>
 #include <time.h>
 #include "tdb.h"
@@ -158,8 +159,8 @@ done:
     return ret;
 }
 
-int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
-                          const char *domain, const char *name)
+static int sss_ncache_check_user_int(struct sss_nc_ctx *ctx, int ttl,
+                                     const char *domain, const char *name)
 {
     char *str;
     int ret;
@@ -175,8 +176,8 @@ int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
     return ret;
 }
 
-int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
-                           const char *domain, const char *name)
+static int sss_ncache_check_group_int(struct sss_nc_ctx *ctx, int ttl,
+                                      const char *domain, const char *name)
 {
     char *str;
     int ret;
@@ -192,8 +193,8 @@ int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
     return ret;
 }
 
-int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
-                           const char *domain, const char *name)
+static int sss_ncache_check_netgr_int(struct sss_nc_ctx *ctx, int ttl,
+                                      const char *domain, const char *name)
 {
     char *str;
     int ret;
@@ -207,6 +208,49 @@ int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
 
     talloc_free(str);
     return ret;
+}
+
+typedef int (*ncache_check_byname_fn_t)(struct sss_nc_ctx *, int,
+                                        const char *, const char *);
+
+static int sss_cache_check_ent(struct sss_nc_ctx *ctx, int ttl,
+                               struct sss_domain_info *dom, const char *name,
+                               ncache_check_byname_fn_t checker)
+{
+    char *lower;
+    errno_t ret;
+
+    if (dom->case_sensitive == false) {
+        lower = sss_tc_utf8_str_tolower(ctx, name);
+        if (!lower) return ENOMEM;
+        ret = checker(ctx, ttl, dom->name, lower);
+        talloc_free(lower);
+    } else {
+        ret = checker(ctx, ttl, dom->name, name);
+    }
+
+    return ret;
+}
+
+int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
+                          struct sss_domain_info *dom, const char *name)
+{
+    return sss_cache_check_ent(ctx, ttl, dom, name,
+                               sss_ncache_check_user_int);
+}
+
+int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
+                           struct sss_domain_info *dom, const char *name)
+{
+    return sss_cache_check_ent(ctx, ttl, dom, name,
+                               sss_ncache_check_group_int);
+}
+
+int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
+                           struct sss_domain_info *dom, const char *name)
+{
+    return sss_cache_check_ent(ctx, ttl, dom, name,
+                               sss_ncache_check_netgr_int);
 }
 
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
@@ -237,8 +281,8 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid)
     return ret;
 }
 
-int sss_ncache_set_user(struct sss_nc_ctx *ctx, bool permanent,
-                        const char *domain, const char *name)
+static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
+                                   const char *domain, const char *name)
 {
     char *str;
     int ret;
@@ -254,8 +298,8 @@ int sss_ncache_set_user(struct sss_nc_ctx *ctx, bool permanent,
     return ret;
 }
 
-int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,
-                        const char *domain, const char *name)
+static int sss_ncache_set_group_int(struct sss_nc_ctx *ctx, bool permanent,
+                                    const char *domain, const char *name)
 {
     char *str;
     int ret;
@@ -271,8 +315,8 @@ int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,
     return ret;
 }
 
-int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
-                         const char *domain, const char *name)
+static int sss_ncache_set_netgr_int(struct sss_nc_ctx *ctx, bool permanent,
+                                    const char *domain, const char *name)
 {
     char *str;
     int ret;
@@ -286,6 +330,47 @@ int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
 
     talloc_free(str);
     return ret;
+}
+
+typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
+                                      const char *, const char *);
+
+static int sss_ncache_set_ent(struct sss_nc_ctx *ctx, bool permanent,
+                              struct sss_domain_info *dom, const char *name,
+                              ncache_set_byname_fn_t setter)
+{
+    char *lower;
+    errno_t ret;
+
+    if (dom->case_sensitive == false) {
+        lower = sss_tc_utf8_str_tolower(ctx, name);
+        if (!lower) return ENOMEM;
+        ret = setter(ctx, permanent, dom->name, lower);
+        talloc_free(lower);
+    } else {
+        ret = setter(ctx, permanent, dom->name, name);
+    }
+
+    return ret;
+}
+
+
+int sss_ncache_set_user(struct sss_nc_ctx *ctx, bool permanent,
+                        struct sss_domain_info *dom, const char *name)
+{
+    return sss_ncache_set_ent(ctx, permanent, dom, name, sss_ncache_set_user_int);
+}
+
+int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,
+                         struct sss_domain_info *dom, const char *name)
+{
+    return sss_ncache_set_ent(ctx, permanent, dom, name, sss_ncache_set_group_int);
+}
+
+int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
+                         struct sss_domain_info *dom, const char *name)
+{
+    return sss_ncache_set_ent(ctx, permanent, dom, name, sss_ncache_set_netgr_int);
 }
 
 int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid)
@@ -409,7 +494,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            ret = sss_ncache_set_user(ncache, true, dom->name, name);
+            ret = sss_ncache_set_user(ncache, true, dom, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
@@ -447,7 +532,14 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            ret = sss_ncache_set_user(ncache, true, domainname, name);
+            dom = responder_get_domain(domain_list, domainname);
+            if (!dom) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Invalid domain name [%s]\n", domainname));
+                continue;
+            }
+
+            ret = sss_ncache_set_user(ncache, true, dom, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
@@ -456,7 +548,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
         } else {
             for (dom = domain_list; dom; dom = dom->next) {
-                ret = sss_ncache_set_user(ncache, true, dom->name, name);
+                ret = sss_ncache_set_user(ncache, true, dom, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent user filter for"
                              " [%s:%s] (%d [%s])\n",
@@ -499,7 +591,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            ret = sss_ncache_set_group(ncache, true, dom->name, name);
+            ret = sss_ncache_set_group(ncache, true, dom, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent group filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
@@ -537,7 +629,14 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            ret = sss_ncache_set_group(ncache, true, domainname, name);
+            dom = responder_get_domain(domain_list, domainname);
+            if (!dom) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Invalid domain name [%s]\n", domainname));
+                continue;
+            }
+
+            ret = sss_ncache_set_group(ncache, true, dom, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent group filter for"
                           " [%s] (%d [%s])\n", filter_list[i],
@@ -546,7 +645,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
         } else {
             for (dom = domain_list; dom; dom = dom->next) {
-                ret = sss_ncache_set_group(ncache, true, dom->name, name);
+                ret = sss_ncache_set_group(ncache, true, dom, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent group filter for"
                              " [%s:%s] (%d [%s])\n",

@@ -117,6 +117,7 @@
 #define CONFDB_DOMAIN_FAMILY_ORDER "lookup_family_order"
 #define CONFDB_DOMAIN_ACCOUNT_CACHE_EXPIRATION "account_cache_expiration"
 #define CONFDB_DOMAIN_OVERRIDE_GID "override_gid"
+#define CONFDB_DOMAIN_CASE_SENSITIVE "case_sensitive"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -150,6 +151,7 @@ struct sss_domain_info {
 
     bool cache_credentials;
     bool legacy_passwords;
+    bool case_sensitive;
 
     gid_t override_gid;
     const char *override_homedir;
