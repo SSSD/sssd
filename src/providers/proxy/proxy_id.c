@@ -30,6 +30,9 @@
 static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain, const char *name);
 
+static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
+                     struct passwd *pwd, uint64_t cache_timeout);
+
 static int get_pw_name(TALLOC_CTX *mem_ctx,
                        struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
@@ -42,7 +45,6 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
-    const char *shell;
 
     DEBUG(7, ("Searching user by name (%s)\n", name));
 
@@ -98,23 +100,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
-            shell = pwd->pw_shell;
-        } else {
-            shell = NULL;
-        }
-
-        ret = sysdb_store_user(sysdb,
-                               pwd->pw_name,
-                               pwd->pw_passwd,
-                               pwd->pw_uid,
-                               pwd->pw_gid,
-                               pwd->pw_gecos,
-                               pwd->pw_dir,
-                               shell,
-                               NULL, NULL,
-                               ctx->entry_cache_timeout,
-                               0);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -137,6 +123,63 @@ done:
                   name, status));
     }
     return ret;
+}
+
+static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
+                     struct passwd *pwd, uint64_t cache_timeout)
+{
+    const char *shell;
+    char *lower;
+    struct sysdb_attrs *attrs;
+    errno_t ret;
+
+    if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
+        shell = pwd->pw_shell;
+    } else {
+        shell = NULL;
+    }
+
+    if (lowercase) {
+        attrs = sysdb_new_attrs(NULL);
+        if (!attrs) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
+            return ENOMEM;
+        }
+
+        lower = sss_tc_utf8_str_tolower(attrs, pwd->pw_name);
+        if (!lower) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
+            talloc_zfree(attrs);
+            return ENOMEM;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            talloc_zfree(attrs);
+            return ret;
+        }
+    }
+
+    ret = sysdb_store_user(sysdb,
+                           pwd->pw_name,
+                           pwd->pw_passwd,
+                           pwd->pw_uid,
+                           pwd->pw_gid,
+                           pwd->pw_gecos,
+                           pwd->pw_dir,
+                           shell,
+                           attrs,
+                           NULL,
+                           cache_timeout,
+                           0);
+    talloc_zfree(attrs);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not add user to cache\n"));
+        return ret;
+    }
+
+    return EOK;
 }
 
 static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
@@ -170,7 +213,6 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     size_t buflen;
     bool del_user = false;
     int ret;
-    const char *shell;
 
     DEBUG(7, ("Searching user by uid (%d)\n", uid));
 
@@ -221,23 +263,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
-            shell = pwd->pw_shell;
-        } else {
-            shell = NULL;
-        }
-
-        ret = sysdb_store_user(sysdb,
-                               pwd->pw_name,
-                               pwd->pw_passwd,
-                               pwd->pw_uid,
-                               pwd->pw_gid,
-                               pwd->pw_gecos,
-                               pwd->pw_dir,
-                               shell,
-                               NULL, NULL,
-                               ctx->entry_cache_timeout,
-                               0);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -286,7 +312,6 @@ static int enum_users(TALLOC_CTX *mem_ctx,
     char *buffer;
     char *newbuf;
     int ret;
-    const char *shell;
 
     DEBUG(7, ("Enumerating users\n"));
 
@@ -369,23 +394,7 @@ again:
             goto again; /* skip */
         }
 
-        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
-            shell = pwd->pw_shell;
-        } else {
-            shell = NULL;
-        }
-
-        ret = sysdb_store_user(sysdb,
-                               pwd->pw_name,
-                               pwd->pw_passwd,
-                               pwd->pw_uid,
-                               pwd->pw_gid,
-                               pwd->pw_gecos,
-                               pwd->pw_dir,
-                               shell,
-                               NULL, NULL,
-                               ctx->entry_cache_timeout,
-                               0);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -415,8 +424,7 @@ done:
     return ret;
 }
 
-/* =Getgrnam-wrapper======================================================*/
-
+/* =Save-group-utilities=================================================*/
 #define DEBUG_GR_MEM(level, grp) \
     do { \
         if (DEBUG_IS_SET(debug_get_level(level))) { \
@@ -435,6 +443,81 @@ done:
         } \
     } while(0)
 
+static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
+                      struct group *grp, uint64_t cache_timeout)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs = NULL;
+    char *lower;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    DEBUG_GR_MEM(7, grp);
+
+    if (grp->gr_mem && grp->gr_mem[0]) {
+        attrs = sysdb_new_attrs(tmp_ctx);
+        if (!attrs) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_users_from_str_list(
+                attrs, SYSDB_MEMBER, dom->name,
+                (const char *const *)grp->gr_mem);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add group members\n"));
+            goto done;
+        }
+    }
+
+    if (dom->case_sensitive == false) {
+        if (!attrs) {
+            attrs = sysdb_new_attrs(tmp_ctx);
+            if (!attrs) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        lower = sss_tc_utf8_str_tolower(attrs, grp->gr_name);
+        if (!lower) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = sysdb_store_group(sysdb,
+                            grp->gr_name,
+                            grp->gr_gid,
+                            attrs,
+                            cache_timeout,
+                            0);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not add group to cache\n"));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/* =Getgrnam-wrapper======================================================*/
 static int get_gr_name(TALLOC_CTX *mem_ctx,
                        struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
@@ -448,7 +531,6 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
-    struct sysdb_attrs *members;
     int ret;
 
     DEBUG(7, ("Searching group by name (%s)\n", name));
@@ -521,30 +603,7 @@ again:
             break;
         }
 
-        DEBUG_GR_MEM(7, grp);
-
-        if (grp->gr_mem && grp->gr_mem[0]) {
-            members = sysdb_new_attrs(tmpctx);
-            if (!members) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ret = sysdb_attrs_users_from_str_list(
-                    members, SYSDB_MEMBER, dom->name,
-                    (const char *const *)grp->gr_mem);
-            if (ret) {
-                goto done;
-            }
-        } else {
-            members = NULL;
-        }
-
-        ret = sysdb_store_group(sysdb,
-                                grp->gr_name,
-                                grp->gr_gid,
-                                members,
-                                ctx->entry_cache_timeout,
-                                0);
+        ret = save_group(sysdb, dom, grp, ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -603,7 +662,6 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
-    struct sysdb_attrs *members;
     int ret;
 
     DEBUG(7, ("Searching group by gid (%d)\n", gid));
@@ -674,30 +732,7 @@ again:
             break;
         }
 
-        DEBUG_GR_MEM(7, grp);
-
-        if (grp->gr_mem && grp->gr_mem[0]) {
-            members = sysdb_new_attrs(tmpctx);
-            if (!members) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ret = sysdb_attrs_users_from_str_list(
-                    members, SYSDB_MEMBER, dom->name,
-                    (const char *const *)grp->gr_mem);
-            if (ret) {
-                goto done;
-            }
-        } else {
-            members = NULL;
-        }
-
-        ret = sysdb_store_group(sysdb,
-                                grp->gr_name,
-                                grp->gr_gid,
-                                members,
-                                ctx->entry_cache_timeout,
-                                now);
+        ret = save_group(sysdb, dom, grp, ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -746,7 +781,6 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
     enum nss_status status;
     size_t buflen;
     char *buffer;
-    struct sysdb_attrs *members;
     char *newbuf;
     int ret;
 
@@ -830,30 +864,7 @@ again:
             goto again; /* skip */
         }
 
-        DEBUG_GR_MEM(7, grp);
-
-        if (grp->gr_mem && grp->gr_mem[0]) {
-            members = sysdb_new_attrs(tmpctx);
-            if (!members) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ret = sysdb_attrs_users_from_str_list(
-                    members, SYSDB_MEMBER, dom->name,
-                    (const char *const *)grp->gr_mem);
-            if (ret) {
-                goto done;
-            }
-        } else {
-            members = NULL;
-        }
-
-        ret = sysdb_store_group(sysdb,
-                                grp->gr_name,
-                                grp->gr_gid,
-                                members,
-                                ctx->entry_cache_timeout,
-                                0);
+        ret = save_group(sysdb, dom, grp, ctx->entry_cache_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -904,7 +915,6 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
-    const char *shell;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -957,23 +967,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
-            shell = pwd->pw_shell;
-        } else {
-            shell = NULL;
-        }
-
-        ret = sysdb_store_user(sysdb,
-                               pwd->pw_name,
-                               pwd->pw_passwd,
-                               pwd->pw_uid,
-                               pwd->pw_gid,
-                               pwd->pw_gecos,
-                               pwd->pw_dir,
-                               shell,
-                               NULL, NULL,
-                               ctx->entry_cache_timeout,
-                               0);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
         if (ret) {
             goto done;
         }
@@ -1176,7 +1170,7 @@ void proxy_get_account_info(struct be_req *breq)
                                ENODEV, "Netgroups are not supported");
         }
 
-        ret = get_netgroup(ctx, sysdb, ar->filter_value);
+        ret = get_netgroup(ctx, sysdb, domain, ar->filter_value);
         break;
 
     default: /*fail*/

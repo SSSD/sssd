@@ -63,8 +63,42 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
     return EOK;
 }
 
+static errno_t save_netgroup(struct sysdb_ctx *sysdb,
+                             const char *name,
+                             struct sysdb_attrs *attrs,
+                             bool lowercase,
+                             uint64_t cache_timeout)
+{
+    errno_t ret;
+    char *lower;
+
+    if (lowercase) {
+        lower = sss_tc_utf8_str_tolower(NULL, name);
+        if (!lower) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
+            return ENOMEM;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+        talloc_free(lower);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            return ret;
+        }
+    }
+
+    ret = sysdb_add_netgroup(sysdb, name, NULL, attrs, cache_timeout, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_add_netgroup failed.\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t get_netgroup(struct proxy_id_ctx *ctx,
                      struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *dom,
                      const char *name)
 {
     struct __netgrent result;
@@ -117,8 +151,8 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-    ret = sysdb_add_netgroup(sysdb, name, NULL, attrs,
-                             ctx->entry_cache_timeout, 0);
+    ret = save_netgroup(sysdb, name, attrs,
+                        !dom->case_sensitive, ctx->entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_add_netgroup failed.\n"));
         goto done;
