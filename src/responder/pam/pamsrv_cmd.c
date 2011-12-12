@@ -93,6 +93,26 @@ static int extract_uint32_t(uint32_t *var, size_t size, uint8_t *body,
     return EOK;
 }
 
+static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd)
+{
+    const char *name;
+
+    name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (!name) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no name?\n"));
+        return EIO;
+    }
+
+    if (strcmp(pd->user, name)) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("User's primary name is %s\n", name));
+        talloc_free(pd->user);
+        pd->user = talloc_strdup(pd, name);
+        if (!pd->user) return ENOMEM;
+    }
+
+    return EOK;
+}
+
 static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
@@ -889,6 +909,13 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         }
 
         DEBUG(6, ("Returning info for user [%s@%s]\n", name, dom->name));
+
+        /* We might have searched by alias. Pass on the primary name */
+        ret = pd_set_primary_name(preq->res->msgs[0], preq->pd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not canonicalize username\n"));
+            return ret;
+        }
 
         return EOK;
     }
