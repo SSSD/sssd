@@ -863,6 +863,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
             goto done;
         }
 
+        j = 0;
         if (ret == EOK) {
             for (j = 0; members[j]; j++) {
                 key.str = discard_const(members[j]);
