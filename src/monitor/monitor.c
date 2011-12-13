@@ -91,6 +91,7 @@ struct mt_svc {
     int restarts;
     time_t last_restart;
     int failed_pongs;
+    DBusPendingCall *pending;
 
     int debug_level;
 
@@ -313,6 +314,11 @@ static int svc_destructor(void *mem)
     /* try to delist service */
     if (svc->mt_ctx) {
         DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
+    }
+
+    /* Cancel any pending pings */
+    if (svc->pending) {
+        dbus_pending_call_cancel(svc->pending);
     }
 
     /* svc is beeing freed, neutralize the spy */
@@ -2190,7 +2196,7 @@ static int service_send_ping(struct mt_svc *svc)
 
     ret = sbus_conn_send(svc->conn, msg,
                          svc->ping_time * 1000, /* milliseconds */
-                         ping_check, svc, NULL);
+                         ping_check, svc, &svc->pending);
     dbus_message_unref(msg);
     return ret;
 }
@@ -2204,6 +2210,13 @@ static void ping_check(DBusPendingCall *pending, void *data)
     int type;
 
     svc = talloc_get_type(data, struct mt_svc);
+    if (!svc) {
+        /* The connection probably went down before the callback fired.
+         * Not much we can do. */
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid service pointer.\n"));
+        return;
+    }
+    svc->pending = NULL;
 
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {
