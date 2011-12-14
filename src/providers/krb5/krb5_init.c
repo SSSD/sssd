@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
 

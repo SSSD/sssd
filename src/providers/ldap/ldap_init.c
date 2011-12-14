@@ -22,7 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_access.h"

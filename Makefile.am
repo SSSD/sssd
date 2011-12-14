@@ -327,7 +327,7 @@ dist_noinst_HEADERS = \
     src/providers/dp_backend.h \
     src/providers/fail_over.h \
     src/providers/providers.h \
-    src/providers/child_common.h \
+    src/util/child_common.h \
     src/providers/simple/simple_access.h \
     src/providers/krb5/krb5_auth.h \
     src/providers/krb5/krb5_common.h \
@@ -366,6 +366,9 @@ libsss_debug_la_SOURCES = \
     src/util/debug.c \
     src/util/sss_log.c
 
+noinst_LTLIBRARIES += libsss_child.la
+libsss_child_la_SOURCES = src/util/child_common.c
+
 noinst_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
     src/confdb/confdb.c \
@@ -395,6 +398,7 @@ libsss_util_la_SOURCES = \
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS) \
+    libsss_child.la \
     libsss_crypt.la \
     libsss_debug.la
 if BUILD_SUDO
@@ -461,7 +465,6 @@ sssd_sudo_LDADD = \
 endif
 
 sssd_be_SOURCES = \
-    src/providers/child_common.c \
     src/providers/data_provider_be.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
@@ -870,7 +873,6 @@ dist_noinst_DATA += \
 ####################
 libsss_ldap_la_SOURCES = \
     src/util/find_uid.c \
-    src/providers/child_common.c \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \
@@ -938,7 +940,6 @@ libsss_simple_la_LDFLAGS = \
 
 libsss_krb5_la_SOURCES = \
     src/util/find_uid.c \
-    src/providers/child_common.c \
     src/providers/krb5/krb5_utils.c \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_delayed_online_authentication.c \
@@ -963,7 +964,6 @@ libsss_krb5_la_LDFLAGS = \
     -module
 
 libsss_ipa_la_SOURCES = \
-    src/providers/child_common.c \
     src/providers/ipa/ipa_init.c \
     src/providers/ipa/ipa_common.c \
     src/providers/ipa/ipa_utils.c \
@@ -1026,7 +1026,6 @@ libsss_ipa_la_LDFLAGS = \
 krb5_child_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_child.c \
-    src/providers/child_common.c \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
@@ -1038,6 +1037,7 @@ krb5_child_CFLAGS = \
     $(KRB5_CFLAGS)
 krb5_child_LDADD = \
     libsss_debug.la \
+    libsss_child.la \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
@@ -1046,7 +1046,6 @@ krb5_child_LDADD = \
 
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
-    src/providers/child_common.c \
     src/util/sss_krb5.c \
     src/util/util.c \
     src/util/signal.c
@@ -1056,6 +1055,7 @@ ldap_child_CFLAGS = \
     $(KRB5_CFLAGS)
 ldap_child_LDADD = \
     libsss_debug.la \
+    libsss_child.la \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \

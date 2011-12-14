@@ -32,7 +32,7 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "util/user_info_msg.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"

@@ -24,7 +24,7 @@
 
 #include "providers/data_provider.h"
 #include "providers/fail_over.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "db/sysdb.h"
 
 /* a special token, if used in place of the hostname, denotes that real

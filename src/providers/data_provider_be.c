@@ -42,7 +42,7 @@
 #include "sbus/sssd_dbus.h"
 #include "providers/dp_backend.h"
 #include "providers/fail_over.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "resolv/async_resolv.h"
 #include "monitor/monitor_interfaces.h"
 

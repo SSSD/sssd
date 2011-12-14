@@ -35,7 +35,7 @@
 #include "util/util.h"
 #include "util/find_uid.h"
 #include "db/sysdb.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 

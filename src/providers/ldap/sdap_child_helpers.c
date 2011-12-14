@@ -32,7 +32,7 @@
 #include "util/sss_krb5.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_private.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 
 #ifndef SSSD_LIBEXEC_PATH
 #error "SSSD_LIBEXEC_PATH not defined"

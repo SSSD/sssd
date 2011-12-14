@@ -31,7 +31,7 @@
 #include "util/util.h"
 #include "util/find_uid.h"
 #include "db/sysdb.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 
 struct sss_sigchild_ctx {
     struct tevent_context *ev;

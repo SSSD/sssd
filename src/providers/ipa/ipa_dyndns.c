@@ -33,7 +33,7 @@
 #include "confdb/confdb.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_dyndns.h"
-#include "providers/child_common.h"
+#include "util/child_common.h"
 #include "providers/data_provider.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_private.h"
