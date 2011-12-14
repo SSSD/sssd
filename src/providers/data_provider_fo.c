@@ -67,7 +67,7 @@ static int be_fo_get_options(struct be_ctx *ctx,
 {
     errno_t ret;
 
-    ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
                          CONFDB_DOMAIN_RESOLV_TIMEOUT,
                          FO_DEFAULT_SVC_TIMEOUT,
                          &opts->service_resolv_timeout);
@@ -102,10 +102,9 @@ int be_init_failover(struct be_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
                          CONFDB_DOMAIN_RESOLV_OP_TIMEOUT,
-                         RESOLV_DEFAULT_TIMEOUT,
-                         &resolv_timeout);
+                         RESOLV_DEFAULT_TIMEOUT, &resolv_timeout);
     if (ret != EOK) {
         return ret;
     }

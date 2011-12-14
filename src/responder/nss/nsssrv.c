@@ -135,22 +135,22 @@ static int nss_get_config(struct nss_ctx *nctx,
 {
     int ret;
 
-    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENUM_CACHE_TIMEOUT, 120,
                          &nctx->enum_cache_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
                          &nctx->neg_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_bool(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+    ret = confdb_get_bool(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_FILTER_USERS_IN_GROUPS, true,
                          &nctx->filter_users_in_groups);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENTRY_CACHE_NOWAIT_PERCENTAGE, 50,
                          &nctx->cache_refresh_percent);
     if (ret != EOK) goto done;
@@ -288,7 +288,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(nctx->rctx->cdb, nctx->rctx,
+    ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES,
                          3, &max_retries);
@@ -310,7 +310,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up file descriptor limits */
-    ret = confdb_get_int(nctx->rctx->cdb, nctx->rctx,
+    ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_SERVICE_FD_LIMIT,
                          DEFAULT_NSS_FD_LIMIT,

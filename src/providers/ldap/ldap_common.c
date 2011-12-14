@@ -376,7 +376,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     }
 
     /* account_cache_expiration must be >= than offline_credentials_expiration */
-    ret = confdb_get_int(cdb, memctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_CRED_TIMEOUT, 0,
                          &offline_credentials_expiration);
     if (ret != EOK) {

@@ -317,7 +317,7 @@ int userdel_defaults(TALLOC_CTX *mem_ctx,
 
     /* remove homedir on user creation? */
     if (!remove_home) {
-        ret = confdb_get_bool(confdb, mem_ctx,
+        ret = confdb_get_bool(confdb,
                              conf_path, CONFDB_LOCAL_REMOVE_HOMEDIR,
                              DFL_REMOVE_HOMEDIR, &dfl_remove_home);
         if (ret != EOK) {
@@ -408,7 +408,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
 
     /* create homedir on user creation? */
     if (!create_home) {
-        ret = confdb_get_bool(confdb, mem_ctx,
+        ret = confdb_get_bool(confdb,
                              conf_path, CONFDB_LOCAL_CREATE_HOMEDIR,
                              DFL_CREATE_HOMEDIR, &data->create_homedir);
         if (ret != EOK) {
@@ -420,7 +420,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
     DEBUG(7, ("Auto create homedir: %s\n", data->create_homedir?"True":"False"));
 
     /* umask to create homedirs */
-    ret = confdb_get_int(confdb, mem_ctx,
+    ret = confdb_get_int(confdb,
                          conf_path, CONFDB_LOCAL_UMASK,
                          DFL_UMASK, (int *) &data->umask);
     if (ret != EOK) {

@@ -337,15 +337,22 @@ failed:
     return ret;
 }
 
-int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+int confdb_get_int(struct confdb_ctx *cdb,
                    const char *section, const char *attribute,
                    int defval, int *result)
 {
     char **values = NULL;
     long val;
     int ret;
+    TALLOC_CTX *tmp_ctx;
 
-    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto failed;
+    }
+
+    ret = confdb_get_param(cdb, tmp_ctx, section, attribute, &values);
     if (ret != EOK) {
         goto failed;
     }
@@ -373,27 +380,34 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         val = defval;
     }
 
-    talloc_free(values);
+    talloc_free(tmp_ctx);
 
     *result = (int)val;
     return EOK;
 
 failed:
-    talloc_free(values);
+    talloc_free(tmp_ctx);
     DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;
 }
 
-long confdb_get_long(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+long confdb_get_long(struct confdb_ctx *cdb,
                      const char *section, const char *attribute,
                      long defval, long *result)
 {
     char **values = NULL;
     long val;
     int ret;
+    TALLOC_CTX *tmp_ctx;
 
-    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto failed;
+    }
+
+    ret = confdb_get_param(cdb, tmp_ctx, section, attribute, &values);
     if (ret != EOK) {
         goto failed;
     }
@@ -416,27 +430,34 @@ long confdb_get_long(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         val = defval;
     }
 
-    talloc_free(values);
+    talloc_free(tmp_ctx);
 
     *result = val;
     return EOK;
 
 failed:
-    talloc_free(values);
+    talloc_free(tmp_ctx);
     DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;
 }
 
-int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+int confdb_get_bool(struct confdb_ctx *cdb,
                     const char *section, const char *attribute,
                     bool defval, bool *result)
 {
     char **values = NULL;
     bool val;
     int ret;
+    TALLOC_CTX *tmp_ctx;
 
-    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto failed;
+    }
+
+    ret = confdb_get_param(cdb, tmp_ctx, section, attribute, &values);
     if (ret != EOK) {
         goto failed;
     }
@@ -465,13 +486,13 @@ int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         val = defval;
     }
 
-    talloc_free(values);
+    talloc_free(tmp_ctx);
 
     *result = val;
     return EOK;
 
 failed:
-    talloc_free(values);
+    talloc_free(tmp_ctx);
     DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;

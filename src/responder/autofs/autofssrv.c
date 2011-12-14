@@ -62,7 +62,7 @@ autofs_get_config(struct autofs_ctx *actx,
 {
     errno_t ret;
 
-    ret = confdb_get_int(cdb, actx, CONFDB_AUTOFS_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_AUTOFS_CONF_ENTRY,
                          CONFDB_AUTOFS_MAP_NEG_TIMEOUT, 15,
                          &actx->neg_timeout);
     if (ret != EOK) {
@@ -142,7 +142,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     autofs_ctx->rctx->pvt_ctx = autofs_ctx;
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(autofs_ctx->rctx->cdb, autofs_ctx->rctx,
+    ret = confdb_get_int(autofs_ctx->rctx->cdb,
                          CONFDB_AUTOFS_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES,
                          3, &max_retries);

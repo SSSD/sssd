@@ -192,7 +192,7 @@ errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,
     }
 
     /* Get new debug level from the confdb */
-    ret = confdb_get_int(confdb, NULL, conf_path,
+    ret = confdb_get_int(confdb, conf_path,
                          CONFDB_SERVICE_DEBUG_LEVEL,
                          old_debug_level,
                          &debug_level);

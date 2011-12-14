@@ -343,7 +343,7 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
  * @return ERANGE - The value stored in the ConfDB was outside the range
  *                  [INT_MIN..INT_MAX]
  */
-int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+int confdb_get_int(struct confdb_ctx *cdb,
                    const char *section, const char *attribute,
                    int defval, int *result);
 
@@ -372,7 +372,7 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
  *                  single-valued, or the value was not a boolean.
  * @return EIO - An I/O error occurred while communicating with the ConfDB
  */
-int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+int confdb_get_bool(struct confdb_ctx *cdb,
                     const char *section, const char *attribute,
                     bool defval, bool *result);
 

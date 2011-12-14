@@ -114,7 +114,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     sudo_ctx->rctx->pvt_ctx = sudo_ctx;
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(sudo_ctx->rctx->cdb, sudo_ctx->rctx,
+    ret = confdb_get_int(sudo_ctx->rctx->cdb,
                          CONFDB_SUDO_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES,
                          3, &max_retries);
@@ -132,7 +132,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     /* Get responder options */
 
     /* Get cache_timeout option */
-    ret = confdb_get_int(sudo_ctx->rctx->cdb, sudo_ctx,
+    ret = confdb_get_int(sudo_ctx->rctx->cdb,
                          CONFDB_SUDO_CONF_ENTRY, CONFDB_SUDO_CACHE_TIMEOUT,
                          CONFDB_DEFAULT_SUDO_CACHE_TIMEOUT,
                          &sudo_ctx->cache_timeout);
@@ -143,7 +143,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Get sudo_timed option */
-    ret = confdb_get_bool(sudo_ctx->rctx->cdb, sudo_ctx,
+    ret = confdb_get_bool(sudo_ctx->rctx->cdb,
                           CONFDB_SUDO_CONF_ENTRY, CONFDB_SUDO_TIMED,
                           CONFDB_DEFAULT_SUDO_TIMED,
                           &sudo_ctx->timed);

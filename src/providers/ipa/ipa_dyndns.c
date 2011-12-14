@@ -144,7 +144,7 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
     errno_t ret;
     int resolv_timeout;
 
-    ret = confdb_get_int(be_ctx->cdb, be_ctx, be_ctx->conf_path,
+    ret = confdb_get_int(be_ctx->cdb, be_ctx->conf_path,
                          CONFDB_DOMAIN_RESOLV_TIMEOUT,
                          RESOLV_DEFAULT_TIMEOUT, &resolv_timeout);
     if (ret != EOK) {

@@ -85,7 +85,7 @@ int dp_get_options(TALLOC_CTX *memctx,
             break;
 
         case DP_OPT_NUMBER:
-            ret = confdb_get_int(cdb, opts, conf_path,
+            ret = confdb_get_int(cdb, conf_path,
                                  opts[i].opt_name,
                                  opts[i].def_val.number,
                                  &opts[i].val.number);
@@ -99,7 +99,7 @@ int dp_get_options(TALLOC_CTX *memctx,
             break;
 
         case DP_OPT_BOOL:
-            ret = confdb_get_bool(cdb, opts, conf_path,
+            ret = confdb_get_bool(cdb, conf_path,
                                   opts[i].opt_name,
                                   opts[i].def_val.boolean,
                                   &opts[i].val.boolean);

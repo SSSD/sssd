@@ -139,7 +139,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     /* FIXME: "retries" is too generic, either get it from a global config
      * or specify these retries are about the sbus connections to DP */
-    ret = confdb_get_int(pctx->rctx->cdb, pctx->rctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
@@ -152,13 +152,13 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up the negative cache */
-    ret = confdb_get_int(cdb, pctx, CONFDB_NSS_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
                          &pctx->neg_timeout);
     if (ret != EOK) goto done;
 
     /* Set up the PAM identity timeout */
-    ret = confdb_get_int(cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_ID_TIMEOUT, 5,
                          &id_timeout);
     if (ret != EOK) goto done;
@@ -187,7 +187,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up file descriptor limits */
-    ret = confdb_get_int(pctx->rctx->cdb, pctx->rctx,
+    ret = confdb_get_int(pctx->rctx->cdb,
                          CONFDB_PAM_CONF_ENTRY,
                          CONFDB_SERVICE_FD_LIMIT,
                          DEFAULT_PAM_FD_LIMIT,

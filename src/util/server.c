@@ -464,7 +464,7 @@ int server_setup(const char *name, int flags,
 
     if (debug_level == SSSDBG_UNRESOLVED) {
         /* set debug level if any in conf_entry */
-        ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
+        ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
                              CONFDB_SERVICE_DEBUG_LEVEL,
                              SSSDBG_DEFAULT,
                              &debug_level);
@@ -479,7 +479,7 @@ int server_setup(const char *name, int flags,
 
     /* same for debug timestamps */
     if (debug_timestamps == SSSDBG_TIMESTAMP_UNRESOLVED) {
-        ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+        ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,
                               CONFDB_SERVICE_DEBUG_TIMESTAMPS,
                               SSSDBG_TIMESTAMP_DEFAULT,
                               &dt);
@@ -494,7 +494,7 @@ int server_setup(const char *name, int flags,
 
     /* same for debug microseconds */
     if (debug_microseconds == SSSDBG_MICROSECONDS_UNRESOLVED) {
-        ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+        ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,
                               CONFDB_SERVICE_DEBUG_MICROSECONDS,
                               SSSDBG_MICROSECONDS_DEFAULT,
                               &dm);
@@ -509,7 +509,7 @@ int server_setup(const char *name, int flags,
 
     /* same for debug to file */
     dl = (debug_to_file != 0);
-    ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+    ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,
                           CONFDB_SERVICE_DEBUG_TO_FILES,
                           dl, &dl);
     if (ret != EOK) {

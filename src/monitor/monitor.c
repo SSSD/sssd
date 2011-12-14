@@ -781,7 +781,7 @@ int get_monitor_config(struct mt_ctx *ctx)
     int timeout_seconds;
     char *badsrv = NULL;
 
-    ret = confdb_get_int(ctx->cdb, ctx,
+    ret = confdb_get_int(ctx->cdb,
                          CONFDB_MONITOR_CONF_ENTRY,
                          CONFDB_MONITOR_SBUS_TIMEOUT,
                          10, &timeout_seconds);
@@ -932,7 +932,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         }
     }
 
-    ret = confdb_get_int(ctx->cdb, svc, path,
+    ret = confdb_get_int(ctx->cdb, path,
                          CONFDB_SERVICE_TIMEOUT,
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
@@ -1031,7 +1031,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         return ret;
     }
 
-    ret = confdb_get_int(ctx->cdb, svc, path,
+    ret = confdb_get_int(ctx->cdb, path,
                          CONFDB_DOMAIN_TIMEOUT,
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
@@ -1799,7 +1799,7 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
         ctx->file_ctx->mt_ctx = ctx;
     }
 
-    ret = confdb_get_bool(ctx->cdb, ctx,
+    ret = confdb_get_bool(ctx->cdb,
                           CONFDB_MONITOR_CONF_ENTRY,
                           CONFDB_MONITOR_TRY_INOTIFY,
                           true, &use_inotify);

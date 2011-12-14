@@ -2487,7 +2487,7 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                                                 SYSDB_FAILED_LOGIN_ATTEMPTS, 0);
     last_failed_login = (time_t) ldb_msg_find_attr_as_int64(ldb_msg,
                                                     SYSDB_LAST_FAILED_LOGIN, 0);
-    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_FAILED_LOGIN_ATTEMPTS,
                          CONFDB_DEFAULT_PAM_FAILED_LOGIN_ATTEMPTS,
                          &allowed_failed_login_attempts);
@@ -2497,7 +2497,7 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
         ret = EIO;
         goto done;
     }
-    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_FAILED_LOGIN_DELAY,
                          CONFDB_DEFAULT_PAM_FAILED_LOGIN_DELAY,
                          &failed_login_delay);
@@ -2612,7 +2612,7 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
                                             SYSDB_LAST_ONLINE_AUTH,
                                             0);
 
-    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
     if (ret != EOK) {
         DEBUG(1, ("Failed to read expiration time of offline credentials.\n"));

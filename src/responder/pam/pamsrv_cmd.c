@@ -524,7 +524,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
         return ENOMEM;
     }
 
-    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
                          &pam_verbosity);
     if (ret != EOK) {
@@ -533,7 +533,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
     }
 
 
-    ret = confdb_get_int(cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_PWD_EXPIRATION_WARNING,
                          DEFAULT_PAM_PWD_EXPIRATION_WARNING,
                          &pam_expiration_warning);

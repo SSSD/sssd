@@ -113,7 +113,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     ssh_ctx->rctx->pvt_ctx = ssh_ctx;
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ssh_ctx->rctx->cdb, ssh_ctx->rctx,
+    ret = confdb_get_int(ssh_ctx->rctx->cdb,
                          CONFDB_SSH_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES,
                          3, &max_retries);
