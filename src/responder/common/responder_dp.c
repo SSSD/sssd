@@ -599,7 +599,7 @@ static void sss_dp_get_account_int_done(DBusPendingCall *pending, void *ptr)
     int ret;
     struct tevent_req *req;
     struct sss_dp_req *sdp_req;
-    struct sss_dp_callback *cb;
+    struct sss_dp_callback *cb, *prevcb = NULL;
     struct dp_get_account_int_state *state;
     struct dp_get_account_state *cb_state;
 
@@ -645,9 +645,11 @@ static void sss_dp_get_account_int_done(DBusPendingCall *pending, void *ptr)
             tevent_req_error(cb->req, ret);
         }
 
-        /* Remove each callback from the list as it's replied to */
-        DLIST_REMOVE(sdp_req->cb_list, cb);
+        /* Freeing the request removes it from the list */
+        if (prevcb) talloc_free(prevcb);
+        prevcb = cb;
     }
+    talloc_free(prevcb);
 
     /* We're done with this request. Free the sdp_req
      * This will clean up the hash table entry as well
