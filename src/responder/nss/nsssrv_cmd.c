@@ -833,8 +833,10 @@ done:
     }
 }
 
+static void nss_cmd_getpwnam_cb(struct tevent_req *req);
 static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 {
+    struct tevent_req *req;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     const char *rawname;
@@ -888,7 +890,14 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     if (domname) {
         dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
-            ret = ENOENT;
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                dctx->domname = domname;
+                tevent_req_set_callback(req, nss_cmd_getpwnam_cb, dctx);
+                ret = EAGAIN;
+            }
             goto done;
         }
     } else {
@@ -908,6 +917,40 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
 done:
     return nss_cmd_done(cmdctx, ret);
+}
+
+static void nss_cmd_getpwnam_cb(struct tevent_req *req)
+{
+    struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    errno_t ret;
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (dctx->domname) {
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, dctx->domname);
+        if (dctx->domain == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+
+    /* ok, find it ! */
+    ret = nss_cmd_getpwnam_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_getpw_send_reply(dctx, false);
+    }
+
+done:
+    nss_cmd_done(cmdctx, ret);
 }
 
 static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -2150,8 +2193,10 @@ done:
     }
 }
 
+static void nss_cmd_getgrnam_cb(struct tevent_req *req);
 static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 {
+    struct tevent_req *req;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     const char *rawname;
@@ -2205,7 +2250,14 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     if (domname) {
         dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
-            ret = ENOENT;
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                dctx->domname = domname;
+                tevent_req_set_callback(req, nss_cmd_getgrnam_cb, dctx);
+                ret = EAGAIN;
+            }
             goto done;
         }
     } else {
@@ -2225,6 +2277,40 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 
 done:
     return nss_cmd_done(cmdctx, ret);
+}
+
+static void nss_cmd_getgrnam_cb(struct tevent_req *req)
+{
+    struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    errno_t ret;
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (dctx->domname) {
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, dctx->domname);
+        if (dctx->domain == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+
+    /* ok, find it ! */
+    ret = nss_cmd_getgrnam_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_getpw_send_reply(dctx, false);
+    }
+
+done:
+    nss_cmd_done(cmdctx, ret);
 }
 
 static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -3204,8 +3290,10 @@ done:
 }
 
 /* for now, if we are online, try to always query the backend */
+static void nss_cmd_initgroups_cb(struct tevent_req *req);
 static int nss_cmd_initgroups(struct cli_ctx *cctx)
 {
+    struct tevent_req *req;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     const char *rawname;
@@ -3259,7 +3347,14 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     if (domname) {
         dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
-            ret = ENOENT;
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                dctx->domname = domname;
+                tevent_req_set_callback(req, nss_cmd_initgroups_cb, dctx);
+                ret = EAGAIN;
+            }
             goto done;
         }
     } else {
@@ -3275,6 +3370,40 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 
 done:
     return nss_cmd_done(cmdctx, ret);
+}
+
+static void nss_cmd_initgroups_cb(struct tevent_req *req)
+{
+    struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    errno_t ret;
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (dctx->domname) {
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, dctx->domname);
+        if (dctx->domain == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+
+    /* ok, find it ! */
+    ret = nss_cmd_initgroups_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_getpw_send_reply(dctx, false);
+    }
+
+done:
+    nss_cmd_done(cmdctx, ret);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)

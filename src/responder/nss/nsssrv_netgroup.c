@@ -161,7 +161,9 @@ struct setnetgrent_ctx {
     struct nss_dom_ctx *dctx;
     char *netgr_shortname;
     struct getent_ctx *netgr;
+    const char *rawname;
 };
+static errno_t setnetgrent_retry(struct tevent_req *req);
 static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx);
 static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
                                            const char *rawname,
@@ -172,7 +174,6 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct setnetgrent_ctx *state;
     struct nss_dom_ctx *dctx;
-    struct setent_step_ctx *step_ctx;
 
     struct cli_ctx *client = cmdctx->cctx;
     struct nss_ctx *nctx =
@@ -186,6 +187,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
 
     state->nctx = nctx;
     state->cmdctx = cmdctx;
+    state->rawname = rawname;
 
     state->dctx = talloc_zero(state, struct nss_dom_ctx);
     if (!state->dctx) {
@@ -231,6 +233,42 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = setnetgrent_retry(req);
+    if (ret != EOK) {
+        if (ret == EAGAIN) {
+            /* We need to reenter the mainloop
+             * We may be refreshing the cache
+             */
+            return req;
+        }
+
+        goto error;
+    }
+
+    return req;
+
+error:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, cmdctx->cctx->ev);
+    return req;
+}
+
+static errno_t setnetgrent_retry(struct tevent_req *req)
+{
+    errno_t ret;
+    struct setent_step_ctx *step_ctx;
+    struct setnetgrent_ctx *state;
+    struct cli_ctx *client;
+    struct nss_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
+
+    state = tevent_req_data(req, struct setnetgrent_ctx);
+    dctx = state->dctx;
+    cmdctx = state->cmdctx;
+    client = cmdctx->cctx;
+    nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     /* Is the result context already available?
@@ -245,13 +283,15 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
             if (state->netgr->found) {
                 /* Ready to process results */
                 tevent_req_done(req);
-                tevent_req_post(req, nctx->rctx->ev);
-                return req;
             } else {
                 tevent_req_error(req, ENOENT);
-                tevent_req_post(req, nctx->rctx->ev);
-                return req;
             }
+
+            tevent_req_post(req, nctx->rctx->ev);
+            /* Return EOK, otherwise this will be treated as
+             * an error
+             */
+            return EOK;
         }
 
         /* Result object is still being constructed
@@ -259,7 +299,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
          */
         ret = nss_setent_add_ref(state, state->netgr, req);
         if (ret != EOK) {
-            goto error;
+            goto done;
         }
         /* Will return control below */
     } else if (ret == ENOENT) {
@@ -268,7 +308,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         state->netgr = talloc_zero(nctx, struct getent_ctx);
         if (!state->netgr) {
             ret = ENOMEM;
-            goto error;
+            goto done;
         }
         dctx->netgr = state->netgr;
 
@@ -280,7 +320,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         if (!state->netgr->name) {
             talloc_free(state->netgr);
             ret = ENOMEM;
-            goto error;
+            goto done;
         }
 
         state->netgr->lookup_table = nctx->netgroups;
@@ -289,21 +329,21 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         ret = nss_setent_add_ref(state, state->netgr, req);
         if (ret != EOK) {
             talloc_free(state->netgr);
-            goto error;
+            goto done;
         }
 
         ret = set_netgroup_entry(nctx, state->netgr);
         if (ret != EOK) {
             DEBUG(1, ("set_netgroup_entry failed.\n"));
             talloc_free(state->netgr);
-            goto error;
+            goto done;
         }
 
         /* Perform lookup */
         step_ctx = talloc_zero(state->netgr, struct setent_step_ctx);
         if (!step_ctx) {
             ret = ENOMEM;
-            goto error;
+            goto done;
         }
 
         /* Steal the dom_ctx onto the step_ctx so it doesn't go out of scope if
@@ -318,36 +358,25 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
                 talloc_strdup(step_ctx, state->netgr->name);
         if (!step_ctx->name) {
             ret = ENOMEM;
-            goto error;
+            goto done;
         }
 
         ret = lookup_netgr_step(step_ctx);
         if (ret != EOK) {
-            if (ret == EAGAIN) {
-                /* We need to reenter the mainloop
-                 * We may be refreshing the cache
-                 */
-                return req;
-            }
-
-            /* An unexpected error occurred or no domains
-             * were eligible for the search */
-            goto error;
+            goto done;
         }
         tevent_req_done(req);
         tevent_req_post(req, cmdctx->cctx->ev);
         /* Will return control below */
     } else {
         /* Unexpected error from hash_lookup */
-        goto error;
+        goto done;
     }
 
-    return req;
+    ret = EOK;
 
-error:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, cmdctx->cctx->ev);
-    return req;
+done:
+    return ret;
 }
 
 static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
