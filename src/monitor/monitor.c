@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "util/child_common.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -70,9 +71,16 @@ int cmdline_debug_microseconds;
 
 struct svc_spy;
 
+enum mt_svc_type {
+    MT_SVC_SERVICE,
+    MT_SVC_PROVIDER
+};
+
 struct mt_svc {
     struct mt_svc *prev;
     struct mt_svc *next;
+    enum mt_svc_type type;
+
     struct sbus_connection *conn;
     struct svc_spy *conn_spy;
 
@@ -96,6 +104,10 @@ struct mt_svc {
     int debug_level;
 
     struct tevent_timer *ping_ev;
+
+    struct sss_child_ctx *child_ctx;
+
+    struct tevent_timer *sigkill_ev;
 };
 
 struct config_file_callback {
@@ -132,6 +144,7 @@ struct mt_ctx {
     bool services_started;
     struct netlink_ctx *nlctx;
     const char *conf_path;
+    struct sss_sigchild_ctx *sigchld_ctx;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -142,18 +155,19 @@ static int service_send_ping(struct mt_svc *svc);
 static int service_signal_reset_offline(struct mt_svc *svc);
 static void ping_check(DBusPendingCall *pending, void *data);
 
-static int service_check_alive(struct mt_svc *svc);
-
 static void set_tasks_checker(struct mt_svc *srv);
-static void set_global_checker(struct mt_ctx *ctx);
 static int monitor_kill_service (struct mt_svc *svc);
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
 static int get_provider_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
-static int add_new_service(struct mt_ctx *ctx, const char *name);
-static int add_new_provider(struct mt_ctx *ctx, const char *name);
+static int add_new_service(struct mt_ctx *ctx,
+                           const char *name,
+                           int restarts);
+static int add_new_provider(struct mt_ctx *ctx,
+                            const char *name,
+                            int restarts);
 
 static int mark_service_as_started(struct mt_svc *svc);
 
@@ -396,7 +410,7 @@ static int mark_service_as_started(struct mt_svc *svc)
         DEBUG(4, ("Now starting services!\n"));
         /* then start all services */
         for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i]);
+            add_new_service(ctx, ctx->services[i], 0);
         }
     }
 
@@ -423,7 +437,7 @@ static void services_startup_timeout(struct tevent_context *ev,
         DEBUG(4, ("Now starting services!\n"));
         /* then start all services */
         for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i]);
+            add_new_service(ctx, ctx->services[i], 0);
         }
     }
 }
@@ -479,98 +493,37 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     return ret;
 }
 
-static void svc_try_restart(struct mt_svc *svc, time_t now)
-{
-    int ret;
-
-    DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
-    if (svc->last_restart != 0) {
-        if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
-            /* it was long ago reset restart threshold */
-            svc->restarts = 0;
-        }
-    }
-
-    /* restart the process */
-    if (svc->restarts > 3) { /* TODO: get val from config */
-        DEBUG(0, ("Process [%s], definitely stopped!\n", svc->name));
-        talloc_free(svc);
-        return;
-    }
-
-    /* Shut down the current ping timer so it will restart
-     * cleanly in start_service()
-     */
-    talloc_free(svc->ping_ev);
-
-    ret = start_service(svc);
-    if (ret != EOK) {
-        DEBUG(0,("Failed to restart service '%s'\n", svc->name));
-        talloc_free(svc);
-        return;
-    }
-
-    svc->restarts++;
-    svc->last_restart = now;
-    return;
-}
-
 static void tasks_check_handler(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval t, void *ptr)
 {
     struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
-    time_t now = time(NULL);
-    bool process_alive = true;
     int ret;
 
-    ret = service_check_alive(svc);
+    ret = service_send_ping(svc);
     switch (ret) {
     case EOK:
         /* all fine */
         break;
 
-    case ECHILD:
-        DEBUG(1,("Process (%s) is stopped!\n", svc->name));
-        process_alive = false;
+    case ENXIO:
+        DEBUG(1,("Child (%s) not responding! (yet)\n", svc->name));
         break;
 
     default:
-        /* TODO: should we tear down it ? */
-        DEBUG(1,("Checking for service %s(%d) failed!!\n",
-                 svc->name, svc->pid));
+        /* TODO: should we tear it down ? */
+        DEBUG(1,("Sending a message to service (%s) failed!!\n", svc->name));
         break;
     }
 
-    if (process_alive) {
-        ret = service_send_ping(svc);
-        switch (ret) {
-        case EOK:
-            /* all fine */
-            break;
+    if (svc->failed_pongs >= 3) {
+        /* too long since we last heard of this process */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Killing service [%s], not responding to pings!\n",
+               svc->name));
 
-        case ENXIO:
-            DEBUG(1,("Child (%s) not responding! (yet)\n", svc->name));
-            break;
-
-        default:
-            /* TODO: should we tear it down ? */
-            DEBUG(1,("Sending a message to service (%s) failed!!\n", svc->name));
-            break;
-        }
-
-        if (svc->failed_pongs >= 3) {
-            /* too long since we last heard of this process */
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Killing service [%s], not responding to pings!\n",
-                   svc->name));
-            monitor_kill_service(svc);
-            process_alive = false;
-        }
-    }
-
-    if (!process_alive) {
-        svc_try_restart(svc, now);
+        /* Kill the service. The SIGCHLD handler will restart it */
+        monitor_kill_service(svc);
         return;
     }
 
@@ -595,75 +548,52 @@ static void set_tasks_checker(struct mt_svc *svc)
     svc->ping_ev = te;
 }
 
-static void global_checks_handler(struct tevent_context *ev,
-                                  struct tevent_timer *te,
-                                  struct timeval t, void *ptr)
-{
-    struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
-    struct mt_svc *svc;
-    int status;
-    pid_t pid;
-
-    if (!ctx->check_children) {
-        goto done;
-    }
-
-    errno = 0;
-    pid = waitpid(0, &status, WNOHANG);
-    if (pid == 0) {
-        goto done;
-    }
-
-    if (pid == -1) {
-        DEBUG(0, ("waitpid returned -1 (errno:%d[%s])\n",
-                  errno, strerror(errno)));
-        goto done;
-    }
-
-    /* let's see if it is a known service, and try to restart it */
-    for (svc = ctx->svc_list; svc; svc = svc->next) {
-        if (svc->pid == pid) {
-            time_t now = time(NULL);
-            DEBUG(1, ("Service [%s] did exit\n", svc->name));
-            svc_try_restart(svc, now);
-            goto done;
-        }
-    }
-    if (svc == NULL) {
-        DEBUG(0, ("Unknown child (%d) did exit\n", pid));
-    }
-
-done:
-    set_global_checker(ctx);
-}
-
-static void set_global_checker(struct mt_ctx *ctx)
-{
-    struct tevent_timer *te = NULL;
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    tv.tv_sec += 1; /* once a second */
-    tv.tv_usec = 0;
-    te = tevent_add_timer(ctx->ev, ctx, tv, global_checks_handler, ctx);
-    if (te == NULL) {
-        DEBUG(0, ("failed to add global checker event! PANIC TIME!\n"));
-        /* FIXME: is this right ? shoulkd we try to clean up first ?*/
-        exit(-1);
-    }
-}
-
+static void mt_svc_sigkill(struct tevent_context *ev,
+                           struct tevent_timer *te,
+                           struct timeval t, void *ptr);
 static int monitor_kill_service (struct mt_svc *svc)
 {
     int ret;
+    struct timeval tv;
+
     ret = kill(svc->pid, SIGTERM);
     if (ret != EOK) {
-        DEBUG(0,("Sending signal to child (%s:%d) failed! "
-                 "Ignore and pretend child is dead.\n",
-                 svc->name, svc->pid));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Sending signal to child (%s:%d) failed! "
+               "Ignore and pretend child is dead.\n",
+               svc->name, svc->pid));
+        talloc_free(svc);
     }
 
+    /* Set up a timer to send SIGKILL if this process
+     * doesn't exit within sixty seconds
+     */
+    tv = tevent_timeval_current_ofs(60, 0);
+    svc->sigkill_ev = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
+                                       mt_svc_sigkill, svc);
+
     return ret;
+}
+
+static void mt_svc_sigkill(struct tevent_context *ev,
+                           struct tevent_timer *te,
+                           struct timeval t, void *ptr)
+{
+    int ret;
+    struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
+
+    DEBUG(SSSDBG_FATAL_FAILURE,
+          ("[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
+           svc->name, svc->pid));
+
+    ret = kill(svc->pid, SIGKILL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Sending signal to child (%s:%d) failed! "
+              "Ignore and pretend child is dead.\n",
+              svc->name, svc->pid));
+        talloc_free(svc);
+    }
 }
 
 static void reload_reply(DBusPendingCall *pending, void *data)
@@ -910,6 +840,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     int ret;
     char *path;
     struct mt_svc *svc;
+    time_t now = time(NULL);
 
     *svc_cfg = NULL;
 
@@ -918,6 +849,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         return ENOMEM;
     }
     svc->mt_ctx = ctx;
+    svc->type = MT_SVC_SERVICE;
 
     talloc_set_destructor((TALLOC_CTX *)svc, svc_destructor);
 
@@ -1013,13 +945,17 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         svc->ping_time = MONITOR_DEF_PING_TIME;
     }
 
+    svc->last_restart = now;
+
     *svc_cfg = svc;
     talloc_free(path);
 
     return EOK;
 }
 
-static int add_new_service(struct mt_ctx *ctx, const char *name)
+static int add_new_service(struct mt_ctx *ctx,
+                           const char *name,
+                           int restarts)
 {
     int ret;
     struct mt_svc *svc;
@@ -1028,6 +964,7 @@ static int add_new_service(struct mt_ctx *ctx, const char *name)
     if (ret != EOK) {
         return ret;
     }
+    svc->restarts = restarts;
 
     ret = start_service(svc);
     if (ret != EOK) {
@@ -1044,6 +981,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     int ret;
     char *path;
     struct mt_svc *svc;
+    time_t now = time(NULL);
 
     *svc_cfg = NULL;
 
@@ -1052,6 +990,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         return ENOMEM;
     }
     svc->mt_ctx = ctx;
+    svc->type = MT_SVC_PROVIDER;
 
     talloc_set_destructor((TALLOC_CTX *)svc, svc_destructor);
 
@@ -1165,11 +1104,15 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         }
     }
 
+    svc->last_restart = now;
+
     *svc_cfg = svc;
     return EOK;
 }
 
-static int add_new_provider(struct mt_ctx *ctx, const char *name)
+static int add_new_provider(struct mt_ctx *ctx,
+                            const char *name,
+                            int restarts)
 {
     int ret;
     struct mt_svc *svc;
@@ -1180,6 +1123,7 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name)
                   name));
         return ret;
     }
+    svc->restarts = restarts;
 
     if (strcasecmp(svc->provider, "local") == 0) {
         /* The LOCAL provider requires no back-end currently
@@ -2020,6 +1964,10 @@ int monitor_process_init(struct mt_ctx *ctx,
         return EIO;
     }
 
+    /* Set up the SIGCHLD handler */
+    ret = sss_sigchld_init(ctx, ctx->ev, &ctx->sigchld_ctx);
+    if (ret != EOK) return ret;
+
 #if 0
     This feature is incomplete and can leave the SSSD in a bad state if the
     config file is changed while the SSSD is running.
@@ -2071,7 +2019,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     /* start providers */
     num_providers = 0;
     for (dom = ctx->domains; dom; dom = dom->next) {
-        ret = add_new_provider(ctx, dom->name);
+        ret = add_new_provider(ctx, dom->name, 0);
         if (ret != EOK && ret != ENOENT) {
             return ret;
         }
@@ -2097,12 +2045,9 @@ int monitor_process_init(struct mt_ctx *ctx,
         /* No providers start services immediately
          * Normally this means only LOCAL is configured */
         for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i]);
+            add_new_service(ctx, ctx->services[i], 0);
         }
     }
-
-    /* now start checking for global events */
-    set_global_checker(ctx);
 
     return EOK;
 }
@@ -2283,39 +2228,6 @@ done:
     dbus_message_unref(reply);
 }
 
-
-
-/* service_check_alive
- * This function checks if the service child is still alive
- */
-static int service_check_alive(struct mt_svc *svc)
-{
-    int status;
-    pid_t pid;
-
-    DEBUG(4,("Checking service %s(%d) is still alive\n", svc->name, svc->pid));
-
-    pid = waitpid(svc->pid, &status, WNOHANG);
-    if (pid == 0) {
-        return EOK;
-    }
-
-    if (pid != svc->pid) {
-        DEBUG(1, ("bad return (%d) from waitpid() waiting for %d\n",
-                  pid, svc->pid));
-        /* TODO: what do we do now ? */
-        return EINVAL;
-    }
-
-    if (WIFEXITED(status)) { /* children exited on it's own */
-        /* TODO: check configuration to see if it was removed
-         * from the list of process to run */
-        DEBUG(0,("Process [%s] exited\n", svc->name));
-    }
-
-    return ECHILD;
-}
-
 static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr);
@@ -2349,10 +2261,12 @@ static int start_service(struct mt_svc *svc)
     return EOK;
 }
 
+static void mt_svc_exit_handler(int pid, int wait_status, void *pvt);
 static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr)
 {
+    errno_t ret;
     struct mt_svc *mt_svc;
     char **args;
 
@@ -2372,6 +2286,22 @@ static void service_startup_handler(struct tevent_context *ev,
         /* Parent */
         mt_svc->mt_ctx->check_children = true;
         mt_svc->failed_pongs = 0;
+
+        /* Handle process exit */
+        ret = sss_child_register(mt_svc,
+                                 mt_svc->mt_ctx->sigchld_ctx,
+                                 mt_svc->pid,
+                                 mt_svc_exit_handler,
+                                 mt_svc,
+                                 &mt_svc->child_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Could not register sigchld handler.\n"));
+            /* Should we exit here? For now, we'll hope this
+             * child never dies, because we can't restart it.
+             */
+        }
+
         DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
         set_tasks_checker(mt_svc);
 
@@ -2391,6 +2321,58 @@ static void service_startup_handler(struct tevent_context *ev,
      * because a bug in D-BUS will cause the server to
      * close its socket at exit() */
     _exit(1);
+}
+
+static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
+{
+    struct mt_svc *svc = talloc_get_type(pvt, struct mt_svc);
+    time_t now = time(NULL);
+
+    if WIFEXITED(wait_status) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Child [%s] exited with code [%d]\n",
+               svc->name, WEXITSTATUS(wait_status)));
+    } else if WIFSIGNALED(wait_status) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Child [%s] terminated with signal [%d]\n",
+               svc->name, WTERMSIG(wait_status)));
+    } else {
+        DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
+        /* Forcibly kill this child, just in case */
+        kill(svc->pid, SIGKILL);
+
+        /* Return and let us get caught by another
+         * call to the SIGCHLD handler
+         */
+        return;
+    }
+
+    if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
+        svc->restarts = 0;
+    }
+
+    /* Restart the service */
+    if (svc->restarts > 2) { /* TODO: get val from config */
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Process [%s], definitely stopped!\n", svc->name));
+        talloc_free(svc);
+        return;
+    }
+
+    if (svc->type == MT_SVC_SERVICE) {
+        add_new_service(svc->mt_ctx, svc->name, svc->restarts + 1);
+    } else if (svc->type == MT_SVC_PROVIDER) {
+        add_new_provider(svc->mt_ctx, svc->name, svc->restarts + 1);
+    } else {
+        /* Invalid type? */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("BUG: Invalid child process type [%d]\n", svc->type));
+    }
+
+    /* Free the old service (which will also remove it
+     * from the child list)
+     */
+    talloc_free(svc);
 }
 
 int main(int argc, const char *argv[])
