@@ -862,6 +862,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE));
         goto done;
     }
+    if (domain->case_sensitive == false &&
+        strcasecmp(domain->provider, "local") == 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+             ("Local ID provider does not support the case insensitive flag\n"));
+        ret = EINVAL;
+        goto done;
+    }
 
     *_domain = domain;
     ret = EOK;
