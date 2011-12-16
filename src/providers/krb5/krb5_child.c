@@ -230,6 +230,7 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
     char *tmp_ccname;
     krb5_creds *l_cred;
     TALLOC_CTX *tmp_ctx = NULL;
+    mode_t old_umask;
 
     if (strncmp(ccname, "FILE:", 5) == 0) {
         cc_file_name = ccname + 5;
@@ -258,7 +259,9 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
     }
     tmp_ccname = talloc_asprintf_append(tmp_ccname, "/.krb5cc_dummy_XXXXXX");
 
+    old_umask = umask(077);
     fd = mkstemp(tmp_ccname);
+    umask(old_umask);
     if (fd == -1) {
         DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
         kerr = errno;

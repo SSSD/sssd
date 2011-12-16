@@ -191,10 +191,14 @@ int test_helper_debug_check_message(int level, int msgmode)
     int fd;
     int ret;
     int _errno = 0;
+    mode_t old_umask;
     FILE *file = NULL;
 
     strncpy(filename, "sssd_debug_tests.XXXXXX", 24);
+
+    old_umask = umask(077);
     fd = mkstemp(filename);
+    umask(old_umask);
     if (fd == -1) {
         _errno = errno;
         talloc_free(ctx);
@@ -331,10 +335,14 @@ int test_helper_debug_is_empty_message(int level, int msgmode)
     int filesize;
     int ret;
     int _errno = 0;
+    mode_t old_umask;
     FILE *file;
 
     strncpy(filename, "sssd_debug_tests.XXXXXX", 24);
+
+    old_umask = umask(077);
     fd = mkstemp(filename);
+    umask(old_umask);
     if (fd == -1) {
         return DEBUG_TEST_ERROR;
     }

@@ -43,10 +43,14 @@ int fd;
 void setup_check_and_open(void)
 {
     int ret;
+    mode_t old_umask;
 
     filename = strdup(FILENAME_TEMPLATE);
     fail_unless(filename != NULL, "strdup failed");
+
+    old_umask = umask(077);
     ret = mkstemp(filename);
+    umask(old_umask);
     fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
     close(ret);
 

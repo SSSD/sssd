@@ -290,6 +290,7 @@ errno_t write_krb5info_file(const char *realm, const char *server,
     const char *name_tmpl = NULL;
     int server_len;
     ssize_t written;
+    mode_t old_umask;
 
     if (realm == NULL || *realm == '\0' || server == NULL || *server == '\0' ||
         service == NULL || service == '\0') {
@@ -328,7 +329,9 @@ errno_t write_krb5info_file(const char *realm, const char *server,
         goto done;
     }
 
+    old_umask = umask(077);
     fd = mkstemp(tmp_name);
+    umask(old_umask);
     if (fd == -1) {
         ret = errno;
         DEBUG(1, ("mkstemp failed [%d][%s].\n", ret, strerror(ret)));
