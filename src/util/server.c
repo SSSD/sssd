@@ -117,9 +117,6 @@ int pidfile(const char *path, const char *name)
     fd = open(file, O_RDONLY, 0644);
     err = errno;
     if (fd != -1) {
-
-        pid_str[pidlen] = '\0';
-
         len = 0;
         while ((ret = read(fd, pid_str + len, pidlen - len)) != 0) {
             if (ret == -1) {
@@ -140,6 +137,9 @@ int pidfile(const char *path, const char *name)
                 break;
             }
         }
+
+        /* Ensure NULL-termination */
+        pid_str[len] = '\0';
 
         if (ret == 0) {
             /* let's check the pid */
