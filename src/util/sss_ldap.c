@@ -480,9 +480,9 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
     int basedn_len, dn_len;
     int len_diff;
     int i, j;
-    bool base_confirmed;
-    bool comma_found;
-    bool backslash_found;
+    bool base_confirmed = false;
+    bool comma_found = false;
+    bool backslash_found = false;
     char *filter = NULL;
     bool ret = false;
 
