@@ -84,6 +84,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn);
 static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn);
 static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn);
 static int be_host_handler(DBusMessage *message, struct sbus_connection *conn);
+static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method be_methods[] = {
     { DP_METHOD_REGISTER, client_registration },
@@ -92,6 +93,7 @@ struct sbus_method be_methods[] = {
     { DP_METHOD_SUDOHANDLER, be_sudo_handler },
     { DP_METHOD_AUTOFSHANDLER, be_autofs_handler },
     { DP_METHOD_HOSTHANDLER, be_host_handler },
+    { DP_METHOD_GETDOMAINS, be_get_subdomains },
     { NULL, NULL }
 };
 
@@ -113,6 +115,7 @@ static struct bet_data bet_data[] = {
     {BET_AUTOFS, CONFDB_DOMAIN_AUTOFS_PROVIDER, "sssm_%s_autofs_init"},
     {BET_SESSION, CONFDB_DOMAIN_SESSION_PROVIDER, "sssm_%s_session_init"},
     {BET_HOSTID, CONFDB_DOMAIN_HOSTID_PROVIDER, "sssm_%s_hostid_init"},
+    {BET_SUBDOMAINS, CONFDB_DOMAIN_SUBDOMAINS_PROVIDER, "sssm_%s_subdomains_init"},
     {BET_MAX, NULL, NULL}
 };
 
@@ -305,6 +308,153 @@ static char *dp_pam_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnu
     return NULL;
 }
 
+static void get_subdomains_callback(struct be_req *req,
+                                    int dp_err_type,
+                                    int errnum,
+                                    const char *errstr)
+{
+    DBusMessage *reply;
+    DBusConnection *dbus_conn;
+    dbus_bool_t dbret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Backend returned: (%d, %d, %s) [%s]\n",
+              dp_err_type, errnum, errstr?errstr:"<NULL>",
+              dp_pam_err_to_string(req, dp_err_type, errnum)));
+
+    reply = (DBusMessage *)req->pvt;
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT32, &errnum,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+        dbus_message_unref(reply);
+        return;
+    }
+
+    dbus_conn = sbus_get_connection(req->becli->conn);
+    if (dbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+        return;
+    }
+    dbus_connection_send(dbus_conn, reply, NULL);
+    dbus_message_unref(reply);
+
+    talloc_free(req);
+}
+
+static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
+{
+    struct be_get_subdomains_req *req;
+    struct be_req *be_req = NULL;
+    struct be_client *becli;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    dbus_bool_t dbret;
+    void *user_data;
+    bool force;
+    char *domain_hint;
+    dbus_uint32_t status;
+    int ret;
+
+    user_data = sbus_conn_get_private_data(conn);
+    if (!user_data) return EINVAL;
+    becli = talloc_get_type(user_data, struct be_client);
+    if (!becli) return EINVAL;
+
+    dbus_error_init(&dbus_error);
+
+    ret = dbus_message_get_args(message, &dbus_error,
+                                DBUS_TYPE_BOOLEAN, &force,
+                                DBUS_TYPE_STRING, &domain_hint,
+                                DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,("Failed, to parse message!\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
+              domain_hint == NULL ? "no hint": domain_hint ));
+
+    reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
+
+    /* If we are offline return immediately
+     */
+    if (becli->bectx->offstat.offline) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Cannot proceed, provider is offline.\n"));
+        status = EAGAIN;
+        goto done;
+    }
+
+    /* process request */
+    be_req = talloc_zero(becli, struct be_req);
+    if (!be_req) {
+        status = ENOMEM;
+        goto done;
+    }
+    be_req->becli = becli;
+    be_req->be_ctx = becli->bectx;
+    be_req->fn = get_subdomains_callback;
+    be_req->pvt = reply;
+
+    req = talloc(be_req, struct be_get_subdomains_req);
+    if (!req) {
+        status = ENOMEM;
+        goto done;
+    }
+    req->force = force;
+    req->domain_hint = talloc_strdup(req, domain_hint);
+    req->domain_list = NULL;
+    if (!req->domain_hint) {
+        status = ENOMEM;
+        goto done;
+    }
+
+    be_req->req_data = req;
+
+    /* return an error if corresponding backend target is not configured */
+    if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
+        ret = ENODEV;
+        goto done;
+    }
+
+
+    ret = be_file_request(becli->bectx,
+                          be_req,
+                          becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops->handler);
+    if (ret != EOK) {
+        status = ret;
+        goto done;
+    }
+
+    return EOK;
+
+done:
+    if (be_req) {
+        talloc_free(be_req);
+    }
+
+    if (reply) {
+        dbret = dbus_message_append_args(reply,
+                                         DBUS_TYPE_UINT32, &status,
+                                         DBUS_TYPE_INVALID);
+        if (!dbret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            dbus_message_unref(reply);
+            return EIO;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Request processed. Returned [%d]\n", status));
+
+        /* send reply back */
+        sbus_conn_send_reply(conn, reply);
+        dbus_message_unref(reply);
+    }
+
+    return EOK;
+}
 
 static void acctinfo_callback(struct be_req *req,
                               int dp_err_type,
@@ -1998,6 +2148,16 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_ALL,
               ("HOST backend target successfully loaded from provider [%s].\n",
                ctx->bet_info[BET_HOSTID].mod_name));
+    }
+
+    ret = load_backend_module(ctx, BET_SUBDOMAINS,
+                              &ctx->bet_info[BET_SUBDOMAINS], NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Subdomains are not supported for [%s] !!\n", be_domain));
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, ("Get-Subdomains backend target successfully loaded "
+                  "from provider [%s].\n",
+                  ctx->bet_info[BET_SUBDOMAINS].mod_name));
     }
 
     /* Handle SIGUSR1 to force offline behavior */

@@ -1093,6 +1093,30 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>subdomains_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The provider which should handle fetching of subdomains.
+                            This value should be always the same as id_provider.
+                            Supported subdomain providers are:
+                        </para>
+                        <para>
+                            <quote>ipa</quote> to load a list of subdomains
+                            from an IPA server. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring IPA.
+                        </para>
+                        <para>
+                            <quote>none</quote> disallows fetching subdomains explicitly.
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
 
                 <varlistentry condition="with_autofs">
                     <term>autofs_provider (string)</term>

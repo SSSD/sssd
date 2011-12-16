@@ -53,6 +53,7 @@ enum bet_type {
     BET_AUTOFS,
     BET_SESSION,
     BET_HOSTID,
+    BET_SUBDOMAINS,
     BET_MAX
 };
 
@@ -160,6 +161,12 @@ struct be_sudo_req {
 
 struct be_autofs_req {
     char *mapname;
+};
+
+struct be_get_subdomains_req {
+    bool force;
+    char *domain_hint;
+    struct subdomain_info **domain_list;
 };
 
 bool be_is_offline(struct be_ctx *ctx);
