@@ -2555,7 +2555,7 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
      */
     if (!sss_ldap_dn_in_search_bases(state, state->member_dn,
                                      state->opts->group_search_bases,
-                                     &filter)) {
+                                     &search_bases_filter)) {
         if (state->derefctx) {
             if (state->derefctx->expired_groups_index <
                 state->derefctx->expired_groups_num) {
