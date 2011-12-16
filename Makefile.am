@@ -76,6 +76,9 @@ sssdlibexec_PROGRAMS = \
     krb5_child \
     ldap_child \
     proxy_child
+if BUILD_SUDO
+sssdlibexec_PROGRAMS += sssd_sudo
+endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
@@ -310,6 +313,7 @@ dist_noinst_HEADERS = \
     src/responder/nss/nsssrv_private.h \
     src/responder/nss/nsssrv_netgroup.h \
     src/responder/common/negcache.h \
+    src/responder/sudo/sudosrv_private.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_private.h \
@@ -442,6 +446,19 @@ sssd_pam_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_util.la
+
+if BUILD_SUDO
+sssd_sudo_SOURCES = \
+    src/responder/sudo/sudosrv.c \
+    src/responder/sudo/sudosrv_cmd.c \
+    src/responder/sudo/sudosrv_get_sudorules.c \
+    src/responder/sudo/sudosrv_query.c \
+    src/responder/sudo/sudosrv_dp.c \
+    $(SSSD_RESPONDER_OBJ)
+sssd_sudo_LDADD = \
+    $(SSSD_LIBS) \
+    libsss_util.la
+endif
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \

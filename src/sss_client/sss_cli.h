@@ -144,6 +144,9 @@ enum sss_cli_command {
     SSS_NSS_ENDSPENT       = 0x00B5,
 #endif
 
+/* SUDO */
+    SSS_SUDO_GET_SUDORULES = 0x00C1,
+
 /* PAM related calls */
     SSS_PAM_AUTHENTICATE     = 0x00F1, /**< see pam_sm_authenticate(3) for
                                         * details.

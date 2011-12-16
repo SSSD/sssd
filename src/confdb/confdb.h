@@ -91,6 +91,9 @@
 #define CONFDB_PAM_ID_TIMEOUT "pam_id_timeout"
 #define CONFDB_PAM_PWD_EXPIRATION_WARNING "pam_pwd_expiration_warning"
 
+/* SUDO */
+#define CONFDB_SUDO_CONF_ENTRY "config/sudo"
+
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"
 
