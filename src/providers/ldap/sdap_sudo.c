@@ -111,7 +111,6 @@ void sdap_sudo_handler(struct be_req *be_req)
 
     sudo_ctx->be_ctx = id_ctx->be;
     sudo_ctx->be_req = be_req;
-    sudo_ctx->req = sudo_req;
     sudo_ctx->sdap_ctx = id_ctx;
     sudo_ctx->sdap_op = NULL;
     sudo_ctx->sdap_conn_cache = id_ctx->conn_cache;

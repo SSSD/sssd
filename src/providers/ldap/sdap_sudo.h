@@ -24,7 +24,6 @@
 struct sdap_sudo_ctx {
     struct be_ctx *be_ctx;
     struct be_req *be_req;
-    struct be_sudo_req *req;
     struct sdap_id_ctx *sdap_ctx;
     struct sdap_id_op *sdap_op;
     struct sdap_id_conn_cache *sdap_conn_cache;
