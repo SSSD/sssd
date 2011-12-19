@@ -106,10 +106,6 @@ struct setent_step_ctx {
     return ret; \
 } while(0)
 
-/* Find a particular domain object by name */
-struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
-                                    const char *domain);
-
 /* Finish the request */
 int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret);
 
