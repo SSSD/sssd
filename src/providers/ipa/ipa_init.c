@@ -41,7 +41,7 @@ struct ipa_options *ipa_options = NULL;
 struct bet_ops ipa_id_ops = {
     .handler = ipa_account_info_handler,
     .finalize = NULL,
-    .check_online = sdap_check_online
+    .check_online = ipa_check_online
 };
 
 struct bet_ops ipa_auth_ops = {

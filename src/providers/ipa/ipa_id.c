@@ -321,3 +321,13 @@ static void ipa_account_info_netgroups_done(struct tevent_req *req)
 
     ipa_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");
 }
+
+void ipa_check_online(struct be_req *be_req)
+{
+    struct ipa_id_ctx *ipa_ctx;
+
+    ipa_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                              struct ipa_id_ctx);
+
+    return sdap_do_online_check(be_req, ipa_ctx->sdap_id_ctx);
+}

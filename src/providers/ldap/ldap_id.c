@@ -666,36 +666,57 @@ static void sdap_check_online_done(struct tevent_req *req);
 void sdap_check_online(struct be_req *be_req)
 {
     struct sdap_id_ctx *ctx;
-    struct tevent_req *req;
 
     ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
                           struct sdap_id_ctx);
+
+    return sdap_do_online_check(be_req, ctx);
+}
+
+struct sdap_online_check_ctx {
+    struct be_req *be_req;
+    struct sdap_id_ctx *id_ctx;
+};
+
+void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx)
+{
+    struct tevent_req *req;
+    struct sdap_online_check_ctx *check_ctx;
+    errno_t ret;
+
+    check_ctx = talloc_zero(be_req, struct sdap_online_check_ctx);
+    if (!check_ctx) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed\n"));
+        goto fail;
+    }
+    check_ctx->id_ctx = ctx;
+    check_ctx->be_req = be_req;
 
     req = sdap_cli_connect_send(be_req, be_req->be_ctx->ev, ctx->opts,
                                 be_req->be_ctx, ctx->service, false,
                                 CON_TLS_DFL, false);
     if (req == NULL) {
         DEBUG(1, ("sdap_cli_connect_send failed.\n"));
-        goto done;
+        ret = EIO;
+        goto fail;
     }
-    tevent_req_set_callback(req, sdap_check_online_done, be_req);
+    tevent_req_set_callback(req, sdap_check_online_done, check_ctx);
 
     return;
-done:
-    sdap_handler_done(be_req, DP_ERR_FATAL, 0, NULL);
+fail:
+    sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
 }
 
 static void sdap_check_online_done(struct tevent_req *req)
 {
-    struct be_req *be_req = tevent_req_callback_data(req, struct be_req);
+    struct sdap_online_check_ctx *check_ctx = tevent_req_callback_data(req,
+                                        struct sdap_online_check_ctx);
     int ret;
     int dp_err = DP_ERR_FATAL;
     bool can_retry;
-    struct sdap_id_ctx *ctx;
     struct sdap_server_opts *srv_opts;
-
-    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
-                          struct sdap_id_ctx);
+    struct be_req *be_req;
 
     ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, &srv_opts);
     talloc_zfree(req);
@@ -707,20 +728,22 @@ static void sdap_check_online_done(struct tevent_req *req)
     } else {
         dp_err = DP_ERR_OK;
 
-        if (!ctx->srv_opts) {
+        if (!check_ctx->id_ctx->srv_opts) {
             srv_opts->max_user_value = 0;
             srv_opts->max_group_value = 0;
-        } else if (strcmp(srv_opts->server_id, ctx->srv_opts->server_id) == 0
+        } else if (strcmp(srv_opts->server_id, check_ctx->id_ctx->srv_opts->server_id) == 0
                    && srv_opts->supports_usn
-                   && ctx->srv_opts->last_usn > srv_opts->last_usn) {
-            ctx->srv_opts->max_user_value = 0;
-            ctx->srv_opts->max_group_value = 0;
-            ctx->srv_opts->last_usn = srv_opts->last_usn;
+                   && check_ctx->id_ctx->srv_opts->last_usn > srv_opts->last_usn) {
+            check_ctx->id_ctx->srv_opts->max_user_value = 0;
+            check_ctx->id_ctx->srv_opts->max_group_value = 0;
+            check_ctx->id_ctx->srv_opts->last_usn = srv_opts->last_usn;
         }
 
-        sdap_steal_server_opts(ctx, &srv_opts);
+        sdap_steal_server_opts(check_ctx->id_ctx, &srv_opts);
     }
 
+    be_req = check_ctx->be_req;
+    talloc_free(check_ctx);
     sdap_handler_done(be_req, dp_err, 0, NULL);
 }
 

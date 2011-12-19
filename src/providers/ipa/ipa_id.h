@@ -45,4 +45,7 @@ int ipa_get_netgroups_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            size_t *reply_count,
                            struct sysdb_attrs ***reply);
+
+void ipa_check_online(struct be_req *be_req);
+
 #endif
