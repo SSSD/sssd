@@ -88,6 +88,7 @@ void sdap_pam_access_handler(struct be_req *breq);
 #ifdef BUILD_SUDO
 /* sudo */
 void sdap_sudo_handler(struct be_req *breq);
+int sdap_sudo_setup_tasks(struct sdap_id_ctx *ctx);
 #endif
 
 

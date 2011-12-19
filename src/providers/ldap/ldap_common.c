@@ -26,6 +26,7 @@
 #include "providers/fail_over.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/krb5/krb5_common.h"
+#include "providers/ldap/sdap_sudo_timer.h"
 #include "db/sysdb_sudo.h"
 
 #include "util/sss_krb5.h"
@@ -51,6 +52,8 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sudo_refresh_enabled", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_sudo_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
     { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -559,6 +562,63 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not get SUDO attribute map\n"));
         return ret;
+    }
+
+    return EOK;
+}
+
+int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx)
+{
+    struct sdap_sudo_refresh_ctx *refresh_ctx = NULL;
+    struct timeval tv;
+    int ret = EOK;
+    bool refreshed = false;
+    bool refresh_enabled = dp_opt_get_bool(id_ctx->opts->basic,
+                                           SDAP_SUDO_REFRESH_ENABLED);
+
+    /* set up periodical update of sudo rules */
+    if (refresh_enabled) {
+        refresh_ctx = sdap_sudo_refresh_ctx_init(id_ctx, id_ctx->be, id_ctx,
+                                                 id_ctx->opts,
+                                                 tevent_timeval_zero());
+        if (refresh_ctx == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("sdap_sudo_refresh_ctx_init() failed!\n"));
+            return ENOMEM;
+        }
+
+        /* If this is the first startup, we need to kick off
+         * an refresh immediately, to close a window where
+         * clients requesting sudo information won't get an
+         * immediate reply with no entries
+         */
+        ret = sysdb_sudo_get_refreshed(id_ctx->be->sysdb, &refreshed);
+        if (ret != EOK) {
+            return ret;
+        }
+        if (refreshed) {
+            /* At least one update has previously run,
+             * so clients will get cached data. We will delay
+             * starting to enumerate by 10s so we don't slow
+             * down the startup process if this is happening
+             * during system boot.
+             */
+            tv = tevent_timeval_current_ofs(10, 0);
+            DEBUG(SSSDBG_FUNC_DATA, ("Delaying first refresh of SUDO rules "
+                  "for 10 seconds\n"));
+        } else {
+            /* This is our first startup. Schedule the
+             * update to start immediately once we
+             * enter the mainloop.
+             */
+            tv = tevent_timeval_current();
+        }
+
+        ret = sdap_sudo_refresh_set_timer(refresh_ctx, tv);
+        if (ret != EOK) {
+            talloc_free(refresh_ctx);
+            return ret;
+        }
     }
 
     return EOK;

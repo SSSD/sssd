@@ -419,6 +419,11 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
         return ret;
     }
 
+    ret = sdap_sudo_setup_tasks(id_ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return ret;
 #else
     return EOK;

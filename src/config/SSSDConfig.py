@@ -240,6 +240,8 @@ option_strings = {
 
     # [provider/ldap/sudo]
     'ldap_sudo_search_base' : _('Base DN for sudo rules lookups'),
+    'ldap_sudo_refresh_enabled' : _('Enable periodical update of all sudo rules'),
+    'ldap_sudo_refresh_timeout' : _('Length of time between rules updates'),
     'ldap_sudorule_object_class' : _('Object class for sudo rules'),
     'ldap_sudorule_name' : _('Sudo rule name'),
     'ldap_sudorule_command' : _('Sudo rule command attribute'),
