@@ -64,6 +64,8 @@
 #define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
 #define DNS_HEADER_ANCOUNT(h)           DNS__16BIT((h) + 6)
 
+#define RESOLV_TIMEOUTMS  5000
+
 enum host_database default_host_dbs[] = { DB_FILES, DB_DNS, DB_SENTINEL };
 
 struct fd_watch {
@@ -94,6 +96,17 @@ struct resolv_ctx {
      * if our pending requests didn't timeout. */
     int pending_requests;
     struct tevent_timer *timeout_watcher;
+};
+
+struct request_watch {
+    struct tevent_req *req;
+    struct resolv_request *rr;
+};
+
+struct resolv_request {
+    struct resolv_ctx *ctx;
+    struct request_watch *rwatch;
+    struct tevent_timer *request_timeout;
 };
 
 struct resolv_ctx *context_list;
@@ -197,6 +210,10 @@ add_timeout_timer(struct tevent_context *ev, struct resolv_ctx *ctx)
     struct timeval tv = { 0, 0 };
     struct timeval *tvp;
 
+    if (ctx->timeout_watcher) {
+        return;
+    }
+
     tvp = ares_timeout(ctx->channel, NULL, &tv);
 
     if (tvp == NULL) {
@@ -241,20 +258,98 @@ check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
 }
 
 static void
-schedule_timeout_watcher(struct tevent_context *ev, struct resolv_ctx *ctx)
+resolv_request_timeout(struct tevent_context *ev,
+                       struct tevent_timer *te,
+                       struct timeval tv, void *pvt)
 {
-    ctx->pending_requests++;
-    if (ctx->timeout_watcher) {
+    struct resolv_request *rreq;
+
+    DEBUG(SSSDBG_MINOR_FAILURE, ("The resolve request timed out\n"));
+
+    rreq = talloc_get_type(pvt, struct resolv_request);
+    if (rreq->rwatch == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("The request already completed\n"));
         return;
     }
 
-    DEBUG(9, ("Scheduling DNS timeout watcher\n"));
+    tevent_req_error(rreq->rwatch->req, ETIMEDOUT);
+    rreq->rwatch = NULL;
+}
+
+static int
+request_watch_destructor(struct request_watch *rwatch)
+{
+    DEBUG(SSSDBG_TRACE_FUNC, ("Deleting request watch\n"));
+    if (rwatch->rr) rwatch->rr->rwatch = NULL;
+    return 0;
+}
+
+static struct resolv_request *
+schedule_request_timeout(struct tevent_context *ev, struct resolv_ctx *ctx,
+                         struct tevent_req *req)
+{
+    struct resolv_request *rreq;
+    struct timeval tv;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Scheduling a timeout of %d seconds\n",
+                                  ctx->timeout));
+    tv = tevent_timeval_current_ofs(ctx->timeout, 0);
+
+    /* Intentionally allocating on ctx, because the request might go away
+     * before c-ares returns */
+    rreq = talloc(ctx, struct resolv_request);
+    if (!rreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    rreq->ctx = ctx;
+    rreq->request_timeout = tevent_add_timer(ev, rreq, tv,
+                                             resolv_request_timeout,
+                                             rreq);
+    if (rreq->request_timeout == NULL) {
+        talloc_free(rreq);
+        return NULL;
+    }
+
+    /* The watch will go away when the request finishes */
+    rreq->rwatch = talloc(req, struct request_watch);
+    if (!rreq->rwatch) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    rreq->rwatch->req = req;
+    rreq->rwatch->rr = rreq;
+    talloc_set_destructor(rreq->rwatch, request_watch_destructor);
+
+    return rreq;
+}
+
+static struct resolv_request *
+schedule_timeout_watcher(struct tevent_context *ev, struct resolv_ctx *ctx,
+                         struct tevent_req *req)
+{
+    struct resolv_request *rreq;
+
+    rreq = schedule_request_timeout(ev, ctx, req);
+    if (!rreq) return NULL;
+
+    ctx->pending_requests++;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Scheduling DNS timeout watcher\n"));
     add_timeout_timer(ev, ctx);
+    return rreq;
 }
 
 static void
-unschedule_timeout_watcher(struct resolv_ctx *ctx)
+unschedule_timeout_watcher(struct resolv_ctx *ctx, struct resolv_request *rreq)
 {
+    /* Unlink the watch if the request is still active */
+    if (rreq->rwatch) {
+        rreq->rwatch->rr = NULL;
+    }
+    talloc_free(rreq); /* Cancels the tevent timeout as well */
+
     if (ctx->pending_requests <= 0) {
         DEBUG(1, ("Pending DNS requests mismatch\n"));
         return;
@@ -383,7 +478,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
      */
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
-    options.timeout = ctx->timeout * 1000;
+    options.timeout = RESOLV_TIMEOUTMS;
     /* Only affects ares_gethostbyname */
     options.lookups = discard_const("f");
     options.tries = 1;
@@ -784,7 +879,6 @@ resolv_gethostbyname_dns_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         return NULL;
     }
     tevent_req_set_callback(subreq, resolv_gethostbyname_dns_wakeup, req);
-    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
@@ -816,25 +910,44 @@ static void
 resolv_gethostbyname_dns_query(struct tevent_req *req,
                                struct gethostbyname_dns_state *state)
 {
+    struct resolv_request *rreq;
+
     DEBUG(4, ("Trying to resolve %s record of '%s' in DNS\n",
               state->family == AF_INET ? "A" : "AAAA", state->name));
 
+    rreq = schedule_timeout_watcher(state->ev, state->resolv_ctx, req);
+    if (!rreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     ares_search(state->resolv_ctx->channel,
-               state->name, ns_c_in,
-               (state->family == AF_INET) ? ns_t_a : ns_t_aaaa,
-               resolv_gethostbyname_dns_query_done, req);
+                state->name, ns_c_in,
+                (state->family == AF_INET) ? ns_t_a : ns_t_aaaa,
+                resolv_gethostbyname_dns_query_done, rreq);
 }
 
 static void
 resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
                                     unsigned char *abuf, int alen)
 {
-    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
-    struct gethostbyname_dns_state *state = tevent_req_data(req,
-                                        struct gethostbyname_dns_state);
     errno_t ret;
+    struct gethostbyname_dns_state *state;
+    struct resolv_request *rreq = talloc_get_type(arg, struct resolv_request);
+    struct tevent_req *req;
 
-    unschedule_timeout_watcher(state->resolv_ctx);
+
+    if (rreq->rwatch == NULL) {
+        /* The tevent request was cancelled while the ares call was still in
+         * progress so nobody cares about the result now. Quit. */
+        unschedule_timeout_watcher(rreq->ctx, rreq);
+        return;
+    }
+
+    req = rreq->rwatch->req;
+    unschedule_timeout_watcher(rreq->ctx, rreq);
+
+    state = tevent_req_data(req, struct gethostbyname_dns_state);
 
     state->status = status;
     state->timeouts = timeouts;
@@ -845,7 +958,6 @@ resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
     if (state->retrying == 0 && status == ARES_EDESTRUCTION
         && state->resolv_ctx->channel != NULL) {
         state->retrying = 1;
-        schedule_timeout_watcher(state->ev, state->resolv_ctx);
         resolv_gethostbyname_dns_query(req, state);
         return;
     }
@@ -1439,6 +1551,7 @@ rewrite_talloc_srv_reply(TALLOC_CTX *mem_ctx, struct ares_srv_reply **reply_list
  *******************************************************************/
 
 struct getsrv_state {
+    struct tevent_context *ev;
     struct resolv_ctx *resolv_ctx;
     /* the SRV query - for example _ldap._tcp.example.com */
     const char *query;
@@ -1452,6 +1565,9 @@ struct getsrv_state {
 
 static void
 ares_getsrv_wakeup(struct tevent_req *subreq);
+static void
+resolv_getsrv_query(struct tevent_req *req,
+                    struct getsrv_state *state);
 
 struct tevent_req *
 resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
@@ -1478,6 +1594,7 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->status = 0;
     state->timeouts = 0;
     state->retrying = 0;
+    state->ev = ev;
 
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
@@ -1486,7 +1603,6 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         return NULL;
     }
     tevent_req_set_callback(subreq, ares_getsrv_wakeup, req);
-    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
@@ -1494,20 +1610,29 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 static void
 resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
-    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
-    struct getsrv_state *state = tevent_req_data(req, struct getsrv_state);
+    struct resolv_request *rreq = talloc_get_type(arg, struct resolv_request);
+    struct tevent_req *req;
+    struct getsrv_state *state;
     int ret;
     struct ares_srv_reply *reply_list;
 
-    if (state->retrying == 0 && status == ARES_EDESTRUCTION
-            && state->resolv_ctx->channel != NULL) {
-        state->retrying = 1;
-        ares_query(state->resolv_ctx->channel, state->query,
-                   ns_c_in, ns_t_srv, resolv_getsrv_done, req);
+    if (rreq->rwatch == NULL) {
+        /* The tevent request was cancelled while the ares call was still in
+         * progress so nobody cares about the result now. Quit. */
+        unschedule_timeout_watcher(rreq->ctx, rreq);
         return;
     }
 
-    unschedule_timeout_watcher(state->resolv_ctx);
+    req = rreq->rwatch->req;
+    unschedule_timeout_watcher(rreq->ctx, rreq);
+    state = tevent_req_data(req, struct getsrv_state);
+
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION
+        && state->resolv_ctx->channel != NULL) {
+        state->retrying = 1;
+        resolv_getsrv_query(req, state);
+        return;
+    }
 
     state->status = status;
     state->timeouts = timeouts;
@@ -1574,8 +1699,23 @@ ares_getsrv_wakeup(struct tevent_req *subreq)
         return;
     }
 
+    return resolv_getsrv_query(req, state);
+}
+
+static void
+resolv_getsrv_query(struct tevent_req *req,
+                    struct getsrv_state *state)
+{
+    struct resolv_request *rreq;
+
+    rreq = schedule_timeout_watcher(state->ev, state->resolv_ctx, req);
+    if (!rreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     ares_query(state->resolv_ctx->channel, state->query,
-               ns_c_in, ns_t_srv, resolv_getsrv_done, req);
+               ns_c_in, ns_t_srv, resolv_getsrv_done, rreq);
 }
 
 /* TXT parsing is not used anywhere in the code yet, so we disable it
@@ -1647,6 +1787,7 @@ rewrite_talloc_txt_reply(TALLOC_CTX *mem_ctx, struct ares_txt_reply **reply_list
  *******************************************************************/
 
 struct gettxt_state {
+    struct tevent_context *ev;
     struct resolv_ctx *resolv_ctx;
     /* the TXT query */
     const char *query;
@@ -1660,6 +1801,9 @@ struct gettxt_state {
 
 static void
 ares_gettxt_wakeup(struct tevent_req *subreq);
+static void
+resolv_gettxt_query(struct tevent_req *req,
+                    struct gettxt_state *state);
 
 struct tevent_req *
 resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
@@ -1686,6 +1830,7 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->status = 0;
     state->timeouts = 0;
     state->retrying = 0;
+    state->ev = ev;
 
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
@@ -1694,7 +1839,6 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         return NULL;
     }
     tevent_req_set_callback(subreq, ares_gettxt_wakeup, req);
-    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
@@ -1702,10 +1846,22 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 static void
 resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
-    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
-    struct gettxt_state *state = tevent_req_data(req, struct gettxt_state);
+    struct resolv_request *rreq = talloc_get_type(arg, struct resolv_request);
+    struct tevent_req *req;
+    struct gettxt_state *state;
     int ret;
     struct ares_txt_reply *reply_list;
+
+    if (rreq->rwatch == NULL) {
+        /* The tevent request was cancelled while the ares call was still in
+         * progress so nobody cares about the result now. Quit. */
+        unschedule_timeout_watcher(rreq->ctx, rreq);
+        return;
+    }
+
+    req = rreq->rwatch->req;
+    unschedule_timeout_watcher(rreq->ctx, rreq);
+    state = tevent_req_data(req, struct gettxt_state);
 
     if (state->retrying == 0 && status == ARES_EDESTRUCTION
             && state->resolv_ctx->channel != NULL) {
@@ -1714,8 +1870,6 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
                    ns_c_in, ns_t_txt, resolv_gettxt_done, req);
         return;
     }
-
-    unschedule_timeout_watcher(state->resolv_ctx);
 
     state->status = status;
     state->timeouts = timeouts;
@@ -1782,8 +1936,23 @@ ares_gettxt_wakeup(struct tevent_req *subreq)
         return;
     }
 
+    return resolv_gettxt_query(req, state);
+}
+
+static void
+resolv_gettxt_query(struct tevent_req *req,
+                    struct gettxt_state *state)
+{
+    struct resolv_request *rreq;
+
+    rreq = schedule_timeout_watcher(state->ev, state->resolv_ctx, req);
+    if (!rreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     ares_query(state->resolv_ctx->channel, state->query,
-               ns_c_in, ns_t_txt, resolv_gettxt_done, req);
+               ns_c_in, ns_t_txt, resolv_gettxt_done, rreq);
 }
 
 #endif
