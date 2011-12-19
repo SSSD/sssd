@@ -643,7 +643,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        req = sss_dp_get_account_send(dctx, cctx->rctx, dctx->domain, true,
+        req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
                                       req_type, opt_name, opt_id);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
