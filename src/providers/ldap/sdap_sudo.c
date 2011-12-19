@@ -142,6 +142,7 @@ void sdap_sudo_handler(struct be_req *be_req)
     return;
 
 fail:
+    talloc_free(sudo_ctx);
     be_req->fn(be_req, DP_ERR_FATAL, ret, NULL);
 }
 
