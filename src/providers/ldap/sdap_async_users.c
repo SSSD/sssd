@@ -154,11 +154,23 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sdap_attrs_add_list(attrs, SYSDB_MEMBEROF,
-                              "original memberOf",
-                              name, user_attrs);
-    if (ret != EOK) {
+    ret = sysdb_attrs_get_el(attrs, SYSDB_MEMBEROF, &el);
+    if (ret) {
         goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original memberOf is not available for [%s].\n",
+                    name));
+    } else {
+        DEBUG(7, ("Adding original memberOf attributes to [%s].\n",
+                    name));
+        for (i = 0; i < el->num_values; i++) {
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
+                    (const char *) el->values[i].data);
+            if (ret) {
+                goto fail;
+            }
+        }
     }
 
     ret = sdap_attrs_add_string(attrs,
