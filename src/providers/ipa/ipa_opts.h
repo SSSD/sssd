@@ -38,6 +38,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_hbac_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ipa_host_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_selinux_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ipa_subdomains_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ipa_hbac_refresh", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ipa_hbac_treat_deny_as", DP_OPT_STRING, { "DENY_ALL" }, NULL_STRING },

@@ -37,6 +37,7 @@
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ipa/ipa_session.h"
 #include "providers/ldap/sdap_access.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -73,6 +74,11 @@ struct bet_ops ipa_hostid_ops = {
     .finalize = NULL
 };
 #endif
+
+struct bet_ops ipa_subdomains_ops = {
+    .handler = ipa_subdomains_handler,
+    .finalize = NULL
+};
 
 int common_ipa_init(struct be_ctx *bectx)
 {
@@ -512,4 +518,36 @@ int sssm_ipa_autofs_init(struct be_ctx *bectx,
                                  "built without autofs support, ignoring\n"));
     return EOK;
 #endif
+}
+
+int sssm_ipa_subdomains_init(struct be_ctx *bectx,
+                             struct bet_ops **ops,
+                         void **pvt_data)
+{
+    int ret;
+    struct ipa_subdomains_ctx *subdomains_ctx;
+    struct ipa_id_ctx *id_ctx;
+
+    subdomains_ctx = talloc_zero(bectx, struct ipa_subdomains_ctx);
+    if (subdomains_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        goto done;
+    }
+    subdomains_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
+    subdomains_ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
+
+    *ops = &ipa_subdomains_ops;
+    *pvt_data = subdomains_ctx;
+
+done:
+    if (ret != EOK) {
+        talloc_free(subdomains_ctx);
+    }
+    return ret;
 }

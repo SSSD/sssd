@@ -196,6 +196,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_subdomains_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            trusted domains.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>cn=trusts,%basedn</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_validate (boolean)</term>
                     <listitem>
                         <para>

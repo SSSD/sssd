@@ -41,6 +41,7 @@ enum ipa_basic_opt {
     IPA_HBAC_SEARCH_BASE,
     IPA_HOST_SEARCH_BASE,
     IPA_SELINUX_SEARCH_BASE,
+    IPA_SUBDOMAINS_SEARCH_BASE,
     IPA_KRB5_REALM,
     IPA_HBAC_REFRESH,
     IPA_HBAC_DENY_METHOD,
@@ -123,6 +124,7 @@ struct ipa_options {
     struct sdap_search_base **host_search_bases;
     struct sdap_search_base **hbac_search_bases;
     struct sdap_search_base **selinux_search_bases;
+    struct sdap_search_base **subdomains_search_bases;
     struct ipa_service *service;
 
     /* id provider */
