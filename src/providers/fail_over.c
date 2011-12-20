@@ -141,6 +141,7 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     ctx->opts->srv_retry_timeout = opts->srv_retry_timeout;
     ctx->opts->retry_timeout = opts->retry_timeout;
     ctx->opts->family_order  = opts->family_order;
+    ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
 
     DEBUG(3, ("Created new fail over context, retry timeout is %d\n",
               ctx->opts->retry_timeout));
@@ -735,10 +736,13 @@ struct resolve_service_state {
 
     struct resolv_ctx *resolv;
     struct tevent_context *ev;
+    struct tevent_timer *timeout_handler;
     struct fo_ctx *fo_ctx;
 };
 
 
+static errno_t fo_resolve_service_activate_timeout(struct tevent_req *req,
+            struct tevent_context *ev, const unsigned long timeout_seconds);
 static void fo_resolve_service_cont(struct tevent_req *subreq);
 static void fo_resolve_service_done(struct tevent_req *subreq);
 static bool fo_resolve_service_server(struct tevent_req *req);
@@ -777,6 +781,14 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         goto done;
     }
 
+    /* Activate per-service timeout handler */
+    ret = fo_resolve_service_activate_timeout(req, ev,
+                                        ctx->opts->service_resolv_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not set service timeout\n"));
+        goto done;
+    }
+
     if (fo_is_srv_lookup(server)) {
         /* Don't know the server yet, must do a SRV lookup */
         subreq = resolve_srv_send(state, ev, resolv,
@@ -809,6 +821,40 @@ done:
 
 static void set_server_common_status(struct server_common *common,
                                      enum server_status status);
+
+static void
+fo_resolve_service_timeout(struct tevent_context *ev,
+                           struct tevent_timer *te,
+                           struct timeval tv, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+
+    DEBUG(SSSDBG_MINOR_FAILURE, ("Service resolving timeout reached\n"));
+    tevent_req_error(req, ETIMEDOUT);
+}
+
+static errno_t
+fo_resolve_service_activate_timeout(struct tevent_req *req,
+                                    struct tevent_context *ev,
+                                    const unsigned long timeout_seconds)
+{
+    struct timeval tv;
+    struct resolve_service_state *state = tevent_req_data(req,
+                                        struct resolve_service_state);
+
+    tv = tevent_timeval_current();
+    tv = tevent_timeval_add(&tv, timeout_seconds, 0);
+    state->timeout_handler = tevent_add_timer(ev, state, tv,
+                                           fo_resolve_service_timeout, req);
+    if (state->timeout_handler == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_add_timer failed.\n"));
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Resolve timeout set to %lu seconds\n",
+          timeout_seconds));
+    return EOK;
+}
 
 /* SRV resolving finished, see if we got server to work with */
 static void

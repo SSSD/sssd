@@ -67,7 +67,14 @@ static int be_fo_get_options(struct be_ctx *ctx,
 {
     errno_t ret;
 
-    /* todo get timeout from configuration */
+    ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
+                         CONFDB_DOMAIN_RESOLV_TIMEOUT,
+                         FO_DEFAULT_SVC_TIMEOUT,
+                         &opts->service_resolv_timeout);
+    if (ret != EOK) {
+        return ret;
+    }
+
     opts->retry_timeout = 30;
     opts->srv_retry_timeout = 14400;
 
@@ -83,7 +90,7 @@ static int be_fo_get_options(struct be_ctx *ctx,
 int be_init_failover(struct be_ctx *ctx)
 {
     int ret;
-    int fo_timeout;
+    int resolv_timeout;
     struct fo_options fopts;
 
     if (ctx->be_fo != NULL) {
@@ -96,13 +103,14 @@ int be_init_failover(struct be_ctx *ctx)
     }
 
     ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
-                         CONFDB_DOMAIN_RESOLV_TIMEOUT,
-                         RESOLV_DEFAULT_TIMEOUT, &fo_timeout);
+                         CONFDB_DOMAIN_RESOLV_OP_TIMEOUT,
+                         RESOLV_DEFAULT_TIMEOUT,
+                         &resolv_timeout);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = resolv_init(ctx, ctx->ev, fo_timeout, &ctx->be_fo->resolv);
+    ret = resolv_init(ctx, ctx->ev, resolv_timeout, &ctx->be_fo->resolv);
     if (ret != EOK) {
         talloc_zfree(ctx->be_fo);
         return ret;
