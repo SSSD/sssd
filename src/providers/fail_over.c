@@ -850,7 +850,8 @@ fo_resolve_service_server(struct tevent_req *req)
             tevent_req_error(req, ENOMEM);
             return true;
         }
-        tevent_req_set_callback(subreq, fo_resolve_service_done, req);
+        tevent_req_set_callback(subreq, fo_resolve_service_done,
+                                state->server->common);
         fo_set_server_status(state->server, SERVER_RESOLVING_NAME);
         /* FALLTHROUGH */
     case SERVER_RESOLVING_NAME:
@@ -873,34 +874,30 @@ fo_resolve_service_server(struct tevent_req *req)
 static void
 fo_resolve_service_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct resolve_service_state *state = tevent_req_data(req,
-                                                struct resolve_service_state);
-    struct server_common *common;
+    struct server_common *common = tevent_req_callback_data(subreq,
+                                                        struct server_common);
     int resolv_status;
     struct resolve_service_request *request;
     int ret;
 
-    if (state->server->common->rhostent != NULL) {
-        talloc_zfree(state->server->common->rhostent);
+    if (common->rhostent != NULL) {
+        talloc_zfree(common->rhostent);
     }
 
-    ret = resolv_gethostbyname_recv(subreq, state->server->common,
+    ret = resolv_gethostbyname_recv(subreq, common,
                                     &resolv_status, NULL,
-                                    &state->server->common->rhostent);
+                                    &common->rhostent);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(1, ("Failed to resolve server '%s': %s\n",
-                  state->server->common->name,
+                  common->name,
                   resolv_strerror(resolv_status)));
-        set_server_common_status(state->server->common, SERVER_NOT_WORKING);
+        set_server_common_status(common, SERVER_NOT_WORKING);
     } else {
-        set_server_common_status(state->server->common, SERVER_NAME_RESOLVED);
+        set_server_common_status(common, SERVER_NAME_RESOLVED);
     }
 
     /* Take care of all requests for this server. */
-    common = state->server->common; /* state can disappear now */
     while ((request = common->request_list) != NULL) {
         DLIST_REMOVE(common->request_list, request);
         if (resolv_status) {
