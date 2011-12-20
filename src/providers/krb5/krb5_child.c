@@ -530,7 +530,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
             break;
         }
 
-        kerr = krb5_free_keytab_entry_contents(kr->ctx, &entry);
+        kerr = sss_krb5_free_keytab_entry_contents(kr->ctx, &entry);
         if (kerr != 0) {
             DEBUG(1, ("Failed to free keytab entry.\n"));
         }
@@ -578,7 +578,7 @@ done:
     if (krb5_kt_close(kr->ctx, keytab) != 0) {
         DEBUG(1, ("krb5_kt_close failed"));
     }
-    if (krb5_free_keytab_entry_contents(kr->ctx, &entry) != 0) {
+    if (sss_krb5_free_keytab_entry_contents(kr->ctx, &entry) != 0) {
         DEBUG(1, ("Failed to free keytab entry.\n"));
     }
     if (principal != NULL) {
@@ -1194,7 +1194,7 @@ static int krb5_cleanup(void *ptr)
 static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
                                      krb5_principal server_principal,
                                      krb5_principal client_principal,
-                                     krb5_ticket_times *tgtt)
+                                     sss_krb5_ticket_times *tgtt)
 {
     krb5_error_code krberr;
     krb5_ccache ccache = NULL;
@@ -1247,7 +1247,7 @@ static krb5_error_code check_fast_ccache(krb5_context ctx, const char *primary,
     krb5_error_code kerr;
     char *ccname;
     char *server_name;
-    krb5_ticket_times tgtt;
+    sss_krb5_ticket_times tgtt;
     krb5_keytab keytab = NULL;
     krb5_principal client_princ = NULL;
     krb5_principal server_princ = NULL;
@@ -1420,6 +1420,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         goto failed;
     }
 
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CHANGE_PASSWORD_PROMPT
     /* A prompter is used to catch messages about when a password will
      * expired. The library shall not use the prompter to ask for a new password
      * but shall return KRB5KDC_ERR_KEY_EXP. */
@@ -1428,6 +1429,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         KRB5_DEBUG(1, kerr);
         goto failed;
     }
+#endif
 
     lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);
     if (lifetime_str == NULL) {

@@ -431,6 +431,8 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     char *server_name;
     krb5_creds mcred;
     krb5_creds cred;
+    const char *realm_name;
+    int realm_length;
 
     kerr = krb5_init_context(&ctx);
     if (kerr != 0) {
@@ -444,11 +446,11 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
         goto done;
     }
 
+    sss_krb5_princ_realm(ctx, client_princ, &realm_name, &realm_length);
+
     server_name = talloc_asprintf(NULL, "krbtgt/%.*s@%.*s",
-                                  krb5_princ_realm(ctx, client_princ)->length,
-                                  krb5_princ_realm(ctx, client_princ)->data,
-                                  krb5_princ_realm(ctx, client_princ)->length,
-                                  krb5_princ_realm(ctx, client_princ)->data);
+                                  realm_length, realm_name,
+                                  realm_length, realm_name);
     if (server_name == NULL) {
         kerr = KRB5_CC_NOMEM;
         DEBUG(1, ("talloc_asprintf failed.\n"));

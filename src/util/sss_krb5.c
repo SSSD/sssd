@@ -44,6 +44,8 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
     int i = 0;
     errno_t ret;
     char *principal_string;
+    const char *realm_name;
+    int realm_len;
 
     /**
      * Priority of lookup:
@@ -164,9 +166,11 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         }
 
         if (_realm) {
+            sss_krb5_princ_realm(krb_ctx, client_princ,
+                                 &realm_name,
+                                 &realm_len);
             *_realm = talloc_asprintf(mem_ctx, "%.*s",
-                                      krb5_princ_realm(ctx, client_princ)->length,
-                                      krb5_princ_realm(ctx, client_princ)->data);
+                                      realm_len, realm_name);
             if (!*_realm) {
                 DEBUG(1, ("talloc_asprintf failed"));
                 if (_principal) talloc_zfree(*_principal);
@@ -322,7 +326,7 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
             found = true;
         }
         free(kt_principal);
-        krberr = krb5_free_keytab_entry_contents(context, &entry);
+        krberr = sss_krb5_free_keytab_entry_contents(context, &entry);
         if (krberr) {
             /* This should never happen. The API docs for this function
              * specify only success for this function
@@ -378,18 +382,19 @@ static bool match_principal(krb5_context ctx,
                      const char *pattern_primary,
                      const char *pattern_realm)
 {
-    krb5_data *realm_data;
     char *primary = NULL;
     char *primary_str = NULL;
     int primary_str_len = 0;
     int tmp_len;
     int len_diff;
+    const char *realm_name;
+    int realm_len;
 
     int mode = MODE_NORMAL;
     TALLOC_CTX *tmp_ctx;
     bool ret = false;
 
-    realm_data = krb5_princ_realm(ctx, principal);
+    sss_krb5_princ_realm(ctx, principal, &realm_name, &realm_len);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -425,8 +430,8 @@ static bool match_principal(krb5_context ctx,
         }
     }
 
-    if (!pattern_realm || (realm_data->length == strlen(pattern_realm) &&
-        strncmp(realm_data->data, pattern_realm, realm_data->length) == 0)) {
+    if (!pattern_realm || (realm_len == strlen(pattern_realm) &&
+        strncmp(realm_name, pattern_realm, realm_len) == 0)) {
         DEBUG(7, ("Principal matched to the sample (%s@%s).\n", pattern_primary,
                                                                 pattern_realm));
         ret = true;
@@ -466,7 +471,7 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
             break;
         }
 
-        kerr = krb5_free_keytab_entry_contents(ctx, &entry);
+        kerr = sss_krb5_free_keytab_entry_contents(ctx, &entry);
         if (kerr != 0) {
             DEBUG(1, ("Failed to free keytab entry.\n"));
         }
@@ -504,7 +509,7 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     kerr = 0;
 
 done:
-    kerr_d = krb5_free_keytab_entry_contents(ctx, &entry);
+    kerr_d = sss_krb5_free_keytab_entry_contents(ctx, &entry);
     if (kerr_d != 0) {
         DEBUG(1, ("Failed to free keytab entry.\n"));
     }
@@ -917,9 +922,50 @@ cleanup:
 void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
                                                   int canonicalize)
 {
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE
-    return krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
+    /* FIXME: The extra check for HAVE_KRB5_TICKET_TIMES is a workaround due to Heimdal
+     * defining krb5_get_init_creds_opt_set_canonicalize() with a different set of
+     * arguments. We should use a better configure check in the future.
+     */
+#if defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE) && defined(HAVE_KRB5_TICKET_TIMES)
+    krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
 #else
-    DEBUG(SSSDBG_OP_FAILURE, ("Kerberos principal canonicalization is not avaliable!\n"));
+    DEBUG(SSSDBG_OP_FAILURE, ("Kerberos principal canonicalization is not available!\n"));
 #endif
 }
+
+#ifdef HAVE_KRB5_PRINCIPAL_GET_REALM
+void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
+                          const char **realm, int *len)
+{
+    *realm = krb5_principal_get_realm(context, princ);
+    *len = strlen(*realm);
+}
+#else
+void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
+                          const char **realm, int *len)
+{
+    const krb5_data *data;
+
+    data = krb5_princ_realm(context, princ);
+    if (data) {
+        *realm = data->data;
+        *len = data->length;
+    }
+}
+#endif
+
+#ifdef HAVE_KRB5_FREE_KEYTAB_ENTRY_CONTENTS
+krb5_error_code
+sss_krb5_free_keytab_entry_contents(krb5_context context,
+                                    krb5_keytab_entry *entry)
+{
+    return krb5_free_keytab_entry_contents(context, entry);
+}
+#else
+krb5_error_code
+sss_krb5_free_keytab_entry_contents(krb5_context context,
+                                    krb5_keytab_entry *entry)
+{
+    return krb5_kt_free_entry(context, entry);
+}
+#endif
