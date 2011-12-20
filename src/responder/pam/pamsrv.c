@@ -174,6 +174,15 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Create table for initgroup lookups */
+    ret = sss_hash_create(pctx, 10, &pctx->id_table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not create initgroups hash table: [%s]",
+               strerror(ret)));
+        goto done;
+    }
+
     ret = EOK;
 
 done:

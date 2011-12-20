@@ -309,6 +309,7 @@ dist_noinst_HEADERS = \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/pam/pamsrv.h \
+    src/responder/pam/pam_helpers.h \
     src/responder/nss/nsssrv.h \
     src/responder/nss/nsssrv_private.h \
     src/responder/nss/nsssrv_netgroup.h \
@@ -445,6 +446,7 @@ sssd_pam_SOURCES = \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_dp.c \
+    src/responder/pam/pam_helpers.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
     $(TDB_LIBS) \

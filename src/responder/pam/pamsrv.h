@@ -36,6 +36,7 @@ struct pam_ctx {
     struct sss_nc_ctx *ncache;
     int neg_timeout;
     time_t id_timeout;
+    hash_table_t *id_table;
 };
 
 struct pam_auth_req {

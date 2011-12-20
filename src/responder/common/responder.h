@@ -120,8 +120,6 @@ struct cli_ctx {
 
     char *netgr_name;
     int netgrent_cur;
-
-    time_t pam_timeout;
 };
 
 struct sss_cmd_table {

@@ -29,6 +29,7 @@
 #include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pam_helpers.h"
 #include "db/sysdb.h"
 
 enum pam_verbosity {
@@ -836,6 +837,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     int ret;
     struct tevent_req *dpreq;
     struct dp_callback_ctx *cb_ctx;
+    struct pam_ctx *pctx =
+            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
@@ -858,14 +861,26 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         talloc_free(name);
         name = dom->case_sensitive ? talloc_strdup(preq, preq->pd->user) :
                                 sss_tc_utf8_str_tolower(preq, preq->pd->user);
+        if (!name) {
+            return ENOMEM;
+        }
 
         /* Refresh the user's cache entry on any PAM query
          * We put a timeout in the client context so that we limit
          * the number of updates within a reasonable timeout
          */
-        if (preq->check_provider && cctx->pam_timeout < time(NULL)) {
-            /* Call provider first */
-            break;
+        if (preq->check_provider) {
+            ret = pam_initgr_check_timeout(pctx->id_table, name);
+            if (ret != EOK
+                    && ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Could not look up initgroup timout\n"));
+                return EIO;
+            } else if (ret == ENOENT) {
+                /* Call provider first */
+                break;
+            }
+            /* Entry is still valid, get it from the sysdb */
         }
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
@@ -1020,6 +1035,7 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     int ret;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+    char *name;
 
     if (err_maj) {
         DEBUG(2, ("Unable to get information from Data Provider\n"
@@ -1030,7 +1046,25 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     ret = pam_check_user_search(preq);
     if (ret == EOK || ret == ENOENT) {
         /* Make sure we don't go to the ID provider too often */
-        preq->cctx->pam_timeout = time(NULL) + pctx->id_timeout;
+        name = preq->domain->case_sensitive ?
+                talloc_strdup(preq, preq->pd->user) :
+                sss_tc_utf8_str_tolower(preq, preq->pd->user);
+        if (!name) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = pam_initgr_cache_set(pctx->rctx->ev, pctx->id_table,
+                                   name, pctx->id_timeout);
+        talloc_free(name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not save initgr timestamp. "
+                   "Proceeding with PAM actions\n"));
+            /* This is non-fatal, we'll just end up going to the
+             * data provider again next time.
+             */
+        }
     }
 
     if (ret == EOK) {
@@ -1038,6 +1072,8 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = pam_check_user_done(preq, ret);
+
+done:
     if (ret) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         pam_reply(preq);
