@@ -37,13 +37,21 @@ SAVE_LIBS=$LIBS
 CFLAGS="$CFLAGS $KRB5_CFLAGS"
 LIBS="$LIBS $KRB5_LIBS"
 AC_CHECK_HEADERS([krb5.h krb5/krb5.h])
+AC_CHECK_TYPES([krb5_ticket_times, krb5_times], [], [],
+               [[#include <krb5.h>]])
 AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_free_unparsed_name \
                 krb5_get_init_creds_opt_set_expire_callback \
                 krb5_get_init_creds_opt_set_fast_ccache_name \
                 krb5_get_init_creds_opt_set_fast_flags \
                 krb5_get_init_creds_opt_set_canonicalize \
-                krb5_unparse_name_flags])
+                krb5_unparse_name_flags \
+                krb5_get_init_creds_opt_set_change_password_prompt \
+                krb5_free_keytab_entry_contents \
+                krb5_kt_free_entry \
+                krb5_princ_realm \
+                krb5_get_time_offsets \
+                krb5_principal_get_realm])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 

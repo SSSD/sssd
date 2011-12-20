@@ -115,4 +115,19 @@ sss_krb5_unparse_name_flags(krb5_context context, krb5_const_principal principal
 void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
                                                   int canonicalize);
 
+/* === Compatibility routines for the Heimdal Kerberos implementation === */
+
+void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
+                          const char **realm, int *len);
+
+krb5_error_code
+sss_krb5_free_keytab_entry_contents(krb5_context context,
+                                    krb5_keytab_entry *entry);
+
+#ifdef HAVE_KRB5_TICKET_TIMES
+typedef krb5_ticket_times sss_krb5_ticket_times;
+#elif HAVE_KRB5_TIMES
+typedef krb5_times sss_krb5_ticket_times;
+#endif
+
 #endif /* __SSS_KRB5_H__ */

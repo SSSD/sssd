@@ -287,6 +287,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
+#ifdef HAVE_KRB5_GET_TIME_OFFSETS
     krberr = krb5_get_time_offsets(context, &kdc_time_offset, &kdc_time_offset_usec);
     if (krberr) {
         DEBUG(2, ("Failed to get KDC time offset: %s\n",
@@ -297,6 +298,10 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
             kdc_time_offset++;
         }
     }
+#else
+    /* If we don't have this function, just assume no offset */
+    kdc_time_offset = 0;
+#endif
 
     krberr = 0;
     *ccname_out = ccname;
