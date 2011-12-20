@@ -45,8 +45,14 @@ struct sdap_sudo_load_sudoers_state {
     int timeout;
 };
 
-static int sdap_sudo_connect(struct sdap_sudo_ctx *sudo_ctx);
-static void sdap_sudo_connect_done(struct tevent_req *req);
+struct sdap_sudo_refresh_state {
+    struct sdap_sudo_ctx *sudo_ctx;
+    int dp_error;
+    int error;
+};
+
+static int sdap_sudo_connect(struct tevent_req *req);
+static void sdap_sudo_connect_done(struct tevent_req *subreq);
 
 static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
                                                        struct sdap_sudo_ctx *sudo_ctx);
@@ -69,30 +75,29 @@ const char *sdap_sudo_build_filter(TALLOC_CTX *mem_ctx,
                                    uid_t uid,
                                    char **groups);
 
-static void sdap_sudo_reply(struct sdap_sudo_ctx *sudo_ctx, int errcode)
+static void sdap_sudo_reply(struct tevent_req *req)
 {
-    struct be_req *be_req = sudo_ctx->be_req;
+    struct be_req *be_req = NULL;
+    struct sdap_sudo_ctx *sudo_ctx = NULL;
+    int dp_error;
+    int error;
+    int ret;
 
+    be_req = tevent_req_callback_data(req, struct be_req);
+    ret = sdap_sudo_refresh_recv(req, &sudo_ctx, &dp_error, &error);
+    talloc_zfree(req);
     talloc_zfree(sudo_ctx);
-
-    if (errcode == EOK) {
-        sdap_handler_done(be_req, DP_ERR_OK, errcode, strerror(errcode));
-    } else {
-        sdap_handler_done(be_req, DP_ERR_FATAL, errcode, strerror(errcode));
+    if (ret != EOK) {
+        sdap_handler_done(be_req, DP_ERR_FATAL, ret, strerror(ret));
+        return;
     }
-}
 
-static void sdap_sudo_reply_offline(struct sdap_sudo_ctx *sudo_ctx)
-{
-    struct  be_req *be_req = sudo_ctx->be_req;
-
-    talloc_zfree(sudo_ctx);
-
-    sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Provider is offline");
+    sdap_handler_done(be_req, dp_error, error, strerror(error));
 }
 
 void sdap_sudo_handler(struct be_req *be_req)
 {
+    struct tevent_req *req = NULL;
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     struct be_sudo_req *sudo_req = NULL;
     struct sdap_id_ctx *id_ctx = NULL;
@@ -131,28 +136,87 @@ void sdap_sudo_handler(struct be_req *be_req)
         sudo_ctx->groups = NULL;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Requested refresh for: %s\n",
-          sudo_req->username ? sudo_req->username : "<ALL>\n"));
-
-    ret = sdap_sudo_connect(sudo_ctx);
-    if (ret != EOK) {
+    req = sdap_sudo_refresh_send(sudo_ctx, sudo_ctx);
+    if (req == NULL) {
+        ret = ENOMEM;
         goto fail;
     }
+
+    tevent_req_set_callback(req, sdap_sudo_reply, be_req);
 
     return;
 
 fail:
     talloc_free(sudo_ctx);
-    be_req->fn(be_req, DP_ERR_FATAL, ret, NULL);
+    sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
 }
 
-int sdap_sudo_connect(struct sdap_sudo_ctx *sudo_ctx)
+struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
+                                          struct sdap_sudo_ctx *sudo_ctx)
 {
     struct tevent_req *req = NULL;
+    struct sdap_sudo_refresh_state *state = NULL;
     int ret;
 
+    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_refresh_state);
+    if (!req) {
+        return NULL;
+    }
+
+    state->sudo_ctx = sudo_ctx;
+    state->dp_error = DP_ERR_OK;
+    state->error = EOK;
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Requested refresh for: %s\n",
+          sudo_ctx->username ? sudo_ctx->username : "<ALL>\n"));
+
+    ret = sdap_sudo_connect(req);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
+    }
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, sudo_ctx->be_ctx->ev);
+
+    return req;
+}
+
+int sdap_sudo_refresh_recv(struct tevent_req *req,
+                           struct sdap_sudo_ctx **sudo_ctx,
+                           int *dp_error,
+                           int *error)
+{
+    struct sdap_sudo_refresh_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *sudo_ctx = state->sudo_ctx;
+    *dp_error = state->dp_error;
+    *error = state->error;
+
+    return EOK;
+}
+
+int sdap_sudo_connect(struct tevent_req *req)
+{
+    struct tevent_req *subreq = NULL;
+    struct sdap_sudo_refresh_state *state = NULL;
+    struct sdap_sudo_ctx *sudo_ctx = NULL;
+    int ret;
+
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+    sudo_ctx = state->sudo_ctx;
+
     if (be_is_offline(sudo_ctx->be_ctx)) {
-        sdap_sudo_reply_offline(sudo_ctx);
+        state->dp_error = DP_ERR_OFFLINE;
+        state->error = EAGAIN;
         return EOK;
     }
 
@@ -161,37 +225,47 @@ int sdap_sudo_connect(struct sdap_sudo_ctx *sudo_ctx)
                                               sudo_ctx->sdap_conn_cache);
         if (sudo_ctx->sdap_op == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_create() failed\n"));
+            state->dp_error = DP_ERR_FATAL;
+            state->error = EIO;
             return EIO;
         }
     }
 
-    req = sdap_id_op_connect_send(sudo_ctx->sdap_op, sudo_ctx, &ret);
-    if (req == NULL) {
+    subreq = sdap_id_op_connect_send(sudo_ctx->sdap_op, sudo_ctx, &ret);
+    if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("sdap_id_op_connect_send() failed: %d(%s)\n", ret, strerror(ret)));
         talloc_zfree(sudo_ctx->sdap_op);
+        state->dp_error = DP_ERR_FATAL;
+        state->error = ret;
         return ret;
     }
 
-    tevent_req_set_callback(req, sdap_sudo_connect_done, sudo_ctx);
+    tevent_req_set_callback(subreq, sdap_sudo_connect_done, req);
 
-    return EOK;
+    return EAGAIN;
 }
 
-void sdap_sudo_connect_done(struct tevent_req *req)
+void sdap_sudo_connect_done(struct tevent_req *subreq)
 {
+    struct tevent_req *req = NULL; /* req from sdap_sudo_refresh_send() */
+    struct sdap_sudo_refresh_state *state = NULL;
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     int dp_error;
     int ret;
 
-    sudo_ctx = tevent_req_callback_data(req, struct sdap_sudo_ctx);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+    sudo_ctx = state->sudo_ctx;
 
-    ret = sdap_id_op_connect_recv(req, &dp_error);
-    talloc_zfree(req);
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
 
     if (dp_error == DP_ERR_OFFLINE) {
         talloc_zfree(sudo_ctx->sdap_op);
-        sdap_sudo_reply_offline(sudo_ctx);
+        state->dp_error = DP_ERR_OFFLINE;
+        state->error = EAGAIN;
+        tevent_req_done(req);
         return;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -201,18 +275,20 @@ void sdap_sudo_connect_done(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_FUNC, ("SUDO LDAP connection successful\n"));
 
-    req = sdap_sudo_load_sudoers_send(sudo_ctx, sudo_ctx);
-    if (req == NULL) {
+    subreq = sdap_sudo_load_sudoers_send(sudo_ctx, sudo_ctx);
+    if (subreq == NULL) {
         ret = EFAULT;
         goto fail;
     }
 
-    tevent_req_set_callback(req, sdap_sudo_load_sudoers_done, sudo_ctx);
+    tevent_req_set_callback(subreq, sdap_sudo_load_sudoers_done, req);
 
     return;
 
 fail:
-    sdap_sudo_reply(sudo_ctx, ret);
+    state->dp_error = DP_ERR_FATAL;
+    state->error = ret;
+    tevent_req_error(req, ret);
 }
 
 struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
@@ -390,17 +466,21 @@ int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
     return EOK;
 }
 
-void sdap_sudo_load_sudoers_done(struct tevent_req *req)
+void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 {
+    struct tevent_req *req = NULL; /* req from sdap_sudo_refresh_send() */
+    struct sdap_sudo_refresh_state *state = NULL;
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     struct sysdb_attrs **rules = NULL;
     size_t rules_count;
     int ret;
 
-    sudo_ctx = tevent_req_callback_data(req, struct sdap_sudo_ctx);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+    sudo_ctx = state->sudo_ctx;
 
-    ret = sdap_sudo_load_sudoers_recv(req, sudo_ctx, &rules_count, &rules);
-    talloc_zfree(req);
+    ret = sdap_sudo_load_sudoers_recv(subreq, sudo_ctx, &rules_count, &rules);
+    talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
     }
@@ -424,7 +504,14 @@ void sdap_sudo_load_sudoers_done(struct tevent_req *req)
     ret = EOK;
 
 done:
-    sdap_sudo_reply(sudo_ctx, ret);
+    state->error = ret;
+    if (ret == EOK) {
+        state->dp_error = DP_ERR_OK;
+        tevent_req_done(req);
+    } else {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ret);
+    }
 }
 
 int sdap_sudo_purge_sudoers(struct sdap_sudo_ctx *sudo_ctx)

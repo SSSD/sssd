@@ -33,6 +33,14 @@ struct sdap_sudo_ctx {
     char **groups;
 };
 
+struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
+                                          struct sdap_sudo_ctx *sudo_ctx);
+
+int sdap_sudo_refresh_recv(struct tevent_req *req,
+                           struct sdap_sudo_ctx **sudo_ctx,
+                           int *dp_error,
+                           int *error);
+
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
 #define SDAP_SUDO_FILTER_ALL  "(objectClass=%s)"
