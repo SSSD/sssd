@@ -353,6 +353,7 @@ static int fill_pwent(struct sss_packet *packet,
     struct ldb_message *msg;
     uint8_t *body;
     const char *name;
+    const char *orig_name;
     const char *gecos;
     const char *homedir;
     const char *shell;
@@ -381,23 +382,23 @@ static int fill_pwent(struct sss_packet *packet,
 
         msg = msgs[i];
 
-        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
         gid = get_gid_override(msg, dom);
 
-        if (!name || !uid || !gid) {
+        if (!orig_name || !uid || !gid) {
             DEBUG(2, ("Incomplete or fake user object for %s[%llu]! Skipping\n",
-                      name?name:"<NULL>", (unsigned long long int)uid));
+                      orig_name?orig_name:"<NULL>", (unsigned long long int)uid));
             continue;
         }
 
         if (filter_users) {
             ncret = sss_ncache_check_user(nctx->ncache,
                                         nctx->neg_timeout,
-                                        dom, name);
+                                        dom, orig_name);
             if (ncret == EEXIST) {
                 DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
-                          name, domain));
+                          orig_name, domain));
                 continue;
             }
         }
@@ -407,6 +408,13 @@ static int fill_pwent(struct sss_packet *packet,
             ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
             if (ret != EOK) return ret;
             packet_initialized = true;
+        }
+
+        name = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("sss_get_cased_name failed, skipping\n"));
+            continue;
         }
 
         gecos = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
@@ -1733,7 +1741,8 @@ static int fill_grent(struct sss_packet *packet,
     uint8_t *body;
     size_t blen;
     uint32_t gid;
-    const char *name;
+    const char *orig_name;
+    char *name;
     size_t nsize;
     size_t delim;
     size_t dom_len;
@@ -1745,6 +1754,7 @@ static int fill_grent(struct sss_packet *packet,
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
     const char *namefmt = nctx->rctx->names->fq_fmt;
+    TALLOC_CTX *tmp_ctx = NULL;
 
     if (add_domain) {
         delim = 1;
@@ -1767,6 +1777,8 @@ static int fill_grent(struct sss_packet *packet,
     rsize = 0;
 
     for (i = 0; i < *count; i++) {
+        talloc_zfree(tmp_ctx);
+        tmp_ctx = talloc_new(NULL);
         msg = msgs[i];
 
         /* new group */
@@ -1782,22 +1794,29 @@ static int fill_grent(struct sss_packet *packet,
         rsize = 0;
 
         /* find group name/gid */
-        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
-        if (!name || !gid) {
+        if (!orig_name || !gid) {
             DEBUG(2, ("Incomplete group object for %s[%llu]! Skipping\n",
-                      name?name:"<NULL>", (unsigned long long int)gid));
+                      orig_name?orig_name:"<NULL>", (unsigned long long int)gid));
             continue;
         }
 
         if (filter_groups) {
             ret = sss_ncache_check_group(nctx->ncache,
-                                         nctx->neg_timeout, dom, name);
+                                         nctx->neg_timeout, dom, orig_name);
             if (ret == EEXIST) {
                 DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
-                          name, domain));
+                          orig_name, domain));
                 continue;
             }
+        }
+
+        name = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("sss_get_cased_name failed, skipping\n"));
+            continue;
         }
 
         nsize = strlen(name) + 1; /* includes terminating \0 */
@@ -1865,7 +1884,7 @@ static int fill_grent(struct sss_packet *packet,
             memnum = 0;
 
             for (j = 0; j < el->num_values; j++) {
-                name = (const char *)el->values[j].data;
+                name = (char *)el->values[j].data;
 
                 if (nctx->filter_users_in_groups) {
                     ret = sss_ncache_check_user(nctx->ncache,
@@ -1943,6 +1962,7 @@ static int fill_grent(struct sss_packet *packet,
         num++;
         continue;
     }
+    talloc_zfree(tmp_ctx);
 
 done:
     *count = i;
