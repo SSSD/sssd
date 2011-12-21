@@ -859,8 +859,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         preq->domain = dom;
 
         talloc_free(name);
-        name = dom->case_sensitive ? talloc_strdup(preq, preq->pd->user) :
-                                sss_tc_utf8_str_tolower(preq, preq->pd->user);
+        name = sss_get_cased_name(preq, preq->pd->user,
+                                  dom->case_sensitive);
         if (!name) {
             return ENOMEM;
         }

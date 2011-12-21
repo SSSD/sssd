@@ -741,8 +741,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_free(name);
-        name = dom->case_sensitive ? talloc_strdup(dctx, cmdctx->name) :
-                                  sss_tc_utf8_str_tolower(dctx, cmdctx->name);
+        name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
         /* verify this user has not yet been negatively cached,
@@ -2033,8 +2032,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_free(name);
-        name = dom->case_sensitive ? talloc_strdup(dctx, cmdctx->name) :
-                                sss_tc_utf8_str_tolower(dctx, cmdctx->name);
+        name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
         /* verify this group has not yet been negatively cached,
@@ -3104,8 +3102,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_free(name);
-        name = dom->case_sensitive ? talloc_strdup(dctx, cmdctx->name) :
-                                    sss_tc_utf8_str_tolower(dctx, cmdctx->name);
+        name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
         /* verify this user has not yet been negatively cached,

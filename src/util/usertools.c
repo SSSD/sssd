@@ -173,3 +173,12 @@ int sss_parse_name(TALLOC_CTX *memctx,
 
     return EOK;
 }
+
+char *
+sss_get_cased_name(TALLOC_CTX *mem_ctx,
+                   const char *orig_name,
+                   bool case_sensitive)
+{
+    return case_sensitive ? talloc_strdup(mem_ctx, orig_name) :
+                            sss_tc_utf8_str_tolower(mem_ctx, orig_name);
+}

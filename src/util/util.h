@@ -401,6 +401,10 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **domain, char **name);
 
+char *
+sss_get_cased_name(TALLOC_CTX *mem_ctx, const char *orig_name,
+                   bool case_sensitive);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
