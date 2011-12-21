@@ -402,9 +402,12 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         step_ctx->dctx->domain = dom;
 
         talloc_free(name);
-        name = dom->case_sensitive ? \
-                    talloc_strdup(step_ctx, step_ctx->name) :
-                    sss_tc_utf8_str_tolower(step_ctx, step_ctx->name);
+        name = sss_get_cased_name(step_ctx, step_ctx->name,
+                                  dom->case_sensitive);
+        if (!name) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_get_cased_name failed\n"));
+            return ENOMEM;
+        }
 
         DEBUG(4, ("Requesting info for [%s@%s]\n",
                   name, dom->name));
