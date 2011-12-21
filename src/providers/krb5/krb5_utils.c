@@ -30,13 +30,14 @@
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
-                             bool *private_path)
+                             bool case_sensitive, bool *private_path)
 {
     char *copy;
     char *p;
     char *n;
     char *result = NULL;
     char *dummy;
+    char *name;
     char *res = NULL;
     const char *cache_dir_tmpl;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -79,8 +80,16 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                               "because user name is empty.\n"));
                     goto done;
                 }
+                name = sss_get_cased_name(tmp_ctx, kr->pd->user,
+                                          case_sensitive);
+                if (!name) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("sss_get_cased_name failed\n"));
+                    goto done;
+                }
+
                 result = talloc_asprintf_append(result, "%s%s", p,
-                                                kr->pd->user);
+                                                name);
                 if (!file_mode) *private_path = true;
                 break;
             case 'U':
@@ -132,7 +141,8 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                     }
 
                     dummy = expand_ccname_template(tmp_ctx, kr, cache_dir_tmpl,
-                                                   false, private_path);
+                                                   false, case_sensitive,
+                                                   private_path);
                     if (dummy == NULL) {
                         DEBUG(1, ("Expanding credential cache directory "
                                   "template failed.\n"));

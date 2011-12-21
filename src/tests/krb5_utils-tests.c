@@ -421,7 +421,7 @@ static void do_test(const char *file_template, const char *dir_template,
     fail_unless(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, file_template, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
     fail_unless(strcmp(result, expected) == 0,
@@ -445,6 +445,37 @@ START_TEST(test_username)
 {
     do_test(BASE"_%u", CCACHE_DIR, BASE"_"USERNAME, false);
     do_test("%d/"FILENAME, BASE"_%u", BASE"_"USERNAME"/"FILENAME, true);
+}
+END_TEST
+
+START_TEST(test_case_sensitive)
+{
+    char *result;
+    int ret;
+    bool private_path = false;
+    const char *file_template = BASE"_%u";
+    const char *expected_cs = BASE"_TestUser";
+    const char *expected_ci = BASE"_testuser";
+
+    kr->pd->user = discard_const("TestUser");
+    ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, CCACHE_DIR);
+    fail_unless(ret == EOK, "Failed to set Ccache dir");
+
+    result = expand_ccname_template(tmp_ctx, kr, file_template, true,
+                                    true, &private_path);
+
+    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
+    fail_unless(strcmp(result, expected_cs) == 0,
+                "Expansion failed, result [%s], expected [%s].",
+                result, expected_cs);
+
+    result = expand_ccname_template(tmp_ctx, kr, file_template, true,
+                                    false, &private_path);
+
+    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
+    fail_unless(strcmp(result, expected_ci) == 0,
+                "Expansion failed, result [%s], expected [%s].",
+                result, expected_ci);
 }
 END_TEST
 
@@ -488,7 +519,7 @@ START_TEST(test_ccache_dir)
     fail_unless(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, "%d/"FILENAME, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result == NULL, "Using %%d in ccache dir should fail.");
     fail_unless(private_path == false,
@@ -509,7 +540,7 @@ START_TEST(test_pid)
     fail_unless(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, "%d/"FILENAME, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result == NULL, "Using %%P in ccache dir should fail.");
     fail_unless(private_path == false,
@@ -533,7 +564,7 @@ START_TEST(test_unknow_template)
     bool private_path = false;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result == NULL, "Unknown template [%s] should fail.",
                 test_template);
@@ -542,7 +573,7 @@ START_TEST(test_unknow_template)
     fail_unless(ret == EOK, "Failed to set Ccache dir");
     test_template = "%d/"FILENAME;
     result = expand_ccname_template(tmp_ctx, kr, test_template, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result == NULL, "Unknown template [%s] should fail.",
                 test_template);
@@ -559,7 +590,7 @@ START_TEST(test_NULL)
     bool private_path = false;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result == NULL, "Expected NULL as a result for an empty input.",
                 test_template);
@@ -576,7 +607,7 @@ START_TEST(test_no_substitution)
     bool private_path = false;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, true,
-                                    &private_path);
+                                    true, &private_path);
 
     fail_unless(result != NULL, "Cannot expand template [%s].", test_template);
     fail_unless(strcmp(result, test_template) == 0,
@@ -599,6 +630,7 @@ Suite *krb5_utils_suite (void)
     tcase_add_test (tc_ccname_template, test_NULL);
     tcase_add_test (tc_ccname_template, test_unknow_template);
     tcase_add_test (tc_ccname_template, test_username);
+    tcase_add_test (tc_ccname_template, test_case_sensitive);
     tcase_add_test (tc_ccname_template, test_uid);
     tcase_add_test (tc_ccname_template, test_upn);
     tcase_add_test (tc_ccname_template, test_realm);

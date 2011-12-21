@@ -626,7 +626,9 @@ static void krb5_find_ccache_step(struct tevent_req *req)
             kr->ccname = expand_ccname_template(kr, kr,
                                           dp_opt_get_cstring(kr->krb5_ctx->opts,
                                                              KRB5_CCNAME_TMPL),
-                                                true, &private_path);
+                                                true,
+                                                state->be_ctx->domain->case_sensitive,
+                                                &private_path);
             if (kr->ccname == NULL) {
                 DEBUG(1, ("expand_ccname_template failed.\n"));
                 ret = ENOMEM;
