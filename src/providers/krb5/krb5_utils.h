@@ -33,7 +33,7 @@
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
-                             bool *private_path);
+                             bool case_sensitive, bool *private_path);
 
 errno_t become_user(uid_t uid, gid_t gid);
 
