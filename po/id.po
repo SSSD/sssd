@@ -1,21 +1,21 @@
-# Indonesian Translation of SSSD.
+# SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
-# This file is distributed under the same license as the sssd package.
-# Teguh DC <dheche@songolimo.net>, 2010.
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: sssd\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-19 11:15-0500\n"
-"PO-Revision-Date: 2010-03-09 10:34+0700\n"
-"Last-Translator: Teguh DC <dheche@songolimo.net>\n"
-"Language-Team: Fedora Indonesia <trans-id@lists.fedoraproject.org>\n"
+"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"Language-Team: Indonesian <trans-id@lists.fedoraproject.org>\n"
 "Language: id\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Virtaal 0.5.1\n"
+"Plural-Forms: nplurals=1; plural=0\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -26,9 +26,8 @@ msgid "Include timestamps in debug logs"
 msgstr "Sertakan cap waktu di pencatatan debug"
 
 #: src/config/SSSDConfig.py:41
-#, fuzzy
 msgid "Include microseconds in timestamps in debug logs"
-msgstr "Sertakan cap waktu di pencatatan debug"
+msgstr ""
 
 #: src/config/SSSDConfig.py:42
 msgid "Write debug messages to logfiles"
@@ -352,23 +351,20 @@ msgid "Use only the upper case for realm names"
 msgstr ""
 
 #: src/config/SSSDConfig.py:141
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "berkas yang berisi sertifikat CA"
+msgstr ""
 
 #: src/config/SSSDConfig.py:142
 msgid "Path to CA certificate directory"
 msgstr ""
 
 #: src/config/SSSDConfig.py:143
-#, fuzzy
 msgid "File that contains the client certificate"
-msgstr "berkas yang berisi sertifikat CA"
+msgstr ""
 
 #: src/config/SSSDConfig.py:144
-#, fuzzy
 msgid "File that contains the client key"
-msgstr "berkas yang berisi sertifikat CA"
+msgstr ""
 
 #: src/config/SSSDConfig.py:145
 msgid "List of possible ciphers suites"
@@ -387,14 +383,12 @@ msgid "Specify the sasl authorization id to use"
 msgstr "Tentukan id otorisasi sasl yang digunakan"
 
 #: src/config/SSSDConfig.py:149
-#, fuzzy
 msgid "Specify the sasl authorization realm to use"
-msgstr "Tentukan id otorisasi sasl yang digunakan"
+msgstr ""
 
 #: src/config/SSSDConfig.py:150
-#, fuzzy
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "Tentukan id otorisasi sasl yang digunakan"
+msgstr ""
 
 #: src/config/SSSDConfig.py:151
 msgid "Kerberos service keytab"
@@ -409,18 +403,16 @@ msgid "Follow LDAP referrals"
 msgstr ""
 
 #: src/config/SSSDConfig.py:154
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Gunakan otentikasi Kerberos untuk koneksi LDAP"
+msgstr ""
 
 #: src/config/SSSDConfig.py:155
 msgid "How to dereference aliases"
 msgstr ""
 
 #: src/config/SSSDConfig.py:156
-#, fuzzy
 msgid "Service name for DNS service lookups"
-msgstr "Filter pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:157
 msgid "The number of records to retrieve in a single LDAP query"
@@ -437,14 +429,12 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:161
-#, fuzzy
 msgid "entryUSN attribute"
-msgstr "Atribut UID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:162
-#, fuzzy
 msgid "lastUSN attribute"
-msgstr "Atribut UID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:164
 msgid "How long to retain a connection to the LDAP server before disconnecting"
@@ -455,23 +445,20 @@ msgid "Length of time to wait for a search request"
 msgstr ""
 
 #: src/config/SSSDConfig.py:168
-#, fuzzy
 msgid "Length of time to wait for a enumeration request"
-msgstr "Lamanya waktu untuk mencoba koneksi"
+msgstr ""
 
 #: src/config/SSSDConfig.py:169
 msgid "Length of time between enumeration updates"
 msgstr ""
 
 #: src/config/SSSDConfig.py:170
-#, fuzzy
 msgid "Length of time between cache cleanups"
-msgstr "Lamanya waktu antara upaya untuk menyambung kembali saat luring"
+msgstr ""
 
 #: src/config/SSSDConfig.py:171
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Filter pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:172
 msgid "Base DN for user lookups"
@@ -538,34 +525,28 @@ msgid "shadowLastChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:190
-#, fuzzy
 msgid "shadowMin attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:191
-#, fuzzy
 msgid "shadowMax attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:192
-#, fuzzy
 msgid "shadowWarning attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:193
-#, fuzzy
 msgid "shadowInactive attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:194
-#, fuzzy
 msgid "shadowExpire attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:195
-#, fuzzy
 msgid "shadowFlag attribute"
-msgstr "Atribut Shell"
+msgstr ""
 
 #: src/config/SSSDConfig.py:196
 msgid "Attribute listing authorized PAM services"
@@ -580,119 +561,100 @@ msgid "krbLastPwdChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:199
-#, fuzzy
 msgid "krbPasswordExpiration attribute"
-msgstr "Atribut waktu modifikasi"
+msgstr ""
 
 #: src/config/SSSDConfig.py:200
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
 #: src/config/SSSDConfig.py:201
-#, fuzzy
 msgid "accountExpires attribute of AD"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:202
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
 #: src/config/SSSDConfig.py:203
-#, fuzzy
 msgid "nsAccountLock attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:204
-#, fuzzy
 msgid "loginDisabled attribute of NDS"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:205
-#, fuzzy
 msgid "loginExpirationTime attribute of NDS"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:206
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr ""
 
 #: src/config/SSSDConfig.py:208
-#, fuzzy
 msgid "Base DN for group lookups"
-msgstr "Filter pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:211
-#, fuzzy
 msgid "Objectclass for groups"
-msgstr "Objectclass untuk pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:212
-#, fuzzy
 msgid "Group name"
-msgstr "Grup"
+msgstr ""
 
 #: src/config/SSSDConfig.py:213
-#, fuzzy
 msgid "Group password"
-msgstr "Grup"
+msgstr ""
 
 #: src/config/SSSDConfig.py:214
-#, fuzzy
 msgid "GID attribute"
-msgstr "Atribut UID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:215
-#, fuzzy
 msgid "Group member attribute"
-msgstr "Atribut memberOf"
+msgstr ""
 
 #: src/config/SSSDConfig.py:216
-#, fuzzy
 msgid "Group UUID attribute"
-msgstr "Atribut UUID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:217
-#, fuzzy
 msgid "Modification time attribute for groups"
-msgstr "Atribut waktu modifikasi"
+msgstr ""
 
 #: src/config/SSSDConfig.py:219
 msgid "Maximum nesting level SSSd will follow"
 msgstr ""
 
 #: src/config/SSSDConfig.py:221
-#, fuzzy
 msgid "Base DN for netgroup lookups"
-msgstr "Filter pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:222
-#, fuzzy
 msgid "Objectclass for netgroups"
-msgstr "Objectclass untuk pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig.py:223
 msgid "Netgroup name"
 msgstr ""
 
 #: src/config/SSSDConfig.py:224
-#, fuzzy
 msgid "Netgroups members attribute"
-msgstr "Atribut memberOf"
+msgstr ""
 
 #: src/config/SSSDConfig.py:225
-#, fuzzy
 msgid "Netgroup triple attribute"
-msgstr "Atribut waktu modifikasi"
+msgstr ""
 
 #: src/config/SSSDConfig.py:226
-#, fuzzy
 msgid "Netgroup UUID attribute"
-msgstr "Atribut UUID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:227
-#, fuzzy
 msgid "Modification time attribute for netgroups"
-msgstr "Atribut waktu modifikasi"
+msgstr ""
 
 #: src/config/SSSDConfig.py:230
 msgid "Policy to evaluate the password expiration"
@@ -742,41 +704,40 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2398
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2371
+#: src/monitor/monitor.c:2400
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2402
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2404
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1572 src/providers/ldap/ldap_child.c:368
+#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:370
+#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:372
+#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:374
-#, fuzzy
+#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
 msgid "An open file descriptor for the debug logs"
-msgstr "Mengatur verbosity dari pencatatan debug"
+msgstr ""
 
 #: src/providers/data_provider_be.c:1363
 msgid "Domain of the information provider (mandatory)"
@@ -833,9 +794,8 @@ msgid "Your password will expire in %d %s."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:734
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr "Otentikasi luring, otentikasi ditolak sampai:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:755
 msgid "System is offline, password change not possible"
@@ -921,9 +881,8 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
-#, fuzzy
 msgid "Specify group to add to\n"
-msgstr "Tentukan grup untuk ditambahkan\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:108
 msgid "Specify user to add\n"
@@ -1064,9 +1023,8 @@ msgid "Groups to remove this group from"
 msgstr ""
 
 #: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
-#, fuzzy
 msgid "Specify group to remove from\n"
-msgstr "Tentukan grup untuk dimodifikasi\n"
+msgstr ""
 
 #: src/tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
@@ -1110,9 +1068,9 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Kesalahan transaksi. Tidak bisa memodifikasi grup.\n"
 
 #: src/tools/sss_groupshow.c:562
-#, fuzzy, c-format
+#, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "Grup"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
@@ -1147,23 +1105,18 @@ msgid "Print indirect group members recursively"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:650
-#, fuzzy
 msgid "Specify group to show\n"
-msgstr "Tentukan grup untuk ditambahkan\n"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:689
-#, fuzzy
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Tidak ada grup seperti itu di domain lokal. Menghapus grup hanya "
-"diperbolehkan dalam domain lokal.\n"
 
 #: src/tools/sss_groupshow.c:694
-#, fuzzy
 msgid "Internal error. Could not print group.\n"
-msgstr "Kesalahan internal. Tidak dapat menghapus grup.\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:133
 msgid "Remove home directory and mail spool"
@@ -1291,20 +1244,3 @@ msgstr "%s harus dijalankan sebagai root\n"
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
-
-#, fuzzy
-#~ msgid "sssd must be run as root\n"
-#~ msgstr "%s harus dijalankan sebagai root\n"
-
-#~ msgid "Offline authentication"
-#~ msgstr "Otentikasi luring"
-
-#~ msgid "The GID or group name of the user"
-#~ msgstr "GID atau nama grup pengguna"
-
-#~ msgid "Cannot get group information for the user\n"
-#~ msgstr "Tidak bisa mendapatkan informasi grup untuk pengguna\n"
-
-#, fuzzy
-#~ msgid "Cannot initiate search\n"
-#~ msgstr "Tidak bisa mendapatkan info tentang pengguna\n"

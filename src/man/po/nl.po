@@ -1,16 +1,17 @@
 # SOME DESCRIPTIVE TITLE
 # Copyright (C) YEAR Red Hat
 # This file is distributed under the same license as the sssd-docs package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+# Translators:
+# Wijnand Modderman-Lenstra <accounts-transifex@maze.io>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2011-12-19 11:14-0500\n"
-"PO-Revision-Date: 2011-03-08 15:06+0000\n"
+"POT-Creation-Date: 2011-12-22 13:37-0500\n"
+"PO-Revision-Date: 2011-12-21 10:12+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language-Team: Dutch (http://www.transifex.net/projects/p/fedora/team/nl/)\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -439,10 +440,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:189
-#, fuzzy
-#| msgid "re_expression (string)"
 msgid "krb5_rcache_dir (string)"
-msgstr "re_expression (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:192
@@ -450,6 +449,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Map in het bestandssysteem waarin SSSD Kerberos replay cache bestanden moet "
+"opslaan."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:196
@@ -523,17 +524,13 @@ msgstr "Standaard: true"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:245
-#, fuzzy
-#| msgid "debug_timestamps (bool)"
 msgid "debug_microseconds (bool)"
-msgstr "debug_timestamps (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:248
-#, fuzzy
-#| msgid "Add a timestamp to the debug messages"
 msgid "Add microseconds to the timestamp in debug messages"
-msgstr "Voeg een tijdstempel toe aan de debugberichten"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:251 sssd-ldap.5.xml:592 sssd-ldap.5.xml:1156
@@ -627,10 +624,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:334
-#, fuzzy
-#| msgid "Default: 0"
 msgid "Default: 50"
-msgstr "Standaard: 0"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:339
@@ -712,10 +707,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:398
-#, fuzzy
-#| msgid "domains"
 msgid "domain name"
-msgstr "domeinen"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:401
@@ -820,10 +813,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:464
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: /bin/sh"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:471
@@ -1385,10 +1376,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:927
-#, fuzzy
-#| msgid "reconnection_retries (integer)"
 msgid "override_gid (integer)"
-msgstr "reconnection_retries (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:930
@@ -1397,10 +1386,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:936
-#, fuzzy
-#| msgid "try_inotify (boolean)"
 msgid "case_sensitive (boolean)"
-msgstr "try_inotify (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:939
@@ -1411,10 +1398,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:944
-#, fuzzy
-#| msgid "Default: true"
 msgid "Default: True"
-msgstr "Standaard: true"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:601
@@ -1904,10 +1889,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:212
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: password"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:218
@@ -2272,10 +2255,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:535 sssd-ldap.5.xml:549
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: loginDisabled"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:541
@@ -2454,10 +2435,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:692
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: host"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:698
@@ -2714,10 +2693,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:968
-#, fuzzy
-#| msgid "reconnection_retries (integer)"
 msgid "ldap_connection_expire_timeout (integer)"
-msgstr "reconnection_retries (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:971
@@ -2730,17 +2707,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:979
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: 900 (15 minutes)"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:985
-#, fuzzy
-#| msgid "debug_level (integer)"
 msgid "ldap_page_size (integer)"
-msgstr "debug_level (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:988
@@ -2751,17 +2724,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:993
-#, fuzzy
-#| msgid "Default: 120"
 msgid "Default: 1000"
-msgstr "Standaard: 120"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:999
-#, fuzzy
-#| msgid "debug_level (integer)"
 msgid "ldap_deref_threshold (integer)"
-msgstr "debug_level (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1002
@@ -2979,10 +2948,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1197
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: false;"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1203
@@ -3077,10 +3044,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1284 sssd-ipa.5.xml:183 sssd-krb5.5.xml:409
-#, fuzzy
-#| msgid "try_inotify (boolean)"
 msgid "krb5_canonicalize (boolean)"
-msgstr "try_inotify (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1287
@@ -3703,17 +3668,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:22
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgid ""
 "The Kerberos locator plugin <command>sssd_krb5_locator_plugin</command> is "
 "used by the Kerberos provider of <citerefentry> <refentrytitle>sssd</"
@@ -3727,15 +3681,6 @@ msgid ""
 "<refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>"
 msgstr ""
-"<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:48
@@ -4082,10 +4027,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:199
-#, fuzzy
-#| msgid "reconnection_retries (integer)"
 msgid "ipa_hbac_refresh (integer)"
-msgstr "reconnection_retries (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:202
@@ -4097,10 +4040,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:209
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: 5 (seconds)"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:214
@@ -4132,10 +4073,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:236
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: DENY_ALL"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:241
@@ -4173,10 +4112,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:274
-#, fuzzy
-#| msgid "Default: true"
 msgid "Default: memberUser"
-msgstr "Standaard: true"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:279
@@ -4192,10 +4129,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:286
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: memberHost"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:291
@@ -4211,17 +4146,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:298
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: externalHost"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:303
-#, fuzzy
-#| msgid "full_name_format (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr "full_name_format (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:306
@@ -4230,10 +4161,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:310
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: nisDomainName"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:316
@@ -4247,10 +4176,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:322
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: ipaHost"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:327
@@ -4264,10 +4191,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:333
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: fqdn"
-msgstr "Standaard: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:348
@@ -4336,39 +4261,23 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:53
-#, fuzzy
-#| msgid ""
-#| "<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgstr ""
-"<option>-a</option>,<option>--append-group</option> <replaceable>GROEPEN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:57
-#, fuzzy
-#| msgid "Add a timestamp to the debug messages"
 msgid "<emphasis>1</emphasis>: Add a timestamp to the debug messages"
-msgstr "Voeg een tijdstempel toe aan de debugberichten"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:60
-#, fuzzy
-#| msgid "Add a timestamp to the debug messages"
 msgid "<emphasis>0</emphasis>: Disable timestamp in the debug messages"
-msgstr "Voeg een tijdstempel toe aan de debugberichten"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:69
-#, fuzzy
-#| msgid ""
-#| "<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid "<option>--debug-microseconds=</option><replaceable>mode</replaceable>"
 msgstr ""
-"<option>-r</option>,<option>--remove-group</option> <replaceable>GROEPEN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:73
@@ -5146,10 +5055,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:400
-#, fuzzy
-#| msgid "re_expression (string)"
 msgid "krb5_fast_principal (string)"
-msgstr "re_expression (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:403

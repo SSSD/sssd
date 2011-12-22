@@ -1,20 +1,21 @@
-# French translation of SSS Client
-# Copyright (C) 2009 Red Hat, Inc.
-# This file is distributed under the same license as the SSSD package.
-# Pablo Martin-Gomez <pablo.martin-gomez@laposte.net>, 2009.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Red Hat, Inc.
+# This file is distributed under the same license as the PACKAGE package.
 #
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: fr\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-19 11:15-0500\n"
-"PO-Revision-Date: 2009-11-17 21:05+0100\n"
-"Last-Translator: Pablo Martin-Gomez <pablo.martin-gomez@laposte.net>\n"
-"Language-Team: Français <fedora-trans-fr@redhat.com>\n"
-"Language: \n"
+"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1)\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -156,9 +157,8 @@ msgid "Access control provider"
 msgstr ""
 
 #: src/config/SSSDConfig.py:80
-#, fuzzy
 msgid "Password change provider"
-msgstr "Le mot de passe a expiré."
+msgstr ""
 
 #: src/config/SSSDConfig.py:83
 msgid "Minimum user ID"
@@ -704,38 +704,38 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2398
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2371
+#: src/monitor/monitor.c:2400
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2402
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2404
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1572 src/providers/ldap/ldap_child.c:368
+#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:370
+#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:372
+#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:374
+#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
@@ -789,9 +789,9 @@ msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:685
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr "Le mot de passe a expiré."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:734
 msgid "Authentication is denied until: "
@@ -802,9 +802,8 @@ msgid "System is offline, password change not possible"
 msgstr ""
 
 #: src/sss_client/pam_sss.c:785 src/sss_client/pam_sss.c:798
-#, fuzzy
 msgid "Password change failed. "
-msgstr "Le mot de passe a expiré."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:788 src/sss_client/pam_sss.c:799
 msgid "Server message: "
@@ -823,9 +822,8 @@ msgid "Password: "
 msgstr "Mot de passe : "
 
 #: src/sss_client/pam_sss.c:1336
-#, fuzzy
 msgid "Current Password: "
-msgstr "Nouveau mot de passe : "
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1483
 msgid "Password expired. Change your password now."

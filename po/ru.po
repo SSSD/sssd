@@ -1,23 +1,22 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: ru\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-19 11:15-0500\n"
-"PO-Revision-Date: 2010-04-07 21:39+0300\n"
-"Last-Translator: Dmitry Drozdov <dmi3652@gmail.com>\n"
-"Language-Team: Russian <fedora-trans-ru@redhat.com>\n"
+"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"Language-Team: Russian <trans-ru@lists.fedoraproject.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Poedit-Language: Russian\n"
-"X-Poedit-Country: RUSSIAN FEDERATION\n"
-"X-Poedit-Bookmarks: 78,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -28,9 +27,8 @@ msgid "Include timestamps in debug logs"
 msgstr "Добавить отметки времени в журнал отладки"
 
 #: src/config/SSSDConfig.py:41
-#, fuzzy
 msgid "Include microseconds in timestamps in debug logs"
-msgstr "Добавить отметки времени в журнал отладки"
+msgstr ""
 
 #: src/config/SSSDConfig.py:42
 msgid "Write debug messages to logfiles"
@@ -314,9 +312,8 @@ msgid "Selects the principal to use for FAST"
 msgstr ""
 
 #: src/config/SSSDConfig.py:125
-#, fuzzy
 msgid "Enables principal canonicalization"
-msgstr "Включить проверку учётных данных"
+msgstr ""
 
 #: src/config/SSSDConfig.py:128
 msgid "Server where the change password service is running if not on the KDC"
@@ -365,23 +362,20 @@ msgid "Use only the upper case for realm names"
 msgstr ""
 
 #: src/config/SSSDConfig.py:141
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "Файл, содержащий CA сертификаты"
+msgstr ""
 
 #: src/config/SSSDConfig.py:142
 msgid "Path to CA certificate directory"
 msgstr ""
 
 #: src/config/SSSDConfig.py:143
-#, fuzzy
 msgid "File that contains the client certificate"
-msgstr "Файл, содержащий CA сертификаты"
+msgstr ""
 
 #: src/config/SSSDConfig.py:144
-#, fuzzy
 msgid "File that contains the client key"
-msgstr "Файл, содержащий CA сертификаты"
+msgstr ""
 
 #: src/config/SSSDConfig.py:145
 msgid "List of possible ciphers suites"
@@ -400,14 +394,12 @@ msgid "Specify the sasl authorization id to use"
 msgstr "Укажите идентификатор авторизации sasl"
 
 #: src/config/SSSDConfig.py:149
-#, fuzzy
 msgid "Specify the sasl authorization realm to use"
-msgstr "Укажите идентификатор авторизации sasl"
+msgstr ""
 
 #: src/config/SSSDConfig.py:150
-#, fuzzy
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "Укажите идентификатор авторизации sasl"
+msgstr ""
 
 #: src/config/SSSDConfig.py:151
 msgid "Kerberos service keytab"
@@ -422,18 +414,16 @@ msgid "Follow LDAP referrals"
 msgstr "Следовать ссылкам LDAP"
 
 #: src/config/SSSDConfig.py:154
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Использовать проверку подлинности Kerberos для LDAP-соединения"
+msgstr ""
 
 #: src/config/SSSDConfig.py:155
 msgid "How to dereference aliases"
 msgstr ""
 
 #: src/config/SSSDConfig.py:156
-#, fuzzy
 msgid "Service name for DNS service lookups"
-msgstr "Фильтр поиска"
+msgstr ""
 
 #: src/config/SSSDConfig.py:157
 msgid "The number of records to retrieve in a single LDAP query"
@@ -450,14 +440,12 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:161
-#, fuzzy
 msgid "entryUSN attribute"
-msgstr "Атрибут «UID»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:162
-#, fuzzy
 msgid "lastUSN attribute"
-msgstr "Атрибут «UID»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:164
 msgid "How long to retain a connection to the LDAP server before disconnecting"
@@ -468,23 +456,20 @@ msgid "Length of time to wait for a search request"
 msgstr "Временной интервал, в течение которого ожидать поискового запроса"
 
 #: src/config/SSSDConfig.py:168
-#, fuzzy
 msgid "Length of time to wait for a enumeration request"
-msgstr "Временной интервал, в течение которого ожидать поискового запроса"
+msgstr ""
 
 #: src/config/SSSDConfig.py:169
 msgid "Length of time between enumeration updates"
 msgstr "Временной интервал между обновлениями перечисления"
 
 #: src/config/SSSDConfig.py:170
-#, fuzzy
 msgid "Length of time between cache cleanups"
-msgstr "Временной интервал между обновлениями перечисления"
+msgstr ""
 
 #: src/config/SSSDConfig.py:171
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Требуется TLS для поиска ID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:172
 msgid "Base DN for user lookups"
@@ -551,34 +536,28 @@ msgid "shadowLastChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:190
-#, fuzzy
 msgid "shadowMin attribute"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:191
-#, fuzzy
 msgid "shadowMax attribute"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:192
-#, fuzzy
 msgid "shadowWarning attribute"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:193
-#, fuzzy
 msgid "shadowInactive attribute"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:194
-#, fuzzy
 msgid "shadowExpire attribute"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:195
-#, fuzzy
 msgid "shadowFlag attribute"
-msgstr "Атрибут оболочки"
+msgstr ""
 
 #: src/config/SSSDConfig.py:196
 msgid "Attribute listing authorized PAM services"
@@ -593,119 +572,100 @@ msgid "krbLastPwdChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:199
-#, fuzzy
 msgid "krbPasswordExpiration attribute"
-msgstr "Атрибут времени изменения"
+msgstr ""
 
 #: src/config/SSSDConfig.py:200
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
 #: src/config/SSSDConfig.py:201
-#, fuzzy
 msgid "accountExpires attribute of AD"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:202
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
 #: src/config/SSSDConfig.py:203
-#, fuzzy
 msgid "nsAccountLock attribute"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:204
-#, fuzzy
 msgid "loginDisabled attribute of NDS"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:205
-#, fuzzy
 msgid "loginExpirationTime attribute of NDS"
-msgstr "Атрибут «username»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:206
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr ""
 
 #: src/config/SSSDConfig.py:208
-#, fuzzy
 msgid "Base DN for group lookups"
-msgstr "Base DN для поиска"
+msgstr ""
 
 #: src/config/SSSDConfig.py:211
-#, fuzzy
 msgid "Objectclass for groups"
-msgstr "Objectclass для пользователей"
+msgstr ""
 
 #: src/config/SSSDConfig.py:212
-#, fuzzy
 msgid "Group name"
-msgstr "Группы"
+msgstr ""
 
 #: src/config/SSSDConfig.py:213
-#, fuzzy
 msgid "Group password"
-msgstr "Группы"
+msgstr ""
 
 #: src/config/SSSDConfig.py:214
-#, fuzzy
 msgid "GID attribute"
-msgstr "Атрибут «UID»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:215
-#, fuzzy
 msgid "Group member attribute"
-msgstr "Атрибут memberOf"
+msgstr ""
 
 #: src/config/SSSDConfig.py:216
-#, fuzzy
 msgid "Group UUID attribute"
-msgstr "Атрибут «UUID»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:217
-#, fuzzy
 msgid "Modification time attribute for groups"
-msgstr "Атрибут времени изменения"
+msgstr ""
 
 #: src/config/SSSDConfig.py:219
 msgid "Maximum nesting level SSSd will follow"
 msgstr ""
 
 #: src/config/SSSDConfig.py:221
-#, fuzzy
 msgid "Base DN for netgroup lookups"
-msgstr "Base DN для поиска"
+msgstr ""
 
 #: src/config/SSSDConfig.py:222
-#, fuzzy
 msgid "Objectclass for netgroups"
-msgstr "Objectclass для пользователей"
+msgstr ""
 
 #: src/config/SSSDConfig.py:223
 msgid "Netgroup name"
 msgstr ""
 
 #: src/config/SSSDConfig.py:224
-#, fuzzy
 msgid "Netgroups members attribute"
-msgstr "Атрибут memberOf"
+msgstr ""
 
 #: src/config/SSSDConfig.py:225
-#, fuzzy
 msgid "Netgroup triple attribute"
-msgstr "Атрибут времени изменения"
+msgstr ""
 
 #: src/config/SSSDConfig.py:226
-#, fuzzy
 msgid "Netgroup UUID attribute"
-msgstr "Атрибут «UUID»"
+msgstr ""
 
 #: src/config/SSSDConfig.py:227
-#, fuzzy
 msgid "Modification time attribute for netgroups"
-msgstr "Атрибут времени изменения"
+msgstr ""
 
 #: src/config/SSSDConfig.py:230
 msgid "Policy to evaluate the password expiration"
@@ -755,38 +715,38 @@ msgstr "Имя используемой библиотеки NSS"
 msgid "PAM stack to use"
 msgstr "Используемый стек PAM"
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2398
 msgid "Become a daemon (default)"
 msgstr "Запускаться в качестве службы (по умолчанию)"
 
-#: src/monitor/monitor.c:2371
+#: src/monitor/monitor.c:2400
 msgid "Run interactive (not a daemon)"
 msgstr "Запускаться интерактивно (не службой)"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2402
 msgid "Specify a non-default config file"
 msgstr "Указать файл конфигурации"
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2404
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1572 src/providers/ldap/ldap_child.c:368
+#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Уровень отладки"
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:370
+#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Добавить отладочные отметки времени"
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:372
+#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:374
+#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
 msgid "An open file descriptor for the debug logs"
 msgstr "Открытый дескриптор файла для журналов отладки"
 
@@ -803,9 +763,8 @@ msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
 #: src/sss_client/common.c:845
-#, fuzzy
 msgid "Unexpected format of the server credential message."
-msgstr "Расположения кэша учётных данных пользователей"
+msgstr ""
 
 #: src/sss_client/common.c:848
 msgid "SSSD is not run by root."
@@ -841,14 +800,13 @@ msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:685
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr ", срок действия вашего кэшированного пароль истечёт:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:734
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr "Автономная проверка подлинности, проверка подлинности запрещена до:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:755
 msgid "System is offline, password change not possible"
@@ -914,9 +872,8 @@ msgid "Create user's directory if it does not exist"
 msgstr "Создать каталог пользователя, если он не существует"
 
 #: src/tools/sss_useradd.c:55
-#, fuzzy
 msgid "Never create user's directory, overrides config"
-msgstr "Никогда не создавать каталог пользователя"
+msgstr ""
 
 #: src/tools/sss_useradd.c:56
 msgid "Specify an alternative skeleton directory"
@@ -930,15 +887,13 @@ msgstr ""
 #: src/tools/sss_groupdel.c:52 src/tools/sss_groupmod.c:63
 #: src/tools/sss_groupshow.c:626 src/tools/sss_userdel.c:148
 #: src/tools/sss_usermod.c:72
-#, fuzzy
 msgid "Error setting the locale\n"
-msgstr "Ошибка установки локали\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
-#, fuzzy
 msgid "Specify group to add to\n"
-msgstr "Укажите группу для добавления\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:108
 msgid "Specify user to add\n"
@@ -1079,9 +1034,8 @@ msgid "Groups to remove this group from"
 msgstr "Группы, из которых удалить эту группу"
 
 #: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
-#, fuzzy
 msgid "Specify group to remove from\n"
-msgstr "Укажите группу для изменения\n"
+msgstr ""
 
 #: src/tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
@@ -1143,13 +1097,11 @@ msgid "%sMember users: "
 msgstr "%sПользователи: "
 
 #: src/tools/sss_groupshow.c:574
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
-"\n"
-"%sIs является участником: "
 
 #: src/tools/sss_groupshow.c:581
 #, c-format
@@ -1304,39 +1256,3 @@ msgstr "%s должно выполняться от имени root\n"
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"
 msgstr "Отправлять отладочные сообщения в файлы, а не в stderr"
-
-#~ msgid "Ping timeout before restarting domain"
-#~ msgstr "Тайм-аут ping до перезапуска домена"
-
-#~ msgid "sssd must be run as root\n"
-#~ msgstr "sssd должен выполняться от имени root\n"
-
-#~ msgid ""
-#~ "nscd socket was detected.  As nscd caching capabilities may conflict with "
-#~ "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
-#~ msgstr ""
-#~ "был обнаружен сокет nscd. Возможности по кэшированию nscd могут "
-#~ "конфликтовать с SSSD, поэтому рекомендуется не запускать nscd "
-#~ "одновременно с SSSD\n"
-
-#~ msgid ""
-#~ "Cannot read config file %s, please check if permissions are 0600 and the "
-#~ "file is owned by root.root\n"
-#~ msgstr ""
-#~ "Не удалось прочитать файл конфигурации %s, убедитесь, что права доступа "
-#~ "файла 0600 и владелец - root.root\n"
-
-#~ msgid "The principal of the change password service"
-#~ msgstr "Основной элемент службы смены пароля"
-
-#~ msgid "Offline authentication"
-#~ msgstr "Автономная проверка подлинности"
-
-#~ msgid "The GID or group name of the user"
-#~ msgstr "GID или имя группы пользователя"
-
-#~ msgid "Cannot get group information for the user\n"
-#~ msgstr "Не удалось получить информацию о группе для пользователя\n"
-
-#~ msgid "Cannot initiate search\n"
-#~ msgstr "Невозможно начать поиск\n"

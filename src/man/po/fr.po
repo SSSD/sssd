@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2011-12-19 11:14-0500\n"
-"PO-Revision-Date: 2011-09-18 15:37+0000\n"
-"Last-Translator: MarbolanGos <marbolangos@gmail.com>\n"
+"POT-Creation-Date: 2011-12-22 13:37-0500\n"
+"PO-Revision-Date: 2011-12-21 10:12+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -431,10 +431,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:189
-#, fuzzy
-#| msgid "krb5_ccachedir (string)"
 msgid "krb5_rcache_dir (string)"
-msgstr "krb5_ccachedir (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:192
@@ -525,17 +523,13 @@ msgstr "Défaut : true"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:245
-#, fuzzy
-#| msgid "debug_timestamps (bool)"
 msgid "debug_microseconds (bool)"
-msgstr "debug_timestamps (booléen)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:248
-#, fuzzy
-#| msgid "Add a timestamp to the debug messages"
 msgid "Add microseconds to the timestamp in debug messages"
-msgstr "Ajoute un horodatage aux messages de débogage"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:251 sssd-ldap.5.xml:592 sssd-ldap.5.xml:1156
@@ -643,10 +637,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:334
-#, fuzzy
-#| msgid "Default: 5"
 msgid "Default: 50"
-msgstr "Défaut : 5"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:339
@@ -929,19 +921,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:513
-#, fuzzy
-#| msgid ""
-#| "If set to 0 the user cannot authenticate offline if "
-#| "offline_failed_login_attempts has been reached. Only a successful online "
-#| "authentication can enable enable offline authentication again."
 msgid ""
 "If set to 0 the user cannot authenticate offline if "
 "offline_failed_login_attempts has been reached. Only a successful online "
 "authentication can enable offline authentication again."
 msgstr ""
-"Si la valeur est à 0 l'utilisateur ne peut s'authentifier en mode déconnecté "
-"si offline_failed_login_attempts est atteint. Seulement une connexion "
-"réussie en ligne peut réactiver l'authentification."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:519 sssd.conf.5.xml:572 sssd.conf.5.xml:908
@@ -1561,10 +1545,8 @@ msgstr "Redéfini le GID primaire avec la valeur spécifiée."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:936
-#, fuzzy
-#| msgid "ldap_referrals (boolean)"
 msgid "case_sensitive (boolean)"
-msgstr "ldap_referrals (booléen)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:939
@@ -1575,10 +1557,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:944
-#, fuzzy
-#| msgid "Default: true"
 msgid "Default: True"
-msgstr "Défaut : true"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:601
@@ -2016,22 +1996,12 @@ msgstr "ldap_chpass_uri (chaîne)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:88
-#, fuzzy
-#| msgid ""
-#| "Specifies the list of URIs of the LDAP servers to which SSSD should "
-#| "connect in the order of preference to change the password of a user. "
-#| "Refer to the <quote>FAILOVER</quote> section for more information on "
-#| "failover and server redundancy."
 msgid ""
 "Specifies the comma-separated list of URIs of the LDAP servers to which SSSD "
 "should connect in the order of preference to change the password of a user. "
 "Refer to the <quote>FAILOVER</quote> section for more information on "
 "failover and server redundancy."
 msgstr ""
-"Spécifie la liste des URI pour le serveur LDAP pour lesquels SSSD doit se "
-"connecter dans l'ordre de préférence pour changer le mot de passe "
-"utilisateur. Se référer à la section <quote>FAILOVER</quote> pour plus "
-"d'informations sur les « failover » et les serveurs de redondance."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:95
@@ -2083,10 +2053,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:126
-#, fuzzy
-#| msgid "Example:"
 msgid "Examples:"
-msgstr "Exemple:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:129
@@ -2113,14 +2081,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:144
-#, fuzzy
-#| msgid ""
-#| "Default: If not set the value of the defaultNamingContext or "
-#| "namingContexts attribute from the RootDSE of the LDAP server is used. If "
-#| "defaultNamingContext does not exists or has an empty value namingContexts "
-#| "is used.  The namingContexts attribute must have a single value with the "
-#| "DN of the search base of the LDAP server to make this work. Multiple "
-#| "values are are not supported."
 msgid ""
 "Default: If not set, the value of the defaultNamingContext or namingContexts "
 "attribute from the RootDSE of the LDAP server is used. If "
@@ -2129,12 +2089,6 @@ msgid ""
 "the search base of the LDAP server to make this work. Multiple values are "
 "are not supported."
 msgstr ""
-"Par défaut : si elle n'est pas définie, la valeur des attributs "
-"defaultNamingContext ou namingContexts à partir de RootDSE pour le serveur "
-"LDAP est utilisée. Si defaultNamingContext n'existe pas ou a une valeur vide "
-"namingContexts est utilisée. Les attributs namingContexts doivent avoir une "
-"seule valeur avec un DN de base de recherche pour le serveur LDAP afin "
-"d'effectuer cette tâche. Des valeurs multiples ne sont pas permises."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:158
@@ -3014,10 +2968,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:968
-#, fuzzy
-#| msgid "reconnection_retries (integer)"
 msgid "ldap_connection_expire_timeout (integer)"
-msgstr "reconnection_retries (entier)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:971
@@ -3030,10 +2982,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:979
-#, fuzzy
-#| msgid "Default: 0 (No limit)"
 msgid "Default: 900 (15 minutes)"
-msgstr "Défaut : 0 (pas de limite)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:985
@@ -3261,10 +3211,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1189
-#, fuzzy
-#| msgid "ldap_referrals (boolean)"
 msgid "ldap_sasl_canonicalize (boolean)"
-msgstr "ldap_referrals (booléen)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1192
@@ -3275,10 +3223,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1197
-#, fuzzy
-#| msgid "Default: filter"
 msgid "Default: false;"
-msgstr "Défaut : filter"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1203
@@ -3330,13 +3276,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1246 sssd-krb5.5.xml:77
-#, fuzzy
-#| msgid ""
-#| "Specifies the comma-separated list of URIs of the LDAP servers to which "
-#| "SSSD should connect in the order of preference. Refer to the "
-#| "<quote>FAILOVER</quote> section for more information on failover and "
-#| "server redundancy.  If not specified, service discovery is enabled. For "
-#| "more information, refer to the <quote>SERVICE DISCOVERY</quote> section."
 msgid ""
 "Specifies the comma-separated list of IP addresses or hostnames of the "
 "Kerberos servers to which SSSD should connect in the order of preference. "
@@ -3346,12 +3285,6 @@ msgid ""
 "discovery is enabled - for more information, refer to the <quote>SERVICE "
 "DISCOVERY</quote> section."
 msgstr ""
-"Spécifie la liste des URI des serveurs LDAP, séparées par des virgules, vers "
-"lequel SSSD doit se connecter dans l'ordre de préférence. Se référer à la "
-"section <quote>FAILOVER</quote> pour plus d'informations sur le « failover » "
-"et la redondance serveur. Si non spécifié, « service discovery » est activé. "
-"Se référer à la section <quote>SERVICE DISCOVERY</quote> pour plus "
-"d'informations."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1258 sssd-krb5.5.xml:89
@@ -3386,10 +3319,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1284 sssd-ipa.5.xml:183 sssd-krb5.5.xml:409
-#, fuzzy
-#| msgid "ldap_referrals (boolean)"
 msgid "krb5_canonicalize (boolean)"
-msgstr "ldap_referrals (booléen)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1287
@@ -3888,10 +3819,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:55
-#, fuzzy
-#| msgid "<option>retry=N</option>"
 msgid "<option>quiet</option>"
-msgstr "<option>retry=N</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:58
@@ -4014,17 +3943,6 @@ msgstr "sssd_krb5_locator_plugin"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:22
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgid ""
 "The Kerberos locator plugin <command>sssd_krb5_locator_plugin</command> is "
 "used by the Kerberos provider of <citerefentry> <refentrytitle>sssd</"
@@ -4038,15 +3956,6 @@ msgid ""
 "<refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>"
 msgstr ""
-"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:48
@@ -4253,14 +4162,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:43
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of LDAP domains for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  Refer to the <quote>FILE FORMAT</quote> "
-#| "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page for detailed syntax "
-#| "information."
 msgid ""
 "The IPA provider accepts the same options used by the <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4268,11 +4169,6 @@ msgid ""
 "krb5</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> authentication "
 "provider with some exceptions described below."
 msgstr ""
-"Ce manuel décrit la configuration des domaines LDAP pour <citerefentry> "
-"<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> </"
-"citerefentry>. Se référer à la section <quote>FILE FORMAT</quote> du manuel "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> pour des informations sur la syntaxe détaillée."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:55
@@ -4303,13 +4199,6 @@ msgstr "ipa_server (chaîne)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:86
-#, fuzzy
-#| msgid ""
-#| "Specifies the comma-separated list of URIs of the LDAP servers to which "
-#| "SSSD should connect in the order of preference. Refer to the "
-#| "<quote>FAILOVER</quote> section for more information on failover and "
-#| "server redundancy.  If not specified, service discovery is enabled. For "
-#| "more information, refer to the <quote>SERVICE DISCOVERY</quote> section."
 msgid ""
 "The comma-separated list of IP addresses or hostnames of the IPA servers to "
 "which SSSD should connect in the order of preference. For more information "
@@ -4317,12 +4206,6 @@ msgid ""
 "This is optional if autodiscovery is enabled.  For more information on "
 "service discovery, refer to the the <quote>SERVICE DISCOVERY</quote> section."
 msgstr ""
-"Spécifie la liste des URI des serveurs LDAP, séparées par des virgules, vers "
-"lequel SSSD doit se connecter dans l'ordre de préférence. Se référer à la "
-"section <quote>FAILOVER</quote> pour plus d'informations sur le « failover » "
-"et la redondance serveur. Si non spécifié, « service discovery » est activé. "
-"Se référer à la section <quote>SERVICE DISCOVERY</quote> pour plus "
-"d'informations."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:99
@@ -4486,24 +4369,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:254
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_of (string)"
-msgstr "ldap_netgroup_search_base (chaînes)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:257
-#, fuzzy
-#| msgid "The LDAP attribute that corresponds to the user's id."
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr "L'attribut LDAP correspondant à l'id utilisateur."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:266
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_user (string)"
-msgstr "ldap_netgroup_search_base (chaînes)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:269
@@ -4514,17 +4391,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:274
-#, fuzzy
-#| msgid "Default: uidNumber"
 msgid "Default: memberUser"
-msgstr "par défaut : uidNumber"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:279
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_host (string)"
-msgstr "ldap_netgroup_search_base (chaînes)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:282
@@ -4535,17 +4408,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:286
-#, fuzzy
-#| msgid "Default: root"
 msgid "Default: memberHost"
-msgstr "Défaut : root"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:291
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_ext_host (string)"
-msgstr "ldap_netgroup_search_base (chaînes)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:294
@@ -4556,73 +4425,53 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:298
-#, fuzzy
-#| msgid "Default: root"
 msgid "Default: externalHost"
-msgstr "Défaut : root"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:303
-#, fuzzy
-#| msgid "ipa_domain (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr "ipa_domain (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:306
-#, fuzzy
-#| msgid "The LDAP attribute that corresponds to the user's id."
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr "L'attribut LDAP correspondant à l'id utilisateur."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:310
-#, fuzzy
-#| msgid "Default: uidNumber"
 msgid "Default: nisDomainName"
-msgstr "par défaut : uidNumber"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:316
-#, fuzzy
-#| msgid "ldap_user_object_class (string)"
 msgid "ipa_host_object_class (string)"
-msgstr "ldap_user_object_class (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:319
-#, fuzzy
-#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of a host entry in LDAP."
-msgstr "La classe objet d'une entrée utilisateur dans LDAP."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:322
-#, fuzzy
-#| msgid "Default: root"
 msgid "Default: ipaHost"
-msgstr "Défaut : root"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:327
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ipa_host_fqdn (string)"
-msgstr "ipa_hostname (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:330
-#, fuzzy
-#| msgid "The LDAP attribute that corresponds to the user's id."
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr "L'attribut LDAP correspondant à l'id utilisateur."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:333
-#, fuzzy
-#| msgid "Default: uid"
 msgid "Default: fqdn"
-msgstr "Par défaut : uid"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:348
@@ -4693,52 +4542,34 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:53
-#, fuzzy
-#| msgid ""
-#| "<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
-#| "replaceable>"
 msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:57
-#, fuzzy
-#| msgid "Add a timestamp to the debug messages"
 msgid "<emphasis>1</emphasis>: Add a timestamp to the debug messages"
-msgstr "Ajoute un horodatage aux messages de débogage"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:60
-#, fuzzy
-#| msgid "<emphasis>1</emphasis>: show only important messages"
 msgid "<emphasis>0</emphasis>: Disable timestamp in the debug messages"
-msgstr "<emphasis>1</emphasis> : afficher seulement les messages importants"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:69
-#, fuzzy
-#| msgid ""
-#| "<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
 msgid "<option>--debug-microseconds=</option><replaceable>mode</replaceable>"
 msgstr ""
-"<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:73
-#, fuzzy
-#| msgid "<emphasis>1</emphasis>: show only important messages"
 msgid ""
 "<emphasis>1</emphasis>: Add microseconds to the timestamp in debug messages"
-msgstr "<emphasis>1</emphasis> : afficher seulement les messages importants"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:76
-#, fuzzy
-#| msgid "<emphasis>0</emphasis>: do not show any message"
 msgid "<emphasis>0</emphasis>: Disable microseconds in timestamp"
-msgstr "<emphasis>0</emphasis> : ne pas afficher de message"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:79
@@ -4794,10 +4625,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:135
-#, fuzzy
-#| msgid "<option>retry=N</option>"
 msgid "<option>--version</option>"
-msgstr "<option>retry=N</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:139
@@ -6069,10 +5898,3 @@ msgstr "<option>-h</option>,<option>--help</option>"
 #: include/param_help.xml:7
 msgid "Display help message and exit."
 msgstr "Affiche l'aide et quitte."
-
-#~ msgid ""
-#~ "Sets the debug level for the service. The value can be in range from 0 "
-#~ "(only critical messages) to 10 (very verbose)."
-#~ msgstr ""
-#~ "Définir le niveau de débogage du service. La valeur peut être entre 0 "
-#~ "(seulement les erreurs critiques) et 10 (très détaillé)."
