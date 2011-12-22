@@ -3,13 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+#   <ptr@ulx.hu>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-19 11:15-0500\n"
-"PO-Revision-Date: 2010-11-30 04:10+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Hungarian <trans-hu@lists.fedoraproject.org>\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
@@ -85,11 +86,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:59
 msgid "Users that SSSD should explicitly ignore"
-msgstr ""
+msgstr "SSSD által figyelmen kívül hagyott felhasználók"
 
 #: src/config/SSSDConfig.py:60
 msgid "Groups that SSSD should explicitly ignore"
-msgstr ""
+msgstr "SSSD által figyelmen kívül hagyott csoportok"
 
 #: src/config/SSSDConfig.py:61
 msgid "Should filtered users appear in groups"
@@ -124,7 +125,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:70
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "Hány sikertelen bejelentkezés engedélyezett offline állapotban"
 
 #: src/config/SSSDConfig.py:71
 msgid ""
@@ -150,7 +151,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:78
 msgid "Authentication provider"
-msgstr ""
+msgstr "Azonosító-kiszolgáló"
 
 #: src/config/SSSDConfig.py:79
 msgid "Access control provider"
@@ -162,11 +163,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:83
 msgid "Minimum user ID"
-msgstr ""
+msgstr "Legkisebb felhasználói azonosító"
 
 #: src/config/SSSDConfig.py:84
 msgid "Maximum user ID"
-msgstr ""
+msgstr "Legnagyobb felhasználói azonosító"
 
 #: src/config/SSSDConfig.py:85
 msgid "Enable enumerating all users/groups"
@@ -174,11 +175,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:86
 msgid "Cache credentials for offline login"
-msgstr ""
+msgstr "Azonosítók gyorsítótárazása offline használathoz"
 
 #: src/config/SSSDConfig.py:87
 msgid "Store password hashes"
-msgstr ""
+msgstr "Jelszó hash-ek tárolása"
 
 #: src/config/SSSDConfig.py:88
 msgid "Display users/groups in fully-qualified form"
@@ -215,15 +216,15 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:98
 msgid "IPA domain"
-msgstr ""
+msgstr "IPA-tartomány"
 
 #: src/config/SSSDConfig.py:99
 msgid "IPA server address"
-msgstr ""
+msgstr "IPA kiszolgáló címe"
 
 #: src/config/SSSDConfig.py:100
 msgid "IPA client hostname"
-msgstr ""
+msgstr "IPA kliens hosztneve"
 
 #: src/config/SSSDConfig.py:101
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
@@ -252,11 +253,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:109 src/config/SSSDConfig.py:110
 msgid "Kerberos server address"
-msgstr ""
+msgstr "Kerberos-kiszolgáló címe"
 
 #: src/config/SSSDConfig.py:111
 msgid "Kerberos realm"
-msgstr ""
+msgstr "Kerberos-tartomány"
 
 #: src/config/SSSDConfig.py:112
 msgid "Authentication timeout"
@@ -316,7 +317,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:132
 msgid "The default base DN"
-msgstr ""
+msgstr "Alapértelmezett LDAP alap-DN-je"
 
 #: src/config/SSSDConfig.py:133
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -372,7 +373,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:146
 msgid "Require TLS certificate verification"
-msgstr ""
+msgstr "TLS tanusítvány ellenőrzése"
 
 #: src/config/SSSDConfig.py:147
 msgid "Specify the sasl mechanism to use"
@@ -458,7 +459,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:171
 msgid "Require TLS for ID lookups"
-msgstr ""
+msgstr "TLS megkövetelése ID keresésekor"
 
 #: src/config/SSSDConfig.py:172
 msgid "Base DN for user lookups"
@@ -490,7 +491,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:180
 msgid "GECOS attribute"
-msgstr ""
+msgstr "GECOS attribútum"
 
 #: src/config/SSSDConfig.py:181
 msgid "Home directory attribute"
@@ -510,7 +511,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:185
 msgid "Full Name"
-msgstr ""
+msgstr "Teljes név"
 
 #: src/config/SSSDConfig.py:186
 msgid "memberOf attribute"
@@ -602,11 +603,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:212
 msgid "Group name"
-msgstr ""
+msgstr "Csoport neve"
 
 #: src/config/SSSDConfig.py:213
 msgid "Group password"
-msgstr ""
+msgstr "Csoport jelszava"
 
 #: src/config/SSSDConfig.py:214
 msgid "GID attribute"
@@ -704,38 +705,38 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2398
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2371
+#: src/monitor/monitor.c:2400
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2402
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2404
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1572 src/providers/ldap/ldap_child.c:368
+#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:370
+#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:372
+#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
-msgstr ""
+msgstr "Mikroszekundum pontosságú időbélyegek"
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:374
+#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
@@ -769,7 +770,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:374
 msgid "Passwords do not match"
-msgstr ""
+msgstr "A jelszavak nem egyeznek"
 
 #: src/sss_client/pam_sss.c:567
 msgid "Password reset by root is not supported."
@@ -777,25 +778,25 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:608
 msgid "Authenticated with cached credentials"
-msgstr ""
+msgstr "Azonosítva gyorsítótárazott adatbázisból"
 
 #: src/sss_client/pam_sss.c:609
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", a gyorsítótárazott jelszó lejár ekkor: "
 
 #: src/sss_client/pam_sss.c:639
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "A jelszava lejárt. Még %d bejelentkezés engedélyezett."
 
 #: src/sss_client/pam_sss.c:685
 #, c-format
 msgid "Your password will expire in %d %s."
-msgstr ""
+msgstr "A jelszava le fog járni %d %s múlva."
 
 #: src/sss_client/pam_sss.c:734
 msgid "Authentication is denied until: "
-msgstr ""
+msgstr "A bejelentkezés tiltott eddig:"
 
 #: src/sss_client/pam_sss.c:755
 msgid "System is offline, password change not possible"
@@ -803,31 +804,31 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:785 src/sss_client/pam_sss.c:798
 msgid "Password change failed. "
-msgstr ""
+msgstr "A jelszó megváltoztatása nem sikerült."
 
 #: src/sss_client/pam_sss.c:788 src/sss_client/pam_sss.c:799
 msgid "Server message: "
-msgstr ""
+msgstr "Szerver üzenete:"
 
 #: src/sss_client/pam_sss.c:1217
 msgid "New Password: "
-msgstr ""
+msgstr "Új jelszó:"
 
 #: src/sss_client/pam_sss.c:1218
 msgid "Reenter new Password: "
-msgstr ""
+msgstr "Jelszó mégegyszer: "
 
 #: src/sss_client/pam_sss.c:1304
 msgid "Password: "
-msgstr ""
+msgstr "Jelszó: "
 
 #: src/sss_client/pam_sss.c:1336
 msgid "Current Password: "
-msgstr ""
+msgstr "Jelenlegi jelszó:"
 
 #: src/sss_client/pam_sss.c:1483
 msgid "Password expired. Change your password now."
-msgstr ""
+msgstr "A jelszava lejárt, változtass meg most."
 
 #: src/tools/sss_useradd.c:48 src/tools/sss_groupadd.c:41
 #: src/tools/sss_groupdel.c:43 src/tools/sss_groupmod.c:42
@@ -838,7 +839,7 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
-msgstr ""
+msgstr "A felhasználó UID-je"
 
 #: src/tools/sss_useradd.c:50 src/tools/sss_usermod.c:50
 msgid "The comment string"
@@ -846,23 +847,23 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:51 src/tools/sss_usermod.c:51
 msgid "Home directory"
-msgstr ""
+msgstr "Saját könyvtár"
 
 #: src/tools/sss_useradd.c:52 src/tools/sss_usermod.c:52
 msgid "Login shell"
-msgstr ""
+msgstr "Bejelentkező shell"
 
 #: src/tools/sss_useradd.c:53
 msgid "Groups"
-msgstr ""
+msgstr "Csoportok"
 
 #: src/tools/sss_useradd.c:54
 msgid "Create user's directory if it does not exist"
-msgstr ""
+msgstr "Felhasználó könyvtárának létrehozása, ha nem létezik"
 
 #: src/tools/sss_useradd.c:55
 msgid "Never create user's directory, overrides config"
-msgstr ""
+msgstr "Ne hozza létre a felhasználó könyvtárát"
 
 #: src/tools/sss_useradd.c:56
 msgid "Specify an alternative skeleton directory"
@@ -927,11 +928,11 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
-msgstr ""
+msgstr "Nem lehet beállítani az alapértékeket\n"
 
 #: src/tools/sss_useradd.c:175 src/tools/sss_usermod.c:151
 msgid "The selected UID is outside the allowed range\n"
-msgstr ""
+msgstr "A megadott UID kívül esik a megengedett tartományon\n"
 
 #: src/tools/sss_useradd.c:202 src/tools/sss_usermod.c:236
 msgid "Cannot set SELinux login context\n"
@@ -939,16 +940,18 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:217
 msgid "Cannot get info about the user\n"
-msgstr ""
+msgstr "Nem áll rendelkezésre információ a felhasználóról\n"
 
 #: src/tools/sss_useradd.c:229
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
+"A felhasználó könyvtára már létezik, a skel könyvtár tartalmát nem másolom "
+"bele\n"
 
 #: src/tools/sss_useradd.c:232
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr ""
+msgstr "Nem sikerült létrehozni a felhasználó könyvtárát: %s\n"
 
 #: src/tools/sss_useradd.c:243
 #, c-format
@@ -965,11 +968,11 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:265
 msgid "Transaction error. Could not add user.\n"
-msgstr ""
+msgstr "Tranzakcióhiba történt, nem lehetett létrehozni a felhasználót.\n"
 
 #: src/tools/sss_groupadd.c:43 src/tools/sss_groupmod.c:48
 msgid "The GID of the group"
-msgstr ""
+msgstr "A csoport GID-je"
 
 #: src/tools/sss_groupadd.c:73
 msgid "Specify group to add\n"
@@ -1068,7 +1071,7 @@ msgstr ""
 #: src/tools/sss_groupshow.c:565
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr ""
+msgstr "%s GID-je: %d\n"
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
@@ -1113,19 +1116,19 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:135
 msgid "Do not remove home directory and mail spool"
-msgstr ""
+msgstr "Ne törölje a saját könyvtárat és a helyi levelezést"
 
 #: src/tools/sss_userdel.c:137
 msgid "Force removal of files not owned by the user"
-msgstr ""
+msgstr "Nem a felhasználó tulajdonában lévő fájlok törlése"
 
 #: src/tools/sss_userdel.c:139
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Felhasználó programjainak kilövése az eltávolítás előtt"
 
 #: src/tools/sss_userdel.c:184
 msgid "Specify user to delete\n"
-msgstr ""
+msgstr "Adja meg a törlendő felhasználót\n"
 
 #: src/tools/sss_userdel.c:230
 #, c-format
@@ -1161,7 +1164,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr ""
+msgstr "Nem lehet eltávolítani a(z) %s könyvtárat\n"
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1170,15 +1173,15 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:314
 msgid "Internal error. Could not remove user.\n"
-msgstr ""
+msgstr "Belső hiba történt, nem lehetett eltávolítani a felhasználót.\n"
 
 #: src/tools/sss_usermod.c:49
 msgid "The GID of the user"
-msgstr ""
+msgstr "Felhasználó GID-je"
 
 #: src/tools/sss_usermod.c:53
 msgid "Groups to add this user to"
-msgstr ""
+msgstr "Felhasználó hozzáadása a következő csoportokhoz"
 
 #: src/tools/sss_usermod.c:54
 msgid "Groups to remove this user from"
@@ -1186,15 +1189,15 @@ msgstr ""
 
 #: src/tools/sss_usermod.c:55
 msgid "Lock the account"
-msgstr ""
+msgstr "Fiók zárolása"
 
 #: src/tools/sss_usermod.c:56
 msgid "Unlock the account"
-msgstr ""
+msgstr "Fiók feloldása"
 
 #: src/tools/sss_usermod.c:117
 msgid "Specify user to modify\n"
-msgstr ""
+msgstr "Adja meg a módosítandó felhasználót\n"
 
 #: src/tools/sss_usermod.c:144
 msgid ""
@@ -1212,16 +1215,16 @@ msgstr ""
 
 #: src/tools/sss_usermod.c:254
 msgid "Transaction error. Could not modify user.\n"
-msgstr ""
+msgstr "Tranzakcióhiba történt, a felhasználó nem módosítható.\n"
 
 #: src/tools/tools_util.c:289
 msgid "Out of memory\n"
-msgstr ""
+msgstr "Elfogyott a memória\n"
 
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%s must be run as root\n"
-msgstr ""
+msgstr "%s csak rendszergazdaként futtatható\n"
 
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"

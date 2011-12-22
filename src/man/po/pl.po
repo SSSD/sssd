@@ -1,16 +1,16 @@
 # SOME DESCRIPTIVE TITLE
 # Copyright (C) YEAR Red Hat
 # This file is distributed under the same license as the sssd-docs package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+# Translators:
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2011-12-19 11:14-0500\n"
-"PO-Revision-Date: 2011-03-08 15:06+0000\n"
+"POT-Creation-Date: 2011-12-22 13:37-0500\n"
+"PO-Revision-Date: 2011-12-21 10:12+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
-"Language-Team: Polish <None>\n"
+"Language-Team: Polish (http://www.transifex.net/projects/p/fedora/team/pl/)\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -378,6 +378,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Katalog w systemie plików, w którym SSSD powinno przechowywać pliki pamięci "
+"podręcznej odtwarzania Kerberosa."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:196

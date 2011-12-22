@@ -1,22 +1,23 @@
-# German translation of sssd.
-# Copyright (C) 2009 Red Hat, Inc.
-# This file is distributed under the same license as the sssd package.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Red Hat, Inc.
+# This file is distributed under the same license as the PACKAGE package.
 #
-# Fabian Affolter <fab@fedoraproject.org>, YEAR.
-#
+# Translators:
+# Fabian Affolter <fab@fedoraproject.org>, 2011.
+# sgallagh <sgallagh@redhat.com>, 2011.
 msgid ""
 msgstr ""
-"Project-Id-Version: SSS\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-19 11:15-0500\n"
-"PO-Revision-Date: 2009-12-09 11:13+0100\n"
-"Last-Translator: Fabian Affolter <fab@fedoraproject.org>\n"
-"Language-Team: German <fedora-trans-de@redhat.com>\n"
+"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"Language-Team: German <trans-de@lists.fedoraproject.org>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Poedit-Language: German\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -48,11 +49,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:48
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "SSSD-Dienste zum Starten"
 
 #: src/config/SSSDConfig.py:49
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "SSSD-Domains zum Starten"
 
 #: src/config/SSSDConfig.py:50
 msgid "Timeout for messages sent over the SBUS"
@@ -147,7 +148,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:77
 msgid "Identity provider"
-msgstr ""
+msgstr "Identity Provider"
 
 #: src/config/SSSDConfig.py:78
 msgid "Authentication provider"
@@ -430,14 +431,12 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:161
-#, fuzzy
 msgid "entryUSN attribute"
-msgstr "UID-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:162
-#, fuzzy
 msgid "lastUSN attribute"
-msgstr "UID-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:164
 msgid "How long to retain a connection to the LDAP server before disconnecting"
@@ -528,34 +527,28 @@ msgid "shadowLastChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:190
-#, fuzzy
 msgid "shadowMin attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:191
-#, fuzzy
 msgid "shadowMax attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:192
-#, fuzzy
 msgid "shadowWarning attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:193
-#, fuzzy
 msgid "shadowInactive attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:194
-#, fuzzy
 msgid "shadowExpire attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:195
-#, fuzzy
 msgid "shadowFlag attribute"
-msgstr "Shell-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:196
 msgid "Attribute listing authorized PAM services"
@@ -578,28 +571,24 @@ msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
 #: src/config/SSSDConfig.py:201
-#, fuzzy
 msgid "accountExpires attribute of AD"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:202
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
 #: src/config/SSSDConfig.py:203
-#, fuzzy
 msgid "nsAccountLock attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:204
-#, fuzzy
 msgid "loginDisabled attribute of NDS"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:205
-#, fuzzy
 msgid "loginExpirationTime attribute of NDS"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:206
 msgid "loginAllowedTimeMap attribute of NDS"
@@ -614,29 +603,24 @@ msgid "Objectclass for groups"
 msgstr ""
 
 #: src/config/SSSDConfig.py:212
-#, fuzzy
 msgid "Group name"
-msgstr "Gruppen"
+msgstr ""
 
 #: src/config/SSSDConfig.py:213
-#, fuzzy
 msgid "Group password"
-msgstr "Gruppen"
+msgstr ""
 
 #: src/config/SSSDConfig.py:214
-#, fuzzy
 msgid "GID attribute"
-msgstr "UID-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:215
-#, fuzzy
 msgid "Group member attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:216
-#, fuzzy
 msgid "Group UUID attribute"
-msgstr "UUID-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:217
 msgid "Modification time attribute for groups"
@@ -659,19 +643,16 @@ msgid "Netgroup name"
 msgstr ""
 
 #: src/config/SSSDConfig.py:224
-#, fuzzy
 msgid "Netgroups members attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:225
-#, fuzzy
 msgid "Netgroup triple attribute"
-msgstr "Benutzername-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:226
-#, fuzzy
 msgid "Netgroup UUID attribute"
-msgstr "UUID-Attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:227
 msgid "Modification time attribute for netgroups"
@@ -725,38 +706,38 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2398
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2371
+#: src/monitor/monitor.c:2400
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2402
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2404
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1572 src/providers/ldap/ldap_child.c:368
+#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:370
+#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:372
+#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:374
+#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
@@ -867,7 +848,7 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:51 src/tools/sss_usermod.c:51
 msgid "Home directory"
-msgstr "Benutzerverzeichnis"
+msgstr "Bneutzerverzeichnis"
 
 #: src/tools/sss_useradd.c:52 src/tools/sss_usermod.c:52
 msgid "Login shell"
@@ -1078,9 +1059,9 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:562
-#, fuzzy, c-format
+#, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "Gruppen"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "

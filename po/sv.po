@@ -1,21 +1,22 @@
-# Swedish messages for sssd server.
-# Copyright © 2009 Red Hat, Inc.
-# This file is distributed under the same license as the sssd package.
-# Göran Uddeborg <goeran@uddeborg.se>, 2009.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Red Hat, Inc.
+# This file is distributed under the same license as the PACKAGE package.
 #
-# $Revision: 1.4 $
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: sss_server\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-19 11:15-0500\n"
-"PO-Revision-Date: 2009-12-30 17:58+0100\n"
-"Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
-"Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
+"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"Language-Team: Swedish (http://www.transifex.net/projects/p/fedora/team/"
+"sv/)\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #: src/config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -26,9 +27,8 @@ msgid "Include timestamps in debug logs"
 msgstr "Inkludera tidsstämplar i felsökningsloggar"
 
 #: src/config/SSSDConfig.py:41
-#, fuzzy
 msgid "Include microseconds in timestamps in debug logs"
-msgstr "Inkludera tidsstämplar i felsökningsloggar"
+msgstr ""
 
 #: src/config/SSSDConfig.py:42
 msgid "Write debug messages to logfiles"
@@ -196,10 +196,8 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:91
-#, fuzzy
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
-"Hur länge sparade inloggningar tillåts mellan online-inloggningar (dagar)"
 
 #: src/config/SSSDConfig.py:92
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -307,9 +305,8 @@ msgid "Selects the principal to use for FAST"
 msgstr ""
 
 #: src/config/SSSDConfig.py:125
-#, fuzzy
 msgid "Enables principal canonicalization"
-msgstr "Aktivera validering av kreditiv"
+msgstr ""
 
 #: src/config/SSSDConfig.py:128
 msgid "Server where the change password service is running if not on the KDC"
@@ -356,23 +353,20 @@ msgid "Use only the upper case for realm names"
 msgstr ""
 
 #: src/config/SSSDConfig.py:141
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "fil som innehåller CA-certifikat"
+msgstr ""
 
 #: src/config/SSSDConfig.py:142
 msgid "Path to CA certificate directory"
 msgstr ""
 
 #: src/config/SSSDConfig.py:143
-#, fuzzy
 msgid "File that contains the client certificate"
-msgstr "fil som innehåller CA-certifikat"
+msgstr ""
 
 #: src/config/SSSDConfig.py:144
-#, fuzzy
 msgid "File that contains the client key"
-msgstr "fil som innehåller CA-certifikat"
+msgstr ""
 
 #: src/config/SSSDConfig.py:145
 msgid "List of possible ciphers suites"
@@ -391,14 +385,12 @@ msgid "Specify the sasl authorization id to use"
 msgstr "Ange sasl-auktorisering-id att använda"
 
 #: src/config/SSSDConfig.py:149
-#, fuzzy
 msgid "Specify the sasl authorization realm to use"
-msgstr "Ange sasl-auktorisering-id att använda"
+msgstr ""
 
 #: src/config/SSSDConfig.py:150
-#, fuzzy
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "Ange sasl-auktorisering-id att använda"
+msgstr ""
 
 #: src/config/SSSDConfig.py:151
 msgid "Kerberos service keytab"
@@ -413,18 +405,16 @@ msgid "Follow LDAP referrals"
 msgstr ""
 
 #: src/config/SSSDConfig.py:154
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
+msgstr ""
 
 #: src/config/SSSDConfig.py:155
 msgid "How to dereference aliases"
 msgstr ""
 
 #: src/config/SSSDConfig.py:156
-#, fuzzy
 msgid "Service name for DNS service lookups"
-msgstr "Filter för användaruppslagningar"
+msgstr ""
 
 #: src/config/SSSDConfig.py:157
 msgid "The number of records to retrieve in a single LDAP query"
@@ -441,14 +431,12 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:161
-#, fuzzy
 msgid "entryUSN attribute"
-msgstr "UID-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:162
-#, fuzzy
 msgid "lastUSN attribute"
-msgstr "UID-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:164
 msgid "How long to retain a connection to the LDAP server before disconnecting"
@@ -459,23 +447,20 @@ msgid "Length of time to wait for a search request"
 msgstr "Tidslängd att vänta på en sökbegäran"
 
 #: src/config/SSSDConfig.py:168
-#, fuzzy
 msgid "Length of time to wait for a enumeration request"
-msgstr "Tidslängd att vänta på en sökbegäran"
+msgstr ""
 
 #: src/config/SSSDConfig.py:169
 msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
 #: src/config/SSSDConfig.py:170
-#, fuzzy
 msgid "Length of time between cache cleanups"
-msgstr "Tidslängd mellan uppräkningsuppdateringar"
+msgstr ""
 
 #: src/config/SSSDConfig.py:171
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Kräv TLS för ID-uppslagningar, falsk"
+msgstr ""
 
 #: src/config/SSSDConfig.py:172
 msgid "Base DN for user lookups"
@@ -542,34 +527,28 @@ msgid "shadowLastChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:190
-#, fuzzy
 msgid "shadowMin attribute"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:191
-#, fuzzy
 msgid "shadowMax attribute"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:192
-#, fuzzy
 msgid "shadowWarning attribute"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:193
-#, fuzzy
 msgid "shadowInactive attribute"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:194
-#, fuzzy
 msgid "shadowExpire attribute"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:195
-#, fuzzy
 msgid "shadowFlag attribute"
-msgstr "Skalattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:196
 msgid "Attribute listing authorized PAM services"
@@ -584,119 +563,100 @@ msgid "krbLastPwdChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:199
-#, fuzzy
 msgid "krbPasswordExpiration attribute"
-msgstr "Modifieringstidsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:200
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
 #: src/config/SSSDConfig.py:201
-#, fuzzy
 msgid "accountExpires attribute of AD"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:202
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
 #: src/config/SSSDConfig.py:203
-#, fuzzy
 msgid "nsAccountLock attribute"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:204
-#, fuzzy
 msgid "loginDisabled attribute of NDS"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:205
-#, fuzzy
 msgid "loginExpirationTime attribute of NDS"
-msgstr "Användarnamnsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:206
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr ""
 
 #: src/config/SSSDConfig.py:208
-#, fuzzy
 msgid "Base DN for group lookups"
-msgstr "Bas-DN för användaruppslagningar"
+msgstr ""
 
 #: src/config/SSSDConfig.py:211
-#, fuzzy
 msgid "Objectclass for groups"
-msgstr "Objektklass för användare"
+msgstr ""
 
 #: src/config/SSSDConfig.py:212
-#, fuzzy
 msgid "Group name"
-msgstr "Grupper"
+msgstr ""
 
 #: src/config/SSSDConfig.py:213
-#, fuzzy
 msgid "Group password"
-msgstr "Grupper"
+msgstr ""
 
 #: src/config/SSSDConfig.py:214
-#, fuzzy
 msgid "GID attribute"
-msgstr "UID-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:215
-#, fuzzy
 msgid "Group member attribute"
-msgstr "medlemAv-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:216
-#, fuzzy
 msgid "Group UUID attribute"
-msgstr "UUID-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:217
-#, fuzzy
 msgid "Modification time attribute for groups"
-msgstr "Modifieringstidsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:219
 msgid "Maximum nesting level SSSd will follow"
 msgstr ""
 
 #: src/config/SSSDConfig.py:221
-#, fuzzy
 msgid "Base DN for netgroup lookups"
-msgstr "Bas-DN för användaruppslagningar"
+msgstr ""
 
 #: src/config/SSSDConfig.py:222
-#, fuzzy
 msgid "Objectclass for netgroups"
-msgstr "Objektklass för användare"
+msgstr ""
 
 #: src/config/SSSDConfig.py:223
 msgid "Netgroup name"
 msgstr ""
 
 #: src/config/SSSDConfig.py:224
-#, fuzzy
 msgid "Netgroups members attribute"
-msgstr "medlemAv-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:225
-#, fuzzy
 msgid "Netgroup triple attribute"
-msgstr "Modifieringstidsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:226
-#, fuzzy
 msgid "Netgroup UUID attribute"
-msgstr "UUID-attribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:227
-#, fuzzy
 msgid "Modification time attribute for netgroups"
-msgstr "Modifieringstidsattribut"
+msgstr ""
 
 #: src/config/SSSDConfig.py:230
 msgid "Policy to evaluate the password expiration"
@@ -746,41 +706,40 @@ msgstr "Namnet på NSS-biblioteket att använda"
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2398
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2371
+#: src/monitor/monitor.c:2400
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2402
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2404
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1572 src/providers/ldap/ldap_child.c:368
+#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:370
+#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:372
+#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:374
-#, fuzzy
+#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
 msgid "An open file descriptor for the debug logs"
-msgstr "Ange pratsamhet för felsökningsloggning"
+msgstr ""
 
 #: src/providers/data_provider_be.c:1363
 msgid "Domain of the information provider (mandatory)"
@@ -795,9 +754,8 @@ msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
 #: src/sss_client/common.c:845
-#, fuzzy
 msgid "Unexpected format of the server credential message."
-msgstr "Plats för användarens kreditiv-cache"
+msgstr ""
 
 #: src/sss_client/common.c:848
 msgid "SSSD is not run by root."
@@ -833,23 +791,21 @@ msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:685
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr "Lösenordet har gått ut."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:734
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr "Autentiseringstidsgräns"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:755
 msgid "System is offline, password change not possible"
 msgstr ""
 
 #: src/sss_client/pam_sss.c:785 src/sss_client/pam_sss.c:798
-#, fuzzy
 msgid "Password change failed. "
-msgstr "Leverantör av lösenordsändringar"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:788 src/sss_client/pam_sss.c:799
 msgid "Server message: "
@@ -868,9 +824,8 @@ msgid "Password: "
 msgstr "Lösenord: "
 
 #: src/sss_client/pam_sss.c:1336
-#, fuzzy
 msgid "Current Password: "
-msgstr "Nytt lösenord: "
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1483
 msgid "Password expired. Change your password now."
@@ -928,9 +883,8 @@ msgstr "Fel när lokalen sattes\n"
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
-#, fuzzy
 msgid "Specify group to add to\n"
-msgstr "Ange en grupp att lägga till\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:108
 msgid "Specify user to add\n"
@@ -940,9 +894,8 @@ msgstr "Ange en användare att lägga till\n"
 #: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:109
 #: src/tools/sss_groupshow.c:659 src/tools/sss_userdel.c:193
 #: src/tools/sss_usermod.c:126
-#, fuzzy
 msgid "Error initializing the tools - no local domain\n"
-msgstr "Fel vid initiering av verktygen\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
 #: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:111
@@ -1072,9 +1025,8 @@ msgid "Groups to remove this group from"
 msgstr "Grupper att ta bort denna grupp från"
 
 #: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
-#, fuzzy
 msgid "Specify group to remove from\n"
-msgstr "Ange grupp att ändra\n"
+msgstr ""
 
 #: src/tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
@@ -1118,9 +1070,9 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
 
 #: src/tools/sss_groupshow.c:562
-#, fuzzy, c-format
+#, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "Grupper"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
@@ -1155,23 +1107,18 @@ msgid "Print indirect group members recursively"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:650
-#, fuzzy
 msgid "Specify group to show\n"
-msgstr "Ange en grupp att lägga till\n"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:689
-#, fuzzy
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
-"tillåtet i den lokala domänen.\n"
 
 #: src/tools/sss_groupshow.c:694
-#, fuzzy
 msgid "Internal error. Could not print group.\n"
-msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:133
 msgid "Remove home directory and mail spool"
@@ -1298,23 +1245,3 @@ msgstr "%s måste köras som root\n"
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
-
-#~ msgid "Ping timeout before restarting domain"
-#~ msgstr "Ping-tidsgräns före domän startas om"
-
-#, fuzzy
-#~ msgid "sssd must be run as root\n"
-#~ msgstr "%s måste köras som root\n"
-
-#~ msgid "The principal of the change password service"
-#~ msgstr "Huvudmannen för tjänsten att ändra lösenord"
-
-#~ msgid "The GID or group name of the user"
-#~ msgstr "Användarens GID eller gruppnamn"
-
-#~ msgid "Cannot get group information for the user\n"
-#~ msgstr "Kan inte få gruppinformation för användaren\n"
-
-#, fuzzy
-#~ msgid "Cannot initiate search\n"
-#~ msgstr "Kan inte få information om användaren\n"
