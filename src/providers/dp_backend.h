@@ -150,6 +150,7 @@ struct be_acct_req {
     int filter_type;
     char *filter_value;
     char *extra_value;
+    char *domain;
 };
 
 struct be_sudo_req {

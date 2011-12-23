@@ -566,6 +566,7 @@ sss_dp_get_account_msg(void *pvt)
                                      DBUS_TYPE_UINT32, &be_type,
                                      DBUS_TYPE_UINT32, &attrs,
                                      DBUS_TYPE_STRING, &filter,
+                                     DBUS_TYPE_STRING, &info->dom->name,
                                      DBUS_TYPE_INVALID);
     talloc_free(filter);
     if (!dbret) {

@@ -552,6 +552,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     void *user_data;
     uint32_t type;
     char *filter;
+    char *domain;
     uint32_t attr_type;
     int ret;
     dbus_uint16_t err_maj;
@@ -571,6 +572,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
                                 DBUS_TYPE_UINT32, &type,
                                 DBUS_TYPE_UINT32, &attr_type,
                                 DBUS_TYPE_STRING, &filter,
+                                DBUS_TYPE_STRING, &domain,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
         DEBUG(1,("Failed, to parse message!\n"));
@@ -634,6 +636,13 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     }
     req->entry_type = type;
     req->attr_type = (int)attr_type;
+    req->domain = talloc_strdup(req, domain);
+    if (!req->domain) {
+        err_maj = DP_ERR_FATAL;
+        err_min = ENOMEM;
+        err_msg = "Out of memory";
+        goto done;
+    }
 
     be_req->req_data = req;
 
