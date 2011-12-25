@@ -358,6 +358,14 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libipa_hbac.so
 %{_libdir}/pkgconfig/ipa_hbac.pc
 
+%package -n libsss_autofs
+Summary: A library to allow communication between Autofs and SSSD
+Group: Development/Libraries
+License: LGPLv3+
+
+%description -n libsss_autofs
+A utility library to allow communication between Autofs and SSSD
+
 %files -n libipa_hbac-python
 %defattr(-,root,root,-)
 %{python_sitearch}/pyhbac.so
@@ -378,6 +386,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/sss_sudo.h
 %{_libdir}/sssd/modules/libsss_sudo.so
 %{_libdir}/pkgconfig/libsss_sudo.pc
+
+%files -n libsss_autofs
+%defattr(-,root,root,-)
+%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%{_libdir}/sssd/modules/libsss_autofs.so*
 %endif
 
 %post

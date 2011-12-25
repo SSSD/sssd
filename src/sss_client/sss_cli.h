@@ -45,6 +45,7 @@ typedef int errno_t;
 #define SSS_NSS_PROTOCOL_VERSION 1
 #define SSS_PAM_PROTOCOL_VERSION 3
 #define SSS_SUDO_PROTOCOL_VERSION 0
+#define SSS_AUTOFS_PROTOCOL_VERSION 1
 
 #ifdef LOGIN_NAME_MAX
 #define SSS_NAME_MAX LOGIN_NAME_MAX
@@ -162,6 +163,12 @@ enum sss_cli_command {
 /* SUDO */
     SSS_SUDO_GET_SUDORULES = 0x00C1,
     SSS_SUDO_GET_DEFAULTS  = 0x00C2,
+
+/* autofs */
+    SSS_AUTOFS_SETAUTOMNTENT    = 0x00D1,
+    SSS_AUTOFS_GETAUTOMNTENT    = 0x00D2,
+    SSS_AUTOFS_GETAUTOMNTBYNAME  = 0x00D3,
+    SSS_AUTOFS_ENDAUTOMNTENT    = 0x00D4,
 
 /* PAM related calls */
     SSS_PAM_AUTHENTICATE     = 0x00F1, /**< see pam_sm_authenticate(3) for
@@ -469,6 +476,11 @@ int sss_sudo_make_request(enum sss_cli_command cmd,
                           struct sss_cli_req_data *rd,
                           uint8_t **repbuf, size_t *replen,
                           int *errnop);
+
+int sss_autofs_make_request(enum sss_cli_command cmd,
+                            struct sss_cli_req_data *rd,
+                            uint8_t **repbuf, size_t *replen,
+                            int *errnop);
 
 #ifndef SAFEALIGN_COPY_UINT32
 static inline void

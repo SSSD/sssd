@@ -30,6 +30,7 @@ dbusintrospectdir = $(datarootdir)/sssd/introspect
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
+autofslibdir = @appmodpath@
 
 dbpath = @dbpath@
 pluginpath = @pluginpath@
@@ -216,6 +217,7 @@ AM_CPPFLAGS = \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
+    -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DLOCALEDIR=\"$(localedir)\"
 
 EXTRA_DIST = build/config.rpath
@@ -843,6 +845,7 @@ noinst_PROGRAMS = pam_test_client
 if BUILD_SUDO
 noinst_PROGRAMS += sss_sudo_cli
 endif
+
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
 pam_test_client_LDFLAGS = -lpam -lpam_misc
 
@@ -897,11 +900,29 @@ include_HEADERS += \
     src/sss_client/sudo/sss_sudo.h
 endif
 
+if BUILD_AUTOFS
+autofslib_LTLIBRARIES = libsss_autofs.la
+libsss_autofs_la_SOURCES = \
+    src/sss_client/common.c \
+    src/sss_client/sss_cli.h \
+    src/sss_client/autofs/sss_autofs.c \
+    src/sss_client/autofs/sss_autofs_private.h
+
+libsss_autofs_la_LDFLAGS = \
+    -module \
+    -avoid-version \
+    -Wl,--version-script,$(srcdir)/src/sss_client/autofs/sss_autofs.exports
+endif
+
 dist_noinst_DATA += \
     src/sss_client/sss_nss.exports \
     src/sss_client/sss_pam.exports
 if BUILD_SUDO
 dist_noinst_DATA += src/sss_client/sss_sudo.exports
+endif
+
+if BUILD_AUTOFS
+dist_noinst_DATA += src/sss_client/autofs/sss_autofs.exports
 endif
 
 ####################
@@ -1235,7 +1256,8 @@ installsssddirs::
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath) \
-    $(DESTDIR)$(sudolibdir)
+    $(DESTDIR)$(sudolibdir) \
+    $(DESTDIR)$(autofslibdir)
 
 if HAVE_DOXYGEN
 docs:
