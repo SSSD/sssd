@@ -28,6 +28,17 @@
 #include "db/sysdb.h"
 #include <time.h>
 
+/* out->len includes terminating '\0' */
+void to_sized_string(struct sized_string *out, const char *in)
+{
+    out->str = in;
+    if (out->str) {
+        out->len = strlen(out->str) + 1;
+    } else {
+        out->len = 0;
+    }
+}
+
 static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 {
     struct cli_ctx *cctx = cmdctx->cctx;
