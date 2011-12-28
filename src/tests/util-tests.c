@@ -27,6 +27,7 @@
 #include <check.h>
 #include "util/util.h"
 #include "util/sss_utf8.h"
+#include "util/murmurhash3.h"
 #include "tests/common.h"
 
 START_TEST(test_parse_args)
@@ -398,6 +399,24 @@ START_TEST(test_utf8_check)
 }
 END_TEST
 
+START_TEST(test_murmurhash3_check)
+{
+    const char *tests[6] = { "1052800007", "1052800008", "1052800000",
+                             "abcdefghijk", "abcdefghili", "abcdefgh000" };
+    uint32_t results[6];
+    int i, j;
+
+    for (i = 0; i< 6; i++) {
+        results[i] = murmurhash3(tests[i],
+                                 strlen(tests[i]),
+                                 0xdeadbeef);
+        for (j = 0; j < i; j++) {
+            fail_if(results[i] == results[j]);
+        }
+    }
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -419,8 +438,13 @@ Suite *util_suite(void)
 
     tcase_set_timeout(tc_utf8, 60);
 
+    TCase *tc_mh3 = tcase_create("murmurhash3");
+    tcase_add_test (tc_mh3, test_murmurhash3_check);
+    tcase_set_timeout(tc_mh3, 60);
+
     suite_add_tcase (s, tc_util);
     suite_add_tcase (s, tc_utf8);
+    suite_add_tcase (s, tc_mh3);
 
     return s;
 }

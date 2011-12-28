@@ -304,6 +304,7 @@ dist_noinst_HEADERS = \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
+    src/util/murmurhash3.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/responder/common/responder.h \
@@ -395,7 +396,8 @@ libsss_util_la_SOURCES = \
     src/util/check_and_open.c \
     src/util/refcount.c \
     src/util/sss_utf8.c \
-    src/util/sss_tc_utf8.c
+    src/util/sss_tc_utf8.c \
+    src/util/murmurhash3.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS) \
