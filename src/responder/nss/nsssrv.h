@@ -39,6 +39,7 @@
 #define NSS_PACKET_MAX_RECV_SIZE 1024
 
 struct getent_ctx;
+struct sss_mc_ctx;
 
 struct nss_ctx {
     struct resp_ctx *rctx;
@@ -64,6 +65,8 @@ struct nss_ctx {
     char **vetoed_shells;
     char **etc_shells;
     char *shell_fallback;
+
+    struct sss_mc_ctx *pwd_mc_ctx;
 };
 
 struct nss_packet;

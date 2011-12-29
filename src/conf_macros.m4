@@ -111,6 +111,23 @@ AC_DEFUN([WITH_PIPE_PATH],
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
+AC_DEFUN([WITH_MCACHE_PATH],
+  [ AC_ARG_WITH([mcache-path],
+                [AC_HELP_STRING([--with-mcache-path=PATH],
+                                [Where to store mmap cache files for the SSSD interconnects [/var/lib/sss/mc]]
+                               )
+                ]
+               )
+    config_mcpath="\"VARDIR\"/lib/sss/mc"
+    mcpath="${localstatedir}/lib/sss/mc"
+    if test x"$with_mcache_path" != x; then
+        config_mcpath=$with_mcache_path
+        mcpath=$with_mcache_path
+    fi
+    AC_SUBST(mcpath)
+    AC_DEFINE_UNQUOTED(MCACHE_PATH, "$config_mcpath", [Where to store mmap cache files for the SSSD interconnects])
+  ])
+
 AC_DEFUN([WITH_INITSCRIPT],
   [ AC_ARG_WITH([initscript],
                 [AC_HELP_STRING([--with-initscript=INITSCRIPT_TYPE],

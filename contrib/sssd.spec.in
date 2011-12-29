@@ -54,6 +54,7 @@ Requires(postun): initscripts chkconfig /sbin/ldconfig
 %global sssdstatedir %{_localstatedir}/lib/sss
 %global dbpath %{sssdstatedir}/db
 %global pipepath %{sssdstatedir}/pipes
+%global mcpath %{sssdstatedir}/mc
 %global pubconfpath %{sssdstatedir}/pubconf
 
 ### Build Dependencies ###
@@ -202,6 +203,7 @@ autoreconf -ivf
 
 %configure \
     --with-db-path=%{dbpath} \
+    --with-mcache-path=%(mcpath) \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
@@ -315,6 +317,7 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,root,root) %dir %{dbpath}
+%attr(755,root,root) %dir %{mcpath}
 %attr(755,root,root) %dir %{pipepath}
 %attr(755,root,root) %dir %{pubconfpath}
 %attr(700,root,root) %dir %{pipepath}/private

@@ -36,6 +36,7 @@ dbpath = @dbpath@
 pluginpath = @pluginpath@
 pidpath = @pidpath@
 pipepath = @pipepath@
+mcpath = @mcpath@
 initdir = @initdir@
 systemdunitdir = @systemdunitdir@
 logpath = @logpath@
@@ -228,6 +229,7 @@ AM_CPPFLAGS = \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
     -DSSSD_INTROSPECT_PATH=\"$(dbusinstropectdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
+    -DSSS_NSS_MCACHE_DIR=\"$(mcpath)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
@@ -339,6 +341,7 @@ dist_noinst_HEADERS = \
     src/responder/nss/nsssrv_private.h \
     src/responder/nss/nsssrv_netgroup.h \
     src/responder/nss/nsssrv_services.h \
+    src/responder/nss/nsssrv_mmap_cache.h \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
@@ -488,6 +491,7 @@ sssd_nss_SOURCES = \
     src/responder/nss/nsssrv_cmd.c \
     src/responder/nss/nsssrv_netgroup.c \
     src/responder/nss/nsssrv_services.c \
+    src/responder/nss/nsssrv_mmap_cache.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
@@ -1363,6 +1367,7 @@ installsssddirs::
     $(DESTDIR)$(sssdconfdir) \
     $(DESTDIR)$(sssddatadir) \
     $(DESTDIR)$(dbpath) \
+    $(DESTDIR)$(mcpath) \
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath) \

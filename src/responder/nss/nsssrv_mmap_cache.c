@@ -1,0 +1,300 @@
+/*
+   SSSD
+
+   NSS Responder - Mmap Cache
+
+   Copyright (C) Simo Sorce <ssorce@redhat.com>	2011
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "util/util.h"
+#include "confdb/confdb.h"
+#include <sys/mman.h>
+#include <fcntl.h>
+#include "util/mmap_cache.h"
+#include "responder/nss/nsssrv.h"
+#include "responder/nss/nsssrv_mmap_cache.h"
+
+/* arbitrary (avg of my /etc/passwd) */
+#define SSS_AVG_PASSWD_PAYLOAD (MC_SLOT_SIZE * 4)
+/* short group name and no gids (private user group */
+#define SSS_AVG_GROUP_PAYLOAD (MC_SLOT_SIZE * 3)
+
+#define MC_NEXT_BARRIER(val) ((((val) + 1) & 0x00ffffff) | 0xf0000000)
+
+#define MC_RAISE_BARRIER(m) do { \
+    m->b2 = MC_NEXT_BARRIER(m->b1); \
+    __sync_synchronize(); \
+} while (0)
+
+#define MC_LOWER_BARRIER(m) do { \
+    __sync_synchronize(); \
+    m->b1 = m->b2; \
+} while (0)
+
+struct sss_mc_ctx {
+    char *name;             /* mmap cache name */
+    enum sss_mc_type type;  /* mmap cache type */
+    char *file;             /* mmap cache file name */
+    int fd;                 /* file descriptor */
+
+    uint32_t seed;          /* pseudo-random seed to avoid collision attacks */
+    time_t valid_time_slot; /* maximum time the entry is valid in seconds */
+
+    void *mmap_base;        /* base address of mmap */
+    size_t mmap_size;       /* total size of mmap */
+
+    uint32_t *hash_table;   /* hash table address (in mmap) */
+    uint32_t ht_size;       /* size of hash table */
+
+    uint8_t *free_table;    /* free list bitmaps */
+    uint32_t ft_size;       /* size of free table */
+    uint32_t next_slot;     /* the next slot after last allocation */
+
+    uint8_t *data_table;    /* data table address (in mmap) */
+    uint32_t dt_size;       /* size of data table */
+};
+
+
+/***************************************************************************
+ * initialization
+ ***************************************************************************/
+
+static errno_t sss_mc_set_recycled(int fd)
+{
+    uint32_t w = SSS_MC_HEADER_RECYCLED;
+    struct sss_mc_header h;
+    off_t offset;
+    off_t pos;
+    int ret;
+
+    offset = MC_PTR_DIFF(&h.status, &h);
+
+    pos = lseek(fd, offset, SEEK_SET);
+    if (pos == -1) {
+        /* What do we do now ? */
+        return errno;
+    }
+    pos = 0;
+    while (pos < sizeof(h.status)) {
+        ret = write(fd, ((uint8_t *)&w) + pos, sizeof(h.status) - pos);
+        if (ret == -1) {
+            if (errno != EINTR) {
+                return errno;
+            }
+            continue;
+        }
+        pos += ret;
+    }
+
+    return EOK;
+}
+
+/*
+ * When we (re)create a new file we must mark the current file as recycled
+ * so active clients will abandon its use asap.
+ * We unlink the current file and make a new one
+ */
+static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
+{
+    mode_t old_mask;
+    int ofd;
+    int ret;
+
+    ofd = open(mc_ctx->file, O_RDWR);
+    if (ofd != -1) {
+        ret = sss_mc_set_recycled(ofd);
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to mark mmap file %s as"
+                                      " recycled: %d(%s)\n",
+                                      mc_ctx->file, ret, strerror(ret)));
+        }
+
+        close(ofd);
+    }
+
+    ret = unlink(mc_ctx->file);
+    if (ret == -1) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Failed to rm mmap file %s: %d(%s)\n",
+                                  mc_ctx->file, ret, strerror(ret)));
+    }
+
+    /* temporarily relax umask as we need the file to be readable
+     * by everyone for now */
+    old_mask = umask(0022);
+
+    ret = 0;
+    mc_ctx->fd = open(mc_ctx->file, O_CREAT | O_EXCL | O_RDWR, 0644);
+    if (mc_ctx->fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open mmap file %s: %d(%s)\n",
+                                    mc_ctx->file, ret, strerror(ret)));
+    }
+
+    /* reset mask back */
+    umask(old_mask);
+
+    return ret;
+}
+
+static void sss_mc_header_update(struct sss_mc_ctx *mc_ctx, int status)
+{
+    struct sss_mc_header *h;
+
+    /* update header using barriers */
+    h = (struct sss_mc_header *)mc_ctx->mmap_base;
+    MC_RAISE_BARRIER(h);
+    if (status != SSS_MC_HEADER_RECYCLED) {
+        /* no reason to update anything else if the file is recycled */
+        h->hash_table = MC_PTR_DIFF(mc_ctx->hash_table, mc_ctx->mmap_base);
+        h->free_table = MC_PTR_DIFF(mc_ctx->free_table, mc_ctx->mmap_base);
+        h->data_table = MC_PTR_DIFF(mc_ctx->data_table, mc_ctx->mmap_base);
+        h->ht_size = mc_ctx->ht_size;
+        h->ft_size = mc_ctx->ft_size;
+        h->dt_size = mc_ctx->dt_size;
+        h->major_vno = SSS_MC_MAJOR_VNO;
+        h->minor_vno = SSS_MC_MINOR_VNO;
+        h->seed = mc_ctx->seed;
+        h->reserved = 0;
+    }
+    h->status = status;
+    MC_LOWER_BARRIER(h);
+}
+
+errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
+                            enum sss_mc_type type, size_t n_elem,
+                            struct sss_mc_ctx **mcc)
+{
+    struct sss_mc_ctx *mc_ctx = NULL;
+    unsigned int rseed;
+    int payload;
+    int ret;
+
+    switch (type) {
+    case SSS_MC_PASSWD:
+        payload = SSS_AVG_PASSWD_PAYLOAD;
+        break;
+    case SSS_MC_GROUP:
+        payload = SSS_AVG_GROUP_PAYLOAD;
+        break;
+    default:
+        return EINVAL;
+    }
+
+    mc_ctx = talloc_zero(mem_ctx, struct sss_mc_ctx);
+    if (!mc_ctx) {
+        return ENOMEM;
+    }
+    mc_ctx->fd = -1;
+
+    mc_ctx->name = talloc_strdup(mem_ctx, name);
+    if (!mc_ctx->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mc_ctx->type = type;
+
+    mc_ctx->valid_time_slot = 300; /* 5 min. FIXME: parametrize */
+
+    mc_ctx->file = talloc_asprintf(mc_ctx, "%s/%s",
+                                   SSS_NSS_MCACHE_DIR, name);
+    if (!mc_ctx->file) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* elements must always be multiple of 8 to make things easier to handle,
+     * so we increase by the necessary amount if they are not a multiple */
+    /* We can use MC_ALIGN64 for this */
+    n_elem = MC_ALIGN64(n_elem);
+
+    /* hash table is double the size because it will store both forward and
+     * reverse keys (name/uid, name/gid, ..) */
+    mc_ctx->ht_size = MC_HT_SIZE(n_elem * 2);
+    mc_ctx->dt_size = MC_DT_SIZE(n_elem, payload);
+    mc_ctx->ft_size = MC_FT_SIZE(n_elem);
+    mc_ctx->mmap_size = MC_HEADER_SIZE +
+                        MC_ALIGN64(mc_ctx->dt_size) +
+                        MC_ALIGN64(mc_ctx->ft_size) +
+                        MC_ALIGN64(mc_ctx->ht_size);
+
+
+    /* for now ALWAYS create a new file on restart */
+
+    ret = sss_mc_create_file(mc_ctx);
+    if (ret) {
+        goto done;
+    }
+
+    ret = ftruncate(mc_ctx->fd, mc_ctx->mmap_size);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to resize file %s: %d(%s)\n",
+                                    mc_ctx->file, ret, strerror(ret)));
+        goto done;
+    }
+
+    mc_ctx->mmap_base = mmap(NULL, mc_ctx->mmap_size,
+                             PROT_READ | PROT_WRITE,
+                             MAP_SHARED, mc_ctx->fd, 0);
+    if (mc_ctx->mmap_base == MAP_FAILED) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to mmap file %s(%ld): %d(%s)\n",
+                                    mc_ctx->file, mc_ctx->mmap_size,
+                                    ret, strerror(ret)));
+        goto done;
+    }
+
+    mc_ctx->data_table = MC_PTR_ADD(mc_ctx->mmap_base, MC_HEADER_SIZE);
+    mc_ctx->free_table = MC_PTR_ADD(mc_ctx->data_table,
+                                    MC_ALIGN64(mc_ctx->dt_size));
+    mc_ctx->hash_table = MC_PTR_ADD(mc_ctx->free_table,
+                                    MC_ALIGN64(mc_ctx->ft_size));
+
+    memset(mc_ctx->data_table, 0x00, mc_ctx->dt_size);
+    memset(mc_ctx->free_table, 0x00, mc_ctx->ft_size);
+    memset(mc_ctx->hash_table, 0xff, mc_ctx->ht_size);
+
+    /* generate a pseudo-random seed.
+     * Needed to fend off dictionary based collision attacks */
+    rseed = time(NULL) * getpid();
+    mc_ctx->seed = rand_r(&rseed);
+
+    sss_mc_header_update(mc_ctx, SSS_MC_HEADER_ALIVE);
+
+    ret = EOK;
+
+done:
+    if (ret) {
+        if (mc_ctx && mc_ctx->mmap_base) {
+            munmap(mc_ctx->mmap_base, mc_ctx->mmap_size);
+        }
+        if (mc_ctx && mc_ctx->fd != -1) {
+            close(mc_ctx->fd);
+            ret = unlink(mc_ctx->file);
+            if (ret == -1) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to rm mmap file %s: %d(%s)\n",
+                                            mc_ctx->file, ret, strerror(ret)));
+            }
+        }
+
+        talloc_free(mc_ctx);
+    } else {
+        *mcc = mc_ctx;
+    }
+    return ret;
+}
+

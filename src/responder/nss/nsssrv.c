@@ -33,6 +33,7 @@
 #include "popt.h"
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/common/negcache.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -307,6 +308,15 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     if (hret != HASH_SUCCESS) {
         DEBUG(0,("Unable to initialize netgroup hash table\n"));
         return EIO;
+    }
+
+    /* create mmap caches */
+    /* TODO: read cache sizes from configuration */
+    ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
+                              50000,
+                              &nctx->pwd_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("mmap cache is DISABLED"));
     }
 
     /* Set up file descriptor limits */
