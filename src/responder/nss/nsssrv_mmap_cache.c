@@ -348,6 +348,82 @@ static struct sss_mc_rec *sss_mc_get_record(struct sss_mc_ctx *mcc,
 
 
 /***************************************************************************
+ * passwd map
+ ***************************************************************************/
+
+errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
+                                struct sized_string *name,
+                                struct sized_string *pw,
+                                uid_t uid, gid_t gid,
+                                struct sized_string *gecos,
+                                struct sized_string *homedir,
+                                struct sized_string *shell)
+{
+    struct sss_mc_rec *rec;
+    struct sss_mc_pwd_data *data;
+    struct sized_string uidkey;
+    char uidstr[11];
+    size_t data_len;
+    size_t rec_len;
+    size_t pos;
+    int ret;
+
+    ret = snprintf(uidstr, 11, "%ld", (long)uid);
+    if (ret > 10) {
+        return EINVAL;
+    }
+    to_sized_string(&uidkey, uidstr);
+
+    data_len = name->len + pw->len + gecos->len + homedir->len + shell->len;
+    rec_len = sizeof(struct sss_mc_rec) +
+              sizeof(struct sss_mc_pwd_data) +
+              data_len;
+    if (rec_len > mcc->dt_size) {
+        return ENOMEM;
+    }
+
+    rec = sss_mc_get_record(mcc, rec_len, name);
+
+    data = (struct sss_mc_pwd_data *)rec->data;
+    pos = 0;
+
+    MC_RAISE_BARRIER(rec);
+
+    /* header */
+    rec->len = rec_len;
+    rec->expire = time(NULL) + mcc->valid_time_slot;
+    rec->hash1 = sss_mc_hash(mcc, name->str, name->len);
+    rec->hash2 = sss_mc_hash(mcc, uidkey.str, uidkey.len);
+
+    /* passwd struct */
+    data->name = MC_PTR_DIFF(data->strs, data);
+    data->uid = uid;
+    data->gid = gid;
+    data->strs_len = data_len;
+    memcpy(&data->strs[pos], name->str, name->len);
+    pos += name->len;
+    memcpy(&data->strs[pos], pw->str, pw->len);
+    pos += pw->len;
+    memcpy(&data->strs[pos], gecos->str, gecos->len);
+    pos += gecos->len;
+    memcpy(&data->strs[pos], homedir->str, homedir->len);
+    pos += homedir->len;
+    memcpy(&data->strs[pos], shell->str, shell->len);
+    pos += shell->len;
+
+    MC_LOWER_BARRIER(rec);
+
+    /* finally chain the rec in the hash table */
+    /* name hash first */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash1);
+    /* then uid */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash2);
+
+    return EOK;
+}
+
+
+/***************************************************************************
  * initialization
  ***************************************************************************/
 

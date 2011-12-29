@@ -24,6 +24,7 @@
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_netgroup.h"
 #include "responder/nss/nsssrv_services.h"
+#include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
@@ -294,7 +295,7 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
 static int fill_pwent(struct sss_packet *packet,
                       struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
-                      bool filter_users,
+                      bool filter_users, bool pw_mmap_cache,
                       struct ldb_message **msgs,
                       int *count)
 {
@@ -445,6 +446,17 @@ static int fill_pwent(struct sss_packet *packet,
         rp += shell.len;
 
         num++;
+
+        if (pw_mmap_cache) {
+            ret = sss_mmap_cache_pw_store(nctx->pwd_mc_ctx,
+                                          &fullname, &pwfield,
+                                          uid, gid,
+                                          &gecos, &homedir, &shell);
+            if (ret != EOK && ret != ENOMEM) {
+                DEBUG(1, ("Failed to store user %s(%s) in mmap cache!",
+                          name.str, domain));
+            }
+        }
     }
     talloc_zfree(tmp_ctx);
 
@@ -479,9 +491,10 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
         return EFAULT;
     }
     i = dctx->res->count;
+
     ret = fill_pwent(cctx->creq->out,
                      dctx->domain,
-                     nctx, filter,
+                     nctx, filter, true,
                      dctx->res->msgs, &i);
     if (ret) {
         return ret;
@@ -1580,7 +1593,8 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 
         msgs = &(pdom->res->msgs[cctx->pwent_cur]);
 
-        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, &n);
+        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx,
+                         true, false, msgs, &n);
 
         cctx->pwent_cur += n;
     }

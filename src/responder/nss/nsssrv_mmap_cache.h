@@ -34,4 +34,12 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             enum sss_mc_type type, size_t n_elem,
                             struct sss_mc_ctx **mcc);
 
+errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
+                                struct sized_string *name,
+                                struct sized_string *pw,
+                                uid_t uid, gid_t gid,
+                                struct sized_string *gecos,
+                                struct sized_string *homedir,
+                                struct sized_string *shell);
+
 #endif /* _NSSSRV_MMAP_CACHE_H_ */
