@@ -44,6 +44,11 @@
     m->b1 = m->b2; \
 } while (0)
 
+#define MC_RAISE_INVALID_BARRIER(m) do { \
+    m->b2 = MC_INVALID_VAL; \
+    __sync_synchronize(); \
+} while (0)
+
 struct sss_mc_ctx {
     char *name;             /* mmap cache name */
     enum sss_mc_type type;  /* mmap cache type */
@@ -66,6 +71,280 @@ struct sss_mc_ctx {
     uint8_t *data_table;    /* data table address (in mmap) */
     uint32_t dt_size;       /* size of data table */
 };
+
+#define MC_FIND_BIT(base, num) \
+    uint32_t n = (num); \
+    uint8_t *b = (base) + n / 8; \
+    uint8_t c = 0x80 >> (n % 8);
+
+#define MC_SET_BIT(base, num) do { \
+    MC_FIND_BIT(base, num) \
+    *b |= c; \
+} while (0)
+
+#define MC_CLEAR_BIT(base, num) do { \
+    MC_FIND_BIT(base, num) \
+    *b &= ~c; \
+} while (0)
+
+#define MC_PROBE_BIT(base, num, used) do { \
+    MC_FIND_BIT(base, num) \
+    if (*b & c) used = true; \
+    else used = false; \
+} while (0)
+
+static uint32_t sss_mc_hash(struct sss_mc_ctx *mcc,
+                            const char *key, size_t len)
+{
+    return murmurhash3(key, len, mcc->seed) % MC_HT_ELEMS(mcc->ht_size);
+}
+
+static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
+                                    struct sss_mc_rec *rec,
+                                    uint32_t hash)
+{
+    struct sss_mc_rec *cur;
+    uint32_t slot;
+
+    slot = mcc->hash_table[hash];
+    if (slot == MC_INVALID_VAL) {
+        /* no previous record/collision, just add to hash table */
+        mcc->hash_table[hash] = MC_PTR_TO_SLOT(mcc->data_table, rec);
+        return;
+    }
+
+    do {
+        cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
+        if (cur == rec) {
+            /* rec already stored in hash chain */
+            return;
+        }
+        slot = cur->next;
+    } while (slot != MC_INVALID_VAL);
+    /* end of chain, append our record here */
+
+    /* changing a single uint32_t is atomic, so there is no
+     * need to use barriers in this case */
+    cur->next = MC_PTR_TO_SLOT(mcc->data_table, rec);
+}
+
+static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
+                                     struct sss_mc_rec *rec,
+                                     uint32_t hash)
+{
+    struct sss_mc_rec *prev = NULL;
+    struct sss_mc_rec *cur = NULL;
+    uint32_t slot;
+
+    slot = mcc->hash_table[hash];
+    cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
+    if (cur == rec) {
+        mcc->hash_table[hash] = rec->next;
+    } else {
+        slot = cur->next;
+        while (slot != MC_INVALID_VAL) {
+            prev = cur;
+            cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
+            if (cur == rec) {
+                /* changing a single uint32_t is atomic, so there is no
+                 * need to use barriers in this case */
+                prev->next = cur->next;
+                slot = MC_INVALID_VAL;
+            } else {
+                slot = cur->next;
+            }
+        }
+    }
+}
+
+static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
+                                  struct sss_mc_rec *rec)
+{
+    if (rec->b1 == MC_INVALID_VAL) {
+        /* record already invalid */
+        return;
+    }
+
+    /* hash chain 1 */
+    sss_mc_rm_rec_from_chain(mcc, rec, rec->hash1);
+    /* hash chain 2 */
+    sss_mc_rm_rec_from_chain(mcc, rec, rec->hash2);
+
+    MC_RAISE_INVALID_BARRIER(rec);
+    memset(rec->data, 'X', rec->len - sizeof(struct sss_mc_rec));
+    rec->len = MC_INVALID_VAL;
+    rec->expire = (uint64_t)-1;
+    rec->next = MC_INVALID_VAL;
+    rec->hash1 = MC_INVALID_VAL;
+    rec->hash2 = MC_INVALID_VAL;
+    MC_LOWER_BARRIER(rec);
+}
+
+/* FIXME: This is a very simplistic, inefficient, memory allocator,
+ * it will just free the oldest entries regardless of expiration if it
+ * cycled the whole freebits map and found no empty slot */
+static int sss_mc_find_free_slots(struct sss_mc_ctx *mcc, int num_slots)
+{
+    struct sss_mc_rec *rec;
+    uint32_t tot_slots;
+    uint32_t cur;
+    uint32_t i;
+    uint32_t t;
+    bool used;
+
+    tot_slots = mcc->ft_size * 8;
+
+    /* Try to find a free slot w/o removing a nything first */
+    /* FIXME: is it really worth it ? May be it is easier to
+     * just recycle the next set of slots ? */
+    if ((mcc->next_slot + num_slots) > tot_slots) {
+        cur = 0;
+    } else {
+        cur = mcc->next_slot;
+    }
+
+    /* search for enough (num_slots) consecutive zero bits, indicating
+     * consecutive empty slots */
+    for (i = 0; i < mcc->ft_size; i++) {
+        t = cur / 8;
+        /* if all full in this byte skip directly to the next */
+        if (mcc->free_table[t] == 0xff) {
+            cur = ((cur + 8) & ~7);
+            if (cur >= tot_slots) {
+                cur = 0;
+            }
+            continue;
+        }
+
+        /* at least one bit in this byte is marked as empty */
+        for (t = ((cur + 8) & ~7) ; cur < t; cur++) {
+            MC_PROBE_BIT(mcc->free_table, cur, used);
+            if (!used) break;
+        }
+        /* check if we have enough slots before hitting the table end */
+        if ((cur + num_slots) > tot_slots) {
+            cur = 0;
+            continue;
+        }
+
+        /* check if we have at least num_slots empty starting from the first
+         * we found in the previous steps */
+        for (t = cur + num_slots; cur < t; cur++) {
+            MC_PROBE_BIT(mcc->free_table, cur, used);
+            if (used) break;
+        }
+        if (cur == t) {
+            /* ok found num_slots consecutive free bits */
+            return cur - num_slots;
+        }
+    }
+
+    /* no free slots found, free occupied slots after next_slot */
+    if ((mcc->next_slot + num_slots) > tot_slots) {
+        cur = 0;
+    } else {
+        cur = mcc->next_slot;
+    }
+    for (i = 0; i < num_slots; i++) {
+        MC_PROBE_BIT(mcc->free_table, cur + i, used);
+        if (!used) continue;
+
+        rec = MC_SLOT_TO_PTR(mcc->data_table, cur + i, struct sss_mc_rec);
+        for (t = i + MC_SIZE_TO_SLOTS(rec->len); i < t; i++) {
+            MC_CLEAR_BIT(mcc->free_table, cur + i);
+        }
+        sss_mc_invalidate_rec(mcc, rec);
+    }
+
+    mcc->next_slot = cur + num_slots;
+    return cur;
+}
+
+static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
+                                             struct sized_string *key)
+{
+    struct sss_mc_rec *rec;
+    uint32_t hash;
+    uint32_t slot;
+    rel_ptr_t name_ptr;
+    char *t_key;
+
+    hash = sss_mc_hash(mcc, key->str, key->len);
+
+    slot = mcc->hash_table[hash];
+    if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+        return NULL;
+    }
+
+    while (slot != MC_INVALID_VAL) {
+        rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
+        name_ptr = *((rel_ptr_t *)rec->data);
+
+        t_key = (char *)rec->data + name_ptr;
+        if (strcmp(key->str, t_key) == 0) {
+            break;
+        }
+
+        slot = rec->next;
+    }
+
+    if (slot == MC_INVALID_VAL) {
+        return NULL;
+    }
+
+    return rec;
+}
+
+static struct sss_mc_rec *sss_mc_get_record(struct sss_mc_ctx *mcc,
+                                            size_t rec_len,
+                                            struct sized_string *key)
+{
+    struct sss_mc_rec *old_rec = NULL;
+    struct sss_mc_rec *rec;
+    int old_slots;
+    int num_slots;
+    uint32_t base_slot;
+    int i;
+
+    num_slots = MC_SIZE_TO_SLOTS(rec_len);
+
+    old_rec = sss_mc_find_record(mcc, key);
+    if (old_rec) {
+        old_slots = MC_SIZE_TO_SLOTS(old_rec->len);
+
+        if (old_slots == num_slots) {
+            return old_rec;
+        }
+
+        /* slot size changed, invalidate record and fall through to get a
+        * fully new record */
+        base_slot = MC_PTR_TO_SLOT(mcc->data_table, old_rec);
+        sss_mc_invalidate_rec(mcc, old_rec);
+
+        /* and now free slots */
+        for (i = 0; i < old_slots; i++) {
+            MC_CLEAR_BIT(mcc->free_table, base_slot + i);
+        }
+    }
+
+    /* we are going to use more space, find enough free slots */
+    base_slot = sss_mc_find_free_slots(mcc, num_slots);
+
+    rec = MC_SLOT_TO_PTR(mcc->data_table, base_slot, struct sss_mc_rec);
+
+    /* mark as not valid yet */
+    MC_RAISE_INVALID_BARRIER(rec);
+    rec->len = rec_len;
+    rec->next = MC_INVALID_VAL;
+    MC_LOWER_BARRIER(rec);
+
+    /* and now mark slots as used */
+    for (i = 0; i < num_slots; i++) {
+        MC_SET_BIT(mcc->free_table, base_slot + i);
+    }
+
+    return rec;
+}
 
 
 /***************************************************************************
