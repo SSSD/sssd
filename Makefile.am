@@ -954,7 +954,10 @@ libnss_sss_la_SOURCES = \
     src/sss_client/nss_netgroup.c \
     src/sss_client/nss_services.c \
     src/sss_client/sss_cli.h \
-    src/sss_client/nss_compat.h
+    src/sss_client/nss_compat.h \
+    src/sss_client/nss_mc_common.c \
+    src/util/murmurhash3.c \
+    src/sss_client/nss_mc.h
 libnss_sss_la_LDFLAGS = \
     -module \
     -version-info 2:0:0 \
