@@ -411,11 +411,11 @@ Suite *util_suite(void)
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");
-    tcase_add_test (tc_util, test_utf8_lowercase);
-    tcase_add_test (tc_util, test_utf8_talloc_lowercase);
-    tcase_add_test (tc_util, test_utf8_talloc_str_lowercase);
-    tcase_add_test (tc_util, test_utf8_caseeq);
-    tcase_add_test (tc_util, test_utf8_check);
+    tcase_add_test (tc_utf8, test_utf8_lowercase);
+    tcase_add_test (tc_utf8, test_utf8_talloc_lowercase);
+    tcase_add_test (tc_utf8, test_utf8_talloc_str_lowercase);
+    tcase_add_test (tc_utf8, test_utf8_caseeq);
+    tcase_add_test (tc_utf8, test_utf8_check);
 
     tcase_set_timeout(tc_utf8, 60);
 
