@@ -59,4 +59,12 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
 errno_t sss_nss_str_ptr_from_buffer(char **str, void **cookie,
                                     char *buf, size_t len);
 
+/* passwd db */
+errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
+                            struct passwd *result,
+                            char *buffer, size_t buflen);
+errno_t sss_nss_mc_getpwuid(uid_t uid,
+                            struct passwd *result,
+                            char *buffer, size_t buflen);
+
 #endif /* _NSS_MC_H_ */

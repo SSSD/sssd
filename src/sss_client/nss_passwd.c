@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "sss_cli.h"
+#include "nss_mc.h"
 
 static struct sss_nss_getpwent_data {
     size_t len;
@@ -154,6 +155,24 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
         return NSS_STATUS_NOTFOUND;
     }
 
+    ret = sss_nss_mc_getpwnam(name, name_len, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        return NSS_STATUS_SUCCESS;
+    case ERANGE:
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
+
     rd.len = name_len + 1;
     rd.data = name;
 
@@ -213,6 +232,24 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) return ERANGE;
+
+    ret = sss_nss_mc_getpwuid(uid, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        return NSS_STATUS_SUCCESS;
+    case ERANGE:
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
 
     user_uid = uid;
     rd.len = sizeof(uint32_t);
