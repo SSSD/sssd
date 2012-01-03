@@ -29,6 +29,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "sss_cli.h"
+#include "nss_mc.h"
 
 static struct sss_nss_getgrent_data {
     size_t len;
@@ -365,6 +366,27 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
         return NSS_STATUS_NOTFOUND;
     }
 
+    ret = sss_nss_mc_getgrnam(name, name_len, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        return NSS_STATUS_SUCCESS;
+    case ERANGE:
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    case EINVAL:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    default:
+        *errnop = EBADMSG;
+        return NSS_STATUS_TRYAGAIN;
+    }
+
     rd.len = name_len + 1;
     rd.data = name;
 
@@ -432,6 +454,27 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) return ERANGE;
+
+    ret = sss_nss_mc_getgrgid(gid, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        return NSS_STATUS_SUCCESS;
+    case ERANGE:
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    case EINVAL:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    default:
+        *errnop = EBADMSG;
+        return NSS_STATUS_TRYAGAIN;
+    }
 
     group_gid = gid;
     rd.len = sizeof(uint32_t);

@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pwd.h>
+#include <grp.h>
 #include "util/mmap_cache.h"
 
 #ifndef HAVE_ERRNO_T
@@ -65,6 +66,14 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
                             char *buffer, size_t buflen);
 errno_t sss_nss_mc_getpwuid(uid_t uid,
                             struct passwd *result,
+                            char *buffer, size_t buflen);
+
+/* group db */
+errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
+                            struct group *result,
+                            char *buffer, size_t buflen);
+errno_t sss_nss_mc_getgrgid(gid_t gid,
+                            struct group *result,
                             char *buffer, size_t buflen);
 
 #endif /* _NSS_MC_H_ */
