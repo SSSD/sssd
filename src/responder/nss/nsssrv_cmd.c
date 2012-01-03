@@ -1767,12 +1767,13 @@ static int fill_grent(struct sss_packet *packet,
     uint8_t *body;
     size_t blen;
     uint32_t gid;
+    const char *tmpstr;
     const char *orig_name;
-    char *name;
-    size_t nsize;
+    struct sized_string name;
+    struct sized_string pwfield;
+    struct sized_string fullname;
     size_t delim;
     size_t dom_len;
-    size_t pwlen;
     int i = 0;
     int j = 0;
     int ret, num, memnum;
@@ -1790,8 +1791,9 @@ static int fill_grent(struct sss_packet *packet,
         dom_len = 0;
     }
 
+    to_sized_string(&pwfield, nctx->pwfield);
+
     num = 0;
-    pwlen = strlen(nctx->pwfield) + 1;
 
     /* first 2 fields (len and reserved), filled up later */
     ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -1838,18 +1840,17 @@ static int fill_grent(struct sss_packet *packet,
             }
         }
 
-        name = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
-        if (name == NULL) {
+        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("sss_get_cased_name failed, skipping\n"));
             continue;
         }
-
-        nsize = strlen(name) + 1; /* includes terminating \0 */
-        if (add_domain) nsize += delim + dom_len;
+        to_sized_string(&name, tmpstr);
 
         /* fill in gid and name and set pointer for number of members */
-        rsize = STRS_ROFFSET + nsize + pwlen; /* name\0x\0 */
+        rsize = STRS_ROFFSET + name.len + pwfield.len; /* name\0x\0 */
+        if (add_domain) rsize += delim + dom_len;
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -1867,10 +1868,11 @@ static int fill_grent(struct sss_packet *packet,
         /*  8-X: sequence of strings (name, passwd, mem..) */
         if (add_domain) {
             ret = snprintf((char *)&body[rzero+STRS_ROFFSET],
-                            nsize, namefmt, name, domain);
-            if (ret >= nsize) {
+                            name.len + delim + dom_len,
+                            namefmt, name.str, domain);
+            if (ret >= (name.len + delim + dom_len)) {
                 /* need more space, got creative with the print format ? */
-                int t = ret - nsize + 1;
+                int t = ret - (name.len + delim + dom_len) + 1;
                 ret = sss_packet_grow(packet, t);
                 if (ret != EOK) {
                     num = 0;
@@ -1879,16 +1881,16 @@ static int fill_grent(struct sss_packet *packet,
                 sss_packet_get_body(packet, &body, &blen);
                 rsize += t;
                 delim += t;
-                nsize += t;
 
                 /* retry */
                 ret = snprintf((char *)&body[rzero+STRS_ROFFSET],
-                                nsize, namefmt, name, domain);
+                                name.len + delim + dom_len,
+                                namefmt, name.str, domain);
             }
 
-            if (ret != nsize-1) {
+            if (ret != name.len + delim + dom_len - 1) {
                 DEBUG(1, ("Failed to generate a fully qualified name for"
-                          " group [%s] in [%s]! Skipping\n", name, domain));
+                          " group [%s] in [%s]! Skipping\n", name.str, domain));
                 /* reclaim space */
                 ret = sss_packet_shrink(packet, rsize);
                 if (ret != EOK) {
@@ -1899,36 +1901,41 @@ static int fill_grent(struct sss_packet *packet,
                 continue;
             }
         } else {
-            memcpy(&body[rzero+STRS_ROFFSET], name, nsize);
+            memcpy(&body[rzero+STRS_ROFFSET], name.str, name.len);
         }
+        to_sized_string(&fullname, (const char *)&body[rzero+STRS_ROFFSET]);
 
         /* group passwd field */
-        memcpy(&body[rzero + rsize -pwlen], nctx->pwfield, pwlen);
+        memcpy(&body[rzero+STRS_ROFFSET + fullname.len],
+                                            pwfield.str, pwfield.len);
 
         el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
         if (el) {
             memnum = 0;
 
             for (j = 0; j < el->num_values; j++) {
-                name = (char *)el->values[j].data;
+                tmpstr = (char *)el->values[j].data;
 
                 if (nctx->filter_users_in_groups) {
                     ret = sss_ncache_check_user(nctx->ncache,
                                                 nctx->neg_timeout,
-                                                dom, name);
+                                                dom, tmpstr);
                     if (ret == EEXIST) {
                         DEBUG(6, ("Group [%s] member [%s@%s] filtered out!"
                                   " (negative cache)\n",
                                   (char *)&body[rzero+STRS_ROFFSET],
-                                  name, domain));
+                                  tmpstr, domain));
                         continue;
                     }
                 }
 
-                nsize = strlen(name) + 1; /* includes terminating \0 */
-                if (add_domain) nsize += delim + dom_len;
+                to_sized_string(&name, tmpstr);
 
-                ret = sss_packet_grow(packet, nsize);
+                if (add_domain) {
+                    ret = sss_packet_grow(packet, name.len + delim + dom_len);
+                } else {
+                    ret = sss_packet_grow(packet, name.len);
+                }
                 if (ret != EOK) {
                     num = 0;
                     goto done;
@@ -1937,11 +1944,12 @@ static int fill_grent(struct sss_packet *packet,
 
                 if (add_domain) {
                     ret = snprintf((char *)&body[rzero + rsize],
-                                    nsize, namefmt, name, domain);
-                    if (ret >= nsize) {
+                                    name.len + delim + dom_len,
+                                    namefmt, name, domain);
+                    if (ret >= (name.len + delim + dom_len)) {
                         /* need more space,
                          * got creative with the print format ? */
-                        int t = ret - nsize + 1;
+                        int t = ret - name.len + delim + dom_len + 1;
                         ret = sss_packet_grow(packet, t);
                         if (ret != EOK) {
                             num = 0;
@@ -1949,20 +1957,21 @@ static int fill_grent(struct sss_packet *packet,
                         }
                         sss_packet_get_body(packet, &body, &blen);
                         delim += t;
-                        nsize += t;
 
                         /* retry */
                         ret = snprintf((char *)&body[rzero + rsize],
-                                        nsize, namefmt, name, domain);
+                                        name.len + delim + dom_len,
+                                        namefmt, name, domain);
                     }
 
-                    if (ret != nsize-1) {
+                    if (ret != name.len + delim + dom_len - 1) {
                         DEBUG(1, ("Failed to generate a fully qualified name"
                                   " for member [%s@%s] of group [%s]!"
-                                  " Skipping\n", name, domain,
+                                  " Skipping\n", name.str, domain,
                                   (char *)&body[rzero+STRS_ROFFSET]));
                         /* reclaim space */
-                        ret = sss_packet_shrink(packet, nsize);
+                        ret = sss_packet_shrink(packet,
+                                                name.len + delim + dom_len);
                         if (ret != EOK) {
                             num = 0;
                             goto done;
@@ -1971,10 +1980,14 @@ static int fill_grent(struct sss_packet *packet,
                     }
 
                 } else {
-                    memcpy(&body[rzero + rsize], name, nsize);
+                    memcpy(&body[rzero + rsize], name.str, name.len);
                 }
 
-                rsize += nsize;
+                if (add_domain) {
+                    rsize += name.len + delim + dom_len;
+                } else {
+                    rsize += name.len;
+                }
 
                 memnum++;
             }
