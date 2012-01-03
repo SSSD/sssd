@@ -42,4 +42,10 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
                                 struct sized_string *homedir,
                                 struct sized_string *shell);
 
+errno_t sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
+                                struct sized_string *name,
+                                struct sized_string *pw,
+                                gid_t gid, size_t memnum,
+                                char *membuf, size_t memsize);
+
 #endif /* _NSSSRV_MMAP_CACHE_H_ */

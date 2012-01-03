@@ -67,6 +67,7 @@ struct nss_ctx {
     char *shell_fallback;
 
     struct sss_mc_ctx *pwd_mc_ctx;
+    struct sss_mc_ctx *grp_mc_ctx;
 };
 
 struct nss_packet;

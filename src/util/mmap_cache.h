@@ -111,6 +111,16 @@ struct sss_mc_pwd_data {
                              * string is zero terminated ordered as follows:
                              * name, passwd, gecos, dir, shell */
 };
+
+struct sss_mc_grp_data {
+    rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
+    uint32_t gid;
+    uint32_t members;       /* number of members in strs */
+    uint32_t strs_len;      /* length of strs */
+    char strs[0];           /* concatenation of all group strings, each
+                             * string is zero terminated ordered as follows:
+                             * name, passwd, member1, member2, ... */
+};
 #pragma pack()
 
 

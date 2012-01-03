@@ -1676,7 +1676,7 @@ done:
 static int fill_grent(struct sss_packet *packet,
                       struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
-                      bool filter_groups,
+                      bool filter_groups, bool gr_mmap_cache,
                       struct ldb_message **msgs,
                       int *count)
 {
@@ -1917,6 +1917,16 @@ static int fill_grent(struct sss_packet *packet,
         }
 
         num++;
+
+        if (gr_mmap_cache) {
+            ret = sss_mmap_cache_gr_store(nctx->grp_mc_ctx,
+                                          &fullname, &pwfield, gid, memnum,
+                                          (char *)&body[rzero] + STRS_ROFFSET +
+                                            fullname.len + pwfield.len,
+                                          rsize - STRS_ROFFSET -
+                                            fullname.len - pwfield.len);
+        }
+
         continue;
     }
     talloc_zfree(tmp_ctx);
@@ -1957,7 +1967,7 @@ static int nss_cmd_getgr_send_reply(struct nss_dom_ctx *dctx, bool filter)
     i = dctx->res->count;
     ret = fill_grent(cctx->creq->out,
                      dctx->domain,
-                     nctx, filter,
+                     nctx, filter, true,
                      dctx->res->msgs, &i);
     if (ret) {
         return ret;
@@ -2824,7 +2834,7 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 
         ret = fill_grent(cctx->creq->out,
                          gdom->domain,
-                         nctx, true, msgs, &n);
+                         nctx, true, false, msgs, &n);
 
         cctx->grent_cur += n;
     }

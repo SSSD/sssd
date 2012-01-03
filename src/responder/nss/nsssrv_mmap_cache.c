@@ -424,6 +424,76 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
 
 
 /***************************************************************************
+ * group map
+ ***************************************************************************/
+
+int sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
+                            struct sized_string *name,
+                            struct sized_string *pw,
+                            gid_t gid, size_t memnum,
+                            char *membuf, size_t memsize)
+{
+    struct sss_mc_rec *rec;
+    struct sss_mc_grp_data *data;
+    struct sized_string gidkey;
+    char gidstr[11];
+    size_t data_len;
+    size_t rec_len;
+    size_t pos;
+    int ret;
+
+    ret = snprintf(gidstr, 11, "%ld", (long)gid);
+    if (ret > 10) {
+        return EINVAL;
+    }
+    to_sized_string(&gidkey, gidstr);
+
+    data_len = name->len + pw->len + memsize;
+    rec_len = sizeof(struct sss_mc_rec) +
+              sizeof(struct sss_mc_grp_data) +
+              data_len;
+    if (rec_len > mcc->dt_size) {
+        return ENOMEM;
+    }
+
+    rec = sss_mc_get_record(mcc, rec_len, name);
+
+    data = (struct sss_mc_grp_data *)rec->data;
+    pos = 0;
+
+    MC_RAISE_BARRIER(rec);
+
+    /* header */
+    rec->len = rec_len;
+    rec->expire = time(NULL) + mcc->valid_time_slot;
+    rec->hash1 = sss_mc_hash(mcc, name->str, name->len);
+    rec->hash2 = sss_mc_hash(mcc, gidkey.str, gidkey.len);
+
+    /* group struct */
+    data->name = MC_PTR_DIFF(data->strs, data);
+    data->gid = gid;
+    data->members = memnum;
+    data->strs_len = data_len;
+    memcpy(&data->strs[pos], name->str, name->len);
+    pos += name->len;
+    memcpy(&data->strs[pos], pw->str, pw->len);
+    pos += pw->len;
+    memcpy(&data->strs[pos], membuf, memsize);
+    pos += memsize;
+
+    MC_LOWER_BARRIER(rec);
+
+    /* finally chain the rec in the hash table */
+    /* name hash first */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash1);
+    /* then gid */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash2);
+
+    return EOK;
+}
+
+
+/***************************************************************************
  * initialization
  ***************************************************************************/
 
