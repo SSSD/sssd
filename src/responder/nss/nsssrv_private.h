@@ -101,9 +101,6 @@ struct setent_step_ctx {
 /* Finish the request */
 int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret);
 
-/* Respond with no entries */
-int fill_empty(struct sss_packet *packet);
-
 errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
                            struct getent_ctx *getent_ctx,
                            struct tevent_req *req);

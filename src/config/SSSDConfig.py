@@ -77,6 +77,9 @@ option_strings = {
     'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
     'sudo_cache_timeout' : _('How many seconds to keep sudorules cached before asking the provider again'),
 
+    # [autofs]
+    'autofs_negative_timeout' : _('Negative cache timeout length (seconds)'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),
@@ -103,6 +106,7 @@ option_strings = {
     'entry_cache_group_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_netgroup_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_service_timeout' : _('Entry cache timeout length (seconds)'),
+    'entry_cache_autofs_timeout' : _('Entry cache timeout length (seconds)'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

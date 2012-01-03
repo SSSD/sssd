@@ -6,13 +6,17 @@ top_builddir = ../..
 ############
 
 
-# If no conditions are given, *all* conditionals are expanded. We don't
+# If no conditions are given, *all* conditionals are expanded. We don't want
 # to include any conditions by default, so we need to pass a phony conditional
-CONDS=with_false
 if BUILD_SUDO
 # conditionals are delimeted with a semicolon
-CONDS+=;with_sudo
+SUDO_CONDS = ;with_sudo
 endif
+if BUILD_AUTOFS
+AUTOFS_CONDS = ;with_autofs
+endif
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)
+
 
 #Special Rules:
 export SGML_CATALOG_FILES

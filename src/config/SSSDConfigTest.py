@@ -483,6 +483,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'entry_cache_group_timeout',
             'entry_cache_netgroup_timeout',
             'entry_cache_service_timeout',
+            'entry_cache_autofs_timeout',
             'lookup_family_order',
             'account_cache_expiration',
             'dns_resolver_timeout',
@@ -494,7 +495,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'auth_provider',
             'access_provider',
             'chpass_provider',
-            'sudo_provider']
+            'sudo_provider',
+            'autofs_provider' ]
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -806,6 +808,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'entry_cache_group_timeout',
             'entry_cache_netgroup_timeout',
             'entry_cache_service_timeout',
+            'entry_cache_autofs_timeout',
             'account_cache_expiration',
             'lookup_family_order',
             'dns_resolver_timeout',
@@ -817,7 +820,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'auth_provider',
             'access_provider',
             'chpass_provider',
-            'sudo_provider']
+            'sudo_provider',
+            'autofs_provider']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -1146,7 +1150,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'sssd',
             'nss',
             'pam',
-            'sudo']
+            'sudo',
+            'autofs']
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
                             "Section [%s] missing" %
@@ -1188,7 +1193,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'sssd',
             'pam',
             'nss',
-            'sudo']
+            'sudo',
+            'autofs' ]
         service_list = sssdconfig.list_services()
         for service in control_list:
             self.assertTrue(service in service_list,

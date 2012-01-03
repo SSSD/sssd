@@ -645,6 +645,34 @@
             </variablelist>
         </refsect2>
 
+        <refsect2 id='AUTOFS' condition="with_autofs">
+            <title>AUTOFS configuration options</title>
+            <para>
+                These options can be used to configure the autofs service.
+            </para>
+            <para>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+            </para>
+
+            <variablelist>
+                <varlistentry>
+                    <term>autofs_negative_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies for how many seconds should the
+                            autofs respondercache negative cache hits
+                            (that is, queries for invalid map entries,
+                            like nonexistent ones) before asking the back
+                            end again.
+                        </para>
+                        <para>
+                            Default: 15
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
     </refsect1>
 
     <refsect1 id='domain-sections'>

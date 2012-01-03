@@ -118,6 +118,8 @@ struct cli_ctx {
 
     char *netgr_name;
     int netgrent_cur;
+
+    char *automntmap_name;
 };
 
 struct sss_cmd_table {

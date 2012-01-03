@@ -83,6 +83,9 @@ sssdlibexec_PROGRAMS = \
 if BUILD_SUDO
 sssdlibexec_PROGRAMS += sssd_sudo
 endif
+if BUILD_AUTOFS
+sssdlibexec_PROGRAMS += sssd_autofs
+endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
@@ -322,6 +325,7 @@ dist_noinst_HEADERS = \
     src/responder/nss/nsssrv_services.h \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
+    src/responder/autofs/autofs_private.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_private.h \
@@ -477,6 +481,17 @@ sssd_sudo_SOURCES = \
     src/responder/sudo/sudosrv_cache.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_sudo_LDADD = \
+    $(SSSD_LIBS) \
+    libsss_util.la
+endif
+
+if BUILD_AUTOFS
+sssd_autofs_SOURCES = \
+    src/responder/autofs/autofssrv.c \
+    src/responder/autofs/autofssrv_cmd.c \
+    src/responder/autofs/autofssrv_dp.c \
+    $(SSSD_RESPONDER_OBJ)
+sssd_autofs_LDADD = \
     $(SSSD_LIBS) \
     libsss_util.la
 endif

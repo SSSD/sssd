@@ -98,6 +98,10 @@
 #define CONFDB_SUDO_TIMED "sudo_timed"
 #define CONFDB_DEFAULT_SUDO_TIMED false
 
+/* autofs */
+#define CONFDB_AUTOFS_CONF_ENTRY "config/autofs"
+#define CONFDB_AUTOFS_MAP_NEG_TIMEOUT "autofs_negative_timeout"
+
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"
 
@@ -133,6 +137,7 @@
 #define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"
 #define CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT "entry_cache_netgroup_timeout"
 #define CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT "entry_cache_service_timeout"
+#define CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT "entry_cache_autofs_timeout"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -175,6 +180,7 @@ struct sss_domain_info {
     uint32_t group_timeout;
     uint32_t netgroup_timeout;
     uint32_t service_timeout;
+    uint32_t autofsmap_timeout;
 
     struct sss_domain_info *next;
 };

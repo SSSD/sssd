@@ -889,6 +889,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    /* Override the service cache timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->autofsmap_timeout,
+                              CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT));
+        goto done;
+    }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
                               CONFDB_DOMAIN_OVERRIDE_GID, 0);
