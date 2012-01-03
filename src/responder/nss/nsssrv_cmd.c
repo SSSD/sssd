@@ -363,15 +363,17 @@ static int fill_pwent(struct sss_packet *packet,
 {
     struct ldb_message *msg;
     uint8_t *body;
-    const char *name;
+    const char *tmpstr;
     const char *orig_name;
-    const char *gecos;
-    const char *homedir;
-    const char *shell;
+    struct sized_string name;
+    struct sized_string gecos;
+    struct sized_string homedir;
+    struct sized_string shell;
+    struct sized_string pwfield;
+    struct sized_string fullname;
     uint32_t uid;
     uint32_t gid;
     size_t rsize, rp, blen;
-    size_t s1, s2, s3, s4, s5;
     size_t dom_len = 0;
     int delim = 1;
     int i, ret, num, t;
@@ -383,6 +385,8 @@ static int fill_pwent(struct sss_packet *packet,
     TALLOC_CTX *tmp_ctx = NULL;
 
     if (add_domain) dom_len = strlen(domain);
+
+    to_sized_string(&pwfield, nctx->pwfield);
 
     rp = 2*sizeof(uint32_t);
 
@@ -421,29 +425,36 @@ static int fill_pwent(struct sss_packet *packet,
             packet_initialized = true;
         }
 
-        name = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
-        if (name == NULL) {
+        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("sss_get_cased_name failed, skipping\n"));
             continue;
         }
+        to_sized_string(&name, tmpstr);
 
-        gecos = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
-        homedir = get_homedir_override(tmp_ctx, msg, nctx, dom, name, uid);
-        shell = get_shell_override(tmp_ctx, msg, nctx);
+        tmpstr = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
+        if (!tmpstr) {
+            to_sized_string(&gecos, "");
+        } else {
+            to_sized_string(&gecos, tmpstr);
+        }
+        tmpstr = get_homedir_override(tmp_ctx, msg, nctx, dom, name.str, uid);
+        if (!tmpstr) {
+            to_sized_string(&homedir, "/");
+        } else {
+            to_sized_string(&homedir, tmpstr);
+        }
+        tmpstr = get_shell_override(tmp_ctx, msg, nctx);
+        if (!tmpstr) {
+            to_sized_string(&shell, "");
+        } else {
+            to_sized_string(&shell, tmpstr);
+        }
 
-        if (!gecos) gecos = "";
-        if (!homedir) homedir = "/";
-        if (!shell) shell = "";
-
-        s1 = strlen(name) + 1;
-        s2 = strlen(gecos) + 1;
-        s3 = strlen(homedir) + 1;
-        s4 = strlen(shell) + 1;
-        s5 = strlen(nctx->pwfield) + 1;
-        if (add_domain) s1 += delim + dom_len;
-
-        rsize = 2*sizeof(uint32_t) +s1 + s2 + s3 + s4 + s5;
+        rsize = 2 * sizeof(uint32_t) + name.len + gecos.len +
+                                       homedir.len + shell.len + pwfield.len;
+        if (add_domain) rsize += delim + dom_len;
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -456,41 +467,45 @@ static int fill_pwent(struct sss_packet *packet,
         SAFEALIGN_SET_UINT32(&body[rp], gid, &rp);
 
         if (add_domain) {
-            ret = snprintf((char *)&body[rp], s1, namefmt, name, domain);
-            if (ret >= s1) {
+            ret = snprintf((char *)&body[rp],
+                            name.len + delim + dom_len,
+                            namefmt, name.str, domain);
+            if (ret >= (name.len + delim + dom_len)) {
                 /* need more space, got creative with the print format ? */
-                t = ret - s1 + 1;
+                t = ret - (name.len + delim + dom_len) + 1;
                 ret = sss_packet_grow(packet, t);
                 if (ret != EOK) {
                     num = 0;
                     goto done;
                 }
                 delim += t;
-                s1 += t;
                 sss_packet_get_body(packet, &body, &blen);
 
                 /* retry */
-                ret = snprintf((char *)&body[rp], s1, namefmt, name, domain);
+                ret = snprintf((char *)&body[rp],
+                            name.len + delim + dom_len,
+                            namefmt, name.str, domain);
             }
 
-            if (ret != s1-1) {
+            if (ret != name.len + delim + dom_len - 1) {
                 DEBUG(1, ("Failed to generate a fully qualified name for user "
-                          "[%s] in [%s]! Skipping user.\n", name, domain));
+                          "[%s] in [%s]! Skipping user.\n", name.str, domain));
                 continue;
             }
         } else {
-            memcpy(&body[rp], name, s1);
+            memcpy(&body[rp], name.str, name.len);
         }
-        rp += s1;
+        to_sized_string(&fullname, (const char *)&body[rp]);
+        rp += fullname.len;
 
-        memcpy(&body[rp], nctx->pwfield, s5);
-        rp += s5;
-        memcpy(&body[rp], gecos, s2);
-        rp += s2;
-        memcpy(&body[rp], homedir, s3);
-        rp += s3;
-        memcpy(&body[rp], shell, s4);
-        rp += s4;
+        memcpy(&body[rp], pwfield.str, pwfield.len);
+        rp += pwfield.len;
+        memcpy(&body[rp], gecos.str, gecos.len);
+        rp += gecos.len;
+        memcpy(&body[rp], homedir.str, homedir.len);
+        rp += homedir.len;
+        memcpy(&body[rp], shell.str, shell.len);
+        rp += shell.len;
 
         num++;
     }
