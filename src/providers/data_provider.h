@@ -51,6 +51,7 @@
 #define DP_METHOD_REGISTER "RegisterService"
 #define DP_METHOD_GETACCTINFO "getAccountInfo"
 #define DP_METHOD_SUDOHANDLER "sudoHandler"
+#define DP_METHOD_AUTOFSHANDLER "autofsHandler"
 /**
  * @defgroup pamHandler PAM DBUS request
  * @ingroup sss_pam
