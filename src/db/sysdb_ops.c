@@ -22,6 +22,7 @@
 #include "util/util.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
+#include "db/sysdb_autofs.h"
 #include "util/crypto/sss_crypto.h"
 #include <time.h>
 
@@ -1668,21 +1669,42 @@ sysdb_group_membership_mod(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    group_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, group);
-    if (!group_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     if (type == SYSDB_MEMBER_USER) {
         member_dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
         }
+
+        group_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, group);
+        if (!group_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
     } else if (type == SYSDB_MEMBER_GROUP) {
         member_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
         if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        group_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, group);
+        if (!group_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else if (type == SYSDB_MEMBER_AUTOFSENTRY) {
+        /* FIXME - I don't like autofs specific stuff in sysdb_ops.c
+         * Maybe we should introduce sysdb_common.c ?
+         */
+        member_dn = sysdb_autofsentry_dn(tmp_ctx, sysdb, member);
+        if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        group_dn = sysdb_autofsmap_dn(tmp_ctx, sysdb, group);
+        if (!group_dn) {
             ret = ENOMEM;
             goto done;
         }
@@ -2936,6 +2958,10 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
 
     case SYSDB_MEMBER_SERVICE:
         msg->dn = sysdb_svc_dn(sysdb, msg, sysdb->domain->name, name);
+        break;
+
+    case SYSDB_MEMBER_AUTOFSENTRY:
+        msg->dn = sysdb_autofsmap_dn(msg, sysdb, name);
         break;
     }
     if (!msg->dn) {
