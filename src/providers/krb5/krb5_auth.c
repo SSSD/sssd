@@ -542,9 +542,19 @@ static void krb5_resolve_kdc_done(struct tevent_req *subreq)
         /* all servers have been tried and none
          * was found good, setting offline,
          * but we still have to call the child to setup
-         * the ccache file. */
+         * the ccache file if we are performing auth */
         be_mark_offline(state->be_ctx);
         kr->is_offline = true;
+
+        if (kr->pd->cmd == SSS_PAM_CHAUTHTOK ||
+            kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("No KDC suitable for password change is available\n"));
+            state->pam_status = PAM_AUTHTOK_LOCK_BUSY;
+            state->dp_err = DP_ERR_OK;
+            tevent_req_done(req);
+            return;
+        }
     } else {
         if (kr->krb5_ctx->kpasswd_service != NULL) {
             subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
