@@ -29,6 +29,7 @@
 #include "util/util.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb_private.h"
+#include "db/sysdb_services.h"
 #include "tests/common.h"
 
 #define TESTS_PATH "tests_sysdb"
@@ -2811,6 +2812,356 @@ START_TEST(test_odd_characters)
 }
 END_TEST
 
+/* == SERVICE TESTS == */
+void services_check_match(struct sysdb_test_ctx *test_ctx,
+                          bool by_name,
+                          const char *primary_name,
+                          int port,
+                          const char **aliases,
+                          const char **protocols)
+{
+    errno_t ret;
+    unsigned int i, j;
+    bool matched;
+    const char *ret_name;
+    int ret_port;
+    struct ldb_result *res;
+    struct ldb_message *msg;
+    struct ldb_message_element *el;
+
+    if (by_name) {
+        /* Look up the service by name */
+        ret = sysdb_getservbyname(test_ctx, test_ctx->sysdb, primary_name,
+                                  NULL, &res);
+        fail_if(ret != EOK, "sysdb_getservbyname error [%s]\n",
+                             strerror(ret));
+    } else {
+        /* Look up the newly-added service by port */
+        ret = sysdb_getservbyport(test_ctx, test_ctx->sysdb,
+                                  port, NULL, &res);
+        fail_if(ret != EOK, "sysdb_getservbyport error [%s]\n",
+                             strerror(ret));
+    }
+    fail_if(res == NULL, "ENOMEM");
+    fail_if(res->count != 1);
+
+    /* Make sure the returned entry matches */
+    msg = res->msgs[0];
+    ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_if(ret_name == NULL);
+    fail_unless(strcmp(ret_name, primary_name) == 0);
+
+    ret_port = ldb_msg_find_attr_as_int(msg, SYSDB_SVC_PORT, 0);
+    fail_if (ret_port != port);
+
+    el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
+    for (i = 0; i < el->num_values; i++) {
+        matched = false;
+        for (j = 0; aliases[j]; j++) {
+            if (strcmp(aliases[j], (const char *)el->values[i].data) == 0) {
+                matched = true;
+            }
+        }
+        fail_if(!matched, "Unexpected value in LDB entry: [%s]",
+                (const char *)el->values[i].data);
+    }
+
+    el = ldb_msg_find_element(msg, SYSDB_SVC_PROTO);
+    for (i = 0; i < el->num_values; i++) {
+        matched = false;
+        for (j = 0; protocols[j]; j++) {
+            if (strcmp(protocols[j], (const char *)el->values[i].data) == 0) {
+                matched = true;
+            }
+        }
+        fail_if(!matched, "Unexpected value in LDB entry: [%s]",
+                (const char *)el->values[i].data);
+    }
+}
+
+#define services_check_match_name(test_ctx, primary_name, port, aliases, protocols) \
+    do { \
+        services_check_match(test_ctx, true, primary_name, port, aliases, protocols); \
+    } while(0);
+
+#define services_check_match_port(test_ctx, primary_name, port, aliases, protocols) \
+    do { \
+        services_check_match(test_ctx, false, primary_name, port, aliases, protocols); \
+    } while(0);
+
+START_TEST(test_sysdb_add_services)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    char *primary_name;
+    const char **aliases;
+    const char **protocols;
+    int port = 3890;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    primary_name = talloc_asprintf(test_ctx, "test_service");
+    fail_if(primary_name == NULL);
+
+    aliases = talloc_array(test_ctx, const char *, 3);
+    fail_if(aliases == NULL);
+
+    aliases[0] = talloc_asprintf(aliases, "test_service_alias1");
+    fail_if(aliases[0] == NULL);
+
+    aliases[1] = talloc_asprintf(aliases, "test_service_alias2");
+    fail_if(aliases[1] == NULL);
+
+    aliases[2] = NULL;
+
+    protocols = talloc_array(test_ctx, const char *, 3);
+    fail_if(protocols == NULL);
+
+    protocols[0] = talloc_asprintf(protocols, "tcp");
+    fail_if(protocols[0] == NULL);
+
+    protocols[1] = talloc_asprintf(protocols, "udp");
+    fail_if(protocols[1] == NULL);
+
+    protocols[2] = NULL;
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    fail_if(ret != EOK);
+
+    ret = sysdb_svc_add(NULL, test_ctx->sysdb,
+                        primary_name, port,
+                        aliases, protocols,
+                        NULL);
+    fail_unless(ret == EOK, "sysdb_svc_add error [%s]\n", strerror(ret));
+
+    /* Search by name and make sure the results match */
+    services_check_match_name(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    fail_if (ret != EOK);
+
+    /* Clean up after ourselves (and test deleting by name)
+     *
+     * We have to do this after the transaction, because LDB
+     * doesn't like adding and deleting the same entry in a
+     * single transaction.
+     */
+    ret = sysdb_svc_delete(test_ctx->sysdb, primary_name, 0, NULL);
+    fail_if(ret != EOK);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_store_services)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *primary_name = "test_store_service";
+    const char *alt_primary_name = "alt_test_store_service";
+    const char **aliases;
+    const char **protocols;
+    int port = 3890;
+    int altport = 3891;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    aliases = talloc_array(test_ctx, const char *, 3);
+    fail_if(aliases == NULL);
+
+    aliases[0] = talloc_asprintf(aliases, "test_service_alias1");
+    fail_if(aliases[0] == NULL);
+
+    aliases[1] = talloc_asprintf(aliases, "test_service_alias2");
+    fail_if(aliases[1] == NULL);
+
+    aliases[2] = NULL;
+
+    protocols = talloc_array(test_ctx, const char *, 3);
+    fail_if(protocols == NULL);
+
+    protocols[0] = talloc_asprintf(protocols, "tcp");
+    fail_if(protocols[0] == NULL);
+
+    protocols[1] = talloc_asprintf(protocols, "udp");
+    fail_if(protocols[1] == NULL);
+
+    protocols[2] = NULL;
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    fail_if(ret != EOK);
+
+    /* Store this group (which will add it) */
+    ret = sysdb_store_service(test_ctx->sysdb,
+                              primary_name, port,
+                              aliases, protocols,
+                              1, 1);
+    fail_if (ret != EOK);
+
+    /* Search by name and make sure the results match */
+    services_check_match_name(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    /* Change the service name */
+    ret = sysdb_store_service(test_ctx->sysdb,
+                              alt_primary_name, port,
+                              aliases, protocols,
+                              1, 1);
+    fail_if (ret != EOK, "[%s]", strerror(ret));
+
+    services_check_match_name(test_ctx,
+                              alt_primary_name, port,
+                              aliases, protocols);
+
+    /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              alt_primary_name, port,
+                              aliases, protocols);
+
+
+    /* Change it back */
+    ret = sysdb_store_service(test_ctx->sysdb,
+                              primary_name, port,
+                              aliases, protocols,
+                              1, 1);
+    fail_if (ret != EOK, "[%s]", strerror(ret));
+
+    /* Change the port number */
+    ret = sysdb_store_service(test_ctx->sysdb,
+                              primary_name, altport,
+                              aliases, protocols,
+                              1, 1);
+    fail_if (ret != EOK, "[%s]", strerror(ret));
+
+    /* Search by name and make sure the results match */
+    services_check_match_name(test_ctx,
+                              primary_name, altport,
+                              aliases, protocols);
+
+    /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              primary_name, altport,
+                              aliases, protocols);
+
+    /* TODO: Test changing aliases and protocols */
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    /* Clean up after ourselves (and test deleting by port)
+     *
+     * We have to do this after the transaction, because LDB
+     * doesn't like adding and deleting the same entry in a
+     * single transaction.
+     */
+    ret = sysdb_svc_delete(test_ctx->sysdb, NULL, altport, NULL);
+    fail_if(ret != EOK);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_svc_remove_alias)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *primary_name = "remove_alias_test";
+    const char **aliases;
+    const char **protocols;
+    int port = 3990;
+    struct ldb_dn *dn;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    aliases = talloc_array(test_ctx, const char *, 3);
+    fail_if(aliases == NULL);
+
+    aliases[0] = talloc_asprintf(aliases, "remove_alias_alias1");
+    fail_if(aliases[0] == NULL);
+
+    aliases[1] = talloc_asprintf(aliases, "remove_alias_alias2");
+    fail_if(aliases[1] == NULL);
+
+    aliases[2] = NULL;
+
+    protocols = talloc_array(test_ctx, const char *, 3);
+    fail_if(protocols == NULL);
+
+    protocols[0] = talloc_asprintf(protocols, "tcp");
+    fail_if(protocols[0] == NULL);
+
+    protocols[1] = talloc_asprintf(protocols, "udp");
+    fail_if(protocols[1] == NULL);
+
+    protocols[2] = NULL;
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    fail_if(ret != EOK);
+
+    ret = sysdb_svc_add(NULL, test_ctx->sysdb,
+                        primary_name, port,
+                        aliases, protocols,
+                        NULL);
+    fail_unless(ret == EOK, "sysdb_svc_add error [%s]\n", strerror(ret));
+
+    /* Search by name and make sure the results match */
+    services_check_match_name(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    /* Now remove an alias */
+    dn = sysdb_svc_dn(test_ctx->sysdb, test_ctx, test_ctx->domain->name, primary_name);
+    fail_if (dn == NULL);
+
+    ret = sysdb_svc_remove_alias(test_ctx->sysdb, dn, aliases[1]);
+    fail_if (ret != EOK, "[%s]", strerror(ret));
+    sysdb_transaction_commit(test_ctx->sysdb);
+    sysdb_transaction_start(test_ctx->sysdb);
+
+    /* Set aliases[1] to NULL to perform validation checks */
+    aliases[1] = NULL;
+
+    /* Search by name and make sure the results match */
+    services_check_match_name(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    /* Search by port and make sure the results match */
+    services_check_match_port(test_ctx,
+                              primary_name, port,
+                              aliases, protocols);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    fail_if(ret != EOK);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_sysdb_has_enumerated)
 {
     errno_t ret;
@@ -3051,6 +3402,13 @@ Suite *create_sysdb_suite(void)
 
     /* Remove the other half by DN */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_entry, 27005, 27010);
+
+/* ===== SERVICE TESTS ===== */
+
+    /* Create a new service */
+    tcase_add_test(tc_sysdb, test_sysdb_add_services);
+    tcase_add_test(tc_sysdb, test_sysdb_store_services);
+    tcase_add_test(tc_sysdb, test_sysdb_svc_remove_alias);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);

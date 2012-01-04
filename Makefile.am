@@ -323,6 +323,7 @@ dist_noinst_HEADERS = \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
     src/db/sysdb_private.h \
+    src/db/sysdb_services.h \
     src/confdb/confdb.h \
     src/confdb/confdb_private.h \
     src/confdb/confdb_setup.h \
@@ -380,6 +381,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_ops.c \
     src/db/sysdb_search.c \
     src/db/sysdb_upgrade.c \
+    src/db/sysdb_services.c \
     src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \
