@@ -179,6 +179,15 @@ replace_attribute_name(const char *old_name,
     return EOK;
 }
 
+static errno_t
+create_empty_grouplist(struct hbac_request_element *el)
+{
+    el->groups = talloc_array(el, const char *, 1);
+    if (!el->groups) return ENOMEM;
+
+    el->groups[0] = NULL;
+    return EOK;
+}
 
 /********************************************
  * Functions for handling conversion to the *
@@ -525,12 +534,7 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
     el = ldb_msg_find_element(msg, SYSDB_ORIG_MEMBEROF);
     if (el == NULL || el->num_values == 0) {
         DEBUG(7, ("No groups for [%s]\n", users->name));
-        users->groups = talloc_array(users, const char *, 1);
-        if (users->groups == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-        users->groups[0] = NULL;
+        ret = create_empty_grouplist(users);
         goto done;
     }
     DEBUG(7, ("[%d] groups for [%s]\n", el->num_values, users->name));
@@ -624,8 +628,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
          * This rule will only match the name or
          * a service category of ALL
          */
-        svc->groups = NULL;
-        ret = EOK;
+        ret = create_empty_grouplist(svc);
         goto done;
     } else if (ret != EOK) {
         goto done;
@@ -641,8 +644,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
          * This rule will only match the name or
          * a service category of ALL
          */
-        svc->groups = NULL;
-        ret = EOK;
+        ret = create_empty_grouplist(svc);
         goto done;
     }
 
@@ -713,8 +715,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
         /* We don't know the host (probably an rhost)
          * So we can't determine it's groups either.
          */
-        host->groups = NULL;
-        ret = EOK;
+        ret = create_empty_grouplist(host);
         goto done;
     }
 
@@ -735,8 +736,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
          * This rule will only match the name or
          * a host category of ALL
          */
-        host->groups = NULL;
-        ret =  EOK;
+        ret = create_empty_grouplist(host);
         goto done;
     } else if (ret != EOK) {
         goto done;
@@ -752,8 +752,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
          * This rule will only match the name or
          * a host category of ALL
          */
-        host->groups = NULL;
-        ret = EOK;
+        ret = create_empty_grouplist(host);
         goto done;
     }
 
