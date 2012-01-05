@@ -98,4 +98,9 @@ int sysdb_upgrade_05(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_07(struct sysdb_ctx *sysdb, const char **ver);
 
+
+int add_string(struct ldb_message *msg, int flags,
+               const char *attr, const char *value);
+int add_ulong(struct ldb_message *msg, int flags,
+              const char *attr, unsigned long value);
 #endif /* __INT_SYS_DB_H__ */

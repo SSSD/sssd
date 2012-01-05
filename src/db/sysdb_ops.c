@@ -24,8 +24,8 @@
 #include "util/crypto/sss_crypto.h"
 #include <time.h>
 
-static int add_string(struct ldb_message *msg, int flags,
-                      const char *attr, const char *value)
+int add_string(struct ldb_message *msg, int flags,
+               const char *attr, const char *value)
 {
     int ret;
 
@@ -37,8 +37,8 @@ static int add_string(struct ldb_message *msg, int flags,
     return ENOMEM;
 }
 
-static int add_ulong(struct ldb_message *msg, int flags,
-                     const char *attr, unsigned long value)
+int add_ulong(struct ldb_message *msg, int flags,
+              const char *attr, unsigned long value)
 {
     int ret;
 
