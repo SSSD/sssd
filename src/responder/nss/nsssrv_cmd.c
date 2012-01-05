@@ -77,31 +77,26 @@ int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
 /***************************
  *  Enumeration procedures *
  ***************************/
-
-errno_t setent_add_ref(TALLOC_CTX *memctx,
-                       struct getent_ctx *getent_ctx,
-                       struct tevent_req *req)
+struct tevent_req *nss_setent_get_req(struct getent_ctx *getent_ctx)
 {
-    struct setent_req_list *entry =
-            talloc_zero(memctx, struct setent_req_list);
-    if (!entry) {
-        return ENOMEM;
-    }
-
-    entry->req = req;
-    entry->getent_ctx = getent_ctx;
-    DLIST_ADD_END(getent_ctx->reqs, entry, struct setent_req_list *);
-
-    talloc_set_destructor((TALLOC_CTX *)entry, setent_remove_ref);
-    return EOK;
+    return setent_get_req(getent_ctx->reqs);
 }
 
-int setent_remove_ref(TALLOC_CTX *ctx)
+errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
+                           struct getent_ctx *getent_ctx,
+                           struct tevent_req *req)
 {
-    struct setent_req_list *entry =
-            talloc_get_type(ctx, struct setent_req_list);
-    DLIST_REMOVE(entry->getent_ctx->reqs, entry);
-    return 0;
+    return setent_add_ref(memctx, getent_ctx, &getent_ctx->reqs, req);
+}
+
+void nss_setent_notify_error(struct getent_ctx *getent_ctx, errno_t ret)
+{
+    return setent_notify(getent_ctx->reqs, ret);
+}
+
+void nss_setent_notify_done(struct getent_ctx *getent_ctx)
+{
+    return setent_notify_done(getent_ctx->reqs);
 }
 
 struct setent_ctx {
@@ -1246,7 +1241,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
              * Register for notification when it's
              * ready.
              */
-            ret = setent_add_ref(state->client, state->nctx->pctx, req);
+            ret = nss_setent_add_ref(state->client, state->nctx->pctx, req);
             if (ret != EOK) {
                 talloc_free(req);
                 return NULL;
@@ -1268,7 +1263,8 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     state->getent_ctx = nctx->pctx;
 
     /* Add a callback reference for ourselves */
-    setent_add_ref(state->client, state->nctx->pctx, req);
+    ret = nss_setent_add_ref(state->client, state->nctx->pctx, req);
+    if (ret) goto error;
 
     /* ok, start the searches */
     step_ctx = talloc_zero(state->getent_ctx, struct setent_step_ctx);
@@ -1323,7 +1319,6 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     struct nss_ctx *nctx = step_ctx->nctx;
     struct sysdb_ctx *sysdb;
     struct ldb_result *res;
-    struct setent_req_list *req;
     struct timeval tv;
     struct tevent_timer *te;
     struct tevent_req *dpreq;
@@ -1434,13 +1429,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     }
 
     /* Notify the waiting clients */
-    while (nctx->pctx->reqs) {
-        tevent_req_done(nctx->pctx->reqs->req);
-        /* Freeing each entry in the list removes it from the dlist */
-        req = nctx->pctx->reqs;
-        nctx->pctx->reqs = nctx->pctx->reqs->next;
-        talloc_free(req);
-    }
+    setent_notify_done(nctx->pctx->reqs);
 
     if (step_ctx->returned_to_mainloop) {
         return EAGAIN;
@@ -1470,7 +1459,6 @@ static void nss_cmd_setpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
 {
     struct setent_step_ctx *step_ctx =
             talloc_get_type(ptr, struct setent_step_ctx);
-    struct getent_ctx *pctx = step_ctx->nctx->pctx;
     int ret;
 
     if (err_maj) {
@@ -1483,11 +1471,7 @@ static void nss_cmd_setpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
     ret = nss_cmd_setpwent_step(step_ctx);
     if (ret != EOK && ret != EAGAIN) {
         /* Notify any waiting processes of failure */
-        while(step_ctx->nctx->pctx->reqs) {
-            tevent_req_error(pctx->reqs->req, ret);
-            /* Freeing each entry in the list removes it from the dlist */
-            talloc_free(pctx->reqs);
-        }
+        nss_setent_notify_error(step_ctx->nctx->pctx, ret);
     }
 }
 
@@ -2555,7 +2539,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
              * Register for notification when it's
              * ready.
              */
-            ret = setent_add_ref(state->client, state->nctx->gctx, req);
+            ret = nss_setent_add_ref(state->client, state->nctx->gctx, req);
             if (ret != EOK) {
                 talloc_free(req);
                 return NULL;
@@ -2577,7 +2561,8 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     state->getent_ctx = nctx->gctx;
 
     /* Add a callback reference for ourselves */
-    setent_add_ref(state->client, state->nctx->gctx, req);
+    ret = nss_setent_add_ref(state->client, state->nctx->gctx, req);
+    if (ret) goto error;
 
     /* ok, start the searches */
     step_ctx = talloc_zero(state->getent_ctx, struct setent_step_ctx);
@@ -2632,7 +2617,6 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     struct nss_ctx *nctx = step_ctx->nctx;
     struct sysdb_ctx *sysdb;
     struct ldb_result *res;
-    struct setent_req_list *req;
     struct timeval tv;
     struct tevent_timer *te;
     struct tevent_req *dpreq;
@@ -2741,13 +2725,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     }
 
     /* Notify the waiting clients */
-    while (nctx->gctx->reqs) {
-        tevent_req_done(nctx->gctx->reqs->req);
-        /* Freeing each entry in the list removes it from the dlist */
-        req = nctx->gctx->reqs;
-        nctx->gctx->reqs = nctx->gctx->reqs->next;
-        talloc_free(req);
-    }
+    setent_notify_done(nctx->gctx->reqs);
 
     if (step_ctx->returned_to_mainloop) {
         return EAGAIN;
@@ -2778,7 +2756,6 @@ static void nss_cmd_setgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
 {
     struct setent_step_ctx *step_ctx =
             talloc_get_type(ptr, struct setent_step_ctx);
-    struct getent_ctx *gctx = step_ctx->nctx->gctx;
     int ret;
 
     if (err_maj) {
@@ -2791,11 +2768,7 @@ static void nss_cmd_setgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
     ret = nss_cmd_setgrent_step(step_ctx);
     if (ret != EOK && ret != EAGAIN) {
         /* Notify any waiting processes of failure */
-        while(step_ctx->nctx->gctx->reqs) {
-            tevent_req_error(gctx->reqs->req, ret);
-            /* Freeing each entry in the list removes it from the dlist */
-            talloc_free(gctx->reqs);
-        }
+        nss_setent_notify_error(step_ctx->nctx->gctx, ret);
     }
 }
 

@@ -254,7 +254,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         /* Result object is still being constructed
          * Register for notification when it's ready
          */
-        ret = setent_add_ref(cmdctx->cctx, state->netgr, req);
+        ret = nss_setent_add_ref(cmdctx->cctx, state->netgr, req);
         if (ret != EOK) {
             goto error;
         }
@@ -281,7 +281,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         state->netgr->lookup_table = nctx->netgroups;
 
         /* Add a reference for ourselves */
-        ret = setent_add_ref(cmdctx->cctx, state->netgr, req);
+        ret = nss_setent_add_ref(cmdctx->cctx, state->netgr, req);
         if (ret != EOK) {
             talloc_free(state->netgr);
             goto error;
@@ -557,15 +557,7 @@ static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     /* We have results to return */
-    while(dctx->netgr->reqs) {
-        if (ret == EOK) {
-            tevent_req_done(dctx->netgr->reqs->req);
-        } else {
-            tevent_req_error(dctx->netgr->reqs->req, ret);
-        }
-        /* Freeing each entry in the list removes it from the dlist */
-        talloc_free(dctx->netgr->reqs);
-    }
+    nss_setent_notify_error(dctx->netgr, ret);
 }
 
 static void setnetgrent_result_timeout(struct tevent_context *ev,

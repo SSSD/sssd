@@ -45,14 +45,6 @@ struct dom_ctx {
     struct ldb_result *res;
 };
 
-struct setent_req_list {
-    struct setent_req_list *prev;
-    struct setent_req_list *next;
-    struct getent_ctx *getent_ctx;
-
-    struct tevent_req *req;
-};
-
 struct getent_ctx {
     struct dom_ctx *doms;
     int num;
@@ -109,10 +101,16 @@ struct setent_step_ctx {
 /* Finish the request */
 int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret);
 
-int setent_remove_ref(TALLOC_CTX *ctx);
-errno_t setent_add_ref(TALLOC_CTX *memctx,
-                       struct getent_ctx *getent_ctx,
-                       struct tevent_req *req);
+/* Respond with no entries */
+int fill_empty(struct sss_packet *packet);
+
+errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
+                           struct getent_ctx *getent_ctx,
+                           struct tevent_req *req);
+struct tevent_req *nss_setent_get_req(struct getent_ctx *getent_ctx);
+
+void nss_setent_notify_error(struct getent_ctx *getent_ctx, errno_t ret);
+void nss_setent_notify_done(struct getent_ctx *getent_ctx);
 
 errno_t check_cache(struct nss_dom_ctx *dctx,
                     struct nss_ctx *nctx,

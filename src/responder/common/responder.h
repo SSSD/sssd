@@ -94,11 +94,6 @@ struct resp_ctx {
     void *pvt_ctx;
 };
 
-/* Needed for the NSS responder */
-struct getent_ref_tracker {
-    void *pvt;
-};
-
 struct cli_ctx {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
@@ -162,6 +157,17 @@ int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
 struct cli_protocol_version *register_cli_protocol_version(void);
+
+struct setent_req_list;
+
+/* A facility for notifying setent requests */
+struct tevent_req *setent_get_req(struct setent_req_list *sl);
+errno_t setent_add_ref(TALLOC_CTX *memctx,
+                       void *pvt,
+                       struct setent_req_list **list,
+                       struct tevent_req *req);
+void setent_notify(struct setent_req_list *list, errno_t err);
+void setent_notify_done(struct setent_req_list *list);
 
 typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);

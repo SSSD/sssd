@@ -1215,7 +1215,7 @@ setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
              * Register for notification when it's
              * ready.
              */
-            ret = setent_add_ref(state, state->nctx->svcctx, req);
+            ret = nss_setent_add_ref(state, state->nctx->svcctx, req);
             if (ret != EOK) goto immediate;
         }
         return req;
@@ -1252,7 +1252,10 @@ setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
     }
 
     /* Add a callback reference for ourselves */
-    setent_add_ref(state, state->nctx->svcctx, req);
+    ret = nss_setent_add_ref(state, state->nctx->svcctx, req);
+    if (ret != EOK) {
+        goto immediate;
+    }
 
     /* ok, start the searches */
     step_ctx = talloc_zero(state->getent_ctx, struct setent_step_ctx);
@@ -1510,7 +1513,6 @@ setservent_finalize(struct setent_step_ctx *step_ctx)
     struct resp_ctx *rctx = step_ctx->rctx;
     struct timeval tv;
     struct tevent_timer *te;
-    struct setent_req_list *reql;
 
     /* We've finished all our lookups
      * The result object is now safe to read.
@@ -1530,24 +1532,7 @@ setservent_finalize(struct setent_step_ctx *step_ctx)
                "Entries may become stale.\n"));
     }
 
-    /* Notify the waiting clients */
-    while ((reql = nctx->svcctx->reqs)) {
-        /* Each tevent_req_done() call will free
-         * the request, removing it from the list.
-         */
-        tevent_req_done(reql->req);
-
-        if (reql == nctx->svcctx->reqs) {
-            /* The consumer failed to free the
-             * request. Log a bug and continue.
-             */
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("BUG: a callback did not free its request. "
-                   "May leak memory\n"));
-            /* Skip to the next since a memory leak is non-fatal */
-            nctx->svcctx->reqs = nctx->svcctx->reqs->next;
-        }
-    }
+    nss_setent_notify_done(nctx->svcctx);
 }
 
 static void
