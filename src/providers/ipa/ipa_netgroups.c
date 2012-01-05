@@ -741,7 +741,7 @@ static int extract_members(TALLOC_CTX *mem_ctx,
     const char **ret_array = NULL;
     int process_count = 0;
     int ret_count = 0;
-    int ret, i;
+    int ret, i, pi;
 
     key.type = HASH_KEY_STRING;
     value.type = HASH_VALUE_PTR;
@@ -789,8 +789,8 @@ static int extract_members(TALLOC_CTX *mem_ctx,
                 ret_count++;
             }
 
-            for (i = 0; i < process_count; i++) {
-                state->group = process[i];
+            for (pi = 0; pi < process_count; pi++) {
+                state->group = process[pi];
                 hash_iterate(lookup_table, extract_users, state);
                 if (state->entries_count > 0) {
                     ret_array = talloc_realloc(mem_ctx, ret_array, const char *,
