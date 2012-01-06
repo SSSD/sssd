@@ -36,6 +36,11 @@
 typedef int errno_t;
 #endif
 
+
+#ifndef EOK
+#define EOK 0
+#endif
+
 #define SSS_NSS_PROTOCOL_VERSION 1
 #define SSS_PAM_PROTOCOL_VERSION 3
 #define SSS_SUDO_PROTOCOL_VERSION 0
@@ -507,5 +512,12 @@ void sss_nss_lock(void);
 void sss_nss_unlock(void);
 void sss_pam_lock(void);
 void sss_pam_unlock(void);
+
+errno_t sss_readrep_copy_string(const char *in,
+                                size_t *offset,
+                                size_t *slen,
+                                size_t *dlen,
+                                char **out,
+                                size_t *size);
 
 #endif /* _SSSCLI_H */

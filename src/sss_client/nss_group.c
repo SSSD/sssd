@@ -78,8 +78,8 @@ struct sss_nss_gr_rep {
 static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
                                  uint8_t *buf, size_t *len)
 {
-    size_t i, l, slen, ptmem, pad;
-    ssize_t dlen;
+    errno_t ret;
+    size_t i, l, slen, ptmem, pad, dlen, glen;
     char *sbuf;
     uint32_t mem_num;
     uint32_t c;
@@ -98,36 +98,19 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
 
     pr->result->gr_name = &(pr->buffer[0]);
     i = 0;
-    while (slen > i && dlen > 0) {
-        pr->buffer[i] = sbuf[i];
-        if (pr->buffer[i] == '\0') break;
-        i++;
-        dlen--;
-    }
-    if (slen <= i) { /* premature end of buf */
-        return EBADMSG;
-    }
-    if (dlen <= 0) { /* not enough memory */
-        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-    }
-    i++;
-    dlen--;
+
+    ret = sss_readrep_copy_string(sbuf, &i,
+                                  &slen, &dlen,
+                                  &pr->result->gr_name,
+                                  NULL);
+    if (ret != EOK) return ret;
 
     pr->result->gr_passwd = &(pr->buffer[i]);
-    while (slen > i && dlen > 0) {
-        pr->buffer[i] = sbuf[i];
-        if (pr->buffer[i] == '\0') break;
-        i++;
-        dlen--;
-    }
-    if (slen <= i) { /* premature end of buf */
-        return EBADMSG;
-    }
-    if (dlen <= 0) { /* not enough memory */
-        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-    }
-    i++;
-    dlen--;
+    ret = sss_readrep_copy_string(sbuf, &i,
+                                  &slen, &dlen,
+                                  &pr->result->gr_passwd,
+                                  NULL);
+    if (ret != EOK) return ret;
 
     /* Make sure pr->buffer[i+pad] is 32 bit aligned */
     pad = 0;
@@ -147,22 +130,13 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
 
     for (l = 0; l < mem_num; l++) {
         pr->result->gr_mem[l] = &(pr->buffer[ptmem]);
-        while ((slen > i) && (dlen > 0)) {
-            pr->buffer[ptmem] = sbuf[i];
-            if (pr->buffer[ptmem] == '\0') break;
-            i++;
-            dlen--;
-            ptmem++;
-        }
-        if (slen <= i) { /* premature end of buf */
-            return EBADMSG;
-        }
-        if (dlen <= 0) { /* not enough memory */
-            return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-        }
-        i++;
-        dlen--;
-        ptmem++;
+        ret = sss_readrep_copy_string(sbuf, &i,
+                                      &slen, &dlen,
+                                      &pr->result->gr_mem[l],
+                                      &glen);
+        if (ret != EOK) return ret;
+
+        ptmem += glen + 1;
     }
 
     *len = slen -i;

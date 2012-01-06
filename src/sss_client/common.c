@@ -918,3 +918,33 @@ void sss_pam_lock(void) { return; }
 void sss_pam_unlock(void) { return; }
 #endif
 
+
+errno_t sss_readrep_copy_string(const char *in,
+                                size_t *offset,
+                                size_t *slen,
+                                size_t *dlen,
+                                char **out,
+                                size_t *size)
+{
+    size_t i = 0;
+    while (*slen > *offset && *dlen > 0) {
+        (*out)[i] = in[*offset];
+        if ((*out)[i] == '\0') break;
+        i++;
+        (*offset)++;
+        (*dlen)--;
+    }
+    if (*slen <= *offset) { /* premature end of buf */
+        return EBADMSG;
+    }
+    if (*dlen == 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+    }
+    (*offset)++;
+    (*dlen)--;
+    if (size) {
+        *size = i;
+    }
+
+    return EOK;
+}
