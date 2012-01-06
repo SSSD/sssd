@@ -29,6 +29,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <string.h>
+#include <limits.h>
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
@@ -38,6 +39,12 @@ typedef int errno_t;
 #define SSS_NSS_PROTOCOL_VERSION 1
 #define SSS_PAM_PROTOCOL_VERSION 3
 #define SSS_SUDO_PROTOCOL_VERSION 0
+
+#ifdef LOGIN_NAME_MAX
+#define SSS_NAME_MAX LOGIN_NAME_MAX
+#else
+#define SSS_NAME_MAX 256
+#endif
 
 /**
  * @defgroup sss_cli_command SSS client commands

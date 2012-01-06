@@ -254,14 +254,23 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     struct sss_cli_req_data rd;
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
-    size_t replen, len;
+    size_t replen, len, name_len;
     enum nss_status nret;
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    }
 
-    rd.len = strlen(name) + 1;
+    ret = sss_strnlen(name, SSS_NAME_MAX, &name_len);
+    if (ret != 0) {
+        *errnop = EINVAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
+    rd.len = name_len + 1;
     rd.data = name;
 
     sss_nss_lock();

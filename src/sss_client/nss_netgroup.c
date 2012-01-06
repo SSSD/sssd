@@ -33,8 +33,6 @@
 #include "sss_cli.h"
 #include "nss_compat.h"
 
-#define MAX_NETGR_NAME_LENGTH 2048
-
 #define CLEAR_NETGRENT_DATA(netgrent) do { \
         free(netgrent->data); \
         netgrent->data = NULL; \
@@ -201,7 +199,7 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
     /* make sure we do not have leftovers, and release memory */
     CLEAR_NETGRENT_DATA(result);
 
-    ret = sss_strnlen(netgroup, MAX_NETGR_NAME_LENGTH, &name_len);
+    ret = sss_strnlen(netgroup, SSS_NAME_MAX, &name_len);
     if (ret != 0) {
         nret = NSS_STATUS_NOTFOUND;
         goto out;
