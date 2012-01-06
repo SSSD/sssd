@@ -56,11 +56,11 @@ EXPORTED {
 		#_nss_sss_getrpcent_r;
 		#_nss_sss_endrpcent;
 
-		#_nss_sss_getservbyname_r;
-		#_nss_sss_getservbyport_r;
-		#_nss_sss_setservent;
-		#_nss_sss_getservent_r;
-		#_nss_sss_endservent;
+		_nss_sss_getservbyname_r;
+		_nss_sss_getservbyport_r;
+		_nss_sss_setservent;
+		_nss_sss_getservent_r;
+		_nss_sss_endservent;
 
 		#_nss_sss_getspnam_r;
 		#_nss_sss_setspent;

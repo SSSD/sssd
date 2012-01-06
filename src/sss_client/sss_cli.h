@@ -138,6 +138,7 @@ enum sss_cli_command {
     SSS_NSS_SETRPCENT      = 0x0093,
     SSS_NSS_GETRPCENT      = 0x0094,
     SSS_NSS_ENDRPCENT      = 0x0095,
+#endif
 
 /* services */
 
@@ -147,6 +148,7 @@ enum sss_cli_command {
     SSS_NSS_GETSERVENT     = 0x00A4,
     SSS_NSS_ENDSERVENT     = 0x00A5,
 
+#if 0
 /* shadow */
 
     SSS_NSS_GETSPNAM       = 0x00B1,
@@ -476,8 +478,28 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     }
 }
 
+#define SAFEALIGN_SET_VALUE(dest, value, type, pctr) do { \
+    type CV_MACRO_val = (type)(value); \
+    safealign_memcpy(dest, &CV_MACRO_val, sizeof(type), pctr); \
+} while(0)
+
+#ifndef SAFEALIGN_SET_UINT32
+#define SAFEALIGN_SET_UINT32(dest, value, pctr) \
+    SAFEALIGN_SET_VALUE(dest, value, uint32_t, pctr)
+#endif
+
 #define SAFEALIGN_COPY_UINT32(dest, src, pctr) \
     safealign_memcpy(dest, src, sizeof(uint32_t), pctr)
+#endif
+
+#ifndef SAFEALIGN_SET_UINT16
+#define SAFEALIGN_SET_UINT16(dest, value, pctr) \
+    SAFEALIGN_SET_VALUE(dest, value, uint16_t, pctr)
+#endif
+
+#ifndef SAFEALIGN_COPY_UINT16
+#define SAFEALIGN_COPY_UINT16(dest, src, pctr) \
+    safealign_memcpy(dest, src, sizeof(uint16_t), pctr)
 #endif
 
 #if 0
