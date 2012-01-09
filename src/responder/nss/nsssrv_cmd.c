@@ -510,15 +510,11 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
                     void *pvt)
 {
     errno_t ret;
-    time_t now;
-    uint64_t lastUpdate;
-    uint64_t cacheExpire = 0;
-    uint64_t midpoint_refresh;
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    bool off_band_update = false;
     struct tevent_req *req = NULL;
     struct dp_callback_ctx *cb_ctx = NULL;
+    uint64_t cacheExpire = 0;
 
     /* when searching for a user or netgroup, more than one reply is a
      * db error
@@ -537,59 +533,37 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
 
     /* if we have any reply let's check cache validity */
     if (res->count > 0) {
-
-        now = time(NULL);
-
-        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                 SYSDB_LAST_UPDATE, 0);
         if (req_type == SSS_DP_INITGROUPS) {
             cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                 SYSDB_INITGR_EXPIRE, 1);
+                                                      SYSDB_INITGR_EXPIRE, 1);
         }
         if (cacheExpire == 0) {
             cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                 SYSDB_CACHE_EXPIRE, 0);
+                                                      SYSDB_CACHE_EXPIRE, 0);
         }
 
-        midpoint_refresh = 0;
-        if(nctx->cache_refresh_percent) {
-            midpoint_refresh = lastUpdate +
-              (cacheExpire - lastUpdate)*nctx->cache_refresh_percent/100;
-            if (midpoint_refresh - lastUpdate < 10) {
-                /* If the percentage results in an expiration
-                 * less than ten seconds after the lastUpdate time,
-                 * that's too often we will simply set it to 10s
-                 */
-                midpoint_refresh = lastUpdate+10;
-            }
-        }
-
-        if (cacheExpire > now) {
-            /* cache still valid */
-
-            if (midpoint_refresh && midpoint_refresh < now) {
-                /* We're past the the cache refresh timeout
-                 * We'll return the value from the cache, but we'll also
-                 * queue the cache entry for update out-of-band.
-                 */
-                DEBUG(6, ("Performing midpoint cache update on [%s]\n",
-                          opt_name));
-                off_band_update = true;
-            }
-            else {
-
-                /* Cache is still valid. Just return it. */
-                return EOK;
-            }
+        /* if we have any reply let's check cache validity */
+        ret = sss_cmd_check_cache(res->msgs[0], nctx->cache_refresh_percent,
+                                  cacheExpire);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Cached entry is valid, returning..\n"));
+            return EOK;
+        } else if (ret != EAGAIN && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Error checking cache: %d\n", ret));
+            goto error;
         }
     }
 
-    if (off_band_update) {
+    /* EAGAIN (off band) or ENOENT (cache miss) -> check cache */
+    if (ret == EAGAIN) {
         /* No callback required
          * This was an out-of-band update. We'll return EOK
          * so the calling function can return the cached entry
          * immediately.
          */
+        DEBUG(SSSDBG_TRACE_FUNC,
+             ("Performing midpoint cache update on [%s]\n", opt_name));
+
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
                                       req_type, opt_name, opt_id, NULL);
         if (!req) {

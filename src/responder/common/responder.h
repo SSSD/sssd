@@ -169,6 +169,11 @@ errno_t setent_add_ref(TALLOC_CTX *memctx,
 void setent_notify(struct setent_req_list *list, errno_t err);
 void setent_notify_done(struct setent_req_list *list);
 
+errno_t
+sss_cmd_check_cache(struct ldb_message *msg,
+                    int cache_refresh_percent,
+                    uint64_t cache_expire);
+
 typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
 

@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <errno.h>
+#include "db/sysdb.h"
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
@@ -233,4 +234,54 @@ void setent_notify(struct setent_req_list *list, errno_t err)
 void setent_notify_done(struct setent_req_list *list)
 {
     return setent_notify(list, EOK);
+}
+
+/*
+ * Return values:
+ *  EOK     -   cache hit
+ *  EAGAIN  -   cache hit, but schedule off band update
+ *  ENOENT  -   cache miss
+ */
+errno_t
+sss_cmd_check_cache(struct ldb_message *msg,
+                    int cache_refresh_percent,
+                    uint64_t cache_expire)
+{
+    uint64_t lastUpdate;
+    uint64_t midpoint_refresh = 0;
+    time_t now;
+
+    now = time(NULL);
+    lastUpdate = ldb_msg_find_attr_as_uint64(msg, SYSDB_LAST_UPDATE, 0);
+    midpoint_refresh = 0;
+
+    if(cache_refresh_percent) {
+        midpoint_refresh = lastUpdate +
+            (cache_expire - lastUpdate)*cache_refresh_percent/100;
+        if (midpoint_refresh - lastUpdate < 10) {
+            /* If the percentage results in an expiration
+             * less than ten seconds after the lastUpdate time,
+             * that's too often we will simply set it to 10s
+             */
+            midpoint_refresh = lastUpdate+10;
+        }
+    }
+
+    if (cache_expire > now) {
+        /* cache still valid */
+
+        if (midpoint_refresh && midpoint_refresh < now) {
+            /* We're past the the cache refresh timeout
+             * We'll return the value from the cache, but we'll also
+             * queue the cache entry for update out-of-band.
+             */
+            return EAGAIN;
+        } else {
+            /* Cache is still valid. */
+            return EOK;
+        }
+    }
+
+    /* Cache needs to be updated */
+    return ENOENT;
 }
