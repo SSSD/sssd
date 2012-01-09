@@ -417,6 +417,34 @@ START_TEST(test_murmurhash3_check)
 }
 END_TEST
 
+START_TEST(test_murmurhash3_random)
+{
+    char test[16];
+    uint32_t result1;
+    uint32_t result2;
+    unsigned int init_seed;
+    unsigned int seed;
+    size_t len;
+    int i;
+
+    /* generate a random string so each time we test with different values */
+    init_seed = time(0);
+    seed = init_seed;
+    /* use also random length (min len = 1) */
+    len = 1 + rand_r(&seed) % 14;
+    for (i = 0; i < len; i++) {
+        test[i] = 1 + rand_r(&seed) % 254;
+    }
+    test[len] = '\0'; /* null terminate */
+
+    fprintf(stdout, "test_murmurhash3_random seed: %d\n", init_seed);
+
+    result1 = murmurhash3(test, len + 1, init_seed);
+    result2 = murmurhash3(test, len + 1, init_seed);
+    fail_if(result1 != result2);
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -440,6 +468,7 @@ Suite *util_suite(void)
 
     TCase *tc_mh3 = tcase_create("murmurhash3");
     tcase_add_test (tc_mh3, test_murmurhash3_check);
+    tcase_add_test (tc_mh3, test_murmurhash3_random);
     tcase_set_timeout(tc_mh3, 60);
 
     suite_add_tcase (s, tc_util);
