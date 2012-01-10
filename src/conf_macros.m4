@@ -384,3 +384,20 @@ AC_DEFUN([WITH_UNICODE_LIB],
     AM_CONDITIONAL([WITH_LIBUNISTRING], test x"$unicode_lib" = x"libunistring")
     AM_CONDITIONAL([WITH_GLIB], test x"$unicode_lib" = x"glib2")
   ])
+
+AC_DEFUN([WITH_APP_LIBS],
+  [ AC_ARG_WITH([app-libs],
+                [AC_HELP_STRING([--with-app-libs=<path>],
+                                [Path to the 3rd party application plugins [/usr/lib/sssd/modules]]
+                               )
+                ]
+               )
+    appmodpath="${libdir}/sssd/modules"
+    config_appmodpath="\"LIBDIR\"/sssd/modules"
+    if test x"$with_app_libs" != x; then
+        appmodpath=$with_app_libs
+        config_appmodpath=$with_app_libs
+    fi
+    AC_SUBST(appmodpath)
+    AC_DEFINE_UNQUOTED(APP_MODULES_PATH, "$config_appmodpath", [Path to the 3rd party modules])
+  ])
