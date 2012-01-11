@@ -425,7 +425,8 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 
     lret = ldap_init_fd(state->sd, LDAP_PROTO_TCP, state->uri, &state->ldap);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_init_fd failed: %s\n", sss_ldap_err2string(lret)));
+        DEBUG(1, ("ldap_init_fd failed: %s. [%ld][%s]\n",
+                  sss_ldap_err2string(lret), state->sd, state->uri));
         close(state->sd);
         if (lret == LDAP_SERVER_DOWN) {
             tevent_req_error(req, ETIMEDOUT);

@@ -301,7 +301,8 @@ errno_t sdap_call_conn_cb(const char *uri,int fd, struct sdap_handle *sh)
     ret = ldap_url_parse(uri, &lud);
     if (ret != 0) {
         ber_sockbuf_free(sb);
-        DEBUG(1, ("ber_sockbuf_ctrl failed.\n"));
+        DEBUG(1, ("ldap_url_parse failed to validate [%s] on fd [%ld].\n",
+                  uri, fd));
         return EFAULT;
     }
 
