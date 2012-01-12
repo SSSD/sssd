@@ -73,7 +73,7 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
     int i;
 
     tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) return ENOMEM;
+    NULL_CHECK(tmp_ctx, ret, done);
 
     /* AND with objectclass */
     filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)",
@@ -156,7 +156,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
     int i;
 
     tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) return ENOMEM;
+    NULL_CHECK(tmp_ctx, ret, done);
 
     attrs[0] = SYSDB_MEMBEROF;
     attrs[1] = SYSDB_UIDNUM;
@@ -181,13 +181,10 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
         sysdb_groupnames = NULL;
     } else {
         sysdb_groupnames = talloc_array(tmp_ctx, char *, groups->num_values+1);
-        if (!sysdb_groupnames) {
-            ret = ENOMEM;
-            goto done;
-        }
+        NULL_CHECK(sysdb_groupnames, ret, done);
 
         /* Get a list of the groups by groupname only */
-        for (i=0; i < groups->num_values; i++) {
+        for (i = 0; i < groups->num_values; i++) {
             ret = sysdb_group_dn_name(sysdb,
                                       sysdb_groupnames,
                                       (const char *)groups->values[i].data,
@@ -218,17 +215,10 @@ sysdb_sudo_purge_subdir(struct sysdb_ctx *sysdb,
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
-        ret = ENOMEM;
-        goto done;
-    }
+    NULL_CHECK(tmp_ctx, ret, done);
 
     base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain->name, subdir);
-    if (base_dn == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
+    NULL_CHECK(base_dn, ret, done);
 
     ret = sysdb_delete_recursive(sysdb, base_dn, true);
     if (ret != EOK) {
@@ -287,9 +277,11 @@ sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
     const char *name;
     int i;
     errno_t ret;
-    const char *attrs[] = { SYSDB_OBJECTCLASS
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_NAME,
                             SYSDB_SUDO_CACHE_AT_OC,
-                            SYSDB_SUDO_CACHE_AT_CN };
+                            SYSDB_SUDO_CACHE_AT_CN,
+                            NULL };
 
     /* just purge all if there's no filter */
     if (!filter) {
@@ -297,7 +289,7 @@ sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
     }
 
     tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) return ENOMEM;
+    NULL_CHECK(tmp_ctx, ret, done);
 
     /* match entries based on the filter and remove them one by one */
     ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
@@ -316,7 +308,8 @@ sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
         name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("A rule without a name?\n"));
-            goto done;
+            /* skip this one but still delete other entries */
+            continue;
         }
 
         ret = sysdb_delete_custom(sysdb, name, SUDORULE_SUBDIR);

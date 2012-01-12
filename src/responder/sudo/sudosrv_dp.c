@@ -107,6 +107,8 @@ struct tevent_req * sudosrv_dp_refresh_send(struct resp_ctx *rctx,
 error:
     tevent_req_error(req, ret);
     tevent_req_post(req, rctx->ev);
+    dbus_message_unref(msg);
+
     return req;
 }
 

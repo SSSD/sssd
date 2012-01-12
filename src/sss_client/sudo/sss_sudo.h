@@ -45,9 +45,9 @@ struct sss_result {
     struct sss_rule *rules;
 };
 
-int sss_sudo_get_result(const char *username,
-                        uint32_t *_error,
-                        struct sss_result **_result);
+int sss_sudo_send_recv(const char *username,
+                       uint32_t *_error,
+                       struct sss_result **_result);
 
 void sss_sudo_free_result(struct sss_result *result);
 

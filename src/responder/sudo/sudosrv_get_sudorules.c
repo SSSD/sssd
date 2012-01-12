@@ -481,7 +481,8 @@ char * sudosrv_get_sudorules_parse_query(TALLOC_CTX *mem_ctx,
                                          const char *query_body,
                                          int query_len)
 {
-    if (query_len < 2 || ((query_len - 1) != strlen(query_body))) {
+    /* empty string or not NULL terminated */
+    if (query_len < 2 || strnlen(query_body, query_len) == query_len) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid query.\n"));
         return NULL;
     }

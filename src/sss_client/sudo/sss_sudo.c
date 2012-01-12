@@ -36,9 +36,9 @@ static void sss_sudo_free_rules(unsigned int num_rules,
 static void sss_sudo_free_attrs(unsigned int num_attrs,
                                 struct sss_attr *attrs);
 
-int sss_sudo_get_result(const char *username,
-                        uint32_t *_error,
-                        struct sss_result **_result)
+int sss_sudo_send_recv(const char *username,
+                       uint32_t *_error,
+                       struct sss_result **_result)
 {
     struct sss_result *result = NULL;
     struct sss_cli_req_data request;

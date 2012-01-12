@@ -188,6 +188,7 @@ int sss_sudo_parse_uint32(const char *message,
         return EINVAL;
     }
 
+    /* expanded SAFEALIGN_COPY_UINT32 macro from util.h */
     memcpy(_number, message + start_pos, sizeof(uint32_t));
     *_cursor = start_pos + sizeof(uint32_t);
 

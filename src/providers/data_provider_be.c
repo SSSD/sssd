@@ -696,11 +696,11 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
                                          DBUS_TYPE_STRING, &(be_sudo_req->username),
                                          DBUS_TYPE_INVALID);
 
-        if (dbus_error_is_set(&dbus_error)) {
-            dbus_error_free(&dbus_error);
-        }
-
         if (!dbus_ret) {
+            if (dbus_error_is_set(&dbus_error)) {
+                dbus_error_free(&dbus_error);
+            }
+
             DEBUG(SSSDBG_CRIT_FAILURE, ("dbus_message_get_args failed.\n"));
             ret = EINVAL;
             goto fail;

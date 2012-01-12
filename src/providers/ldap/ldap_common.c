@@ -271,7 +271,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     /* Handle search bases */
     search_base = dp_opt_get_string(opts->basic, SDAP_SEARCH_BASE);
     if (search_base != NULL) {
-        /* set user/group/netgroup/sudo search bases if they are not */
+        /* set user/group/netgroup search bases if they are not */
         for (o = 0; search_base_options[o] != -1; o++) {
             if (NULL == dp_opt_get_string(opts->basic, search_base_options[o])) {
                 ret = dp_opt_set_string(opts->basic, search_base_options[o],

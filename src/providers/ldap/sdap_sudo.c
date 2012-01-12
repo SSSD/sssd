@@ -408,8 +408,6 @@ void sdap_sudo_load_sudoers_done(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, ("Received %d rules\n", rules_count));
 
     /* purge cache */
-    /* TODO purge with filter */
-    DEBUG(SSSDBG_TRACE_FUNC, ("Purging sudo cache with filter %s\n", ""));
     ret = sdap_sudo_purge_sudoers(sudo_ctx);
     if (ret != EOK) {
         goto done;
@@ -448,6 +446,7 @@ int sdap_sudo_purge_sudoers(struct sdap_sudo_ctx *sudo_ctx)
     }
 
     /* Purge rules */
+    DEBUG(SSSDBG_TRACE_FUNC, ("Purging sudo cache with filter [%s]\n", filter));
     ret = sysdb_purge_sudorule_subtree(sysdb_ctx, sudo_ctx->be_ctx->domain,
                                        filter);
     if (ret != EOK) {

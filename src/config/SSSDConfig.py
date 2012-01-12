@@ -238,6 +238,20 @@ option_strings = {
     'ldap_chpass_uri' : _('URI of an LDAP server where password changes are allowed'),
     'ldap_chpass_dns_service_name' : _('DNS service name for LDAP password change server'),
 
+    # [provider/ldap/sudo]
+    'ldap_sudo_search_base' : _('Base DN for sudo rules lookups'),
+    'ldap_sudorule_object_class' : _('Object class for sudo rules'),
+    'ldap_sudorule_name' : _('Sudo rule name'),
+    'ldap_sudorule_command' : _('Sudo rule command attribute'),
+    'ldap_sudorule_host' : _('Sudo rule host attribute'),
+    'ldap_sudorule_user' : _('Sudo rule user attribute'),
+    'ldap_sudorule_option' : _('Sudo rule option attribute'),
+    'ldap_sudorule_runasuser' : _('Sudo rule runasuser attribute'),
+    'ldap_sudorule_runasgroup' : _('Sudo rule runasgroup attribute'),
+    'ldap_sudorule_notbefore' : _('Sudo rule notbefore attribute'),
+    'ldap_sudorule_notafter' : _('Sudo rule notafter attribute'),
+    'ldap_sudorule_order' : _('Sudo rule order attribute'),
+
     # [provider/simple/access]
     'simple_allow_users' : _('Comma separated list of allowed users'),
     'simple_deny_users' : _('Comma separated list of prohibited users'),

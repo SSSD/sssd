@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 
     /* get sss_result - it will send new query to responder */
 
-    ret = sss_sudo_get_result(username, &error, &result);
+    ret = sss_sudo_send_recv(username, &error, &result);
     if (ret != EOK) {
         fprintf(stderr, "Usss_sudo_get_result() failed: %s\n", strerror(ret));
         goto fail;

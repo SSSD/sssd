@@ -1782,7 +1782,7 @@ errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
     for (i = 0; i < count; i++) {
         a[i] = talloc(a, struct sysdb_attrs);
         if (a[i] == NULL) {
-            DEBUG(1, ("talloc_array failed.\n"));
+            DEBUG(1, ("talloc failed.\n"));
             talloc_free(a);
             return ENOMEM;
         }
