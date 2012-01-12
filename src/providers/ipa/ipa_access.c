@@ -302,7 +302,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
                                                     IPA_HBAC_SUPPORT_SRCHOST),
                                     dp_opt_get_string(hbac_ctx->ipa_options,
                                                       IPA_HOSTNAME),
-                                    hbac_ctx->hbac_search_base);
+                                    hbac_ctx->access_ctx->host_search_bases);
     if (req == NULL) {
         DEBUG(1, ("Could not get host info\n"));
         return ENOMEM;

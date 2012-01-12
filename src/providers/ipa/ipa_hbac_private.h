@@ -107,7 +107,7 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                         struct sdap_options *opts,
                         bool support_srchost,
                         const char *hostname,
-                        const char *search_base);
+                        struct sdap_search_base **search_bases);
 
 errno_t
 ipa_hbac_host_info_recv(struct tevent_req *req,
