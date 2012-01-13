@@ -112,6 +112,11 @@
                             the IP address of this client.
                         </para>
                         <para>
+                            NOTE: On older systems (such as RHEL 5), for this
+                            behavior to work reliably, the default Kerberos
+                            realm must be set properly in /etc/krb5.conf
+                        </para>
+                        <para>
                             Default: false
                         </para>
                     </listitem>
