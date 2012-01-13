@@ -148,6 +148,30 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_host_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            host objects.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            If filter is given in any of search bases and
+                            <emphasis>ipa_hbac_support_srchost</emphasis>
+                            is set to False, the filter will be ignored.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_validate (boolean)</term>
                     <listitem>
                         <para>
@@ -243,6 +267,11 @@
                         <para>
                             If this is set to false, then srchost as given
                             to SSSD by PAM will be ignored.
+                        </para>
+                        <para>
+                            Note that if set to <emphasis>False</emphasis>,
+                            this option casuses filters given in
+                            <emphasis>ipa_host_search_base</emphasis> to be ignored;
                         </para>
                         <para>
                             Default: false
