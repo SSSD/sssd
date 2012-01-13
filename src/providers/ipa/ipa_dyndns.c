@@ -797,20 +797,37 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
     int ret, i;
     char *servername = NULL;
     char *realm;
+    char *realm_directive;
     char *zone;
     char ip_addr[INET6_ADDRSTRLEN];
     const char *ip;
     struct ipa_ipaddress *new_record;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
 
     realm = dp_opt_get_string(ctx->dyndns_ctx->ipa_ctx->basic, IPA_KRB5_REALM);
     if (!realm) {
-        return EIO;
+        ret = EIO;
+        goto done;
+    }
+
+#ifdef HAVE_NSUPDATE_REALM
+    realm_directive = talloc_asprintf(tmp_ctx, "realm %s\n", realm);
+#else
+    realm_directive = talloc_asprintf(tmp_ctx, "");
+#endif
+    if (!realm_directive) {
+        ret = ENOMEM;
+        goto done;
     }
 
     zone = dp_opt_get_string(ctx->dyndns_ctx->ipa_ctx->basic,
                              IPA_DOMAIN);
     if (!zone) {
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
     /* The DNS zone for IPA is the lower-case
@@ -824,26 +841,31 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
         if (strncmp(ctx->dyndns_ctx->ipa_ctx->service->sdap->uri,
                     "ldap://", 7) != 0) {
             DEBUG(1, ("Unexpected format of LDAP URI.\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
         servername = ctx->dyndns_ctx->ipa_ctx->service->sdap->uri + 7;
         if (!servername) {
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
-        DEBUG(9, ("Creating update message for server [%s], realm [%s] "
-                  "and zone [%s].\n", servername, realm, zone));
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("Creating update message for server [%s], realm [%s] "
+               "and zone [%s].\n", servername, realm, zone));
 
         /* Add the server, realm and zone headers */
-        ctx->update_msg = talloc_asprintf(ctx, "server %s\nrealm %s\nzone %s.\n",
-                                               servername, realm, zone);
+        ctx->update_msg = talloc_asprintf(ctx, "server %s\n%szone %s.\n",
+                                               servername, realm_directive,
+                                               zone);
     } else {
-        DEBUG(9, ("Creating update message for realm [%s] and zone [%s].\n",
-                  realm, zone));
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("Creating update message for realm [%s] and zone [%s].\n",
+               realm, zone));
 
         /* Add the realm and zone headers */
-        ctx->update_msg = talloc_asprintf(ctx, "realm %s\nzone %s.\n",
-                                               realm, zone);
+        ctx->update_msg = talloc_asprintf(ctx, "%szone %s.\n",
+                                               realm_directive, zone);
     }
     if (ctx->update_msg == NULL) {
         ret = ENOMEM;
@@ -917,12 +939,16 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
         goto done;
     }
 
-    DEBUG(6, (" -- Begin nsupdate message -- \n%s", ctx->update_msg));
-    DEBUG(6, (" -- End nsupdate message -- \n"));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          (" -- Begin nsupdate message -- \n%s",
+           ctx->update_msg));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          (" -- End nsupdate message -- \n"));
 
     ret = EOK;
 
 done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
