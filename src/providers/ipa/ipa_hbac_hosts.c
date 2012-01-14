@@ -619,8 +619,9 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 num_hostgroups++;
             } else { /* ret == ENOENT */
                 /* Neither a host nor a hostgroup? Skip it */
-                DEBUG(1, ("[%s] does not map to either a host or hostgroup. "
-                          "Skipping\n", member_dn));
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      ("[%s] does not map to either a host or hostgroup. "
+                       "Skipping\n", member_dn));
             }
         }
         talloc_zfree(member_dn);
