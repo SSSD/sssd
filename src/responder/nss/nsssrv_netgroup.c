@@ -147,8 +147,8 @@ static int netgr_hash_remove (TALLOC_CTX *ctx)
     /* Remove the netgroup result object from the lookup table */
     hret = hash_delete(netgr->lookup_table, &key);
     if (hret != HASH_SUCCESS) {
-        DEBUG(0, ("Could not remove key from table! [%d][%s]\n",
-                  hret, hash_error_string(hret)));
+        DEBUG(0, ("Could not remove key [%s] from table! [%d][%s]\n",
+                  netgr->name, hret, hash_error_string(hret)));
         return -1;
     }
     return 0;
