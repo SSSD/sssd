@@ -978,6 +978,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     int optret;
     errno_t ret;
     int msgid;
+    bool disable_paging;
 
     LDAPControl *page_control = NULL;
 
@@ -999,8 +1000,11 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
         }
     }
 
-    if (sdap_is_control_supported(state->sh,
-                                  LDAP_CONTROL_PAGEDRESULTS)) {
+    disable_paging = dp_opt_get_bool(state->opts->basic, SDAP_DISABLE_PAGING);
+
+    if (!disable_paging
+            && sdap_is_control_supported(state->sh,
+                                         LDAP_CONTROL_PAGEDRESULTS)) {
         lret = ldap_create_page_control(state->sh->ldap,
                                         state->sh->page_size,
                                         state->cookie.bv_val ?

@@ -207,6 +207,7 @@ enum sdap_basic_opt {
     SDAP_DEREF_THRESHOLD,
     SDAP_SASL_CANONICALIZE,
     SDAP_EXPIRE_TIMEOUT,
+    SDAP_DISABLE_PAGING,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
