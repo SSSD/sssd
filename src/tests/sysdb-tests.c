@@ -2889,6 +2889,15 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
         services_check_match(test_ctx, false, primary_name, port, aliases, protocols); \
     } while(0);
 
+errno_t
+sysdb_svc_add(TALLOC_CTX *mem_ctx,
+              struct sysdb_ctx *sysdb,
+              const char *primary_name,
+              int port,
+              const char **aliases,
+              const char **protocols,
+              struct ldb_dn **dn);
+
 START_TEST(test_sysdb_add_services)
 {
     errno_t ret;
@@ -3077,6 +3086,11 @@ START_TEST(test_sysdb_store_services)
     talloc_free(test_ctx);
 }
 END_TEST
+
+errno_t
+sysdb_svc_remove_alias(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *alias);
 
 START_TEST(test_sysdb_svc_remove_alias)
 {
