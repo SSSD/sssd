@@ -39,6 +39,7 @@ logpath = @logpath@
 pubconfpath = @pubconfpath@
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
+sudolibdir = @appmodpath@
 
 UNICODE_LIBS=@UNICODE_LIBS@
 
@@ -571,14 +572,11 @@ sss_debuglevel_LDADD = \
 
 if BUILD_SUDO
 sss_sudo_cli_SOURCES = \
-    src/sss_client/sudo_testcli/sudo_testcli.c \
-    src/sss_client/sudo/sss_sudo_response.c \
-    src/sss_client/sudo/sss_sudo.c \
-    src/sss_client/sudo/sss_sudo.h \
-    src/sss_client/sudo/sss_sudo_private.h \
     src/sss_client/common.c \
-    src/sss_client/sss_cli.h
+    src/sss_client/sudo_testcli/sudo_testcli.c
 sss_sudo_cli_CFLAGS = $(AM_CFLAGS)
+sss_sudo_cli_LDADD = \
+    libsss_sudo.la
 endif
 
 #################
@@ -869,9 +867,32 @@ pam_sss_la_LDFLAGS = \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_pam.exports
 
+if BUILD_SUDO
+
+libsss_sudo_la_SOURCES = \
+    src/sss_client/common.c \
+    src/sss_client/sss_cli.h \
+    src/sss_client/sudo/sss_sudo_response.c \
+    src/sss_client/sudo/sss_sudo.c \
+    src/sss_client/sudo/sss_sudo.h \
+    src/sss_client/sudo/sss_sudo_private.h
+libsss_sudo_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/sss_client/sss_sudo.exports \
+    -version 1:0:0
+
+sudolib_LTLIBRARIES = libsss_sudo.la
+dist_pkgconfig_DATA += src/sss_client/sudo/libsss_sudo.pc
+
+include_HEADERS += \
+    src/sss_client/sudo/sss_sudo.h
+endif
+
 dist_noinst_DATA += \
     src/sss_client/sss_nss.exports \
     src/sss_client/sss_pam.exports
+if BUILD_SUDO
+dist_noinst_DATA += src/sss_client/sss_sudo.exports
+endif
 
 ####################
 # Plugin Libraries #
@@ -1191,7 +1212,8 @@ installsssddirs::
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(logpath) \
-    $(DESTDIR)$(pubconfpath)
+    $(DESTDIR)$(pubconfpath) \
+    $(DESTDIR)$(sudolibdir)
 
 if HAVE_DOXYGEN
 docs:

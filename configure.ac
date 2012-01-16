@@ -231,5 +231,6 @@ AC_SUBST([abs_builddir], $abs_build_dir)
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/sysv/systemd/sssd.service po/Makefile.in src/man/Makefile
-                 src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy])
+                 src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy
+                 src/sss_client/sudo/libsss_sudo.pc])
 AC_OUTPUT
