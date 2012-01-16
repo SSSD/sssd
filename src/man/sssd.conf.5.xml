@@ -85,7 +85,7 @@
                                 started when sssd itself starts.
                             </para>
                             <para>
-                                Supported services: nss, pam
+                                Supported services: nss, pam, sudo
                             </para>
                         </listitem>
                     </varlistentry>
@@ -863,6 +863,29 @@
                         <para>
                             Default: <quote>auth_provider</quote> is used if it
                             is set and can handle change password requests.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>sudo_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The SUDO provider used for the domain.
+                            Supported SUDO providers are:
+                        </para>
+                        <para>
+                            <quote>ldap</quote> for rules stored in LDAP. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>none</quote> disables SUDO explicitly.
+                        </para>
+                        <para>
+                            Default: <quote>id_provider</quote> is used if it
+                            is set.
                         </para>
                     </listitem>
                 </varlistentry>

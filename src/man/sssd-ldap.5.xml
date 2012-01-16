@@ -1554,6 +1554,175 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_sudorule_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a sudo rule entry in LDAP.
+                        </para>
+                        <para>
+                            Default: sudoRole
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_name (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            the sudo rule name.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_command (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            command name.
+                        </para>
+                        <para>
+                            Default: sudoCommand
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_host (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            host name.
+                        </para>
+                        <para>
+                            Default: sudoHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_user (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            user name.
+                        </para>
+                        <para>
+                            Default: sudoUser
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_option (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            sudo options.
+                        </para>
+                        <para>
+                            Default: sudoOption
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_runasuser (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            user name that commands may be run as.
+                        </para>
+                        <para>
+                            Default: sudoRunAsUser
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_runasgroup (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            group name that commands may be run as.
+                        </para>
+                        <para>
+                            Default: sudoRunAsGroup
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_notbefore (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            start date/time for when the sudo rule is valid.
+                        </para>
+                        <para>
+                            Default: sudoNotBefore
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_notafter (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            expiration date/time, after which the sudo rule
+                            will no longer be valid.
+                        </para>
+                        <para>
+                            Default: sudoNotAfter
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudorule_order (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the
+                            ordering index of the rule.
+                        </para>
+                        <para>
+                            Default: sudoOrder
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudo_refresh_enabled (boolean)</term>
+                    <listitem>
+                        <para>
+                            Enables periodical download of all sudo rules.
+                            The cache is purged before each update.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudo_refresh_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds SSSD has to wait before refreshing
+                            its cache of sudo rules.
+                        </para>
+                        <para>
+                            Default: 300
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
@@ -1662,6 +1831,25 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                         <para>
                             Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sudo_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            An optional base DN to restrict sudo rules searches
+                            to a specific subtree.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
                         </para>
                     </listitem>
                 </varlistentry>
