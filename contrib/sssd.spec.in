@@ -14,6 +14,10 @@
 %global with_unicode_lib --with-unicode-lib=glib2
 %endif
 
+%if (0%{?enable_experimental} == 1)
+%global experimental --enable-all-experimental-features
+%endif
+
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 
@@ -158,6 +162,25 @@ Requires: libipa_hbac = %{version}-%{release}
 The libipa_hbac-python contains the bindings so that libipa_hbac can be
 used by Python applications.
 
+%if (0%{?enable_experimental} == 1)
+%package -n libsss_sudo
+Summary: A library to allow communication between SUDO and SSSD
+Group: Development/Libraries
+License: LGPLv3+
+
+%description -n libsss_sudo
+A utility library to allow communication between SUDO and SSSD
+
+%package -n libsss_sudo-devel
+Summary: A library to allow communication between SUDO and SSSD
+Group: Development/Libraries
+License: LGPLv3+
+Requires: libsss_sudo = %{version}-%{release}
+
+%description -n libsss_sudo-devel
+A utility library to allow communication between SUDO and SSSD
+%endif
+
 %prep
 %setup -q
 
@@ -183,7 +206,8 @@ autoreconf -ivf
     --enable-pammoddir=/%{_lib}/security \
     --disable-static \
     --disable-rpath \
-    %{with_unicode_lib}
+    %{with_unicode_lib} \
+    %{experimental}
 
 make %{?_smp_mflags} all
 
@@ -340,6 +364,18 @@ rm -rf $RPM_BUILD_ROOT
 %files -n libipa_hbac-python
 %defattr(-,root,root,-)
 %{python_sitearch}/pyhbac.so
+
+%if (0%{?enable_experimental} == 1)
+%files -n libsss_sudo
+%defattr(-,root,root,-)
+%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%{_libdir}/sssd/modules/libsss_sudo.so.*
+
+%files -n libsss_sudo-devel
+%{_includedir}/sss_sudo.h
+%{_libdir}/sssd/modules/libsss_sudo.so
+%{_libdir}/pkgconfig/libsss_sudo.pc
+%endif
 
 %post
 /sbin/ldconfig
