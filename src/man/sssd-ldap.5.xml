@@ -864,6 +864,30 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_disable_paging</term>
+                    <listitem>
+                        <para>
+                            Disable the LDAP paging control. This option
+                            should be used if the LDAP server reports that it
+                            supports the LDAP paging control in its RootDSE
+                            but it is not enabled or does not behave properly.
+                        </para>
+                        <para>
+                            Example: OpenLDAP servers with the paging control
+                            module installed on the server but not enabled
+                            will report it in the RootDSE but be unable to use
+                            it.
+                        </para>
+                        <para>
+                            Example: 389 DS has a bug where it can only
+                            support a one paging control at a time on a single
+                            connection. On busy clients, this can result in
+                            some requests being denied.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_tls_reqcert (string)</term>
                     <listitem>
                         <para>

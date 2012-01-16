@@ -156,6 +156,8 @@ option_strings = {
     'ldap_entry_usn' : _('entryUSN attribute'),
     'ldap_rootdse_last_usn' : _('lastUSN attribute'),
 
+    'ldap_disable_paging' : _('Disable the LDAP paging control'),
+
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),
     'ldap_enumeration_search_timeout' : _('Length of time to wait for a enumeration request'),
