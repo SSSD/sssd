@@ -86,14 +86,9 @@
 
 #define SYSDB_NETGROUP_TRIPLE "netgroupTriple"
 #define SYSDB_ORIG_NETGROUP_MEMBER "originalMemberNisNetgroup"
-#define SYSDB_ORIG_NETGROUP_MEMBER_USER "originalMemberUser"
-#define SYSDB_ORIG_NETGROUP_MEMBER_HOST "originalMemberHost"
 #define SYSDB_ORIG_NETGROUP_EXTERNAL_HOST "originalExternalHost"
 #define SYSDB_NETGROUP_DOMAIN "nisDomain"
 #define SYSDB_NETGROUP_MEMBER "memberNisNetgroup"
-#define SYSDB_NETGROUP_MEMBER_USER "memberUser"
-#define SYSDB_NETGROUP_MEMBER_HOST "memberHost"
-#define SYSDB_NETGROUP_MEMBER_EXTERNAL_HOST "memberExternalHost"
 #define SYSDB_DESCRIPTION   "description"
 
 #define SYSDB_CACHEDPWD "cachedPassword"
@@ -105,6 +100,9 @@
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
 #define SYSDB_ORIG_MEMBEROF "originalMemberOf"
+
+#define SYSDB_ORIG_MEMBER_USER "originalMemberUser"
+#define SYSDB_ORIG_MEMBER_HOST "originalMemberHost"
 
 #define SYSDB_USN "entryUSN"
 #define SYSDB_HIGH_USN "highestUSN"

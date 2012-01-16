@@ -339,11 +339,11 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
                                  &ng_found);
         if (ret != EOK) goto done;
 
-        ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_NETGROUP_MEMBER_USER,
+        ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_MEMBER_USER,
                                  &user_found);
         if (ret != EOK) goto done;
 
-        ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_NETGROUP_MEMBER_HOST,
+        ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_MEMBER_HOST,
                                  &host_found);
         if (ret != EOK) goto done;
 
@@ -902,7 +902,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         /* Load all UIDs */
         DEBUG(SSSDBG_TRACE_ALL, ("Extracting user members of netgroup %d\n", i));
         ret = extract_members(state, state->netgroups[i],
-                              SYSDB_ORIG_NETGROUP_MEMBER_USER,
+                              SYSDB_ORIG_MEMBER_USER,
                               state->new_users,
                               &uids, &uids_count);
         if (ret != EOK) {
@@ -912,7 +912,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
 
         DEBUG(SSSDBG_TRACE_ALL, ("Extracting host members of netgroup %d\n", i));
         ret = extract_members(state, state->netgroups[i],
-                              SYSDB_ORIG_NETGROUP_MEMBER_HOST,
+                              SYSDB_ORIG_MEMBER_HOST,
                               state->new_hosts,
                               &hosts, &hosts_count);
         if (ret != EOK) {
