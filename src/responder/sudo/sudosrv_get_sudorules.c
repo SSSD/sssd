@@ -412,6 +412,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     size_t count;
     struct sysdb_attrs **rules;
     struct ldb_message **msgs;
+    unsigned int flags = SYSDB_SUDO_FILTER_NONE;
     const char *attrs[] = { SYSDB_OBJECTCLASS
                             SYSDB_SUDO_CACHE_AT_OC,
                             SYSDB_SUDO_CACHE_AT_CN,
@@ -429,9 +430,11 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
+    flags =   SYSDB_SUDO_FILTER_USERINFO
+            | SYSDB_SUDO_FILTER_INCLUDE_ALL
+            | SYSDB_SUDO_FILTER_INCLUDE_DFL;
     ret = sysdb_get_sudo_filter(tmp_ctx, username, uid, groupnames,
-                    (SYSDB_SUDO_FILTER_NGRS | SYSDB_SUDO_FILTER_INCLUDE_ALL |
-                    SYSDB_SUDO_FILTER_INCLUDE_DFL), &filter);
+                                flags, &filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not construct the search filter [%d]: %s\n",

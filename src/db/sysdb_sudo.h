@@ -46,10 +46,17 @@
 
 /* When constructing a sysdb filter, OR these values to include..   */
 #define SYSDB_SUDO_FILTER_NONE           0x00       /* no additional filter */
-#define SYSDB_SUDO_FILTER_NGRS           0x01       /* netgroups            */
-#define SYSDB_SUDO_FILTER_TIMED          0x02       /* timed rules          */
-#define SYSDB_SUDO_FILTER_INCLUDE_ALL    0x04       /* ALL                  */
-#define SYSDB_SUDO_FILTER_INCLUDE_DFL    0x08       /* include cn=default   */
+#define SYSDB_SUDO_FILTER_USERNAME       0x01       /* username             */
+#define SYSDB_SUDO_FILTER_UID            0x02       /* uid                  */
+#define SYSDB_SUDO_FILTER_GROUPS         0x04       /* groups               */
+#define SYSDB_SUDO_FILTER_NGRS           0x08       /* netgroups            */
+#define SYSDB_SUDO_FILTER_TIMED          0x10       /* timed rules          */
+#define SYSDB_SUDO_FILTER_INCLUDE_ALL    0x20       /* ALL                  */
+#define SYSDB_SUDO_FILTER_INCLUDE_DFL    0x40       /* include cn=default   */
+#define SYSDB_SUDO_FILTER_USERINFO       SYSDB_SUDO_FILTER_USERNAME \
+                                       | SYSDB_SUDO_FILTER_UID \
+                                       | SYSDB_SUDO_FILTER_GROUPS \
+                                       | SYSDB_SUDO_FILTER_NGRS
 
 errno_t
 sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
