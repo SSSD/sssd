@@ -32,77 +32,36 @@
 #define EOK 0
 #endif
 
-int create_query(const char *username, char **_query, int *_query_len);
 void print_sss_result(struct sss_result *result);
 
 int main(int argc, char **argv)
 {
-    struct sss_cli_req_data request;
-    const char *username = NULL;
-    char *query = NULL;
-    int query_len = 0;
-    int errnop = 0;
     int ret = 0;
-    uint8_t *reply_buf = NULL;
-    char *reply_buf_char = NULL;
-    size_t reply_len;
-    int i = 0;
     struct sss_result *result = NULL;
     uint32_t error = 0;
 
-    if (argc != 2) {
+    if (argc > 2) {
         fprintf(stderr, "Usage: sss_sudo_cli username\n");
         goto fail;
     }
 
-    username = argv[1];
-
-    /* create query */
-
-    ret = create_query(username, &query, &query_len);
-    if (ret != EOK) {
-        fprintf(stderr, "Unable to create query: %s\n", strerror(ret));
-        goto fail;
-    }
-
-    request.len = query_len;
-    request.data = (const void*)query;
-
-    /* send query and recieve response */
-
-    errnop = 0;
-    ret = sss_sudo_make_request(SSS_SUDO_GET_SUDORULES, &request, &reply_buf,
-                                &reply_len, &errnop);
-    if (errnop != EOK) {
-        fprintf(stderr, "Unable to contact SSSD responder: %s\n", strerror(errnop));
-        goto fail;
-    }
-
-    reply_buf_char = (char*)reply_buf;
-    if (reply_len > 0) {
-        printf("Reply length: %d\n", (int)reply_len);
-        printf("Reply data:\n");
-        for (i = 0; i < reply_len; i++) {
-            if (reply_buf_char[i] == '\0') {
-                printf("\\0");
-            } else {
-                printf("%c", reply_buf_char[i]);
-            }
-        }
-        printf("\n");
-    } else {
-        printf("No reply received!\n");
-    }
-
     /* get sss_result - it will send new query to responder */
 
-    ret = sss_sudo_send_recv(username, &error, &result);
-    if (ret != EOK) {
-        fprintf(stderr, "Usss_sudo_get_result() failed: %s\n", strerror(ret));
-        goto fail;
+    if (argc == 1) {
+        ret = sss_sudo_send_recv_defaults(&error, &result);
+        if (ret != EOK) {
+            fprintf(stderr, "sss_sudo_send_recv_defaults() failed: %s\n", strerror(ret));
+            goto fail;
+        }
+    } else {
+        ret = sss_sudo_send_recv(argv[1], &error, &result);
+        if (ret != EOK) {
+            fprintf(stderr, "sss_sudo_send_recv() failed: %s\n", strerror(ret));
+            goto fail;
+        }
     }
 
-    printf("\n=== Printing response data ===\n");
+    printf("=== Printing response data ===\n");
     printf("Response code: %d\n\n", error);
     if (error == SSS_SUDO_ERROR_OK) {
         print_sss_result(result);
@@ -110,35 +69,11 @@ int main(int argc, char **argv)
 
 
     sss_sudo_free_result(result);
-    free(query);
     return 0;
 
 fail:
     sss_sudo_free_result(result);
-    free(query);
     return 1;
-}
-
-int create_query(const char *username, char **_query, int *_query_len)
-{
-    char *data = NULL;
-    int data_len = strlen(username) + 1;
-
-    if (data_len <= 0) {
-        return EINVAL;
-    }
-
-    data = (char*)malloc(data_len * sizeof(char));
-    if (data == NULL) {
-        return ENOMEM;
-    }
-
-    memcpy(data, username, data_len);
-
-    *_query = data;
-    *_query_len = data_len;
-
-    return EOK;
 }
 
 void print_sss_result(struct sss_result *result)
