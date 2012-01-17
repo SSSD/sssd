@@ -27,6 +27,10 @@
  * b/c it's not name-service-switch data */
 #define SUDORULE_SUBDIR "sudorules"
 
+/* attribute of SUDORULE_SUBDIR
+ * should be true if we have downloaded all rules atleast once */
+#define SYSDB_SUDO_AT_REFRESHED      "refreshed"
+
 /* sysdb attributes */
 #define SYSDB_SUDO_CACHE_AT_OC         "sudoRule"
 #define SYSDB_SUDO_CACHE_AT_CN         "cn"
@@ -65,5 +69,11 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
 errno_t sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
                                      struct sss_domain_info *domain,
                                      const char *filter);
+
+errno_t sysdb_sudo_set_refreshed(struct sysdb_ctx *sysdb,
+                                 bool refreshed);
+
+errno_t sysdb_sudo_get_refreshed(struct sysdb_ctx *sysdb,
+                                 bool *refreshed);
 
 #endif /* _SYSDB_SUDO_H_ */

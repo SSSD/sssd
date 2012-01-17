@@ -21,6 +21,7 @@
 #include <talloc.h>
 
 #include "db/sysdb.h"
+#include "db/sysdb_private.h"
 #include "db/sysdb_sudo.h"
 
 #define NULL_CHECK(val, rval, label) do { \
@@ -320,6 +321,63 @@ sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
     }
 
     ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_sudo_set_refreshed(struct sysdb_ctx *sysdb,
+                                 bool refreshed)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        SUDORULE_SUBDIR, sysdb->domain->name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_set_bool(sysdb, dn, SUDORULE_SUBDIR,
+                         SYSDB_SUDO_AT_REFRESHED, refreshed);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_sudo_get_refreshed(struct sysdb_ctx *sysdb,
+                                 bool *refreshed)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        SUDORULE_SUBDIR, sysdb->domain->name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_get_bool(sysdb, dn, SYSDB_SUDO_AT_REFRESHED, refreshed);
+
 done:
     talloc_free(tmp_ctx);
     return ret;
