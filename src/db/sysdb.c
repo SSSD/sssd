@@ -1337,34 +1337,29 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
-                             bool *has_enumerated)
+errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *attr_name,
+                       bool *value)
 {
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
     errno_t ret;
     int lret;
-    struct ldb_dn *base_dn;
-    struct ldb_result *res;
-    const char *attributes[2] = {SYSDB_HAS_ENUMERATED,
-                                 NULL};
-    TALLOC_CTX *tmp_ctx;
-
+    const char *attrs[2] = {attr_name, NULL};
 
     tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        ret = ENOMEM;
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
         goto done;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_DOM_BASE,
-                             sysdb->domain->name);
-    if (!base_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_BASE, attributes, NULL);
     if (lret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(lret);
         goto done;
@@ -1378,22 +1373,121 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
          * This object in the sysdb exists mostly just
          * to contain this attribute.
          */
-        *has_enumerated = false;
+        *value = false;
         ret = EOK;
         goto done;
     } else if (res->count != 1) {
-        DEBUG(0, ("Corrupted database. "
-                  "More than one entry for base search.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Got more than one reply for base search!\n"));
         ret = EIO;
         goto done;
     }
 
-    /* Object existed. Return the stored value */
-    *has_enumerated = ldb_msg_find_attr_as_bool(res->msgs[0],
-                                                SYSDB_HAS_ENUMERATED,
-                                                false);
+    *value = ldb_msg_find_attr_as_bool(res->msgs[0], attr_name, false);
 
     ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *cn_value,
+                       const char *attr_name,
+                       bool value)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_result *res = NULL;
+    errno_t ret;
+    int lret;
+
+    if (dn == NULL || cn_value == NULL || attr_name == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      NULL, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = dn;
+
+    if (res->count == 0) {
+        lret = ldb_msg_add_string(msg, "cn", cn_value);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Got more than one reply for base search!\n"));
+        ret = EIO;
+        goto done;
+    } else {
+        lret = ldb_msg_add_empty(msg, attr_name, LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    }
+
+    lret = ldb_msg_add_fmt(msg, attr_name, "%s", value ? "TRUE" : "FALSE");
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count) {
+        lret = ldb_modify(sysdb->ldb, msg);
+    } else {
+        lret = ldb_add(sysdb->ldb, msg);
+    }
+
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
+                             bool *has_enumerated)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                        SYSDB_DOM_BASE,
+                        sysdb->domain->name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_get_bool(sysdb, dn, SYSDB_HAS_ENUMERATED, has_enumerated);
 
 done:
     talloc_free(tmp_ctx);
@@ -1404,10 +1498,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
                              bool enumerated)
 {
     errno_t ret;
-    int lret;
     TALLOC_CTX *tmp_ctx;
-    struct ldb_message *msg;
-    struct ldb_result *res;
     struct ldb_dn *dn;
 
     tmp_ctx = talloc_new(NULL);
@@ -1424,53 +1515,8 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res,
-                      dn, LDB_SCOPE_BASE,
-                      NULL, NULL);
-    if (lret != LDB_SUCCESS) {
-        ret = EIO;
-        goto done;
-    }
-
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = dn;
-
-    if (res->count == 0) {
-        lret = ldb_msg_add_string(msg, "cn", sysdb->domain->name);
-        if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
-            goto done;
-        }
-    } else if (res->count != 1) {
-        DEBUG(0, ("Got more than one reply for base search!\n"));
-        ret = EIO;
-        goto done;
-    } else {
-        lret = ldb_msg_add_empty(msg, SYSDB_HAS_ENUMERATED,
-                                 LDB_FLAG_MOD_REPLACE, NULL);
-        if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
-            goto done;
-        }
-    }
-    lret = ldb_msg_add_fmt(msg, SYSDB_HAS_ENUMERATED, "%s",
-                           enumerated?"TRUE":"FALSE");
-    if (lret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(lret);
-        goto done;
-    }
-
-    if (res->count) {
-        lret = ldb_modify(sysdb->ldb, msg);
-    } else {
-        lret = ldb_add(sysdb->ldb, msg);
-    }
-
-    ret = sysdb_error_to_errno(lret);
+    ret = sysdb_set_bool(sysdb, dn, sysdb->domain->name,
+                         SYSDB_HAS_ENUMERATED, enumerated);
 
 done:
     talloc_free(tmp_ctx);

@@ -703,6 +703,17 @@ errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
 errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
                           char **sanitized);
 
+errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *attr_name,
+                       bool *value);
+
+errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *cn_value,
+                       const char *attr_name,
+                       bool value);
+
 errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
                              bool *has_enumerated);
 
