@@ -4,6 +4,7 @@ EXPORTED {
 	global:
 
 		sss_sudo_send_recv;
+		sss_sudo_send_recv_defaults;
 		sss_sudo_free_result;
 		sss_sudo_get_values;
 		sss_sudo_free_values;

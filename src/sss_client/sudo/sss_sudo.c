@@ -36,18 +36,41 @@ static void sss_sudo_free_rules(unsigned int num_rules,
 static void sss_sudo_free_attrs(unsigned int num_attrs,
                                 struct sss_attr *attrs);
 
+static int sss_sudo_send_recv_generic(enum sss_cli_command command,
+                                      struct sss_cli_req_data *request,
+                                      uint32_t *_error,
+                                      struct sss_result **_result)
+{
+    uint8_t *reply_buf = NULL;
+    size_t reply_len = 0;
+    int errnop = 0;
+    int ret = 0;
+
+    /* send query and receive response */
+
+    errnop = 0;
+    ret = sss_sudo_make_request(command, request,
+                                &reply_buf, &reply_len, &errnop);
+    if (errnop != EOK) {
+        return errnop;
+    }
+
+    /* parse structure */
+
+    ret = sss_sudo_parse_response((const char*)reply_buf, reply_len,
+                                  _result, _error);
+
+    free(reply_buf);
+    return ret;
+}
+
 int sss_sudo_send_recv(const char *username,
                        uint32_t *_error,
                        struct sss_result **_result)
 {
-    struct sss_result *result = NULL;
     struct sss_cli_req_data request;
     char *query = NULL;
     int query_len = 0;
-    uint8_t *reply_buf = NULL;
-    size_t reply_len = 0;
-    uint32_t responder_error = 0;
-    int errnop = 0;
     int ret = 0;
 
     /* create query */
@@ -62,31 +85,23 @@ int sss_sudo_send_recv(const char *username,
 
     /* send query and recieve response */
 
-    errnop = 0;
-    ret = sss_sudo_make_request(SSS_SUDO_GET_SUDORULES, &request,
-                                &reply_buf, &reply_len, &errnop);
-    if (errnop != EOK) {
-        ret = errnop;
-        goto done;
-    }
-
-    /* parse and print structure */
-
-    ret = sss_sudo_parse_response((const char*)reply_buf, reply_len,
-                                  &result, &responder_error);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    *_error = responder_error;
-    *_result = result;
-
-    ret = EOK;
+    ret = sss_sudo_send_recv_generic(SSS_SUDO_GET_SUDORULES, &request,
+                                     _error, _result);
 
 done:
     free(query);
-
     return ret;
+}
+
+int sss_sudo_send_recv_defaults(uint32_t *_error, struct sss_result **_result)
+{
+    struct sss_cli_req_data request;
+
+    request.len = 0;
+    request.data = (const void*)NULL;
+
+    return sss_sudo_send_recv_generic(SSS_SUDO_GET_DEFAULTS, &request,
+                                      _error, _result);
 }
 
 int sss_sudo_create_query(const char *username, char **_query, int *_query_len)

@@ -49,6 +49,8 @@ int sss_sudo_send_recv(const char *username,
                        uint32_t *_error,
                        struct sss_result **_result);
 
+int sss_sudo_send_recv_defaults(uint32_t *_error, struct sss_result **_result);
+
 void sss_sudo_free_result(struct sss_result *result);
 
 int sss_sudo_get_values(struct sss_rule *e,
