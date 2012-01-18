@@ -567,6 +567,7 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
     return EOK;
 }
 
+#ifdef BUILD_SUDO
 int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx)
 {
     struct sdap_sudo_refresh_ctx *refresh_ctx = NULL;
@@ -623,6 +624,7 @@ int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx)
 
     return EOK;
 }
+#endif
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
