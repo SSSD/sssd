@@ -81,3 +81,5 @@ sysdb-tests
 util-tests
 auth-tests
 check_and_open-tests
+sssd_sudo
+sss_sudo_cli

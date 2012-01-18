@@ -1233,11 +1233,14 @@ if HAVE_DOXYGEN
 docs:
 	$(DOXYGEN) src/doxy.config
 	$(DOXYGEN) src/providers/ipa/ipa_hbac.doxy
-else
+if BUILD_SUDO
+	$(DOXYGEN) src/sss_client/sudo/sss_sudo.doxy
+endif BUILD_SUDO
+else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"
 	@exit 1
-endif
+endif !HAVE_DOXYGEN
 
 all-local: ldb_mod_test_dir
 if BUILD_PYTHON_BINDINGS

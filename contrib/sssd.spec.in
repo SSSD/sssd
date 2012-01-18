@@ -369,6 +369,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/sssd/modules/libsss_sudo.so.*
 
 %files -n libsss_sudo-devel
+%if 0%{?fedora}
+%doc hbac_doc/html
+%endif
+%if 0%{?rhel} >= 6
+%doc hbac_doc/html
+%endif
 %{_includedir}/sss_sudo.h
 %{_libdir}/sssd/modules/libsss_sudo.so
 %{_libdir}/pkgconfig/libsss_sudo.pc
