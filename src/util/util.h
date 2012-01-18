@@ -512,4 +512,12 @@ sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);
 uint8_t *
 sss_tc_utf8_tolower(TALLOC_CTX *mem_ctx, const uint8_t *s, size_t len, size_t *_nlen);
 
+/* len includes terminating '\0' */
+struct sized_string {
+    const char *str;
+    size_t len;
+};
+
+void to_sized_string(struct sized_string *out, const char *in);
+
 #endif /* __SSSD_UTIL_H__ */

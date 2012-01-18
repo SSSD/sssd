@@ -598,3 +598,14 @@ sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr)
     return family == AF_INET6 ? talloc_asprintf(mem_ctx, "[%s]", addr) :
                                 talloc_strdup(mem_ctx, addr);
 }
+
+/* out->len includes terminating '\0' */
+void to_sized_string(struct sized_string *out, const char *in)
+{
+    out->str = in;
+    if (out->str) {
+        out->len = strlen(out->str) + 1;
+    } else {
+        out->len = 0;
+    }
+}
