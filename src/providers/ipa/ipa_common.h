@@ -98,6 +98,7 @@ struct ipa_options {
     struct dp_option *basic;
 
     struct sdap_search_base **host_search_bases;
+    struct sdap_search_base **hbac_search_bases;
     struct ipa_service *service;
 
     /* id provider */

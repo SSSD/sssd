@@ -572,7 +572,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
                   ipa_opts->basic[IPA_HOST_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_HOST_SEARCH_BASE)));
@@ -580,6 +580,29 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     ret = sdap_parse_search_base(ipa_opts->basic, ipa_opts->basic,
                                  IPA_HOST_SEARCH_BASE,
                                  &ipa_opts->host_search_bases);
+    if (ret != EOK) goto done;
+
+    if (NULL == dp_opt_get_string(ipa_opts->basic,
+                                  IPA_HBAC_SEARCH_BASE)) {
+        value = talloc_asprintf(tmpctx, "cn=hbac,%s", basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->basic, IPA_HBAC_SEARCH_BASE, value);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->basic[IPA_HBAC_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->basic,
+                                    IPA_HBAC_SEARCH_BASE)));
+    }
+    ret = sdap_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+                                 IPA_HBAC_SEARCH_BASE,
+                                 &ipa_opts->hbac_search_bases);
     if (ret != EOK) goto done;
 
     value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);

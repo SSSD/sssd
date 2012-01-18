@@ -375,6 +375,7 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
     }
     ipa_access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
     ipa_access_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
+    ipa_access_ctx->hbac_search_bases = id_ctx->ipa_options->hbac_search_bases;
 
     ret = dp_copy_options(ipa_access_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_access_ctx->ipa_options);

@@ -29,8 +29,13 @@ struct ipa_hbac_service_state {
     struct sysdb_ctx *sysdb;
     struct sdap_handle *sh;
     struct sdap_options *opts;
-    const char *search_base;
     const char **attrs;
+
+    char *service_filter;
+    char *cur_filter;
+
+    struct sdap_search_base **search_bases;
+    int search_base_iter;
 
     /* Return values */
     size_t service_count;
@@ -40,8 +45,14 @@ struct ipa_hbac_service_state {
     struct sysdb_attrs **servicegroups;
 };
 
+static errno_t
+ipa_hbac_service_info_next(struct tevent_req *req,
+                           struct ipa_hbac_service_state *state);
 static void
 ipa_hbac_service_info_done(struct tevent_req *subreq);
+static errno_t
+ipa_hbac_servicegroup_info_next(struct tevent_req *req,
+                                struct ipa_hbac_service_state *state);
 static void
 ipa_hbac_servicegroup_info_done(struct tevent_req *subreq);
 
@@ -51,12 +62,11 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
                            struct sdap_handle *sh,
                            struct sdap_options *opts,
-                           const char *search_base)
+                           struct sdap_search_base **search_bases)
 {
     errno_t ret;
     struct ipa_hbac_service_state *state;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     char *service_filter;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_hbac_service_state);
@@ -69,7 +79,9 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
     state->sysdb = sysdb;
     state->sh = sh;
     state->opts = opts;
-    state->search_base = search_base;
+
+    state->search_bases = search_bases;
+    state->search_base_iter = 0;
 
     service_filter = talloc_asprintf(state, "(objectClass=%s)",
                                      IPA_HBAC_SERVICE);
@@ -77,6 +89,9 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediate;
     }
+
+    state->service_filter = service_filter;
+    state->cur_filter = NULL;
 
     state->attrs = talloc_array(state, const char *, 6);
     if (state->attrs == NULL) {
@@ -91,17 +106,14 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
     state->attrs[4] = IPA_MEMBEROF;
     state->attrs[5] = NULL;
 
-    subreq = sdap_get_generic_send(state, ev, opts, sh, search_base,
-                                   LDAP_SCOPE_SUB, service_filter,
-                                   state->attrs, NULL, 0,
-                                   dp_opt_get_int(opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
-    if (subreq == NULL) {
-        DEBUG(1, ("Error requesting service info\n"));
-        ret = EIO;
+    ret = ipa_hbac_service_info_next(req, state);
+    if (ret == EOK) {
+        ret = EINVAL;
+    }
+
+    if (ret != EAGAIN) {
         goto immediate;
     }
-    tevent_req_set_callback(subreq, ipa_hbac_service_info_done, req);
 
     return req;
 
@@ -113,6 +125,43 @@ immediate:
     }
     tevent_req_post(req, ev);
     return req;
+}
+
+static errno_t ipa_hbac_service_info_next(struct tevent_req *req,
+                                          struct ipa_hbac_service_state *state)
+{
+    struct tevent_req *subreq;
+    struct sdap_search_base *base;
+
+    base = state->search_bases[state->search_base_iter];
+    if (base  == NULL) {
+        return EOK;
+    }
+
+    talloc_zfree(state->cur_filter);
+    state->cur_filter = sdap_get_id_specific_filter(state,
+                                                    state->service_filter,
+                                                    base->filter);
+    if (state->cur_filter == NULL) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Sending request for next search base: "
+                              "[%s][%d][%s]\n", base->basedn, base->scope,
+                              base->filter));
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   base->basedn, base->scope,
+                                   state->cur_filter,
+                                   state->attrs, NULL, 0,
+                                   dp_opt_get_int(state->opts->basic,
+                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting service info\n"));
+        return EIO;
+    }
+    tevent_req_set_callback(subreq, ipa_hbac_service_info_done, req);
+
+    return EAGAIN;
 }
 
 static void
@@ -141,9 +190,14 @@ ipa_hbac_service_info_done(struct tevent_req *subreq)
          * There's no reason to try to process groups
          */
 
+        state->search_base_iter++;
+        ret = ipa_hbac_service_info_next(req, state);
+        if (ret == EAGAIN) {
+            return;
+        }
+
         state->service_count = 0;
         state->services = NULL;
-        ret = EOK;
         goto done;
     }
 
@@ -162,18 +216,18 @@ ipa_hbac_service_info_done(struct tevent_req *subreq)
         goto done;
     }
 
-    /* Look up service groups */
-    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   state->search_base, LDAP_SCOPE_SUB,
-                                   servicegroup_filter, state->attrs, NULL, 0,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
-    if (subreq == NULL) {
-        DEBUG(1, ("Error requesting host info\n"));
-        ret = EIO;
+    talloc_zfree(state->service_filter);
+    state->service_filter = servicegroup_filter;
+
+    state->search_base_iter = 0;
+    ret = ipa_hbac_servicegroup_info_next(req, state);
+    if (ret == EOK) {
+        ret = EINVAL;
+    }
+
+    if (ret != EAGAIN) {
         goto done;
     }
-    tevent_req_set_callback(subreq, ipa_hbac_servicegroup_info_done, req);
 
     return;
 
@@ -185,6 +239,44 @@ done:
     }
 }
 
+static errno_t
+ipa_hbac_servicegroup_info_next(struct tevent_req *req,
+                                struct ipa_hbac_service_state *state)
+{
+    struct tevent_req *subreq;
+    struct sdap_search_base *base;
+
+    base = state->search_bases[state->search_base_iter];
+    if (base  == NULL) {
+        return EOK;
+    }
+
+    talloc_zfree(state->cur_filter);
+    state->cur_filter = sdap_get_id_specific_filter(state,
+                                                    state->service_filter,
+                                                    base->filter);
+    if (state->cur_filter == NULL) {
+        return ENOMEM;
+    }
+
+    /* Look up service groups */
+    DEBUG(SSSDBG_TRACE_FUNC, ("Sending request for next search base: "
+                              "[%s][%d][%s]\n", base->basedn, base->scope,
+                              base->filter));
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   base->basedn, base->scope,
+                                   state->cur_filter, state->attrs, NULL, 0,
+                                   dp_opt_get_int(state->opts->basic,
+                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting servicegroup info\n"));
+        return EIO;
+    }
+    tevent_req_set_callback(subreq, ipa_hbac_servicegroup_info_done, req);
+
+    return EAGAIN;
+}
+
 static void
 ipa_hbac_servicegroup_info_done(struct tevent_req *subreq)
 {
@@ -193,28 +285,61 @@ ipa_hbac_servicegroup_info_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct ipa_hbac_service_state *state =
             tevent_req_data(req, struct ipa_hbac_service_state);
+    size_t total_count;
+    size_t group_count;
+    struct sysdb_attrs **groups;
+    struct sysdb_attrs **target;
+    int i;
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->servicegroup_count,
-                                &state->servicegroups);
+                                &group_count,
+                                &groups);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = replace_attribute_name(IPA_MEMBER, SYSDB_ORIG_MEMBER,
-                                 state->servicegroup_count,
-                                 state->servicegroups);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
-        goto done;
+    if (group_count > 0) {
+        ret = replace_attribute_name(IPA_MEMBER, SYSDB_ORIG_MEMBER,
+                                     group_count,
+                                     groups);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not replace attribute names\n"));
+            goto done;
+        }
+
+        ret = replace_attribute_name(IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF,
+                                     state->servicegroup_count,
+                                     state->servicegroups);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not replace attribute names\n"));
+            goto done;
+        }
+
+        total_count = state->servicegroup_count + group_count;
+        state->servicegroups = talloc_realloc(state, state->servicegroups,
+                                              struct sysdb_attrs *,
+                                              total_count);
+        if (state->servicegroups == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        i = 0;
+        while (state->servicegroup_count < total_count) {
+            target = &state->servicegroups[state->servicegroup_count];
+            *target = talloc_steal(state->servicegroups, groups[i]);
+
+            state->servicegroup_count++;
+            i++;
+        }
     }
 
-    ret = replace_attribute_name(IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF,
-                                 state->servicegroup_count,
-                                 state->servicegroups);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
+    state->search_base_iter++;
+    ret = ipa_hbac_servicegroup_info_next(req, state);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
         goto done;
     }
 

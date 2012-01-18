@@ -22,15 +22,28 @@
 
 #include "util/util.h"
 #include "providers/ipa/ipa_hbac_private.h"
+#include "providers/ipa/ipa_hbac_rules.h"
 #include "providers/ldap/sdap_async.h"
 
 struct ipa_hbac_rule_state {
+    struct tevent_context *ev;
+    struct sdap_handle *sh;
     struct sdap_options *opts;
+
+    int search_base_iter;
+    struct sdap_search_base **search_bases;
+
+    const char **attrs;
+    char *rules_filter;
+    char *cur_filter;
 
     size_t rule_count;
     struct sysdb_attrs **rules;
 };
 
+static errno_t
+ipa_hbac_rule_info_next(struct tevent_req *req,
+                        struct ipa_hbac_rule_state *state);
 static void
 ipa_hbac_rule_info_done(struct tevent_req *subreq);
 
@@ -40,13 +53,12 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
-                        const char *search_base,
+                        struct sdap_search_base **search_bases,
                         struct sysdb_attrs *ipa_host)
 {
     errno_t ret;
     size_t i;
     struct tevent_req *req = NULL;
-    struct tevent_req *subreq;
     struct ipa_hbac_rule_state *state;
     TALLOC_CTX *tmp_ctx;
     const char *host_dn;
@@ -54,21 +66,6 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     char *host_group_clean;
     char *rule_filter;
     const char **memberof_list;
-    const char *rule_attrs[] = { OBJECTCLASS,
-                                 IPA_CN,
-                                 IPA_UNIQUE_ID,
-                                 IPA_ENABLED_FLAG,
-                                 IPA_ACCESS_RULE_TYPE,
-                                 IPA_MEMBER_USER,
-                                 IPA_USER_CATEGORY,
-                                 IPA_MEMBER_SERVICE,
-                                 IPA_SERVICE_CATEGORY,
-                                 IPA_SOURCE_HOST,
-                                 IPA_SOURCE_HOST_CATEGORY,
-                                 IPA_EXTERNAL_HOST,
-                                 IPA_MEMBER_HOST,
-                                 IPA_HOST_CATEGORY,
-                                 NULL };
 
     if (ipa_host == NULL) {
         DEBUG(1, ("Missing host\n"));
@@ -93,7 +90,31 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    state->ev = ev;
+    state->sh = sh;
     state->opts = opts;
+    state->search_bases = search_bases;
+    state->search_base_iter = 0;
+    state->attrs = talloc_zero_array(state, const char *, 15);
+    if (state->attrs == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    state->attrs[0] = OBJECTCLASS;
+    state->attrs[1] = IPA_CN;
+    state->attrs[2] = IPA_UNIQUE_ID;
+    state->attrs[3] = IPA_ENABLED_FLAG;
+    state->attrs[4] = IPA_ACCESS_RULE_TYPE;
+    state->attrs[5] = IPA_MEMBER_USER;
+    state->attrs[6] = IPA_USER_CATEGORY;
+    state->attrs[7] = IPA_MEMBER_SERVICE;
+    state->attrs[8] = IPA_SERVICE_CATEGORY;
+    state->attrs[9] = IPA_SOURCE_HOST;
+    state->attrs[10] = IPA_SOURCE_HOST_CATEGORY;
+    state->attrs[11] = IPA_EXTERNAL_HOST;
+    state->attrs[12] = IPA_MEMBER_HOST;
+    state->attrs[13] = IPA_HOST_CATEGORY;
+    state->attrs[14] = NULL;
 
     if (get_deny_rules) {
         rule_filter = talloc_asprintf(tmp_ctx,
@@ -154,19 +175,16 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediate;
     }
-    talloc_steal(state, rule_filter);
+    state->rules_filter = talloc_steal(state, rule_filter);
 
-    subreq = sdap_get_generic_send(state, ev, opts, sh, search_base,
-                                   LDAP_SCOPE_SUB, rule_filter, rule_attrs,
-                                   NULL, 0,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
-    if (subreq == NULL) {
-        DEBUG(1, ("sdap_get_generic_send failed.\n"));
-        ret = ENOMEM;
+    ret = ipa_hbac_rule_info_next(req, state);
+    if (ret == EOK) {
+        ret = EINVAL;
+    }
+
+    if (ret != EAGAIN) {
         goto immediate;
     }
-    tevent_req_set_callback(subreq, ipa_hbac_rule_info_done, req);
 
     talloc_free(tmp_ctx);
     return req;
@@ -186,6 +204,45 @@ error:
     return NULL;
 }
 
+static errno_t
+ipa_hbac_rule_info_next(struct tevent_req *req,
+                        struct ipa_hbac_rule_state *state)
+{
+    struct tevent_req *subreq;
+    struct sdap_search_base *base;
+
+    base = state->search_bases[state->search_base_iter];
+    if (base  == NULL) {
+        return EOK;
+    }
+
+    talloc_zfree(state->cur_filter);
+    state->cur_filter = sdap_get_id_specific_filter(state,
+                                                    state->rules_filter,
+                                                    base->filter);
+    if (state->cur_filter == NULL) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Sending request for next search base: "
+                              "[%s][%d][%s]\n", base->basedn, base->scope,
+                              base->filter));
+
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   base->basedn, base->scope,
+                                   state->cur_filter, state->attrs,
+                                   NULL, 0,
+                                   dp_opt_get_int(state->opts->basic,
+                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_get_generic_send failed.\n"));
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, ipa_hbac_rule_info_done, req);
+
+    return EAGAIN;
+}
+
 static void
 ipa_hbac_rule_info_done(struct tevent_req *subreq)
 {
@@ -194,21 +251,59 @@ ipa_hbac_rule_info_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct ipa_hbac_rule_state *state =
             tevent_req_data(req, struct ipa_hbac_rule_state);
+    int i;
+    size_t rule_count;
+    size_t total_count;
+    struct sysdb_attrs **rules;
+    struct sysdb_attrs **target;
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->rule_count,
-                                &state->rules);
+                                &rule_count,
+                                &rules);
     if (ret != EOK) {
         DEBUG(3, ("Could not retrieve HBAC rules\n"));
-        tevent_req_error(req, ret);
+        goto fail;
+    }
+
+    if (rule_count > 0) {
+        total_count = rule_count + state->rule_count;
+        state->rules = talloc_realloc(state, state->rules,
+                                      struct sysdb_attrs *,
+                                      total_count);
+        if (state->rules == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        i = 0;
+        while (state->rule_count < total_count) {
+            target = &state->rules[state->rule_count];
+            *target = talloc_steal(state->rules, rules[i]);
+
+            state->rule_count++;
+            i++;
+        }
+    }
+
+    state->search_base_iter++;
+    ret = ipa_hbac_rule_info_next(req, state);
+    if (ret == EAGAIN) {
         return;
-    } else if (state->rule_count == 0) {
+    } else if (ret != EOK) {
+        goto fail;
+    } else if (ret == EOK && state->rule_count == 0) {
         DEBUG(3, ("No rules apply to this host\n"));
         tevent_req_error(req, ENOENT);
         return;
     }
 
+    /* We went through all search bases and we have some results */
     tevent_req_done(req);
+
+    return;
+
+fail:
+    tevent_req_error(req, ret);
 }
 
 errno_t

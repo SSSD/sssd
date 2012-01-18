@@ -31,30 +31,7 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_hbac.h"
 #include "providers/ipa/ipa_hbac_private.h"
-
-static char *get_hbac_search_base(TALLOC_CTX *mem_ctx,
-                                  struct dp_option *ipa_options)
-{
-    char *base;
-    int ret;
-
-    base = dp_opt_get_string(ipa_options, IPA_HBAC_SEARCH_BASE);
-    if (base != NULL) {
-        return talloc_strdup(mem_ctx, base);
-    }
-
-    DEBUG(9, ("ipa_hbac_search_base not available, trying base DN.\n"));
-
-    ret = domain_to_basedn(mem_ctx,
-                           dp_opt_get_string(ipa_options, IPA_KRB5_REALM),
-                           &base);
-    if (ret != EOK) {
-        DEBUG(1, ("domain_to_basedn failed.\n"));
-        return NULL;
-    }
-
-    return base;
-}
+#include "providers/ipa/ipa_hbac_rules.h"
 
 static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
 {
@@ -119,9 +96,8 @@ void ipa_access_handler(struct be_req *be_req)
     hbac_ctx->sdap_ctx = ipa_access_ctx->sdap_ctx;
     hbac_ctx->ipa_options = ipa_access_ctx->ipa_options;
     hbac_ctx->tr_ctx = ipa_access_ctx->tr_ctx;
-    hbac_ctx->hbac_search_base = get_hbac_search_base(hbac_ctx,
-                                                      hbac_ctx->ipa_options);
-    if (hbac_ctx->hbac_search_base == NULL) {
+    hbac_ctx->search_bases = ipa_access_ctx->hbac_search_bases;
+    if (hbac_ctx->search_bases == NULL) {
         DEBUG(1, ("No HBAC search base found.\n"));
         goto fail;
     }
@@ -334,7 +310,7 @@ static void hbac_get_service_info_step(struct tevent_req *req)
                                     hbac_ctx_sysdb(hbac_ctx),
                                     sdap_id_op_handle(hbac_ctx->sdap_op),
                                     hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
-                                    hbac_ctx->hbac_search_base);
+                                    hbac_ctx->search_bases);
     if (req == NULL) {
         DEBUG(1,("Could not get service info\n"));
         goto fail;
@@ -399,7 +375,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
                                   hbac_ctx_ev(hbac_ctx),
                                   sdap_id_op_handle(hbac_ctx->sdap_op),
                                   hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
-                                  hbac_ctx->hbac_search_base,
+                                  hbac_ctx->search_bases,
                                   hbac_ctx->ipa_host);
     if (req == NULL) {
         DEBUG(1, ("Could not get rules\n"));

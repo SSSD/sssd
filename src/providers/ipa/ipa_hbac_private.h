@@ -144,7 +144,7 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
                            struct sdap_handle *sh,
                            struct sdap_options *opts,
-                           const char *search_base);
+                           struct sdap_search_base **search_bases);
 
 errno_t
 ipa_hbac_service_info_recv(struct tevent_req *req,
@@ -165,22 +165,6 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
                          const char *service_dn,
                          char **servicename);
-
-/* From ipa_hbac_rules.c */
-struct tevent_req *
-ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
-                        bool get_deny_rules,
-                        struct tevent_context *ev,
-                        struct sdap_handle *sh,
-                        struct sdap_options *opts,
-                        const char *search_base,
-                        struct sysdb_attrs *ipa_host);
-
-errno_t
-ipa_hbac_rule_info_recv(struct tevent_req *req,
-                        TALLOC_CTX *mem_ctx,
-                        size_t *rule_count,
-                        struct sysdb_attrs ***rules);
 
 /* From ipa_hbac_users.c */
 errno_t

@@ -46,6 +46,7 @@ struct ipa_access_ctx {
     time_t last_update;
 
     struct sdap_search_base **host_search_bases;
+    struct sdap_search_base **hbac_search_bases;
 };
 
 struct hbac_ctx {
@@ -57,7 +58,7 @@ struct hbac_ctx {
     struct be_req *be_req;
     struct pam_data *pd;
 
-    char *hbac_search_base;
+    struct sdap_search_base **search_bases;
 
     /* Hosts */
     size_t host_count;

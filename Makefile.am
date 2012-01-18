@@ -1067,6 +1067,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_hbac_hosts.c \
     src/providers/ipa/ipa_hbac_private.h \
     src/providers/ipa/ipa_hbac_rules.c \
+    src/providers/ipa/ipa_hbac_rules.h \
     src/providers/ipa/ipa_hbac_services.c \
     src/providers/ipa/ipa_hbac_users.c \
     src/providers/ipa/ipa_hbac_common.c \
