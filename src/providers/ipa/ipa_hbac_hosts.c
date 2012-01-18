@@ -361,7 +361,8 @@ ipa_hbac_hostgroup_info_done(struct tevent_req *subreq)
 
             i = 0;
             while(state->hostgroup_count < hostgroups_total) {
-                state->hostgroups[state->hostgroup_count] = hostgroups[i];
+                state->hostgroups[state->hostgroup_count] =
+                    talloc_steal(state->hostgroups, hostgroups[i]);
                 state->hostgroup_count++;
                 i++;
             }
