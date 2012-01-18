@@ -63,3 +63,21 @@ uint32_t strtouint32(const char *nptr, char **endptr, int base)
     /* If errno was set by strtoll, we'll pass it back as-is */
     return (uint32_t)ret;
 }
+
+
+/* strtouint16 */
+uint16_t strtouint16(const char *nptr, char **endptr, int base)
+{
+    unsigned long long ret = 0;
+    errno = 0;
+    ret = strtoull(nptr, endptr, base);
+
+    if (ret > UINT16_MAX) {
+        errno = ERANGE;
+        return UINT16_MAX;
+    }
+
+    /* If errno was set by strtoll, we'll pass it back as-is */
+    return (uint16_t)ret;
+}
+

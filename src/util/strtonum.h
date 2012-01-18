@@ -29,4 +29,6 @@
 int32_t strtoint32(const char *nptr, char **endptr, int base);
 uint32_t strtouint32(const char *nptr, char **endptr, int base);
 
+uint16_t strtouint16(const char *nptr, char **endptr, int base);
+
 #endif /* _STRTONUM_H_ */
