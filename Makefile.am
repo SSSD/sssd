@@ -1049,6 +1049,12 @@ libsss_ipa_la_LIBADD = \
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
     -module
+if BUILD_SUDO
+libsss_ipa_la_SOURCES += src/providers/ldap/sdap_sudo_cache.c \
+                 src/providers/ldap/sdap_sudo_timer.c \
+                 src/providers/ldap/sdap_sudo.c
+endif
+
 
 krb5_child_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
