@@ -129,7 +129,9 @@ int pidfile(const char *path, const char *name)
                 len += ret;
                 if (len > pidlen) {
                     DEBUG(1, ("read too much, this should never happen.\n"));
-                    break;
+                    close(fd);
+                    talloc_free(file);
+                    return EINVAL;
                 }
                 continue;
             } else {
