@@ -1360,11 +1360,6 @@ errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    if (lret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(lret);
-        goto done;
-    }
-
     if (res->count == 0) {
         /* This entry has not been populated in LDB
          * This is a common case, as unlike LDAP,
