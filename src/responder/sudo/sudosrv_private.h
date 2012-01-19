@@ -106,4 +106,23 @@ int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
                                  uint8_t **_response_body,
                                  size_t *_response_len);
 
+enum sss_dp_type {
+    SSS_DP_SUDO
+};
+
+struct tevent_req *
+sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
+                        struct resp_ctx *rctx,
+                        struct sss_domain_info *dom,
+                        bool fast_reply,
+                        enum sss_dp_type type,
+                        const char *name);
+
+errno_t
+sss_dp_get_sudoers_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        dbus_uint16_t *err_maj,
+                        dbus_uint32_t *err_min,
+                        char **err_msg);
+
 #endif /* _SUDOSRV_PRIVATE_H_ */
