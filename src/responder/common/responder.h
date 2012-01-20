@@ -157,12 +157,6 @@ void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
 struct cli_protocol_version *register_cli_protocol_version(void);
 
-#define SSS_DP_USER 1
-#define SSS_DP_GROUP 2
-#define SSS_DP_INITGROUPS 3
-#define SSS_DP_NETGR 4
-#define SSS_DP_SERVICES 5
-
 typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
 
@@ -179,6 +173,45 @@ void handle_requests_after_reconnect(void);
 int responder_logrotate(DBusMessage *message,
                         struct sbus_connection *conn);
 
+/* Each responder-specific request must create a constructor
+ * function that creates a DBus Message that would be sent to
+ * the back end
+ */
+typedef DBusMessage * (dbus_msg_constructor)(void *);
+
+/*
+ * This function is indended for consumption by responders to create
+ * responder-specific requests such as sss_dp_get_account_send for
+ * downloading account data.
+ *
+ * Issues a new back end request based on strkey if not already running
+ * or registers a callback that is called when an existing request finishes.
+ */
+errno_t
+sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+                     const char *strkey, struct sss_domain_info *dom,
+                     dbus_msg_constructor msg_create, void *pvt,
+                     struct tevent_req *nreq);
+
+/* Every provider specific request uses this structure as the tevent_req
+ * "state" structure.
+ */
+struct sss_dp_req_state {
+    dbus_uint16_t dp_err;
+    dbus_uint32_t dp_ret;
+    char *err_msg;
+};
+
+/* The _recv functions of provider specific requests usually need to
+ * only call sss_dp_req_recv() to get return codes from back end
+ */
+errno_t
+sss_dp_req_recv(TALLOC_CTX *mem_ctx,
+                struct tevent_req *sidereq,
+                dbus_uint16_t *dp_err,
+                dbus_uint32_t *dp_ret,
+                char **err_msg);
+
 /* Send a request to the data provider
  * Once this function is called, the communication
  * with the data provider will always run to
@@ -186,12 +219,21 @@ int responder_logrotate(DBusMessage *message,
  * cancel the notification of completion, but not
  * the data provider action.
  */
+
+enum sss_dp_acct_type {
+    SSS_DP_USER = 1,
+    SSS_DP_GROUP,
+    SSS_DP_INITGROUPS,
+    SSS_DP_NETGR,
+    SSS_DP_SERVICES
+};
+
 struct tevent_req *
 sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                         struct resp_ctx *rctx,
                         struct sss_domain_info *dom,
                         bool fast_reply,
-                        int type,
+                        enum sss_dp_acct_type type,
                         const char *opt_name,
                         uint32_t opt_id,
                         const char *extra);

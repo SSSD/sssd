@@ -468,7 +468,8 @@ static void lookup_service_done(struct tevent_req *subreq)
               ("Unable to get information from Data Provider\n"
                "dp_error: [%u], errno: [%u], error_msg: [%s]\n"
                "Will try to return what we have in cache\n",
-               (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+               (unsigned int)err_maj, (unsigned int)err_min,
+               err_msg ? err_msg : "none"));
     }
 
     /* Recheck the cache after the lookup.
