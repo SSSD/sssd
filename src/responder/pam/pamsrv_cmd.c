@@ -953,7 +953,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         dpreq = sss_dp_get_account_send(preq, preq->cctx->rctx,
                                         dom, false, SSS_DP_INITGROUPS,
-                                        name, 0);
+                                        name, 0, NULL);
         if (!dpreq) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Out of memory sending data provider request\n"));

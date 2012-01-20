@@ -136,7 +136,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
              cache_expire < time(NULL)) {
             dpreq = sss_dp_get_account_send(cli_ctx, cli_ctx->rctx,
                                             dom, false, SSS_DP_INITGROUPS,
-                                            cmd_ctx->username, 0);
+                                            cmd_ctx->username, 0, NULL);
             if (!dpreq) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Out of memory sending data provider request\n"));

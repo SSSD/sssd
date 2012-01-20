@@ -649,7 +649,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
          * immediately.
          */
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
-                                      req_type, opt_name, opt_id);
+                                      req_type, opt_name, opt_id, NULL);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Out of memory sending out-of-band data provider "
@@ -678,7 +678,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
         }
 
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
-                                      req_type, opt_name, opt_id);
+                                      req_type, opt_name, opt_id, NULL);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Out of memory sending data provider request\n"));
@@ -1413,7 +1413,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
             dctx->check_provider = false;
 
             dpreq = sss_dp_get_account_send(step_ctx, rctx, dctx->domain, true,
-                                          SSS_DP_USER, NULL, 0);
+                                          SSS_DP_USER, NULL, 0, NULL);
             if (!dpreq) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Enum Cache refresh for domain [%s] failed."
@@ -2720,7 +2720,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
             step_ctx->returned_to_mainloop = true;
             /* Only do this once per provider */
             dpreq = sss_dp_get_account_send(step_ctx, rctx, dctx->domain, true,
-                                          SSS_DP_USER, NULL, 0);
+                                          SSS_DP_USER, NULL, 0, NULL);
             if (!dpreq) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Enum Cache refresh for domain [%s] failed."

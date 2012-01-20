@@ -247,7 +247,8 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                         bool fast_reply,
                         int type,
                         const char *opt_name,
-                        uint32_t opt_id)
+                        uint32_t opt_id,
+                        const char *extra)
 {
     errno_t ret;
     int hret;
@@ -312,13 +313,29 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     state->key->type = HASH_KEY_STRING;
 
     if (opt_name) {
-        filter = talloc_asprintf(state, "name=%s", opt_name);
-        state->key->str = talloc_asprintf(state->key, "%d:%s@%s",
-                                          type, opt_name, dom->name);
+        if (extra) {
+            filter = talloc_asprintf(state, "name=%s:%s",
+                                     opt_name, extra);
+            state->key->str = talloc_asprintf(state->key, "%d:%s:%s@%s",
+                                              type, opt_name,
+                                              extra, dom->name);
+        } else {
+            filter = talloc_asprintf(state, "name=%s", opt_name);
+            state->key->str = talloc_asprintf(state->key, "%d:%s@%s",
+                                              type, opt_name, dom->name);
+        }
     } else if (opt_id) {
-        filter = talloc_asprintf(state, "idnumber=%u", opt_id);
-        state->key->str = talloc_asprintf(state->key, "%d:%d@%s",
-                                          type, opt_id, dom->name);
+        if (extra) {
+            filter = talloc_asprintf(state, "idnumber=%u:%s",
+                                     opt_id, extra);
+            state->key->str = talloc_asprintf(state->key, "%d:%d:%s@%s",
+                                              type, opt_id,
+                                              extra, dom->name);
+        } else {
+            filter = talloc_asprintf(state, "idnumber=%u", opt_id);
+            state->key->str = talloc_asprintf(state->key, "%d:%d@%s",
+                                              type, opt_id, dom->name);
+        }
     } else {
         filter = talloc_strdup(state, ENUM_INDICATOR);
         state->key->str = talloc_asprintf(state->key, "%d:*@%s",
