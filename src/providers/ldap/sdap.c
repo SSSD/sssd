@@ -323,14 +323,17 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    orig_dn = dref->derefVal.bv_val;
+    DEBUG(SSSDBG_TRACE_LIBS,
+          ("Dereferenced DN: %s\n", orig_dn));
+
     if (!dref->attrVals) {
-        DEBUG(2, ("Dereferenced entry has no attributes\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Dereferenced entry [%s] has no attributes\n",
+              orig_dn));
         ret = EINVAL;
         goto done;
     }
-
-    orig_dn = dref->derefVal.bv_val;
-    DEBUG(7, ("Dereferenced DN: %s\n", orig_dn));
 
     ocs = NULL;
     for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
