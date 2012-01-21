@@ -315,6 +315,7 @@ dist_noinst_HEADERS = \
     src/responder/nss/nsssrv.h \
     src/responder/nss/nsssrv_private.h \
     src/responder/nss/nsssrv_netgroup.h \
+    src/responder/nss/nsssrv_services.h \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
     src/sbus/sbus_client.h \
@@ -441,6 +442,7 @@ sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
     src/responder/nss/nsssrv_cmd.c \
     src/responder/nss/nsssrv_netgroup.c \
+    src/responder/nss/nsssrv_services.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \

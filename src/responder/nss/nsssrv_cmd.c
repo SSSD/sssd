@@ -23,6 +23,7 @@
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_netgroup.h"
+#include "responder/nss/nsssrv_services.h"
 #include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
@@ -3371,6 +3372,11 @@ static struct sss_cmd_table nss_cmds[] = {
     {SSS_NSS_SETNETGRENT, nss_cmd_setnetgrent},
     {SSS_NSS_GETNETGRENT, nss_cmd_getnetgrent},
     {SSS_NSS_ENDNETGRENT, nss_cmd_endnetgrent},
+    {SSS_NSS_GETSERVBYNAME, nss_cmd_getservbyname},
+    {SSS_NSS_GETSERVBYPORT, nss_cmd_getservbyport},
+    {SSS_NSS_SETSERVENT, nss_cmd_setservent},
+    {SSS_NSS_GETSERVENT, nss_cmd_getservent},
+    {SSS_NSS_ENDSERVENT, nss_cmd_endservent},
     {SSS_CLI_NULL, NULL}
 };
 
