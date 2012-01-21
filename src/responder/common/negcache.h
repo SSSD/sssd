@@ -37,6 +37,15 @@ int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid);
 int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid);
 
+int sss_ncache_check_service(struct sss_nc_ctx *ctx, int ttl,
+                             struct sss_domain_info *dom,
+                             const char *name,
+                             const char *proto);
+int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
+                                  struct sss_domain_info *dom,
+                                  uint16_t port,
+                                  const char *proto);
+
 /* add a new neg-cache entry setting the timestamp to "now" unless
  * "permanent" is set to true, in which case the timestamps is set to 0
  * and the negative cache never expires (used to permanently filter out
@@ -49,6 +58,12 @@ int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
                          struct sss_domain_info *dom, const char *name);
 int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid);
 int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid);
+int sss_ncache_set_service_name(struct sss_nc_ctx *ctx, bool permanent,
+                                struct sss_domain_info *dom,
+                                const char *name, const char *proto);
+int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
+                                struct sss_domain_info *dom,
+                                uint16_t port, const char *proto);
 
 int sss_ncache_reset_permament(struct sss_nc_ctx *ctx);
 

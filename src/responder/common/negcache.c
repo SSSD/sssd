@@ -30,12 +30,20 @@
 #define NC_USER_PREFIX NC_ENTRY_PREFIX"USER"
 #define NC_GROUP_PREFIX NC_ENTRY_PREFIX"GROUP"
 #define NC_NETGROUP_PREFIX NC_ENTRY_PREFIX"NETGR"
+#define NC_SERVICE_PREFIX NC_ENTRY_PREFIX"SERVICE"
 #define NC_UID_PREFIX NC_ENTRY_PREFIX"UID"
 #define NC_GID_PREFIX NC_ENTRY_PREFIX"GID"
 
 struct sss_nc_ctx {
     struct tdb_context *tdb;
 };
+
+typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
+                                      const char *, const char *);
+
+static int sss_ncache_set_ent(struct sss_nc_ctx *ctx, bool permanent,
+                              struct sss_domain_info *dom, const char *name,
+                              ncache_set_byname_fn_t setter);
 
 static int string_to_tdb_data(char *str, TDB_DATA *ret)
 {
@@ -210,6 +218,28 @@ static int sss_ncache_check_netgr_int(struct sss_nc_ctx *ctx, int ttl,
     return ret;
 }
 
+static int sss_ncache_check_service_int(struct sss_nc_ctx *ctx,
+                                        int ttl,
+                                        const char *domain,
+                                        const char *name)
+{
+    char *str;
+    int ret;
+
+    if (!name || !*name) return EINVAL;
+
+    str = talloc_asprintf(ctx, "%s/%s/%s",
+                          NC_SERVICE_PREFIX,
+                          domain,
+                          name);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_check_str(ctx, str, ttl);
+
+    talloc_free(str);
+    return ret;
+}
+
 typedef int (*ncache_check_byname_fn_t)(struct sss_nc_ctx *, int,
                                         const char *, const char *);
 
@@ -252,6 +282,93 @@ int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
     return sss_cache_check_ent(ctx, ttl, dom, name,
                                sss_ncache_check_netgr_int);
 }
+
+static int sss_ncache_set_service_int(struct sss_nc_ctx *ctx, bool permanent,
+                                      const char *domain, const char *name)
+{
+    char *str;
+    int ret;
+
+    if (!name || !*name) return EINVAL;
+
+    str = talloc_asprintf(ctx, "%s/%s/%s", NC_SERVICE_PREFIX, domain, name);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_set_str(ctx, str, permanent);
+
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_set_service_name(struct sss_nc_ctx *ctx, bool permanent,
+                                struct sss_domain_info *dom,
+                                const char *name, const char *proto)
+{
+    int ret;
+    char *service_and_protocol = talloc_asprintf(ctx, "%s:%s",
+                                                 name,
+                                                 proto ? proto : "<ANY>");
+    if (!service_and_protocol) return ENOMEM;
+
+    ret = sss_ncache_set_ent(ctx, permanent, dom,
+                             service_and_protocol,
+                             sss_ncache_set_service_int);
+    talloc_free(service_and_protocol);
+    return ret;
+}
+
+int sss_ncache_check_service(struct sss_nc_ctx *ctx, int ttl,
+                             struct sss_domain_info *dom,
+                             const char *name,
+                             const char *proto)
+{
+    int ret;
+    char *service_and_protocol = talloc_asprintf(ctx, "%s:%s",
+                                                 name,
+                                                 proto ? proto : "<ANY>");
+    if (!service_and_protocol) return ENOMEM;
+
+    ret = sss_cache_check_ent(ctx, ttl, dom, service_and_protocol,
+                              sss_ncache_check_service_int);
+    talloc_free(service_and_protocol);
+    return ret;
+}
+
+int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
+                                struct sss_domain_info *dom,
+                                uint16_t port, const char *proto)
+{
+    int ret;
+    char *service_and_protocol = talloc_asprintf(ctx, "%ul:%s",
+                                                 port,
+                                                 proto ? proto : "<ANY>");
+    if (!service_and_protocol) return ENOMEM;
+
+    ret = sss_ncache_set_ent(ctx, permanent, dom,
+                             service_and_protocol,
+                             sss_ncache_set_service_int);
+    talloc_free(service_and_protocol);
+    return ret;
+}
+
+int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
+                                  struct sss_domain_info *dom,
+                                  uint16_t port,
+                                  const char *proto)
+{
+    int ret;
+    char *service_and_protocol = talloc_asprintf(ctx, "%ul:%s",
+                                                 port,
+                                                 proto ? proto : "<ANY>");
+    if (!service_and_protocol) return ENOMEM;
+
+    ret = sss_cache_check_ent(ctx, ttl, dom, service_and_protocol,
+                              sss_ncache_check_service_int);
+    talloc_free(service_and_protocol);
+    return ret;
+}
+
+
 
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
 {
@@ -331,9 +448,6 @@ static int sss_ncache_set_netgr_int(struct sss_nc_ctx *ctx, bool permanent,
     talloc_free(str);
     return ret;
 }
-
-typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
-                                      const char *, const char *);
 
 static int sss_ncache_set_ent(struct sss_nc_ctx *ctx, bool permanent,
                               struct sss_domain_info *dom, const char *name,
