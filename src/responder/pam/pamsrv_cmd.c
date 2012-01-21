@@ -994,6 +994,7 @@ static void pam_dp_send_acct_req_done(struct tevent_req *req)
     ret = sss_dp_get_account_recv(cb_ctx->mem_ctx, req,
                                   &err_maj, &err_min,
                                   &err_msg);
+    talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Fatal error, killing connection!\n"));

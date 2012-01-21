@@ -92,11 +92,28 @@ static int sss_dp_req_destructor(void *ptr)
     /* If there are callbacks that haven't been invoked, return
      * an error now.
      */
-    DLIST_FOR_EACH(cb, sdp_req->cb_list) {
+    while((cb = sdp_req->cb_list) != NULL) {
         state = tevent_req_data(cb->req, struct dp_get_account_state);
         state->err_maj = DP_ERR_FATAL;
         state->err_min = EIO;
+
+        /* tevent_req_done/error will free cb */
         tevent_req_error(cb->req, EIO);
+
+        /* Freeing the cb removes it from the cb_list.
+         * Therefore, the cb_list should now be pointing
+         * at a new callback. If it's not, it means the
+         * callback handler didn't free cb and may leak
+         * memory. Be paranoid and protect against this
+         * situation.
+         */
+        if (cb == sdp_req->cb_list) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("BUG: a callback did not free its request. "
+                   "May leak memory\n"));
+            /* Skip to the next since a memory leak is non-fatal */
+            sdp_req->cb_list = sdp_req->cb_list->next;
+        }
     }
 
     /* Destroy the hash entry */
@@ -225,14 +242,6 @@ sss_dp_get_account_int_send(struct resp_ctx *rctx,
 static void
 sss_dp_get_account_done(struct tevent_req *subreq);
 
-static errno_t
-sss_dp_get_account_int_recv(TALLOC_CTX *mem_ctx,
-                        struct tevent_req *req,
-                        dbus_uint16_t *err_maj,
-                        dbus_uint32_t *err_min,
-                        char **err_msg);
-
-
 /* Send a request to the data provider
  * Once this function is called, the communication
  * with the data provider will always run to
@@ -253,7 +262,7 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     int hret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
+    struct tevent_req *sidereq;
     struct dp_get_account_state *state;
     struct sss_dp_req *sdp_req;
     struct sss_dp_callback *cb;
@@ -360,19 +369,19 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
          */
 
         value.type = HASH_VALUE_PTR;
-        subreq = sss_dp_get_account_int_send(rctx, state->key, dom,
+        sidereq = sss_dp_get_account_int_send(rctx, state->key, dom,
                                              be_type, filter);
-        if (!subreq) {
+        if (!sidereq) {
             ret = ENOMEM;
             goto error;
         }
-        tevent_req_set_callback(subreq, sss_dp_get_account_done, NULL);
+        tevent_req_set_callback(sidereq, sss_dp_get_account_done, NULL);
 
         /* We should now be able to find the sdp_req in the hash table */
         hret = hash_lookup(rctx->dp_request_table, state->key, &value);
         if (hret != HASH_SUCCESS) {
             /* Something must have gone wrong with creating the request */
-            talloc_zfree(subreq);
+            talloc_zfree(sidereq);
             ret = EIO;
             goto error;
         }
@@ -419,23 +428,10 @@ error:
 }
 
 static void
-sss_dp_get_account_done(struct tevent_req *subreq)
+sss_dp_get_account_done(struct tevent_req *sidereq)
 {
-    errno_t ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct dp_get_account_state *state =
-            tevent_req_data(req, struct dp_get_account_state);
-
-    ret = sss_dp_get_account_int_recv(state, req,
-                                      &state->err_maj,
-                                      &state->err_min,
-                                      &state->err_msg);
-    if (ret != EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    /* Nothing to do here. The callbacks have already been invoked */
+    talloc_zfree(sidereq);
 }
 
 errno_t
@@ -616,7 +612,7 @@ static void sss_dp_get_account_int_done(DBusPendingCall *pending, void *ptr)
     int ret;
     struct tevent_req *req;
     struct sss_dp_req *sdp_req;
-    struct sss_dp_callback *cb, *prevcb = NULL;
+    struct sss_dp_callback *cb;
     struct dp_get_account_int_state *state;
     struct dp_get_account_state *cb_state;
 
@@ -647,58 +643,40 @@ static void sss_dp_get_account_int_done(DBusPendingCall *pending, void *ptr)
     }
 
     /* Check whether we need to issue any callbacks */
-    DLIST_FOR_EACH(cb, sdp_req->cb_list) {
+    while ((cb = sdp_req->cb_list) != NULL) {
         cb_state = tevent_req_data(cb->req, struct dp_get_account_state);
         cb_state->err_maj = sdp_req->err_maj;
         cb_state->err_min = sdp_req->err_min;
         cb_state->err_msg = talloc_strdup(cb_state, sdp_req->err_msg);
         /* Don't bother checking for NULL. If it fails due to ENOMEM,
-         * we can't really handle it annyway.
+         * we can't really handle it anyway.
          */
 
+        /* tevent_req_done/error will free cb */
         if (ret == EOK) {
             tevent_req_done(cb->req);
         } else {
             tevent_req_error(cb->req, ret);
         }
 
-        /* Freeing the request removes it from the list */
-        if (prevcb) talloc_free(prevcb);
-        prevcb = cb;
+        /* Freeing the cb removes it from the cb_list.
+         * Therefore, the cb_list should now be pointing
+         * at a new callback. If it's not, it means the
+         * callback handler didn't free cb and may leak
+         * memory. Be paranoid and protect against this
+         * situation.
+         */
+        if (cb == sdp_req->cb_list) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("BUG: a callback did not free its request. "
+                   "May leak memory\n"));
+            /* Skip to the next since a memory leak is non-fatal */
+            sdp_req->cb_list = sdp_req->cb_list->next;
+        }
     }
-    talloc_free(prevcb);
 
     /* We're done with this request. Free the sdp_req
      * This will clean up the hash table entry as well
      */
     talloc_zfree(sdp_req);
-}
-
-static errno_t
-sss_dp_get_account_int_recv(TALLOC_CTX *mem_ctx,
-                        struct tevent_req *req,
-                        dbus_uint16_t *err_maj,
-                        dbus_uint32_t *err_min,
-                        char **err_msg)
-{
-    struct dp_get_account_int_state *state =
-            tevent_req_data(req, struct dp_get_account_int_state);
-
-    enum tevent_req_state TRROEstate;
-    uint64_t TRROEerr;
-
-    *err_maj = state->sdp_req->err_maj;
-    *err_min = state->sdp_req->err_min;
-    *err_msg = talloc_steal(mem_ctx, state->sdp_req->err_msg);
-
-    if (tevent_req_is_error(req, &TRROEstate, &TRROEerr)) {
-        if (TRROEstate == TEVENT_REQ_USER_ERROR) {
-            *err_maj = DP_ERR_FATAL;
-            *err_min = TRROEerr;
-        } else {
-            return EIO;
-        }
-    }
-
-    return EOK;
 }
