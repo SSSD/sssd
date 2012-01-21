@@ -237,6 +237,28 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                                                dlerror()));
     }
 
+    ctx->ops.getservbyname_r = proxy_dlsym(ctx->handle,
+                                           "_nss_%s_getservbyname_r",
+                                           libname);
+    if (!ctx->ops.getservbyname_r) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to load _nss_%s_getservbyname_r, error: %s. "
+               "The library does not support services.\n",
+               libname,
+               dlerror()));
+    }
+
+    ctx->ops.getservbyport_r = proxy_dlsym(ctx->handle,
+                                           "_nss_%s_getservbyport_r",
+                                           libname);
+    if (!ctx->ops.getservbyport_r) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to load _nss_%s_getservbyport_r, error: %s. "
+               "The library does not support services.\n",
+               libname,
+               dlerror()));
+    }
+
     *ops = &proxy_id_ops;
     *pvt_data = ctx;
     ret = EOK;

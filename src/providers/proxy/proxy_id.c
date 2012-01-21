@@ -1173,6 +1173,34 @@ void proxy_get_account_info(struct be_req *breq)
         ret = get_netgroup(ctx, sysdb, domain, ar->filter_value);
         break;
 
+    case BE_REQ_SERVICES:
+        switch (ar->filter_type) {
+        case BE_FILTER_NAME:
+            if (ctx->ops.getservbyname_r == NULL) {
+                return proxy_reply(breq, DP_ERR_FATAL,
+                                   ENODEV, "Services are not supported");
+            }
+            ret = get_serv_byname(ctx, sysdb, domain,
+                                  ar->filter_value,
+                                  ar->extra_value);
+            break;
+        case BE_FILTER_IDNUM:
+            if (ctx->ops.getservbyport_r == NULL) {
+                return proxy_reply(breq, DP_ERR_FATAL,
+                                   ENODEV, "Services are not supported");
+            }
+            ret = get_serv_byport(ctx, sysdb, domain,
+                                  ar->filter_value,
+                                  ar->extra_value);
+            break;
+        case BE_FILTER_ENUM:
+            break;
+        default:
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               EINVAL, "Invalid filter type");
+        }
+        break;
+
     default: /*fail*/
         return proxy_reply(breq, DP_ERR_FATAL,
                            EINVAL, "Invalid request type");

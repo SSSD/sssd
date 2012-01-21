@@ -70,6 +70,17 @@ struct proxy_nss_ops {
     enum nss_status (*getnetgrent_r)(struct __netgrent *result, char *buffer,
                                      size_t buflen, int *errnop);
     enum nss_status (*endnetgrent)(struct __netgrent *result);
+
+    /* Services */
+    enum nss_status (*getservbyname_r)(const char *name,
+                                        const char *protocol,
+                                        struct servent *result,
+                                        char *buffer, size_t buflen,
+                                        int *errnop);
+    enum nss_status (*getservbyport_r)(int port, const char *protocol,
+                                        struct servent *result,
+                                        char *buffer, size_t buflen,
+                                        int *errnop);
 };
 
 struct authtok_conv {
@@ -144,5 +155,18 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
                      struct sysdb_ctx *sysdb,
                      struct sss_domain_info *dom,
                      const char *name);
+
+errno_t get_serv_byname(struct proxy_id_ctx *ctx,
+                        struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *dom,
+                        const char *name,
+                        const char *protocol);
+
+errno_t
+get_serv_byport(struct proxy_id_ctx *ctx,
+                struct sysdb_ctx *sysdb,
+                struct sss_domain_info *dom,
+                const char *be_filter,
+                const char *protocol);
 
 #endif /* __PROXY_H__ */
