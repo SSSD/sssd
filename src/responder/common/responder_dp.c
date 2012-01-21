@@ -302,6 +302,9 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     case SSS_DP_NETGR:
         be_type = BE_REQ_NETGROUP;
         break;
+    case SSS_DP_SERVICES:
+        be_type = BE_REQ_SERVICES;
+        break;
     default:
         ret = EINVAL;
         goto error;
