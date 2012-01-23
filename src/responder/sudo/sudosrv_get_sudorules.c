@@ -28,7 +28,6 @@
 #include "responder/sudo/sudosrv_private.h"
 
 static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx);
-static errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx);
 
 errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx)
 {
@@ -243,7 +242,7 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
 static void
 sudosrv_dp_req_done(struct tevent_req *req);
 
-static errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx)
+errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx)
 {
     struct tevent_req *dpreq;
     struct sudo_cmd_ctx *cmd_ctx = dctx->cmd_ctx;
@@ -254,7 +253,7 @@ static errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx)
     dpreq = sss_dp_get_sudoers_send(cmd_ctx->cli_ctx,
                                     cmd_ctx->cli_ctx->rctx,
                                     dctx->domain, false,
-                                    SSS_DP_SUDO,
+                                    cmd_ctx->type,
                                     cmd_ctx->username);
     if (dpreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -341,6 +340,7 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
 
 static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
+                                                 enum sss_dp_sudo_type type,
                                                  const char *username,
                                                  uid_t uid,
                                                  char **groupnames,
@@ -368,15 +368,20 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_dom_ctx *dctx)
         goto done;
     }
 
-    ret = sysdb_get_sudo_user_info(tmp_ctx, dctx->cmd_ctx->username,
-                                   sysdb, &uid, &groupnames);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Unable to retrieve user info [%d]: %s\n", strerror(ret)));
-        goto done;
+    if (dctx->cmd_ctx->type == SSS_DP_SUDO_USER) {
+        ret = sysdb_get_sudo_user_info(tmp_ctx, dctx->cmd_ctx->username,
+                                       sysdb, &uid, &groupnames);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                 ("Unable to retrieve user info [%d]: %s\n", strerror(ret)));
+            goto done;
+        }
+    } else {
+        uid = 0;
+        groupnames = NULL;
     }
 
-    ret = sudosrv_get_sudorules_query_cache(dctx, sysdb,
+    ret = sudosrv_get_sudorules_query_cache(dctx, sysdb, dctx->cmd_ctx->type,
                                             dctx->cmd_ctx->username,
                                             uid, groupnames,
                                             &dctx->res, &dctx->res_count);
@@ -400,6 +405,7 @@ sort_sudo_rules(struct sysdb_attrs **rules, size_t count);
 
 static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
+                                                 enum sss_dp_sudo_type type,
                                                  const char *username,
                                                  uid_t uid,
                                                  char **groupnames,
@@ -430,9 +436,14 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    flags =   SYSDB_SUDO_FILTER_USERINFO
-            | SYSDB_SUDO_FILTER_INCLUDE_ALL
-            | SYSDB_SUDO_FILTER_INCLUDE_DFL;
+    switch (type) {
+    case SSS_DP_SUDO_DEFAULTS:
+        flags = SYSDB_SUDO_FILTER_INCLUDE_DFL;
+        break;
+    case SSS_DP_SUDO_USER:
+        flags =   SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
+        break;
+    }
     ret = sysdb_get_sudo_filter(tmp_ctx, username, uid, groupnames,
                                 flags, &filter);
     if (ret != EOK) {

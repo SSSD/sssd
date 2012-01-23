@@ -31,12 +31,18 @@
 #define SSS_SUDO_SBUS_SERVICE_VERSION 0x0001
 #define SSS_SUDO_SBUS_SERVICE_NAME "sudo"
 
+enum sss_dp_sudo_type {
+    SSS_DP_SUDO_DEFAULTS,
+    SSS_DP_SUDO_USER
+};
+
 struct sudo_ctx {
     struct resp_ctx *rctx;
 };
 
 struct sudo_cmd_ctx {
     struct cli_ctx *cli_ctx;
+    enum sss_dp_sudo_type type;
     char *username;
     bool check_next;
 };
@@ -62,6 +68,8 @@ struct sss_cmd_table *get_sudo_cmds(void);
 errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret);
 
 errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx);
+
+errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx);
 
 char * sudosrv_get_sudorules_parse_query(TALLOC_CTX *mem_ctx,
                                          const char *query_body,
@@ -97,10 +105,6 @@ int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
                                  struct ldb_val *values,
                                  uint8_t **_response_body,
                                  size_t *_response_len);
-
-enum sss_dp_sudo_type {
-    SSS_DP_SUDO
-};
 
 struct tevent_req *
 sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,

@@ -160,6 +160,7 @@ enum sss_cli_command {
 
 /* SUDO */
     SSS_SUDO_GET_SUDORULES = 0x00C1,
+    SSS_SUDO_GET_DEFAULTS  = 0x00C2,
 
 /* PAM related calls */
     SSS_PAM_AUTHENTICATE     = 0x00F1, /**< see pam_sm_authenticate(3) for

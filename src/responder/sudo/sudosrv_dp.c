@@ -107,11 +107,24 @@ sss_dp_get_sudoers_msg(void *pvt)
 
     info = talloc_get_type(pvt, struct sss_dp_get_sudoers_info);
 
+    switch (info->type) {
+        case SSS_DP_SUDO_DEFAULTS:
+            be_type = BE_REQ_SUDO_DEFAULTS;
+            break;
+        case SSS_DP_SUDO_USER:
+            be_type = BE_REQ_SUDO_USER;
+            break;
+    }
+
     if (info->fast_reply) {
         be_type |= BE_REQ_FAST;
     }
 
-    filter = talloc_asprintf(info, "name=%s", info->name);
+    if (info->name != NULL) {
+        filter = talloc_asprintf(info, "name=%s", info->name);
+    } else {
+        filter = talloc_strdup(info, "");
+    }
     if (!filter) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
         return NULL;

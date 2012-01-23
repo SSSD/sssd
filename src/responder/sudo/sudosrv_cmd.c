@@ -149,6 +149,7 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
         goto done;
     }
     cmd_ctx->cli_ctx = cli_ctx;
+    cmd_ctx->type = SSS_DP_SUDO_USER;
 
     dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
     if (!dctx) {
@@ -207,6 +208,51 @@ done:
     return sudosrv_cmd_done(dctx, ret);
 }
 
+static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
+{
+    int ret = EOK;
+    struct sudo_cmd_ctx *cmd_ctx = NULL;
+    struct sudo_dom_ctx *dctx = NULL;
+
+    cmd_ctx = talloc_zero(cli_ctx, struct sudo_cmd_ctx);
+    if (!cmd_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+    cmd_ctx->cli_ctx = cli_ctx;
+    cmd_ctx->type = SSS_DP_SUDO_DEFAULTS;
+    cmd_ctx->username = NULL;
+    cmd_ctx->check_next = false;
+
+    dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
+    if (!dctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+    dctx->cmd_ctx = cmd_ctx;
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Requesting cn=defaults\n"));
+
+    /* sudo currently does not support domain selection
+     * so find first available domain
+     * TODO - support domain selection */
+    dctx->domain = cli_ctx->rctx->domains;
+    while (dctx->domain && dctx->domain->fqnames) {
+        dctx->domain = dctx->domain->next;
+    }
+    if (!dctx->domain) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No valid domain found\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* ok, find it ! */
+    ret = sudosrv_get_rules(dctx);
+
+done:
+    return sudosrv_cmd_done(dctx, ret);
+}
+
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version sudo_cli_protocol_version[] = {
@@ -220,6 +266,7 @@ struct sss_cmd_table *get_sudo_cmds(void) {
     static struct sss_cmd_table sudo_cmds[] = {
         {SSS_GET_VERSION, sss_cmd_get_version},
         {SSS_SUDO_GET_SUDORULES, sudosrv_cmd_get_sudorules},
+        {SSS_SUDO_GET_DEFAULTS, sudosrv_cmd_get_defaults},
         {SSS_CLI_NULL, NULL}
     };
 
