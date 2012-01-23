@@ -205,7 +205,8 @@ static void sudosrv_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
               (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Data Provider returned, check the cache again\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Data Provider returned, check the cache again\n"));
     dctx->check_provider = false;
     ret = sudosrv_get_user(dctx);
     /* FIXME - set entry into cache so that we don't perform initgroups too often */
@@ -236,44 +237,93 @@ done:
 }
 
 static errno_t sudosrv_get_sudorules_from_cache(struct sudo_dom_ctx *dctx);
-static void sudosrv_get_sudorules_dp_callback(struct tevent_req *req);
+static void
+sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                  const char *err_msg, void *ptr);
+static void
+sudosrv_dp_req_done(struct tevent_req *req);
 
 static errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx)
 {
     struct tevent_req *dpreq;
     struct sudo_cmd_ctx *cmd_ctx = dctx->cmd_ctx;
+    struct dp_callback_ctx *cb_ctx = NULL;
 
     /* FIXME - cache logic will be here. For now, just refresh
      * the cache unconditionally */
-    dpreq = sudosrv_dp_refresh_send(cmd_ctx->cli_ctx->rctx,
-                                    dctx->domain, cmd_ctx->username);
+    dpreq = sss_dp_get_sudoers_send(cmd_ctx->cli_ctx,
+                                    cmd_ctx->cli_ctx->rctx,
+                                    dctx->domain, false,
+                                    SSS_DP_SUDO,
+                                    cmd_ctx->username);
     if (dpreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Fatal: Sysdb CTX not found for this domain!\n"));
+              ("Cannot issue DP request.\n"));
         return EIO;
     }
-    tevent_req_set_callback(dpreq, sudosrv_get_sudorules_dp_callback, dctx);
+
+    cb_ctx = talloc_zero(dctx, struct dp_callback_ctx);
+    if (!cb_ctx) {
+        talloc_zfree(dpreq);
+        return ENOMEM;
+    }
+
+    cb_ctx->callback = sudosrv_get_sudorules_dp_callback;
+    cb_ctx->ptr = dctx;
+    cb_ctx->cctx = dctx->cmd_ctx->cli_ctx;
+    cb_ctx->mem_ctx = dctx;
+
+    tevent_req_set_callback(dpreq, sudosrv_dp_req_done, cb_ctx);
     return EAGAIN;
 }
 
-static void sudosrv_get_sudorules_dp_callback(struct tevent_req *req)
+static void
+sudosrv_dp_req_done(struct tevent_req *req)
 {
-    struct sudo_dom_ctx *dctx;
+    struct dp_callback_ctx *cb_ctx =
+        tevent_req_callback_data(req, struct dp_callback_ctx);
+    struct sudo_dom_ctx *dctx =
+        talloc_get_type(cb_ctx->ptr, struct sudo_dom_ctx);
+
     errno_t ret;
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
+    char *err_msg;
 
-    dctx = tevent_req_callback_data(req, struct sudo_dom_ctx);
-
-    ret = sudosrv_dp_refresh_recv(req, &err_maj, &err_min);
-    talloc_zfree(req);
+    ret = sss_dp_get_sudoers_recv(cb_ctx->mem_ctx, req,
+                                  &err_maj, &err_min,
+                                  &err_msg);
+    talloc_free(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("Data provider returned an error [%d]: %s "
-               "DBus error min: %d maj %d\n",
-               ret, strerror(ret), err_maj, err_min));
-        sudosrv_cmd_done(dctx, EIO);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Fatal error, killing connection!\n"));
+        talloc_free(dctx->cmd_ctx->cli_ctx);
         return;
+    }
+
+    cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
+}
+
+static void
+sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                  const char *err_msg, void *ptr)
+{
+    struct sudo_dom_ctx *dctx =
+        talloc_get_type(ptr, struct sudo_dom_ctx);
+    errno_t ret;
+
+    if (err_maj) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unable to get information from Data Provider\n"
+               "Error: %u, %u, %s\n"
+               "Will try to return what we have in cache\n",
+               (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        /* FIXME - cache or next domain? */
+        /* Loop to the next domain if possible */
+        if (dctx->domain->next && dctx->cmd_ctx->check_next) {
+            dctx->domain = dctx->domain->next;
+            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+        }
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL, ("About to get sudo rules from cache\n"));

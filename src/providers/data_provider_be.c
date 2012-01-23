@@ -662,6 +662,7 @@ static void be_sudo_handler_callback(struct be_req *req,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+        talloc_free(req);
         return;
     }
 
@@ -677,15 +678,17 @@ static void be_sudo_handler_callback(struct be_req *req,
 
 static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 {
-    dbus_bool_t dbus_ret;
     DBusError dbus_error;
-    DBusMessageIter iter;
     DBusMessage *reply = NULL;
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
     struct be_sudo_req *be_sudo_req = NULL;
     void *user_data = NULL;
     int ret = 0;
+    uint32_t type;
+    char *filter;
+    const char *err_msg = NULL;
+    char *filter_val;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Entering be_sudo_handler()\n"));
 
@@ -719,6 +722,41 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->pvt = reply;
     be_req->fn = be_sudo_handler_callback;
 
+    dbus_error_init(&dbus_error);
+
+    ret = dbus_message_get_args(message, &dbus_error,
+                                DBUS_TYPE_UINT32, &type,
+                                DBUS_TYPE_STRING, &filter,
+                                DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse message!\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        ret = EIO;
+        err_msg = "dbus_message_get_args failed";
+        goto fail;
+    }
+
+    if (type != BE_REQ_SUDO) {
+        /* No other are supported at the moment */
+        ret = EINVAL;
+        err_msg = "Invalid DP request type";
+        goto fail;
+    }
+
+    if (filter) {
+        if (strncmp(filter, "name=", 5) == 0) {
+            filter_val = &filter[5];
+        } else {
+            ret = EINVAL;
+            err_msg = "Invalid Filter";
+            goto fail;
+        }
+    } else {
+        ret = EINVAL;
+        err_msg = "Missing Filter Parameter";
+        goto fail;
+    }
+
     /* get and set sudo request data */
     be_sudo_req = talloc_zero(be_req, struct be_sudo_req);
     if (be_sudo_req == NULL) {
@@ -726,22 +764,12 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
         goto fail;
     }
 
-    if (dbus_message_iter_init(message, &iter)) {
-        dbus_error_init(&dbus_error);
-        dbus_ret = dbus_message_get_args(message, &dbus_error,
-                                         DBUS_TYPE_STRING, &(be_sudo_req->username),
-                                         DBUS_TYPE_INVALID);
-
-        if (!dbus_ret) {
-            if (dbus_error_is_set(&dbus_error)) {
-                dbus_error_free(&dbus_error);
-            }
-
-            DEBUG(SSSDBG_CRIT_FAILURE, ("dbus_message_get_args failed.\n"));
-            ret = EINVAL;
-            goto fail;
-        }
+    be_sudo_req->username = talloc_strdup(be_sudo_req, filter_val);
+    if (be_sudo_req->username == NULL) {
+        ret = ENOMEM;
+        goto fail;
     }
+
     be_req->req_data = be_sudo_req;
 
     /* return an error if corresponding backend target is not configured */
@@ -756,6 +784,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
                           be_req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("be_file_request failed.\n"));
+        err_msg = "Cannot file back end request";
         goto fail;
     }
 
@@ -763,8 +792,8 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 
 fail:
     /* send reply back immediately */
-    be_sudo_handler_callback(be_req, DP_ERR_FATAL, ret, strerror(ret));
-
+    be_sudo_handler_callback(be_req, DP_ERR_FATAL, ret,
+                             err_msg ? err_msg : strerror(ret));
     return EOK;
 }
 

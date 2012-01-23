@@ -61,14 +61,6 @@ struct sss_cmd_table *get_sudo_cmds(void);
 
 errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret);
 
-struct tevent_req * sudosrv_dp_refresh_send(struct resp_ctx *rctx,
-                                            struct sss_domain_info *dom,
-                                            const char *username);
-
-errno_t sudosrv_dp_refresh_recv(struct tevent_req *req,
-                                dbus_uint16_t *_err_maj,
-                                dbus_uint32_t *_err_min);
-
 errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx);
 
 char * sudosrv_get_sudorules_parse_query(TALLOC_CTX *mem_ctx,
