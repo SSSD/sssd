@@ -147,7 +147,10 @@ struct be_acct_req {
 };
 
 struct be_sudo_req {
+    uint32_t type;
     char *username;
+    uid_t uid;
+    char **groups;
 };
 
 bool be_is_offline(struct be_ctx *ctx);

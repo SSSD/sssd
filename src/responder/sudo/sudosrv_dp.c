@@ -102,7 +102,7 @@ sss_dp_get_sudoers_msg(void *pvt)
     DBusMessage *msg;
     dbus_bool_t dbret;
     struct sss_dp_get_sudoers_info *info;
-    uint32_t be_type = BE_REQ_SUDO;
+    uint32_t be_type = BE_REQ_SUDO_USER;
     char *filter;
 
     info = talloc_get_type(pvt, struct sss_dp_get_sudoers_info);

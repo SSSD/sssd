@@ -92,7 +92,7 @@ static void sdap_sudo_refresh_timer(struct tevent_context *ev,
                                     struct timeval tv, void *pvt)
 {
     struct sdap_sudo_refresh_ctx *refresh_ctx = NULL;
-    struct sdap_sudo_ctx *sudo_ctx = NULL;
+    struct be_sudo_req *sudo_req = NULL;
     struct tevent_timer *timeout = NULL;
     struct tevent_req *req = NULL;
     int delay = 0;
@@ -113,8 +113,8 @@ static void sdap_sudo_refresh_timer(struct tevent_context *ev,
     }
 
     /* create sudo context */
-    sudo_ctx = talloc_zero(refresh_ctx, struct sdap_sudo_ctx);
-    if (sudo_ctx == NULL) {
+    sudo_req = talloc_zero(refresh_ctx, struct be_sudo_req);
+    if (sudo_req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero() failed!\n"));
         tv = tevent_timeval_current_ofs(delay, 0);
         ret = sdap_sudo_refresh_set_timer(refresh_ctx, tv);
@@ -125,17 +125,13 @@ static void sdap_sudo_refresh_timer(struct tevent_context *ev,
         return;
     }
 
-    sudo_ctx->be_ctx = refresh_ctx->be_ctx;
-    sudo_ctx->be_req = NULL;
-    sudo_ctx->sdap_ctx = refresh_ctx->id_ctx;
-    sudo_ctx->sdap_op = NULL;
-    sudo_ctx->sdap_conn_cache = refresh_ctx->id_ctx->conn_cache;
-    sudo_ctx->username = NULL; /* download all rules */
-    sudo_ctx->uid = 0;
-    sudo_ctx->groups = NULL;
+    sudo_req->type = BE_REQ_SUDO_ALL;
+    sudo_req->username = NULL;
 
     /* send request */
-    req = sdap_sudo_refresh_send(sudo_ctx, sudo_ctx);
+    req = sdap_sudo_refresh_send(refresh_ctx, refresh_ctx->id_ctx->be, sudo_req,
+                                 refresh_ctx->id_ctx->opts,
+                                 refresh_ctx->id_ctx->conn_cache);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to schedule refresh of SUDO rules, "
               "retrying later!\n"));
@@ -145,9 +141,11 @@ static void sdap_sudo_refresh_timer(struct tevent_context *ev,
             DEBUG(SSSDBG_CRIT_FAILURE, ("Error setting up SUDO refresh timer\n"));
         }
 
+        talloc_free(sudo_req);
         return;
     }
     refresh_ctx->last_refresh = tevent_timeval_current();
+    talloc_steal(req, sudo_req); /* make it free with req */
 
     tevent_req_set_callback(req, sdap_sudo_refresh_reschedule, refresh_ctx);
 
@@ -178,7 +176,6 @@ static void sdap_sudo_refresh_timer(struct tevent_context *ev,
 static void sdap_sudo_refresh_reschedule(struct tevent_req *req)
 {
     struct sdap_sudo_refresh_ctx *refresh_ctx = NULL;
-    struct sdap_sudo_ctx *sudo_ctx = NULL;
     struct timeval tv;
     int delay;
     int dp_error;
@@ -186,9 +183,8 @@ static void sdap_sudo_refresh_reschedule(struct tevent_req *req)
     int ret;
 
     refresh_ctx = tevent_req_callback_data(req, struct sdap_sudo_refresh_ctx);
-    ret = sdap_sudo_refresh_recv(req, &sudo_ctx, &dp_error, &error);
+    ret = sdap_sudo_refresh_recv(req, &dp_error, &error);
     talloc_zfree(req);
-    talloc_zfree(sudo_ctx);
     if (ret != EOK) {
         tv = tevent_timeval_current();
     } else {

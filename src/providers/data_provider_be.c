@@ -633,45 +633,48 @@ done:
     return EOK;
 }
 
-static void be_sudo_handler_callback(struct be_req *req,
-                                     int dp_err_type,
-                                     int errnum,
-                                     const char *errstr)
+static void be_sudo_handler_reply(struct sbus_connection *conn,
+                                  DBusMessage *reply,
+                                  dbus_uint16_t dp_err,
+                                  dbus_uint32_t dp_ret,
+                                  const char *errstr)
 {
-    DBusMessage *reply = NULL;
     DBusConnection *dbus_conn = NULL;
     dbus_bool_t dbret;
-    dbus_uint16_t err_maj = 0;
-    dbus_uint32_t err_min = 0;
     const char *err_msg = NULL;
 
-    reply = (DBusMessage*)(req->pvt);
-
-    err_maj = dp_err_type;
-    err_min = errnum;
-    err_msg = errstr ? errstr : talloc_strdup(req, "No errmsg set\n");
-    if (!err_msg) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set err_msg\n"));
-        err_msg = "OOM";
+    if (reply == NULL) {
+        return;
     }
 
+    err_msg = errstr ? errstr : "No errmsg set\n";
     dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, &err_maj,
-                                     DBUS_TYPE_UINT32, &err_min,
+                                     DBUS_TYPE_UINT16, &dp_err,
+                                     DBUS_TYPE_UINT32, &dp_ret,
                                      DBUS_TYPE_STRING, &err_msg,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
-        talloc_free(req);
         return;
     }
 
     DEBUG(SSSDBG_FUNC_DATA, ("SUDO Backend returned: (%d, %d, %s)\n",
-                             dp_err_type, errnum, errstr ? errstr : "<NULL>"));
+                             dp_err, dp_ret, errstr ? errstr : "<NULL>"));
 
-    dbus_conn = sbus_get_connection(req->becli->conn);
+    dbus_conn = sbus_get_connection(conn);
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
+}
+
+static void be_sudo_handler_callback(struct be_req *req,
+                                     int dp_err,
+                                     int dp_ret,
+                                     const char *errstr)
+{
+    DBusMessage *reply = NULL;
+    reply = (DBusMessage*)(req->pvt);
+
+    be_sudo_handler_reply(req->becli->conn, reply, dp_err, dp_ret, errstr);
 
     talloc_free(req);
 }
@@ -682,13 +685,12 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     DBusMessage *reply = NULL;
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
-    struct be_sudo_req *be_sudo_req = NULL;
+    struct be_sudo_req *sudo_req = NULL;
     void *user_data = NULL;
     int ret = 0;
     uint32_t type;
     char *filter;
     const char *err_msg = NULL;
-    char *filter_val;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Entering be_sudo_handler()\n"));
 
@@ -709,19 +711,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
         return ENOMEM;
     }
 
-    /* create be request */
-    be_req = talloc_zero(be_cli, struct be_req);
-    if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
-        dbus_message_unref(reply);
-        return ENOMEM;
-    }
-
-    be_req->becli = be_cli;
-    be_req->be_ctx = be_cli->bectx;
-    be_req->pvt = reply;
-    be_req->fn = be_sudo_handler_callback;
-
+    /* get arguments */
     dbus_error_init(&dbus_error);
 
     ret = dbus_message_get_args(message, &dbus_error,
@@ -736,41 +726,78 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
         goto fail;
     }
 
-    if (type != BE_REQ_SUDO) {
-        /* No other are supported at the moment */
+
+    /* If we are offline and fast reply was requested
+     * return offline immediately
+     */
+    if ((type & BE_REQ_FAST) && be_cli->bectx->offstat.offline) {
+        be_sudo_handler_reply(conn, reply, DP_ERR_OFFLINE, EAGAIN,
+                              "Fast reply - offline");
+        reply = NULL;
+        /* This reply will be queued and sent
+         * when we reenter the mainloop.
+         *
+         * Continue processing in case we are
+         * going back online.
+         */
+    }
+
+    /* create be request */
+    be_req = talloc_zero(be_cli, struct be_req);
+    if (be_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        dbus_message_unref(reply);
+        return ENOMEM;
+    }
+
+    be_req->becli = be_cli;
+    be_req->be_ctx = be_cli->bectx;
+    be_req->pvt = reply;
+    be_req->fn = be_sudo_handler_callback;
+
+    /* get and set sudo request data */
+    sudo_req = talloc_zero(be_req, struct be_sudo_req);
+    if (sudo_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        goto fail;
+    }
+
+    sudo_req->type = (~BE_REQ_FAST) & type;
+    sudo_req->uid = 0;
+    sudo_req->groups = NULL;
+
+    switch (sudo_req->type) {
+    case BE_REQ_SUDO_ALL:
+    case BE_REQ_SUDO_DEFAULTS:
+        sudo_req->username = NULL;
+        break;
+    case BE_REQ_SUDO_USER:
+        if (filter) {
+            if (strncmp(filter, "name=", 5) == 0) {
+                sudo_req->username = talloc_strdup(sudo_req, &filter[5]);
+                if (sudo_req->username == NULL) {
+                    ret = ENOMEM;
+                    goto fail;
+                }
+            } else {
+                ret = EINVAL;
+                err_msg = "Invalid Filter";
+                goto fail;
+            }
+        } else {
+            ret = EINVAL;
+            err_msg = "Missing Filter Parameter";
+            goto fail;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type %d\n", sudo_req->type));
         ret = EINVAL;
         err_msg = "Invalid DP request type";
         goto fail;
     }
 
-    if (filter) {
-        if (strncmp(filter, "name=", 5) == 0) {
-            filter_val = &filter[5];
-        } else {
-            ret = EINVAL;
-            err_msg = "Invalid Filter";
-            goto fail;
-        }
-    } else {
-        ret = EINVAL;
-        err_msg = "Missing Filter Parameter";
-        goto fail;
-    }
-
-    /* get and set sudo request data */
-    be_sudo_req = talloc_zero(be_req, struct be_sudo_req);
-    if (be_sudo_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
-        goto fail;
-    }
-
-    be_sudo_req->username = talloc_strdup(be_sudo_req, filter_val);
-    if (be_sudo_req->username == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    be_req->req_data = be_sudo_req;
+    be_req->req_data = sudo_req;
 
     /* return an error if corresponding backend target is not configured */
     if (!be_cli->bectx->bet_info[BET_SUDO].bet_ops) {

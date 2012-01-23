@@ -21,29 +21,20 @@
 #ifndef _SDAP_SUDO_H_
 #define _SDAP_SUDO_H_
 
-struct sdap_sudo_ctx {
-    struct be_ctx *be_ctx;
-    struct be_req *be_req;
-    struct sdap_id_ctx *sdap_ctx;
-    struct sdap_id_op *sdap_op;
-    struct sdap_id_conn_cache *sdap_conn_cache;
-
-    const char *username;
-    uint_t uid;
-    char **groups;
-};
-
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
-                                          struct sdap_sudo_ctx *sudo_ctx);
+                                          struct be_ctx *be_ctx,
+                                          struct be_sudo_req *sudo_req,
+                                          struct sdap_options *opts,
+                                          struct sdap_id_conn_cache *conn_cache);
 
 int sdap_sudo_refresh_recv(struct tevent_req *req,
-                           struct sdap_sudo_ctx **sudo_ctx,
                            int *dp_error,
                            int *error);
 
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
 #define SDAP_SUDO_FILTER_ALL  "(objectClass=%s)"
+#define SDAP_SUDO_FILTER_DEFAULTS  "(&(objectClass=%s)(%s=%s))"
 #define SDAP_SUDO_DEFAULTS    "defaults"
 
 #define SDAP_SUDO_FILTER_USERNAME "(%s=%s)"
