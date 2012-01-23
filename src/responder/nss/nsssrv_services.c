@@ -1154,18 +1154,675 @@ done:
     return nss_cmd_done(cmdctx, ret);
 }
 
+struct setservent_ctx {
+    struct cli_ctx *cctx;
+    struct nss_ctx *nctx;
+    struct nss_dom_ctx *dctx;
+    struct getent_ctx *getent_ctx;
+};
 
-int nss_cmd_setservent(struct cli_ctx *cctx)
+static errno_t
+setservent_step(struct setent_step_ctx *step_ctx);
+static void
+setservent_step_done(struct tevent_req *req);
+
+static struct tevent_req *
+lookup_servent_send(TALLOC_CTX *mem_ctx,
+                    struct resp_ctx *rctx,
+                    struct sss_domain_info *dom);
+
+static struct tevent_req *
+setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
 {
+    errno_t ret;
+    unsigned int num_domains;
+    struct tevent_req *req;
+    struct setservent_ctx *state;
+    struct sss_domain_info *dom;
+    struct setent_step_ctx *step_ctx;
+    struct nss_ctx *nctx =
+            talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Received setservent request\n"));
+
+    /* Reset the read pointers */
+    cctx->svc_dom_idx = 0;
+    cctx->svcent_cur = 0;
+
+    req = tevent_req_create(mem_ctx, &state, struct setservent_ctx);
+    if (!req) return NULL;
+
+    state->nctx = nctx;
+    state->cctx = cctx;
+    state->dctx = talloc_zero(state, struct nss_dom_ctx);
+    if (!state->dctx) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    state->dctx->domain = cctx->rctx->domains;
+
+    /* Is the result context already available */
+    if (state->nctx->svcctx) {
+        if (state->nctx->svcctx->ready) {
+            /* All of the necessary data is in place
+             * We can return now, getservent requests will work at this point
+             */
+            ret = EOK;
+            goto immediate;
+        }
+        else {
+            /* Object is still being constructed
+             * Register for notification when it's
+             * ready.
+             */
+            ret = setent_add_ref(state, state->nctx->svcctx, req);
+            if (ret != EOK) goto immediate;
+        }
+        return req;
+    }
+
+    /* Create a new result context
+     * We are creating it on the nss_ctx so that it doesn't
+     * go away if the original request does. We will delete
+     * it when the refcount goes to zero;
+     */
+    state->nctx->svcctx = talloc_zero(nctx, struct getent_ctx);
+    if (!state->nctx->svcctx) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    state->getent_ctx = nctx->svcctx;
+
+    /* Assume that all domains will have results (to avoid having
+     * to reallocate later
+     */
+    num_domains = 0;
+    dom = state->cctx->rctx->domains;
+    while (dom) {
+        num_domains++;
+        dom = dom->next;
+    }
+
+    state->nctx->svcctx->doms = talloc_zero_array(state->nctx->svcctx,
+                                                  struct dom_ctx,
+                                                  num_domains);
+    if (!state->nctx->svcctx->doms) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    /* Add a callback reference for ourselves */
+    setent_add_ref(state, state->nctx->svcctx, req);
+
+    /* ok, start the searches */
+    step_ctx = talloc_zero(state->getent_ctx, struct setent_step_ctx);
+    if (!step_ctx) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    /* Steal the dom_ctx onto the step_ctx so it doesn't go out of scope if
+     * this request is canceled while other requests are in-progress.
+     */
+    step_ctx->dctx = talloc_steal(step_ctx, state->dctx);
+    step_ctx->nctx = state->nctx;
+    step_ctx->getent_ctx = state->getent_ctx;
+    step_ctx->rctx = cctx->rctx;
+    step_ctx->cctx = cctx;
+    step_ctx->returned_to_mainloop = false;
+
+    while (step_ctx->dctx->domain) {
+        /* There are more domains to check */
+        ret = setservent_step(step_ctx);
+        if (ret == EOK) {
+            /* Re-enter the mainloop */
+            return req;
+        }
+
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error [%s] requesting info from domain [%s]. Skipping.\n",
+               strerror(ret), step_ctx->dctx->domain->name));
+
+        step_ctx->dctx->domain = step_ctx->dctx->domain->next;
+    }
+
+    /* All domains failed */
+    ret = EIO;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, cctx->rctx->ev);
+    return req;
+}
+
+static errno_t
+setservent_step(struct setent_step_ctx *step_ctx)
+{
+    struct tevent_req *req;
+
+    req = lookup_servent_send(step_ctx,
+                              step_ctx->rctx,
+                              step_ctx->dctx->domain);
+    if (!req) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(req, setservent_step_done, step_ctx);
+
     return EOK;
 }
 
+struct lookup_servent_ctx {
+    struct resp_ctx *rctx;
+    struct sss_domain_info *dom;
+    struct ldb_result *res;
+};
+
+static void
+lookup_servent_done(struct tevent_req *subreq);
+
+static void
+setservent_finalize(struct setent_step_ctx *step_ctx);
+
+static struct tevent_req *
+lookup_servent_send(TALLOC_CTX *mem_ctx,
+                    struct resp_ctx *rctx,
+                    struct sss_domain_info *dom)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct lookup_servent_ctx *state;
+    struct sysdb_ctx *sysdb;
+
+    req = tevent_req_create(mem_ctx, &state, struct lookup_servent_ctx);
+    if (!req) return NULL;
+
+    state->rctx = rctx;
+    state->dom = dom;
+
+    if (!dom->enumerate) {
+        ret = ENOENT;
+        goto immediate;
+    }
+
+    if (!(NEED_CHECK_PROVIDER(dom->name))) {
+        /* No provider check required. Just ask the
+         * sysdb.
+         */
+        ret = sysdb_get_ctx_from_list(rctx->db_list, dom, &sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Sysdb CTX not found for [%s]!\n", dom->name));
+            goto immediate;
+        }
+
+        ret = sysdb_enumservent(state, sysdb, &state->res);
+        /* Whatever the result, we're done, so report it */
+        goto immediate;
+    }
+
+    /* We need to ask the provider for an enumeration */
+    /* Update the cache */
+    subreq = sss_dp_get_account_send(req,  rctx, state->dom,
+                                     true, SSS_DP_SERVICES,
+                                     NULL, 0, NULL);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    tevent_req_set_callback(subreq, lookup_servent_done, req);
+
+    return req;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ENOENT);
+    }
+    tevent_req_post(req, rctx->ev);
+    return req;
+}
+
+static void
+lookup_servent_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    dbus_uint16_t dp_err;
+    dbus_uint32_t dp_ret;
+    char *err_msg;
+    struct sysdb_ctx *sysdb;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct lookup_servent_ctx *state =
+            tevent_req_data(req, struct lookup_servent_ctx);
+
+    ret = sss_dp_get_account_recv(state, subreq,
+                                  &dp_err, &dp_ret, &err_msg);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Unable to get information from Data Provider\n"
+               "dp_error: [%u], errno: [%u], error_msg: [%s]\n"
+               "Will try to return what we have in cache\n",
+               (unsigned int)dp_err, (unsigned int)dp_ret,
+               err_msg ? err_msg : "none"));
+    }
+
+    /* Check the cache now */
+    ret = sysdb_get_ctx_from_list(state->rctx->db_list, state->dom, &sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Sysdb CTX not found for [%s]!\n", state->dom->name));
+        goto done;
+    }
+
+    ret = sysdb_enumservent(state, sysdb, &state->res);
+    /* Whatever the result, we're done, so report it */
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+}
+
+static errno_t
+lookup_servent_recv(TALLOC_CTX *mem_ctx,
+                    struct tevent_req *req,
+                    struct ldb_result **res)
+{
+    struct lookup_servent_ctx *state =
+            tevent_req_data(req, struct lookup_servent_ctx);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *res = talloc_steal(mem_ctx, state->res);
+    return EOK;
+}
+
+static void
+setservent_step_done(struct tevent_req *req)
+{
+    errno_t ret;
+    struct ldb_result *res;
+    struct setent_step_ctx *step_ctx =
+            tevent_req_callback_data(req, struct setent_step_ctx);
+    struct nss_dom_ctx *dctx = step_ctx->dctx;
+    struct getent_ctx *svcctx = step_ctx->getent_ctx;
+
+
+    ret = lookup_servent_recv(step_ctx, req, &res);
+    talloc_zfree(req);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Domain [%d] returned no results\n", dctx->domain->name));
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error [%s] while retrieving info from domain [%s]. "
+               "Skipping.\n", strerror(ret), dctx->domain->name));
+        /* Continue on */
+    } else {
+        /* Got some results
+         * Add the retrieved results to the list
+         */
+        svcctx->doms[svcctx->num].domain = dctx->domain;
+        svcctx->doms[svcctx->num].res = talloc_steal(svcctx->doms, res);
+        svcctx->num++;
+    }
+
+    step_ctx->dctx->domain = step_ctx->dctx->domain->next;
+
+    while (step_ctx->dctx->domain) {
+        /* There are more domains to check */
+        ret = setservent_step(step_ctx);
+        if (ret == EOK) {
+            /* Re-enter the mainloop */
+            return;
+        }
+
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error [%s] requesting info from domain [%s]. Skipping.\n",
+               strerror(ret), step_ctx->dctx->domain->name));
+
+        step_ctx->dctx->domain = step_ctx->dctx->domain->next;
+    }
+
+    /* All domains have been checked */
+    setservent_finalize(step_ctx);
+}
+
+static void
+setservent_result_timeout(struct tevent_context *ev,
+                          struct tevent_timer *te,
+                          struct timeval current_time,
+                          void *pvt);
+
+static void
+setservent_finalize(struct setent_step_ctx *step_ctx)
+{
+    struct nss_ctx *nctx = step_ctx->nctx;
+    struct resp_ctx *rctx = step_ctx->rctx;
+    struct timeval tv;
+    struct tevent_timer *te;
+    struct setent_req_list *reql;
+
+    /* We've finished all our lookups
+     * The result object is now safe to read.
+     */
+    nctx->svcctx->ready = true;
+
+    /* Set up a lifetime timer for this result object
+     * We don't want this result object to outlive the
+     * enum cache refresh timeout
+     */
+    tv = tevent_timeval_current_ofs(nctx->enum_cache_timeout, 0);
+    te = tevent_add_timer(rctx->ev, nctx->svcctx, tv,
+                          setservent_result_timeout, nctx);
+    if (!te) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not set up life timer for setservent result object. "
+               "Entries may become stale.\n"));
+    }
+
+    /* Notify the waiting clients */
+    while ((reql = nctx->svcctx->reqs)) {
+        /* Each tevent_req_done() call will free
+         * the request, removing it from the list.
+         */
+        tevent_req_done(reql->req);
+
+        if (reql == nctx->svcctx->reqs) {
+            /* The consumer failed to free the
+             * request. Log a bug and continue.
+             */
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("BUG: a callback did not free its request. "
+                   "May leak memory\n"));
+            /* Skip to the next since a memory leak is non-fatal */
+            nctx->svcctx->reqs = nctx->svcctx->reqs->next;
+        }
+    }
+}
+
+static void
+setservent_result_timeout(struct tevent_context *ev,
+                          struct tevent_timer *te,
+                          struct timeval current_time,
+                          void *pvt)
+{
+    struct nss_ctx *nctx = talloc_get_type(pvt, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("setservent result object has expired. Cleaning up.\n"));
+
+    /* Free the service enumeration context.
+     * If additional getservent requests come in, they will invoke
+     * an implicit setservent and refresh the result object.
+     */
+    talloc_zfree(nctx->svcctx);
+}
+
+static errno_t
+setservent_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+static void
+nss_cmd_setservent_done(struct tevent_req *req);
+
+int
+nss_cmd_setservent(struct cli_ctx *cctx)
+{
+    struct nss_cmd_ctx *cmdctx;
+    struct tevent_req *req;
+    errno_t ret = EOK;
+
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
+
+    req = setservent_send(cmdctx, cctx);
+    if (!req) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Fatal error calling nss_cmd_setservent_send\n"));
+        ret = EIO;
+        goto done;
+    }
+    tevent_req_set_callback(req, nss_cmd_setservent_done, cmdctx);
+
+done:
+    return nss_cmd_done(cmdctx, ret);
+}
+
+static void
+nss_cmd_setservent_done(struct tevent_req *req)
+{
+    errno_t ret;
+    struct nss_cmd_ctx *cmdctx =
+            tevent_req_callback_data(req, struct nss_cmd_ctx);
+
+    ret = setservent_recv(req);
+    talloc_zfree(req);
+    if (ret == EOK || ret == ENOENT) {
+        /* Either we succeeded or no domains
+         * were eligible.
+         * Return an acknowledgment
+         */
+        ret = sss_packet_new(cmdctx->cctx->creq, 0,
+                             sss_packet_get_cmd(cmdctx->cctx->creq->in),
+                             &cmdctx->cctx->creq->out);
+        if (ret == EOK) {
+            sss_cmd_done(cmdctx->cctx, cmdctx);
+            return;
+        }
+    }
+
+    /* Something bad happened.
+     * Return an error
+     */
+    nss_cmd_done(cmdctx, ret);
+}
+
+static void
+nss_cmd_implicit_setservent_done(struct tevent_req *req);
+
+static errno_t
+nss_cmd_getservent_immediate(struct nss_cmd_ctx *cmdctx);
+
+static errno_t
+retservent(struct cli_ctx *cctx, int num);
+
 int nss_cmd_getservent(struct cli_ctx *cctx)
 {
+    struct nss_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct tevent_req *req;
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Requesting info for all services\n"));
+
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
+
+    /* Save the current index and cursor locations
+     * If we end up calling setservent implicitly, because the response object
+     * expired and has to be recreated, we want to resume from the same
+     * location.
+     */
+    cmdctx->saved_dom_idx = cctx->svc_dom_idx;
+    cmdctx->saved_cur = cctx->svcent_cur;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    if(!nctx->svcctx || !nctx->svcctx->ready) {
+        /* Make sure we invoke setservent if it hasn't been run or is still
+         * processing from another client
+         */
+        req = setservent_send(cmdctx, cctx);
+        if (!req) {
+            return EIO;
+        }
+        tevent_req_set_callback(req,
+                                nss_cmd_implicit_setservent_done,
+                                cmdctx);
+        return EOK;
+    }
+
+    return nss_cmd_getservent_immediate(cmdctx);
+}
+
+static void
+nss_cmd_implicit_setservent_done(struct tevent_req *req)
+{
+    errno_t ret;
+    struct nss_cmd_ctx *cmdctx =
+            tevent_req_callback_data(req, struct nss_cmd_ctx);
+
+    ret = setservent_recv(req);
+    talloc_zfree(req);
+
+    /* ENOENT is acceptable, as it just means that there were no entries
+     * to be returned. This will be handled gracefully in retservent
+     * later.
+     */
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Implicit setservent failed with unexpected error [%d][%s]\n",
+               ret, strerror(ret)));
+        NSS_CMD_FATAL_ERROR(cmdctx);
+    }
+
+    /* Restore the saved index and cursor locations */
+    cmdctx->cctx->svc_dom_idx = cmdctx->saved_dom_idx;
+    cmdctx->cctx->svcent_cur = cmdctx->saved_cur;
+
+    ret = nss_cmd_getservent_immediate(cmdctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Immediate retrieval failed with unexpected error "
+               "[%d][%s]\n", ret, strerror(ret)));
+        NSS_CMD_FATAL_ERROR(cmdctx);
+    }
+}
+
+static errno_t
+nss_cmd_getservent_immediate(struct nss_cmd_ctx *cmdctx)
+{
+    struct cli_ctx *cctx = cmdctx->cctx;
+    uint8_t *body;
+    size_t blen;
+    uint32_t num;
+    int ret;
+
+    /* get max num of entries to return in one call */
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    if (blen != sizeof(uint32_t)) {
+        return EINVAL;
+    }
+    num = *((uint32_t *)body);
+
+    /* create response packet */
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = retservent(cctx, num);
+
+    sss_packet_set_error(cctx->creq->out, ret);
+    sss_cmd_done(cctx, cmdctx);
+
     return EOK;
+}
+
+static errno_t
+retservent(struct cli_ctx *cctx, int num)
+{
+    struct nss_ctx *nctx;
+    struct getent_ctx *svcctx;
+    struct ldb_message **msgs = NULL;
+    struct dom_ctx *pdom = NULL;
+    unsigned int n = 0;
+    int ret = ENOENT;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    if (!nctx->svcctx) goto none;
+
+    svcctx = nctx->svcctx;
+
+    while (ret == ENOENT) {
+        if (cctx->svc_dom_idx >= svcctx->num) break;
+
+        pdom = &svcctx->doms[cctx->svc_dom_idx];
+
+        n = pdom->res->count - cctx->svcent_cur;
+        if (n <= 0 && (cctx->svc_dom_idx+1 < svcctx->num)) {
+            cctx->svc_dom_idx++;
+            pdom = &svcctx->doms[cctx->svc_dom_idx];
+            n = pdom->res->count;
+            cctx->svcent_cur = 0;
+        }
+
+        if (!n) break;
+
+        if (n > num) n = num;
+
+        msgs = &(pdom->res->msgs[cctx->svcent_cur]);
+
+        ret = fill_service(cctx->creq->out,
+                           pdom->domain,
+                           nctx, msgs,
+                           &n);
+
+        cctx->svcent_cur += n;
+    }
+
+none:
+    if (ret == ENOENT) {
+        ret = fill_empty(cctx->creq->out);
+    }
+    return ret;
 }
 
 int nss_cmd_endservent(struct cli_ctx *cctx)
 {
+    struct nss_ctx *nctx;
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Terminating request info for all accounts\n"));
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    /* create response packet */
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+
+    if (ret != EOK) {
+        return ret;
+    }
+    if (nctx->svcctx == NULL) goto done;
+
+    /* Reset the indices so that subsequent requests start at zero */
+    cctx->svc_dom_idx = 0;
+    cctx->svcent_cur = 0;
+
+done:
+    sss_cmd_done(cctx, NULL);
     return EOK;
 }

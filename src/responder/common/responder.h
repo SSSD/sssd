@@ -118,6 +118,9 @@ struct cli_ctx {
     int grent_dom_idx;
     int grent_cur;
 
+    int svc_dom_idx;
+    int svcent_cur;
+
     char *netgr_name;
     int netgrent_cur;
 };

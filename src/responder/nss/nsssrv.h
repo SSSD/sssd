@@ -52,6 +52,7 @@ struct nss_ctx {
 
     struct getent_ctx *pctx;
     struct getent_ctx *gctx;
+    struct getent_ctx *svcctx;
     hash_table_t *netgroups;
 
     bool filter_users_in_groups;
