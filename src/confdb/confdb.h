@@ -188,6 +188,8 @@ struct sss_domain_info {
     uint32_t service_timeout;
     uint32_t autofsmap_timeout;
 
+    struct sysdb_ctx *sysdb;
+
     struct sss_domain_info *next;
 };
 

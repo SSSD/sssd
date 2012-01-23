@@ -1750,14 +1750,8 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = confdb_get_domain(cdb, be_domain, &ctx->domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error retrieving domain configuration\n"));
-        return ret;
-    }
-
-    ret = sysdb_domain_init(ctx, ctx->domain, DB_PATH, &ctx->sysdb);
+    ret = sysdb_init_domain_and_sysdb(ctx, cdb, be_domain, DB_PATH,
+                                      &ctx->domain, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error opening cache database\n"));
         return ret;

@@ -53,14 +53,8 @@ static int setup_db(struct tools_ctx *ctx)
         return ret;
     }
 
-    ret = confdb_get_domain(ctx->confdb, "local", &ctx->local);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not get 'local' domain: [%d] [%s]\n", ret, strerror(ret)));
-        return ret;
-    }
-
-    /* open 'local' sysdb at default path */
-    ret = sysdb_domain_init(ctx, ctx->local, DB_PATH, &ctx->sysdb);
+    ret = sysdb_init_domain_and_sysdb(ctx, ctx->confdb, "local", DB_PATH,
+                                      &ctx->local, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the sysdb\n"));
         return ret;

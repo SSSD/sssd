@@ -204,14 +204,8 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain) {
     }
 
     if (domain) {
-        ret = confdb_get_domain(ctx->confdb, domain, &ctx->domains);
-        if (ret != EOK) {
-            DEBUG(1, ("Could not get '%s' domain: [%d] [%s]\n",
-                      domain, ret, strerror(ret)));
-            goto fail;
-        }
-
-        ret = sysdb_domain_init(ctx, ctx->domains, DB_PATH, &db_ctx);
+        ret = sysdb_init_domain_and_sysdb(ctx, ctx->confdb, domain, DB_PATH,
+                                          &ctx->domains, &db_ctx);
         if (ret != EOK) {
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));
             goto fail;

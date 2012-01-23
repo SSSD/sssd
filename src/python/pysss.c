@@ -772,15 +772,8 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
         return NULL;
     }
 
-    ret = confdb_get_domain(self->confdb, "local", &self->local);
-    if (ret != EOK) {
-        talloc_free(mem_ctx);
-        PyErr_SetSssErrorWithMessage(ret, "Cannot get local domain");
-        return NULL;
-    }
-
-    /* open 'local' sysdb at default path */
-    ret = sysdb_domain_init(self->mem_ctx, self->local, DB_PATH, &self->sysdb);
+    ret = sysdb_init_domain_and_sysdb(self->mem_ctx, self->confdb, "local",
+                                      DB_PATH, &self->local, &self->sysdb);
     if (ret != EOK) {
         talloc_free(mem_ctx);
         PyErr_SetSssErrorWithMessage(ret,

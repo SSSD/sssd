@@ -328,6 +328,13 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                       const char *db_path,
                       struct sysdb_ctx **_ctx);
 
+errno_t sysdb_init_domain_and_sysdb(TALLOC_CTX *mem_ctx,
+                                    struct confdb_ctx *cdb,
+                                    const char *domain_name,
+                                    const char *db_path,
+                                    struct sss_domain_info **_domain,
+                                    struct sysdb_ctx **_ctx);
+
 int sysdb_list_init(TALLOC_CTX *mem_ctx,
                     const char *path,
                     struct sysdb_ctx *sysdb,
@@ -337,6 +344,8 @@ int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
                             struct sss_domain_info *domain,
                             struct sysdb_ctx **_ctx);
 
+errno_t sysdb_add_to_domain(struct sss_domain_info *domain,
+                            struct sysdb_ctx *ctx);
 /* functions to retrieve information from sysdb
  * These functions automatically starts an operation
  * therefore they cannot be called within a transaction */

@@ -822,6 +822,37 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static int remove_sysdb_from_domain(void *mem)
+{
+    struct sysdb_ctx *ctx = talloc_get_type(mem, struct sysdb_ctx);
+
+    if (ctx->domain != NULL && ctx->domain->sysdb == ctx) {
+        ctx->domain->sysdb = NULL;
+    }
+
+    return 0;
+}
+
+errno_t sysdb_add_to_domain(struct sss_domain_info *domain,
+                            struct sysdb_ctx *ctx)
+{
+    if (domain == NULL || ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing domain or sysdb context.\n"));
+        return EINVAL;
+    }
+
+    if (domain->sysdb != NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Sysdb context already set.\n"));
+        return EINVAL;
+    }
+
+    domain->sysdb = ctx;
+
+    talloc_set_destructor((TALLOC_CTX *) ctx, remove_sysdb_from_domain);
+
+    return EOK;
+}
+
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
@@ -1174,6 +1205,12 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
             return ret;
         }
 
+        ret = sysdb_add_to_domain(dom, sysdb);
+        if (ret != EOK) {
+            talloc_zfree(ctx_list);
+            return ret;
+        }
+
         ctx_list->dbs[ctx_list->num_dbs] = sysdb;
         ctx_list->num_dbs++;
     }
@@ -1195,6 +1232,41 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
 {
     return sysdb_domain_init_internal(mem_ctx, domain,
                                       db_path, false, _ctx);
+}
+
+errno_t sysdb_init_domain_and_sysdb(TALLOC_CTX *mem_ctx,
+                                    struct confdb_ctx *cdb,
+                                    const char *domain_name,
+                                    const char *db_path,
+                                    struct sss_domain_info **_domain,
+                                    struct sysdb_ctx **_ctx)
+{
+    int ret;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *ctx;
+
+    ret = confdb_get_domain(cdb, domain_name, &dom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error retrieving domain configuration.\n"));
+        return ret;
+    }
+
+    ret = sysdb_domain_init(mem_ctx, dom, db_path, &ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error opening cache database.\n"));
+        return ret;
+    }
+
+    ret = sysdb_add_to_domain(dom, ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error storing cache database context.\n"));
+        return ret;
+    }
+
+    *_domain = dom;
+    *_ctx = ctx;
+
+    return EOK;
 }
 
 int sysdb_list_init(TALLOC_CTX *mem_ctx,
@@ -1243,6 +1315,14 @@ int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
                             struct sysdb_ctx **sysdb)
 {
     int i;
+
+    if (domain->sysdb != NULL) {
+        *sysdb = domain->sysdb;
+        return EOK;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("sysdb context not stored in domain, "
+                              "trying to find by name.\n"));
 
     for (i = 0; i < ctx_list->num_dbs; i++) {
         if (ctx_list->dbs[i]->domain == domain) {
