@@ -81,6 +81,11 @@ struct proxy_nss_ops {
                                         struct servent *result,
                                         char *buffer, size_t buflen,
                                         int *errnop);
+    enum nss_status (*setservent)(void);
+    enum nss_status (*getservent_r)(struct servent *result,
+                                    char *buffer, size_t buflen,
+                                    int *errnop);
+    enum nss_status (*endservent)(void);
 };
 
 struct authtok_conv {
@@ -168,5 +173,9 @@ get_serv_byport(struct proxy_id_ctx *ctx,
                 struct sss_domain_info *dom,
                 const char *be_filter,
                 const char *protocol);
+
+errno_t enum_services(struct proxy_id_ctx *ctx,
+                      struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *dom);
 
 #endif /* __PROXY_H__ */

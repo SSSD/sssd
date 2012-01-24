@@ -1194,6 +1194,13 @@ void proxy_get_account_info(struct be_req *breq)
                                   ar->extra_value);
             break;
         case BE_FILTER_ENUM:
+            if (!ctx->ops.setservent
+                    || !ctx->ops.getservent_r
+                    || !ctx->ops.endservent) {
+                return proxy_reply(breq, DP_ERR_FATAL,
+                                   ENODEV, "Services are not supported");
+            }
+            ret = enum_services(ctx, sysdb, domain);
             break;
         default:
             return proxy_reply(breq, DP_ERR_FATAL,

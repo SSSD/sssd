@@ -259,6 +259,39 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                dlerror()));
     }
 
+    ctx->ops.setservent = proxy_dlsym(ctx->handle,
+                                      "_nss_%s_setservent",
+                                      libname);
+    if (!ctx->ops.setservent) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to load _nss_%s_setservent, error: %s. "
+               "The library does not support services.\n",
+               libname,
+               dlerror()));
+    }
+
+    ctx->ops.getservent_r = proxy_dlsym(ctx->handle,
+                                        "_nss_%s_getservent_r",
+                                        libname);
+    if (!ctx->ops.getservent_r) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to load _nss_%s_getservent_r, error: %s. "
+               "The library does not support services.\n",
+               libname,
+               dlerror()));
+    }
+
+    ctx->ops.endservent = proxy_dlsym(ctx->handle,
+                                      "_nss_%s_endservent",
+                                      libname);
+    if (!ctx->ops.endservent) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to load _nss_%s_endservent, error: %s. "
+               "The library does not support services.\n",
+               libname,
+               dlerror()));
+    }
+
     *ops = &proxy_id_ops;
     *pvt_data = ctx;
     ret = EOK;

@@ -197,3 +197,180 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+static errno_t
+get_const_aliases(TALLOC_CTX *mem_ctx,
+                  char **aliases,
+                  const char ***const_aliases)
+{
+    errno_t ret;
+    size_t i, num_aliases;
+    const char **alias_list = NULL;
+
+    for (num_aliases = 0; aliases[num_aliases]; num_aliases++);
+
+    alias_list = talloc_zero_array(mem_ctx, const char *, num_aliases + 1);
+    if (!alias_list) return ENOMEM;
+
+    for (i = 0; aliases[i]; i++) {
+        alias_list[i] = talloc_strdup(alias_list, aliases[i]);
+        if (!alias_list[i]) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+    *const_aliases = alias_list;
+
+done:
+    if (ret != EOK) {
+        talloc_zfree(alias_list);
+    }
+    return ret;
+}
+
+errno_t
+enum_services(struct proxy_id_ctx *ctx,
+              struct sysdb_ctx *sysdb,
+              struct sss_domain_info *dom)
+{
+    TALLOC_CTX *tmpctx;
+    bool in_transaction = false;
+    struct servent *svc;
+    enum nss_status status;
+    size_t buflen;
+    char *buffer;
+    char *newbuf;
+    errno_t ret, sret;
+    time_t now = time(NULL);
+    const char *protocols[2] = { NULL, NULL };
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Enumerating services\n"));
+
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    svc = talloc(tmpctx, struct servent);
+    if (!svc) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    buflen = DEFAULT_BUFSIZE;
+    buffer = talloc_size(tmpctx, buflen);
+    if (!buffer) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret) {
+        goto done;
+    }
+    in_transaction = true;
+
+    status = ctx->ops.setservent();
+    if (status != NSS_STATUS_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+again:
+    /* always zero out the svc structure */
+    memset(svc, 0, sizeof(struct servent));
+
+    /* get entry */
+    status = ctx->ops.getservent_r(svc, buffer, buflen, &ret);
+
+    switch (status) {
+    case NSS_STATUS_TRYAGAIN:
+        /* buffer too small ? */
+        if (buflen < MAX_BUF_SIZE) {
+            buflen *= 2;
+        }
+        if (buflen > MAX_BUF_SIZE) {
+            buflen = MAX_BUF_SIZE;
+        }
+        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
+        if (!newbuf) {
+            ret = ENOMEM;
+            goto done;
+        }
+        buffer = newbuf;
+        goto again;
+
+    case NSS_STATUS_NOTFOUND:
+
+        /* we are done here */
+        DEBUG(SSSDBG_TRACE_FUNC, ("Enumeration completed.\n"));
+
+        ret = sysdb_transaction_commit(sysdb);
+        if (ret != EOK) goto done;
+
+        in_transaction = false;
+        break;
+
+    case NSS_STATUS_SUCCESS:
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Service found (%s, %d/%s)\n",
+               svc->s_name, svc->s_port, svc->s_proto));
+
+        protocols[0] = svc->s_proto;
+
+        const char **const_aliases;
+        ret = get_const_aliases(tmpctx, svc->s_aliases, &const_aliases);
+        if (ret != EOK) {
+            /* Do not fail completely on errors.
+             * Just report the failure to save and go on */
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Failed to store service [%s]. Ignoring.\n",
+                   strerror(ret)));
+            goto again; /* next */
+        }
+
+        ret = sysdb_store_service(sysdb,
+                                  svc->s_name,
+                                  svc->s_port,
+                                  const_aliases,
+                                  protocols,
+                                  ctx->entry_cache_timeout,
+                                  now);
+        if (ret) {
+            /* Do not fail completely on errors.
+             * Just report the failure to save and go on */
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Failed to store service [%s]. Ignoring.\n",
+                   strerror(ret)));
+        }
+        goto again; /* next */
+
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        ret = ENXIO;
+        break;
+
+    default:
+        ret = EIO;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("proxy -> getservent_r failed (%d)[%s]\n",
+               ret, strerror(ret)));
+        break;
+    }
+
+done:
+    talloc_zfree(tmpctx);
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Could not cancel transaction! [%s]\n",
+                   strerror(sret)));
+        }
+    }
+    ctx->ops.endservent();
+    return ret;
+}
