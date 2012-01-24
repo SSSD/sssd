@@ -308,6 +308,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ldap.h \
     src/util/sss_python.h \
     src/util/sss_krb5.h \
+    src/util/sss_selinux.h \
     src/util/sss_utf8.h \
     src/util/refcount.h \
     src/util/find_uid.h \
@@ -414,7 +415,8 @@ libsss_util_la_SOURCES = \
     src/util/refcount.c \
     src/util/sss_utf8.c \
     src/util/sss_tc_utf8.c \
-    src/util/murmurhash3.c
+    src/util/murmurhash3.c \
+    src/util/sss_selinux.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS) \
