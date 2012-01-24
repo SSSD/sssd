@@ -333,6 +333,7 @@ dist_noinst_HEADERS = \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
     src/db/sysdb_autofs.h \
+    src/db/sysdb_selinux.h \
     src/db/sysdb_private.h \
     src/db/sysdb_services.h \
     src/confdb/confdb.h \
@@ -393,6 +394,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb.c \
     src/db/sysdb_ops.c \
     src/db/sysdb_search.c \
+    src/db/sysdb_selinux.c \
     src/db/sysdb_upgrade.c \
     src/db/sysdb_services.c \
     src/db/sysdb_autofs.c \

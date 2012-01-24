@@ -45,6 +45,8 @@
 #define SYSDB_GROUP_CLASS "group"
 #define SYSDB_NETGROUP_CLASS "netgroup"
 #define SYSDB_HOST_CLASS "host"
+#define SYSDB_SELINUX_USERMAP_CLASS "selinuxusermap"
+#define SYSDB_SELINUX_CLASS "selinux"
 
 #define SYSDB_NAME "name"
 #define SYSDB_NAME_ALIAS "nameAlias"
@@ -65,6 +67,8 @@
 #define SYSDB_MEMBER "member"
 #define SYSDB_MEMBERUID "memberUid"
 #define SYSDB_POSIX "isPosix"
+#define SYSDB_USER_CATEGORY "userCategory"
+#define SYSDB_HOST_CATEGORY "hostCategory"
 
 #define SYSDB_DEFAULTGROUP "defaultGroup"
 #define SYSDB_GECOS "gecos"
@@ -91,6 +95,10 @@
 #define SYSDB_NETGROUP_MEMBER "memberNisNetgroup"
 #define SYSDB_DESCRIPTION   "description"
 
+#define SYSDB_SELINUX_SEEALSO "seeAlso"
+#define SYSDB_SELINUX_USER "selinuxUser"
+#define SYSDB_SELINUX_ENABLED "enabled"
+
 #define SYSDB_CACHEDPWD "cachedPassword"
 
 #define SYSDB_UUID "uniqueID"
@@ -100,7 +108,6 @@
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
 #define SYSDB_ORIG_MEMBEROF "originalMemberOf"
-
 #define SYSDB_ORIG_MEMBER_USER "originalMemberUser"
 #define SYSDB_ORIG_MEMBER_HOST "originalMemberHost"
 
