@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_10 "0.10"
 #define SYSDB_VERSION_0_9 "0.9"
 #define SYSDB_VERSION_0_8 "0.8"
 #define SYSDB_VERSION_0_7 "0.7"
@@ -33,7 +34,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_9
+#define SYSDB_VERSION SYSDB_VERSION_0_10
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -58,6 +59,7 @@
      "@IDXATTR: nameAlias\n" \
      "@IDXATTR: servicePort\n" \
      "@IDXATTR: serviceProtocol\n" \
+     "@IDXATTR: sudoUser\n" \
      "@IDXONE: 1\n" \
      "\n" \
      "dn: @MODULES\n" \
@@ -101,6 +103,7 @@ int sysdb_upgrade_05(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_07(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_08(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_09(struct sysdb_ctx *sysdb, const char **ver);
 
 int add_string(struct ldb_message *msg, int flags,
                const char *attr, const char *value);
