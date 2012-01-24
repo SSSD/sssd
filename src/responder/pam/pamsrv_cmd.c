@@ -1045,7 +1045,7 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = pam_check_user_search(preq);
-    if (ret == EOK || ret == ENOENT) {
+    if (ret == EOK) {
         /* Make sure we don't go to the ID provider too often */
         name = preq->domain->case_sensitive ?
                 talloc_strdup(preq, preq->pd->user) :
@@ -1066,9 +1066,7 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
              * data provider again next time.
              */
         }
-    }
 
-    if (ret == EOK) {
         pam_dom_forwarder(preq);
     }
 
