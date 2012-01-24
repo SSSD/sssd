@@ -143,6 +143,7 @@ struct be_acct_req {
     int attr_type;
     int filter_type;
     char *filter_value;
+    char *extra_value;
 };
 
 struct be_sudo_req {

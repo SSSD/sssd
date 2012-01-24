@@ -269,6 +269,32 @@ static void acctinfo_callback(struct be_req *req,
     talloc_free(req);
 }
 
+static errno_t
+split_service_name_filter(TALLOC_CTX *mem_ctx,
+                          const char *filter,
+                          char **name,
+                          char **protocol)
+{
+    char *p;
+
+    *name = talloc_strdup(mem_ctx, filter);
+    if (!*name) {
+        return ENOENT;
+    }
+
+    p = strchr(*name, ':');
+    if (p) {
+        /* Protocol included */
+        *p = '\0';
+
+        *protocol = p + 1;
+    } else {
+        *protocol = NULL;
+    }
+
+    return EOK;
+}
+
 static int be_get_account_info(DBusMessage *message, struct sbus_connection *conn)
 {
     struct be_acct_req *req;
@@ -280,9 +306,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     void *user_data;
     uint32_t type;
     char *filter;
-    int filter_type;
     uint32_t attr_type;
-    char *filter_val;
     int ret;
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
@@ -343,40 +367,6 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
          */
     }
 
-    if ((attr_type != BE_ATTR_CORE) &&
-        (attr_type != BE_ATTR_MEM) &&
-        (attr_type != BE_ATTR_ALL)) {
-        /* Unrecognized attr type */
-        err_maj = DP_ERR_FATAL;
-        err_min = EINVAL;
-        err_msg = "Invalid Attrs Parameter";
-        goto done;
-    }
-
-    if (filter) {
-        if (strncmp(filter, "name=", 5) == 0) {
-            filter_type = BE_FILTER_NAME;
-            filter_val = &filter[5];
-        } else if (strncmp(filter, "idnumber=", 9) == 0) {
-            filter_type = BE_FILTER_IDNUM;
-            filter_val = &filter[9];
-        } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
-            filter_type = BE_FILTER_ENUM;
-            filter_val = NULL;
-        } else {
-            err_maj = DP_ERR_FATAL;
-            err_min = EINVAL;
-            err_msg = "Invalid Filter";
-            goto done;
-        }
-    } else {
-        err_maj = DP_ERR_FATAL;
-        err_min = EINVAL;
-        err_msg = "Missing Filter Parameter";
-        goto done;
-    }
-
-    /* process request */
     be_req = talloc_zero(becli, struct be_req);
     if (!be_req) {
         err_maj = DP_ERR_FATAL;
@@ -398,10 +388,56 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     }
     req->entry_type = type;
     req->attr_type = (int)attr_type;
-    req->filter_type = filter_type;
-    req->filter_value = talloc_strdup(req, filter_val);
 
     be_req->req_data = req;
+
+    if ((attr_type != BE_ATTR_CORE) &&
+        (attr_type != BE_ATTR_MEM) &&
+        (attr_type != BE_ATTR_ALL)) {
+        /* Unrecognized attr type */
+        err_maj = DP_ERR_FATAL;
+        err_min = EINVAL;
+        err_msg = "Invalid Attrs Parameter";
+        goto done;
+    }
+
+    if (filter) {
+        ret = EOK;
+        if (strncmp(filter, "name=", 5) == 0) {
+            req->filter_type = BE_FILTER_NAME;
+            ret = split_service_name_filter(req, &filter[5],
+                                            &req->filter_value,
+                                            &req->extra_value);
+        } else if (strncmp(filter, "idnumber=", 9) == 0) {
+            req->filter_type = BE_FILTER_IDNUM;
+            ret = split_service_name_filter(req, &filter[9],
+                                            &req->filter_value,
+                                            &req->extra_value);
+        } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
+            req->filter_type = BE_FILTER_ENUM;
+            req->filter_value = NULL;
+        } else {
+            err_maj = DP_ERR_FATAL;
+            err_min = EINVAL;
+            err_msg = "Invalid Filter";
+            goto done;
+        }
+
+        if (ret != EOK) {
+            err_maj = DP_ERR_FATAL;
+            err_min = EINVAL;
+            err_msg = "Invalid Filter";
+            goto done;
+        }
+
+    } else {
+        err_maj = DP_ERR_FATAL;
+        err_min = EINVAL;
+        err_msg = "Missing Filter Parameter";
+        goto done;
+    }
+
+    /* process request */
 
     ret = be_file_request(becli->bectx,
                           becli->bectx->bet_info[BET_ID].bet_ops->handler,
