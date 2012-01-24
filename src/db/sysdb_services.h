@@ -60,6 +60,11 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
                     struct ldb_result **_res);
 
 errno_t
+sysdb_enumservent(TALLOC_CTX *mem_ctx,
+                  struct sysdb_ctx *sysdb,
+                  struct ldb_result **_res);
+
+errno_t
 sysdb_store_service(struct sysdb_ctx *sysdb,
                     const char *primary_name,
                     int port,

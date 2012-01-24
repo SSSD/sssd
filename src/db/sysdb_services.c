@@ -690,3 +690,53 @@ done:
     talloc_zfree(tmp_ctx);
     return ret;
 }
+
+
+errno_t
+sysdb_enumservent(TALLOC_CTX *mem_ctx,
+                  struct sysdb_ctx *sysdb,
+                  struct ldb_result **_res)
+{
+    errno_t ret;
+    int lret;
+    TALLOC_CTX *tmp_ctx;
+    static const char *attrs[] = SYSDB_SVC_ATTRS;
+    struct ldb_dn *base_dn;
+    struct ldb_result *res;
+
+    *_res = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                             SYSDB_TMPL_SVC_BASE,
+                             sysdb->domain->name);
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
+                      LDB_SCOPE_SUBTREE, attrs,
+                      SYSDB_SC);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
