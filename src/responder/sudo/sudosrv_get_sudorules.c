@@ -210,7 +210,6 @@ static void sudosrv_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
           ("Data Provider returned, check the cache again\n"));
     dctx->check_provider = false;
     ret = sudosrv_get_user(dctx);
-    /* FIXME - set entry into cache so that we don't perform initgroups too often */
     if (ret == EAGAIN) {
         goto done;
     } else if (ret != EOK) {
@@ -250,8 +249,9 @@ errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx)
     struct sudo_cmd_ctx *cmd_ctx = dctx->cmd_ctx;
     struct dp_callback_ctx *cb_ctx = NULL;
 
-    /* FIXME - cache logic will be here. For now, just refresh
-     * the cache unconditionally */
+    DEBUG(SSSDBG_TRACE_FUNC, ("getting rules for %s\n",
+          cmd_ctx->username ? cmd_ctx->username : "default options"));
+
     dpreq = sss_dp_get_sudoers_send(cmd_ctx->cli_ctx,
                                     cmd_ctx->cli_ctx->rctx,
                                     dctx->domain, false,
@@ -319,7 +319,6 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
                "Will try to return what we have in cache\n",
                (unsigned int)err_maj, (unsigned int)err_min, err_msg));
 
-        /* FIXME - cache or next domain? */
         /* Loop to the next domain if possible */
         if (dctx->domain->next && dctx->cmd_ctx->check_next) {
             dctx->domain = dctx->domain->next;
@@ -355,8 +354,11 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_dom_ctx *dctx)
     errno_t ret;
     struct sysdb_ctx *sysdb;
     struct cli_ctx *cli_ctx = dctx->cmd_ctx->cli_ctx;
+    struct sudo_ctx *sudo_ctx = dctx->cmd_ctx->sudo_ctx;
     uid_t uid;
     char **groupnames;
+    const char *safe_name = dctx->cmd_ctx->username ?
+                            dctx->cmd_ctx->username : "default rules";
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -393,8 +395,21 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_dom_ctx *dctx)
         goto done;
     }
 
+    /* Store result in in-memory cache */
+    ret = sudosrv_cache_set_entry(sudo_ctx->rctx->ev, sudo_ctx,
+                                  sudo_ctx->cache, dctx->domain,
+                                  dctx->cmd_ctx->username, dctx->res_count,
+                                  dctx->res, sudo_ctx->cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to store rules in cache for "
+              "[%s@%s]\n", safe_name, dctx->domain->name));
+    } else {
+        DEBUG(SSSDBG_FUNC_DATA, ("Rules for [%s@%s] stored in in-memory cache\n",
+                                 safe_name, dctx->domain->name));
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, ("Returning rules for [%s@%s]\n",
-          dctx->cmd_ctx->username, dctx->domain->name));
+          safe_name, dctx->domain->name));
 
     ret = EOK;
 done:

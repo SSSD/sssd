@@ -151,6 +151,15 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = SSS_DP_SUDO_USER;
 
+    /* get responder ctx */
+    cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
+    if (!cmd_ctx->sudo_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    /* create domain ctx */
     dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
     if (!dctx) {
         ret = ENOMEM;
@@ -201,8 +210,18 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
         cmd_ctx->check_next = true;
     }
 
-    /* ok, find it ! */
-    ret = sudosrv_get_sudorules(dctx);
+    /* try to find rules in in-memory cache */
+    ret = sudosrv_cache_lookup(cmd_ctx->sudo_ctx->cache, dctx,
+                               cmd_ctx->check_next, cmd_ctx->username,
+                               &dctx->res_count, &dctx->res);
+    if (ret == EOK) {
+        /* cache hit */
+        DEBUG(SSSDBG_FUNC_DATA, ("Returning rules for [%s@%s] "
+              "from in-memory cache\n", cmd_ctx->username, dctx->domain->name));
+    } else if (ret == ENOENT) {
+        /* cache expired or missed */
+        ret = sudosrv_get_sudorules(dctx);
+    } /* else error */
 
 done:
     return sudosrv_cmd_done(dctx, ret);
@@ -224,6 +243,15 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
     cmd_ctx->username = NULL;
     cmd_ctx->check_next = false;
 
+    /* get responder ctx */
+    cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
+    if (!cmd_ctx->sudo_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    /* create domain ctx */
     dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
     if (!dctx) {
         ret = ENOMEM;
@@ -246,8 +274,18 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    /* ok, find it ! */
-    ret = sudosrv_get_rules(dctx);
+    /* try to find rules in in-memory cache */
+    ret = sudosrv_cache_lookup(cmd_ctx->sudo_ctx->cache, dctx,
+                               cmd_ctx->check_next, cmd_ctx->username,
+                               &dctx->res_count, &dctx->res);
+    if (ret == EOK) {
+        /* cache hit */
+        DEBUG(SSSDBG_FUNC_DATA, ("Returning defaults settings for [%s] "
+                                 "from in-memory cache\n", dctx->domain->name));
+    } else if (ret == ENOENT) {
+        /* cache expired or missed */
+        ret = sudosrv_get_rules(dctx);
+    } /* else error */
 
 done:
     return sudosrv_cmd_done(dctx, ret);

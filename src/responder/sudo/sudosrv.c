@@ -129,6 +129,27 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                             sudo_dp_reconnect_init, iter);
     }
 
+    /* Get responder options */
+
+    /* Get cache_timeout option */
+    ret = confdb_get_int(sudo_ctx->rctx->cdb, sudo_ctx,
+                         CONFDB_SUDO_CONF_ENTRY, CONFDB_SUDO_CACHE_TIMEOUT,
+                         CONFDB_DEFAULT_SUDO_CACHE_TIMEOUT,
+                         &sudo_ctx->cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
+              ret, strerror(ret)));
+        return ret;
+    }
+
+    /* Initialize in-memory cache */
+    ret = sudosrv_cache_init(sudo_ctx, 10, &sudo_ctx->cache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not create hash table: [%s]", strerror(ret)));
+        return ret;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, ("SUDO Initialization complete\n"));
 
     return EOK;

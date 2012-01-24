@@ -594,6 +594,44 @@
                 </varlistentry>
             </variablelist>
         </refsect2>
+
+        <refsect2 id='SUDO' condition="with_sudo">
+            <title>SUDO configuration options</title>
+            <para>
+                These options can be used to configure the sudo service.
+            </para>
+            <para>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>sudo_cache_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            For any sudo request that comes while SSSD is
+                            online, the SSSD will attempt to update the cached
+                            rules in order to ensure that sudo has the latest
+                            ruleset.
+                        </para>
+                        <para>
+                            The user may, however, run a couple of sudo commands
+                            successively, which would trigger multiple LDAP requests.
+                            In order to speed up this use-case, the sudo service
+                            maintains an in-memory cache that would be used for
+                            performing fast replies.
+                        </para>
+                        <para>
+                            This option controls how long (in seconds) can the sudo
+                            service cache rules for a user.
+                        </para>
+                        <para>
+                            Default: 180
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
     </refsect1>
 
     <refsect1 id='domain-sections'>

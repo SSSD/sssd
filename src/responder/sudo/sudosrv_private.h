@@ -38,10 +38,23 @@ enum sss_dp_sudo_type {
 
 struct sudo_ctx {
     struct resp_ctx *rctx;
+
+    /*
+     * options
+     */
+    int cache_timeout;
+
+    /*
+     * Key: domain          for SSS_DP_SUDO_DEFAULTS
+     *      domain:username for SSS_DP_SUDO_USER
+     * Val: struct sudo_cache_entry *
+     */
+    hash_table_t *cache;
 };
 
 struct sudo_cmd_ctx {
     struct cli_ctx *cli_ctx;
+    struct sudo_ctx *sudo_ctx;
     enum sss_dp_sudo_type type;
     char *username;
     bool check_next;
@@ -120,5 +133,25 @@ sss_dp_get_sudoers_recv(TALLOC_CTX *mem_ctx,
                         dbus_uint16_t *err_maj,
                         dbus_uint32_t *err_min,
                         char **err_msg);
+
+errno_t sudosrv_cache_init(TALLOC_CTX *mem_ctx,
+                           unsigned long count,
+                           hash_table_t **table);
+
+errno_t sudosrv_cache_lookup(hash_table_t *table,
+                             struct sudo_dom_ctx *dctx,
+                             bool check_next,
+                             const char *username,
+                             size_t *res_count,
+                             struct sysdb_attrs ***res);
+
+errno_t sudosrv_cache_set_entry(struct tevent_context *ev,
+                                struct sudo_ctx *sudo_ctx,
+                                hash_table_t *table,
+                                struct sss_domain_info *domain,
+                                const char *username,
+                                size_t res_count,
+                                struct sysdb_attrs **res,
+                                time_t timeout);
 
 #endif /* _SUDOSRV_PRIVATE_H_ */
