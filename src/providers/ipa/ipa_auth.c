@@ -30,10 +30,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/ipa/ipa_common.h"
-
-#define IPA_CONFIG_MIGRATION_ENABLED "ipaMigrationEnabled"
-#define IPA_CONFIG_SEARCH_BASE_TEMPLATE "cn=etc,%s"
-#define IPA_CONFIG_FILTER "(&(cn=ipaConfig)(objectClass=ipaGuiConfig))"
+#include "providers/ipa/ipa_config.h"
 
 static void ipa_auth_reply(struct be_req *be_req, int dp_err, int result)
 {
@@ -110,9 +107,6 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     struct get_password_migration_flag_state *state = tevent_req_data(req,
                                       struct get_password_migration_flag_state);
     int ret, dp_error;
-    char *ldap_basedn;
-    char *search_base;
-    const char **attrs;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -131,42 +125,9 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = domain_to_basedn(state, state->ipa_realm, &ldap_basedn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("domain_to_basedn failed.\n"));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    search_base = talloc_asprintf(state, IPA_CONFIG_SEARCH_BASE_TEMPLATE,
-                                  ldap_basedn);
-    if (search_base == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    attrs = talloc_array(state, const char*, 2);
-    if (attrs == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    attrs[0] = IPA_CONFIG_MIGRATION_ENABLED;
-    attrs[1] = NULL;
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_id_ctx->opts,
-                                   sdap_id_op_handle(state->sdap_op),
-                                   search_base, LDAP_SCOPE_SUBTREE,
-                                   IPA_CONFIG_FILTER, attrs, NULL, 0,
-                                   dp_opt_get_int(state->sdap_id_ctx->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
+    subreq = ipa_get_config_send(state, state->ev,
+                                 sdap_id_op_handle(state->sdap_op),
+                                 state->sdap_id_ctx->opts, state->ipa_realm, NULL);
 
     tevent_req_set_callback(subreq, get_password_migration_flag_done, req);
 }
@@ -178,30 +139,26 @@ static void get_password_migration_flag_done(struct tevent_req *subreq)
     struct get_password_migration_flag_state *state = tevent_req_data(req,
                                       struct get_password_migration_flag_state);
     int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
+    struct sysdb_attrs *reply = NULL;
     const char *value = NULL;
 
-    ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
+    ret = ipa_get_config_recv(subreq, state, &reply);
     talloc_zfree(subreq);
     if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
-    if (reply_count != 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unexpected number of results, expected 1, "
-                                  "got %d.\n", reply_count));
-        tevent_req_error(req, EINVAL);
-        return;
-    }
-
-    ret = sysdb_attrs_get_string(reply[0], IPA_CONFIG_MIGRATION_ENABLED, &value);
+    ret = sysdb_attrs_get_string(reply, IPA_CONFIG_MIGRATION_ENABLED, &value);
     if (ret == EOK && strcasecmp(value, "true") == 0) {
         state->password_migration = true;
     }
 
-    tevent_req_done(req);
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static int get_password_migration_flag_recv(struct tevent_req *req,
