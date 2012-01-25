@@ -357,6 +357,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_autofs.h \
     src/providers/ldap/sdap_id_op.h \
     src/providers/ipa/ipa_common.h \
+    src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
@@ -1058,6 +1059,7 @@ libsss_krb5_la_LDFLAGS = \
 libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_init.c \
     src/providers/ipa/ipa_common.c \
+    src/providers/ipa/ipa_config.c \
     src/providers/ipa/ipa_utils.c \
     src/providers/ipa/ipa_id.c \
     src/providers/ipa/ipa_netgroups.c \
