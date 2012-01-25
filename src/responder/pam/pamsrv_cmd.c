@@ -22,6 +22,7 @@
 
 #include <time.h>
 #include "util/util.h"
+#include "util/sss_selinux.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
@@ -31,6 +32,7 @@
 #include "responder/pam/pamsrv.h"
 #include "responder/pam/pam_helpers.h"
 #include "db/sysdb.h"
+#include "db/sysdb_selinux.h"
 
 enum pam_verbosity {
     PAM_VERBOSITY_NO_MESSAGES = 0,
@@ -352,6 +354,158 @@ fail:
     return ret;
 }
 
+static errno_t get_selinux_string(struct pam_auth_req *preq)
+{
+    struct sysdb_ctx *sysdb;
+    TALLOC_CTX *tmp_ctx;
+    struct pam_data *pd = preq->pd;
+    char *file_content = NULL;
+    struct ldb_message **usermaps;
+    struct ldb_message *config;
+    const char *default_user = NULL;
+    const char *tmp_str;
+    char *order = NULL;
+    char **order_array;
+    errno_t ret;
+    int i, j;
+    size_t order_count;
+    size_t len;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                  preq->domain, &sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_search_selinux_config(tmp_ctx, sysdb, NULL, &config);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("No SELinux support found for the domain\n"));
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    /* We need two values from the config object:
+     * - default SELinux user in case no other is available
+     * - the order for fetched usermaps
+     */
+    for (i = 0; i < config->num_elements; i++) {
+        if (strcasecmp(config->elements[i].name, SYSDB_SELINUX_DEFAULT_USER) == 0) {
+            default_user = (const char *)config->elements[i].values[0].data;
+        } else if (strcasecmp(config->elements[i].name, SYSDB_SELINUX_DEFAULT_ORDER) == 0) {
+            tmp_str = (char *)config->elements[i].values[0].data;
+            len = config->elements[i].values[0].length;
+            order = talloc_strdup(tmp_ctx, tmp_str);
+            if (order == NULL) {
+                goto done;
+            }
+        }
+    }
+
+    if (default_user == NULL || order == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("No default SELinux user "
+                                  "or map order given!\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* The "order" string contains one or more SELinux user records
+     * separated by $. Now we need to create an array of string from
+     * this one string. First find out how many elements in the array
+     * will be. This way only one alloc will be necessary for the array
+     */
+    order_count = 1;
+    for (i = 0; i < len; i++) {
+        if (order[i] == '$') order_count++;
+    }
+
+    order_array = talloc_array(tmp_ctx, char *, order_count);
+    if (order_array == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Now fill the array with pointers to the original string. Also
+     * use binary zeros to make multiple string out of the one.
+     */
+    order_array[0] = order;
+    order_count = 1;
+    for (i = 0; i < len; i++) {
+        if (order[i] == '$') {
+            order[i] = '\0';
+            order_array[order_count] = &order[i+1];
+            order_count++;
+        }
+    }
+
+    /* Fetch all maps applicable to the user who is currently logging in */
+    ret = sysdb_search_selinux_usermap_by_username(tmp_ctx, sysdb, pd->user,
+                                                   &usermaps);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No user maps found, using default!"));
+        file_content = talloc_strdup(tmp_ctx, default_user);
+        if (file_content == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        file_content = talloc_strdup(tmp_ctx, "");
+        if (file_content == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Iterate through the order array and try to find SELinux users
+         * in fetched maps. The order array contains all SELinux users
+         * allowed in the domain in the same order they should appear
+         * in the SELinux config file. If any user from the order array
+         * is not in fetched user maps, it means it should not be allowed
+         * for the user who is just logging in.
+         *
+         * Right now we have empty content of the SELinux config file,
+         * we shall add only those SELinux users that are present both in
+         * the order array and user maps applicable to the user who is
+         * logging in.
+         */
+        for (i = 0; i < order_count; i++) {
+            for (j = 0; usermaps[j] != NULL; j++) {
+                tmp_str = sss_selinux_map_get_seuser(usermaps[j]);
+
+                if (tmp_str && !strcasecmp(tmp_str, order_array[i])) {
+                    file_content = talloc_asprintf_append(file_content, "%s\n",
+                                                          tmp_str);
+                    if (file_content == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    len = strlen(file_content);
+    if (len > 0) {
+        ret = pam_add_response(pd, SSS_PAM_SELINUX_MAP, len,
+                               (uint8_t *)file_content);
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static errno_t filter_responses(struct confdb_ctx *cdb,
                                 struct response_data *resp_list)
 {
@@ -578,6 +732,15 @@ static void pam_reply(struct pam_auth_req *preq)
             goto done;
         }
         return;
+    }
+
+    if (pd->cmd == SSS_PAM_OPEN_SESSION) {
+        /* Try to fetch data from sysdb
+         * (auth already passed -> we should have them) */
+        ret = get_selinux_string(preq);
+        if (ret != EOK) {
+            pd->pam_status = PAM_SYSTEM_ERR;
+        }
     }
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
