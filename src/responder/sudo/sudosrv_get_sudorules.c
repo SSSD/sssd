@@ -133,8 +133,8 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
 
         /* If cache miss and we haven't checked DP yet OR the entry is
          * outdated, go to DP */
-        if ((dctx->user->count == 0 && dctx->check_provider) ||
-             cache_expire < time(NULL)) {
+        if ((dctx->user->count == 0 || cache_expire < time(NULL))
+            && dctx->check_provider) {
             dpreq = sss_dp_get_account_send(cli_ctx, cli_ctx->rctx,
                                             dom, false, SSS_DP_INITGROUPS,
                                             cmd_ctx->username, 0, NULL);
