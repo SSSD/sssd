@@ -114,7 +114,8 @@ if HAVE_CHECK
         crypto-tests \
         util-tests \
         debug-tests \
-        ipa_hbac-tests
+        ipa_hbac-tests \
+        sss_idmap-tests
 endif
 
 check_PROGRAMS = \
@@ -461,7 +462,7 @@ libsss_util_la_SOURCES += \
     src/util/sss_ssh.c
 endif
 
-lib_LTLIBRARIES = libipa_hbac.la
+lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c \
@@ -470,8 +471,16 @@ libipa_hbac_la_LDFLAGS = \
     -version 1:0:1 \
     $(UNICODE_LIBS)
 
+dist_pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
+libsss_idmap_la_SOURCES = \
+    src/lib/idmap/sss_idmap.c
+libsss_idmap_la_LDFLAGS = \
+    -version 1:0:1
+
+
 include_HEADERS = \
-    src/providers/ipa/ipa_hbac.h
+    src/providers/ipa/ipa_hbac.h \
+    src/lib/idmap/sss_idmap.h
 
 ####################
 # Program Binaries #
@@ -913,6 +922,17 @@ ipa_hbac_tests_LDADD = \
     libsss_util.la \
     libsss_test_common.la \
     libipa_hbac.la
+
+sss_idmap_tests_SOURCES = \
+    src/tests/sss_idmap-tests.c
+sss_idmap_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+sss_idmap_tests_LDADD = \
+    $(CHECK_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    libsss_idmap.la
 
 endif
 
@@ -1383,6 +1403,7 @@ if HAVE_DOXYGEN
 docs:
 	$(DOXYGEN) src/doxy.config
 	$(DOXYGEN) src/providers/ipa/ipa_hbac.doxy
+	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 if BUILD_SUDO
 	$(DOXYGEN) src/sss_client/sudo/sss_sudo.doxy
 endif BUILD_SUDO
