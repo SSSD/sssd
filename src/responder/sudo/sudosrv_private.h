@@ -43,6 +43,7 @@ struct sudo_ctx {
      * options
      */
     int cache_timeout;
+    bool timed;
 
     /*
      * Key: domain          for SSS_DP_SUDO_DEFAULTS

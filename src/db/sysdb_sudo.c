@@ -18,7 +18,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _XOPEN_SOURCE
+
 #include <talloc.h>
+#include <time.h>
 
 #include "db/sysdb.h"
 #include "db/sysdb_private.h"
@@ -32,34 +35,131 @@
 } while(0)
 
 /* ====================  Utility functions ==================== */
-static char *
-get_sudo_time_filter(TALLOC_CTX *mem_ctx)
+
+static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
+                                     time_t now,
+                                     bool *result)
 {
-    time_t now;
-    struct tm *tp;
-    char timebuffer[64];
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char **values = NULL;
+    char *tret = NULL;
+    time_t converted;
+    struct tm tm;
+    errno_t ret;
+    int i;
 
-    /* Make sure we have a formatted timestamp for __now__. */
-    time(&now);
-    if ((tp = gmtime(&now)) == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("unable to get GMT time\n"));
-        return NULL;
+    tmp_ctx = talloc_new(NULL);
+    NULL_CHECK(tmp_ctx, ret, done);
+
+    /*
+     * From man sudoers.ldap:
+     *
+     * A timestamp is in the form yyyymmddHHMMZ.
+     * If multiple sudoNotBefore entries are present, the *earliest* is used.
+     * If multiple sudoNotAfter entries are present, the *last one* is used.
+     */
+
+    /* check for sudoNotBefore */
+    ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_NOTBEFORE,
+                                       tmp_ctx, &values);
+    if (ret != EOK) {
+        goto done;
+    }
+    if (values != NULL && values[0] != NULL) {
+        tret = strptime(values[0], SYSDB_SUDO_TIME_FORMAT, &tm);
+        if (tret == NULL || *tret != '\0') {
+            DEBUG(SSSDBG_FUNC_DATA, ("Invalid time format!\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        converted = mktime(&tm);
+
+        if (now < converted) {
+            *result = false;
+            goto done;
+        }
     }
 
-    /* Format the timestamp according to the RFC. */
-    if (strftime(timebuffer, sizeof(timebuffer), "%Y%m%d%H%M%SZ", tp) == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("unable to format timestamp\n"));
-        return NULL;
+    /* check for sudoNotAfter */
+    ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_NOTAFTER,
+                                       tmp_ctx, &values);
+    if (ret != EOK) {
+        goto done;
+    }
+    if (values != NULL && values[0] != NULL) {
+        /* find last value */
+        for (i = 0; values[i] != NULL; i++) {
+            // do nothing
+        }
+
+        tret = strptime(values[i - 1], SYSDB_SUDO_TIME_FORMAT, &tm);
+        if (tret == NULL || *tret != '\0') {
+            DEBUG(SSSDBG_FUNC_DATA, ("Invalid time format!\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        converted = mktime(&tm);
+
+        if (now > converted) {
+            *result = false;
+            goto done;
+        }
     }
 
-    return talloc_asprintf(mem_ctx, "(&(|(!(%s=*))(%s>=%s))"
-                           "(|(!(%s=*))(%s<=%s)))",
-                           SYSDB_SUDO_CACHE_AT_NOTAFTER,
-                           SYSDB_SUDO_CACHE_AT_NOTAFTER,
-                           timebuffer,
-                           SYSDB_SUDO_CACHE_AT_NOTBEFORE,
-                           SYSDB_SUDO_CACHE_AT_NOTBEFORE,
-                           timebuffer);
+    *result = true;
+    ret = EOK;
+
+done:
+    if (ret == ENOENT) {
+        *result = true;
+        ret = EOK;
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_sudo_filter_rules_by_time(TALLOC_CTX *mem_ctx,
+                                        size_t in_num_rules,
+                                        struct sysdb_attrs **in_rules,
+                                        time_t now,
+                                        size_t *_num_rules,
+                                        struct sysdb_attrs ***_rules)
+{
+    size_t num_rules = 0;
+    struct sysdb_attrs **rules = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    bool allowed = false;
+    errno_t ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    NULL_CHECK(tmp_ctx, ret, done);
+
+    if (now == 0) {
+        now = time(NULL);
+    }
+
+    for (i = 0; i < in_num_rules; i++) {
+        ret = sysdb_sudo_check_time(in_rules[i], now, &allowed);
+        if (ret == EOK && allowed) {
+            num_rules++;
+            rules = talloc_realloc(tmp_ctx, rules, struct sysdb_attrs *,
+                                   num_rules);
+            NULL_CHECK(rules, ret, done);
+
+            rules[num_rules - 1] = in_rules[i];
+        }
+    }
+
+    *_num_rules = num_rules;
+    *_rules = talloc_steal(mem_ctx, rules);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t
@@ -70,7 +170,6 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
     TALLOC_CTX *tmp_ctx = NULL;
     char *filter = NULL;
     char *specific_filter = NULL;
-    char *time_filter = NULL;
     errno_t ret;
     int i;
 
@@ -123,23 +222,11 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
         NULL_CHECK(specific_filter, ret, done);
     }
 
-    /* build time filter */
-
-    if (flags & SYSDB_SUDO_FILTER_TIMED) {
-        time_filter = get_sudo_time_filter(tmp_ctx);
-        NULL_CHECK(time_filter, ret, done);
-    }
-
     /* build global filter */
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)",
                              SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC);
     NULL_CHECK(filter, ret, done);
-
-    if (time_filter != NULL) {
-        filter = talloc_strdup_append(filter, time_filter);
-        NULL_CHECK(filter, ret, done);
-    }
 
     if (specific_filter[0] != '\0') {
         filter = talloc_asprintf_append(filter, "(|%s)", specific_filter);

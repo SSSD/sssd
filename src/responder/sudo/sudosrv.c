@@ -142,6 +142,17 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    /* Get sudo_timed option */
+    ret = confdb_get_bool(sudo_ctx->rctx->cdb, sudo_ctx,
+                          CONFDB_SUDO_CONF_ENTRY, CONFDB_SUDO_TIMED,
+                          CONFDB_DEFAULT_SUDO_TIMED,
+                          &sudo_ctx->timed);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
+              ret, strerror(ret)));
+        return ret;
+    }
+
     /* Initialize in-memory cache */
     ret = sudosrv_cache_init(sudo_ctx, 10, &sudo_ctx->cache);
     if (ret != EOK) {

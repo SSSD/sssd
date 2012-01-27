@@ -26,6 +26,7 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 #include "responder/sudo/sudosrv_private.h"
+#include "db/sysdb_sudo.h"
 
 static errno_t sudosrv_cmd_send_reply(struct sudo_cmd_ctx *cmd_ctx,
                                       uint8_t *response_body,
@@ -90,12 +91,30 @@ errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret)
 {
     uint8_t *response_body = NULL;
     size_t response_len = 0;
+    size_t num_rules = dctx->res_count;
+    struct sysdb_attrs **rules = dctx->res;
 
     switch (ret) {
     case EOK:
+        /*
+         * Parent of dctx->res is in-memory cache, we must not talloc_free it!
+         */
+        if (!dctx->cmd_ctx->sudo_ctx->timed) {
+            num_rules = dctx->res_count;
+            rules = dctx->res;
+        } else {
+            /* filter rules by time */
+            ret = sysdb_sudo_filter_rules_by_time(dctx, dctx->res_count,
+                                                  dctx->res, 0,
+                                                  &num_rules, &rules);
+            if (ret != EOK) {
+                return EFAULT;
+            }
+        }
+
         /* send result */
         ret = sudosrv_get_sudorules_build_response(dctx->cmd_ctx, SSS_SUDO_ERROR_OK,
-                                                   dctx->res_count, dctx->res,
+                                                   num_rules, rules,
                                                    &response_body, &response_len);
         if (ret != EOK) {
             return EFAULT;

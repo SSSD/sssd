@@ -95,6 +95,8 @@
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"
 #define CONFDB_SUDO_CACHE_TIMEOUT "sudo_cache_timeout"
 #define CONFDB_DEFAULT_SUDO_CACHE_TIMEOUT 180
+#define CONFDB_SUDO_TIMED "sudo_timed"
+#define CONFDB_DEFAULT_SUDO_TIMED false
 
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"
