@@ -34,7 +34,7 @@ struct sss_dp_get_sudoers_info {
     struct sss_domain_info *dom;
 
     bool fast_reply;
-    enum sss_dp_type type;
+    enum sss_dp_sudo_type type;
     const char *name;
 };
 
@@ -46,7 +46,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
                         struct resp_ctx *rctx,
                         struct sss_domain_info *dom,
                         bool fast_reply,
-                        enum sss_dp_type type,
+                        enum sss_dp_sudo_type type,
                         const char *name)
 {
     struct tevent_req *req;

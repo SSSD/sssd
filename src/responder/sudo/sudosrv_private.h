@@ -98,7 +98,7 @@ int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
                                  uint8_t **_response_body,
                                  size_t *_response_len);
 
-enum sss_dp_type {
+enum sss_dp_sudo_type {
     SSS_DP_SUDO
 };
 
@@ -107,7 +107,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
                         struct resp_ctx *rctx,
                         struct sss_domain_info *dom,
                         bool fast_reply,
-                        enum sss_dp_type type,
+                        enum sss_dp_sudo_type type,
                         const char *name);
 
 errno_t
