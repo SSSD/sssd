@@ -29,6 +29,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <string.h>
+#include <stdint.h>
 #include <limits.h>
 
 #ifndef HAVE_ERRNO_T
