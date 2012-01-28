@@ -29,6 +29,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "util/sss_krb5.h"
+#include "db/sysdb_services.h"
 
 struct dp_option ipa_basic_opts[] = {
     { "ipa_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -63,6 +64,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_refresh_enabled", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sudo_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_service_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ipa_v1" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
@@ -195,6 +197,14 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE }
+};
+
+struct sdap_attr_map ipa_service_map[] = {
+    { "ldap_service_object_class", "ipService", SYSDB_SVC_CLASS, NULL },
+    { "ldap_service_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
+    { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
+    { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL }
 };
 
 int ipa_get_options(TALLOC_CTX *memctx,
@@ -557,6 +567,25 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         }
     }
 
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_SERVICE_SEARCH_BASE)) {
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_SERVICE_SEARCH_BASE,
+                                dp_opt_get_string(ipa_opts->id->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic,
+                                    SDAP_GROUP_SEARCH_BASE)));
+    }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+                                 SDAP_SERVICE_SEARCH_BASE,
+                                 &ipa_opts->id->service_search_bases);
+    if (ret != EOK) goto done;
+
     ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
                        ipa_attr_map,
                        SDAP_AT_GENERAL,
@@ -597,6 +626,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        ipa_host_map,
                        IPA_OPTS_HOST,
                        &ipa_opts->id->host_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_service_map,
+                       IPA_OPTS_HOST,
+                       &ipa_opts->id->service_map);
     if (ret != EOK) {
         goto done;
     }
