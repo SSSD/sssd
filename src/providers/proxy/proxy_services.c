@@ -92,6 +92,7 @@ proxy_save_service(struct sysdb_ctx *sysdb,
                               ntohs(svc->s_port),
                               cased_aliases,
                               protocols,
+                              NULL, NULL,
                               cache_timeout,
                               now);
 done:
@@ -337,6 +338,7 @@ again:
                                   svc->s_port,
                                   const_aliases,
                                   protocols,
+                                  NULL, NULL,
                                   ctx->entry_cache_timeout,
                                   now);
         if (ret) {

@@ -70,6 +70,8 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
                     int port,
                     const char **aliases,
                     const char **protocols,
+                    struct sysdb_attrs *extra_attrs,
+                    char **remove_attrs,
                     uint64_t cache_timeout,
                     time_t now);
 

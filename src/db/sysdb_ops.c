@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "db/sysdb_private.h"
+#include "db/sysdb_services.h"
 #include "util/crypto/sss_crypto.h"
 #include <time.h>
 
@@ -2949,20 +2950,21 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
     msg = ldb_msg_new(NULL);
     if (!msg) return ENOMEM;
 
-    if (type == SYSDB_MEMBER_USER) {
+    switch(type) {
+    case SYSDB_MEMBER_USER:
         msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain->name, name);
-        if (!msg->dn) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else if (type == SYSDB_MEMBER_GROUP) {
+        break;
+
+    case SYSDB_MEMBER_GROUP:
         msg->dn = sysdb_group_dn(sysdb, msg, sysdb->domain->name, name);
-        if (!msg->dn) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        ret = EINVAL;
+        break;
+
+    case SYSDB_MEMBER_SERVICE:
+        msg->dn = sysdb_svc_dn(sysdb, msg, sysdb->domain->name, name);
+        break;
+    }
+    if (!msg->dn) {
+        ret = ENOMEM;
         goto done;
     }
 

@@ -553,7 +553,8 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
 
 enum sysdb_member_type {
     SYSDB_MEMBER_USER,
-    SYSDB_MEMBER_GROUP
+    SYSDB_MEMBER_GROUP,
+    SYSDB_MEMBER_SERVICE
 };
 
 int sysdb_add_group_member(struct sysdb_ctx *sysdb,

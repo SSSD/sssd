@@ -3015,7 +3015,7 @@ START_TEST(test_sysdb_store_services)
     ret = sysdb_store_service(test_ctx->sysdb,
                               primary_name, port,
                               aliases, protocols,
-                              1, 1);
+                              NULL, NULL, 1, 1);
     fail_if (ret != EOK);
 
     /* Search by name and make sure the results match */
@@ -3032,7 +3032,7 @@ START_TEST(test_sysdb_store_services)
     ret = sysdb_store_service(test_ctx->sysdb,
                               alt_primary_name, port,
                               aliases, protocols,
-                              1, 1);
+                              NULL, NULL, 1, 1);
     fail_if (ret != EOK, "[%s]", strerror(ret));
 
     services_check_match_name(test_ctx,
@@ -3049,14 +3049,14 @@ START_TEST(test_sysdb_store_services)
     ret = sysdb_store_service(test_ctx->sysdb,
                               primary_name, port,
                               aliases, protocols,
-                              1, 1);
+                              NULL, NULL, 1, 1);
     fail_if (ret != EOK, "[%s]", strerror(ret));
 
     /* Change the port number */
     ret = sysdb_store_service(test_ctx->sysdb,
                               primary_name, altport,
                               aliases, protocols,
-                              1, 1);
+                              NULL, NULL, 1, 1);
     fail_if (ret != EOK, "[%s]", strerror(ret));
 
     /* Search by name and make sure the results match */

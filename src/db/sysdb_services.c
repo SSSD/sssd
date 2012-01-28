@@ -183,6 +183,8 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
                     int port,
                     const char **aliases,
                     const char **protocols,
+                    struct sysdb_attrs *extra_attrs,
+                    char **remove_attrs,
                     uint64_t cache_timeout,
                     time_t now)
 {
@@ -367,11 +369,16 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
     if (ret != EOK) goto done;
 
     /* Set the cache timeout */
-    attrs = sysdb_new_attrs(tmp_ctx);
-    if (!attrs) {
-        ret = ENOMEM;
-        goto done;
+    if (!extra_attrs) {
+        attrs = sysdb_new_attrs(tmp_ctx);
+        if (!attrs) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        attrs = extra_attrs;
     }
+
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
 
@@ -382,6 +389,18 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
 
     ret = sysdb_set_entry_attr(sysdb, update_dn, attrs, SYSDB_MOD_REP);
     if (ret != EOK) goto done;
+
+    if (remove_attrs) {
+        ret = sysdb_remove_attrs(sysdb, primary_name,
+                                 SYSDB_MEMBER_SERVICE,
+                                 remove_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not remove missing attributes: [%s]\n",
+                   strerror(ret)));
+            goto done;
+        }
+    }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret == EOK) in_transaction = false;
