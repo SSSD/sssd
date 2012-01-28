@@ -909,6 +909,7 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_id_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \
     src/providers/ldap/ldap_id_netgroup.c \
+    src/providers/ldap/ldap_id_services.c \
     src/providers/ldap/sdap_access.c \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_init.c \
@@ -919,6 +920,7 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/sdap_async_initgroups.c \
     src/providers/ldap/sdap_async_connection.c \
     src/providers/ldap/sdap_async_netgroups.c \
+    src/providers/ldap/sdap_async_services.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_id_op.c \

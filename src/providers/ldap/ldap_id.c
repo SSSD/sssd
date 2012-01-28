@@ -756,6 +756,7 @@ static void sdap_account_info_users_done(struct tevent_req *req);
 static void sdap_account_info_groups_done(struct tevent_req *req);
 static void sdap_account_info_initgr_done(struct tevent_req *req);
 static void sdap_account_info_netgroups_done(struct tevent_req *req);
+static void sdap_account_info_services_done(struct tevent_req *req);
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
 
 void sdap_account_info_handler(struct be_req *breq)
@@ -858,6 +859,24 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
         tevent_req_set_callback(req, sdap_account_info_netgroups_done, breq);
         break;
 
+    case BE_REQ_SERVICES:
+        /* skip enumerations on demand */
+        if (ar->filter_type == BE_FILTER_ENUM) {
+            return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
+        }
+
+        req = services_get_send(breq, breq->be_ctx->ev, ctx,
+                                ar->filter_value,
+                                ar->extra_value,
+                                ar->filter_type);
+        if (!req) {
+            return sdap_handler_done(breq, DP_ERR_FATAL,
+                                     ENOMEM, "Out of memory");
+        }
+        tevent_req_set_callback(req, sdap_account_info_services_done, breq);
+
+        break;
+
     default: /*fail*/
         ret = EINVAL;
         err = "Invalid request type";
@@ -932,4 +951,15 @@ static void sdap_account_info_netgroups_done(struct tevent_req *req)
     talloc_zfree(req);
 
     sdap_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");
+}
+
+static void sdap_account_info_services_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    int ret, dp_error;
+
+    ret = services_get_recv(req, &dp_error);
+    talloc_zfree(req);
+
+    sdap_account_info_complete(breq, dp_error, ret, "Service lookup failed");
 }

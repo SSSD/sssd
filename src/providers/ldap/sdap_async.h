@@ -211,4 +211,21 @@ errno_t sdap_save_all_names(const char *name,
                             bool lowercase,
                             struct sysdb_attrs *attrs);
 
+struct tevent_req *
+sdap_get_services_send(TALLOC_CTX *memctx,
+                       struct tevent_context *ev,
+                       struct sss_domain_info *dom,
+                       struct sysdb_ctx *sysdb,
+                       struct sdap_options *opts,
+                       struct sdap_search_base **search_bases,
+                       struct sdap_handle *sh,
+                       const char **attrs,
+                       const char *filter,
+                       int timeout,
+                       bool enumeration);
+errno_t
+sdap_get_services_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
+                       char **usn_value);
+
 #endif /* _SDAP_ASYNC_H_ */

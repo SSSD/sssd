@@ -164,6 +164,7 @@ enum sdap_basic_opt {
     SDAP_GROUP_SEARCH_BASE,
     SDAP_GROUP_SEARCH_SCOPE,
     SDAP_GROUP_SEARCH_FILTER,
+    SDAP_SERVICE_SEARCH_BASE,
     SDAP_SUDO_SEARCH_BASE,
     SDAP_SUDO_REFRESH_ENABLED,
     SDAP_SUDO_REFRESH_TIMEOUT,
@@ -302,6 +303,15 @@ enum sdap_sudorule_attrs {
     SDAP_OPTS_SUDO  /* attrs counter */
 };
 
+enum sdap_service_attrs {
+    SDAP_OC_SERVICE = 0,
+    SDAP_AT_SERVICE_NAME,
+    SDAP_AT_SERVICE_PORT,
+    SDAP_AT_SERVICE_PROTOCOL,
+    SDAP_AT_SERVICE_USN,
+    SDAP_OPTS_SERVICES /* attrs counter */
+};
+
 struct sdap_attr_map {
     const char *opt_name;
     const char *def_name;
@@ -322,6 +332,8 @@ struct sdap_options {
     struct sdap_attr_map *group_map;
     struct sdap_attr_map *netgroup_map;
     struct sdap_attr_map *host_map;
+    struct sdap_attr_map *service_map;
+
     /* FIXME - should this go to a special struct to avoid mixing with name-service-switch maps? */
     struct sdap_attr_map *sudorule_map;
 
@@ -338,6 +350,7 @@ struct sdap_options {
     struct sdap_search_base **group_search_bases;
     struct sdap_search_base **netgroup_search_bases;
     struct sdap_search_base **sudo_search_bases;
+    struct sdap_search_base **service_search_bases;
 };
 
 struct sdap_server_opts {

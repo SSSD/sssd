@@ -715,6 +715,9 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
     case SDAP_SUDO_SEARCH_BASE:
         bases = &opts->sudo_search_bases;
         break;
+    case SDAP_SERVICE_SEARCH_BASE:
+        bases = &opts->service_search_bases;
+        break;
     default:
         return EINVAL;
     }
@@ -793,6 +796,14 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
        ret = sdap_set_search_base(opts,
                                    SDAP_SUDO_SEARCH_BASE,
                                    naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* Services */
+    if (!opts->service_search_bases) {
+       ret = sdap_set_search_base(opts,
+                                  SDAP_SERVICE_SEARCH_BASE,
+                                  naming_context);
         if (ret != EOK) goto done;
     }
 

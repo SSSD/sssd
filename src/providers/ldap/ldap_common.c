@@ -28,6 +28,7 @@
 #include "providers/krb5/krb5_common.h"
 #include "providers/ldap/sdap_sudo_timer.h"
 #include "db/sysdb_sudo.h"
+#include "db/sysdb_services.h"
 
 #include "util/sss_krb5.h"
 #include "util/crypto/sss_crypto.h"
@@ -51,6 +52,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_service_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_refresh_enabled", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sudo_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
@@ -234,6 +236,14 @@ struct sdap_attr_map native_sudorule_map[] = {
     { "ldap_sudorule_order", "sudoOrder", SYSDB_SUDO_CACHE_AT_ORDER, NULL }
 };
 
+struct sdap_attr_map service_map[] = {
+    { "ldap_service_object_class", "ipService", SYSDB_SVC_CLASS, NULL },
+    { "ldap_service_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
+    { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
+    { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL }
+};
+
 int ldap_get_options(TALLOC_CTX *memctx,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
@@ -243,6 +253,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_user_map;
     struct sdap_attr_map *default_group_map;
     struct sdap_attr_map *default_netgroup_map;
+    struct sdap_attr_map *default_service_map;
     struct sdap_options *opts;
     char *schema;
     const char *search_base;
@@ -259,6 +270,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     const int search_base_options[] = { SDAP_USER_SEARCH_BASE,
                                         SDAP_GROUP_SEARCH_BASE,
                                         SDAP_NETGROUP_SEARCH_BASE,
+                                        SDAP_SERVICE_SEARCH_BASE,
                                         -1 };
 
     opts = talloc_zero(memctx, struct sdap_options);
@@ -316,6 +328,12 @@ int ldap_get_options(TALLOC_CTX *memctx,
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &opts->netgroup_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* Service search */
+    ret = sdap_parse_search_base(opts, opts->basic,
+                                 SDAP_SERVICE_SEARCH_BASE,
+                                 &opts->service_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
@@ -402,6 +420,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307_user_map;
         default_group_map = rfc2307_group_map;
         default_netgroup_map = netgroup_map;
+        default_service_map = service_map;
     } else
     if (strcasecmp(schema, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
@@ -409,6 +428,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
         default_netgroup_map = netgroup_map;
+        default_service_map = service_map;
     } else
     if (strcasecmp(schema, "IPA") == 0) {
         opts->schema_type = SDAP_SCHEMA_IPA_V1;
@@ -416,6 +436,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
         default_netgroup_map = netgroup_map;
+        default_service_map = service_map;
     } else
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
@@ -423,6 +444,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
         default_netgroup_map = netgroup_map;
+        default_service_map = service_map;
     } else {
         DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;
@@ -457,6 +479,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
                        default_netgroup_map,
                        SDAP_OPTS_NETGROUP,
                        &opts->netgroup_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_service_map,
+                       SDAP_OPTS_SERVICES,
+                       &opts->service_map);
     if (ret != EOK) {
         goto done;
     }
@@ -664,6 +694,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_SUDO_SEARCH_BASE:
         class_name = "SUDO";
+        break;
+    case SDAP_SERVICE_SEARCH_BASE:
+        class_name = "SERVICE";
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,

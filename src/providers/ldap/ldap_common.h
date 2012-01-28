@@ -155,6 +155,18 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct sdap_id_ctx *ctx,
                                           const char *name);
 int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out);
+
+struct tevent_req *
+services_get_send(TALLOC_CTX *mem_ctx,
+                  struct tevent_context *ev,
+                  struct sdap_id_ctx *id_ctx,
+                  const char *name,
+                  const char *protocol,
+                  int filter_type);
+
+errno_t
+services_get_recv(struct tevent_req *req, int *dp_error_out);
+
 /* setup child logging */
 int setup_child(struct sdap_id_ctx *ctx);
 
