@@ -228,6 +228,13 @@ option_strings = {
     'ldap_netgroup_uuid' : _('Netgroup UUID attribute'),
     'ldap_netgroup_modify_timestamp' : _('Modification time attribute for netgroups'),
 
+    'ldap_service_search_base' : _('Base DN for service lookups'),
+    'ldap_service_object_class' : _('Objectclass for services'),
+    'ldap_service_name' : _('Service name attribute'),
+    'ldap_service_port' : _('Service port attribute'),
+    'ldap_service_proto' : _('Service protocol attribute'),
+    #replaced by ldap_entry_usn# 'ldap_service_entry_usn' : _('Service entryUSN attribute'),
+
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
 

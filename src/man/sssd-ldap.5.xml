@@ -887,6 +887,76 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_service_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a service entry in LDAP.
+                        </para>
+                        <para>
+                            Default: ipService
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_service_name (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the name of
+                            service attributes and their aliases.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_service_port (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the port managed
+                            by this service.
+                        </para>
+                        <para>
+                            Default: ipServicePort
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_service_proto (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the protocols
+                            understood by this service.
+                        </para>
+                        <para>
+                            Default: ipServiceProtocol
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_service_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            An optional base DN to restrict service searches
+                            to a specific subtree.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_search_timeout (integer)</term>
                     <listitem>
                         <para>
