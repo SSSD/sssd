@@ -28,6 +28,7 @@
 #include <tevent.h>
 #include "providers/dp_backend.h"
 #include "providers/ldap/sdap.h"
+#include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"
 
 struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
@@ -227,5 +228,15 @@ errno_t
 sdap_get_services_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        char **usn_value);
+
+struct tevent_req *
+enum_services_send(TALLOC_CTX *memctx,
+                   struct tevent_context *ev,
+                   struct sdap_id_ctx *id_ctx,
+                   struct sdap_id_op *op,
+                   bool purge);
+
+errno_t
+enum_services_recv(struct tevent_req *req);
 
 #endif /* _SDAP_ASYNC_H_ */

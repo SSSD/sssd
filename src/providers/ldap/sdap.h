@@ -359,6 +359,7 @@ struct sdap_server_opts {
     unsigned long last_usn;
     char *max_user_value;
     char *max_group_value;
+    char *max_service_value;
 };
 
 struct sdap_id_ctx;

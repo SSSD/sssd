@@ -925,6 +925,11 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     talloc_strdup(opts->group_map,
                                   opts->gen_map[SDAP_AT_ENTRY_USN].name);
     }
+    if (!opts->service_map[SDAP_AT_SERVICE_USN].name) {
+        opts->service_map[SDAP_AT_SERVICE_USN].name =
+                    talloc_strdup(opts->service_map,
+                                  opts->gen_map[SDAP_AT_ENTRY_USN].name);
+    }
 
     *srv_opts = so;
     return EOK;

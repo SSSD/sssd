@@ -199,6 +199,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct sdap_id_op *op,
                                           bool purge);
 static void ldap_id_enum_groups_done(struct tevent_req *subreq);
+static void ldap_id_enum_services_done(struct tevent_req *subreq);
 static void ldap_id_enum_cleanup_done(struct tevent_req *subreq);
 
 static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
@@ -362,7 +363,59 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->op, (int)err, &dp_error);
+    if (err != EOK) {
+        /* We call sdap_id_op_done only on error
+         * as the connection is reused by services enumeration */
+        ret = sdap_id_op_done(state->op, (int)err, &dp_error);
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            ret = ldap_id_enumerate_retry(req);
+            if (ret == EOK) {
+                return;
+            }
+
+            dp_error = DP_ERR_FATAL;
+        }
+
+        if (ret != EOK) {
+            if (dp_error == DP_ERR_OFFLINE) {
+                tevent_req_done(req);
+            } else {
+                DEBUG(9, ("Group enumeration failed with: (%d)[%s]\n",
+                          ret, strerror(ret)));
+                tevent_req_error(req, ret);
+            }
+
+            return;
+        }
+    }
+
+    subreq = enum_services_send(state, state->ev, state->ctx,
+                                state->op, state->purge);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ldap_id_enum_services_done, req);
+}
+
+static void ldap_id_enum_services_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int dp_error = DP_ERR_FATAL;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+
+    ret = enum_services_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret == ENOENT) ret = EOK;
+
+    /* All enumerations are complete, so conclude the
+     * id_op
+     */
+    ret = sdap_id_op_done(state->op, ret, &dp_error);
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
         ret = ldap_id_enumerate_retry(req);
@@ -377,8 +430,9 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
         if (dp_error == DP_ERR_OFFLINE) {
             tevent_req_done(req);
         } else {
-            DEBUG(9, ("Group enumeration failed with: (%d)[%s]\n",
-                      ret, strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Service enumeration failed with: (%d)[%s]\n",
+                   ret, strerror(ret)));
             tevent_req_error(req, ret);
         }
 
