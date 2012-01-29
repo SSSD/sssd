@@ -94,6 +94,7 @@ WITH_SEMANAGE
 WITH_LIBNL
 WITH_NOLOGIN_SHELL
 WITH_APP_LIBS
+WITH_SUDO
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -235,11 +236,6 @@ AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
-
-AM_CONDITIONAL([BUILD_SUDO], [test x$build_all_experimental_features != xno])
-if test x$build_all_experimental_features != xno; then
-   AC_DEFINE(BUILD_SUDO, 1, [whether to build with SUDO support])
-fi
 
 abs_build_dir=`pwd`
 AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the build directory])

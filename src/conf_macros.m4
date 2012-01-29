@@ -401,3 +401,26 @@ AC_DEFUN([WITH_APP_LIBS],
     AC_SUBST(appmodpath)
     AC_DEFINE_UNQUOTED(APP_MODULES_PATH, "$config_appmodpath", [Path to the 3rd party modules])
   ])
+
+AC_DEFUN([WITH_SUDO],
+  [ AC_ARG_WITH([sudo],
+                [AC_HELP_STRING([--with-sudo],
+                                [Whether to build with sudo support [no]]
+                               )
+                ],
+                [with_sudo=$withval],
+                []
+               )
+
+    dnl Remove when sudo goes out of experimental
+    if test x"$enable_all_experimental_features" = xyes; then
+        if test x"$with_sudo" != xno; then
+            with_sudo=yes
+        fi
+    fi
+
+    if test x"$with_sudo" = xyes; then
+        AC_DEFINE(BUILD_SUDO, 1, [whether to build with SUDO support])
+    fi
+    AM_CONDITIONAL([BUILD_SUDO], [test x"$with_sudo" = xyes])
+  ])
