@@ -28,7 +28,114 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_sudo.h"
 #include "providers/ldap/sdap_sudo_cache.h"
+#include "providers/ldap/sdap_sudo_timer.h"
 #include "db/sysdb_sudo.h"
+
+static void
+sdap_sudo_shutdown(struct be_req *req)
+{
+    sdap_handler_done(req, DP_ERR_OK, EOK, NULL);
+}
+
+struct bet_ops sdap_sudo_ops = {
+    .handler = sdap_sudo_handler,
+    .finalize = sdap_sudo_shutdown
+};
+
+int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx);
+
+int sdap_sudo_init(struct be_ctx *be_ctx,
+                   struct sdap_id_ctx *id_ctx,
+                   struct bet_ops **ops,
+                   void **pvt_data)
+{
+#ifdef BUILD_SUDO
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing sudo LDAP back end\n"));
+
+    *ops = &sdap_sudo_ops;
+    *pvt_data = id_ctx;
+
+    ret = ldap_get_sudo_options(id_ctx, be_ctx->cdb,
+                                be_ctx->conf_path, id_ctx->opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get SUDO options [%d]: %s\n",
+                                  ret, strerror(ret)));
+        return ret;
+    }
+
+    ret = sdap_sudo_setup_tasks(id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("SUDO setup failed [%d]: %s\n",
+                                  ret, strerror(ret)));
+        return ret;
+    }
+
+    return EOK;
+#else
+    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
+                                 "built without sudo support, ignoring\n"));
+    return EOK;
+#endif
+}
+
+int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx)
+{
+    struct sdap_sudo_refresh_ctx *refresh_ctx = NULL;
+    struct timeval tv;
+    int ret = EOK;
+    bool refreshed = false;
+    bool refresh_enabled = dp_opt_get_bool(id_ctx->opts->basic,
+                                           SDAP_SUDO_REFRESH_ENABLED);
+
+    /* set up periodical update of sudo rules */
+    if (refresh_enabled) {
+        refresh_ctx = sdap_sudo_refresh_ctx_init(id_ctx, id_ctx->be, id_ctx,
+                                                 id_ctx->opts,
+                                                 tevent_timeval_zero());
+        if (refresh_ctx == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("sdap_sudo_refresh_ctx_init() failed!\n"));
+            return ENOMEM;
+        }
+
+        /* If this is the first startup, we need to kick off
+         * an refresh immediately, to close a window where
+         * clients requesting sudo information won't get an
+         * immediate reply with no entries
+         */
+        ret = sysdb_sudo_get_refreshed(id_ctx->be->sysdb, &refreshed);
+        if (ret != EOK) {
+            return ret;
+        }
+        if (refreshed) {
+            /* At least one update has previously run,
+             * so clients will get cached data. We will delay
+             * starting to enumerate by 10s so we don't slow
+             * down the startup process if this is happening
+             * during system boot.
+             */
+            tv = tevent_timeval_current_ofs(10, 0);
+            DEBUG(SSSDBG_FUNC_DATA, ("Delaying first refresh of SUDO rules "
+                  "for 10 seconds\n"));
+        } else {
+            /* This is our first startup. Schedule the
+             * update to start immediately once we
+             * enter the mainloop.
+             */
+            tv = tevent_timeval_current();
+        }
+
+        ret = sdap_sudo_refresh_set_timer(refresh_ctx, tv);
+        if (ret != EOK) {
+            talloc_free(refresh_ctx);
+            return ret;
+        }
+    }
+
+    return EOK;
+}
 
 struct sdap_sudo_load_sudoers_state {
     struct tevent_context *ev;

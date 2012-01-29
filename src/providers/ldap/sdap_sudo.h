@@ -21,6 +21,14 @@
 #ifndef _SDAP_SUDO_H_
 #define _SDAP_SUDO_H_
 
+/* Common functions from ldap_sudo.c */
+void sdap_sudo_handler(struct be_req *breq);
+int sdap_sudo_init(struct be_ctx *be_ctx,
+                   struct sdap_id_ctx *id_ctx,
+                   struct bet_ops **ops,
+                   void **pvt_data);
+
+/* sdap async interface */
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct be_ctx *be_ctx,
                                           struct be_sudo_req *sudo_req,

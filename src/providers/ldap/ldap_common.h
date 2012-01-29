@@ -68,6 +68,10 @@ struct sdap_auth_ctx {
     struct sdap_service *chpass_service;
 };
 
+int sssm_ldap_id_init(struct be_ctx *bectx,
+                      struct bet_ops **ops,
+                      void **pvt_data);
+
 void sdap_check_online(struct be_req *breq);
 void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx);
 
@@ -84,14 +88,6 @@ void sdap_pam_chpass_handler(struct be_req *breq);
 
 /* access */
 void sdap_pam_access_handler(struct be_req *breq);
-
-#ifdef BUILD_SUDO
-/* sudo */
-void sdap_sudo_handler(struct be_req *breq);
-int sdap_sudo_setup_tasks(struct sdap_id_ctx *ctx);
-#endif
-
-
 
 void sdap_handler_done(struct be_req *req, int dp_err,
                        int error, const char *errstr);

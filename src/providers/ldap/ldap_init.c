@@ -55,14 +55,6 @@ struct bet_ops sdap_access_ops = {
     .finalize = sdap_shutdown
 };
 
-/* SUDO Handler */
-#ifdef BUILD_SUDO
-struct bet_ops sdap_sudo_ops = {
-    .handler = sdap_sudo_handler,
-    .finalize = sdap_shutdown
-};
-#endif
-
 /* Please use this only for short lists */
 errno_t check_order_list_for_duplicates(char **list,
                                         bool case_sensitive)
@@ -399,35 +391,24 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
                         struct bet_ops **ops,
                         void **pvt_data)
 {
-#ifdef BUILD_SUDO
-    struct sdap_id_ctx *id_ctx = NULL;
-    void *data = NULL;
+    struct sdap_id_ctx *id_ctx;
+    void *data;
     int ret;
 
     ret = sssm_ldap_id_init(be_ctx, ops, &data);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot init LDAP ID provider [%d]: %s\n",
+                                    ret, strerror(ret)));
         return ret;
     }
 
     id_ctx = talloc_get_type(data, struct sdap_id_ctx);
-    *ops = &sdap_sudo_ops;
-    *pvt_data = id_ctx;
-
-    ret = ldap_get_sudo_options(id_ctx, be_ctx->cdb,
-                                be_ctx->conf_path, id_ctx->opts);
-    if (ret != EOK) {
-        return ret;
+    if (!id_ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No ID provider?\n"));
+        return EIO;
     }
 
-    ret = sdap_sudo_setup_tasks(id_ctx);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return ret;
-#else
-    return EOK;
-#endif
+    return sdap_sudo_init(be_ctx, id_ctx, ops, &data);
 }
 
 static void sdap_shutdown(struct be_req *req)
