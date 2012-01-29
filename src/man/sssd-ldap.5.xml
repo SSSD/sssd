@@ -1553,7 +1553,15 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                     </listitem>
                 </varlistentry>
+            </variablelist>
+        </para>
+    </refsect1>
 
+    <refsect1 id='sudo-options' condition="with_sudo">
+        <title>SUDO OPTIONS</title>
+        <para>
+        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+            <variablelist>
                 <varlistentry>
                     <term>ldap_sudorule_object_class (string)</term>
                     <listitem>
@@ -1597,7 +1605,8 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to the
-                            host name.
+                            host name (or host IP address, host IP network,
+                            or host netgroup)
                         </para>
                         <para>
                             Default: sudoHost
@@ -1610,7 +1619,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to the
-                            user name.
+                            user name (or UID, group name or user's netgroup)
                         </para>
                         <para>
                             Default: sudoUser
@@ -1648,8 +1657,8 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     <term>ldap_sudorule_runasgroup (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to the
-                            group name that commands may be run as.
+                            The LDAP attribute that corresponds to the group
+                            name or group GID that commands may be run as.
                         </para>
                         <para>
                             Default: sudoRunAsGroup
@@ -1722,8 +1731,15 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                     </listitem>
                 </varlistentry>
-
             </variablelist>
+        </para>
+        <para>
+            This manual page only describes attribute name mapping.
+            For detailed explanation of sudo related attribute sematics,
+            see
+            <citerefentry>
+                <refentrytitle>sudoers.ldap</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>
         </para>
     </refsect1>
 
@@ -1835,7 +1851,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     </listitem>
                 </varlistentry>
 
-                <varlistentry>
+                <varlistentry condition="with_sudo">
                     <term>ldap_sudo_search_base (string)</term>
                     <listitem>
                         <para>
@@ -1850,6 +1866,9 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         <para>
                             Default: the value of
                             <emphasis>ldap_search_base</emphasis>
+                        </para>
+                        <para>
+                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
                         </para>
                     </listitem>
                 </varlistentry>

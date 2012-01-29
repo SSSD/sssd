@@ -85,7 +85,8 @@
                                 started when sssd itself starts.
                             </para>
                             <para>
-                                Supported services: nss, pam, sudo
+                                Supported services: nss, pam
+                                <phrase condition="with_sudo">, sudo</phrase>
                             </para>
                         </listitem>
                     </varlistentry>
@@ -866,9 +867,13 @@
                         </para>
                     </listitem>
                 </varlistentry>
-                <varlistentry>
+
+                <varlistentry condition="with_sudo">
                     <term>sudo_provider (string)</term>
                     <listitem>
+                        <para>
+                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+                        </para>
                         <para>
                             The SUDO provider used for the domain.
                             Supported SUDO providers are:
@@ -884,7 +889,7 @@
                             <quote>none</quote> disables SUDO explicitly.
                         </para>
                         <para>
-                            Default: <quote>id_provider</quote> is used if it
+                            Default: The value of <quote>id_provider</quote> is used if it
                             is set.
                         </para>
                     </listitem>

@@ -5,11 +5,20 @@ top_builddir = ../..
 # MANPAGES #
 ############
 
+
+# If no conditions are given, *all* conditionals are expanded. We don't
+# to include any conditions by default, so we need to pass a phony conditional
+CONDS=with_false
+if BUILD_SUDO
+# conditionals are delimeted with a semicolon
+CONDS+=;with_sudo
+endif
+
 #Special Rules:
 export SGML_CATALOG_FILES
-DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
+DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/profile-docbook.xsl
 XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
-XSLTPROC_FLAGS = --catalogs --xinclude --nonet
+XSLTPROC_FLAGS = --stringparam profile.condition "$(CONDS)" --catalogs --xinclude --nonet
 
 man_MANS = \
     sss_useradd.8 sss_userdel.8 sss_usermod.8 \
