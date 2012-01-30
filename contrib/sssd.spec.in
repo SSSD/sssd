@@ -235,11 +235,9 @@ make install DESTDIR=$RPM_BUILD_ROOT
 # Prepare language files
 /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sssd
 
-# Copy SSSDConfig API files
+# Prepare empty config file (needed for RHEL 5)
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
 touch $RPM_BUILD_ROOT/%{_sysconfdir}/sssd/sssd.conf
-install -m444 src/config/etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
-install -m444 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
 
 # Copy default logrotate file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
@@ -299,9 +297,8 @@ rm -rf $RPM_BUILD_ROOT
 %ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
-%config %{_sysconfdir}/sssd/sssd.api.conf
-%attr(755,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
-%config %{_sysconfdir}/sssd/sssd.api.d/*
+%{_datadir}/sssd/sssd.api.conf
+%{_datadir}/sssd/sssd.api.d
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*

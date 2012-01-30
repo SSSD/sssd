@@ -23,7 +23,8 @@ if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugindir = @krb5pluginpath@
 endif
 sssdconfdir = $(sysconfdir)/sssd
-sssdapiplugindir = $(sssdconfdir)/sssd.api.d
+sssddatadir = $(datadir)/sssd
+sssdapiplugindir = $(sssddatadir)/sssd.api.d
 dbusintrospectdir = $(datarootdir)/sssd/introspect
 localedir = @localedir@
 nsslibdir = @nsslibdir@
@@ -1199,7 +1200,7 @@ endif
 endif
 
 
-dist_sssdconf_DATA = \
+dist_sssddata_DATA = \
     src/config/etc/sssd.api.conf
 dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-ipa.conf \
@@ -1221,6 +1222,7 @@ installsssddirs::
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
     $(DESTDIR)$(sssdconfdir) \
+    $(DESTDIR)$(sssddatadir) \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(logpath) \
