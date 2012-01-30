@@ -41,6 +41,7 @@
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <security/pam_modutil.h>
+#include <selinux/selinux.h>
 #include "sss_pam_macros.h"
 
 #include "sss_cli.h"
@@ -81,6 +82,7 @@ struct pam_items {
     pid_t cli_pid;
     const char *login_name;
     char *domain_name;
+    char *selinux_user;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -965,6 +967,13 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     D(("do_pam_conversation failed."));
                 }
                 break;
+            case SSS_PAM_SELINUX_MAP:
+                if (pi->selinux_user) {
+                    free(pi->selinux_user);
+                }
+                pi->selinux_user = (char *)malloc(len + 1);
+                memcpy(pi->selinux_user, &buf[p], len + 1);
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -986,6 +995,7 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
     pi->pam_newauthtok = NULL;
     pi->pam_newauthtok_size = 0;
+    pi->selinux_user = NULL;
 
     ret = pam_get_item(pamh, PAM_SERVICE, (const void **) &(pi->pam_service));
     if (ret != PAM_SUCCESS) return ret;
@@ -1068,6 +1078,12 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     uint8_t *repbuf = NULL;
     size_t replen;
     int pam_status = PAM_SYSTEM_ERR;
+
+    char *path = NULL;
+    char *tmp_path = NULL;
+    int pos, len;
+    int fd;
+    mode_t oldmask;
 
     print_pam_items(pi);
 
@@ -1158,8 +1174,51 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                 }
             }
             break;
-        case SSS_PAM_SETCRED:
         case SSS_PAM_OPEN_SESSION:
+            if (pi->selinux_user == NULL) {
+                pam_status = PAM_SUCCESS;
+                break;
+            }
+
+            if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
+                         pi->pam_user) <  0 ||
+                asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
+                pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+
+            oldmask = umask(022);
+            fd = mkstemp(tmp_path);
+            if (fd < 0) {
+                logger(pamh, LOG_ERR, "creating the temp file for SELinux "
+                       "data failed. %s", tmp_path);
+                pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+
+            pos = 0;
+            len = strlen(pi->selinux_user);
+            while (pos < len) {
+                ret = write(fd, pi->selinux_user + pos, len-pos);
+                if (ret < 0) {
+                    if (errno != EINTR) {
+                        logger(pamh, LOG_ERR, "writing to SELinux data file "
+                               "failed. %s", tmp_path);
+                        pam_status = PAM_SYSTEM_ERR;
+                        goto done;
+                    }
+                    continue;
+                }
+                pos += ret;
+            }
+            close(fd);
+
+            rename(tmp_path, path);
+            free(path);
+            free(tmp_path);
+            umask(oldmask);
+            break;
+        case SSS_PAM_SETCRED:
         case SSS_PAM_CLOSE_SESSION:
             break;
         default:
