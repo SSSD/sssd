@@ -36,6 +36,13 @@
 
 static krb5_context krb5_error_ctx;
 
+static const char *__krb5_error_msg;
+#define KRB5_SYSLOG(krb5_error) do { \
+    __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
+    sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
+    sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
+} while(0)
+
 struct input_buffer {
     const char *realm_str;
     const char *princ_str;
@@ -308,6 +315,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
+    if (krberr != 0) KRB5_SYSLOG(krberr);
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
     return krberr;

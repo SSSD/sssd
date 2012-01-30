@@ -103,6 +103,7 @@ static const char *__krb5_error_msg;
 #define KRB5_DEBUG(level, krb5_error) do { \
     __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
     DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
+    sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
     sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
 } while(0)
 
