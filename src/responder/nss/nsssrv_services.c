@@ -994,7 +994,7 @@ nss_cmd_getserv_done(struct tevent_req *req)
     if (ret == EOK) {
         if (reqret == ENOENT) {
             /* Notify the caller that this entry wasn't found */
-            ret = fill_empty(cmdctx->cctx->creq->out);
+            ret = sss_cmd_empty_packet(cmdctx->cctx->creq->out);
         } else {
             i = dctx->res->count;
             ret = fill_service(cmdctx->cctx->creq->out,
@@ -1793,7 +1793,7 @@ retservent(struct cli_ctx *cctx, int num)
 
 none:
     if (ret == ENOENT) {
-        ret = fill_empty(cctx->creq->out);
+        ret = sss_cmd_empty_packet(cctx->creq->out);
     }
     return ret;
 }

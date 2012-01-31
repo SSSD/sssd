@@ -46,41 +46,10 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
     return EOK;
 }
 
-int fill_empty(struct sss_packet *packet)
-{
-    uint8_t *body;
-    size_t blen;
-    int ret;
-
-    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
-    if (ret != EOK) return ret;
-
-    sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = 0; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-
-    return EOK;
-}
-
 static int nss_cmd_send_empty(struct nss_cmd_ctx *cmdctx)
 {
     struct cli_ctx *cctx = cmdctx->cctx;
-    int ret;
-
-    /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret != EOK) {
-        return ret;
-    }
-    ret =  fill_empty(cctx->creq->out);
-    if (ret != EOK) {
-        return ret;
-    }
-    sss_packet_set_error(cctx->creq->out, EOK);
-    sss_cmd_done(cctx, cmdctx);
-    return EOK;
+    return sss_cmd_send_empty(cctx, cmdctx);
 }
 
 int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
@@ -1674,7 +1643,7 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 
 none:
     if (ret == ENOENT) {
-        ret = fill_empty(cctx->creq->out);
+        ret = sss_cmd_empty_packet(cctx->creq->out);
     }
     return ret;
 }
@@ -2913,7 +2882,7 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 
 none:
     if (ret == ENOENT) {
-        ret = fill_empty(cctx->creq->out);
+        ret = sss_cmd_empty_packet(cctx->creq->out);
     }
     return ret;
 }

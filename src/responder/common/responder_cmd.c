@@ -23,6 +23,43 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 
+int sss_cmd_empty_packet(struct sss_packet *packet)
+{
+    uint8_t *body;
+    size_t blen;
+    int ret;
+
+    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+    if (ret != EOK) return ret;
+
+    sss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)body)[0] = 0; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+
+    return EOK;
+}
+
+int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
+{
+    int ret;
+
+    /* create response packet */
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sss_cmd_empty_packet(cctx->creq->out);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_cmd_done(cctx, freectx);
+    return EOK;
+}
 
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 {

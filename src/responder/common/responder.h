@@ -155,6 +155,8 @@ struct sss_domain_info *
 responder_get_domain(struct sss_domain_info *doms, const char *domain);
 
 /* responder_cmd.c */
+int sss_cmd_empty_packet(struct sss_packet *packet);
+int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx);
 int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);

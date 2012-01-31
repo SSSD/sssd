@@ -618,7 +618,7 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
     if (ret == EOK) {
         if (reqret == ENOENT) {
             /* Notify the caller that this entry wasn't found */
-            fill_empty(cmdctx->cctx->creq->out);
+            sss_cmd_empty_packet(cmdctx->cctx->creq->out);
         } else {
             packet = cmdctx->cctx->creq->out;
             ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -803,7 +803,7 @@ static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
     if (!netgr->entries || netgr->entries[0] == NULL) {
         /* No entries */
         DEBUG(5, ("No entries found\n"));
-        ret = fill_empty(client->creq->out);
+        ret = sss_cmd_empty_packet(client->creq->out);
         if (ret != EOK) {
             return nss_cmd_done(cmdctx, ret);
         }
