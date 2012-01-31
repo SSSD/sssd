@@ -10,15 +10,10 @@ AC_DEFUN([CHECK_XML_TOOLS],
   if test ! -x "$XMLLINT"; then
     AC_MSG_ERROR([Could not find xmllint])
   fi
-
-  AC_PATH_PROG([XMLCATALOG], [xmlcatalog])
-  if test ! -x "$XMLCATALOG"; then
-    AC_MSG_ERROR([Could not find xmlcatalog])
-  fi
 ])
 
 dnl Usage:
-dnl   CHECK_STYLESHEET_URI(FILE, URI, [FRIENDLY-NAME])
+dnl   CHECK_STYLESHEET_URI(FILE, URI, [FRIENDLY-NAME], [ACTION-IF-FOUND], [ACTION-IF-NOT-FOUND])
 dnl Checks if the XML catalog given by FILE exists and
 dnl if a particular URI appears in the XML catalog
 AC_DEFUN([CHECK_STYLESHEET],
@@ -26,10 +21,12 @@ AC_DEFUN([CHECK_STYLESHEET],
   AC_CHECK_FILE($1, [], [AC_MSG_ERROR([could not find XML catalog])])
 
   AC_MSG_CHECKING([for ifelse([$3],,[$2],[$3]) in XML catalog])
-  if AC_RUN_LOG([$XMLCATALOG --noout "$1" "$2" >&2]); then
+  if AC_RUN_LOG([$XSLTPROC --catalogs --nonet --noout "$2" >&2]); then
     AC_MSG_RESULT([yes])
+    m4_ifval([$4], [$4], [:])
   else
-    AC_MSG_ERROR([could not find ifelse([$3],,[$2],[$3]) in XML catalog])
+    AC_MSG_RESULT([no])
+    m4_ifval([$5], [$5], [:])
   fi
 ])
 

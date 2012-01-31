@@ -157,11 +157,27 @@ fi
 
 if test x$HAVE_MANPAGES != x; then
     CHECK_XML_TOOLS
+
+    DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/profile-docbook.xsl
     CHECK_STYLESHEET([$SGML_CATALOG_FILES],
-                     [http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
-                     [Docbook XSL templates])
+                     [$DOCBOOK_XSLT],
+                     [Docbook XSL profiling templates],
+                     [HAVE_PROFILE_CATALOGS=1],
+                     [AC_MSG_WARN([Man pages might contain documentation for experimental features])])
+
+    if test x$HAVE_PROFILE_CATALOGS == x; then
+        DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
+        CHECK_STYLESHEET([$SGML_CATALOG_FILES],
+                         [$DOCBOOK_XSLT],
+                         [Docbook XSL templates],
+                         [],
+                         [AC_MSG_ERROR([could not find the docbook xsl catalog])])
+    fi
+
     AC_CHECK_PROG([PO4A],[po4a],[po4a],[no])
+    AC_SUBST(DOCBOOK_XSLT)
 fi
+AM_CONDITIONAL([HAVE_PROFILE_CATALOGS], [test "x$HAVE_PROFILE_CATALOGS" != "x"])
 AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 

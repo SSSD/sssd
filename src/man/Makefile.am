@@ -16,9 +16,14 @@ endif
 
 #Special Rules:
 export SGML_CATALOG_FILES
-DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/profile-docbook.xsl
+DOCBOOK_XSLT = @DOCBOOK_XSLT@
+DOCBOOK_XSLT ?= http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
 XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
-XSLTPROC_FLAGS = --stringparam profile.condition "$(CONDS)" --catalogs --xinclude --nonet
+XSLTPROC_FLAGS = --catalogs --xinclude --nonet
+
+if HAVE_PROFILE_CATALOGS
+XSLTPROC_FLAGS += --stringparam profile.condition "$(CONDS)"
+endif
 
 man_MANS = \
     sss_useradd.8 sss_userdel.8 sss_usermod.8 \
