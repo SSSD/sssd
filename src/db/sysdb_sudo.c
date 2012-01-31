@@ -43,10 +43,15 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     TALLOC_CTX *tmp_ctx = NULL;
     const char **values = NULL;
     char *tret = NULL;
+    time_t notBefore = 0;
+    time_t notAfter = 0;
     time_t converted;
     struct tm tm;
     errno_t ret;
     int i;
+
+    if (!result) return EINVAL;
+    *result = false;
 
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
@@ -54,9 +59,13 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     /*
      * From man sudoers.ldap:
      *
-     * A timestamp is in the form yyyymmddHHMMZ.
+     * A timestamp is in the form yyyymmddHHMMSSZ.
      * If multiple sudoNotBefore entries are present, the *earliest* is used.
      * If multiple sudoNotAfter entries are present, the *last one* is used.
+     *
+     * From sudo sources, ldap.c:
+     * If either the sudoNotAfter or sudoNotBefore attributes are missing,
+     * no time restriction shall be imposed.
      */
 
     /* check for sudoNotBefore */
@@ -64,19 +73,27 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
                                        tmp_ctx, &values);
     if (ret != EOK) {
         goto done;
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("notBefore attribute is missing, the rule is valid\n"));
+        *result = true;
+        ret = EOK;
     }
-    if (values != NULL && values[0] != NULL) {
-        tret = strptime(values[0], SYSDB_SUDO_TIME_FORMAT, &tm);
+
+    for (i=0; values[i] ; i++) {
+        tret = strptime(values[i], SYSDB_SUDO_TIME_FORMAT, &tm);
         if (tret == NULL || *tret != '\0') {
-            DEBUG(SSSDBG_FUNC_DATA, ("Invalid time format!\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format!\n"));
             ret = EINVAL;
             goto done;
         }
         converted = mktime(&tm);
 
-        if (now < converted) {
-            *result = false;
-            goto done;
+        /* Grab the earliest */
+        if (!notBefore) {
+            notBefore = converted;
+        } else if (notBefore > converted) {
+            notBefore = converted;
         }
     }
 
@@ -85,36 +102,36 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
                                        tmp_ctx, &values);
     if (ret != EOK) {
         goto done;
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("notAfter attribute is missing, the rule is valid\n"));
+        *result = true;
+        ret = EOK;
     }
-    if (values != NULL && values[0] != NULL) {
-        /* find last value */
-        for (i = 0; values[i] != NULL; i++) {
-            // do nothing
-        }
 
-        tret = strptime(values[i - 1], SYSDB_SUDO_TIME_FORMAT, &tm);
+    for (i=0; values[i] ; i++) {
+        tret = strptime(values[i], SYSDB_SUDO_TIME_FORMAT, &tm);
         if (tret == NULL || *tret != '\0') {
-            DEBUG(SSSDBG_FUNC_DATA, ("Invalid time format!\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format!\n"));
             ret = EINVAL;
             goto done;
         }
         converted = mktime(&tm);
 
-        if (now > converted) {
-            *result = false;
-            goto done;
+        /* Grab the latest */
+        if (!notAfter) {
+            notAfter = converted;
+        } else if (notAfter < converted) {
+            notAfter = converted;
         }
     }
 
-    *result = true;
-    ret = EOK;
-
-done:
-    if (ret == ENOENT) {
+    if (now >= notBefore && now <= notAfter) {
         *result = true;
-        ret = EOK;
     }
 
+    ret = EOK;
+done:
     talloc_free(tmp_ctx);
     return ret;
 }

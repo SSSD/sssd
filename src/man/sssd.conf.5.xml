@@ -629,6 +629,19 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>sudo_timed (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether or not to evaluate the sudoNotBefore
+                            and sudoNotAfter attributes that implement
+                            time-dependent sudoers entries.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
