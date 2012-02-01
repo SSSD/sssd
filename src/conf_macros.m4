@@ -423,3 +423,25 @@ AC_DEFUN([WITH_SUDO],
     fi
     AM_CONDITIONAL([BUILD_SUDO], [test x"$with_sudo" = xyes])
   ])
+
+AC_DEFUN([WITH_AUTOFS],
+  [ AC_ARG_WITH([autofs],
+                [AC_HELP_STRING([--with-autofs],
+                                [Whether to build with autofs support [no]]
+                               )
+                ],
+                [with_autofs=$withval],
+               )
+
+    dnl Remove when autofs goes out of experimental
+    if test x"$enable_all_experimental_features" = xyes; then
+        if test x"$with_autofs" != xno; then
+            with_autofs=yes
+        fi
+    fi
+
+    if test x"$with_autofs" = xyes; then
+        AC_DEFINE(BUILD_AUTOFS, 1, [whether to build with AUTOFS support])
+    fi
+    AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
+  ])
