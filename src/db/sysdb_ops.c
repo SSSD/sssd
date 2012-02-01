@@ -1653,12 +1653,12 @@ done:
 
 
 /* =Add-User-to-Group(Native/Legacy)====================================== */
-
-
-int sysdb_add_group_member(struct sysdb_ctx *sysdb,
+static int
+sysdb_group_membership_mod(struct sysdb_ctx *sysdb,
                            const char *group,
                            const char *member,
-                           enum sysdb_member_type type)
+                           enum sysdb_member_type type,
+                           int modify_op)
 {
     struct ldb_dn *group_dn;
     struct ldb_dn *member_dn;
@@ -1691,11 +1691,19 @@ int sysdb_add_group_member(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_mod_group_member(sysdb, member_dn, group_dn, SYSDB_MOD_ADD);
+    ret = sysdb_mod_group_member(sysdb, member_dn, group_dn, modify_op);
 
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+int sysdb_add_group_member(struct sysdb_ctx *sysdb,
+                           const char *group,
+                           const char *member,
+                           enum sysdb_member_type type)
+{
+    return sysdb_group_membership_mod(sysdb, group, member, type, SYSDB_MOD_ADD);
 }
 
 /* =Remove-member-from-Group(Native/Legacy)=============================== */
@@ -1706,40 +1714,7 @@ int sysdb_remove_group_member(struct sysdb_ctx *sysdb,
                               const char *member,
                               enum sysdb_member_type type)
 {
-    struct ldb_dn *group_dn;
-    struct ldb_dn *member_dn;
-    int ret;
-    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    group_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, group);
-    if (!group_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (type == SYSDB_MEMBER_USER) {
-        member_dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
-        if (!member_dn) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else if (type == SYSDB_MEMBER_GROUP) {
-        member_dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain->name, member);
-        if (!member_dn) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        ret = EINVAL;
-        goto done;
-    }
-    ret = sysdb_mod_group_member(sysdb, member_dn, group_dn, SYSDB_MOD_DEL);
-done:
-    talloc_free(tmp_ctx);
-    return ret;
+    return sysdb_group_membership_mod(sysdb, group, member, type, SYSDB_MOD_DEL);
 }
 
 
