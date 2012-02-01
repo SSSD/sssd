@@ -754,7 +754,12 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
         naming_context = get_naming_context(opts->basic, rootdse);
         if (naming_context == NULL) {
             DEBUG(1, ("get_naming_context failed.\n"));
-            ret = EINVAL;
+
+            /* This has to be non-fatal, since some servers offer
+             * multiple namingContexts entries. We will just
+             * add NULL checks for the search bases in the lookups.
+             */
+            ret = EOK;
             goto done;
         }
     }

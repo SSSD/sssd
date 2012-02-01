@@ -340,6 +340,13 @@ struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
     state->ldap_rules = NULL;
     state->ldap_rules_count = 0;
 
+    if (!state->search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("SUDOERS lookup request without a search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     /* create filter */
     state->filter = sdap_sudo_build_filter(state, opts->sudorule_map, sudo_req);
     if (state->filter == NULL) {
@@ -355,6 +362,8 @@ struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
 
     /* begin search */
     ret = sdap_sudo_load_sudoers_next_base(req);
+
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);

@@ -303,6 +303,13 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     state->base_iter = 0;
     state->search_bases = opts->group_search_bases;
 
+    if (!state->search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Initgroups lookup request without a group search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     state->name = talloc_strdup(state, name);
     if (!state->name) {
         talloc_zfree(req);
@@ -337,6 +344,8 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     talloc_zfree(clean_name);
 
     ret = sdap_initgr_rfc2307_next_base(req);
+
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
@@ -1432,6 +1441,13 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     state->base_iter = 0;
     state->search_bases = opts->group_search_bases;
 
+    if (!state->search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Initgroups lookup request without a group search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = sss_hash_create(state, 32, &state->group_hash);
     if (ret != EOK) {
         talloc_free(req);
@@ -2006,9 +2022,17 @@ struct tevent_req *rfc2307bis_nested_groups_send(
                                     SDAP_SEARCH_TIMEOUT);
     state->base_iter = 0;
     state->search_bases = opts->group_search_bases;
-
+    if (!state->search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Initgroups nested lookup request "
+               "without a group search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
 
     ret = rfc2307bis_nested_groups_step(req);
+
+done:
     if (ret == EOK) {
         /* All parent groups were already processed */
         tevent_req_done(req);
@@ -2378,9 +2402,16 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->user_base_iter = 0;
     state->user_search_bases = id_ctx->opts->user_search_bases;
+    if (!state->user_search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Initgroups lookup request without a user search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
 
     ret = sss_filter_sanitize(state, name, &clean_name);
     if (ret != EOK) {
+        talloc_zfree(req);
         return NULL;
     }
 
@@ -2402,6 +2433,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     }
 
     ret = sdap_get_initgr_next_base(req);
+
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);

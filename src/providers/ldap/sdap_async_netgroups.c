@@ -579,7 +579,17 @@ struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
     state->base_iter = 0;
     state->search_bases = search_bases;
 
+    if (!state->search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Netgroup lookup request without a netgroup search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+
     ret = sdap_get_netgroups_next_base(req);
+
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, state->ev);

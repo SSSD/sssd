@@ -434,7 +434,16 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->search_bases = search_bases;
     state->enumeration = enumeration;
 
+    if (!state->search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("User lookup request without a search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = sdap_get_users_next_base(req);
+
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, state->ev);

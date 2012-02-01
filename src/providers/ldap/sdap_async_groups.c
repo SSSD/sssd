@@ -1217,7 +1217,16 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->base_iter = 0;
     state->search_bases = search_bases;
 
+    if (!search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Group lookup request without a search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = sdap_get_groups_next_base(req);
+
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);

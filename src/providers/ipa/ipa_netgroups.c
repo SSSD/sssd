@@ -209,6 +209,13 @@ struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
     state->base_filter = filter;
     state->netgr_base_iter = 0;
 
+    if (!ipa_options->id->netgroup_search_bases) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Netgroup lookup request without a search base\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = sss_hash_create(state, 32, &state->new_netgroups);
     if (ret != EOK) goto done;
     ret = sss_hash_create(state, 32, &state->new_users);
