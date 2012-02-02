@@ -83,3 +83,4 @@ auth-tests
 check_and_open-tests
 sssd_sudo
 sss_sudo_cli
+autofs_test_client

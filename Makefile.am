@@ -845,9 +845,20 @@ noinst_PROGRAMS = pam_test_client
 if BUILD_SUDO
 noinst_PROGRAMS += sss_sudo_cli
 endif
+if BUILD_AUTOFS
+noinst_PROGRAMS += autofs_test_client
+endif
 
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
 pam_test_client_LDFLAGS = -lpam -lpam_misc
+
+if BUILD_AUTOFS
+autofs_test_client_SOURCES = src/sss_client/autofs/autofs_test_client.c \
+			     src/sss_client/autofs/sss_autofs.c \
+			     src/sss_client/common.c
+autofs_test_client_CFLAGS = $(AM_CFLAGS)
+autofs_test_client_LDFLAGS = -lpopt
+endif
 
 ####################
 # Client Libraries #
