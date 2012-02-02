@@ -32,13 +32,6 @@ enum ipa_access_mode {
     IPA_ACCESS_ALLOW
 };
 
-struct hbac_host_info {
-    const char *fqdn;
-    const char *serverhostname;
-    const char *dn;
-    const char **memberof;
-};
-
 struct ipa_access_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
