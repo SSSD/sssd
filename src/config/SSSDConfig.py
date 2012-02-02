@@ -87,6 +87,7 @@ option_strings = {
     'chpass_provider' : _('Password change provider'),
     'sudo_provider' : _('SUDO provider'),
     'autofs_provider' : _('Autofs provider'),
+    'session_provider' : _('Session-loading provider'),
 
     # [domain]
     'min_id' : _('Minimum user ID'),

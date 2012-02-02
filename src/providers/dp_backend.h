@@ -51,6 +51,7 @@ enum bet_type {
     BET_CHPASS,
     BET_SUDO,
     BET_AUTOFS,
+    BET_SESSION,
     BET_MAX
 };
 
