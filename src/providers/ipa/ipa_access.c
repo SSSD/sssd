@@ -30,6 +30,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_hbac.h"
+#include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_hbac_rules.h"
 
@@ -268,17 +269,40 @@ static void hbac_sysdb_save (struct tevent_req *req);
 
 static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
 {
-    struct tevent_req *req =
-            ipa_hbac_host_info_send(hbac_ctx,
-                                    hbac_ctx_ev(hbac_ctx),
-                                    hbac_ctx_sysdb(hbac_ctx),
-                                    sdap_id_op_handle(hbac_ctx->sdap_op),
-                                    hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
-                                    dp_opt_get_bool(hbac_ctx->ipa_options,
-                                                    IPA_HBAC_SUPPORT_SRCHOST),
-                                    dp_opt_get_string(hbac_ctx->ipa_options,
-                                                      IPA_HOSTNAME),
-                                    hbac_ctx->access_ctx->host_search_bases);
+    const char *hostname;
+    struct tevent_req *req;
+
+    hbac_ctx->host_attrs = talloc_array(hbac_ctx, const char *, 8);
+    if (hbac_ctx->host_attrs == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to allocate host attribute list.\n"));
+        return ENOMEM;
+    }
+    hbac_ctx->host_attrs[0] = "objectClass";
+    hbac_ctx->host_attrs[1] = IPA_HOST_SERVERHOSTNAME;
+    hbac_ctx->host_attrs[2] = IPA_HOST_FQDN;
+    hbac_ctx->host_attrs[3] = IPA_UNIQUE_ID;
+    hbac_ctx->host_attrs[4] = IPA_MEMBER;
+    hbac_ctx->host_attrs[5] = IPA_MEMBEROF;
+    hbac_ctx->host_attrs[6] = IPA_CN;
+    hbac_ctx->host_attrs[7] = NULL;
+
+    if (dp_opt_get_bool(hbac_ctx->ipa_options, IPA_HBAC_SUPPORT_SRCHOST)) {
+        /* Support srchost
+         * -> we don't want any particular host,
+         *    we want all hosts
+         */
+        hostname = NULL;
+    } else {
+        hostname = dp_opt_get_string(hbac_ctx->ipa_options, IPA_HOSTNAME);
+    }
+
+    req = ipa_host_info_send(hbac_ctx,
+                             hbac_ctx_ev(hbac_ctx),
+                             hbac_ctx_sysdb(hbac_ctx),
+                             sdap_id_op_handle(hbac_ctx->sdap_op),
+                             hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                             hostname, hbac_ctx->host_attrs, true,
+                             hbac_ctx->access_ctx->host_search_bases);
     if (req == NULL) {
         DEBUG(1, ("Could not get host info\n"));
         return ENOMEM;
@@ -294,11 +318,11 @@ static void hbac_get_service_info_step(struct tevent_req *req)
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
 
-    ret = ipa_hbac_host_info_recv(req, hbac_ctx,
-                                  &hbac_ctx->host_count,
-                                  &hbac_ctx->hosts,
-                                  &hbac_ctx->hostgroup_count,
-                                  &hbac_ctx->hostgroups);
+    ret = ipa_host_info_recv(req, hbac_ctx,
+                             &hbac_ctx->host_count,
+                             &hbac_ctx->hosts,
+                             &hbac_ctx->hostgroup_count,
+                             &hbac_ctx->hostgroups);
     talloc_zfree(req);
     if (!hbac_check_step_result(hbac_ctx, ret)) {
         return;

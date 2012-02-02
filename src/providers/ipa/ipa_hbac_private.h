@@ -98,25 +98,6 @@ hbac_get_category(struct sysdb_attrs *attrs,
                   const char *category_attr,
                   uint32_t *_categories);
 
-/* From ipa_hbac_hosts.c */
-struct tevent_req *
-ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
-                        struct tevent_context *ev,
-                        struct sysdb_ctx *sysdb,
-                        struct sdap_handle *sh,
-                        struct sdap_options *opts,
-                        bool support_srchost,
-                        const char *hostname,
-                        struct sdap_search_base **search_bases);
-
-errno_t
-ipa_hbac_host_info_recv(struct tevent_req *req,
-                        TALLOC_CTX *mem_ctx,
-                        size_t *host_count,
-                        struct sysdb_attrs ***hosts,
-                        size_t *hostgroup_count,
-                        struct sysdb_attrs ***hostgroups);
-
 errno_t
 hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,

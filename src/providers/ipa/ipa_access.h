@@ -61,6 +61,7 @@ struct hbac_ctx {
     struct sdap_search_base **search_bases;
 
     /* Hosts */
+    const char **host_attrs;
     size_t host_count;
     struct sysdb_attrs **hosts;
     size_t hostgroup_count;

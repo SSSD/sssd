@@ -361,6 +361,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
+    src/providers/ipa/ipa_hosts.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_id.h \
@@ -1071,6 +1072,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_auth.c \
     src/providers/ipa/ipa_access.c \
     src/providers/ipa/ipa_dyndns.c \
+    src/providers/ipa/ipa_hosts.c \
     src/providers/ipa/ipa_hbac_hosts.c \
     src/providers/ipa/ipa_hbac_private.h \
     src/providers/ipa/ipa_hbac_rules.c \
