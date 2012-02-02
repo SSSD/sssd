@@ -73,11 +73,16 @@ option_strings = {
     'pam_id_timeout' : _('How many seconds to keep identity information cached for PAM requests'),
     'pam_pwd_expiration_warning' : _('How many days before password expiration a warning should be displayed'),
 
+    # [sudo]
+    'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
+    'sudo_cache_timeout' : _('How many seconds to keep sudorules cached before asking the provider again'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),
     'access_provider' : _('Access control provider'),
     'chpass_provider' : _('Password change provider'),
+    'sudo_provider' : _('SUDO provider'),
 
     # [domain]
     'min_id' : _('Minimum user ID'),
