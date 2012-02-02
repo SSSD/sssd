@@ -23,6 +23,23 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 
+int sss_cmd_send_error(struct cli_ctx *cctx, int err)
+{
+    int ret;
+
+    /* create response packet */
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot create new packet: %d\n", ret));
+        return ret;
+    }
+
+    sss_packet_set_error(cctx->creq->out, err);
+    return EOK;
+}
+
 int sss_cmd_empty_packet(struct sss_packet *packet)
 {
     uint8_t *body;

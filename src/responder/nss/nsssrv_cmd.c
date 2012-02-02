@@ -31,19 +31,7 @@
 
 static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 {
-    struct cli_ctx *cctx = cmdctx->cctx;
-    int ret;
-
-    /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    sss_packet_set_error(cctx->creq->out, err);
-    return EOK;
+    return sss_cmd_send_error(cmdctx->cctx, err);
 }
 
 static int nss_cmd_send_empty(struct nss_cmd_ctx *cmdctx)
