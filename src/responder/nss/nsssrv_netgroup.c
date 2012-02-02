@@ -78,6 +78,7 @@ static errno_t set_netgroup_entry(struct nss_ctx *nctx,
         DEBUG(4, ("Hash error [%d][%s]", hret, hash_error_string(hret)));
         return EIO;
     }
+    talloc_steal(nctx->netgroups, netgr);
     talloc_set_destructor((TALLOC_CTX *) netgr, netgr_hash_remove);
 
     return EOK;

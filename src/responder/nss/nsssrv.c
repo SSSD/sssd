@@ -241,17 +241,6 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
     /* nss_shutdown(rctx); */
 }
 
-static int nss_ctx_destructor(void *memctx)
-{
-    struct nss_ctx *nctx = (struct nss_ctx *) memctx;
-
-    if (nctx->netgroups) {
-        hash_destroy(nctx->netgroups);
-        nctx->netgroups = NULL;
-    }
-    return 0;
-}
-
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -267,7 +256,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error initializing nss_ctx\n"));
         return ENOMEM;
     }
-    talloc_set_destructor((TALLOC_CTX *) nctx, nss_ctx_destructor);
 
     ret = sss_ncache_init(nctx, &nctx->ncache);
     if (ret != EOK) {
@@ -313,7 +301,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Create the lookup table for netgroup results */
-    hret = hash_create(10, &nctx->netgroups, NULL, NULL);
+    hret = sss_hash_create(nctx, 10, &nctx->netgroups);
     if (hret != HASH_SUCCESS) {
         DEBUG(0,("Unable to initialize netgroup hash table\n"));
         return EIO;
