@@ -115,6 +115,7 @@
 #define CONFDB_DOMAIN_SUDO_PROVIDER "sudo_provider"
 #define CONFDB_DOMAIN_AUTOFS_PROVIDER "autofs_provider"
 #define CONFDB_DOMAIN_SESSION_PROVIDER "session_provider"
+#define CONFDB_DOMAIN_HOSTID_PROVIDER "hostid_provider"
 #define CONFDB_DOMAIN_COMMAND "command"
 #define CONFDB_DOMAIN_TIMEOUT "timeout"
 #define CONFDB_DOMAIN_ATTR "cn"

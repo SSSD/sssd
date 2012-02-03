@@ -88,6 +88,7 @@ option_strings = {
     'sudo_provider' : _('SUDO provider'),
     'autofs_provider' : _('Autofs provider'),
     'session_provider' : _('Session-loading provider'),
+    'hostid_provider' : _('Host identity provider'),
 
     # [domain]
     'min_id' : _('Minimum user ID'),
