@@ -508,6 +508,18 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry condition="with_ssh">
+                    <term>ipa_host_ssh_public_key (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the host's SSH
+                            public keys.
+                        </para>
+                        <para>
+                            Default: ipaSshPubKey
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
     </refsect1>

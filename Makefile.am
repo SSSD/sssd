@@ -338,6 +338,7 @@ dist_noinst_HEADERS = \
     src/db/sysdb_selinux.h \
     src/db/sysdb_private.h \
     src/db/sysdb_services.h \
+    src/db/sysdb_ssh.h \
     src/confdb/confdb.h \
     src/confdb/confdb_private.h \
     src/confdb/confdb_setup.h \
@@ -370,6 +371,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_id.h \
+    src/providers/ipa/ipa_hostid.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
@@ -433,6 +435,9 @@ libsss_util_la_LIBADD = \
     libsss_debug.la
 if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c
+endif
+if BUILD_SSH
+    libsss_util_la_SOURCES += src/db/sysdb_ssh.c
 endif
 
 lib_LTLIBRARIES = libipa_hbac.la
@@ -1142,6 +1147,9 @@ endif
 if BUILD_AUTOFS
 libsss_ipa_la_SOURCES += src/providers/ldap/sdap_autofs.c \
                          src/providers/ldap/sdap_async_autofs.c
+endif
+if BUILD_SSH
+libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif
 
 

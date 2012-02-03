@@ -301,7 +301,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
                              hbac_ctx_sysdb(hbac_ctx),
                              sdap_id_op_handle(hbac_ctx->sdap_op),
                              hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
-                             hostname, hbac_ctx->host_attrs, true,
+                             hostname, hbac_ctx->host_attrs, NULL, 0, true,
                              hbac_ctx->access_ctx->host_search_bases);
     if (req == NULL) {
         DEBUG(1, ("Could not get host info\n"));

@@ -33,6 +33,7 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
+#include "providers/ipa/ipa_hostid.h"
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ipa/ipa_session.h"
 
@@ -64,6 +65,13 @@ struct bet_ops ipa_session_ops = {
     .handler = ipa_session_handler,
     .finalize = NULL
 };
+
+#ifdef BUILD_SSH
+struct bet_ops ipa_hostid_ops = {
+    .handler = ipa_host_info_handler,
+    .finalize = NULL
+};
+#endif
 
 int common_ipa_init(struct be_ctx *bectx)
 {
@@ -435,3 +443,44 @@ done:
     }
     return ret;
 }
+
+#ifdef BUILD_SSH
+int sssm_ipa_hostid_init(struct be_ctx *bectx,
+                         struct bet_ops **ops,
+                         void **pvt_data)
+{
+    int ret;
+    struct ipa_hostid_ctx *hostid_ctx;
+    struct ipa_id_ctx *id_ctx;
+
+    hostid_ctx = talloc_zero(bectx, struct ipa_hostid_ctx);
+    if (hostid_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        goto done;
+    }
+    hostid_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
+    hostid_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
+
+    ret = dp_copy_options(hostid_ctx, ipa_options->basic,
+                          IPA_OPTS_BASIC, &hostid_ctx->ipa_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("dp_copy_options failed.\n"));
+        goto done;
+    }
+
+    *ops = &ipa_hostid_ops;
+    *pvt_data = hostid_ctx;
+
+done:
+    if (ret != EOK) {
+        talloc_free(hostid_ctx);
+    }
+    return ret;
+}
+#endif

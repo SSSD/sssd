@@ -183,6 +183,7 @@ struct sdap_attr_map ipa_host_map[] = {
     { "ipa_host_object_class", "ipaHost", SYSDB_HOST_CLASS, NULL },
     { "ipa_host_fqdn", "fqdn", SYSDB_NAME, NULL },
     { "ipa_host_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
+    { "ipa_host_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL }
 };
 
 static struct sdap_attr_map ipa_selinux_user_map[] = {

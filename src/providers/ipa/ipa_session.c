@@ -264,7 +264,8 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
                                 sdap_id_op_handle(state->op),
                                 id_ctx->sdap_id_ctx->opts,
                                 state->hostname,
-                                state->attrs, false, state->session_ctx->host_search_bases);
+                                state->attrs, NULL, 0,
+                                false, state->session_ctx->host_search_bases);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;
