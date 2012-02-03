@@ -96,6 +96,7 @@ WITH_NOLOGIN_SHELL
 WITH_APP_LIBS
 WITH_SUDO
 WITH_AUTOFS
+WITH_SSH
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])

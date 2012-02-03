@@ -445,3 +445,25 @@ AC_DEFUN([WITH_AUTOFS],
     fi
     AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
   ])
+
+AC_DEFUN([WITH_SSH],
+  [ AC_ARG_WITH([ssh],
+                [AC_HELP_STRING([--with-ssh],
+                                [Whether to build with SSH support [no]]
+                               )
+                ],
+                [with_ssh=$withval],
+               )
+
+    dnl Remove when SSH goes out of experimental
+    if test x"$enable_all_experimental_features" = xyes; then
+        if test x"$with_ssh" != xno; then
+            with_ssh=yes
+        fi
+    fi
+
+    if test x"$with_ssh" = xyes; then
+        AC_DEFINE(BUILD_SSH, 1, [whether to build with SSH support])
+    fi
+    AM_CONDITIONAL([BUILD_SSH], [test x"$with_ssh" = xyes])
+  ])
