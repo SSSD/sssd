@@ -138,7 +138,7 @@ get_serv_byname(struct proxy_id_ctx *ctx,
         /* Results found. Save them into the cache */
         ret = proxy_save_service(sysdb, result,
                                  !dom->case_sensitive,
-                                 ctx->entry_cache_timeout);
+                                 dom->service_timeout);
     }
 
 done:
@@ -191,7 +191,7 @@ get_serv_byport(struct proxy_id_ctx *ctx,
         /* Results found. Save them into the cache */
         ret = proxy_save_service(sysdb, result,
                                  !dom->case_sensitive,
-                                 ctx->entry_cache_timeout);
+                                 dom->service_timeout);
     }
 
 done:
@@ -339,7 +339,7 @@ again:
                                   const_aliases,
                                   protocols,
                                   NULL, NULL,
-                                  ctx->entry_cache_timeout,
+                                  dom->service_timeout,
                                   now);
         if (ret) {
             /* Do not fail completely on errors.

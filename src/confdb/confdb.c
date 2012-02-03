@@ -664,6 +664,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     struct ldb_dn *dn;
     const char *tmp;
     int ret, val;
+    uint32_t entry_cache_timeout;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -834,12 +835,60 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_entry_as_uint32(res->msgs[0], &domain->entry_cache_timeout,
+    /* Get the global entry cache timeout setting */
+    ret = get_entry_as_uint32(res->msgs[0], &entry_cache_timeout,
                               CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT, 5400);
     if (ret != EOK) {
-        DEBUG(0, ("Invalid value for [%s]\n", CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+                CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT));
         goto done;
     }
+
+    /* Override the user cache timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->user_timeout,
+                              CONFDB_DOMAIN_USER_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_USER_CACHE_TIMEOUT));
+        goto done;
+    }
+
+    /* Override the group cache timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->group_timeout,
+                              CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT));
+        goto done;
+    }
+
+    /* Override the netgroup cache timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->netgroup_timeout,
+                              CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT));
+        goto done;
+    }
+
+    /* Override the service cache timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->service_timeout,
+                              CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT));
+        goto done;
+    }
+
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
                               CONFDB_DOMAIN_OVERRIDE_GID, 0);

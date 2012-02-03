@@ -232,8 +232,8 @@ static void ipa_netgroup_get_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = ipa_get_netgroups_send(state, state->ev,
-                                    state->sysdb, sdap_ctx->opts,
+    subreq = ipa_get_netgroups_send(state, state->ev, state->sysdb,
+                                    state->domain, sdap_ctx->opts,
                                     state->ctx->ipa_options,
                                     sdap_id_op_handle(state->op),
                                     state->attrs, state->filter,

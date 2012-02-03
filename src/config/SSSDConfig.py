@@ -93,6 +93,10 @@ option_strings = {
     'dns_discovery_domain' : _('The domain part of service discovery DNS query'),
     'override_gid' : _('Override GID value from the identity provider with this value'),
     'case_sensitive' : _('Treat usernames as case sensitive'),
+    'entry_cache_user_timeout' : _('Entry cache timeout length (seconds)'),
+    'entry_cache_group_timeout' : _('Entry cache timeout length (seconds)'),
+    'entry_cache_netgroup_timeout' : _('Entry cache timeout length (seconds)'),
+    'entry_cache_service_timeout' : _('Entry cache timeout length (seconds)'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

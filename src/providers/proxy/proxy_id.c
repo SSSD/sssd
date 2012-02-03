@@ -100,7 +100,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
         if (ret) {
             goto done;
         }
@@ -263,7 +263,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
         if (ret) {
             goto done;
         }
@@ -394,7 +394,7 @@ again:
             goto again; /* skip */
         }
 
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -603,7 +603,7 @@ again:
             break;
         }
 
-        ret = save_group(sysdb, dom, grp, ctx->entry_cache_timeout);
+        ret = save_group(sysdb, dom, grp, dom->group_timeout);
         if (ret) {
             goto done;
         }
@@ -732,7 +732,7 @@ again:
             break;
         }
 
-        ret = save_group(sysdb, dom, grp, ctx->entry_cache_timeout);
+        ret = save_group(sysdb, dom, grp, dom->group_timeout);
         if (ret) {
             goto done;
         }
@@ -864,7 +864,7 @@ again:
             goto again; /* skip */
         }
 
-        ret = save_group(sysdb, dom, grp, ctx->entry_cache_timeout);
+        ret = save_group(sysdb, dom, grp, dom->group_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -967,7 +967,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, ctx->entry_cache_timeout);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
         if (ret) {
             goto done;
         }

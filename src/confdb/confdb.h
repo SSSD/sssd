@@ -124,6 +124,11 @@
 #define CONFDB_DOMAIN_OVERRIDE_GID "override_gid"
 #define CONFDB_DOMAIN_CASE_SENSITIVE "case_sensitive"
 
+#define CONFDB_DOMAIN_USER_CACHE_TIMEOUT "entry_cache_user_timeout"
+#define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"
+#define CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT "entry_cache_netgroup_timeout"
+#define CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT "entry_cache_service_timeout"
+
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
 #define CONFDB_LOCAL_DEFAULT_BASEDIR "base_directory"
@@ -161,7 +166,10 @@ struct sss_domain_info {
     gid_t override_gid;
     const char *override_homedir;
 
-    uint32_t entry_cache_timeout;
+    uint32_t user_timeout;
+    uint32_t group_timeout;
+    uint32_t netgroup_timeout;
+    uint32_t service_timeout;
 
     struct sss_domain_info *next;
 };

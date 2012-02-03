@@ -495,7 +495,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                   name, dom->name));
         netgr->ready = true;
         netgr->found = true;
-        set_netgr_lifetime(dom->entry_cache_timeout, step_ctx, netgr);
+        set_netgr_lifetime(dom->netgroup_timeout, step_ctx, netgr);
         return EOK;
     }
 

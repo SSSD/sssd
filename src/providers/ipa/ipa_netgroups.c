@@ -39,6 +39,7 @@ struct ipa_get_netgroups_state {
     struct ipa_options *ipa_opts;
     struct sdap_handle *sh;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *dom;
     const char **attrs;
     int timeout;
 
@@ -64,6 +65,7 @@ struct ipa_get_netgroups_state {
 
 static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
                                  struct sysdb_ctx *ctx,
+                                 struct sss_domain_info *dom,
                                  struct sdap_options *opts,
                                  struct sysdb_attrs *attrs)
 {
@@ -166,9 +168,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     DEBUG(6, ("Storing info for netgroup %s\n", name));
 
     ret = sysdb_add_netgroup(ctx, name, NULL, netgroup_attrs,
-                             dp_opt_get_int(opts->basic,
-                                            SDAP_ENTRY_CACHE_TIMEOUT),
-                             0);
+                             dom->netgroup_timeout, 0);
     if (ret) goto fail;
 
     return EOK;
@@ -185,6 +185,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state);
 struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *dom,
                                           struct sdap_options *opts,
                                           struct ipa_options *ipa_options,
                                           struct sdap_handle *sh,
@@ -208,6 +209,7 @@ struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
     state->timeout = timeout;
     state->base_filter = filter;
     state->netgr_base_iter = 0;
+    state->dom = dom;
 
     if (!ipa_options->id->netgroup_search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -976,8 +978,8 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
                 }
             }
         }
-        ret = ipa_save_netgroup(state, state->sysdb, state->opts,
-                                state->netgroups[i]);
+        ret = ipa_save_netgroup(state, state->sysdb, state->dom,
+                                state->opts, state->netgroups[i]);
         if (ret != EOK) {
             goto done;
         }

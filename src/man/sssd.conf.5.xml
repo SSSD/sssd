@@ -692,6 +692,59 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                
+                <varlistentry>
+                    <term>entry_cache_user_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should nss_sss consider
+                            user entries valid before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+                
+                <varlistentry>
+                    <term>entry_cache_group_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should nss_sss consider
+                            group entries valid before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+                
+                <varlistentry>
+                    <term>entry_cache_netgroup_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should nss_sss consider
+                            netgroup entries valid before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+                
+                <varlistentry>
+                    <term>entry_cache_service_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should nss_sss consider
+                            service entries valid before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+                
                 <varlistentry>
                     <term>cache_credentials (bool)</term>
                     <listitem>

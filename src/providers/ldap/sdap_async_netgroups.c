@@ -128,8 +128,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     }
 
     ret = sysdb_add_netgroup(ctx, name, NULL, netgroup_attrs,
-                             dp_opt_get_int(opts->basic,
-                                            SDAP_ENTRY_CACHE_TIMEOUT), now);
+                             dom->netgroup_timeout, now);
     if (ret) goto fail;
 
     if (_timestamp) {

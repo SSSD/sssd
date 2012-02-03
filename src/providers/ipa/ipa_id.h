@@ -34,6 +34,7 @@ void ipa_account_info_handler(struct be_req *breq);
 struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *dom,
                                           struct sdap_options *opts,
                                           struct ipa_options *ipa_options,
                                           struct sdap_handle *sh,

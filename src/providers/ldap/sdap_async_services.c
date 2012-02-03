@@ -458,7 +458,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    cache_timeout = dp_opt_get_int(opts->basic, SDAP_ENTRY_CACHE_TIMEOUT);
+    cache_timeout = dom->service_timeout;
 
     ret = sysdb_store_service(sysdb, name, port, aliases, protocols,
                               svc_attrs, missing, cache_timeout, now);

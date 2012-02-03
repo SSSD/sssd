@@ -235,7 +235,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
-    cache_timeout = dp_opt_get_int(opts->basic, SDAP_ENTRY_CACHE_TIMEOUT);
+    cache_timeout = dom->user_timeout;
 
     if (is_initgr) {
         ret = sysdb_attrs_add_time_t(user_attrs, SYSDB_INITGR_EXPIRE,

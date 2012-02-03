@@ -358,8 +358,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     ret = sdap_store_group_with_gid(ctx,
                                     name, gid, group_attrs,
-                                    dp_opt_get_int(opts->basic,
-                                                   SDAP_ENTRY_CACHE_TIMEOUT),
+                                    dom->group_timeout,
                                     posix_group, now);
     if (ret) goto fail;
 
@@ -430,8 +429,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     DEBUG(6, ("Storing members for group %s\n", name));
 
     ret = sysdb_store_group(ctx, name, 0, group_attrs,
-                            dp_opt_get_int(opts->basic,
-                                           SDAP_ENTRY_CACHE_TIMEOUT), now);
+                            dom->group_timeout, now);
     if (ret) goto fail;
 
     return EOK;
@@ -1979,6 +1977,7 @@ immediate:
 static errno_t sdap_nested_group_check_hash(struct sdap_nested_group_ctx *);
 static errno_t sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                                     struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *dom,
                                     struct sdap_options *opts,
                                     char *member_dn,
                                     struct ldb_message ***_msgs,
@@ -2034,6 +2033,7 @@ static errno_t sdap_nested_group_process_deref_step(struct tevent_req *req)
         }
 
         ret = sdap_nested_group_check_cache(state, state->sysdb,
+                                            state->domain,
                                             state->opts,
                                             state->member_dn,
                                             &msgs, &mtype);
@@ -2140,6 +2140,7 @@ static errno_t sdap_nested_group_process_step(struct tevent_req *req)
         }
 
         ret = sdap_nested_group_check_cache(state, state->sysdb,
+                                            state->domain,
                                             state->opts,
                                             state->member_dn,
                                             &msgs, &mtype);
@@ -2233,6 +2234,7 @@ sdap_nested_group_check_hash(struct sdap_nested_group_ctx *state)
 static errno_t
 sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *dom,
                               struct sdap_options *opts,
                               char *dn,
                               struct ldb_message ***_msgs,
@@ -2293,9 +2295,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
             create_time = ldb_msg_find_attr_as_uint64(msgs[0],
                                                     SYSDB_CREATE_TIME,
                                                     0);
-            expiration = create_time +
-                            dp_opt_get_int(opts->basic,
-                                        SDAP_ENTRY_CACHE_TIMEOUT);
+            expiration = create_time + dom->user_timeout;
         } else {
             /* Regular user, check if we need a refresh */
             expiration = ldb_msg_find_attr_as_uint64(msgs[0],

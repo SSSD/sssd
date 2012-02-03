@@ -101,11 +101,6 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     }
     ctx->be = bectx;
 
-    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
-                         CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT, 600,
-                         &ctx->entry_cache_timeout);
-    if (ret != EOK) goto done;
-
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                             CONFDB_PROXY_LIBNAME, NULL, &libname);
     if (ret != EOK) goto done;
