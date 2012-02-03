@@ -717,6 +717,8 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
         break;
     case SDAP_SERVICE_SEARCH_BASE:
         bases = &opts->service_search_bases;
+    case SDAP_AUTOFS_SEARCH_BASE:
+        bases = &opts->autofs_search_bases;
         break;
     default:
         return EINVAL;
@@ -750,7 +752,8 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
             ||!opts->user_search_bases
             || !opts->group_search_bases
             || !opts->netgroup_search_bases
-            || !opts->sudo_search_bases) {
+            || !opts->sudo_search_bases
+            || !opts->autofs_search_bases) {
         naming_context = get_naming_context(opts->basic, rootdse);
         if (naming_context == NULL) {
             DEBUG(1, ("get_naming_context failed.\n"));
@@ -808,6 +811,14 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!opts->service_search_bases) {
        ret = sdap_set_search_base(opts,
                                   SDAP_SERVICE_SEARCH_BASE,
+                                  naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* autofs */
+    if (!opts->autofs_search_bases) {
+       ret = sdap_set_search_base(opts,
+                                  SDAP_AUTOFS_SEARCH_BASE,
                                   naming_context);
         if (ret != EOK) goto done;
     }

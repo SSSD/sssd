@@ -168,6 +168,7 @@ enum sdap_basic_opt {
     SDAP_SUDO_SEARCH_BASE,
     SDAP_SUDO_REFRESH_ENABLED,
     SDAP_SUDO_REFRESH_TIMEOUT,
+    SDAP_AUTOFS_SEARCH_BASE,
     SDAP_SCHEMA,
     SDAP_OFFLINE_TIMEOUT,
     SDAP_FORCE_UPPER_CASE_REALM,
@@ -311,6 +312,21 @@ enum sdap_service_attrs {
     SDAP_OPTS_SERVICES /* attrs counter */
 };
 
+enum sdap_autofs_map_attrs {
+    SDAP_OC_AUTOFS_MAP,
+    SDAP_AT_AUTOFS_MAP_NAME,
+
+    SDAP_OPTS_AUTOFS_MAP    /* attrs counter */
+};
+
+enum sdap_autofs_entry_attrs {
+    SDAP_OC_AUTOFS_ENTRY,
+    SDAP_AT_AUTOFS_ENTRY_KEY,
+    SDAP_AT_AUTOFS_ENTRY_VALUE,
+
+    SDAP_OPTS_AUTOFS_ENTRY  /* attrs counter */
+};
+
 struct sdap_attr_map {
     const char *opt_name;
     const char *def_name;
@@ -335,6 +351,8 @@ struct sdap_options {
 
     /* FIXME - should this go to a special struct to avoid mixing with name-service-switch maps? */
     struct sdap_attr_map *sudorule_map;
+    struct sdap_attr_map *autofs_mobject_map;
+    struct sdap_attr_map *autofs_entry_map;
 
     /* supported schema types */
     enum schema_type {
@@ -350,6 +368,7 @@ struct sdap_options {
     struct sdap_search_base **netgroup_search_bases;
     struct sdap_search_base **sudo_search_bases;
     struct sdap_search_base **service_search_bases;
+    struct sdap_search_base **autofs_search_bases;
 };
 
 struct sdap_server_opts {

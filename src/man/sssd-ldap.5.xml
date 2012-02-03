@@ -1813,6 +1813,85 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
         </para>
     </refsect1>
 
+    <refsect1 id='autofs-options' condition="with_autofs">
+        <title>AUTOFS OPTIONS</title>
+        <para>
+            Please note that the default values correspond to the default
+            schema which is RFC2307.
+        </para>
+        <para>
+        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+            <variablelist>
+                <varlistentry>
+                    <term>ldap_autofs_map_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of an automount map entry in LDAP.
+                        </para>
+                        <para>
+                            Default: automountMap
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+            <variablelist>
+                <varlistentry>
+                    <term>ldap_autofs_map_name (string)</term>
+                    <listitem>
+                        <para>
+                            The name of an automount map entry in LDAP.
+                        </para>
+                        <para>
+                            Default: ou
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+            <variablelist>
+                <varlistentry>
+                    <term>ldap_autofs_entry_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of an automount map entry
+                            in LDAP.
+                        </para>
+                        <para>
+                            Default: automountMap
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+            <variablelist>
+                <varlistentry>
+                    <term>ldap_autofs_entry_key (string)</term>
+                    <listitem>
+                        <para>
+                            The key of an automount entry in LDAP. The
+                            entry usually corresponds to a mount point.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+            <variablelist>
+                <varlistentry>
+                    <term>ldap_autofs_entry_value (string)</term>
+                    <listitem>
+                        <para>
+                            The key of an automount entry in LDAP. The
+                            entry usually corresponds to a mount point.
+                        </para>
+                        <para>
+                            Default: automountInformation
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect1>
+
     <refsect1 id='advanced-options'>
         <title>ADVANCED OPTIONS</title>
         <para>
@@ -1926,6 +2005,28 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     <listitem>
                         <para>
                             An optional base DN to restrict sudo rules searches
+                            to a specific subtree.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                        <para>
+                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry condition="with_autofs">
+                    <term>ldap_autofs_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            An optional base DN to restrict automounter searches
                             to a specific subtree.
                         </para>
                         <para>

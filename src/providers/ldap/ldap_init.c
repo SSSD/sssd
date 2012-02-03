@@ -27,6 +27,7 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_access.h"
 #include "providers/ldap/sdap_sudo.h"
+#include "providers/ldap/sdap_autofs.h"
 
 static void sdap_shutdown(struct be_req *req);
 
@@ -409,6 +410,36 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
     }
 
     return sdap_sudo_init(be_ctx, id_ctx, ops, &data);
+}
+
+int sssm_ldap_autofs_init(struct be_ctx *be_ctx,
+                          struct bet_ops **ops,
+                          void **pvt_data)
+{
+#ifdef BUILD_AUTOFS
+    struct sdap_id_ctx *id_ctx;
+    void *data;
+    int ret;
+
+    ret = sssm_ldap_id_init(be_ctx, ops, &data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot init LDAP ID provider [%d]: %s\n",
+                                    ret, strerror(ret)));
+        return ret;
+    }
+
+    id_ctx = talloc_get_type(data, struct sdap_id_ctx);
+    if (!id_ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No ID provider?\n"));
+        return EIO;
+    }
+
+    return sdap_autofs_init(be_ctx, id_ctx, ops, pvt_data);
+#else
+    DEBUG(SSSDBG_MINOR_FAILURE, ("Autofs init handler called but SSSD is "
+                                 "built without autofs support, ignoring\n"));
+    return EOK;
+#endif
 }
 
 static void sdap_shutdown(struct be_req *req)

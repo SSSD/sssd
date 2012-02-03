@@ -28,6 +28,7 @@
 #include "providers/krb5/krb5_common.h"
 #include "db/sysdb_sudo.h"
 #include "db/sysdb_services.h"
+#include "db/sysdb_autofs.h"
 
 #include "util/sss_krb5.h"
 #include "util/crypto/sss_crypto.h"
@@ -55,6 +56,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_refresh_enabled", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sudo_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -240,6 +242,28 @@ struct sdap_attr_map service_map[] = {
     { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
     { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
     { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL }
+};
+
+struct sdap_attr_map rfc2307_autofs_mobject_map[] = {
+    { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
+    { "ldap_autofs_map_name", "ou", SYSDB_AUTOFS_MAP_NAME, NULL }
+};
+
+struct sdap_attr_map rfc2307_autofs_entry_map[] = {
+    { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
+    { "ldap_autofs_entry_key", "cn", SYSDB_AUTOFS_ENTRY_KEY, NULL },
+    { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
+};
+
+struct sdap_attr_map rfc2307bis_autofs_mobject_map[] = {
+    { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
+    { "ldap_autofs_map_name", "automountMapName", SYSDB_AUTOFS_MAP_NAME, NULL }
+};
+
+struct sdap_attr_map rfc2307bis_autofs_entry_map[] = {
+    { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
+    { "ldap_autofs_entry_key", "automountKey", SYSDB_AUTOFS_ENTRY_KEY, NULL },
+    { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
 };
 
 int ldap_get_options(TALLOC_CTX *memctx,
@@ -595,6 +619,86 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
     return EOK;
 }
 
+int ldap_get_autofs_options(TALLOC_CTX *memctx,
+                            struct confdb_ctx *cdb,
+                            const char *conf_path,
+                            struct sdap_options *opts)
+{
+    const char *search_base;
+    struct sdap_attr_map *default_entry_map;
+    struct sdap_attr_map *default_mobject_map;
+    int ret;
+
+    /* search base */
+    search_base = dp_opt_get_string(opts->basic, SDAP_SEARCH_BASE);
+    if (search_base != NULL) {
+        /* set autofs search bases if they are not */
+        if (dp_opt_get_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE) == NULL) {
+            ret = dp_opt_set_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE,
+                                    search_base);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not set autofs search base"
+                      "to default value\n"));
+                return ret;
+            }
+
+            DEBUG(SSSDBG_FUNC_DATA, ("Option %s set to %s\n",
+                  opts->basic[SDAP_AUTOFS_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE)));
+        }
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: no autofs search base set\n"));
+        return ENOENT;
+    }
+
+    ret = sdap_parse_search_base(opts, opts->basic,
+                                 SDAP_AUTOFS_SEARCH_BASE,
+                                 &opts->autofs_search_bases);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse autofs search base\n"));
+        return ret;
+    }
+
+    /* attribute maps */
+    switch (opts->schema_type) {
+        case SDAP_SCHEMA_RFC2307:
+            default_mobject_map = rfc2307_autofs_mobject_map;
+            default_entry_map = rfc2307_autofs_entry_map;
+            break;
+        case SDAP_SCHEMA_RFC2307BIS:
+        case SDAP_SCHEMA_IPA_V1:
+        case SDAP_SCHEMA_AD:
+            default_mobject_map = rfc2307bis_autofs_mobject_map;
+            default_entry_map = rfc2307bis_autofs_entry_map;
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown LDAP schema!\n"));
+            return EINVAL;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_mobject_map,
+                       SDAP_OPTS_AUTOFS_MAP,
+                       &opts->autofs_mobject_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not get autofs map object attribute map\n"));
+        return ret;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_entry_map,
+                       SDAP_OPTS_AUTOFS_ENTRY,
+                       &opts->autofs_entry_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not get autofs entry object attribute map\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
@@ -635,6 +739,8 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_SERVICE_SEARCH_BASE:
         class_name = "SERVICE";
+    case SDAP_AUTOFS_SEARCH_BASE:
+        class_name = "AUTOFS";
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,

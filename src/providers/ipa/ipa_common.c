@@ -65,6 +65,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_refresh_enabled", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_sudo_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ipa_v1" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
@@ -476,6 +477,30 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &ipa_opts->id->group_search_bases);
     if (ret != EOK) goto done;
+
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_AUTOFS_SEARCH_BASE)) {
+        value = talloc_asprintf(tmpctx, "cn=default,cn=automount,%s", basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_AUTOFS_SEARCH_BASE,
+                                value);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_LIBS, ("Option %s set to %s\n",
+              ipa_opts->id->basic[SDAP_AUTOFS_SEARCH_BASE].opt_name,
+              dp_opt_get_string(ipa_opts->id->basic,
+                                SDAP_AUTOFS_SEARCH_BASE)));
+    }
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+                                 SDAP_AUTOFS_SEARCH_BASE,
+                                 &ipa_opts->id->autofs_search_bases);
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_SUDO_SEARCH_BASE)) {

@@ -354,6 +354,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_sudo_cache.h \
     src/providers/ldap/sdap_sudo_timer.h \
     src/providers/ldap/sdap_sudo.h \
+    src/providers/ldap/sdap_autofs.h \
     src/providers/ldap/sdap_id_op.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_access.h \
@@ -997,6 +998,10 @@ libsss_ldap_la_SOURCES += src/providers/ldap/sdap_sudo_cache.c \
                  src/providers/ldap/sdap_sudo_timer.c \
                  src/providers/ldap/sdap_sudo.c
 endif
+if BUILD_AUTOFS
+libsss_ldap_la_SOURCES += src/providers/ldap/sdap_autofs.c \
+                          src/providers/ldap/sdap_async_autofs.c
+endif
 
 libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_common.c \
@@ -1115,6 +1120,10 @@ if BUILD_SUDO
 libsss_ipa_la_SOURCES += src/providers/ldap/sdap_sudo_cache.c \
                  src/providers/ldap/sdap_sudo_timer.c \
                  src/providers/ldap/sdap_sudo.c
+endif
+if BUILD_AUTOFS
+libsss_ipa_la_SOURCES += src/providers/ldap/sdap_autofs.c \
+                         src/providers/ldap/sdap_async_autofs.c
 endif
 
 
