@@ -224,38 +224,6 @@ done:
     return ret;
 }
 
-/* NSS wraps b64 encoded buffers with CRLF automatically after 64 chars. This
- * function strips the CRLF double-chars. The buffer can be decoded with plain
- * NSS calls */
-static char *b64_encode(TALLOC_CTX *mem_ctx,
-                        unsigned char *inbuf,
-                        size_t inbufsize)
-{
-    char *b64encoded = NULL;
-    int i, j, b64size;
-    char *outbuf;
-
-    b64encoded = BTOA_DataToAscii(inbuf, inbufsize);
-    if (!b64encoded) return NULL;
-
-    b64size = strlen(b64encoded) + 1;
-    outbuf = talloc_array(mem_ctx, char, b64size);
-    if (outbuf == NULL) {
-        PORT_Free(b64encoded);
-        return NULL;
-    }
-
-    for (i=0, j=0; i < b64size; i++) {
-        if (b64encoded[i] == '\n' || b64encoded[i] == '\r') {
-            continue;
-        }
-        outbuf[j++] = b64encoded[i]; /* will also copy the trailing \0 char */
-    }
-
-    PORT_Free(b64encoded);
-    return outbuf;
-}
-
 int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
                          enum obfmethod meth, char **obfpwd)
 {
@@ -383,7 +351,7 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
                      OBF_BUFFER_SENTINEL_SIZE, &p);
 
     /* Base64 encode the resulting buffer */
-    *obfpwd = b64_encode(mem_ctx, obfbuf, obufsize);
+    *obfpwd = sss_base64_encode(mem_ctx, obfbuf, obufsize);
     if (*obfpwd == NULL) {
         ret = ENOMEM;
         goto done;
@@ -408,7 +376,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     int plainlen;
     unsigned int digestlen;
     unsigned char *obfbuf = NULL;
-    unsigned int obflen;
+    size_t obflen;
     char *pwdbuf;
 
     /* for unmarshaling data */
@@ -433,7 +401,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     }
 
     /* Base64 decode the incoming buffer */
-    obfbuf = ATOB_AsciiToData(b64encoded, &obflen);
+    obfbuf = sss_base64_decode(tmp_ctx, b64encoded, &obflen);
     if (!obfbuf) {
         ret = ENOMEM;
         goto done;
@@ -531,7 +499,6 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     *password = talloc_move(mem_ctx, &pwdbuf);
     ret = EOK;
 done:
-    PORT_Free(obfbuf);
     talloc_free(tmp_ctx);
     nspr_nss_cleanup();
     return ret;

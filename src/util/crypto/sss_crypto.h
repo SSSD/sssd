@@ -11,6 +11,14 @@ enum obfmethod {
 
 int test2(void);
 
+char *sss_base64_encode(TALLOC_CTX *mem_ctx,
+                        const unsigned char *in,
+                        size_t insize);
+
+unsigned char *sss_base64_decode(TALLOC_CTX *mem_ctx,
+                                 const char *in,
+                                 size_t *outsize);
+
 int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
                          enum obfmethod meth, char **obfpwd);
 
