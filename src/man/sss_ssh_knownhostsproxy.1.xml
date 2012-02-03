@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_ssh_knownhostsproxy</refentrytitle>
+        <manvolnum>1</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_ssh_knownhostsproxy</refname>
+        <refpurpose>get OpenSSH host keys</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_ssh_knownhostsproxy</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'><replaceable>HOST</replaceable></arg>
+            <arg choice='opt'><replaceable>PROXY_COMMAND</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_ssh_knownhostsproxy</command> acquires SSH host
+            public keys for host <replaceable>HOST</replaceable>, stores
+            them in a custom OpenSSH known_hosts file (see the
+            <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> section of
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> for more
+            information) and estabilishes connection to the host.
+        </para>
+        <para>
+            If <replaceable>PROXY_COMMAND</replaceable> is specified,
+            it is used to create the connection to the host instead of
+            opening a socket.
+        </para>
+        <para>
+            <citerefentry><refentrytitle>ssh</refentrytitle>
+            <manvolnum>1</manvolnum></citerefentry> can be configured to
+            use <command>sss_ssh_knownhostsproxy</command> for host key
+            authentication by using the following directives for
+            <citerefentry><refentrytitle>ssh</refentrytitle>
+            <manvolnum>1</manvolnum></citerefentry> configuration:
+<programlisting>
+ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h
+UserKnownHostsFile2 .ssh/sss_known_hosts
+</programlisting>
+        </para>
+        <para>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-f</option>,<option>--file</option>
+                    <replaceable>FILE</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Store host public keys in file <replaceable>FILE</replaceable>.
+                        By default, <filename>.ssh/sss_known_hosts</filename> is used.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-p</option>,<option>--port</option>
+                    <replaceable>PORT</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Use port <replaceable>PORT</replaceable> to connect to the host.
+                        By default, port 22 is used.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>DOMAIN</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Search for host public keys in SSSD domain <replaceable>DOMAIN</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>ssh</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_ssh_authorizedkeys</refentrytitle><manvolnum>1</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+</refentry>
+</reference>

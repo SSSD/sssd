@@ -316,8 +316,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %if (0%{?enable_experimental} == 1)
 %{_bindir}/sss_ssh_authorizedkeys
+%{_bindir}/sss_ssh_knownhostsproxy
 %endif
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
+%{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 

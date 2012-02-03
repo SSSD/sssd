@@ -63,7 +63,8 @@ ACLOCAL_AMFLAGS = -I m4 -I .
 
 if BUILD_SSH
 bin_PROGRAMS = \
-    sss_ssh_authorizedkeys
+    sss_ssh_authorizedkeys \
+    sss_ssh_knownhostsproxy
 endif
 
 sbin_PROGRAMS = \
@@ -651,6 +652,14 @@ sss_ssh_authorizedkeys_SOURCES = \
     src/sss_client/ssh/sss_ssh_authorizedkeys.c
 sss_ssh_authorizedkeys_CFLAGS = $(AM_CFLAGS)
 sss_ssh_authorizedkeys_LDADD = \
+    libsss_util.la
+
+sss_ssh_knownhostsproxy_SOURCES = \
+    src/sss_client/common.c \
+    src/sss_client/ssh/sss_ssh.c \
+    src/sss_client/ssh/sss_ssh_knownhostsproxy.c
+sss_ssh_knownhostsproxy_CFLAGS = $(AM_CFLAGS)
+sss_ssh_knownhostsproxy_LDADD = \
     libsss_util.la
 endif
 
