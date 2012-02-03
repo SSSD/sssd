@@ -1310,35 +1310,6 @@ fail:
     return ret;
 }
 
-int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
-                            struct sss_domain_info *domain,
-                            struct sysdb_ctx **sysdb)
-{
-    int i;
-
-    if (domain->sysdb != NULL) {
-        *sysdb = domain->sysdb;
-        return EOK;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("sysdb context not stored in domain, "
-                              "trying to find by name.\n"));
-
-    for (i = 0; i < ctx_list->num_dbs; i++) {
-        if (ctx_list->dbs[i]->domain == domain) {
-            *sysdb = ctx_list->dbs[i];
-            return EOK;
-        }
-        if (strcasecmp(ctx_list->dbs[i]->domain->name, domain->name) == 0) {
-            *sysdb = ctx_list->dbs[i];
-            return EOK;
-        }
-    }
-    /* definitely not found */
-    return ENOENT;
-}
-
-
 int compare_ldb_dn_comp_num(const void *m1, const void *m2)
 {
     struct ldb_message *msg1 = talloc_get_type(*(void **) discard_const(m1),

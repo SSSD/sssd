@@ -559,8 +559,8 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
 
         DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s@%s]\n",
               lookup_ctx->mapname, dom->name));
-        ret = sysdb_get_ctx_from_list(lookup_ctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;

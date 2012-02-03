@@ -331,10 +331,10 @@ static errno_t set_last_login(struct pam_auth_req *preq)
         goto fail;
     }
 
-    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list, preq->domain,
-                                  &dbctx);
-    if (ret != EOK) {
+    dbctx = preq->domain->sysdb;
+    if (dbctx == NULL) {
         DEBUG(0, ("Fatal: Sysdb context not found for this domain!\n"));
+        ret = EINVAL;
         goto fail;
     }
 
@@ -377,9 +377,11 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
         goto done;
     }
 
-    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
-                                  preq->domain, &sysdb);
-    if (ret != EOK) {
+    sysdb = preq->domain->sysdb;
+    if (sysdb == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Fatal: Sysdb CTX not found for "
+                                     "domain [%s]!\n", preq->domain->name));
+        ret = EINVAL;
         goto done;
     }
 
@@ -655,9 +657,8 @@ static void pam_reply(struct pam_auth_req *preq)
                     /* do auth with offline credentials */
                     pd->offline_auth = true;
 
-                    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
-                                                  preq->domain, &sysdb);
-                    if (ret != EOK) {
+                    sysdb = preq->domain->sysdb;
+                    if (sysdb == NULL) {
                         DEBUG(0, ("Fatal: Sysdb CTX not found for "
                                   "domain [%s]!\n", preq->domain->name));
                         goto done;
@@ -994,7 +995,6 @@ static void pam_dp_send_acct_req_done(struct tevent_req *req);
 static int pam_check_user_search(struct pam_auth_req *preq)
 {
     struct sss_domain_info *dom = preq->domain;
-    struct cli_ctx *cctx = preq->cctx;
     char *name = NULL;
     struct sysdb_ctx *sysdb;
     time_t cacheExpire;
@@ -1049,8 +1049,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             preq->pd->pam_status = PAM_SYSTEM_ERR;
             return EFAULT;

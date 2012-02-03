@@ -715,8 +715,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -944,8 +944,8 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -1314,8 +1314,8 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
 
         DEBUG(6, ("Requesting info for domain [%s]\n", dom->name));
 
-        ret = sysdb_get_ctx_from_list(rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -2020,8 +2020,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -2249,8 +2249,8 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -2612,8 +2612,8 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
 
         DEBUG(6, ("Requesting info for domain [%s]\n", dom->name));
 
-        ret = sysdb_get_ctx_from_list(rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -3081,8 +3081,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }

@@ -340,10 +340,6 @@ int sysdb_list_init(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
                     struct sysdb_ctx_list **_list);
 
-int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
-                            struct sss_domain_info *domain,
-                            struct sysdb_ctx **_ctx);
-
 errno_t sysdb_add_to_domain(struct sss_domain_info *domain,
                             struct sysdb_ctx *ctx);
 /* functions to retrieve information from sysdb

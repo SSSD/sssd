@@ -412,8 +412,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n",
                   name, dom->name));
-        ret = sysdb_get_ctx_from_list(step_ctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }

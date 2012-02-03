@@ -111,9 +111,8 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         DEBUG(SSSDBG_FUNC_DATA, ("Requesting info about [%s@%s]\n",
               name, dom->name));
 
-        ret = sysdb_get_ctx_from_list(cli_ctx->rctx->db_list,
-                                      dctx->domain, &sysdb);
-        if (ret != EOK) {
+        sysdb = dctx->domain->sysdb;
+        if (sysdb == NULL) {
              DEBUG(SSSDBG_CRIT_FAILURE,
                    ("sysdb context not found for this domain!\n"));
              ret = EIO;
@@ -400,7 +399,6 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_dom_ctx *dctx)
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
     struct sysdb_ctx *sysdb;
-    struct cli_ctx *cli_ctx = dctx->cmd_ctx->cli_ctx;
     struct sudo_ctx *sudo_ctx = dctx->cmd_ctx->sudo_ctx;
     uid_t uid;
     char **groupnames;
@@ -410,9 +408,8 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_dom_ctx *dctx)
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    ret = sysdb_get_ctx_from_list(cli_ctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
+    sysdb = dctx->domain->sysdb;
+    if (sysdb == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("sysdb context not found for this domain!\n"));
         ret = EIO;

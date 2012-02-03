@@ -258,7 +258,6 @@ static errno_t
 ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
-    struct cli_ctx *cctx = cmd_ctx->cctx;
     struct sysdb_ctx *sysdb;
     const char *attrs[] = { SYSDB_NAME, SYSDB_SSH_PUBKEY, NULL };
     struct ldb_result *res;
@@ -267,8 +266,8 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
           ("Requesting SSH user public keys for [%s@%s]\n",
            cmd_ctx->name, cmd_ctx->domain->name));
 
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, cmd_ctx->domain, &sysdb);
-    if (ret != EOK) {
+    sysdb = cmd_ctx->domain->sysdb;
+    if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Fatal: Sysdb CTX not found for this domain!\n"));
         return EFAULT;
@@ -393,7 +392,6 @@ static errno_t
 ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
-    struct cli_ctx *cctx = cmd_ctx->cctx;
     struct sysdb_ctx *sysdb;
     const char *attrs[] = { SYSDB_NAME, SYSDB_SSH_PUBKEY, NULL };
 
@@ -401,8 +399,8 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
           ("Requesting SSH host public keys for [%s@%s]\n",
            cmd_ctx->name, cmd_ctx->domain->name));
 
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, cmd_ctx->domain, &sysdb);
-    if (ret != EOK) {
+    sysdb = cmd_ctx->domain->sysdb;
+    if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Fatal: Sysdb CTX not found for this domain!\n"));
         return EFAULT;
@@ -504,8 +502,8 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     }
 
     while (dom) {
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Fatal: Sysdb CTX not found for this domain!\n"));
             ret = EFAULT;

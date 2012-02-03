@@ -164,8 +164,8 @@ getserv_send(TALLOC_CTX *mem_ctx,
          }
          if (!dom) break;
 
-         ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
-         if (ret != EOK) {
+         sysdb = dom->sysdb;
+         if (sysdb == NULL) {
              DEBUG(SSSDBG_CRIT_FAILURE,
                    ("Critical: Sysdb CTX not found for [%s]!\n", dom->name));
              ret = EINVAL;
@@ -479,9 +479,8 @@ static void lookup_service_done(struct tevent_req *subreq)
      * be returned, if it exists. Otherwise, move to the
      * next provider.
      */
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dom, &sysdb);
-    if (ret != EOK) {
+    sysdb = dom->sysdb;
+    if (sysdb == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Critical: Sysdb CTX not found for [%s]!\n",
                 dom->name));
@@ -1370,10 +1369,11 @@ lookup_servent_send(TALLOC_CTX *mem_ctx,
         /* No provider check required. Just ask the
          * sysdb.
          */
-        ret = sysdb_get_ctx_from_list(rctx->db_list, dom, &sysdb);
-        if (ret != EOK) {
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Sysdb CTX not found for [%s]!\n", dom->name));
+            ret = EINVAL;
             goto immediate;
         }
 
@@ -1431,10 +1431,11 @@ lookup_servent_done(struct tevent_req *subreq)
     }
 
     /* Check the cache now */
-    ret = sysdb_get_ctx_from_list(state->rctx->db_list, state->dom, &sysdb);
-    if (ret != EOK) {
+    sysdb = state->dom->sysdb;
+    if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Sysdb CTX not found for [%s]!\n", state->dom->name));
+        ret = EINVAL;
         goto done;
     }
 
