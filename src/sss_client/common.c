@@ -381,6 +381,8 @@ static bool sss_cli_check_version(const char *socket_name)
         expected_version = SSS_SUDO_PROTOCOL_VERSION;
     } else if (strcmp(socket_name, SSS_AUTOFS_SOCKET_NAME) == 0) {
         expected_version = SSS_AUTOFS_PROTOCOL_VERSION;
+    } else if (strcmp(socket_name, SSS_SSH_SOCKET_NAME) == 0) {
+        expected_version = SSS_SSH_PROTOCOL_VERSION;
     } else {
         return false;
     }
@@ -840,6 +842,23 @@ int sss_autofs_make_request(enum sss_cli_command cmd,
     enum sss_status ret = SSS_STATUS_UNAVAIL;
 
     ret = sss_cli_check_socket(errnop, SSS_AUTOFS_SOCKET_NAME);
+    if (ret != SSS_STATUS_SUCCESS) {
+        return SSS_STATUS_UNAVAIL;
+    }
+
+    ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+
+    return ret;
+}
+
+int sss_ssh_make_request(enum sss_cli_command cmd,
+                         struct sss_cli_req_data *rd,
+                         uint8_t **repbuf, size_t *replen,
+                         int *errnop)
+{
+    enum sss_status ret = SSS_STATUS_UNAVAIL;
+
+    ret = sss_cli_check_socket(errnop, SSS_SSH_SOCKET_NAME);
     if (ret != SSS_STATUS_SUCCESS) {
         return SSS_STATUS_UNAVAIL;
     }

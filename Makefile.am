@@ -384,7 +384,9 @@ dist_noinst_HEADERS = \
     src/resolv/ares/ares_parse_srv_reply.h \
     src/resolv/ares/ares_parse_txt_reply.h \
     src/resolv/ares/ares_data.h \
-    src/tests/common.h
+    src/tests/common.h \
+    src/sss_client/ssh/sss_ssh.h
+
 
 if HAVE_NSS
     dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
