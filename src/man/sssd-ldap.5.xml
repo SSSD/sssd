@@ -578,6 +578,16 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry condition="with_ssh">
+                    <term>ldap_user_ssh_public_key (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the user's SSH
+                            public keys.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>ldap_force_upper_case_realm (boolean)</term>
                     <listitem>

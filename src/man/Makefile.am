@@ -15,7 +15,10 @@ endif
 if BUILD_AUTOFS
 AUTOFS_CONDS = ;with_autofs
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)
+if BUILD_SSH
+SSH_CONDS = ;with_ssh
+endif
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)
 
 
 #Special Rules:

@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "confdb/confdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
@@ -101,6 +102,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     int a, i, ret;
     const char *name;
     bool store;
+    bool base64;
 
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
@@ -171,6 +173,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         }
     }
     while (str) {
+        base64 = false;
         if (map) {
             for (a = 1; a < attrs_num; a++) {
                 /* check if this attr is valid with the chosen schema */
@@ -182,6 +185,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             if (a < attrs_num) {
                 store = true;
                 name = map[a].sys_name;
+                if (strcmp(name, SYSDB_SSH_PUBKEY) == 0) {
+                    base64 = true;
+                }
             } else {
                 store = false;
                 name = NULL;
@@ -217,8 +223,18 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                     goto fail;
                 }
                 for (i = 0; vals[i]; i++) {
-                    v.data = (uint8_t *)vals[i]->bv_val;
-                    v.length = vals[i]->bv_len;
+                    if (base64) {
+                        v.data = (uint8_t *)sss_base64_encode(attrs,
+                                (uint8_t *)vals[i]->bv_val, vals[i]->bv_len);
+                        if (!v.data) {
+                            ret = ENOMEM;
+                            goto fail;
+                        }
+                        v.length = strlen((const char *)v.data);
+                    } else {
+                        v.data = (uint8_t *)vals[i]->bv_val;
+                        v.length = vals[i]->bv_len;
+                    }
 
                     ret = sysdb_attrs_add_val(attrs, name, &v);
                     if (ret) goto fail;

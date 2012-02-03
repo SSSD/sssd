@@ -221,6 +221,7 @@ option_strings = {
     'ldap_user_nds_login_disabled' : _('loginDisabled attribute of NDS'),
     'ldap_user_nds_login_expiration_time' : _('loginExpirationTime attribute of NDS'),
     'ldap_user_nds_login_allowed_time_map' : _('loginAllowedTimeMap attribute of NDS'),
+    'ldap_user_ssh_public_key' : _('SSH public key attribute'),
 
     'ldap_group_search_base' : _('Base DN for group lookups'),
     # not used # 'ldap_group_search_scope' : _('Scope of group lookups'),
