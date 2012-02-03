@@ -132,6 +132,15 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                                  enum sdap_result *result,
                                  char **user_error_msg);
 
+struct tevent_req *
+sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sdap_handle *sh,
+                             const char *dn,
+                             char *lastchanged_name);
+
+errno_t sdap_modify_shadow_lastchange_recv(struct tevent_req *req);
+
 enum connect_tls {
     CON_TLS_DFL,
     CON_TLS_ON,

@@ -691,6 +691,138 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* ==Update-passwordLastChanged-attribute====================== */
+struct update_last_changed_state {
+    struct tevent_context *ev;
+    struct sdap_handle *sh;
+    struct sdap_op *op;
+
+    const char *dn;
+    LDAPMod **mods;
+};
+
+static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
+                                               struct sdap_msg *reply,
+                                               int error, void *pvt);
+
+struct tevent_req *
+sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_handle *sh,
+                                   const char *dn,
+                                   char *lastchanged_name)
+{
+    struct tevent_req *req;
+    struct update_last_changed_state *state;
+    char **values;
+    errno_t ret;
+    int msgid;
+
+    req = tevent_req_create(mem_ctx, &state, struct update_last_changed_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->sh = sh;
+    state->dn = dn;
+    state->mods = talloc_zero_array(state, LDAPMod *, 2);
+    if (state->mods == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    state->mods[0] = talloc_zero(state->mods, LDAPMod);
+    state->mods[1] = talloc_zero(state->mods, LDAPMod);
+    if (!state->mods[0] || !state->mods[1]) {
+        ret = ENOMEM;
+        goto done;
+    }
+    values = talloc_zero_array(state->mods[0], char *, 2);
+    if (values == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    values[0] = talloc_asprintf(values, "%ld", (long)time(NULL));
+    if (values[0] == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    state->mods[0]->mod_op = LDAP_MOD_REPLACE;
+    state->mods[0]->mod_type = lastchanged_name;
+    state->mods[0]->mod_vals.modv_strvals = values;
+    state->mods[1] = NULL;
+
+    ret = ldap_modify_ext(state->sh->ldap, state->dn, state->mods,
+            NULL, NULL, &msgid);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to send operation!\n"));
+        goto done;
+    }
+
+    ret = sdap_op_add(state, state->ev, state->sh, msgid,
+            sdap_modify_shadow_lastchange_done, req, 5, &state->op);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set up operation!\n"));
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
+                                               struct sdap_msg *reply,
+                                               int error, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct update_last_changed_state *state;
+    state = tevent_req_data(req, struct update_last_changed_state);
+    char *errmsg;
+    int result;
+    errno_t ret = EOK;
+    int lret;
+
+    if (error) {
+        tevent_req_error(req, error);
+        return;
+    }
+
+    lret = ldap_parse_result(state->sh->ldap, reply->msg,
+                            &result, NULL, &errmsg, NULL,
+                            NULL, 0);
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_result failed (%d)\n",
+                                  state->op->msgid));
+        ret = EIO;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("Updating lastPwdChange result: %s(%d), %s\n",
+                              sss_ldap_err2string(result),
+                              result, errmsg));
+
+done:
+    ldap_memfree(errmsg);
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+}
+
+errno_t sdap_modify_shadow_lastchange_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+
 /* ==Fetch-RootDSE============================================= */
 
 struct sdap_get_rootdse_state {

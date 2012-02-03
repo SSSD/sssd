@@ -102,6 +102,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_access_order", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_chpass_update_last_change", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_enumeration_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     /* Do not include ldap_auth_disable_tls_never_use_in_production in the
      * manpages or SSSDConfig API

@@ -1407,8 +1407,6 @@
                             <citerefentry><refentrytitle>shadow</refentrytitle>
                             <manvolnum>5</manvolnum></citerefentry> style
                             attributes to evaluate if the password has expired.
-                            Note that the current version of sssd cannot
-                            update this attribute during a password change.
                         </para>
                         <para>
                             <emphasis>mit_kerberos</emphasis> - Use the attributes

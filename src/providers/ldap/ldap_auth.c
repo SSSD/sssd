@@ -45,6 +45,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_async_private.h"
 
 /* MIT Kerberos has the same hardcoded warning interval of 7 days. Due to the
  * fact that using the expiration time of a Kerberos password with LDAP
@@ -705,6 +706,8 @@ struct sdap_pam_chpass_state {
     char *password;
     char *new_password;
     struct sdap_handle *sh;
+
+    struct sdap_auth_ctx *ctx;
 };
 
 static void sdap_auth4chpass_done(struct tevent_req *req);
@@ -754,6 +757,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     state->breq = breq;
     state->pd = pd;
     state->username = pd->user;
+    state->ctx = ctx;
     state->password = talloc_strndup(state,
                                      (char *)pd->authtok, pd->authtok_size);
     if (!state->password) goto done;
@@ -782,6 +786,7 @@ done:
     sdap_pam_auth_reply(breq, dp_err, pd->pam_status);
 }
 
+static void sdap_lastchange_done(struct tevent_req *req);
 static void sdap_auth4chpass_done(struct tevent_req *req)
 {
     struct sdap_pam_chpass_state *state =
@@ -898,6 +903,8 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
     int dp_err = DP_ERR_FATAL;
     int ret;
     char *user_error_message = NULL;
+    char *lastchanged_name;
+    struct tevent_req *subreq;
     size_t msg_len;
     uint8_t *msg;
 
@@ -935,9 +942,48 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
         }
     }
 
+    if (dp_opt_get_bool(state->ctx->opts->basic,
+                        SDAP_CHPASS_UPDATE_LAST_CHANGE)) {
+        lastchanged_name = state->ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name;
+
+        subreq = sdap_modify_shadow_lastchange_send(state,
+                                              state->breq->be_ctx->ev,
+                                              state->sh,
+                                              state->dn,
+                                              lastchanged_name);
+        if (subreq == NULL) {
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, sdap_lastchange_done, state);
+        return;
+    }
+
 done:
     sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
 }
+
+static void sdap_lastchange_done(struct tevent_req *req)
+{
+    struct sdap_pam_chpass_state *state =
+                    tevent_req_callback_data(req, struct sdap_pam_chpass_state);
+    int dp_err = DP_ERR_FATAL;
+    errno_t ret;
+
+    ret = sdap_modify_shadow_lastchange_recv(req);
+    if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    dp_err = DP_ERR_OK;
+    state->pd->pam_status = PAM_SUCCESS;
+
+done:
+    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
+}
+
 /* ==Perform-User-Authentication-and-Password-Caching===================== */
 
 struct sdap_pam_auth_state {
