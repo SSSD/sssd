@@ -1260,6 +1260,9 @@ static int be_client_destructor(void *ctx)
         } else if (becli->bectx->autofs_cli == becli) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Removed autofs client\n"));
             becli->bectx->autofs_cli = NULL;
+        } else if (becli->bectx->ssh_cli == becli) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Removed SSH client\n"));
+            becli->bectx->ssh_cli = NULL;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown client removed ...\n"));
         }
@@ -1312,6 +1315,8 @@ static int client_registration(DBusMessage *message,
         becli->bectx->sudo_cli = becli;
     } else if (strcasecmp(cli_name, "autofs") == 0) {
         becli->bectx->autofs_cli = becli;
+    } else if (strcasecmp(cli_name, "SSH") == 0) {
+        becli->bectx->ssh_cli = becli;
     } else {
         DEBUG(1, ("Unknown client! [%s]\n", cli_name));
     }

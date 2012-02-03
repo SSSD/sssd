@@ -102,6 +102,9 @@
 #define CONFDB_AUTOFS_CONF_ENTRY "config/autofs"
 #define CONFDB_AUTOFS_MAP_NEG_TIMEOUT "autofs_negative_timeout"
 
+/* SSH */
+#define CONFDB_SSH_CONF_ENTRY "config/ssh"
+
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"
 

@@ -86,6 +86,9 @@ endif
 if BUILD_AUTOFS
 sssdlibexec_PROGRAMS += sssd_autofs
 endif
+if BUILD_SSH
+sssdlibexec_PROGRAMS += sssd_ssh
+endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
@@ -223,6 +226,7 @@ AM_CPPFLAGS = \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
+    -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
     -DLOCALEDIR=\"$(localedir)\"
 
 EXTRA_DIST = build/config.rpath
@@ -329,6 +333,7 @@ dist_noinst_HEADERS = \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
+    src/responder/ssh/sshsrv_private.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_private.h \
@@ -509,6 +514,16 @@ sssd_autofs_SOURCES = \
     src/responder/autofs/autofssrv_dp.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
+    $(SSSD_LIBS) \
+    libsss_util.la
+endif
+
+if BUILD_SSH
+sssd_ssh_SOURCES = \
+    src/responder/ssh/sshsrv.c \
+    src/responder/ssh/sshsrv_cmd.c \
+    $(SSSD_RESPONDER_OBJ)
+sssd_ssh_LDADD = \
     $(SSSD_LIBS) \
     libsss_util.la
 endif

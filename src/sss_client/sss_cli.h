@@ -170,6 +170,10 @@ enum sss_cli_command {
     SSS_AUTOFS_GETAUTOMNTBYNAME  = 0x00D3,
     SSS_AUTOFS_ENDAUTOMNTENT    = 0x00D4,
 
+/* SSH */
+    SSS_SSH_GET_USER_PUBKEYS = 0x00E1,
+    SSS_SSH_GET_HOST_PUBKEYS = 0x00E2,
+
 /* PAM related calls */
     SSS_PAM_AUTHENTICATE     = 0x00F1, /**< see pam_sm_authenticate(3) for
                                         * details.
