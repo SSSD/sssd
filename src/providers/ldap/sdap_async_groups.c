@@ -2401,7 +2401,7 @@ sdap_nested_group_process_deref_call(struct tevent_req *req)
                         state->opts->user_map[SDAP_AT_USER_NAME].name;
     sdap_attrs[SDAP_OPTS_GROUP + 1] = NULL;
 
-    timeout = dp_opt_get_int(state->opts->basic, SDAP_ENTRY_CACHE_TIMEOUT);
+    timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
 
     subreq = sdap_deref_search_send(state, state->ev, state->opts,
                     state->sh, state->derefctx->orig_dn,
