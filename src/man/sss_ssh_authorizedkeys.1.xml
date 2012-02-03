@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_ssh_authorizedkeys</refentrytitle>
+        <manvolnum>1</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_ssh_authorizedkeys</refname>
+        <refpurpose>get OpenSSH authorized keys</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_ssh_authorizedkeys</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'><replaceable>USER</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_ssh_authorizedkeys</command> acquires SSH
+            public keys for user <replaceable>USER</replaceable> and
+            outputs them in OpenSSH authorized_keys format (see the
+            <quote>AUTHORIZED_KEYS FILE FORMAT</quote> section of
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> for more
+            information).
+        </para>
+        <para>
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> can be configured
+            to use <command>sss_ssh_authorizedkeys</command> for public
+            key user authentication if it is compiled with support for
+            either <quote>AuthorizedKeysCommand</quote> or
+            <quote>PubkeyAgent</quote> <citerefentry>
+            <refentrytitle>sshd_config</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry> options.
+        </para>
+        <para>
+            If <quote>AuthorizedKeysCommand</quote> is supported,
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> can be configured to
+            use it by putting the following directive in <citerefentry>
+            <refentrytitle>sshd_config</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>:
+<programlisting>
+AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+</programlisting>
+        </para>
+        <para>
+            If <quote>PubkeyAgent</quote> is supported,
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> can be configured to
+            use it by using the following directive for <citerefentry>
+            <refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> configuration:
+<programlisting>
+PubKeyAgent /usr/bin/sss_ssh_authorizedkeys %u
+</programlisting>
+        </para>
+        <para>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>DOMAIN</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Search for user public keys in SSSD domain <replaceable>DOMAIN</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sshd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sshd_config</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_ssh_knownhostsproxy</refentrytitle><manvolnum>1</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+</refentry>
+</reference>

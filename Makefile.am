@@ -61,6 +61,11 @@ dist_pkgconfig_DATA =
 
 ACLOCAL_AMFLAGS = -I m4 -I .
 
+if BUILD_SSH
+bin_PROGRAMS = \
+    sss_ssh_authorizedkeys
+endif
+
 sbin_PROGRAMS = \
     sssd \
     sss_useradd \
@@ -637,6 +642,16 @@ sss_sudo_cli_SOURCES = \
 sss_sudo_cli_CFLAGS = $(AM_CFLAGS)
 sss_sudo_cli_LDADD = \
     libsss_sudo.la
+endif
+
+if BUILD_SSH
+sss_ssh_authorizedkeys_SOURCES = \
+    src/sss_client/common.c \
+    src/sss_client/ssh/sss_ssh.c \
+    src/sss_client/ssh/sss_ssh_authorizedkeys.c
+sss_ssh_authorizedkeys_CFLAGS = $(AM_CFLAGS)
+sss_ssh_authorizedkeys_LDADD = \
+    libsss_util.la
 endif
 
 #################
@@ -1321,6 +1336,7 @@ installsssddirs::
 	mkdir -p \
     $(DESTDIR)$(includedir) \
     $(DESTDIR)$(libdir) \
+    $(DESTDIR)$(bindir) \
     $(DESTDIR)$(sbindir) \
     $(DESTDIR)$(mandir) \
     $(DESTDIR)$(pluginpath) \
