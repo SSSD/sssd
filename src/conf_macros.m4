@@ -409,7 +409,6 @@ AC_DEFUN([WITH_SUDO],
                                )
                 ],
                 [with_sudo=$withval],
-                []
                )
 
     dnl Remove when sudo goes out of experimental
