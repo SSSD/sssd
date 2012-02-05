@@ -361,7 +361,10 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
+    src/providers/ipa/ipa_session.h \
     src/providers/ipa/ipa_hosts.h \
+    src/providers/ipa/ipa_selinux_common.h \
+    src/providers/ipa/ipa_selinux_maps.h \
     src/providers/ipa/ipa_auth.h \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_id.h \
@@ -1080,6 +1083,9 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_hbac_services.c \
     src/providers/ipa/ipa_hbac_users.c \
     src/providers/ipa/ipa_hbac_common.c \
+    src/providers/ipa/ipa_session.c \
+    src/providers/ipa/ipa_selinux_maps.c \
+    src/providers/ipa/ipa_selinux_common.c \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \

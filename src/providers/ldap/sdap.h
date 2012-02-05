@@ -353,6 +353,7 @@ struct sdap_options {
     struct sdap_attr_map *sudorule_map;
     struct sdap_attr_map *autofs_mobject_map;
     struct sdap_attr_map *autofs_entry_map;
+    struct sdap_attr_map *selinuxuser_map;
 
     /* supported schema types */
     enum schema_type {

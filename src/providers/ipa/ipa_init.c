@@ -34,6 +34,7 @@
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_dyndns.h"
+#include "providers/ipa/ipa_session.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -56,6 +57,11 @@ struct bet_ops ipa_chpass_ops = {
 
 struct bet_ops ipa_access_ops = {
     .handler = ipa_access_handler,
+    .finalize = NULL
+};
+
+struct bet_ops ipa_session_ops = {
+    .handler = ipa_session_handler,
     .finalize = NULL
 };
 
@@ -390,6 +396,42 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
 done:
     if (ret != EOK) {
         talloc_free(ipa_access_ctx);
+    }
+    return ret;
+}
+
+int sssm_ipa_session_init(struct be_ctx *bectx,
+                          struct bet_ops **ops,
+                          void **pvt_data)
+{
+    int ret;
+    struct ipa_session_ctx *session_ctx;
+    struct ipa_options *opts;
+
+    session_ctx = talloc_zero(bectx, struct ipa_session_ctx);
+    if (session_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &session_ctx->id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        goto done;
+    }
+
+    opts = session_ctx->id_ctx->ipa_options;
+
+    session_ctx->hbac_search_bases = opts->hbac_search_bases;
+    session_ctx->host_search_bases = opts->host_search_bases;
+    session_ctx->selinux_search_bases = opts->selinux_search_bases;
+
+    *ops = &ipa_session_ops;
+    *pvt_data = session_ctx;
+
+done:
+    if (ret != EOK) {
+        talloc_free(session_ctx);
     }
     return ret;
 }

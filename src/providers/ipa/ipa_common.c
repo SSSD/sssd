@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 
+#include "db/sysdb_selinux.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "util/sss_krb5.h"
@@ -39,6 +40,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ipa_hbac_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ipa_host_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ipa_selinux_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ipa_hbac_refresh", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ipa_hbac_treat_deny_as", DP_OPT_STRING, { "DENY_ALL" }, NULL_STRING },
@@ -179,6 +181,19 @@ struct sdap_attr_map ipa_host_map[] = {
     { "ipa_host_object_class", "ipaHost", SYSDB_HOST_CLASS, NULL },
     { "ipa_host_fqdn", "fqdn", SYSDB_NAME, NULL },
     { "ipa_host_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
+};
+
+static struct sdap_attr_map ipa_selinux_user_map[] = {
+    {"ipa_selinux_usermap_object_class", "ipaselinuxusermap", SYSDB_SELINUX_USERMAP_CLASS, NULL},
+    {"ipa_selinux_usermap_name", "cn", SYSDB_NAME, NULL},
+    {"ipa_selinux_usermap_member_user", "memberUser", SYSDB_ORIG_MEMBER_USER, NULL},
+    {"ipa_selinux_usermap_member_host", "memberHost", SYSDB_ORIG_MEMBER_HOST, NULL},
+    {"ipa_selinux_usermap_see_also", "seeAlso", SYSDB_SELINUX_SEEALSO, NULL},
+    {"ipa_selinux_usermap_selinux_user", "ipaSELinuxUser", SYSDB_SELINUX_USER, NULL},
+    {"ipa_selinux_usermap_enabled", "ipaEnabledFlag", SYSDB_SELINUX_ENABLED, NULL},
+    {"ipa_selinux_usermap_user_category", "userCategory", SYSDB_USER_CATEGORY, NULL},
+    {"ipa_selinux_usermap_host_category", "hostCategory", SYSDB_HOST_CATEGORY, NULL},
+    {"ipa_selinux_usermap_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
 };
 
 struct dp_option ipa_def_krb5_opts[] = {
@@ -605,6 +620,29 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                  &ipa_opts->hbac_search_bases);
     if (ret != EOK) goto done;
 
+    if (NULL == dp_opt_get_string(ipa_opts->basic,
+                                  IPA_SELINUX_SEARCH_BASE)) {
+        value = talloc_asprintf(tmpctx, "cn=selinux,%s", basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->basic, IPA_SELINUX_SEARCH_BASE, value);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+                  ipa_opts->basic[IPA_SELINUX_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->basic,
+                                    IPA_SELINUX_SEARCH_BASE)));
+    }
+    ret = sdap_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+                                 IPA_SELINUX_SEARCH_BASE,
+                                 &ipa_opts->selinux_search_bases);
+    if (ret != EOK) goto done;
+
     value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);
     if (value != NULL) {
         ret = deref_string_to_val(value, &i);
@@ -682,6 +720,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        ipa_service_map,
                        IPA_OPTS_HOST,
                        &ipa_opts->id->service_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_selinux_user_map,
+                       IPA_OPTS_SELINUX_USERMAP,
+                       &ipa_opts->id->selinuxuser_map);
     if (ret != EOK) {
         goto done;
     }

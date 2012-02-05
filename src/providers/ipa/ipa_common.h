@@ -52,6 +52,7 @@ enum ipa_basic_opt {
     IPA_DYNDNS_IFACE,
     IPA_HBAC_SEARCH_BASE,
     IPA_HOST_SEARCH_BASE,
+    IPA_SELINUX_SEARCH_BASE,
     IPA_KRB5_REALM,
     IPA_HBAC_REFRESH,
     IPA_HBAC_DENY_METHOD,
@@ -82,6 +83,21 @@ enum ipa_host_attrs {
     IPA_OPTS_HOST /* attrs counter */
 };
 
+enum ipa_selinux_usermap_attrs {
+    IPA_OC_SELINUX_USERMAP = 0,
+    IPA_AT_SELINUX_USERMAP_NAME,
+    IPA_AT_SELINUX_USERMAP_MEMBER_USER,
+    IPA_AT_SELINUX_USERMAP_MEMBER_HOST,
+    IPA_AT_SELINUX_USERMAP_SEE_ALSO,
+    IPA_AT_SELINUX_USERMAP_SELINUX_USER,
+    IPA_AT_SELINUX_USERMAP_ENABLED,
+    IPA_AT_SELINUX_USERMAP_USERCAT,
+    IPA_AT_SELINUX_USERMAP_HOSTCAT,
+    IPA_AT_SELINUX_USERMAP_UUID,
+
+    IPA_OPTS_SELINUX_USERMAP /* attrs counter */
+};
+
 struct ipa_auth_ctx {
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
@@ -99,6 +115,7 @@ struct ipa_options {
 
     struct sdap_search_base **host_search_bases;
     struct sdap_search_base **hbac_search_bases;
+    struct sdap_search_base **selinux_search_bases;
     struct ipa_service *service;
 
     /* id provider */
