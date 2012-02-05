@@ -49,7 +49,6 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
                    struct bet_ops **ops,
                    void **pvt_data)
 {
-#ifdef BUILD_SUDO
     int ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing sudo LDAP back end\n"));
@@ -73,11 +72,6 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
     }
 
     return EOK;
-#else
-    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
-                                 "built without sudo support, ignoring\n"));
-    return EOK;
-#endif
 }
 
 int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx)

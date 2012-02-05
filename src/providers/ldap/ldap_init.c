@@ -392,6 +392,7 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
                         struct bet_ops **ops,
                         void **pvt_data)
 {
+#ifdef BUILD_SUDO
     struct sdap_id_ctx *id_ctx;
     void *data;
     int ret;
@@ -409,7 +410,12 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
         return EIO;
     }
 
-    return sdap_sudo_init(be_ctx, id_ctx, ops, &data);
+    return sdap_sudo_init(be_ctx, id_ctx, ops, pvt_data);
+#else
+    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
+                                 "built without sudo support, ignoring\n"));
+    return EOK;
+#endif
 }
 
 int sssm_ldap_autofs_init(struct be_ctx *be_ctx,
