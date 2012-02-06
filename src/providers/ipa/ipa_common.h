@@ -39,6 +39,9 @@ struct ipa_service {
 
 #define IPA_OPTS_SVC_TEST 5
 
+#define IPA_OPTS_AUTOMNTMAP_TEST 2
+#define IPA_OPTS_AUTOMNTENTRY_TEST 3
+
 /* the following define is used to keep track of the options in the krb5
  * module, so that if they change and ipa is not updated correspondingly
  * this will trigger a runtime abort error */
@@ -57,6 +60,7 @@ enum ipa_basic_opt {
     IPA_HBAC_REFRESH,
     IPA_HBAC_DENY_METHOD,
     IPA_HBAC_SUPPORT_SRCHOST,
+    IPA_AUTOMOUNT_LOCATION,
 
     IPA_OPTS_BASIC /* opts counter */
 };
@@ -147,6 +151,16 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct confdb_ctx *cdb,
                          const char *conf_path,
                          struct dp_option **_opts);
+
+int ipa_get_autofs_options(struct ipa_options *ipa_opts,
+                           struct confdb_ctx *cdb,
+                           const char *conf_path,
+                           struct sdap_options **_opts);
+
+int ipa_autofs_init(struct be_ctx *be_ctx,
+                    struct ipa_id_ctx *id_ctx,
+                    struct bet_ops **ops,
+                    void **pvt_data);
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *servers,

@@ -688,9 +688,9 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         control_provider_dict = {
-            'ipa': ['id', 'auth', 'access', 'chpass'],
+            'ipa': ['id', 'auth', 'access', 'chpass', 'autofs' ],
             'local': ['id', 'auth', 'chpass'],
-            'ldap': ['id', 'auth', 'access', 'chpass', 'sudo'],
+            'ldap': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs'],
             'krb5': ['auth', 'access', 'chpass'],
             'proxy': ['id', 'auth'],
             'simple': ['access'],

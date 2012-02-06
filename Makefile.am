@@ -1187,7 +1187,8 @@ libsss_ipa_la_SOURCES += src/providers/ldap/sdap_sudo_cache.c \
 endif
 if BUILD_AUTOFS
 libsss_ipa_la_SOURCES += src/providers/ldap/sdap_autofs.c \
-                         src/providers/ldap/sdap_async_autofs.c
+                         src/providers/ldap/sdap_async_autofs.c \
+                         src/providers/ipa/ipa_autofs.c
 endif
 if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c

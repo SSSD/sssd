@@ -89,6 +89,9 @@ void sdap_pam_chpass_handler(struct be_req *breq);
 /* access */
 void sdap_pam_access_handler(struct be_req *breq);
 
+/* autofs */
+void sdap_autofs_handler(struct be_req *breq);
+
 void sdap_handler_done(struct be_req *req, int dp_err,
                        int error, const char *errstr);
 
