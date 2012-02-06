@@ -177,6 +177,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_selinux_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            SELinux user maps.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_validate (boolean)</term>
                     <listitem>
                         <para>
@@ -365,6 +384,127 @@
                         </para>
                         <para>
                             Default: fqdn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_selinux_usermap_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a host entry in LDAP.
+                        </para>
+                        <para>
+                            Default: ipaHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_name (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the name
+                            of SELinux usermap.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_member_user (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains all users / groups
+                            this rule match against.
+                        </para>
+                        <para>
+                            Default: memberUser
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_member_host (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains all hosts / hostgroups
+                            this rule match against.
+                        </para>
+                        <para>
+                            Default: memberHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_see_also (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains DN of HBAC
+                            rule which can be used for matching instead
+                            of memberUser and memberHost
+                        </para>
+                        <para>
+                            Default: seeAlso
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_selinux_user (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains SELinux user
+                            string itself.
+                        </para>
+                        <para>
+                            Default: ipaSELinuxUser
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_enabled (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains whether
+                            or not is user map enabled for usage.
+                        </para>
+                        <para>
+                            Default: ipaEnabledFlag
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_user_category (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains user category
+                            such as 'all'.
+                        </para>
+                        <para>
+                            Default: userCategory
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_host_category (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains host category
+                            such as 'all'.
+                        </para>
+                        <para>
+                            Default: hostCategory
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ipa_selinux_usermap_uuid (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains unique ID
+                            of the user map.
+                        </para>
+                        <para>
+                            Default: ipaUniqueID
                         </para>
                     </listitem>
                 </varlistentry>

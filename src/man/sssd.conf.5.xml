@@ -1026,6 +1026,31 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>session_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The provider which should handle loading of session
+                            settings.
+                            Supported session providers are:
+                        </para>
+                        <para>
+                            <quote>ipa</quote> to load session settings
+                            from an IPA server. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring IPA.
+                        </para>
+                        <para>
+                            <quote>none</quote> disallows fetching session settings explicitly.
+                        </para>
+                        <para>
+                            Default: <quote>id_provider</quote> is used if it
+                            is set and can handle session loading requests.
+                        </para>
+                    </listitem>
+                </varlistentry>
 
                 <varlistentry>
                     <term>lookup_family_order (string)</term>
