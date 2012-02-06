@@ -42,7 +42,7 @@ logpath = @logpath@
 pubconfpath = @pubconfpath@
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
-sudolibdir = @appmodpath@
+sudolibdir = @sudolibpath@
 
 UNICODE_LIBS=@UNICODE_LIBS@
 

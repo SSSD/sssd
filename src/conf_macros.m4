@@ -424,6 +424,20 @@ AC_DEFUN([WITH_SUDO],
     AM_CONDITIONAL([BUILD_SUDO], [test x"$with_sudo" = xyes])
   ])
 
+AC_DEFUN([WITH_SUDO_LIB_PATH],
+  [ AC_ARG_WITH([sudo-lib-path],
+                [AC_HELP_STRING([--with-sudo-lib-path=<path>],
+                                [Path to the sudo library [/usr/lib/]]
+                               )
+                ]
+               )
+    sudolibpath="${libdir}"
+    if test x"$with_sudo_lib_path" != x; then
+        sudolibpath=$with_sudo_lib_path
+    fi
+    AC_SUBST(sudolibpath)
+  ])
+
 AC_DEFUN([WITH_AUTOFS],
   [ AC_ARG_WITH([autofs],
                 [AC_HELP_STRING([--with-autofs],
