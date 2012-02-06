@@ -1893,7 +1893,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                   be_domain));
     } else {
         DEBUG(SSSDBG_TRACE_ALL, ("Session backend target successfully loaded "
-                  "from provider [%s].\n", ctx->bet_info[BET_SUDO].mod_name));
+                  "from provider [%s].\n", ctx->bet_info[BET_SESSION].mod_name));
     }
 
     ret = load_backend_module(ctx, BET_HOSTID,

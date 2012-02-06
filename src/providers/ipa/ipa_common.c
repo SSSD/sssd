@@ -31,6 +31,7 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "util/sss_krb5.h"
 #include "db/sysdb_services.h"
+#include "db/sysdb_autofs.h"
 
 struct dp_option ipa_basic_opts[] = {
     { "ipa_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -44,7 +45,8 @@ struct dp_option ipa_basic_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ipa_hbac_refresh", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ipa_hbac_treat_deny_as", DP_OPT_STRING, { "DENY_ALL" }, NULL_STRING },
-    { "ipa_hbac_support_srchost", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
+    { "ipa_hbac_support_srchost", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ipa_automount_location", DP_OPT_STRING, { "default" }, NULL_STRING }
 };
 
 struct dp_option ipa_def_ldap_opts[] = {
@@ -223,6 +225,17 @@ struct sdap_attr_map ipa_service_map[] = {
     { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
     { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
     { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL }
+};
+
+struct sdap_attr_map ipa_autofs_mobject_map[] = {
+    { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
+    { "ldap_autofs_map_name", "automountMapName", SYSDB_AUTOFS_MAP_NAME, NULL }
+};
+
+struct sdap_attr_map ipa_autofs_entry_map[] = {
+    { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
+    { "ldap_autofs_entry_key", "automountKey", SYSDB_AUTOFS_ENTRY_KEY, NULL },
+    { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
 };
 
 int ipa_get_options(TALLOC_CTX *memctx,
@@ -495,30 +508,6 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &ipa_opts->id->group_search_bases);
     if (ret != EOK) goto done;
-
-    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
-                                  SDAP_AUTOFS_SEARCH_BASE)) {
-        value = talloc_asprintf(tmpctx, "cn=default,cn=automount,%s", basedn);
-        if (!value) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = dp_opt_set_string(ipa_opts->id->basic,
-                                SDAP_AUTOFS_SEARCH_BASE,
-                                value);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        DEBUG(SSSDBG_TRACE_LIBS, ("Option %s set to %s\n",
-              ipa_opts->id->basic[SDAP_AUTOFS_SEARCH_BASE].opt_name,
-              dp_opt_get_string(ipa_opts->id->basic,
-                                SDAP_AUTOFS_SEARCH_BASE)));
-    }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
-                                 SDAP_AUTOFS_SEARCH_BASE,
-                                 &ipa_opts->id->autofs_search_bases);
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_SUDO_SEARCH_BASE)) {
@@ -1024,3 +1013,80 @@ done:
     return ret;
 }
 
+int ipa_get_autofs_options(struct ipa_options *ipa_opts,
+                           struct confdb_ctx *cdb,
+                           const char *conf_path,
+                           struct sdap_options **_opts)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *basedn;
+    char *autofs_base;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = domain_to_basedn(tmp_ctx,
+                           dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM),
+                           &basedn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_AUTOFS_SEARCH_BASE)) {
+
+        autofs_base = talloc_asprintf(tmp_ctx, "cn=%s,cn=automount,%s",
+                                dp_opt_get_string(ipa_opts->basic,
+                                                  IPA_AUTOMOUNT_LOCATION),
+                                basedn);
+        if (!autofs_base) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_AUTOFS_SEARCH_BASE,
+                                autofs_base);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_LIBS, ("Option %s set to %s\n",
+              ipa_opts->id->basic[SDAP_AUTOFS_SEARCH_BASE].opt_name,
+              dp_opt_get_string(ipa_opts->id->basic,
+                                SDAP_AUTOFS_SEARCH_BASE)));
+    }
+
+    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+                                 SDAP_AUTOFS_SEARCH_BASE,
+                                 &ipa_opts->id->autofs_search_bases);
+
+    ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
+                       ipa_autofs_mobject_map,
+                       SDAP_OPTS_AUTOFS_MAP,
+                       &ipa_opts->id->autofs_mobject_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not get autofs map object attribute map\n"));
+        return ret;
+    }
+
+    ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
+                       ipa_autofs_entry_map,
+                       SDAP_OPTS_AUTOFS_ENTRY,
+                       &ipa_opts->id->autofs_entry_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not get autofs entry object attribute map\n"));
+        return ret;
+    }
+
+    *_opts = ipa_opts->id;
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

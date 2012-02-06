@@ -303,6 +303,18 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry condition="with_autofs">
+                    <term>ipa_automount_location (string)</term>
+                    <listitem>
+                        <para>
+                            The automounter location this IPA client will be using
+                        </para>
+                        <para>
+                            Default: The location named "default"
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>ipa_netgroup_member_of (string)</term>
                     <listitem>
