@@ -71,13 +71,14 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     /* check for sudoNotBefore */
     ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_NOTBEFORE,
                                        tmp_ctx, &values);
-    if (ret != EOK) {
-        goto done;
-    } else if (ret == ENOENT) {
+    if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
               ("notBefore attribute is missing, the rule is valid\n"));
         *result = true;
         ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
     }
 
     for (i=0; values[i] ; i++) {
@@ -100,13 +101,14 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     /* check for sudoNotAfter */
     ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_NOTAFTER,
                                        tmp_ctx, &values);
-    if (ret != EOK) {
-        goto done;
-    } else if (ret == ENOENT) {
+    if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
               ("notAfter attribute is missing, the rule is valid\n"));
         *result = true;
         ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
     }
 
     for (i=0; values[i] ; i++) {
