@@ -608,9 +608,9 @@
                     <term>ldap_enumeration_refresh_timeout (integer)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that contains how many seconds
-                            SSSD has to wait before refreshing its cache of
-                            enumerated records.
+                            Specifies how many seconds SSSD has to wait
+                            before refreshing its cache of enumerated
+                            records.
                         </para>
                         <para>
                             Default: 300
@@ -619,7 +619,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_purge_cache_timeout</term>
+                    <term>ldap_purge_cache_timeout (integer)</term>
                     <listitem>
                         <para>
                             Determine how often to check the cache for
