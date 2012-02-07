@@ -660,7 +660,7 @@
                     <listitem>
                         <para>
                             Specifies for how many seconds should the
-                            autofs respondercache negative cache hits
+                            autofs responder negative cache hits
                             (that is, queries for invalid map entries,
                             like nonexistent ones) before asking the back
                             end again.
