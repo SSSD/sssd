@@ -339,33 +339,6 @@ done:
     return EOK;
 }
 
-static errno_t
-sysdb_sudo_purge_subdir(struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
-                        const char *subdir)
-{
-    struct ldb_dn *base_dn = NULL;
-    TALLOC_CTX *tmp_ctx = NULL;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    NULL_CHECK(tmp_ctx, ret, done);
-
-    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain->name, subdir);
-    NULL_CHECK(base_dn, ret, done);
-
-    ret = sysdb_delete_recursive(sysdb, base_dn, true);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
-        goto done;
-    }
-
-    ret = EOK;
-done:
-    talloc_free(tmp_ctx);
-    return EOK;
-}
-
 errno_t
 sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
                    const char *rule_name,
@@ -398,65 +371,6 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
     }
 
     return EOK;
-}
-
-errno_t
-sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
-                             const char *filter)
-{
-    TALLOC_CTX *tmp_ctx;
-    size_t count;
-    struct ldb_message **msgs;
-    const char *name;
-    int i;
-    errno_t ret;
-    const char *attrs[] = { SYSDB_OBJECTCLASS,
-                            SYSDB_NAME,
-                            SYSDB_SUDO_CACHE_AT_OC,
-                            SYSDB_SUDO_CACHE_AT_CN,
-                            NULL };
-
-    /* just purge all if there's no filter */
-    if (!filter) {
-        return sysdb_sudo_purge_subdir(sysdb, domain, SUDORULE_SUBDIR);
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    NULL_CHECK(tmp_ctx, ret, done);
-
-    /* match entries based on the filter and remove them one by one */
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
-                              SUDORULE_SUBDIR, attrs,
-                              &count, &msgs);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up SUDO rules"));
-        goto done;
-    } if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No rules matched\n"));
-        ret = EOK;
-        goto done;
-    }
-
-    for (i = 0; i < count; i++) {
-        name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
-        if (name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("A rule without a name?\n"));
-            /* skip this one but still delete other entries */
-            continue;
-        }
-
-        ret = sysdb_delete_custom(sysdb, name, SUDORULE_SUBDIR);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete rule %s\n", name));
-            goto done;
-        }
-    }
-
-    ret = EOK;
-done:
-    talloc_free(tmp_ctx);
-    return ret;
 }
 
 errno_t sysdb_sudo_set_refreshed(struct sysdb_ctx *sysdb,
@@ -515,3 +429,319 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+char **sysdb_sudo_build_sudouser(TALLOC_CTX *mem_ctx, const char *username,
+                                 uid_t uid, char **groupnames, bool include_all)
+{
+    char **sudouser = NULL;
+    int count = 0;
+    errno_t ret;
+    int i;
+
+    if (username == NULL || uid == 0) {
+        return NULL;
+    }
+
+    count = include_all ? 3 : 2;
+    sudouser = talloc_array(NULL, char*, count + 1);
+    NULL_CHECK(sudouser, ret, done);
+
+    sudouser[0] = talloc_strdup(sudouser, username);
+    NULL_CHECK(sudouser[0], ret, done);
+
+    sudouser[1] = talloc_asprintf(sudouser, "#%llu", (unsigned long long)uid);
+    NULL_CHECK(sudouser[1], ret, done);
+
+    if (include_all) {
+        sudouser[2] = talloc_strdup(sudouser, "ALL");
+        NULL_CHECK(sudouser[2], ret, done);
+    }
+
+    if (groupnames != NULL) {
+        for (i = 0; groupnames[i] != NULL; i++) {
+            count++;
+            sudouser = talloc_realloc(NULL, sudouser, char*, count + 1);
+            NULL_CHECK(sudouser, ret, done);
+
+            sudouser[count - 1] = talloc_asprintf(sudouser, "%s", groupnames[i]);
+            NULL_CHECK(sudouser[count - 1], ret, done);
+        }
+    }
+
+    sudouser[count] = NULL;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(sudouser);
+        return NULL;
+    }
+
+    return talloc_steal(mem_ctx, sudouser);
+}
+
+/* ====================  Purge functions ==================== */
+
+errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb)
+{
+    struct ldb_dn *base_dn = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    NULL_CHECK(tmp_ctx, ret, done);
+
+    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, sysdb->domain->name,
+                                      SUDORULE_SUBDIR);
+    NULL_CHECK(base_dn, ret, done);
+
+    ret = sysdb_delete_recursive(sysdb, base_dn, true);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return EOK;
+}
+
+errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
+                                const char *name)
+{
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Deleting sudo rule %s\n", name));
+    return sysdb_delete_custom(sysdb, name, SUDORULE_SUBDIR);
+}
+
+errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
+                                  const char *filter)
+{
+    TALLOC_CTX *tmp_ctx;
+    size_t count;
+    struct ldb_message **msgs;
+    const char *name;
+    int i;
+    errno_t ret;
+    errno_t sret;
+    bool in_transaction = false;
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_NAME,
+                            SYSDB_SUDO_CACHE_AT_OC,
+                            SYSDB_SUDO_CACHE_AT_CN,
+                            NULL };
+
+    /* just purge all if there's no filter */
+    if (!filter) {
+        return sysdb_sudo_purge_all(sysdb);
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    NULL_CHECK(tmp_ctx, ret, done);
+
+    /* match entries based on the filter and remove them one by one */
+    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
+                              SUDORULE_SUBDIR, attrs,
+                              &count, &msgs);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No rules matched\n"));
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up SUDO rules"));
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
+    for (i = 0; i < count; i++) {
+        name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        if (name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("A rule without a name?\n"));
+            /* skip this one but still delete other entries */
+            continue;
+        }
+
+        ret = sysdb_sudo_purge_byname(sysdb, name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete rule %s\n", name));
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret == EOK) {
+        in_transaction = false;
+    }
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_sudo_purge_bysudouser(struct sysdb_ctx *sysdb,
+                                    char **sudouser)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *filter = NULL;
+    char *value = NULL;
+    const char *rule_name = NULL;
+    struct ldb_message_element *attr = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_message **rules = NULL;
+    size_t num_rules;
+    errno_t ret;
+    errno_t sret;
+    int lret;
+    int i, j, k;
+    bool in_transaction = false;
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_NAME,
+                            SYSDB_SUDO_CACHE_AT_USER,
+                            NULL };
+
+    if (sudouser == NULL || sudouser[0] == NULL) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    NULL_CHECK(tmp_ctx, ret, done);
+
+    /* create search filter */
+    filter = talloc_strdup(tmp_ctx, "(|");
+    NULL_CHECK(filter, ret, done);
+    for (i = 0; sudouser[i] != NULL; i++) {
+        filter = talloc_asprintf_append(filter, "(%s=%s)",
+                                        SYSDB_SUDO_CACHE_AT_USER, sudouser[i]);
+        NULL_CHECK(filter, ret, done);
+    }
+    filter = talloc_strdup_append(filter, ")");
+    NULL_CHECK(filter, ret, done);
+
+    /* search the rules */
+    ret = sysdb_search_custom(tmp_ctx, sysdb, filter, SUDORULE_SUBDIR, attrs,
+                              &num_rules, &rules);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up SUDO rules"));
+        goto done;
+    } if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No rules matched\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
+    /*
+     * remove values from sudoUser and delete the rule
+     * if the attribute is empty afterwards
+     */
+
+    for (i = 0; i < num_rules; i++) {
+        /* find name */
+        rule_name = ldb_msg_find_attr_as_string(rules[i], SYSDB_NAME, NULL);
+        if (rule_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("A rule without a name?\n"));
+            /* skip this one but still delete other entries */
+            continue;
+        }
+
+        /* find sudoUser */
+        attr = ldb_msg_find_element(rules[i], SYSDB_SUDO_CACHE_AT_USER);
+        if (attr == NULL) {
+            /* this should never happen because we search by this attribute */
+            DEBUG(SSSDBG_CRIT_FAILURE, ("BUG: sudoUser attribute is missing\n"));
+            continue;
+        }
+
+        /* create message */
+        msg = ldb_msg_new(tmp_ctx);
+        NULL_CHECK(msg, ret, done);
+
+        msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb, SYSDB_TMPL_CUSTOM, rule_name,
+                                 SUDORULE_SUBDIR, sysdb->domain->name);
+        NULL_CHECK(msg->dn, ret, done);
+
+        /* create empty sudoUser */
+        lret = ldb_msg_add_empty(msg, SYSDB_SUDO_CACHE_AT_USER,
+                                 LDB_FLAG_MOD_DELETE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
+        /* filter values */
+        for (j = 0; j < attr->num_values; j++) {
+            value = (char*)(attr->values[j].data);
+            for (k = 0; sudouser[k] != NULL; k++) {
+                if (strcmp(value, sudouser[k]) == 0) {
+                    /* delete value from cache */
+                    lret = ldb_msg_add_string(msg, SYSDB_SUDO_CACHE_AT_USER,
+                                              sudouser[k]);
+                    if (lret != LDB_SUCCESS) {
+                        ret = sysdb_error_to_errno(lret);
+                        goto done;
+                    }
+                    break;
+                }
+            }
+        }
+
+        /* update the cache */
+        if (msg->elements[0].num_values == attr->num_values) {
+            /* sudoUser would remain empty, delete the rule */
+            ret = sysdb_sudo_purge_byname(sysdb, rule_name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not delete rule %s\n",
+                      rule_name));
+                goto done;
+            }
+        } else {
+            /* sudoUser will not be empty, modify the rule */
+            DEBUG(SSSDBG_TRACE_INTERNAL, ("Modifying sudoUser of rule %s\n",
+                  rule_name));
+            lret = ldb_modify(sysdb->ldb, msg);
+            if (lret != LDB_SUCCESS) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not modify rule %s\n",
+                      rule_name));
+                ret = sysdb_error_to_errno(lret);
+                goto done;
+            }
+        }
+
+        talloc_free(msg);
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret == EOK) {
+        in_transaction = false;
+    }
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+

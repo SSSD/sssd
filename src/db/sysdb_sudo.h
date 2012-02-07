@@ -81,14 +81,24 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
                    const char *rule_name,
                    struct sysdb_attrs *attrs);
 
-errno_t sysdb_purge_sudorule_subtree(struct sysdb_ctx *sysdb,
-                                     struct sss_domain_info *domain,
-                                     const char *filter);
-
 errno_t sysdb_sudo_set_refreshed(struct sysdb_ctx *sysdb,
                                  bool refreshed);
 
 errno_t sysdb_sudo_get_refreshed(struct sysdb_ctx *sysdb,
                                  bool *refreshed);
+
+char **sysdb_sudo_build_sudouser(TALLOC_CTX *mem_ctx, const char *username,
+                                 uid_t uid, char **groupnames, bool include_all);
+
+errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb);
+
+errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
+                                const char *name);
+
+errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
+                                  const char *filter);
+
+errno_t sysdb_sudo_purge_bysudouser(struct sysdb_ctx *sysdb,
+                                    char **sudoUser);
 
 #endif /* _SYSDB_SUDO_H_ */
