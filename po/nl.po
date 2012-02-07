@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2011-12-22 13:38-0500\n"
+"POT-Creation-Date: 2012-02-06 19:00-0500\n"
 "PO-Revision-Date: 2011-12-22 16:50+0000\n"
 "Last-Translator: Geert Warrink <geert.warrink@onsnet.nu>\n"
 "Language-Team: Dutch (http://www.transifex.net/projects/p/fedora/team/nl/)\n"
@@ -84,7 +84,7 @@ msgstr "Enumeratie cache timeout duur (in seconden)"
 msgid "Entry cache background update timeout length (seconds)"
 msgstr "Entry cache achtergrond update timeout duur (in seconden)"
 
-#: src/config/SSSDConfig.py:58
+#: src/config/SSSDConfig.py:58 src/config/SSSDConfig.py:81
 msgid "Negative cache timeout length (seconds)"
 msgstr "Negatieve cache timeout duur (in seconden)"
 
@@ -161,303 +161,337 @@ msgstr ""
 "getoond worden"
 
 #: src/config/SSSDConfig.py:77
+msgid "Whether to evaluate the time-based attributes in sudo rules"
+msgstr ""
+
+#: src/config/SSSDConfig.py:78
+#, fuzzy
+msgid ""
+"How many seconds to keep sudorules cached before asking the provider again"
+msgstr ""
+"Hoeveel seconden moet de identiteit informatie in cache opgeslagen worden "
+"voor PAN aanvragen"
+
+#: src/config/SSSDConfig.py:84
 msgid "Identity provider"
 msgstr "Identiteitaanbieder"
 
-#: src/config/SSSDConfig.py:78
+#: src/config/SSSDConfig.py:85
 msgid "Authentication provider"
 msgstr "Authentiecatieaanbieder"
 
-#: src/config/SSSDConfig.py:79
+#: src/config/SSSDConfig.py:86
 msgid "Access control provider"
 msgstr "Toegangscontroleaanbieder"
 
-#: src/config/SSSDConfig.py:80
+#: src/config/SSSDConfig.py:87
 msgid "Password change provider"
 msgstr "Wachtwoordwijzigingsaanbieder"
 
-#: src/config/SSSDConfig.py:83
+#: src/config/SSSDConfig.py:88
+#, fuzzy
+msgid "SUDO provider"
+msgstr "Identiteitaanbieder"
+
+#: src/config/SSSDConfig.py:89
+#, fuzzy
+msgid "Autofs provider"
+msgstr "Authentiecatieaanbieder"
+
+#: src/config/SSSDConfig.py:90
+#, fuzzy
+msgid "Session-loading provider"
+msgstr "Toegangscontroleaanbieder"
+
+#: src/config/SSSDConfig.py:91
+#, fuzzy
+msgid "Host identity provider"
+msgstr "Identiteitaanbieder"
+
+#: src/config/SSSDConfig.py:94
 msgid "Minimum user ID"
 msgstr "Minimum gebruiker ID"
 
-#: src/config/SSSDConfig.py:84
+#: src/config/SSSDConfig.py:95
 msgid "Maximum user ID"
 msgstr "Maximum gebruiker ID"
 
-#: src/config/SSSDConfig.py:85
+#: src/config/SSSDConfig.py:96
 msgid "Enable enumerating all users/groups"
 msgstr "Schakel enumeratie van alle gebruikers/groepen"
 
-#: src/config/SSSDConfig.py:86
+#: src/config/SSSDConfig.py:97
 msgid "Cache credentials for offline login"
 msgstr "Cache inloggegevens voor offline gebruik"
 
-#: src/config/SSSDConfig.py:87
+#: src/config/SSSDConfig.py:98
 msgid "Store password hashes"
 msgstr "Sla vingerafdrukken van wachtwoorden op"
 
-#: src/config/SSSDConfig.py:88
+#: src/config/SSSDConfig.py:99
 msgid "Display users/groups in fully-qualified form"
 msgstr "Laat gebruikers/groepen in volledige vorm zien"
 
-#: src/config/SSSDConfig.py:89
+#: src/config/SSSDConfig.py:100 src/config/SSSDConfig.py:107
+#: src/config/SSSDConfig.py:108 src/config/SSSDConfig.py:109
+#: src/config/SSSDConfig.py:110 src/config/SSSDConfig.py:111
 msgid "Entry cache timeout length (seconds)"
 msgstr "Entry cache timeout duur (in seconden)"
 
-#: src/config/SSSDConfig.py:90
+#: src/config/SSSDConfig.py:101
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
 "Beperk of geef de voorkeur aan een specifieke adresfamilie wanneer er DNS-"
 "lookups uitgevoerd worden"
 
-#: src/config/SSSDConfig.py:91
+#: src/config/SSSDConfig.py:102
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Hoe lang blijven gegevens opgeslagen na een succesvolle login (in dagen)"
 
-#: src/config/SSSDConfig.py:92
+#: src/config/SSSDConfig.py:103
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
 "Hoe lang te wachten op antwoord van de DSN bij het opzoeken van servers (in "
 "seconden)"
 
-#: src/config/SSSDConfig.py:93
+#: src/config/SSSDConfig.py:104
 msgid "The domain part of service discovery DNS query"
 msgstr "Het domeingedeelte van DNS queries die service discovery uitvoeren"
 
-#: src/config/SSSDConfig.py:94
+#: src/config/SSSDConfig.py:105
 msgid "Override GID value from the identity provider with this value"
 msgstr "Overschrijf GID waarde van de identiteit aanbieder met deze waarde"
 
-#: src/config/SSSDConfig.py:95
+#: src/config/SSSDConfig.py:106
 msgid "Treat usernames as case sensitive"
 msgstr "Behandel gebruikersnamen als hoofdlettergevoelig"
 
-#: src/config/SSSDConfig.py:98
+#: src/config/SSSDConfig.py:114
 msgid "IPA domain"
 msgstr "IPA-domein"
 
-#: src/config/SSSDConfig.py:99
+#: src/config/SSSDConfig.py:115
 msgid "IPA server address"
 msgstr "IPA-serveradres"
 
-#: src/config/SSSDConfig.py:100
+#: src/config/SSSDConfig.py:116
 msgid "IPA client hostname"
 msgstr "IPA-clienthostname"
 
-#: src/config/SSSDConfig.py:101
+#: src/config/SSSDConfig.py:117
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 "Of de DNS-gegevens van de client automatisch bijgewerkt moeten worden in "
 "FreeIPA"
 
-#: src/config/SSSDConfig.py:102
+#: src/config/SSSDConfig.py:118
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 "De adapter wiens IP-adres gebruikt moet worden voor het dynamisch bijwerken "
 "van de DNS"
 
-#: src/config/SSSDConfig.py:103
+#: src/config/SSSDConfig.py:119
 msgid "Search base for HBAC related objects"
 msgstr "Zoek basis voor HBAC gerelateerde objecten"
 
-#: src/config/SSSDConfig.py:104
+#: src/config/SSSDConfig.py:120
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "De tijdsduur tussen het opzoeken van HBAC regels voor de IPA server"
 
-#: src/config/SSSDConfig.py:105
+#: src/config/SSSDConfig.py:121
 msgid "If DENY rules are present, either DENY_ALL or IGNORE"
 msgstr "Als DENY regels aanwezig zijn, dat DENY_ALL of IGNORE"
 
-#: src/config/SSSDConfig.py:106
+#: src/config/SSSDConfig.py:122
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
 "Als dit op false ingesteld is, wordt het host argument gegeven door PAM "
 "genegeerd"
 
-#: src/config/SSSDConfig.py:109 src/config/SSSDConfig.py:110
+#: src/config/SSSDConfig.py:125 src/config/SSSDConfig.py:126
 msgid "Kerberos server address"
 msgstr "Kerberos-serveradres"
 
-#: src/config/SSSDConfig.py:111
+#: src/config/SSSDConfig.py:127
 msgid "Kerberos realm"
 msgstr "Kerberos-rijk"
 
-#: src/config/SSSDConfig.py:112
+#: src/config/SSSDConfig.py:128
 msgid "Authentication timeout"
 msgstr "Authenticatie timeout"
 
-#: src/config/SSSDConfig.py:115
+#: src/config/SSSDConfig.py:131
 msgid "Directory to store credential caches"
 msgstr "Werkmap waar authenticatiegegevens opgeslagen worden"
 
-#: src/config/SSSDConfig.py:116
+#: src/config/SSSDConfig.py:132
 msgid "Location of the user's credential cache"
 msgstr "Locatie van de authenticatiecache van de gebruiker"
 
-#: src/config/SSSDConfig.py:117
+#: src/config/SSSDConfig.py:133
 msgid "Location of the keytab to validate credentials"
 msgstr "Locatie van de keytab om authenticatiegegevens te valideren"
 
-#: src/config/SSSDConfig.py:118
+#: src/config/SSSDConfig.py:134
 msgid "Enable credential validation"
 msgstr "Schakel authenticatiegegevensvalidatie in"
 
-#: src/config/SSSDConfig.py:119
+#: src/config/SSSDConfig.py:135
 msgid "Store password if offline for later online authentication"
 msgstr ""
 "Sla het wachtwoord op indien offline voor later gebruik bij online "
 "authenticatie"
 
-#: src/config/SSSDConfig.py:120
+#: src/config/SSSDConfig.py:136
 msgid "Renewable lifetime of the TGT"
 msgstr "Vernieuwbare levensduur van de TGT"
 
-#: src/config/SSSDConfig.py:121
+#: src/config/SSSDConfig.py:137
 msgid "Lifetime of the TGT"
 msgstr "Levensduur van de TGT"
 
-#: src/config/SSSDConfig.py:122
+#: src/config/SSSDConfig.py:138
 msgid "Time between two checks for renewal"
 msgstr "Tijd tussen twee checks voor vernieuwing"
 
-#: src/config/SSSDConfig.py:123
+#: src/config/SSSDConfig.py:139
 msgid "Enables FAST"
 msgstr "Zet FAST aan"
 
-#: src/config/SSSDConfig.py:124
+#: src/config/SSSDConfig.py:140
 msgid "Selects the principal to use for FAST"
 msgstr "Selecteert de hoofdpersoon te gebruiken voor FAST "
 
-#: src/config/SSSDConfig.py:125
+#: src/config/SSSDConfig.py:141
 msgid "Enables principal canonicalization"
 msgstr "Zet hoofdpersoon sanctioneren aan"
 
-#: src/config/SSSDConfig.py:128
+#: src/config/SSSDConfig.py:144
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 "Server waar het wachtwoord wijzigingsservice draait indien niet op de KDC"
 
-#: src/config/SSSDConfig.py:131
+#: src/config/SSSDConfig.py:147
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, de URI van de LDAP server"
 
-#: src/config/SSSDConfig.py:132
+#: src/config/SSSDConfig.py:148
 msgid "The default base DN"
 msgstr "De standaard base DN"
 
-#: src/config/SSSDConfig.py:133
+#: src/config/SSSDConfig.py:149
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "Het schema type wat gebruikt wordt op de LDAP server, rfc2307"
 
-#: src/config/SSSDConfig.py:134
+#: src/config/SSSDConfig.py:150
 msgid "The default bind DN"
 msgstr "De standaard bind DN"
 
-#: src/config/SSSDConfig.py:135
+#: src/config/SSSDConfig.py:151
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Het type authenticatietoken van de standaard bind DN"
 
-#: src/config/SSSDConfig.py:136
+#: src/config/SSSDConfig.py:152
 msgid "The authentication token of the default bind DN"
 msgstr "Het authenticatietoken van de standaard bind DN"
 
-#: src/config/SSSDConfig.py:137
+#: src/config/SSSDConfig.py:153
 msgid "Length of time to attempt connection"
 msgstr "Hoe lang pogen te verbinden"
 
-#: src/config/SSSDConfig.py:138
+#: src/config/SSSDConfig.py:154
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Hoe lang proberen synchroon LDAP te benaderen"
 
-#: src/config/SSSDConfig.py:139
+#: src/config/SSSDConfig.py:155
 msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 "Duur tussen pogingen om de verbinding opnieuw tot stand te brengen tijdens "
 "offline zijn"
 
-#: src/config/SSSDConfig.py:140
+#: src/config/SSSDConfig.py:156
 msgid "Use only the upper case for realm names"
 msgstr "Gebruik alleen hoofdletters voor gebiedsnamen"
 
-#: src/config/SSSDConfig.py:141
+#: src/config/SSSDConfig.py:157
 msgid "File that contains CA certificates"
 msgstr "Bestand dat de bekende CA-certificaten bevat"
 
-#: src/config/SSSDConfig.py:142
+#: src/config/SSSDConfig.py:158
 msgid "Path to CA certificate directory"
 msgstr "Pad naar de CA-certificatenmap"
 
-#: src/config/SSSDConfig.py:143
+#: src/config/SSSDConfig.py:159
 msgid "File that contains the client certificate"
 msgstr "Bestand dat het client certificaat bevat"
 
-#: src/config/SSSDConfig.py:144
+#: src/config/SSSDConfig.py:160
 msgid "File that contains the client key"
 msgstr "Bestand dat de client sleutel bevat"
 
-#: src/config/SSSDConfig.py:145
+#: src/config/SSSDConfig.py:161
 msgid "List of possible ciphers suites"
 msgstr "Lijst van mogelijke sleutel suites"
 
-#: src/config/SSSDConfig.py:146
+#: src/config/SSSDConfig.py:162
 msgid "Require TLS certificate verification"
 msgstr "Vereis verificatie van het TLS-certificaat"
 
-#: src/config/SSSDConfig.py:147
+#: src/config/SSSDConfig.py:163
 msgid "Specify the sasl mechanism to use"
 msgstr "Geef het SASL-mechanisme op wat gebruikt moet worden"
 
-#: src/config/SSSDConfig.py:148
+#: src/config/SSSDConfig.py:164
 msgid "Specify the sasl authorization id to use"
 msgstr "Geef het SASL-authorisatie-ID op wat gebruikt moet worden"
 
-#: src/config/SSSDConfig.py:149
+#: src/config/SSSDConfig.py:165
 msgid "Specify the sasl authorization realm to use"
 msgstr "Specificeer het te gebruiken sasl autorisatiegebied  "
 
-#: src/config/SSSDConfig.py:150
+#: src/config/SSSDConfig.py:166
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "Specificeer de minimale SSF voor LDAP sasl autorisatie"
 
-#: src/config/SSSDConfig.py:151
+#: src/config/SSSDConfig.py:167
 msgid "Kerberos service keytab"
 msgstr "Kerberos service keytab"
 
-#: src/config/SSSDConfig.py:152
+#: src/config/SSSDConfig.py:168
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Gebruik Kerberos authenticatie voor LDAP-connectie"
 
-#: src/config/SSSDConfig.py:153
+#: src/config/SSSDConfig.py:169
 msgid "Follow LDAP referrals"
 msgstr "Volg LDAP-doorverwijzingen"
 
-#: src/config/SSSDConfig.py:154
+#: src/config/SSSDConfig.py:170
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Levensduur van TGT voor LDAP-connectie"
 
-#: src/config/SSSDConfig.py:155
+#: src/config/SSSDConfig.py:171
 msgid "How to dereference aliases"
 msgstr "Hoe moet de alias referentie verwijderd worden"
 
-#: src/config/SSSDConfig.py:156
+#: src/config/SSSDConfig.py:172
 msgid "Service name for DNS service lookups"
 msgstr "Service naam voor DNS service opzoeken"
 
-#: src/config/SSSDConfig.py:157
+#: src/config/SSSDConfig.py:173
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr ""
 "Het aantal records dat opgehaald moet worden met een enkele LDAP bevraging"
 
-#: src/config/SSSDConfig.py:158
+#: src/config/SSSDConfig.py:174
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr ""
 "Het aantal leden van moet ontbreken om een volledige de-referentie te "
 "veroorzaken"
 
-#: src/config/SSSDConfig.py:159
+#: src/config/SSSDConfig.py:175
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
@@ -465,410 +499,542 @@ msgstr ""
 "Moet de LDAP bibliotheek omgekeerd opzoeken uitvoeren om de hostnaam te "
 "autoriseren tijdens een SASL binding"
 
-#: src/config/SSSDConfig.py:161
+#: src/config/SSSDConfig.py:177
 msgid "entryUSN attribute"
 msgstr "entryUSN attribuut"
 
-#: src/config/SSSDConfig.py:162
+#: src/config/SSSDConfig.py:178
 msgid "lastUSN attribute"
 msgstr "lastUSN attribuut"
 
-#: src/config/SSSDConfig.py:164
+#: src/config/SSSDConfig.py:180
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
 "Hoe lang een verbinding met de LDAP server gebouden moet blijven voordat het "
 "losgekoppeld wordt"
 
-#: src/config/SSSDConfig.py:167
+#: src/config/SSSDConfig.py:182
+msgid "Disable the LDAP paging control"
+msgstr ""
+
+#: src/config/SSSDConfig.py:185
 msgid "Length of time to wait for a search request"
 msgstr "Tijd om te wachten op een zoekopdracht"
 
-#: src/config/SSSDConfig.py:168
+#: src/config/SSSDConfig.py:186
 msgid "Length of time to wait for a enumeration request"
 msgstr "Tijdsduur te wachten voor een opsommingsverzoek"
 
-#: src/config/SSSDConfig.py:169
+#: src/config/SSSDConfig.py:187
 msgid "Length of time between enumeration updates"
 msgstr "Tijd om te wachten tussen enumeratie-updates"
 
-#: src/config/SSSDConfig.py:170
+#: src/config/SSSDConfig.py:188
 msgid "Length of time between cache cleanups"
 msgstr "Tijdsduur tussen cache opschoningen"
 
-#: src/config/SSSDConfig.py:171
+#: src/config/SSSDConfig.py:189
 msgid "Require TLS for ID lookups"
 msgstr "Vereis TLS voor het opzoeken van ID's"
 
-#: src/config/SSSDConfig.py:172
+#: src/config/SSSDConfig.py:190
 msgid "Base DN for user lookups"
 msgstr "Base DN voor het opzoeken van gebruikers"
 
-#: src/config/SSSDConfig.py:173
+#: src/config/SSSDConfig.py:191
 msgid "Scope of user lookups"
 msgstr "Scope voor het opzoeken van gebruikers"
 
-#: src/config/SSSDConfig.py:174
+#: src/config/SSSDConfig.py:192
 msgid "Filter for user lookups"
 msgstr "Filter voor het opzoeken van gebruikers"
 
-#: src/config/SSSDConfig.py:175
+#: src/config/SSSDConfig.py:193
 msgid "Objectclass for users"
 msgstr "Objectclass voor gebruikers"
 
-#: src/config/SSSDConfig.py:176
+#: src/config/SSSDConfig.py:194
 msgid "Username attribute"
 msgstr "Username-attribuut"
 
-#: src/config/SSSDConfig.py:178
+#: src/config/SSSDConfig.py:196
 msgid "UID attribute"
 msgstr "UID-attribuut"
 
-#: src/config/SSSDConfig.py:179
+#: src/config/SSSDConfig.py:197
 msgid "Primary GID attribute"
 msgstr "Primair GID-attribuut"
 
-#: src/config/SSSDConfig.py:180
+#: src/config/SSSDConfig.py:198
 msgid "GECOS attribute"
 msgstr "GECOS-attribuut"
 
-#: src/config/SSSDConfig.py:181
+#: src/config/SSSDConfig.py:199
 msgid "Home directory attribute"
 msgstr "Gebruikersmap-attribuut"
 
-#: src/config/SSSDConfig.py:182
+#: src/config/SSSDConfig.py:200
 msgid "Shell attribute"
 msgstr "Shell-attribuut"
 
-#: src/config/SSSDConfig.py:183
+#: src/config/SSSDConfig.py:201
 msgid "UUID attribute"
 msgstr "UUID-attribuut"
 
-#: src/config/SSSDConfig.py:184
+#: src/config/SSSDConfig.py:202
 msgid "User principal attribute (for Kerberos)"
 msgstr "Userprincipal-attribuut (voor Kerberos)"
 
-#: src/config/SSSDConfig.py:185
+#: src/config/SSSDConfig.py:203
 msgid "Full Name"
 msgstr "Volledige naam"
 
-#: src/config/SSSDConfig.py:186
+#: src/config/SSSDConfig.py:204
 msgid "memberOf attribute"
 msgstr "memberOf-attribuut"
 
-#: src/config/SSSDConfig.py:187
+#: src/config/SSSDConfig.py:205
 msgid "Modification time attribute"
 msgstr "Modification time-attribuut"
 
-#: src/config/SSSDConfig.py:189
+#: src/config/SSSDConfig.py:207
 msgid "shadowLastChange attribute"
 msgstr "shadowLastChange attribuut"
 
-#: src/config/SSSDConfig.py:190
+#: src/config/SSSDConfig.py:208
 msgid "shadowMin attribute"
 msgstr "shadowMin attribuut"
 
-#: src/config/SSSDConfig.py:191
+#: src/config/SSSDConfig.py:209
 msgid "shadowMax attribute"
 msgstr "shadowMax attribuut"
 
-#: src/config/SSSDConfig.py:192
+#: src/config/SSSDConfig.py:210
 msgid "shadowWarning attribute"
 msgstr "shadowWarning attribuut"
 
-#: src/config/SSSDConfig.py:193
+#: src/config/SSSDConfig.py:211
 msgid "shadowInactive attribute"
 msgstr "shadowInactive attribuut"
 
-#: src/config/SSSDConfig.py:194
+#: src/config/SSSDConfig.py:212
 msgid "shadowExpire attribute"
 msgstr "shadowExpire attribuut"
 
-#: src/config/SSSDConfig.py:195
+#: src/config/SSSDConfig.py:213
 msgid "shadowFlag attribute"
 msgstr "shadowFlag attribuut"
 
-#: src/config/SSSDConfig.py:196
+#: src/config/SSSDConfig.py:214
 msgid "Attribute listing authorized PAM services"
 msgstr "Attribuut voor tonen van geautoriseerde PAM services"
 
-#: src/config/SSSDConfig.py:197
+#: src/config/SSSDConfig.py:215
 msgid "Attribute listing authorized server hosts"
 msgstr "Attribuut dat geautoriseerde server hosts toont"
 
-#: src/config/SSSDConfig.py:198
+#: src/config/SSSDConfig.py:216
 msgid "krbLastPwdChange attribute"
 msgstr "krbLastPwdChange attribuut"
 
-#: src/config/SSSDConfig.py:199
+#: src/config/SSSDConfig.py:217
 msgid "krbPasswordExpiration attribute"
 msgstr "krbPasswordExpiration attribuut"
 
-#: src/config/SSSDConfig.py:200
+#: src/config/SSSDConfig.py:218
 msgid "Attribute indicating that server side password policies are active"
 msgstr "Attribuut welke aangeeft dat wachtwoordtactiek op de server actief is"
 
-#: src/config/SSSDConfig.py:201
+#: src/config/SSSDConfig.py:219
 msgid "accountExpires attribute of AD"
 msgstr "accountExpires attribuut van AD"
 
-#: src/config/SSSDConfig.py:202
+#: src/config/SSSDConfig.py:220
 msgid "userAccountControl attribute of AD"
 msgstr "userAccountControl attribuut van AD"
 
-#: src/config/SSSDConfig.py:203
+#: src/config/SSSDConfig.py:221
 msgid "nsAccountLock attribute"
 msgstr "nsAccountLock attribuut"
 
-#: src/config/SSSDConfig.py:204
+#: src/config/SSSDConfig.py:222
 msgid "loginDisabled attribute of NDS"
 msgstr "loginDisabled attribuut van NDS"
 
-#: src/config/SSSDConfig.py:205
+#: src/config/SSSDConfig.py:223
 msgid "loginExpirationTime attribute of NDS"
 msgstr "loginExpirationTime attribuut van NDS"
 
-#: src/config/SSSDConfig.py:206
+#: src/config/SSSDConfig.py:224
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "loginAllowedTimeMap attribuut van NDS"
 
-#: src/config/SSSDConfig.py:208
+#: src/config/SSSDConfig.py:225
+#, fuzzy
+msgid "SSH public key attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:227
 msgid "Base DN for group lookups"
 msgstr "Basis DN voor groep opzoeken"
 
-#: src/config/SSSDConfig.py:211
+#: src/config/SSSDConfig.py:230
 msgid "Objectclass for groups"
 msgstr "Objectklasse voor groepen"
 
-#: src/config/SSSDConfig.py:212
+#: src/config/SSSDConfig.py:231
 msgid "Group name"
 msgstr "Groepsnaam"
 
-#: src/config/SSSDConfig.py:213
+#: src/config/SSSDConfig.py:232
 msgid "Group password"
 msgstr "Groep wachtwoord"
 
-#: src/config/SSSDConfig.py:214
+#: src/config/SSSDConfig.py:233
 msgid "GID attribute"
 msgstr "GID attribuut"
 
-#: src/config/SSSDConfig.py:215
+#: src/config/SSSDConfig.py:234
 msgid "Group member attribute"
 msgstr "Groep deelnemer attribuut"
 
-#: src/config/SSSDConfig.py:216
+#: src/config/SSSDConfig.py:235
 msgid "Group UUID attribute"
 msgstr "Groep UUID attribuut"
 
-#: src/config/SSSDConfig.py:217
+#: src/config/SSSDConfig.py:236
 msgid "Modification time attribute for groups"
 msgstr "Verandertijd attribuut voor groepen"
 
-#: src/config/SSSDConfig.py:219
+#: src/config/SSSDConfig.py:238
 msgid "Maximum nesting level SSSd will follow"
 msgstr "Maximale nest niveau  dat SSSd zal volgen"
 
-#: src/config/SSSDConfig.py:221
+#: src/config/SSSDConfig.py:240
 msgid "Base DN for netgroup lookups"
 msgstr "Basis DN voor netgroep opzoeken"
 
-#: src/config/SSSDConfig.py:222
+#: src/config/SSSDConfig.py:241
 msgid "Objectclass for netgroups"
 msgstr "Objectklasse voor netgroepen"
 
-#: src/config/SSSDConfig.py:223
+#: src/config/SSSDConfig.py:242
 msgid "Netgroup name"
 msgstr "Netgroep naam"
 
-#: src/config/SSSDConfig.py:224
+#: src/config/SSSDConfig.py:243
 msgid "Netgroups members attribute"
 msgstr "Netgroep leden attribuut"
 
-#: src/config/SSSDConfig.py:225
+#: src/config/SSSDConfig.py:244
 msgid "Netgroup triple attribute"
 msgstr "Netgroep triple attibuut"
 
-#: src/config/SSSDConfig.py:226
+#: src/config/SSSDConfig.py:245
 msgid "Netgroup UUID attribute"
 msgstr "Netgroep UUID attibuut"
 
-#: src/config/SSSDConfig.py:227
+#: src/config/SSSDConfig.py:246
 msgid "Modification time attribute for netgroups"
 msgstr "Verandertijd attribuut voor netgroepen"
 
-#: src/config/SSSDConfig.py:230
+#: src/config/SSSDConfig.py:248
+#, fuzzy
+msgid "Base DN for service lookups"
+msgstr "Base DN voor het opzoeken van gebruikers"
+
+#: src/config/SSSDConfig.py:249
+#, fuzzy
+msgid "Objectclass for services"
+msgstr "Objectclass voor gebruikers"
+
+#: src/config/SSSDConfig.py:250
+#, fuzzy
+msgid "Service name attribute"
+msgstr "Username-attribuut"
+
+#: src/config/SSSDConfig.py:251
+#, fuzzy
+msgid "Service port attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:252
+#, fuzzy
+msgid "Service protocol attribute"
+msgstr "Shell-attribuut"
+
+#: src/config/SSSDConfig.py:256
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy om wacthwoordverloop mee te evalueren"
 
-#: src/config/SSSDConfig.py:233
+#: src/config/SSSDConfig.py:259
 msgid "LDAP filter to determine access privileges"
 msgstr "LDAP-filter om toegangsprivileges mee te bepalen"
 
-#: src/config/SSSDConfig.py:234
+#: src/config/SSSDConfig.py:260
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 "Welke attributen worden gebruikt voor evaluatie als het account verlopen is"
 
-#: src/config/SSSDConfig.py:235
+#: src/config/SSSDConfig.py:261
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 "Welke regels moeten gebruikt worden voor de evaluatie van toegangscontrole"
 
-#: src/config/SSSDConfig.py:238
+#: src/config/SSSDConfig.py:264
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 "URI van een LDAP server waarop wachtwoord veranderingen toegestaan zijn"
 
-#: src/config/SSSDConfig.py:239
+#: src/config/SSSDConfig.py:265
 msgid "DNS service name for LDAP password change server"
 msgstr "DNS service naam voor LDAP wachtwoord verander server"
 
-#: src/config/SSSDConfig.py:242
+#: src/config/SSSDConfig.py:268
+#, fuzzy
+msgid "Base DN for sudo rules lookups"
+msgstr "Base DN voor het opzoeken van gebruikers"
+
+#: src/config/SSSDConfig.py:269
+msgid "Enable periodical update of all sudo rules"
+msgstr ""
+
+#: src/config/SSSDConfig.py:270
+#, fuzzy
+msgid "Length of time between rules updates"
+msgstr "Tijd om te wachten tussen enumeratie-updates"
+
+#: src/config/SSSDConfig.py:271
+#, fuzzy
+msgid "Object class for sudo rules"
+msgstr "Objectclass voor gebruikers"
+
+#: src/config/SSSDConfig.py:272
+msgid "Sudo rule name"
+msgstr ""
+
+#: src/config/SSSDConfig.py:273
+#, fuzzy
+msgid "Sudo rule command attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:274
+#, fuzzy
+msgid "Sudo rule host attribute"
+msgstr "lastUSN attribuut"
+
+#: src/config/SSSDConfig.py:275
+#, fuzzy
+msgid "Sudo rule user attribute"
+msgstr "Groep deelnemer attribuut"
+
+#: src/config/SSSDConfig.py:276
+#, fuzzy
+msgid "Sudo rule option attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:277
+#, fuzzy
+msgid "Sudo rule runasuser attribute"
+msgstr "Username-attribuut"
+
+#: src/config/SSSDConfig.py:278
+#, fuzzy
+msgid "Sudo rule runasgroup attribute"
+msgstr "Netgroep UUID attibuut"
+
+#: src/config/SSSDConfig.py:279
+#, fuzzy
+msgid "Sudo rule notbefore attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:280
+#, fuzzy
+msgid "Sudo rule notafter attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:281
+#, fuzzy
+msgid "Sudo rule order attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:284
+#, fuzzy
+msgid "Object class for automounter maps"
+msgstr "Objectclass voor gebruikers"
+
+#: src/config/SSSDConfig.py:285
+#, fuzzy
+msgid "Automounter map name attribute"
+msgstr "Username-attribuut"
+
+#: src/config/SSSDConfig.py:286
+#, fuzzy
+msgid "Object class for automounter map entries"
+msgstr "Objectclass voor gebruikers"
+
+#: src/config/SSSDConfig.py:287
+#, fuzzy
+msgid "Automounter map entry key attribute"
+msgstr "Gebruikersmap-attribuut"
+
+#: src/config/SSSDConfig.py:288
+#, fuzzy
+msgid "Automounter map entry value attribute"
+msgstr "Netgroep triple attibuut"
+
+#: src/config/SSSDConfig.py:289
+#, fuzzy
+msgid "Base DN for automonter map lookups"
+msgstr "Base DN voor het opzoeken van gebruikers"
+
+#: src/config/SSSDConfig.py:292
 msgid "Comma separated list of allowed users"
 msgstr "Kommagescheiden lijst van toegestane gebruikers"
 
-#: src/config/SSSDConfig.py:243
+#: src/config/SSSDConfig.py:293
 msgid "Comma separated list of prohibited users"
 msgstr "Kommagescheiden lijst van geweigerde gebruikers"
 
-#: src/config/SSSDConfig.py:246
+#: src/config/SSSDConfig.py:296
 msgid "Default shell, /bin/bash"
 msgstr "Standaard shell, /bin/bash"
 
-#: src/config/SSSDConfig.py:247
+#: src/config/SSSDConfig.py:297
 msgid "Base for home directories"
 msgstr "Basis voor gebruikersmappen"
 
-#: src/config/SSSDConfig.py:250
+#: src/config/SSSDConfig.py:300
 msgid "The name of the NSS library to use"
 msgstr "De naam van de NSS-bibliotheek die gebruikt wordt"
 
-#: src/config/SSSDConfig.py:253
+#: src/config/SSSDConfig.py:303
 msgid "PAM stack to use"
 msgstr "PAM-stack die gebruikt wordt"
 
-#: src/monitor/monitor.c:2398
+#: src/monitor/monitor.c:2399
 msgid "Become a daemon (default)"
 msgstr "Start in de achtergrond (standaard)"
 
-#: src/monitor/monitor.c:2400
+#: src/monitor/monitor.c:2401
 msgid "Run interactive (not a daemon)"
 msgstr "Start interactief (standaard)"
 
-#: src/monitor/monitor.c:2402
+#: src/monitor/monitor.c:2403
 msgid "Specify a non-default config file"
 msgstr "Geef een niet-standaard configuratiebestand op"
 
-#: src/monitor/monitor.c:2404
+#: src/monitor/monitor.c:2405
 msgid "Print version number and exit"
 msgstr "Print versie nummer en sluit af"
 
-#: src/providers/krb5/krb5_child.c:1574 src/providers/ldap/ldap_child.c:373
+#: src/providers/krb5/krb5_child.c:1575 src/providers/ldap/ldap_child.c:381
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Debug niveau"
 
-#: src/providers/krb5/krb5_child.c:1576 src/providers/ldap/ldap_child.c:375
+#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:383
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Voeg tijdstempels toe aan debugberichten"
 
-#: src/providers/krb5/krb5_child.c:1578 src/providers/ldap/ldap_child.c:377
+#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:385
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr "Toon tijdstempel met microseconden"
 
-#: src/providers/krb5/krb5_child.c:1580 src/providers/ldap/ldap_child.c:379
+#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:387
 msgid "An open file descriptor for the debug logs"
 msgstr "Een geopend bestand voor de debug logs"
 
-#: src/providers/data_provider_be.c:1363
+#: src/providers/data_provider_be.c:1949
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domein voor de informatie provider (verplicht)"
 
-#: src/sss_client/common.c:839
+#: src/sss_client/common.c:878
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Socket met privileges heeft verkeerde rechten of eigendom."
 
-#: src/sss_client/common.c:842
+#: src/sss_client/common.c:881
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Publiek socket heeft verkeerde rechten of eigendom."
 
-#: src/sss_client/common.c:845
+#: src/sss_client/common.c:884
 msgid "Unexpected format of the server credential message."
 msgstr "Onverwacht formaat van het inloggegevensbericht van de server."
 
-#: src/sss_client/common.c:848
+#: src/sss_client/common.c:887
 msgid "SSSD is not run by root."
 msgstr "SSSD wordt niet door root gestart."
 
-#: src/sss_client/common.c:853
+#: src/sss_client/common.c:892
 msgid "An error occurred, but no description can be found."
 msgstr ""
 "Er is een fout opgetreden, maar er kan geen omschrijving gevonden worden."
 
-#: src/sss_client/common.c:859
+#: src/sss_client/common.c:898
 msgid "Unexpected error while looking for an error description"
 msgstr "Onverwachtte fout bij het opzoeken van een omschrijving"
 
-#: src/sss_client/pam_sss.c:374
+#: src/sss_client/pam_sss.c:376
 msgid "Passwords do not match"
 msgstr "Wachtwoorden komen niet overeen"
 
-#: src/sss_client/pam_sss.c:567
+#: src/sss_client/pam_sss.c:569
 msgid "Password reset by root is not supported."
 msgstr "Wachtwoorden als root wijzigen wordt niet ondersteund."
 
-#: src/sss_client/pam_sss.c:608
+#: src/sss_client/pam_sss.c:610
 msgid "Authenticated with cached credentials"
 msgstr "Geauthenticeerd met gecachte inloggegevens."
 
-#: src/sss_client/pam_sss.c:609
+#: src/sss_client/pam_sss.c:611
 msgid ", your cached password will expire at: "
 msgstr ", uw wachtwoord verloopt op:"
 
-#: src/sss_client/pam_sss.c:639
+#: src/sss_client/pam_sss.c:641
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr "Uw wachtwoord is verlopen. U heeft %d genadigde login(s) over."
 
-#: src/sss_client/pam_sss.c:685
+#: src/sss_client/pam_sss.c:687
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr "Uw wachtwoord verloopt in %d %s."
 
-#: src/sss_client/pam_sss.c:734
+#: src/sss_client/pam_sss.c:736
 msgid "Authentication is denied until: "
 msgstr "Inloggen wordt geweigerd tot:"
 
-#: src/sss_client/pam_sss.c:755
+#: src/sss_client/pam_sss.c:757
 msgid "System is offline, password change not possible"
 msgstr "Systeem is offline, wachtwoord wijzigen niet mogelijk"
 
-#: src/sss_client/pam_sss.c:785 src/sss_client/pam_sss.c:798
+#: src/sss_client/pam_sss.c:787 src/sss_client/pam_sss.c:800
 msgid "Password change failed. "
 msgstr "Wijzigen van wachtwoord mislukt."
 
-#: src/sss_client/pam_sss.c:788 src/sss_client/pam_sss.c:799
+#: src/sss_client/pam_sss.c:790 src/sss_client/pam_sss.c:801
 msgid "Server message: "
 msgstr "Serverbericht:"
 
-#: src/sss_client/pam_sss.c:1217
+#: src/sss_client/pam_sss.c:1276
 msgid "New Password: "
 msgstr "Nieuw Wachtwoord: "
 
-#: src/sss_client/pam_sss.c:1218
+#: src/sss_client/pam_sss.c:1277
 msgid "Reenter new Password: "
 msgstr "Voer nieuw wachtwoord nogmaals in: "
 
-#: src/sss_client/pam_sss.c:1304
+#: src/sss_client/pam_sss.c:1363
 msgid "Password: "
 msgstr "Wachtwoord: "
 
-#: src/sss_client/pam_sss.c:1336
+#: src/sss_client/pam_sss.c:1395
 msgid "Current Password: "
 msgstr "Huidig wachtwoord:"
 
-#: src/sss_client/pam_sss.c:1483
+#: src/sss_client/pam_sss.c:1542
 msgid "Password expired. Change your password now."
 msgstr "Wachtwoord verlopen. Verander nu uw wachtwoord."
 
