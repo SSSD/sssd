@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-02-06 19:00-0500\n"
+"POT-Creation-Date: 2012-02-07 09:17-0500\n"
 "PO-Revision-Date: 2011-12-21 10:12+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -124,7 +124,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_groupmod.8.xml:72 sssd.conf.5.xml:1331 sssd-ldap.5.xml:2096
 #: pam_sss.8.xml:139 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143
-#: sssd-ipa.5.xml:550 sssd.8.xml:191 sss_obfuscate.8.xml:103
+#: sssd-ipa.5.xml:562 sssd.8.xml:191 sss_obfuscate.8.xml:103
 #: sss_useradd.8.xml:167 sssd-krb5.5.xml:451 sss_groupadd.8.xml:58
 #: sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58
 #: sss_usermod.8.xml:138
@@ -2126,7 +2126,7 @@ msgstr "Типове значення: None, не виконувати жодн�
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:1296 sssd-ldap.5.xml:2064 sssd-simple.5.xml:126
-#: sssd-ipa.5.xml:532 sssd-krb5.5.xml:432
+#: sssd-ipa.5.xml:544 sssd-krb5.5.xml:432
 msgid "EXAMPLE"
 msgstr "ПРИКЛАД"
 
@@ -3029,9 +3029,13 @@ msgstr "ldap_enumeration_refresh_timeout (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:611
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains how many seconds SSSD has to wait before "
+#| "refreshing its cache of enumerated records."
 msgid ""
-"The LDAP attribute that contains how many seconds SSSD has to wait before "
-"refreshing its cache of enumerated records."
+"Specifies how many seconds SSSD has to wait before refreshing its cache of "
+"enumerated records."
 msgstr ""
 "Атрибут LDAP, що містить дані щодо кількості секунд, протягом яких SSSD має "
 "очікувати до оновлення свого кешу нумерованих записів."
@@ -3043,8 +3047,10 @@ msgstr "Типове значення: 300"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:622
-msgid "ldap_purge_cache_timeout"
-msgstr "ldap_purge_cache_timeout"
+#, fuzzy
+#| msgid "ldap_search_timeout (integer)"
+msgid "ldap_purge_cache_timeout (integer)"
+msgstr "ldap_search_timeout (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:625
@@ -3081,7 +3087,7 @@ msgstr "Атрибут LDAP, що відповідає повному імені
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:648 sssd-ldap.5.xml:727 sssd-ldap.5.xml:828
 #: sssd-ldap.5.xml:919 sssd-ldap.5.xml:1663 sssd-ldap.5.xml:1881
-#: sssd-ipa.5.xml:410
+#: sssd-ipa.5.xml:422
 msgid "Default: cn"
 msgstr "Типове значення: cn"
 
@@ -3096,7 +3102,7 @@ msgid "The LDAP attribute that lists the user's group memberships."
 msgstr "Атрибут LDAP зі списком груп, у яких бере участь користувач."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:661 sssd-ipa.5.xml:314
+#: sssd-ldap.5.xml:661 sssd-ipa.5.xml:326
 msgid "Default: memberOf"
 msgstr "Типове значення: memberOf"
 
@@ -4989,7 +4995,7 @@ msgstr ""
 "    enumerate = true\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2071 sssd-simple.5.xml:134 sssd-ipa.5.xml:540
+#: sssd-ldap.5.xml:2071 sssd-simple.5.xml:134 sssd-ipa.5.xml:552
 #: sssd-krb5.5.xml:441
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
@@ -5846,21 +5852,38 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:307
+#, fuzzy
+#| msgid "ipa_domain (string)"
+msgid "ipa_automount_location (string)"
+msgstr "ipa_domain (рядок)"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:310
+msgid "The automounter location this IPA client will be using"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:313
+msgid "Default: The location named \"default\""
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ipa.5.xml:319
 msgid "ipa_netgroup_member_of (string)"
 msgstr "ipa_netgroup_member_of (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:310
+#: sssd-ipa.5.xml:322
 msgid "The LDAP attribute that lists netgroup's memberships."
 msgstr "Атрибут LDAP зі списком учасників мережевої групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:319
+#: sssd-ipa.5.xml:331
 msgid "ipa_netgroup_member_user (string)"
 msgstr "ipa_netgroup_member_user (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:322
+#: sssd-ipa.5.xml:334
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
@@ -5869,17 +5892,17 @@ msgstr ""
 "учасниками мережевої групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:327 sssd-ipa.5.xml:422
+#: sssd-ipa.5.xml:339 sssd-ipa.5.xml:434
 msgid "Default: memberUser"
 msgstr "Типове значення: memberUser"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:332
+#: sssd-ipa.5.xml:344
 msgid "ipa_netgroup_member_host (string)"
 msgstr "ipa_netgroup_member_host (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:335
+#: sssd-ipa.5.xml:347
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
@@ -5888,17 +5911,17 @@ msgstr ""
 "учасниками мережевої групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:339 sssd-ipa.5.xml:434
+#: sssd-ipa.5.xml:351 sssd-ipa.5.xml:446
 msgid "Default: memberHost"
 msgstr "Типове значення: memberHost"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:344
+#: sssd-ipa.5.xml:356
 msgid "ipa_netgroup_member_ext_host (string)"
 msgstr "ipa_netgroup_member_ext_host (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:347
+#: sssd-ipa.5.xml:359
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
@@ -5907,86 +5930,86 @@ msgstr ""
 "мережевої групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:351
+#: sssd-ipa.5.xml:363
 msgid "Default: externalHost"
 msgstr "Типове значення: externalHost"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:356
+#: sssd-ipa.5.xml:368
 msgid "ipa_netgroup_domain (string)"
 msgstr "ipa_netgroup_domain (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:359
+#: sssd-ipa.5.xml:371
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr ""
 "Атрибут LDAP, у якому міститься доменна назва NIS мережевої групи (netgroup)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:363
+#: sssd-ipa.5.xml:375
 msgid "Default: nisDomainName"
 msgstr "Типове значення: nisDomainName"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:369
+#: sssd-ipa.5.xml:381
 msgid "ipa_host_object_class (string)"
 msgstr "ipa_host_object_class (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:372 sssd-ipa.5.xml:395
+#: sssd-ipa.5.xml:384 sssd-ipa.5.xml:407
 msgid "The object class of a host entry in LDAP."
 msgstr "Клас об’єктів запису вузла у LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:375 sssd-ipa.5.xml:398
+#: sssd-ipa.5.xml:387 sssd-ipa.5.xml:410
 msgid "Default: ipaHost"
 msgstr "Типове значення: ipaHost"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:380
+#: sssd-ipa.5.xml:392
 msgid "ipa_host_fqdn (string)"
 msgstr "ipa_host_fqdn (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:383
+#: sssd-ipa.5.xml:395
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:386
+#: sssd-ipa.5.xml:398
 msgid "Default: fqdn"
 msgstr "Типове значення: fqdn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:392
+#: sssd-ipa.5.xml:404
 #, fuzzy
 #| msgid "ldap_user_object_class (string)"
 msgid "ipa_selinux_usermap_object_class (string)"
 msgstr "ldap_user_object_class (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:403
+#: sssd-ipa.5.xml:415
 #, fuzzy
 #| msgid "ldap_user_name (string)"
 msgid "ipa_selinux_usermap_name (string)"
 msgstr "ldap_user_name (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:406
+#: sssd-ipa.5.xml:418
 #, fuzzy
 #| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr "Атрибут LDAP, у якому містяться імена учасників групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:415
+#: sssd-ipa.5.xml:427
 #, fuzzy
 #| msgid "ipa_netgroup_member_user (string)"
 msgid "ipa_selinux_usermap_member_user (string)"
 msgstr "ipa_netgroup_member_user (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:418
+#: sssd-ipa.5.xml:430
 #, fuzzy
 #| msgid "The LDAP attribute that contains FQDN of the host."
 msgid ""
@@ -5994,14 +6017,14 @@ msgid ""
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:427
+#: sssd-ipa.5.xml:439
 #, fuzzy
 #| msgid "ipa_netgroup_member_host (string)"
 msgid "ipa_selinux_usermap_member_host (string)"
 msgstr "ipa_netgroup_member_host (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:430
+#: sssd-ipa.5.xml:442
 #, fuzzy
 #| msgid ""
 #| "The LDAP attribute that contains the (host, user, domain) netgroup "
@@ -6013,14 +6036,14 @@ msgstr ""
 "Атрибут LDAP, що містить трійки мережевої групи (вузол, користувач, домен)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:439
+#: sssd-ipa.5.xml:451
 #, fuzzy
 #| msgid "ipa_netgroup_member_of (string)"
 msgid "ipa_selinux_usermap_see_also (string)"
 msgstr "ipa_netgroup_member_of (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:442
+#: sssd-ipa.5.xml:454
 #, fuzzy
 #| msgid ""
 #| "The LDAP attribute that contains the names of the netgroup's members."
@@ -6031,42 +6054,42 @@ msgstr ""
 "Атрибут LDAP, у якому містяться імена учасників мережевої групи (netgroup)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:447
+#: sssd-ipa.5.xml:459
 #, fuzzy
 #| msgid "Default: false"
 msgid "Default: seeAlso"
 msgstr "Типове значення: false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:452
+#: sssd-ipa.5.xml:464
 #, fuzzy
 #| msgid "ipa_netgroup_member_user (string)"
 msgid "ipa_selinux_usermap_selinux_user (string)"
 msgstr "ipa_netgroup_member_user (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:455
+#: sssd-ipa.5.xml:467
 #, fuzzy
 #| msgid "The LDAP attribute that contains FQDN of the host."
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:459
+#: sssd-ipa.5.xml:471
 #, fuzzy
 #| msgid "Default: ipaHost"
 msgid "Default: ipaSELinuxUser"
 msgstr "Типове значення: ipaHost"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:464
+#: sssd-ipa.5.xml:476
 #, fuzzy
 #| msgid "ldap_user_name (string)"
 msgid "ipa_selinux_usermap_enabled (string)"
 msgstr "ldap_user_name (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:467
+#: sssd-ipa.5.xml:479
 #, fuzzy
 #| msgid ""
 #| "The LDAP attribute that contains the path to the user's default shell."
@@ -6077,98 +6100,98 @@ msgstr ""
 "Атрибут LDAP, що містить шлях до типової командної оболонки користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:471
+#: sssd-ipa.5.xml:483
 #, fuzzy
 #| msgid "Default: loginDisabled"
 msgid "Default: ipaEnabledFlag"
 msgstr "Типове значення: loginDisabled"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:476
+#: sssd-ipa.5.xml:488
 #, fuzzy
 #| msgid "ldap_user_search_filter (string)"
 msgid "ipa_selinux_usermap_user_category (string)"
 msgstr "ldap_user_search_filter (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:479
+#: sssd-ipa.5.xml:491
 #, fuzzy
 #| msgid "The LDAP attribute that contains FQDN of the host."
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:483
+#: sssd-ipa.5.xml:495
 #, fuzzy
 #| msgid "Default: homeDirectory"
 msgid "Default: userCategory"
 msgstr "Типове значення: homeDirectory"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:488
+#: sssd-ipa.5.xml:500
 #, fuzzy
 #| msgid "ldap_user_home_directory (string)"
 msgid "ipa_selinux_usermap_host_category (string)"
 msgstr "ldap_user_home_directory (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:491
+#: sssd-ipa.5.xml:503
 #, fuzzy
 #| msgid "The LDAP attribute that contains FQDN of the host."
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:495
+#: sssd-ipa.5.xml:507
 #, fuzzy
 #| msgid "Default: host"
 msgid "Default: hostCategory"
 msgstr "Типове значення: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:500
+#: sssd-ipa.5.xml:512
 #, fuzzy
 #| msgid "ldap_user_uuid (string)"
 msgid "ipa_selinux_usermap_uuid (string)"
 msgstr "ldap_user_uuid (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:503
+#: sssd-ipa.5.xml:515
 #, fuzzy
 #| msgid "The LDAP attribute that contains FQDN of the host."
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:507
+#: sssd-ipa.5.xml:519
 #, fuzzy
 #| msgid "Default: nsUniqueId"
 msgid "Default: ipaUniqueID"
 msgstr "Типове значення: nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:512
+#: sssd-ipa.5.xml:524
 #, fuzzy
 #| msgid "ipa_hostname (string)"
 msgid "ipa_host_ssh_public_key (string)"
 msgstr "ipa_hostname (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:515
+#: sssd-ipa.5.xml:527
 #, fuzzy
 #| msgid "The LDAP attribute that contains FQDN of the host."
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr "Атрибут LDAP, що містить FQDN вузла."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:519
+#: sssd-ipa.5.xml:531
 #, fuzzy
 #| msgid "Default: ipaHost"
 msgid "Default: ipaSshPubKey"
 msgstr "Типове значення: ipaHost"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:534
+#: sssd-ipa.5.xml:546
 msgid ""
 "The following example assumes that SSSD is correctly configured and example."
 "com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
@@ -6180,7 +6203,7 @@ msgstr ""
 "ipa."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ipa.5.xml:541
+#: sssd-ipa.5.xml:553
 #, no-wrap
 msgid ""
 "    [domain/example.com]\n"
@@ -6194,7 +6217,7 @@ msgstr ""
 "    ipa_hostname = myhost.example.com\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:552
+#: sssd-ipa.5.xml:564
 msgid ""
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
@@ -7935,6 +7958,9 @@ msgstr "<option>-h</option>,<option>--help</option>"
 #: include/param_help.xml:7
 msgid "Display help message and exit."
 msgstr "Показати довідкове повідомлення і завершити роботу."
+
+#~ msgid "ldap_purge_cache_timeout"
+#~ msgstr "ldap_purge_cache_timeout"
 
 #~ msgid "Supported services: nss, pam"
 #~ msgstr "Підтримувані служби: nss, pam"
