@@ -18,6 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,8 +29,8 @@
 #include <popt.h>
 #include <locale.h>
 #include <libintl.h>
+#include <string.h>
 
-#include "config.h"
 #include "util/crypto/sss_crypto.h"
 #include "sss_client/sss_cli.h"
 #include "sss_client/ssh/sss_ssh.h"
