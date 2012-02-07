@@ -523,11 +523,11 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
     filter = talloc_asprintf(state, "(&%s%s(objectclass=%s))",
                              state->filter,
                              base_filter?base_filter:"",
-                             state->opts->host_map[IPA_OC_HOST].name);
+                             state->ipa_opts->host_map[IPA_OC_HOST].name);
     if (filter == NULL)
         return ENOMEM;
 
-    ret = build_attrs_from_map(state, state->opts->host_map,
+    ret = build_attrs_from_map(state, state->ipa_opts->host_map,
                                IPA_OPTS_HOST, &attrs);
     if (ret != EOK) {
         talloc_free(filter);
@@ -537,7 +537,7 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    bases[state->host_base_iter]->basedn,
                                    bases[state->host_base_iter]->scope,
-                                   filter, attrs, state->opts->host_map,
+                                   filter, attrs, state->ipa_opts->host_map,
                                    IPA_OPTS_HOST, state->timeout, true);
 
     state->current_entity = ENTITY_HOST;

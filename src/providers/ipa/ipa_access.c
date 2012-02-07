@@ -272,20 +272,6 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
     const char *hostname;
     struct tevent_req *req;
 
-    hbac_ctx->host_attrs = talloc_array(hbac_ctx, const char *, 8);
-    if (hbac_ctx->host_attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to allocate host attribute list.\n"));
-        return ENOMEM;
-    }
-    hbac_ctx->host_attrs[0] = "objectClass";
-    hbac_ctx->host_attrs[1] = IPA_HOST_SERVERHOSTNAME;
-    hbac_ctx->host_attrs[2] = IPA_HOST_FQDN;
-    hbac_ctx->host_attrs[3] = IPA_UNIQUE_ID;
-    hbac_ctx->host_attrs[4] = IPA_MEMBER;
-    hbac_ctx->host_attrs[5] = IPA_MEMBEROF;
-    hbac_ctx->host_attrs[6] = IPA_CN;
-    hbac_ctx->host_attrs[7] = NULL;
-
     if (dp_opt_get_bool(hbac_ctx->ipa_options, IPA_HBAC_SUPPORT_SRCHOST)) {
         /* Support srchost
          * -> we don't want any particular host,
@@ -301,7 +287,9 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
                              hbac_ctx_sysdb(hbac_ctx),
                              sdap_id_op_handle(hbac_ctx->sdap_op),
                              hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
-                             hostname, hbac_ctx->host_attrs, NULL, 0, true,
+                             hostname,
+                             hbac_ctx->access_ctx->host_map,
+                             hbac_ctx->access_ctx->hostgroup_map,
                              hbac_ctx->access_ctx->host_search_bases);
     if (req == NULL) {
         DEBUG(1, ("Could not get host info\n"));
@@ -375,7 +363,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
 
     for (i = 0; i < hbac_ctx->host_count; i++) {
         ret = sysdb_attrs_get_string(hbac_ctx->hosts[i],
-                                     IPA_HOST_FQDN,
+                                     SYSDB_FQDN,
                                      &hostname);
         if (ret != EOK) {
             DEBUG(1, ("Could not locate IPA host\n"));
@@ -480,9 +468,9 @@ static void hbac_sysdb_save(struct tevent_req *req)
 
     /* Save the hosts */
     ret = ipa_hbac_sysdb_save(sysdb, domain,
-                              HBAC_HOSTS_SUBDIR, IPA_HOST_FQDN,
+                              HBAC_HOSTS_SUBDIR, SYSDB_FQDN,
                               hbac_ctx->host_count, hbac_ctx->hosts,
-                              HBAC_HOSTGROUPS_SUBDIR, IPA_CN,
+                              HBAC_HOSTGROUPS_SUBDIR, SYSDB_NAME,
                               hbac_ctx->hostgroup_count,
                               hbac_ctx->hostgroups);
     if (ret != EOK) {

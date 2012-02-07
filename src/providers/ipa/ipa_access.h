@@ -38,6 +38,8 @@ struct ipa_access_ctx {
     struct time_rules_ctx *tr_ctx;
     time_t last_update;
 
+    struct sdap_attr_map *host_map;
+    struct sdap_attr_map *hostgroup_map;
     struct sdap_search_base **host_search_bases;
     struct sdap_search_base **hbac_search_bases;
 };
@@ -54,7 +56,6 @@ struct hbac_ctx {
     struct sdap_search_base **search_bases;
 
     /* Hosts */
-    const char **host_attrs;
     size_t host_count;
     struct sysdb_attrs **hosts;
     size_t hostgroup_count;

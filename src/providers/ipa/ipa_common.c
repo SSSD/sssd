@@ -183,22 +183,33 @@ struct sdap_attr_map ipa_netgroup_map[] = {
 
 struct sdap_attr_map ipa_host_map[] = {
     { "ipa_host_object_class", "ipaHost", SYSDB_HOST_CLASS, NULL },
-    { "ipa_host_fqdn", "fqdn", SYSDB_NAME, NULL },
-    { "ipa_host_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
-    { "ipa_host_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL }
+    { "ipa_host_name", "cn", SYSDB_NAME, NULL },
+    { "ipa_host_fqdn", "fqdn", SYSDB_FQDN, NULL },
+    { "ipa_host_serverhostname", "serverHostname", SYSDB_SERVERHOSTNAME, NULL },
+    { "ipa_host_member_of", "memberOf", SYSDB_ORIG_MEMBEROF, NULL },
+    { "ipa_host_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
+    { "ipa_host_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
+};
+
+static struct sdap_attr_map ipa_hostgroup_map[] = {
+    { "ipa_hostgroup_objectclass", "ipaHostgroup", SYSDB_HOSTGROUP_CLASS, NULL},
+    { "ipa_hostgroup_name", "cn", SYSDB_NAME, NULL},
+    { "ipa_hostgroup_member", "member", SYSDB_MEMBER, NULL},
+    { "ipa_hostgroup_memberof", "memberOf", SYSDB_ORIG_MEMBEROF, NULL},
+    { "ipa_hostgroup_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
 };
 
 static struct sdap_attr_map ipa_selinux_user_map[] = {
-    {"ipa_selinux_usermap_object_class", "ipaselinuxusermap", SYSDB_SELINUX_USERMAP_CLASS, NULL},
-    {"ipa_selinux_usermap_name", "cn", SYSDB_NAME, NULL},
-    {"ipa_selinux_usermap_member_user", "memberUser", SYSDB_ORIG_MEMBER_USER, NULL},
-    {"ipa_selinux_usermap_member_host", "memberHost", SYSDB_ORIG_MEMBER_HOST, NULL},
-    {"ipa_selinux_usermap_see_also", "seeAlso", SYSDB_SELINUX_SEEALSO, NULL},
-    {"ipa_selinux_usermap_selinux_user", "ipaSELinuxUser", SYSDB_SELINUX_USER, NULL},
-    {"ipa_selinux_usermap_enabled", "ipaEnabledFlag", SYSDB_SELINUX_ENABLED, NULL},
-    {"ipa_selinux_usermap_user_category", "userCategory", SYSDB_USER_CATEGORY, NULL},
-    {"ipa_selinux_usermap_host_category", "hostCategory", SYSDB_HOST_CATEGORY, NULL},
-    {"ipa_selinux_usermap_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
+    { "ipa_selinux_usermap_object_class", "ipaselinuxusermap", SYSDB_SELINUX_USERMAP_CLASS, NULL},
+    { "ipa_selinux_usermap_name", "cn", SYSDB_NAME, NULL},
+    { "ipa_selinux_usermap_member_user", "memberUser", SYSDB_ORIG_MEMBER_USER, NULL},
+    { "ipa_selinux_usermap_member_host", "memberHost", SYSDB_ORIG_MEMBER_HOST, NULL},
+    { "ipa_selinux_usermap_see_also", "seeAlso", SYSDB_SELINUX_SEEALSO, NULL},
+    { "ipa_selinux_usermap_selinux_user", "ipaSELinuxUser", SYSDB_SELINUX_USER, NULL},
+    { "ipa_selinux_usermap_enabled", "ipaEnabledFlag", SYSDB_SELINUX_ENABLED, NULL},
+    { "ipa_selinux_usermap_user_category", "userCategory", SYSDB_USER_CATEGORY, NULL},
+    { "ipa_selinux_usermap_host_category", "hostCategory", SYSDB_HOST_CATEGORY, NULL},
+    { "ipa_selinux_usermap_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
 };
 
 struct dp_option ipa_def_krb5_opts[] = {
@@ -737,7 +748,16 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        cdb, conf_path,
                        ipa_host_map,
                        IPA_OPTS_HOST,
-                       &ipa_opts->id->host_map);
+                       &ipa_opts->host_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_hostgroup_map,
+                       IPA_OPTS_HOSTGROUP,
+                       &ipa_opts->hostgroup_map);
     if (ret != EOK) {
         goto done;
     }
@@ -745,7 +765,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
                        ipa_service_map,
-                       IPA_OPTS_HOST,
+                       SDAP_OPTS_SERVICES,
                        &ipa_opts->id->service_map);
     if (ret != EOK) {
         goto done;
@@ -755,7 +775,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        cdb, conf_path,
                        ipa_selinux_user_map,
                        IPA_OPTS_SELINUX_USERMAP,
-                       &ipa_opts->id->selinuxuser_map);
+                       &ipa_opts->selinuxuser_map);
     if (ret != EOK) {
         goto done;
     }

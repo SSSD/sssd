@@ -30,6 +30,7 @@ struct ipa_selinux_get_maps_state {
     struct sysdb_ctx *sysdb;
     struct sdap_handle *sh;
     struct sdap_options *opts;
+    struct ipa_options *ipa_opts;
     const char **attrs;
 
     struct sdap_search_base **search_bases;
@@ -53,6 +54,7 @@ struct tevent_req *ipa_selinux_get_maps_send(TALLOC_CTX *mem_ctx,
                                              struct sysdb_ctx *sysdb,
                                              struct sdap_handle *sh,
                                              struct sdap_options *opts,
+                                             struct ipa_options *ipa_opts,
                                              struct sdap_search_base **search_bases)
 {
     struct tevent_req *req;
@@ -68,20 +70,21 @@ struct tevent_req *ipa_selinux_get_maps_send(TALLOC_CTX *mem_ctx,
     state->sysdb = sysdb;
     state->sh = sh;
     state->opts = opts;
+    state->ipa_opts = ipa_opts;
     state->search_bases = search_bases;
     state->search_base_iter = 0;
     state->map_count = 0;
     state->maps = NULL;
 
-    ret = build_attrs_from_map(state, opts->selinuxuser_map,
+    ret = build_attrs_from_map(state, ipa_opts->selinuxuser_map,
                                IPA_OPTS_SELINUX_USERMAP, &state->attrs);
     if (ret != EOK) goto fail;
 
     state->cur_filter = NULL;
     state->maps_filter = talloc_asprintf(state,
                         "(&(objectclass=%s)(%s=TRUE))",
-                        opts->selinuxuser_map[IPA_OC_SELINUX_USERMAP].name,
-                        opts->selinuxuser_map[IPA_AT_SELINUX_USERMAP_ENABLED].name);
+                        ipa_opts->selinuxuser_map[IPA_OC_SELINUX_USERMAP].name,
+                        ipa_opts->selinuxuser_map[IPA_AT_SELINUX_USERMAP_ENABLED].name);
     if (state->maps_filter == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -130,7 +133,7 @@ ipa_selinux_get_maps_next(struct tevent_req *req,
                                    state->sh, base->basedn,
                                    base->scope, state->cur_filter,
                                    state->attrs,
-                                   state->opts->selinuxuser_map,
+                                   state->ipa_opts->selinuxuser_map,
                                    IPA_OPTS_SELINUX_USERMAP,
                                    dp_opt_get_int(state->opts->basic,
                                                   SDAP_ENUM_SEARCH_TIMEOUT),

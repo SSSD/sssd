@@ -45,6 +45,7 @@
 #define SYSDB_GROUP_CLASS "group"
 #define SYSDB_NETGROUP_CLASS "netgroup"
 #define SYSDB_HOST_CLASS "host"
+#define SYSDB_HOSTGROUP_CLASS "hostgroup"
 #define SYSDB_SELINUX_USERMAP_CLASS "selinuxusermap"
 #define SYSDB_SELINUX_CLASS "selinux"
 
@@ -94,6 +95,9 @@
 #define SYSDB_NETGROUP_DOMAIN "nisDomain"
 #define SYSDB_NETGROUP_MEMBER "memberNisNetgroup"
 #define SYSDB_DESCRIPTION   "description"
+
+#define SYSDB_FQDN "fqdn"
+#define SYSDB_SERVERHOSTNAME "serverHostname"
 
 #define SYSDB_SELINUX_SEEALSO "seeAlso"
 #define SYSDB_SELINUX_USER "selinuxUser"

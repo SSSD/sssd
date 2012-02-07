@@ -81,11 +81,24 @@ enum ipa_netgroup_attrs {
 
 enum ipa_host_attrs {
     IPA_OC_HOST = 0,
+    IPA_AT_HOST_NAME,
     IPA_AT_HOST_FQDN,
+    IPA_AT_HOST_SERVERHOSTNAME,
     IPA_AT_HOST_MEMBER_OF,
     IPA_AT_HOST_SSH_PUBLIC_KEY,
+    IPA_AT_HOST_UUID,
 
     IPA_OPTS_HOST /* attrs counter */
+};
+
+enum ipa_hostgroup_attrs {
+    IPA_OC_HOSTGROUP = 0,
+    IPA_AT_HOSTGROUP_NAME,
+    IPA_AT_HOSTGROUP_MEMBER,
+    IPA_AT_HOSTGROUP_MEMBER_OF,
+    IPA_AT_HOSTGROUP_UUID,
+
+    IPA_OPTS_HOSTGROUP /* attrs counter */
 };
 
 enum ipa_selinux_usermap_attrs {
@@ -117,6 +130,10 @@ struct ipa_id_ctx {
 
 struct ipa_options {
     struct dp_option *basic;
+
+    struct sdap_attr_map *host_map;
+    struct sdap_attr_map *hostgroup_map;
+    struct sdap_attr_map *selinuxuser_map;
 
     struct sdap_search_base **host_search_bases;
     struct sdap_search_base **hbac_search_bases;

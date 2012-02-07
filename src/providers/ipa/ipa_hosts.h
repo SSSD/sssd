@@ -30,10 +30,8 @@ ipa_host_info_send(TALLOC_CTX *mem_ctx,
                    struct sdap_handle *sh,
                    struct sdap_options *opts,
                    const char *hostname,
-                   const char **attrs,
-                   struct sdap_attr_map *map,
-                   int map_num_attrs,
-                   bool fetch_hostgroups,
+                   struct sdap_attr_map *host_map,
+                   struct sdap_attr_map *hostgroup_map,
                    struct sdap_search_base **search_bases);
 
 errno_t

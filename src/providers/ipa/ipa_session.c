@@ -35,17 +35,11 @@
 #include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
 
-/* FIXME: this is temporary until host map is implemented in ipa_common.c */
-#include "providers/ipa/ipa_hbac_private.h"
-
 struct ipa_get_selinux_state {
     struct be_req *be_req;
     struct pam_data *pd;
     struct ipa_session_ctx *session_ctx;
     struct sdap_id_op *op;
-
-    /* Just tmp stuff so we can free it after query */
-    const char **attrs;
 
     const char *hostname;
     struct sysdb_attrs *host;
@@ -251,21 +245,13 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     /* FIXME: detect if HBAC is configured
      * - if yes, we can skip host retrieval and get it directly from sysdb
      */
-    state->attrs = talloc_array(state, const char *, 3);
-    if (state->attrs == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    state->attrs[0] = "objectClass";
-    state->attrs[1] = IPA_MEMBEROF;
-    state->attrs[2] = NULL;
-
     subreq = ipa_host_info_send(state, bctx->ev, bctx->sysdb,
                                 sdap_id_op_handle(state->op),
                                 id_ctx->sdap_id_ctx->opts,
                                 state->hostname,
-                                state->attrs, NULL, 0,
-                                false, state->session_ctx->host_search_bases);
+                                id_ctx->ipa_options->host_map,
+                                NULL,
+                                state->session_ctx->host_search_bases);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -300,11 +286,6 @@ static void ipa_get_selinux_hosts_done(struct tevent_req *subreq)
     }
     state->host = host[0];
 
-    ret = sysdb_attrs_add_string(state->host, SYSDB_NAME, state->hostname);
-    if (ret != EOK) {
-        goto done;
-    }
-
     ret = sss_selinux_extract_user(state, bctx->sysdb,
                                    state->pd->user, &state->user);
     if (ret != EOK) {
@@ -314,6 +295,7 @@ static void ipa_get_selinux_hosts_done(struct tevent_req *subreq)
     subreq = ipa_selinux_get_maps_send(state, bctx->ev, bctx->sysdb,
                                        sdap_id_op_handle(state->op),
                                        id_ctx->opts,
+                                       state->session_ctx->id_ctx->ipa_options,
                                        state->session_ctx->selinux_search_bases);
     if (subreq == NULL) {
         ret = ENOMEM;

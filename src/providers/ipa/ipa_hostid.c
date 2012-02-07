@@ -33,7 +33,6 @@ struct hosts_get_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     const char *name;
-    const char **attrs;
 
     size_t count;
     struct sysdb_attrs **hosts;
@@ -176,11 +175,6 @@ hosts_get_send(TALLOC_CTX *memctx,
     state->domain = ctx->be->domain;
     state->name = name;
 
-    /* TODO: handle attrs_type */
-    ret = build_attrs_from_map(state, ctx->opts->host_map,
-                               IPA_OPTS_HOST, &state->attrs);
-    if (ret != EOK) goto fail;
-
     ret = hosts_get_retry(req);
     if (ret != EOK) {
         goto fail;
@@ -220,7 +214,6 @@ hosts_get_connect_done(struct tevent_req *subreq)
                                                     struct hosts_get_state);
     int dp_error = DP_ERR_FATAL;
     errno_t ret;
-    struct sdap_id_ctx *ctx = state->ctx->sdap_id_ctx;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -233,9 +226,9 @@ hosts_get_connect_done(struct tevent_req *subreq)
 
     subreq = ipa_host_info_send(state, state->ev, state->sysdb,
                                 sdap_id_op_handle(state->op),
-                                ctx->opts, state->name,
-                                state->attrs, ctx->opts->host_map,
-                                IPA_OPTS_HOST, false,
+                                state->ctx->sdap_id_ctx->opts, state->name,
+                                state->ctx->ipa_opts->host_map,
+                                state->ctx->ipa_opts->hostgroup_map,
                                 state->ctx->host_search_bases);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);

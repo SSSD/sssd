@@ -386,6 +386,8 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
         goto done;
     }
     ipa_access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
+    ipa_access_ctx->host_map = id_ctx->ipa_options->host_map;
+    ipa_access_ctx->hostgroup_map = id_ctx->ipa_options->hostgroup_map;
     ipa_access_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
     ipa_access_ctx->hbac_search_bases = id_ctx->ipa_options->hbac_search_bases;
 
@@ -464,13 +466,7 @@ int sssm_ipa_hostid_init(struct be_ctx *bectx,
     }
     hostid_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
     hostid_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
-
-    ret = dp_copy_options(hostid_ctx, ipa_options->basic,
-                          IPA_OPTS_BASIC, &hostid_ctx->ipa_options);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("dp_copy_options failed.\n"));
-        goto done;
-    }
+    hostid_ctx->ipa_opts = ipa_options;
 
     *ops = &ipa_hostid_ops;
     *pvt_data = hostid_ctx;

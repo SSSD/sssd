@@ -28,14 +28,9 @@
 
 #define IPA_HBAC_RULE "ipaHBACRule"
 
-#define IPA_HOST "ipaHost"
-#define IPA_HOSTGROUP "ipaHostGroup"
-
 #define IPA_HBAC_SERVICE "ipaHBACService"
 #define IPA_HBAC_SERVICE_GROUP "ipaHBACServiceGroup"
 
-#define IPA_HOST_SERVERHOSTNAME "serverHostName"
-#define IPA_HOST_FQDN "fqdn"
 #define IPA_UNIQUE_ID "ipauniqueid"
 
 #define IPA_MEMBER "member"
@@ -61,7 +56,6 @@
 #define IPA_SERVICE_CATEGORY "serviceCategory"
 #define IPA_TRUE_VALUE "TRUE"
 
-#define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,%s"
 #define IPA_HBAC_BASE_TMPL "cn=hbac,%s"
 #define IPA_SERVICES_BASE_TMPL "cn=hbacservices,cn=accounts,%s"
 

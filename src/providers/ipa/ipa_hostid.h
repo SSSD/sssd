@@ -23,7 +23,7 @@
 
 struct ipa_hostid_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
-    struct dp_option *ipa_options;
+    struct ipa_options *ipa_opts;
 
     struct sdap_search_base **host_search_bases;
 };

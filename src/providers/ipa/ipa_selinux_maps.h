@@ -33,6 +33,7 @@ ipa_selinux_get_maps_send(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *sysdb,
                           struct sdap_handle *sh,
                           struct sdap_options *opts,
+                          struct ipa_options *ipa_opts,
                           struct sdap_search_base **search_bases);
 
 errno_t
