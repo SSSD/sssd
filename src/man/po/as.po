@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-02-06 19:00-0500\n"
+"POT-Creation-Date: 2012-02-07 09:17-0500\n"
 "PO-Revision-Date: 2010-12-23 15:35+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Assamese (http://www.transifex.net/projects/p/fedora/team/"
@@ -108,7 +108,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_groupmod.8.xml:72 sssd.conf.5.xml:1331 sssd-ldap.5.xml:2096
 #: pam_sss.8.xml:139 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143
-#: sssd-ipa.5.xml:550 sssd.8.xml:191 sss_obfuscate.8.xml:103
+#: sssd-ipa.5.xml:562 sssd.8.xml:191 sss_obfuscate.8.xml:103
 #: sss_useradd.8.xml:167 sssd-krb5.5.xml:451 sss_groupadd.8.xml:58
 #: sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58
 #: sss_usermod.8.xml:138
@@ -1713,7 +1713,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:1296 sssd-ldap.5.xml:2064 sssd-simple.5.xml:126
-#: sssd-ipa.5.xml:532 sssd-krb5.5.xml:432
+#: sssd-ipa.5.xml:544 sssd-krb5.5.xml:432
 msgid "EXAMPLE"
 msgstr ""
 
@@ -2454,8 +2454,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:611
 msgid ""
-"The LDAP attribute that contains how many seconds SSSD has to wait before "
-"refreshing its cache of enumerated records."
+"Specifies how many seconds SSSD has to wait before refreshing its cache of "
+"enumerated records."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2465,7 +2465,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:622
-msgid "ldap_purge_cache_timeout"
+msgid "ldap_purge_cache_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -2499,7 +2499,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:648 sssd-ldap.5.xml:727 sssd-ldap.5.xml:828
 #: sssd-ldap.5.xml:919 sssd-ldap.5.xml:1663 sssd-ldap.5.xml:1881
-#: sssd-ipa.5.xml:410
+#: sssd-ipa.5.xml:422
 msgid "Default: cn"
 msgstr ""
 
@@ -2514,7 +2514,7 @@ msgid "The LDAP attribute that lists the user's group memberships."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:661 sssd-ipa.5.xml:314
+#: sssd-ldap.5.xml:661 sssd-ipa.5.xml:326
 msgid "Default: memberOf"
 msgstr ""
 
@@ -4021,7 +4021,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2071 sssd-simple.5.xml:134 sssd-ipa.5.xml:540
+#: sssd-ldap.5.xml:2071 sssd-simple.5.xml:134 sssd-ipa.5.xml:552
 #: sssd-krb5.5.xml:441
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
@@ -4675,259 +4675,274 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:307
-msgid "ipa_netgroup_member_of (string)"
+msgid "ipa_automount_location (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:310
-msgid "The LDAP attribute that lists netgroup's memberships."
+msgid "The automounter location this IPA client will be using"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:313
+msgid "Default: The location named \"default\""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:319
-msgid "ipa_netgroup_member_user (string)"
+msgid "ipa_netgroup_member_of (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:322
+msgid "The LDAP attribute that lists netgroup's memberships."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ipa.5.xml:331
+msgid "ipa_netgroup_member_user (string)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:334
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:327 sssd-ipa.5.xml:422
+#: sssd-ipa.5.xml:339 sssd-ipa.5.xml:434
 msgid "Default: memberUser"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:332
+#: sssd-ipa.5.xml:344
 msgid "ipa_netgroup_member_host (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:335
+#: sssd-ipa.5.xml:347
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:339 sssd-ipa.5.xml:434
+#: sssd-ipa.5.xml:351 sssd-ipa.5.xml:446
 msgid "Default: memberHost"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:344
+#: sssd-ipa.5.xml:356
 msgid "ipa_netgroup_member_ext_host (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:347
+#: sssd-ipa.5.xml:359
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:351
+#: sssd-ipa.5.xml:363
 msgid "Default: externalHost"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:356
+#: sssd-ipa.5.xml:368
 msgid "ipa_netgroup_domain (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:359
+#: sssd-ipa.5.xml:371
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:363
+#: sssd-ipa.5.xml:375
 msgid "Default: nisDomainName"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:369
+#: sssd-ipa.5.xml:381
 msgid "ipa_host_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:372 sssd-ipa.5.xml:395
+#: sssd-ipa.5.xml:384 sssd-ipa.5.xml:407
 msgid "The object class of a host entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:375 sssd-ipa.5.xml:398
+#: sssd-ipa.5.xml:387 sssd-ipa.5.xml:410
 msgid "Default: ipaHost"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:380
+#: sssd-ipa.5.xml:392
 msgid "ipa_host_fqdn (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:383
+#: sssd-ipa.5.xml:395
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:386
+#: sssd-ipa.5.xml:398
 msgid "Default: fqdn"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:392
+#: sssd-ipa.5.xml:404
 msgid "ipa_selinux_usermap_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:403
+#: sssd-ipa.5.xml:415
 msgid "ipa_selinux_usermap_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:406
+#: sssd-ipa.5.xml:418
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:415
+#: sssd-ipa.5.xml:427
 msgid "ipa_selinux_usermap_member_user (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:418
+#: sssd-ipa.5.xml:430
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:427
+#: sssd-ipa.5.xml:439
 msgid "ipa_selinux_usermap_member_host (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:430
+#: sssd-ipa.5.xml:442
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:439
+#: sssd-ipa.5.xml:451
 msgid "ipa_selinux_usermap_see_also (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:442
+#: sssd-ipa.5.xml:454
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:447
+#: sssd-ipa.5.xml:459
 msgid "Default: seeAlso"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:452
+#: sssd-ipa.5.xml:464
 msgid "ipa_selinux_usermap_selinux_user (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:455
+#: sssd-ipa.5.xml:467
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:459
+#: sssd-ipa.5.xml:471
 msgid "Default: ipaSELinuxUser"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:464
+#: sssd-ipa.5.xml:476
 msgid "ipa_selinux_usermap_enabled (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:467
+#: sssd-ipa.5.xml:479
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:471
+#: sssd-ipa.5.xml:483
 msgid "Default: ipaEnabledFlag"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:476
+#: sssd-ipa.5.xml:488
 msgid "ipa_selinux_usermap_user_category (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:479
+#: sssd-ipa.5.xml:491
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:483
+#: sssd-ipa.5.xml:495
 msgid "Default: userCategory"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:488
+#: sssd-ipa.5.xml:500
 msgid "ipa_selinux_usermap_host_category (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:491
+#: sssd-ipa.5.xml:503
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:495
+#: sssd-ipa.5.xml:507
 msgid "Default: hostCategory"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:500
+#: sssd-ipa.5.xml:512
 msgid "ipa_selinux_usermap_uuid (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:503
+#: sssd-ipa.5.xml:515
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:507
+#: sssd-ipa.5.xml:519
 msgid "Default: ipaUniqueID"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:512
+#: sssd-ipa.5.xml:524
 msgid "ipa_host_ssh_public_key (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:515
+#: sssd-ipa.5.xml:527
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:519
+#: sssd-ipa.5.xml:531
 msgid "Default: ipaSshPubKey"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:534
+#: sssd-ipa.5.xml:546
 msgid ""
 "The following example assumes that SSSD is correctly configured and example."
 "com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
@@ -4935,7 +4950,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ipa.5.xml:541
+#: sssd-ipa.5.xml:553
 #, no-wrap
 msgid ""
 "    [domain/example.com]\n"
@@ -4945,7 +4960,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:552
+#: sssd-ipa.5.xml:564
 msgid ""
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
