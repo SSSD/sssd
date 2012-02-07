@@ -1813,7 +1813,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
         </para>
         <para>
             This manual page only describes attribute name mapping.
-            For detailed explanation of sudo related attribute sematics,
+            For detailed explanation of sudo related attribute semantics,
             see
             <citerefentry>
                 <refentrytitle>sudoers.ldap</refentrytitle><manvolnum>5</manvolnum>
