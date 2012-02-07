@@ -653,7 +653,10 @@ int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     char *filter = NULL;
+    char **sudouser = NULL;
     int ret = EOK;
+    errno_t sret;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -661,20 +664,52 @@ int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
         return ENOMEM;
     }
 
+    ret = sysdb_transaction_start(sysdb_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
     switch (sudo_req->type) {
     case BE_REQ_SUDO_ALL:
-        filter = NULL;
+        DEBUG(SSSDBG_TRACE_FUNC, ("Purging SUDOers cache of all rules\n"));
+        ret = sysdb_sudo_purge_all(sysdb_ctx);
         break;
     case BE_REQ_SUDO_DEFAULTS:
-        ret = sysdb_get_sudo_filter(tmp_ctx, NULL, 0, NULL,
-                                    SYSDB_SUDO_FILTER_INCLUDE_DFL, &filter);
+        DEBUG(SSSDBG_TRACE_FUNC, ("Purging SUDOers cache of default options\n"));
+        ret = sysdb_sudo_purge_byname(sysdb_ctx, SDAP_SUDO_DEFAULTS);
         break;
     case BE_REQ_SUDO_USER:
-        ret = sysdb_get_sudo_filter(tmp_ctx, sudo_req->username, sudo_req->uid,
-                                    sudo_req->groups,
-                                      SYSDB_SUDO_FILTER_USERINFO
-                                    | SYSDB_SUDO_FILTER_INCLUDE_ALL
-                                    | SYSDB_SUDO_FILTER_INCLUDE_DFL, &filter);
+        DEBUG(SSSDBG_TRACE_FUNC, ("Purging SUDOers cache of user's [%s] rules\n",
+              sudo_req->username));
+
+        /* netgroups */
+        ret = sysdb_get_sudo_filter(tmp_ctx, NULL, 0, NULL,
+                                    SYSDB_SUDO_FILTER_NGRS, &filter);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to create filter to purge "
+                  "SUDOers cache [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
+        ret = sysdb_sudo_purge_byfilter(sysdb_ctx, filter);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to purge SUDOers cache "
+                  "(netgroups) [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
+        /* user, uid, groups */
+        sudouser = sysdb_sudo_build_sudouser(tmp_ctx, sudo_req->username,
+                                             sudo_req->uid, sudo_req->groups,
+                                             true);
+        if (sudouser == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to create sudoUser to purge "
+                  "SUDOers cache [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
+        ret = sysdb_sudo_purge_bysudouser(sysdb_ctx, sudouser);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type %d\n", sudo_req->type));
@@ -682,23 +717,24 @@ int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
     }
 
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to create filter to purge "
-              "sudoers cache [%d]: %s\n", ret, strerror(ret)));
-        goto done;
-    }
-
-    /* Purge rules */
-    DEBUG(SSSDBG_TRACE_FUNC, ("Purging sudo cache with filter [%s]\n", filter));
-    ret = sysdb_purge_sudorule_subtree(sysdb_ctx, domain, filter);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to purge sudoers cache [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to purge SUDOers cache [%d]: %s\n",
                                     ret, strerror(ret)));
         goto done;
     }
 
-    ret = EOK;
+    ret = sysdb_transaction_commit(sysdb_ctx);
+    if (ret == EOK) {
+        in_transaction = false;
+    }
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb_ctx);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+        }
+    }
+
     talloc_free(tmp_ctx);
     return ret;
 }
