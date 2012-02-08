@@ -1080,6 +1080,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'sssd',
             'nss',
             'pam',
+            'sudo',
             'domain/PROXY',
             'domain/IPA',
             'domain/LOCAL',
@@ -1184,6 +1185,54 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         #TODO Write tests to compare output files
         pass
 
+    def testListActiveServices(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        # Negative Test - Not Initialized
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.list_active_services)
+
+        # Positive Test
+        sssdconfig.import_config(srcdir + '/testconfigs/sssd-valid.conf')
+
+        control_list = [
+            'nss',
+            'pam']
+        active_services = sssdconfig.list_active_services()
+
+        for service in control_list:
+            self.assertTrue(service in active_services,
+                            "Service [%s] missing" %
+                            service)
+        for service in active_services:
+            self.assertTrue(service in control_list,
+                            "Service [%s] unexpectedly found" %
+                            service)
+
+    def testListInactiveServices(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        # Negative Test - Not Initialized
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.list_inactive_services)
+
+        # Positive Test
+        sssdconfig.import_config(srcdir + '/testconfigs/sssd-valid.conf')
+
+        control_list = [
+            'sssd',
+            'sudo']
+        inactive_services = sssdconfig.list_inactive_services()
+
+        for service in control_list:
+            self.assertTrue(service in inactive_services,
+                            "Service [%s] missing" %
+                            service)
+        for service in inactive_services:
+            self.assertTrue(service in control_list,
+                            "Service [%s] unexpectedly found" %
+                            service)
+
     def testListServices(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
@@ -1280,6 +1329,80 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         # Negative Test - Type Error
         self.assertRaises(TypeError, sssdconfig.save_service, self)
+
+    def testActivateService(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        service_name = 'sudo'
+
+        # Negative test - Not initialized
+        self.assertRaises(SSSDConfig.NotInitializedError,
+                          sssdconfig.activate_service, service_name)
+
+        sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
+
+        # Positive test - Activate an inactive service
+        self.assertTrue(service_name in sssdconfig.list_services())
+        self.assertFalse(service_name in sssdconfig.list_active_services())
+        self.assertTrue(service_name in sssdconfig.list_inactive_services())
+
+        sssdconfig.activate_service(service_name)
+        self.assertTrue(service_name in sssdconfig.list_services())
+        self.assertTrue(service_name in sssdconfig.list_active_services())
+        self.assertFalse(service_name in sssdconfig.list_inactive_services())
+
+        # Positive test - Activate an active service
+        # This should succeed
+        sssdconfig.activate_service(service_name)
+        self.assertTrue(service_name in sssdconfig.list_services())
+        self.assertTrue(service_name in sssdconfig.list_active_services())
+        self.assertFalse(service_name in sssdconfig.list_inactive_services())
+
+        # Negative test - Invalid service name
+        self.assertRaises(SSSDConfig.NoServiceError,
+                          sssdconfig.activate_service, 'nosuchservice')
+
+        # Negative test - Invalid service name type
+        self.assertRaises(SSSDConfig.NoServiceError,
+                          sssdconfig.activate_service, self)
+
+    def testDeactivateService(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        service_name = 'pam'
+
+        # Negative test - Not initialized
+        self.assertRaises(SSSDConfig.NotInitializedError,
+                          sssdconfig.activate_service, service_name)
+
+        sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
+
+        # Positive test -Deactivate an active service
+        self.assertTrue(service_name in sssdconfig.list_services())
+        self.assertTrue(service_name in sssdconfig.list_active_services())
+        self.assertFalse(service_name in sssdconfig.list_inactive_services())
+
+        sssdconfig.deactivate_service(service_name)
+        self.assertTrue(service_name in sssdconfig.list_services())
+        self.assertFalse(service_name in sssdconfig.list_active_services())
+        self.assertTrue(service_name in sssdconfig.list_inactive_services())
+
+        # Positive test - Deactivate an inactive service
+        # This should succeed
+        sssdconfig.deactivate_service(service_name)
+        self.assertTrue(service_name in sssdconfig.list_services())
+        self.assertFalse(service_name in sssdconfig.list_active_services())
+        self.assertTrue(service_name in sssdconfig.list_inactive_services())
+
+        # Negative test - Invalid service name
+        self.assertRaises(SSSDConfig.NoServiceError,
+                          sssdconfig.activate_service, 'nosuchservice')
+
+        # Negative test - Invalid service name type
+        self.assertRaises(SSSDConfig.NoServiceError,
+                          sssdconfig.activate_service, self)
 
     def testListActiveDomains(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",

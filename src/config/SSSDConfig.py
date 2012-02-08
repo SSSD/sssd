@@ -1350,6 +1350,64 @@ class SSSDConfig(SSSDChangeConf):
         of.close()
         os.umask(old_umask)
 
+    def list_active_services(self):
+        """
+        Return a list of all active services.
+
+        === Returns ===
+        The list of active services.
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
+        if not self.initialized:
+            raise NotInitializedError
+
+        if (self.has_option('sssd', 'services')):
+            active_services = striplist(self.get('sssd', 'services').split(','))
+            service_dict = dict.fromkeys(active_services)
+            if service_dict.has_key(''):
+                del service_dict['']
+
+            # Remove any entries in this list that don't
+            # correspond to an active service, for integrity
+            configured_services = self.list_services()
+            for srv in service_dict.keys():
+                if srv not in configured_services:
+                    del service_dict[srv]
+
+            active_services = service_dict.keys()
+        else:
+            active_services = []
+
+        return active_services
+
+    def list_inactive_services(self):
+        """
+        Return a list of all disabled services.
+
+        === Returns ===
+        The list of inactive services.
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
+        if not self.initialized:
+            raise NotInitializedError
+
+        if (self.has_option('sssd', 'services')):
+            active_services = striplist(self.get('sssd', 'services').split(','))
+        else:
+            active_services = []
+
+        services = [x for x in self.list_services()
+                   if x not in active_services]
+        return services
+
     def list_services(self):
         """
         Retrieve a list of known services.
@@ -1432,6 +1490,90 @@ class SSSDConfig(SSSDChangeConf):
         service = SSSDService(name, self.schema)
         self.save_service(service)
         return service
+
+    def activate_service(self, name):
+        """
+        Activate a service
+
+        name:
+          The name of the service to activate
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        NoServiceError:
+          There is no such service with the specified name in the SSSDConfig.
+        """
+
+        if not self.initialized:
+            raise NotInitializedError
+
+        if name not in self.list_services():
+            raise NoServiceError
+
+        item = self.get_option_index('sssd', 'services')[1]
+        if not item:
+            self.set('sssd','services', name)
+            return
+
+        # Turn the items into a set of dictionary keys
+        # This guarantees uniqueness and makes it easy
+        # to add a new value
+        service_dict = dict.fromkeys(striplist(item['value'].split(',')))
+        if service_dict.has_key(''):
+            del service_dict['']
+
+        # Add a new key for the service being activated
+        service_dict[name] = None
+
+        # Write out the joined keys
+        self.set('sssd','services', ", ".join(service_dict.keys()))
+
+    def deactivate_service(self, name):
+        """
+        Deactivate a service
+
+        name:
+          The name of the service to deactivate
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        NoServiceError:
+          There is no such service with the specified name in the SSSDConfig.
+        """
+
+        if not self.initialized:
+            raise NotInitializedError
+
+        if name not in self.list_services():
+            raise NoServiceError
+        item = self.get_option_index('sssd', 'services')[1]
+        if not item:
+            self.set('sssd','services', '')
+            return
+
+        # Turn the items into a set of dictionary keys
+        # This guarantees uniqueness and makes it easy
+        # to remove the one unwanted value.
+        service_dict = dict.fromkeys(striplist(item['value'].split(',')))
+        if service_dict.has_key(''):
+            del service_dict['']
+
+        # Remove the unwanted service from the lest
+        if service_dict.has_key(name):
+            del service_dict[name]
+
+        # Write out the joined keys
+        self.set('sssd','services', ", ".join(service_dict.keys()))
 
     def delete_service(self, name):
         """
