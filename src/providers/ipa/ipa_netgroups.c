@@ -113,7 +113,11 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("No netgroup triples for netgroup [%s].\n", name));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("No netgroup triples for netgroup [%s].\n", name));
+        ret = sysdb_attrs_get_el(netgroup_attrs, SYSDB_NETGROUP_TRIPLE, &el);
+        if (ret != EOK) {
+            goto fail;
+        }
     } else {
         for(c = 0; c < el->num_values; c++) {
             ret = sysdb_attrs_add_string(netgroup_attrs,
@@ -698,7 +702,7 @@ struct extract_state {
     int entries_count;
 };
 
-static bool extract_users(hash_entry_t *entry, void *pvt)
+static bool extract_entities(hash_entry_t *entry, void *pvt)
 {
     int i, ret;
     struct extract_state *state;
@@ -800,7 +804,7 @@ static int extract_members(TALLOC_CTX *mem_ctx,
 
             for (pi = 0; pi < process_count; pi++) {
                 state->group = process[pi];
-                hash_iterate(lookup_table, extract_users, state);
+                hash_iterate(lookup_table, extract_entities, state);
                 if (state->entries_count > 0) {
                     ret_array = talloc_realloc(mem_ctx, ret_array, const char *,
                             ret_count + state->entries_count);
@@ -951,33 +955,39 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
             goto done;
         }
 
-        if (uids_count == 0) {
-            uids_count = 1;
-            uids = dash;
-        }
+        if (uids_count > 0 || hosts_count > 0) {
+            if (uids_count == 0) {
+                uids_count = 1;
+                uids = dash;
+            }
 
-        if (hosts_count == 0) {
-            hosts_count = 1;
-            hosts = dash;
-        }
+            if (hosts_count == 0) {
+                hosts_count = 1;
+                hosts = dash;
+            }
 
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Putting together triples of netgroup %d\n", i));
-        for (j = 0; j < uids_count; j++) {
-            for (k = 0; k < hosts_count; k++) {
-                triple = talloc_asprintf(state, "(%s,%s,%s)",
-                                         hosts[k], uids[j],
-                                         domain);
-                if (triple == NULL) {
-                    ret = ENOMEM;
-                    goto done;
-                }
+            DEBUG(SSSDBG_TRACE_INTERNAL, ("Putting together triples of "
+                                          "netgroup %d\n", i));
+            for (j = 0; j < uids_count; j++) {
+                for (k = 0; k < hosts_count; k++) {
+                    triple = talloc_asprintf(state, "(%s,%s,%s)",
+                                             hosts[k], uids[j],
+                                             domain);
+                    if (triple == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
 
-                ret = sysdb_attrs_add_string(state->netgroups[i], SYSDB_NETGROUP_TRIPLE, triple);
-                if (ret != EOK) {
-                    goto done;
+                    ret = sysdb_attrs_add_string(state->netgroups[i],
+                                                 SYSDB_NETGROUP_TRIPLE,
+                                                 triple);
+                    if (ret != EOK) {
+                        goto done;
+                    }
                 }
             }
         }
+
         ret = ipa_save_netgroup(state, state->sysdb, state->dom,
                                 state->opts, state->netgroups[i]);
         if (ret != EOK) {
