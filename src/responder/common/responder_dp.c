@@ -70,6 +70,7 @@ static int sss_dp_req_destructor(void *ptr)
     struct sss_dp_callback *cb;
     struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
     struct sss_dp_req_state *state;
+    int hret;
 
     /* Cancel Dbus pending reply if still pending */
     if (sdp_req->pending_reply) {
@@ -105,7 +106,8 @@ static int sss_dp_req_destructor(void *ptr)
     }
 
     /* Destroy the hash entry */
-    int hret = hash_delete(sdp_req->rctx->dp_request_table, sdp_req->key);
+    DEBUG(SSSDBG_TRACE_FUNC, ("Deleting request: [%s]\n", sdp_req->key->str));
+    hret = hash_delete(sdp_req->rctx->dp_request_table, sdp_req->key);
     if (hret != HASH_SUCCESS) {
         /* This should never happen */
         DEBUG(SSSDBG_TRACE_INTERNAL,
@@ -259,11 +261,13 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     }
 
     key->type = HASH_KEY_STRING;
-    key->str = talloc_asprintf(key, "%p:%s\n", msg_create, strkey);
+    key->str = talloc_asprintf(key, "%p:%s", msg_create, strkey);
     if (!key->str) {
         ret = ENOMEM;
         goto fail;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Issuing request for [%s]\n", key->str));
 
     /* Check the hash for existing references to this request */
     hret = hash_lookup(rctx->dp_request_table, key, &value);
@@ -667,6 +671,7 @@ sss_dp_internal_get_send(struct resp_ctx *rctx,
     value.type = HASH_VALUE_PTR;
     value.ptr = state->sdp_req;
 
+    DEBUG(SSSDBG_TRACE_FUNC, ("Entering request [%s]\n", key->str));
     hret = hash_enter(rctx->dp_request_table, key, &value);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,

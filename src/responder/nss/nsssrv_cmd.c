@@ -2625,6 +2625,8 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         if (dctx->check_provider) {
             step_ctx->returned_to_mainloop = true;
             /* Only do this once per provider */
+            dctx->check_provider = false;
+
             dpreq = sss_dp_get_account_send(step_ctx, rctx, dctx->domain, true,
                                           SSS_DP_USER, NULL, 0, NULL);
             if (!dpreq) {
