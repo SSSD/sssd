@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: ipa_hbac
 Description: FreeIPA HBAC Evaluator library
 Version: @VERSION@
-Libs: -L$(libdir) -lipa_hbac
+Libs: -L${libdir} -lipa_hbac
 Cflags:
 URL: http://fedorahosted.org/sssd/
