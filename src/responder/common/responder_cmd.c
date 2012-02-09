@@ -160,8 +160,8 @@ int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds)
 struct setent_req_list {
     struct setent_req_list *prev;
     struct setent_req_list *next;
-    /* Need to point to the head of the list from a talloc destructor */
-    struct setent_req_list *head;
+    /* Need to modify the list from a talloc destructor */
+    struct setent_req_list **head;
 
     void *pvt;
 
@@ -178,7 +178,7 @@ int setent_remove_ref(TALLOC_CTX *ctx)
 {
     struct setent_req_list *entry =
             talloc_get_type(ctx, struct setent_req_list);
-    DLIST_REMOVE(entry->head, entry);
+    DLIST_REMOVE(*(entry->head), entry);
     return 0;
 }
 
@@ -197,18 +197,18 @@ errno_t setent_add_ref(TALLOC_CTX *memctx,
     entry->req = req;
     entry->pvt = pvt;
     DLIST_ADD_END(*list, entry, struct setent_req_list *);
-    entry->head = *list;
+    entry->head = list;
 
     talloc_set_destructor((TALLOC_CTX *)entry, setent_remove_ref);
     return EOK;
 }
 
-void setent_notify(struct setent_req_list *list, errno_t err)
+void setent_notify(struct setent_req_list **list, errno_t err)
 {
     struct setent_req_list *reql;
 
     /* Notify the waiting clients */
-    while ((reql = list)) {
+    while ((reql = *list) != NULL) {
         /* Each tevent_req_done() call will free
          * the request, removing it from the list.
          */
@@ -218,7 +218,7 @@ void setent_notify(struct setent_req_list *list, errno_t err)
             tevent_req_error(reql->req, err);
         }
 
-        if (reql == list) {
+        if (reql == *list) {
             /* The consumer failed to free the
              * request. Log a bug and continue.
              */
@@ -226,12 +226,12 @@ void setent_notify(struct setent_req_list *list, errno_t err)
                   ("BUG: a callback did not free its request. "
                    "May leak memory\n"));
             /* Skip to the next since a memory leak is non-fatal */
-            list = list->next;
+            *list = (*list)->next;
         }
     }
 }
 
-void setent_notify_done(struct setent_req_list *list)
+void setent_notify_done(struct setent_req_list **list)
 {
     return setent_notify(list, EOK);
 }

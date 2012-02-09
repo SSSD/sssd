@@ -77,11 +77,6 @@ int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
 /***************************
  *  Enumeration procedures *
  ***************************/
-struct tevent_req *nss_setent_get_req(struct getent_ctx *getent_ctx)
-{
-    return setent_get_req(getent_ctx->reqs);
-}
-
 errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
                            struct getent_ctx *getent_ctx,
                            struct tevent_req *req)
@@ -91,12 +86,12 @@ errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
 
 void nss_setent_notify_error(struct getent_ctx *getent_ctx, errno_t ret)
 {
-    return setent_notify(getent_ctx->reqs, ret);
+    return setent_notify(&getent_ctx->reqs, ret);
 }
 
 void nss_setent_notify_done(struct getent_ctx *getent_ctx)
 {
-    return setent_notify_done(getent_ctx->reqs);
+    return setent_notify_done(&getent_ctx->reqs);
 }
 
 struct setent_ctx {
@@ -1403,7 +1398,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     }
 
     /* Notify the waiting clients */
-    setent_notify_done(nctx->pctx->reqs);
+    nss_setent_notify_done(nctx->pctx);
 
     if (step_ctx->returned_to_mainloop) {
         return EAGAIN;
@@ -2701,7 +2696,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     }
 
     /* Notify the waiting clients */
-    setent_notify_done(nctx->gctx->reqs);
+    nss_setent_notify_done(nctx->gctx);
 
     if (step_ctx->returned_to_mainloop) {
         return EAGAIN;

@@ -168,8 +168,8 @@ errno_t setent_add_ref(TALLOC_CTX *memctx,
                        void *pvt,
                        struct setent_req_list **list,
                        struct tevent_req *req);
-void setent_notify(struct setent_req_list *list, errno_t err);
-void setent_notify_done(struct setent_req_list *list);
+void setent_notify(struct setent_req_list **list, errno_t err);
+void setent_notify_done(struct setent_req_list **list);
 
 errno_t
 sss_cmd_check_cache(struct ldb_message *msg,
