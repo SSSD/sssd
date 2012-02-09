@@ -87,7 +87,7 @@ autofs_setent_add_ref(TALLOC_CTX *memctx,
 static void
 autofs_setent_notify(struct autofs_map_ctx *map_ctx, errno_t ret)
 {
-    setent_notify(map_ctx->reqs, ret);
+    setent_notify(&map_ctx->reqs, ret);
 }
 
 static errno_t

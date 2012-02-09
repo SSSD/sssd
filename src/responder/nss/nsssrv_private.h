@@ -104,7 +104,6 @@ int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret);
 errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
                            struct getent_ctx *getent_ctx,
                            struct tevent_req *req);
-struct tevent_req *nss_setent_get_req(struct getent_ctx *getent_ctx);
 
 void nss_setent_notify_error(struct getent_ctx *getent_ctx, errno_t ret);
 void nss_setent_notify_done(struct getent_ctx *getent_ctx);
