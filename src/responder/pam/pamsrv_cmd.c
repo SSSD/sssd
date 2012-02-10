@@ -734,7 +734,8 @@ static void pam_reply(struct pam_auth_req *preq)
         return;
     }
 
-    if (pd->cmd == SSS_PAM_OPEN_SESSION) {
+    if (pd->cmd == SSS_PAM_OPEN_SESSION &&
+        pd->pam_status == PAM_SUCCESS) {
         /* Try to fetch data from sysdb
          * (auth already passed -> we should have them) */
         ret = get_selinux_string(preq);
