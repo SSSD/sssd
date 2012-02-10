@@ -42,6 +42,7 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char **values = NULL;
+    const char *name = NULL;
     char *tret = NULL;
     time_t notBefore = 0;
     time_t notAfter = 0;
@@ -55,6 +56,13 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
 
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
+
+    ret = sysdb_attrs_get_string(rule, SYSDB_SUDO_CACHE_AT_CN, &name);
+    if (ret == ENOENT) {
+        name = "<missing>";
+    } else if(ret != EOK) {
+        goto done;
+    }
 
     /*
      * From man sudoers.ldap:
@@ -73,7 +81,8 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
                                        tmp_ctx, &values);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("notBefore attribute is missing, the rule is valid\n"));
+              ("notBefore attribute is missing, the rule [%s] is valid\n",
+               name));
         *result = true;
         ret = EOK;
         goto done;
@@ -84,7 +93,8 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     for (i=0; values[i] ; i++) {
         tret = strptime(values[i], SYSDB_SUDO_TIME_FORMAT, &tm);
         if (tret == NULL || *tret != '\0') {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format!\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format in rule [%s]!\n",
+                  name));
             ret = EINVAL;
             goto done;
         }
@@ -103,7 +113,8 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
                                        tmp_ctx, &values);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("notAfter attribute is missing, the rule is valid\n"));
+              ("notAfter attribute is missing, the rule [%s] is valid\n",
+               name));
         *result = true;
         ret = EOK;
         goto done;
@@ -114,7 +125,8 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     for (i=0; values[i] ; i++) {
         tret = strptime(values[i], SYSDB_SUDO_TIME_FORMAT, &tm);
         if (tret == NULL || *tret != '\0') {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format!\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format in rule [%s]!\n",
+                  name));
             ret = EINVAL;
             goto done;
         }
