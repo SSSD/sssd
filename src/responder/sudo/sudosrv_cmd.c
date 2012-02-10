@@ -194,6 +194,13 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
         goto done;
     }
 
+    /* If the body isn't valid UTF-8, fail */
+    if (!sss_utf8_check(query_body, query_len - 1)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Supplied data is not valid UTF-8 string\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     /* parse query */
     rawname = sudosrv_get_sudorules_parse_query(cmd_ctx,
                                                 (const char*)query_body,
