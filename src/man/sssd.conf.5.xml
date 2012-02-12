@@ -87,6 +87,8 @@
                             <para>
                                 Supported services: nss, pam
                                 <phrase condition="with_sudo">, sudo</phrase>
+                                <phrase condition="with_autofs">, autofs</phrase>
+                                <phrase condition="with_ssh">, ssh</phrase>
                             </para>
                         </listitem>
                     </varlistentry>
