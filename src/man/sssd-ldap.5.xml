@@ -1289,7 +1289,7 @@
                             Currently only GSSAPI is tested and supported.
                         </para>
                         <para>
-                            Default: none
+                            Default: not set
                         </para>
                     </listitem>
                 </varlistentry>
