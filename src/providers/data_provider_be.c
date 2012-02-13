@@ -1180,7 +1180,6 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     if (filter) {
-        ret = EOK;
         if (strncmp(filter, "name=", 5) == 0) {
             req->filter_type = BE_FILTER_NAME;
             req->filter_value = &filter[5];
@@ -1190,14 +1189,6 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
             err_msg = "Invalid Filter";
             goto done;
         }
-
-        if (ret != EOK) {
-            err_maj = DP_ERR_FATAL;
-            err_min = EINVAL;
-            err_msg = "Invalid Filter";
-            goto done;
-        }
-
     } else {
         err_maj = DP_ERR_FATAL;
         err_min = EINVAL;
