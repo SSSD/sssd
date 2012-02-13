@@ -130,7 +130,7 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
 {
     const char *shell;
     char *lower;
-    struct sysdb_attrs *attrs;
+    struct sysdb_attrs *attrs = NULL;
     errno_t ret;
 
     if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
