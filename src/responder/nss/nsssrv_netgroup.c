@@ -254,7 +254,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         /* Result object is still being constructed
          * Register for notification when it's ready
          */
-        ret = nss_setent_add_ref(cmdctx->cctx, state->netgr, req);
+        ret = nss_setent_add_ref(state, state->netgr, req);
         if (ret != EOK) {
             goto error;
         }
@@ -281,7 +281,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         state->netgr->lookup_table = nctx->netgroups;
 
         /* Add a reference for ourselves */
-        ret = nss_setent_add_ref(cmdctx->cctx, state->netgr, req);
+        ret = nss_setent_add_ref(state, state->netgr, req);
         if (ret != EOK) {
             talloc_free(state->netgr);
             goto error;

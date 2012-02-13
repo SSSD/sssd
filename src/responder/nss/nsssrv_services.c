@@ -1464,7 +1464,7 @@ setservent_step_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Domain [%d] returned no results\n", dctx->domain->name));
+              ("Domain [%s] returned no results\n", dctx->domain->name));
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Error [%s] while retrieving info from domain [%s]. "
