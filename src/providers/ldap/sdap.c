@@ -733,6 +733,7 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
         break;
     case SDAP_SERVICE_SEARCH_BASE:
         bases = &opts->service_search_bases;
+        break;
     case SDAP_AUTOFS_SEARCH_BASE:
         bases = &opts->autofs_search_bases;
         break;
