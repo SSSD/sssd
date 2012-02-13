@@ -742,6 +742,7 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_SERVICE_SEARCH_BASE:
         class_name = "SERVICE";
+        break;
     case SDAP_AUTOFS_SEARCH_BASE:
         class_name = "AUTOFS";
         break;
