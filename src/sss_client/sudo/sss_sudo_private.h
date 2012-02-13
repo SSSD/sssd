@@ -26,7 +26,7 @@
 
 int sss_sudo_parse_response(const char *message,
                             size_t message_len,
-                            struct sss_result **_result,
+                            struct sss_sudo_result **_result,
                             uint32_t *_error);
 
 #endif /* SSS_SUDO_PRIVATE_H_ */

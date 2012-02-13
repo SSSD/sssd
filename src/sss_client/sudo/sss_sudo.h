@@ -46,7 +46,7 @@
  * has exactly one name and one or more values.
  *
  */
-struct sss_attr {
+struct sss_sudo_attr {
     /** The attribute name */
     char *name;
     /** A string array that contains all the attribute values */
@@ -63,12 +63,12 @@ struct sss_attr {
  * One sudo rule. The rule consists of one or more
  * attributes of sss_attr type
  */
-struct sss_rule {
+struct sss_sudo_rule {
     /** The number of attributes in the rule */
     unsigned int num_attrs;
 
     /** List of rule attributes */
-    struct sss_attr *attrs;
+    struct sss_sudo_attr *attrs;
 };
 
 /**
@@ -76,7 +76,7 @@ struct sss_rule {
  *
  * The result consists of zero or more sss_rule elements.
  */
-struct sss_result {
+struct sss_sudo_result {
     /**
      * The number of rules for the user
      *
@@ -87,7 +87,7 @@ struct sss_result {
     unsigned int num_rules;
 
     /** List of rules found */
-    struct sss_rule *rules;
+    struct sss_sudo_rule *rules;
 };
 
 /**
@@ -116,7 +116,7 @@ struct sss_result {
  */
 int sss_sudo_send_recv(const char *username,
                        uint32_t *_error,
-                       struct sss_result **_result);
+                       struct sss_sudo_result **_result);
 
 /**
  * @brief Send a request to SSSD to retrieve the default options, commonly
@@ -138,7 +138,8 @@ int sss_sudo_send_recv(const char *username,
  * successful. It does not tell whether the result contains any options,
  * That information is transferred in the _error parameter.
  */
-int sss_sudo_send_recv_defaults(uint32_t *_error, struct sss_result **_result);
+int sss_sudo_send_recv_defaults(uint32_t *_error,
+                                struct sss_sudo_result **_result);
 
 /**
  * @brief Free the sss_result structure returned by sss_sudo_send_recv
@@ -146,7 +147,7 @@ int sss_sudo_send_recv_defaults(uint32_t *_error, struct sss_result **_result);
  * @param[in] result    The sss_result structure to free. The structure was
  *                      previously returned by sss_sudo_get_values().
  */
-void sss_sudo_free_result(struct sss_result *result);
+void sss_sudo_free_result(struct sss_sudo_result *result);
 
 /**
  * @brief Get all values for a given attribute in a sss_rule
@@ -164,7 +165,7 @@ void sss_sudo_free_result(struct sss_result *result);
  *
  * @note the returned values should be freed using sss_sudo_free_values()
  */
-int sss_sudo_get_values(struct sss_rule *e,
+int sss_sudo_get_values(struct sss_sudo_rule *e,
                         const char *attrname,
                         char ***values);
 
