@@ -32,12 +32,12 @@
 #define EOK 0
 #endif
 
-void print_sss_result(struct sss_result *result);
+void print_sss_result(struct sss_sudo_result *result);
 
 int main(int argc, char **argv)
 {
     int ret = 0;
-    struct sss_result *result = NULL;
+    struct sss_sudo_result *result = NULL;
     uint32_t error = 0;
 
     if (argc > 2) {
@@ -76,10 +76,10 @@ fail:
     return 1;
 }
 
-void print_sss_result(struct sss_result *result)
+void print_sss_result(struct sss_sudo_result *result)
 {
-    struct sss_rule *rule = NULL;
-    struct sss_attr *attr = NULL;
+    struct sss_sudo_rule *rule = NULL;
+    struct sss_sudo_attr *attr = NULL;
     int i = 0;
     int j = 0;
     int k = 0;

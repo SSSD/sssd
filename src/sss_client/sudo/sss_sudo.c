@@ -31,15 +31,15 @@ static int sss_sudo_create_query(const char *username,
                                  int *_query_len);
 
 static void sss_sudo_free_rules(unsigned int num_rules,
-                                struct sss_rule *rules);
+                                struct sss_sudo_rule *rules);
 
 static void sss_sudo_free_attrs(unsigned int num_attrs,
-                                struct sss_attr *attrs);
+                                struct sss_sudo_attr *attrs);
 
 static int sss_sudo_send_recv_generic(enum sss_cli_command command,
                                       struct sss_cli_req_data *request,
                                       uint32_t *_error,
-                                      struct sss_result **_result)
+                                      struct sss_sudo_result **_result)
 {
     uint8_t *reply_buf = NULL;
     size_t reply_len = 0;
@@ -66,7 +66,7 @@ static int sss_sudo_send_recv_generic(enum sss_cli_command command,
 
 int sss_sudo_send_recv(const char *username,
                        uint32_t *_error,
-                       struct sss_result **_result)
+                       struct sss_sudo_result **_result)
 {
     struct sss_cli_req_data request;
     char *query = NULL;
@@ -93,7 +93,8 @@ done:
     return ret;
 }
 
-int sss_sudo_send_recv_defaults(uint32_t *_error, struct sss_result **_result)
+int sss_sudo_send_recv_defaults(uint32_t *_error,
+                                struct sss_sudo_result **_result)
 {
     struct sss_cli_req_data request;
 
@@ -126,10 +127,10 @@ int sss_sudo_create_query(const char *username, char **_query, int *_query_len)
     return EOK;
 }
 
-int sss_sudo_get_values(struct sss_rule *e,
+int sss_sudo_get_values(struct sss_sudo_rule *e,
                         const char *attrname, char ***_values)
 {
-    struct sss_attr *attr = NULL;
+    struct sss_sudo_attr *attr = NULL;
     char **values = NULL;
     int i, j;
 
@@ -176,7 +177,7 @@ void sss_sudo_free_values(char **values)
     free(values);
 }
 
-void sss_sudo_free_result(struct sss_result *result)
+void sss_sudo_free_result(struct sss_sudo_result *result)
 {
     if (result == NULL) {
         return;
@@ -186,9 +187,9 @@ void sss_sudo_free_result(struct sss_result *result)
     free(result);
 }
 
-void sss_sudo_free_rules(unsigned int num_rules, struct sss_rule *rules)
+void sss_sudo_free_rules(unsigned int num_rules, struct sss_sudo_rule *rules)
 {
-    struct sss_rule *rule = NULL;
+    struct sss_sudo_rule *rule = NULL;
     int i;
 
     if (rules == NULL) {
@@ -209,9 +210,9 @@ void sss_sudo_free_rules(unsigned int num_rules, struct sss_rule *rules)
     free(rules);
 }
 
-void sss_sudo_free_attrs(unsigned int num_attrs, struct sss_attr *attrs)
+void sss_sudo_free_attrs(unsigned int num_attrs, struct sss_sudo_attr *attrs)
 {
-    struct sss_attr *attr = NULL;;
+    struct sss_sudo_attr *attr = NULL;;
     int i, j;
 
     if (attrs == NULL) {

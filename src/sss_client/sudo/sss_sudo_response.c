@@ -31,12 +31,12 @@
 static int sss_sudo_parse_rule(const char *message,
                                size_t message_len,
                                size_t *_cursor,
-                               struct sss_rule *_rule);
+                               struct sss_sudo_rule *_rule);
 
 static int sss_sudo_parse_attr(const char *message,
                                size_t message_len,
                                size_t *_cursor,
-                               struct sss_attr *_attr);
+                               struct sss_sudo_attr *_attr);
 
 static int sss_sudo_parse_uint32(const char *message,
                                  size_t message_len,
@@ -50,10 +50,10 @@ static int sss_sudo_parse_string(const char *message,
 
 int sss_sudo_parse_response(const char *message,
                             size_t message_len,
-                            struct sss_result **_result,
+                            struct sss_sudo_result **_result,
                             uint32_t *_error)
 {
-    struct sss_result *result = NULL;
+    struct sss_sudo_result *result = NULL;
     size_t cursor = 0;
     int ret = EOK;
     int i = 0;
@@ -65,7 +65,7 @@ int sss_sudo_parse_response(const char *message,
     }
 
     /* result */
-    result = malloc(sizeof(struct sss_result));
+    result = malloc(sizeof(struct sss_sudo_result));
     if (result == NULL) {
         return ENOMEM;
     }
@@ -78,7 +78,7 @@ int sss_sudo_parse_response(const char *message,
     }
 
     /* rules */
-    result->rules = calloc(result->num_rules, sizeof(struct sss_rule));
+    result->rules = calloc(result->num_rules, sizeof(struct sss_sudo_rule));
     if (result->rules == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -104,7 +104,7 @@ fail:
 int sss_sudo_parse_rule(const char *message,
                         size_t message_len,
                         size_t *_cursor,
-                        struct sss_rule *_rule)
+                        struct sss_sudo_rule *_rule)
 {
     int ret = EOK;
     int i = 0;
@@ -117,7 +117,7 @@ int sss_sudo_parse_rule(const char *message,
     }
 
     /* attrs */
-    _rule->attrs = calloc(_rule->num_attrs, sizeof(struct sss_attr));
+    _rule->attrs = calloc(_rule->num_attrs, sizeof(struct sss_sudo_attr));
     if (_rule->attrs == NULL) {
         return ENOMEM;
     }
@@ -136,7 +136,7 @@ int sss_sudo_parse_rule(const char *message,
 int sss_sudo_parse_attr(const char *message,
                         size_t message_len,
                         size_t *_cursor,
-                        struct sss_attr *_attr)
+                        struct sss_sudo_attr *_attr)
 {
     char *str = NULL;
     int ret = EOK;
