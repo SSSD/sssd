@@ -720,6 +720,19 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
         return ENOMEM;
     }
 
+    /* create be request */
+    be_req = talloc_zero(be_cli, struct be_req);
+    if (be_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        dbus_message_unref(reply);
+        return ENOMEM;
+    }
+
+    be_req->becli = be_cli;
+    be_req->be_ctx = be_cli->bectx;
+    be_req->pvt = reply;
+    be_req->fn = be_sudo_handler_callback;
+
     /* get arguments */
     dbus_error_init(&dbus_error);
 
@@ -750,19 +763,6 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
          * going back online.
          */
     }
-
-    /* create be request */
-    be_req = talloc_zero(be_cli, struct be_req);
-    if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
-        dbus_message_unref(reply);
-        return ENOMEM;
-    }
-
-    be_req->becli = be_cli;
-    be_req->be_ctx = be_cli->bectx;
-    be_req->pvt = reply;
-    be_req->fn = be_sudo_handler_callback;
 
     /* get and set sudo request data */
     sudo_req = talloc_zero(be_req, struct be_sudo_req);
