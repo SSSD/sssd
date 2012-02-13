@@ -67,6 +67,23 @@ int set_locale(void)
     return EOK;
 }
 
+/* SSH public key request:
+ * 
+ * 0..3: flags (unsigned int, must be 0)
+ * 4..7: name length (unsigned int)
+ * 8..$: name (null-terminated UTF-8 string)
+ * 
+ * SSH public key reply:
+ * 
+ * 0..3: number of results (unsigned int)
+ * 4..7: reserved (unsigned int, must be 0)
+ * 8..$: array of results:
+ *   0..3:     flags (unsigned int, must be 0)
+ *   4..7:     name length (unsigned int)
+ *   8..(X-1): name (null-terminated UTF-8 string)
+ *   X..(X+3): key length (unsigned int)
+ *   (X+4)..Y: key (public key blob as defined in RFC4253, section 6.6)
+ */
 errno_t
 sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
                     enum sss_cli_command command,
