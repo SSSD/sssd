@@ -972,6 +972,10 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     free(pi->selinux_user);
                 }
                 pi->selinux_user = (char *)malloc(len + 1);
+                if (!pi->selinux_user) {
+                    D(("Insufficient memory."));
+                    return PAM_SYSTEM_ERR;
+                }
                 memcpy(pi->selinux_user, &buf[p], len + 1);
                 break;
             default:
