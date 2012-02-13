@@ -3249,6 +3249,228 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
 }
 END_TEST
 
+const struct subdomain_info dom1 =  {discard_const("dom1.sub"),
+                                     discard_const("dom1"),
+                                     discard_const("S-1")};
+const struct subdomain_info dom2 =  {discard_const("dom2.sub"),
+                                     discard_const("dom2"),
+                                     discard_const("S-2")};
+const struct subdomain_info dom_t = {discard_const("test.sub"),
+                                     discard_const("test"),
+                                     discard_const("S-3")};
+
+START_TEST(test_sysdb_subdomain_create)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    struct subdomain_info **cur_subdomains = NULL;
+    size_t cur_subdomains_count;
+    const struct subdomain_info *new_subdom1[] = { &dom1, NULL};
+    const struct subdomain_info *new_subdom2[] = { &dom2, NULL};
+    const struct subdomain_info *empty[] = { NULL};
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_get_subdomains(test_ctx, test_ctx->sysdb,
+                               &cur_subdomains_count, &cur_subdomains);
+    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
+    fail_unless(cur_subdomains[0] == NULL, "No empyt sub-domain list returned.");
+
+    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, new_subdom1));
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_get_subdomains(test_ctx, test_ctx->sysdb,
+                               &cur_subdomains_count, &cur_subdomains);
+    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
+    fail_unless(cur_subdomains[0] != NULL, "Empyt sub-domain list returned.");
+    fail_unless(strcmp(cur_subdomains[0]->name, new_subdom1[0]->name) == 0,
+                "Unexpected sub-domain found, expected [%s], got [%s]",
+                new_subdom1[0]->name, cur_subdomains[0]->name);
+
+    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, new_subdom2));
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_get_subdomains(test_ctx, test_ctx->sysdb,
+                               &cur_subdomains_count, &cur_subdomains);
+    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
+    fail_unless(cur_subdomains[0] != NULL, "Empyt sub-domain list returned.");
+    fail_unless(strcmp(cur_subdomains[0]->name, new_subdom2[0]->name) == 0,
+                "Unexpected sub-domain found, expected [%s], got [%s]",
+                new_subdom2[0]->name, cur_subdomains[0]->name);
+
+    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, empty));
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_get_subdomains(test_ctx, test_ctx->sysdb,
+                               &cur_subdomains_count, &cur_subdomains);
+    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
+    fail_unless(cur_subdomains[0] == NULL, "No empyt sub-domain list returned.");
+}
+END_TEST
+
+START_TEST(test_sysdb_subdomain_store_user)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    const struct subdomain_info *test_subdom[] = { &dom_t, NULL};
+    struct sss_domain_info *subdomain = NULL;
+    struct ldb_result *results = NULL;
+    struct ldb_dn *base_dn = NULL;
+    struct ldb_dn *check_dn = NULL;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, test_subdom));
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    subdomain = new_subdomain(test_ctx, test_ctx->domain, "test.sub",
+                              NULL, NULL);
+    fail_unless(subdomain != NULL, "new_subdomain failed.");
+
+    ret = sysdb_store_user(subdomain->sysdb, "subdomuser", NULL, 12345, 0,
+                           "Sub Domain User", "/home/subdomuser", "/bin/bash",
+                           NULL, NULL, -1, 0);
+    fail_unless(ret == EOK, "sysdb_store_user failed.");
+
+    base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");
+    fail_unless(base_dn != NULL);
+
+    check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
+                          "name=subdomuser,cn=users,cn=test.sub,cn=sysdb");
+    fail_unless(check_dn != NULL);
+
+    ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
+                     LDB_SCOPE_SUBTREE, NULL, "name=subdomuser");
+    fail_unless(ret == EOK, "ldb_search failed.");
+    fail_unless(results->count == 1, "Unexpected number of results, "
+                                     "expected [%d], got [%d]",
+                                     1, results->count);
+    fail_unless(ldb_dn_compare(results->msgs[0]->dn, check_dn) == 0,
+                "Unexpedted DN returned");
+
+    ret = sysdb_delete_user(subdomain->sysdb, "subdomuser", 0);
+    fail_unless(ret == EOK, "sysdb_delete_user failed [%d][%s].",
+                            ret, strerror(ret));
+
+    ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
+                     LDB_SCOPE_SUBTREE, NULL, "name=subdomuser");
+    fail_unless(ret == EOK, "ldb_search failed.");
+    fail_unless(results->count == 0, "Unexpected number of results, "
+                                     "expected [%d], got [%d]",
+                                     0, results->count);
+}
+END_TEST
+
+START_TEST(test_sysdb_subdomain_user_ops)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    const struct subdomain_info *test_subdom[] = { &dom_t, NULL};
+    struct sss_domain_info *subdomain = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_dn *check_dn = NULL;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, test_subdom));
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    subdomain = new_subdomain(test_ctx, test_ctx->domain, "test.sub",
+                              NULL, NULL);
+    fail_unless(subdomain != NULL, "new_subdomain failed.");
+
+    ret = sysdb_store_domuser(subdomain, "subdomuser", NULL, 12345, 0,
+                              "Sub Domain User", "/home/subdomuser", "/bin/bash",
+                               NULL, NULL, -1, 0);
+    fail_unless(ret == EOK, "sysdb_store_domuser failed.");
+
+    check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
+                          "name=subdomuser,cn=users,cn=test.sub,cn=sysdb");
+    fail_unless(check_dn != NULL);
+
+    ret = sysdb_search_domuser_by_name(test_ctx, subdomain, "subdomuser", NULL,
+                                       &msg);
+    fail_unless(ret == EOK, "sysdb_search_domuser_by_name failed with [%d][%s].",
+                            ret, strerror(ret));
+    fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
+                "Unexpedted DN returned");
+
+    ret = sysdb_search_domuser_by_uid(test_ctx, subdomain, 12345, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_domuser_by_uid failed with [%d][%s].",
+                            ret, strerror(ret));
+    fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
+                "Unexpedted DN returned");
+
+    ret = sysdb_delete_domuser(subdomain, "subdomuser", 12345);
+    fail_unless(ret == EOK, "sysdb_delete_domuser failed with [%d][%s].",
+                            ret, strerror(ret));
+
+}
+END_TEST
+
+START_TEST(test_sysdb_subdomain_group_ops)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    const struct subdomain_info *test_subdom[] = { &dom_t, NULL};
+    struct sss_domain_info *subdomain = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_dn *check_dn = NULL;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, test_subdom));
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    subdomain = new_subdomain(test_ctx, test_ctx->domain, "test.sub",
+                              NULL, NULL);
+    fail_unless(subdomain != NULL, "new_subdomain failed.");
+
+    ret = sysdb_store_domgroup(subdomain, "subdomgroup", 12345, NULL, -1, 0);
+    fail_unless(ret == EOK, "sysdb_store_domgroup failed.");
+
+    check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
+                          "name=subdomgroup,cn=groups,cn=test.sub,cn=sysdb");
+    fail_unless(check_dn != NULL);
+
+    ret = sysdb_search_domgroup_by_name(test_ctx, subdomain, "subdomgroup", NULL,
+                                        &msg);
+    fail_unless(ret == EOK, "sysdb_search_domgroup_by_name failed with [%d][%s].",
+                            ret, strerror(ret));
+    fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
+                "Unexpedted DN returned");
+
+    ret = sysdb_search_domgroup_by_gid(test_ctx, subdomain, 12345, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_domgroup_by_gid failed with [%d][%s].",
+                            ret, strerror(ret));
+    fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
+                "Unexpedted DN returned");
+
+    ret = sysdb_delete_domgroup(subdomain, "subdomgroup", 12345);
+    fail_unless(ret == EOK, "sysdb_delete_domgroup failed with [%d][%s].",
+                            ret, strerror(ret));
+
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -3453,6 +3675,16 @@ Suite *create_sysdb_suite(void)
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
 
     suite_add_tcase(s, tc_memberof);
+
+    TCase *tc_subdomain = tcase_create("SYSDB sub-domain Tests");
+
+    tcase_add_test(tc_subdomain, test_sysdb_subdomain_create);
+    tcase_add_test(tc_subdomain, test_sysdb_subdomain_store_user);
+    tcase_add_test(tc_subdomain, test_sysdb_subdomain_user_ops);
+    tcase_add_test(tc_subdomain, test_sysdb_subdomain_group_ops);
+
+    suite_add_tcase(s, tc_subdomain);
+
 
     return s;
 }

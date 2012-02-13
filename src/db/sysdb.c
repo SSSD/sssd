@@ -776,6 +776,114 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
+{
+    struct ldb_message *msg;
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* == create base domain object == */
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb, SYSDB_DOM_BASE, domain_name);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_fmt(msg, "cn", "%s", domain_name);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+    /* do a synchronous add */
+    ret = ldb_add(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to initialize DB (%d, [%s]) "
+                                     "for domain %s!\n",
+                                     ret, ldb_errstring(sysdb->ldb),
+                                     domain_name));
+        ret = EIO;
+        goto done;
+    }
+    talloc_zfree(msg);
+
+    /* == create Users tree == */
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
+                             SYSDB_TMPL_USER_BASE, domain_name);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_fmt(msg, "cn", "Users");
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+    /* do a synchronous add */
+    ret = ldb_add(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to initialize DB (%d, [%s]) "
+                                     "for domain %s!\n",
+                                     ret, ldb_errstring(sysdb->ldb),
+                                     domain_name));
+        ret = EIO;
+        goto done;
+    }
+    talloc_zfree(msg);
+
+    /* == create Groups tree == */
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
+                             SYSDB_TMPL_GROUP_BASE, domain_name);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_fmt(msg, "cn", "Groups");
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+    /* do a synchronous add */
+    ret = ldb_add(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to initialize DB (%d, [%s]) for "
+                                     "domain %s!\n",
+                                     ret, ldb_errstring(sysdb->ldb),
+                                     domain_name));
+        ret = EIO;
+        goto done;
+    }
+    talloc_zfree(msg);
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 static int remove_sysdb_from_domain(void *mem)
 {
     struct sysdb_ctx *ctx = talloc_get_type(mem, struct sysdb_ctx);
@@ -817,7 +925,6 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     struct sysdb_ctx *sysdb;
     const char *base_ldif;
     struct ldb_ldif *ldif;
-    struct ldb_message *msg;
     struct ldb_message_element *el;
     struct ldb_result *res;
     struct ldb_dn *verdn;
@@ -994,88 +1101,10 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ldb_ldif_read_free(sysdb->ldb, ldif);
     }
 
-    /* == create base domain object == */
-
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        ret = ENOMEM;
+    ret = sysdb_domain_create(sysdb, domain->name);
+    if (ret != EOK) {
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
-    if (!msg->dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = ldb_msg_add_fmt(msg, "cn", "%s", domain->name);
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto done;
-    }
-    /* do a synchronous add */
-    ret = ldb_add(sysdb->ldb, msg);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                  ret, ldb_errstring(sysdb->ldb), domain->name));
-        ret = EIO;
-        goto done;
-    }
-    talloc_zfree(msg);
-
-    /* == create Users tree == */
-
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, domain->name);
-    if (!msg->dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = ldb_msg_add_fmt(msg, "cn", "Users");
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto done;
-    }
-    /* do a synchronous add */
-    ret = ldb_add(sysdb->ldb, msg);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                  ret, ldb_errstring(sysdb->ldb), domain->name));
-        ret = EIO;
-        goto done;
-    }
-    talloc_zfree(msg);
-
-    /* == create Groups tree == */
-
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
-                             SYSDB_TMPL_GROUP_BASE, domain->name);
-    if (!msg->dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = ldb_msg_add_fmt(msg, "cn", "Groups");
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto done;
-    }
-    /* do a synchronous add */
-    ret = ldb_add(sysdb->ldb, msg);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                  ret, ldb_errstring(sysdb->ldb), domain->name));
-        ret = EIO;
-        goto done;
-    }
-    talloc_zfree(msg);
 
     /* The cache has been newly created.
      * We need to reopen the LDB to ensure that

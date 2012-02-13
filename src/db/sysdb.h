@@ -41,6 +41,7 @@
 #define SYSDB_TMPL_CUSTOM_BASE SYSDB_CUSTOM_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_NETGROUP_BASE SYSDB_NETGROUP_CONTAINER",cn=%s,"SYSDB_BASE
 
+#define SYSDB_SUBDOMAIN_CLASS "subdomain"
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
 #define SYSDB_NETGROUP_CLASS "netgroup"
@@ -119,6 +120,9 @@
 #define SYSDB_HIGH_USN "highestUSN"
 
 #define SYSDB_SSH_PUBKEY "sshPublicKey"
+
+#define SYSDB_SUBDOMAIN_FLAT "flatName"
+#define SYSDB_SUBDOMAIN_ID "domainID"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
@@ -206,6 +210,13 @@ struct sysdb_attrs {
 
 /* sysdb_attrs helper functions */
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx);
+
+struct subdomain_info {
+    char *name;
+    char *flat_name;
+    char *id;
+};
+
 
 /* values are copied in the structure, allocated on "attrs" */
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
@@ -307,6 +318,67 @@ int compare_ldb_dn_comp_num(const void *m1, const void *m2);
 int sysdb_transaction_start(struct sysdb_ctx *sysdb);
 int sysdb_transaction_commit(struct sysdb_ctx *sysdb);
 int sysdb_transaction_cancel(struct sysdb_ctx *sysdb);
+
+/* functions related to subdomains */
+errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
+                             struct sysdb_ctx *sysdb,
+                             size_t *subdomain_count,
+                             struct subdomain_info ***subdomain_list);
+
+errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
+
+errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
+                                struct subdomain_info **subdomains);
+
+errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *subdomain,
+                                    struct sysdb_ctx **subdomain_ctx);
+
+
+errno_t sysdb_search_domuser_by_name(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     const char *name,
+                                     const char **attrs,
+                                     struct ldb_message **msg);
+errno_t sysdb_search_domuser_by_uid(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    uid_t uid,
+                                    const char **attrs,
+                                    struct ldb_message **msg);
+errno_t sysdb_store_domuser(struct sss_domain_info *domain,
+                            const char *name,
+                            const char *pwd,
+                            uid_t uid, gid_t gid,
+                            const char *gecos,
+                            const char *homedir,
+                            const char *shell,
+                            struct sysdb_attrs *attrs,
+                            char **remove_attrs,
+                            uint64_t cache_timeout,
+                            time_t now);
+errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
+                             const char *name, uid_t uid);
+
+
+errno_t sysdb_search_domgroup_by_name(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *domain,
+                                      const char *name,
+                                      const char **attrs,
+                                      struct ldb_message **msg);
+errno_t sysdb_search_domgroup_by_gid(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     gid_t gid,
+                                     const char **attrs,
+                                     struct ldb_message **msg);
+errno_t sysdb_store_domgroup(struct sss_domain_info *domain,
+                             const char *name,
+                             gid_t gid,
+                             struct sysdb_attrs *attrs,
+                             uint64_t cache_timeout,
+                             time_t now);
+errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
+                              const char *name, gid_t gid);
 
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
