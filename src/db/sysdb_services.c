@@ -652,7 +652,7 @@ sysdb_svc_delete(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     unsigned int i;
-    bool in_transaction;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {

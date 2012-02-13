@@ -260,7 +260,7 @@ sdap_save_services(TALLOC_CTX *mem_ctx,
     errno_t ret, sret;
     time_t now;
     size_t i;
-    bool in_transaction;
+    bool in_transaction = false;
     char *higher_usn = NULL;
     char *usn_value;
     TALLOC_CTX *tmp_ctx;
