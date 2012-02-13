@@ -547,6 +547,9 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
             DEBUG(SSSDBG_CRIT_FAILURE, ("Error checking cache: %d\n", ret));
             goto error;
         }
+    } else {
+        /* No replies */
+        ret = ENOENT;
     }
 
     /* EAGAIN (off band) or ENOENT (cache miss) -> check cache */
