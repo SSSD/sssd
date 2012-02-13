@@ -436,6 +436,10 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     }
 
     name = (char *)(body+c);
+    if (!sss_utf8_check((const uint8_t *)name, name_len-1)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Supplied data is not valid UTF-8 string\n"));
+        return EINVAL;
+    }
     if (strnlen(name, name_len) != name_len-1) {
         return EINVAL;
     }
