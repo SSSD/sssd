@@ -436,7 +436,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_LIBS,
               ("Map %s is being looked up, registering for notification\n",
                state->mapname));
-        ret = autofs_setent_add_ref(cmdctx->cctx, state->map, req);
+        ret = autofs_setent_add_ref(state, state->map, req);
         if (ret != EOK) {
             goto fail;
         }
@@ -460,7 +460,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         }
         state->map->map_table = actx->maps;
 
-        ret = autofs_setent_add_ref(cmdctx->cctx, state->map, req);
+        ret = autofs_setent_add_ref(state, state->map, req);
         if (ret != EOK) {
             talloc_free(state->map);
             goto fail;

@@ -1210,7 +1210,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
              * Register for notification when it's
              * ready.
              */
-            ret = nss_setent_add_ref(state->client, state->nctx->pctx, req);
+            ret = nss_setent_add_ref(state, state->nctx->pctx, req);
             if (ret != EOK) {
                 talloc_free(req);
                 return NULL;
@@ -1232,7 +1232,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     state->getent_ctx = nctx->pctx;
 
     /* Add a callback reference for ourselves */
-    ret = nss_setent_add_ref(state->client, state->nctx->pctx, req);
+    ret = nss_setent_add_ref(state, state->nctx->pctx, req);
     if (ret) goto error;
 
     /* ok, start the searches */
@@ -2508,7 +2508,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
              * Register for notification when it's
              * ready.
              */
-            ret = nss_setent_add_ref(state->client, state->nctx->gctx, req);
+            ret = nss_setent_add_ref(state, state->nctx->gctx, req);
             if (ret != EOK) {
                 talloc_free(req);
                 return NULL;
@@ -2530,7 +2530,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     state->getent_ctx = nctx->gctx;
 
     /* Add a callback reference for ourselves */
-    ret = nss_setent_add_ref(state->client, state->nctx->gctx, req);
+    ret = nss_setent_add_ref(state, state->nctx->gctx, req);
     if (ret) goto error;
 
     /* ok, start the searches */
