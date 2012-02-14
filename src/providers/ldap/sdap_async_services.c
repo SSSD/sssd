@@ -199,10 +199,10 @@ sdap_get_services_process(struct tevent_req *subreq)
         }
 
         /* Copy the new services into the list
-         * They're already allocated on 'state'
          */
         for (i = 0; i < count; i++) {
-            state->services[state->count + i] = services[i];
+            state->services[state->count + i] =
+                talloc_steal(state->services, services[i]);
         }
 
         state->count += count;

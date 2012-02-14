@@ -426,10 +426,10 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
         }
 
         /* Copy the new groups into the list.
-         * They're already allocated on 'state'.
          */
         for (i = 0; i < count; i++) {
-            state->ldap_groups[state->ldap_groups_count + i] = ldap_groups[i];
+            state->ldap_groups[state->ldap_groups_count + i] =
+                talloc_steal(state->ldap_groups, ldap_groups[i]);
         }
 
         state->ldap_groups_count += count;
@@ -1553,11 +1553,10 @@ static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq)
         }
 
         /* Copy the new groups into the list.
-         * They're already allocated on 'state'.
          */
         for (i = 0; i < count; i++) {
             state->direct_groups[state->num_direct_parents + i] =
-                    ldap_groups[i];
+                    talloc_steal(state->direct_groups, ldap_groups[i]);
         }
 
         state->num_direct_parents += count;
@@ -2204,10 +2203,13 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
         }
 
         /* Copy the new groups into the list.
-         * They're already allocated on 'state'.
+         * They're allocated on 'state' so we need to move them
+         * onto ldap_parents so that the data won't disappear when
+         * we finish this nesting level.
          */
         for (i = 0; i < count; i++) {
-            state->ldap_parents[state->parents_count + i] = ldap_groups[i];
+            state->ldap_parents[state->parents_count + i] =
+                talloc_steal(state->ldap_parents, ldap_groups[i]);
         }
 
         state->parents_count += count;
