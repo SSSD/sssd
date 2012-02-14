@@ -528,7 +528,8 @@ static void sdap_get_users_process(struct tevent_req *subreq)
          * They're already allocated on 'state'
          */
         for (i = 0; i < count; i++) {
-            state->users[state->count + i] = users[i];
+            state->users[state->count + i] =
+                talloc_steal(state->users, users[i]);
         }
 
         state->count += count;

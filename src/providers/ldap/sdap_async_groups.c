@@ -1323,10 +1323,10 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         }
 
         /* Copy the new groups into the list
-         * They're already allocated on 'state'
          */
         for (i = 0; i < count; i++) {
-            state->groups[state->count + i] = groups[i];
+            state->groups[state->count + i] =
+                talloc_steal(state->groups, groups[i]);
         }
 
         state->count += count;
