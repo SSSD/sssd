@@ -118,6 +118,9 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         }
     }
 
+    /* Guarantee NULL-termination in case we read the full BUFSIZE somehow */
+    buf[BUFSIZE-1] = '\0';
+
     ret = close(fd);
     if (ret == -1) {
         error = errno;
