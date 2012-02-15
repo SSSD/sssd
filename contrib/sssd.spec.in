@@ -289,6 +289,7 @@ rm -rf $RPM_BUILD_ROOT
 %if (0%{?enable_experimental} == 1)
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhostsproxy
+%endif
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,root,root) %dir %{dbpath}
