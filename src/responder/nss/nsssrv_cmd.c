@@ -974,6 +974,28 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
  *   anything else on a fatal error
  */
 
+struct sss_domain_info *get_next_dom_or_subdom(struct sss_domain_info *dom)
+{
+    /* Note that we don't know if the dom is a domain or a subdomain,
+     * therefore:
+     *
+     * If it is a subdomain and it doesn't have any siblings (subdomains
+     * of the same primary domain), return next primary domain
+     */
+    if (dom->next == NULL && dom->parent != NULL) {
+        return dom->parent->next;
+    }
+
+    /* If it's primary domain, the next returned should be its first
+     * subdomain */
+    if (dom->subdomains != NULL) {
+        return dom->subdomains[0];
+    }
+
+    /* Any other scenario */
+    return dom->next;
+}
+
 static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -994,7 +1016,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
                       "(id out of range)\n",
                       (unsigned long)cmdctx->id, dom->name));
             if (cmdctx->check_next) {
-                dom = dom->next;
+                dom = get_next_dom_or_subdom(dom);
                 continue;
             }
             return ENOENT;
@@ -1031,7 +1053,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
-                dom = dom->next;
+                dom = get_next_dom_or_subdom(dom);
                 continue;
             }
 
@@ -2364,7 +2386,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
                       "(id out of range)\n",
                       (unsigned long)cmdctx->id, dom->name));
             if (cmdctx->check_next) {
-                dom = dom->next;
+                dom = get_next_dom_or_subdom(dom);
                 continue;
             }
             return ENOENT;
@@ -2401,7 +2423,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
-                dom = dom->next;
+                dom = get_next_dom_or_subdom(dom);
                 continue;
             }
 
