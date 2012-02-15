@@ -286,6 +286,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{ldb_modulesdir}/memberof.so
+%if (0%{?enable_experimental} == 1)
+%{_bindir}/sss_ssh_authorizedkeys
+%{_bindir}/sss_ssh_knownhostsproxy
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,root,root) %dir %{dbpath}
@@ -305,6 +308,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man8/sssd.8*
+%if (0%{?enable_experimental} == 1)
+%{_mandir}/man1/sss_ssh_authorizedkeys.1*
+%{_mandir}/man1/sss_ssh_knownhostsproxy.1*
+%endif
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
 
@@ -314,12 +321,6 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
-%if (0%{?enable_experimental} == 1)
-%{_bindir}/sss_ssh_authorizedkeys
-%{_bindir}/sss_ssh_knownhostsproxy
-%{_mandir}/man1/sss_ssh_authorizedkeys.1*
-%{_mandir}/man1/sss_ssh_knownhostsproxy.1*
-%endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
