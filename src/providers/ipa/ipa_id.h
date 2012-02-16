@@ -49,4 +49,14 @@ int ipa_get_netgroups_recv(struct tevent_req *req,
 
 void ipa_check_online(struct be_req *be_req);
 
+struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
+                                              struct tevent_context *ev,
+                                              struct sdap_options *opts,
+                                              struct sss_domain_info *dom,
+                                              struct sdap_handle *sh,
+                                              const char **attrs,
+                                              int entry_type,
+                                              const char *user_name,
+                                              uid_t uid);
+int ipa_s2n_get_acct_info_recv(struct tevent_req *req);
 #endif
