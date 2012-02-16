@@ -70,6 +70,9 @@ struct nss_dom_ctx {
 
     /* Netgroup-specific */
     struct getent_ctx *netgr;
+
+    /* Service-specific */
+    const char *protocol;
 };
 
 struct setent_step_ctx {
