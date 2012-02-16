@@ -57,6 +57,7 @@ static int ipa_netgroup_get_retry(struct tevent_req *req);
 static void ipa_netgroup_get_connect_done(struct tevent_req *subreq);
 static void ipa_netgroup_get_done(struct tevent_req *subreq);
 static void ipa_account_info_netgroups_done(struct tevent_req *req);
+static void ipa_account_info_users_done(struct tevent_req *req);
 
 void ipa_account_info_handler(struct be_req *breq)
 {
@@ -75,6 +76,24 @@ void ipa_account_info_handler(struct be_req *breq)
     }
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
+
+    if (strcasecmp(ar->domain, breq->be_ctx->domain->name) != 0) {
+        if (! ((ar->entry_type & BE_REQ_USER) ||
+               (ar->entry_type & BE_REQ_GROUP))) {
+            return sdap_handler_done(breq, DP_ERR_FATAL, EINVAL,
+                                     "Invalid sub-domain request type");
+        }
+
+        req = ipa_get_subdomain_account_info_send(breq, breq->be_ctx->ev, ctx,
+                                                  ar);
+        if (!req) {
+            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
+        }
+
+        tevent_req_set_callback(req, ipa_account_info_users_done, breq);
+
+        return;
+    }
 
     switch (ar->entry_type & 0xFFF) {
     case BE_REQ_USER: /* user */
@@ -128,6 +147,17 @@ static void ipa_account_info_complete(struct be_req *breq, int dp_error,
     }
 
     sdap_handler_done(breq, dp_error, ret, error_text);
+}
+
+static void ipa_account_info_users_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    int ret, dp_error;
+
+    ret = ipa_user_get_recv(req, &dp_error);
+    talloc_zfree(req);
+
+    ipa_account_info_complete(breq, dp_error, ret, "User lookup failed");
 }
 
 /* Request for netgroups
