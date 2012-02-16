@@ -591,6 +591,7 @@ static errno_t
 fill_service(struct sss_packet *packet,
              struct sss_domain_info *dom,
              struct nss_ctx *nctx,
+             const char *protocol,
              struct ldb_message **msgs,
              unsigned int *count)
 {
@@ -603,7 +604,7 @@ fill_service(struct sss_packet *packet,
     struct ldb_message_element *el;
     TALLOC_CTX *tmp_ctx = NULL;
     const char *orig_name;
-    char *orig_proto;
+    const char *orig_proto;
     struct sized_string cased_name;
     struct sized_string cased_proto;
     uint16_t port;
@@ -662,16 +663,23 @@ fill_service(struct sss_packet *packet,
         }
 
         /* Get the service protocol.
+         * Use the requested protocol if present,
+         * otherwise take the first protocol returned
+         * by the sysdb.
          * If more than one is available, select the
          * first in the message.
          */
-        el = ldb_msg_find_element(msg, SYSDB_SVC_PROTO);
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            num = 0;
-            goto done;
+        if (protocol) {
+            orig_proto = protocol;
+        } else {
+            el = ldb_msg_find_element(msg, SYSDB_SVC_PROTO);
+            if (el->num_values == 0) {
+                ret = EINVAL;
+                num = 0;
+                goto done;
+            }
+            orig_proto = (const char *)el->values[0].data;
         }
-        orig_proto = (char *)el->values[0].data;
 
         tmpstr = sss_get_cased_name(tmp_ctx, orig_proto, dom->case_sensitive);
         if (tmpstr == NULL) {
@@ -816,6 +824,8 @@ int nss_cmd_getservbyname(struct cli_ctx *cctx)
               ("Could not parse request\n"));
         goto done;
     }
+
+    dctx->protocol = service_protocol;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Requesting info for service [%s:%s] from [%s]\n",
@@ -999,7 +1009,9 @@ nss_cmd_getserv_done(struct tevent_req *req)
             i = dctx->res->count;
             ret = fill_service(cmdctx->cctx->creq->out,
                                dctx->domain,
-                               nctx, dctx->res->msgs,
+                               nctx,
+                               dctx->protocol,
+                               dctx->res->msgs,
                                &i);
         }
         if (ret != EOK) {
@@ -1129,6 +1141,8 @@ int nss_cmd_getservbyport(struct cli_ctx *cctx)
               ("Could not parse request\n"));
         goto done;
     }
+
+    dctx->protocol = service_protocol;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Requesting info for service on port [%lu/%s]\n",
@@ -1770,7 +1784,7 @@ retservent(struct cli_ctx *cctx, int num)
 
         ret = fill_service(cctx->creq->out,
                            pdom->domain,
-                           nctx, msgs,
+                           nctx, NULL, msgs,
                            &n);
 
         cctx->svcent_cur += n;
