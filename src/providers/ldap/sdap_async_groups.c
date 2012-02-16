@@ -1685,8 +1685,8 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
                                     opts->user_map[SDAP_AT_USER_NAME].name,
                                     &username);
         if (ret != EOK) {
-            DEBUG(1, ("User entry %d has no name attribute\n", i));
-            goto done;
+            DEBUG(1, ("User entry %d has no name attribute. Skipping\n", i));
+            continue;
         }
 
         ret = sysdb_attrs_get_el(users[i], SYSDB_ORIG_DN, &el);
