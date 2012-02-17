@@ -51,10 +51,10 @@ struct getserv_ctx {
 static errno_t lookup_service_step(struct tevent_req *req);
 static void lookup_service_done(struct tevent_req *req);
 
-#define SVC_NAME_CASED (dom->case_sensitive ? state->cased_name \
-                                           : state->name)
-#define SVC_PROTO_CASED (dom->case_sensitive ? state->cased_proto \
-                                            : state->proto)
+#define SVC_NAME_CASED (dom->case_sensitive ? state->name \
+                                           : state->cased_name)
+#define SVC_PROTO_CASED (dom->case_sensitive ? state->proto \
+                                            : state->cased_proto)
 
 /* Provider Lookup Logic:
  * Iterate through the available caches. If the cached entry is
@@ -125,7 +125,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
             goto immediate;
         }
         state->cased_proto = sss_get_cased_name(state, service_protocol,
-                                                true);
+                                                false);
         if (!state->cased_proto) {
             ret = ENOMEM;
             goto immediate;
@@ -148,7 +148,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
         }
 
         state->cased_name = sss_get_cased_name(state, service_name,
-                                               true);
+                                               false);
         if (!state->cased_name) {
             ret = ENOMEM;
             goto immediate;
