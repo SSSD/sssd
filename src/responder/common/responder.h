@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <sys/un.h>
 #include <pcre.h>
+#include <sys/resource.h>
 #include "config.h"
 #include "talloc.h"
 #include "tevent.h"
@@ -175,5 +176,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          const char *opt_name, uint32_t opt_id);
 
 bool sss_utf8_check(const uint8_t *s, size_t n);
+
+void responder_set_fd_limit(rlim_t fd_limit);
 
 #endif /* __SSS_RESPONDER_H__ */
