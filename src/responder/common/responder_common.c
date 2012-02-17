@@ -648,3 +648,39 @@ int responder_logrotate(DBusMessage *message,
 
     return monitor_common_pong(message, conn);
 }
+
+void responder_set_fd_limit(rlim_t fd_limit)
+{
+    struct rlimit current_limit, new_limit;
+    int limret;
+
+    /* First determine the maximum hard limit */
+    limret = getrlimit(RLIMIT_NOFILE, &current_limit);
+    if (limret == 0) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Current fd limit: [%d]\n",
+               current_limit.rlim_cur));
+        /* Choose the lesser of the requested and the hard limit */
+        if (current_limit.rlim_max < fd_limit) {
+            new_limit.rlim_cur = current_limit.rlim_max;
+        } else {
+            new_limit.rlim_cur = fd_limit;
+        }
+        new_limit.rlim_max = current_limit.rlim_max;
+
+        limret = setrlimit(RLIMIT_NOFILE, &new_limit);
+        if (limret == 0) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  ("Maximum file descriptors set to [%d]\n",
+                   new_limit.rlim_cur));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Could not set new fd limits. Proceeding with [%d]\n",
+                   current_limit.rlim_cur));
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not determine fd limits. "
+               "Proceeding with system values\n"));
+    }
+}

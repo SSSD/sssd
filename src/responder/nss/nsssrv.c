@@ -45,6 +45,7 @@
 #include "sbus/sbus_client.h"
 
 #define DEFAULT_PWFIELD "*"
+#define DEFAULT_NSS_FD_LIMIT 8192
 
 #define SHELL_REALLOC_INCREMENT 5
 #define SHELL_REALLOC_MAX       50
@@ -306,6 +307,9 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0,("Unable to initialize netgroup hash table\n"));
         return EIO;
     }
+
+    /* Set up file descriptor limits */
+    responder_set_fd_limit(DEFAULT_NSS_FD_LIMIT);
 
     DEBUG(1, ("NSS Initialization complete\n"));
 

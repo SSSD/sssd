@@ -44,6 +44,8 @@
 #include "responder/pam/pamsrv.h"
 #include "responder/common/negcache.h"
 
+#define DEFAULT_PAM_FD_LIMIT 8192
+
 #define SSS_PAM_SBUS_SERVICE_VERSION 0x0001
 #define SSS_PAM_SBUS_SERVICE_NAME "pam"
 
@@ -182,6 +184,9 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                strerror(ret)));
         goto done;
     }
+
+    /* Set up file descriptor limits */
+    responder_set_fd_limit(DEFAULT_PAM_FD_LIMIT);
 
     ret = EOK;
 
