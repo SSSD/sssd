@@ -111,6 +111,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     struct pam_ctx *pctx;
     int ret, max_retries;
     int id_timeout;
+    int fd_limit;
 
     pctx = talloc_zero(mem_ctx, struct pam_ctx);
     if (!pctx) {
@@ -177,7 +178,17 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up file descriptor limits */
-    responder_set_fd_limit(DEFAULT_PAM_FD_LIMIT);
+    ret = confdb_get_int(pctx->rctx->cdb, pctx->rctx,
+                         CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_SERVICE_FD_LIMIT,
+                         DEFAULT_PAM_FD_LIMIT,
+                         &fd_limit);
+    if (ret != EOK) {
+        DEBUG(0,
+              ("Failed to set up file descriptor limit\n"));
+        return ret;
+    }
+    responder_set_fd_limit(fd_limit);
 
     ret = EOK;
 

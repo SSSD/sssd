@@ -43,6 +43,7 @@ option_strings = {
     'command' : _('Command to start service'),
     'reconnection_retries' : _('Number of times to attempt connection to Data Providers'),
     'client_idle_timeout' : _('Idle time before automatic disconnection of a client'),
+    'fd_limit' : _('The number of file descriptors that may be opened by this responder'),
 
     # [sssd]
     'services' : _('SSSD Services to start'),
