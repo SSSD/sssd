@@ -654,7 +654,24 @@ void responder_set_fd_limit(rlim_t fd_limit)
     struct rlimit current_limit, new_limit;
     int limret;
 
-    /* First determine the maximum hard limit */
+    /* First, let's see if we have permission to just set
+     * the value as-is.
+     */
+    new_limit.rlim_cur = fd_limit;
+    new_limit.rlim_max = fd_limit;
+    limret = setrlimit(RLIMIT_NOFILE, &new_limit);
+    if (limret == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Maximum file descriptors set to [%d]\n",
+               new_limit.rlim_cur));
+        return;
+    }
+
+    /* We couldn't set the soft and hard limits to this
+     * value. Let's see how high we CAN set it.
+     */
+
+    /* Determine the maximum hard limit */
     limret = getrlimit(RLIMIT_NOFILE, &current_limit);
     if (limret == 0) {
         DEBUG(SSSDBG_TRACE_INTERNAL,

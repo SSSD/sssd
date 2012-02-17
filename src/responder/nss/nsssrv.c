@@ -251,6 +251,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct nss_ctx *nctx;
     int ret, max_retries;
     int hret;
+    int fd_limit;
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
@@ -309,7 +310,17 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up file descriptor limits */
-    responder_set_fd_limit(DEFAULT_NSS_FD_LIMIT);
+    ret = confdb_get_int(nctx->rctx->cdb, nctx->rctx,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_SERVICE_FD_LIMIT,
+                         DEFAULT_NSS_FD_LIMIT,
+                         &fd_limit);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to set up file descriptor limit\n"));
+        return ret;
+    }
+    responder_set_fd_limit(fd_limit);
 
     DEBUG(1, ("NSS Initialization complete\n"));
 

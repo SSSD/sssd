@@ -43,6 +43,7 @@ option_strings = {
     'timeout' : _('Ping timeout before restarting service'),
     'command' : _('Command to start service'),
     'reconnection_retries' : _('Number of times to attempt connection to Data Providers'),
+    'fd_limit' : _('The number of file descriptors that may be opened by this responder'),
 
     # [sssd]
     'services' : _('SSSD Services to start'),

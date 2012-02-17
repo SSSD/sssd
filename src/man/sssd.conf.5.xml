@@ -267,6 +267,23 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>fd_limit</term>
+                    <listitem>
+                        <para>
+                            This option specifies the maximum number of file
+                            descriptors that may be opened at one time by this
+                            SSSD process. On systems where SSSD is granted the
+                            CAP_SYS_RESOURCE capability, this will be an
+                            absolute setting. On systems without this
+                            capability, the resulting value will be the lower
+                            value of this or the limits.conf "hard" limit.
+                        </para>
+                        <para>
+                            Default: 8192 (or limits.conf "hard" limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>command (string)</term>
                     <listitem>
                         <para>
