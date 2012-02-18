@@ -1331,26 +1331,6 @@ static void signal_offline_reset(struct tevent_context *ev,
     }
 }
 
-int read_config_file(const char *config_file)
-{
-    int ret;
-    struct collection_item *sssd_config = NULL;
-    struct collection_item *error_list = NULL;
-
-    /* Read the configuration into a collection */
-    ret = config_from_file("sssd", config_file, &sssd_config,
-                           INI_STOP_ON_ANY, &error_list);
-    if (ret != EOK) {
-        DEBUG(0, ("Parse error reading configuration file [%s]\n",
-                  config_file));
-        print_file_parsing_errors(stderr, error_list);
-    }
-
-    free_ini_config_errors(error_list);
-    free_ini_config(sssd_config);
-    return ret;
-}
-
 static int monitor_ctx_destructor(void *mem)
 {
     struct mt_ctx *mon = talloc_get_type(mem, struct mt_ctx);
