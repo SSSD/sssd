@@ -55,6 +55,7 @@
 #define CONFDB_SERVICE_DEBUG_TO_FILES "debug_to_files"
 #define CONFDB_SERVICE_TIMEOUT "timeout"
 #define CONFDB_SERVICE_RECON_RETRIES "reconnection_retries"
+#define CONFDB_SERVICE_FD_LIMIT "fd_limit"
 
 /* Monitor */
 #define CONFDB_MONITOR_CONF_ENTRY "config/sssd"
