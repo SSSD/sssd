@@ -1254,6 +1254,9 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
             DEBUG(2, ("Unexpected result from ldap: %s(%d), %s\n",
                       sss_ldap_err2string(result), result,
                       errmsg ? errmsg : "no errmsg set"));
+            ldap_memfree(errmsg);
+            tevent_req_error(req, EIO);
+            return;
         }
         ldap_memfree(errmsg);
 
