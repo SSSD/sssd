@@ -2548,7 +2548,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     ret = sdap_save_user(state, state->sysdb,
                          state->opts, state->dom,
-                         state->orig_user, state->user_attrs,
+                         state->orig_user,
                          true, NULL, 0);
     if (ret) {
         sysdb_transaction_cancel(state->sysdb);

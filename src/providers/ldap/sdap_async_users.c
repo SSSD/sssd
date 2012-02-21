@@ -34,7 +34,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
                    struct sysdb_attrs *attrs,
-                   const char **ldap_attrs,
                    bool is_initgr,
                    char **_usn_value,
                    time_t now)
@@ -256,15 +255,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
      * did not receive are also removed from the sysdb
      */
     ret = list_missing_attrs(user_attrs, opts->user_map, SDAP_OPTS_USER,
-                             ldap_attrs, attrs, &missing);
+                             attrs, &missing);
     if (ret != EOK) {
         goto fail;
-    }
-
-    /* Remove missing attributes */
-    if (missing && !missing[0]) {
-        /* Nothing to remove */
-        talloc_zfree(missing);
     }
 
     DEBUG(6, ("Storing info for user %s\n", name));
@@ -293,7 +286,6 @@ fail:
 
 int sdap_save_users(TALLOC_CTX *memctx,
                     struct sysdb_ctx *sysdb,
-                    const char **attrs,
                     struct sss_domain_info *dom,
                     struct sdap_options *opts,
                     struct sysdb_attrs **users,
@@ -327,7 +319,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
         usn_value = NULL;
 
         ret = sdap_save_user(tmpctx, sysdb, opts, dom,
-                             users[i], attrs, false,
+                             users[i], false,
                              &usn_value, now);
 
         /* Do not fail completely on errors.
@@ -558,7 +550,6 @@ static void sdap_get_users_process(struct tevent_req *subreq)
     }
 
     ret = sdap_save_users(state, state->sysdb,
-                          state->attrs,
                           state->dom, state->opts,
                           state->users, state->count,
                           &state->higher_usn);
