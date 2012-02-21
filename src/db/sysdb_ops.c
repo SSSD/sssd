@@ -1378,6 +1378,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
+                       char **missing,
                        int cache_timeout,
                        time_t now)
 {
@@ -1421,6 +1422,15 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
     if (ret) goto done;
 
     ret = sysdb_set_netgroup_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+
+    if (missing) {
+        ret = sysdb_remove_attrs(sysdb, name,
+                                 SYSDB_MEMBER_NETGROUP,
+                                 missing);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not remove missing attributes\n"));
+        }
+    }
 
 done:
     if (ret == EOK) {
@@ -2954,6 +2964,10 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
 
     case SYSDB_MEMBER_GROUP:
         msg->dn = sysdb_group_dn(sysdb, msg, sysdb->domain->name, name);
+        break;
+
+    case SYSDB_MEMBER_NETGROUP:
+        msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain->name, name);
         break;
 
     case SYSDB_MEMBER_SERVICE:

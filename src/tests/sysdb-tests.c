@@ -2785,7 +2785,7 @@ START_TEST(test_odd_characters)
     /* Add */
     ret = sysdb_add_netgroup(test_ctx->sysdb,
                              odd_netgroupname, "No description",
-                             NULL, 30, 0);
+                             NULL, NULL, 30, 0);
     fail_unless(ret == EOK, "sysdb_add_netgroup error [%d][%s]",
                             ret, strerror(ret));
 
