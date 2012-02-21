@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include "sss_cli.h"
 
 static struct sss_nss_getgrent_data {
@@ -35,14 +36,134 @@ static struct sss_nss_getgrent_data {
     uint8_t *data;
 } sss_nss_getgrent_data;
 
-static void sss_nss_getgrent_data_clean(void) {
-
+static void sss_nss_getgrent_data_clean(void)
+{
     if (sss_nss_getgrent_data.data != NULL) {
         free(sss_nss_getgrent_data.data);
         sss_nss_getgrent_data.data = NULL;
     }
     sss_nss_getgrent_data.len = 0;
     sss_nss_getgrent_data.ptr = 0;
+}
+
+enum sss_nss_gr_type {
+    GETGR_NONE,
+    GETGR_NAME,
+    GETGR_GID
+};
+
+static struct sss_nss_getgr_data {
+    enum sss_nss_gr_type type;
+    union {
+        char *grname;
+        gid_t gid;
+    } id;
+
+    uint8_t *repbuf;
+    size_t replen;
+} sss_nss_getgr_data;
+
+static void sss_nss_getgr_data_clean(bool freebuf)
+{
+    if (sss_nss_getgr_data.type == GETGR_NAME) {
+        free(sss_nss_getgr_data.id.grname);
+    }
+    if (freebuf) {
+        free(sss_nss_getgr_data.repbuf);
+    }
+    memset(&sss_nss_getgr_data, 0, sizeof(struct sss_nss_getgr_data));
+}
+
+static enum nss_status sss_nss_get_getgr_cache(const char *name, gid_t gid,
+                                               enum sss_nss_gr_type type,
+                                               uint8_t **repbuf,
+                                               size_t *replen,
+                                               int *errnop)
+{
+    bool freebuf = true;
+    enum nss_status status;
+    int ret = 0;
+
+    if (sss_nss_getgr_data.type != type) {
+        status = NSS_STATUS_NOTFOUND;
+        goto done;
+    }
+
+    switch (type) {
+    case GETGR_NAME:
+        ret = strcmp(name, sss_nss_getgr_data.id.grname);
+        if (ret != 0) {
+            status = NSS_STATUS_NOTFOUND;
+            goto done;
+        }
+        break;
+    case GETGR_GID:
+        if (sss_nss_getgr_data.id.gid != gid) {
+            status = NSS_STATUS_NOTFOUND;
+            goto done;
+        }
+        break;
+    default:
+        status = NSS_STATUS_TRYAGAIN;
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* ok we have it, remove from cache and pass back to the caller */
+    *repbuf = sss_nss_getgr_data.repbuf;
+    *replen = sss_nss_getgr_data.replen;
+
+    /* prevent _clean() from freeing the buffer */
+    freebuf = false;
+    status = NSS_STATUS_SUCCESS;
+
+done:
+    sss_nss_getgr_data_clean(freebuf);
+    *errnop = ret;
+    return status;
+}
+
+/* this function always takes ownership of repbuf and NULLs it before
+ * returning */
+static void sss_nss_save_getgr_cache(const char *name, gid_t gid,
+                                     enum sss_nss_gr_type type,
+                                     uint8_t **repbuf, size_t replen)
+{
+    int ret = 0;
+
+    sss_nss_getgr_data.type = type;
+    sss_nss_getgr_data.repbuf = *repbuf;
+    sss_nss_getgr_data.replen = replen;
+
+    switch (type) {
+    case GETGR_NAME:
+        if (name == NULL) {
+            ret = EINVAL;
+            goto done;
+        }
+        sss_nss_getgr_data.id.grname = strdup(name);
+        if (!sss_nss_getgr_data.id.grname) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    case GETGR_GID:
+        if (gid == 0) {
+            ret = EINVAL;
+            goto done;
+        }
+        sss_nss_getgr_data.id.gid = gid;
+        break;
+    default:
+        ret = EINVAL;
+        goto done;
+    }
+
+done:
+    if (ret) {
+        sss_nss_getgr_data_clean(true);
+    }
+    *repbuf = NULL;
 }
 
 /* GETGRNAM Request:
@@ -249,8 +370,12 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
 
     sss_nss_lock();
 
-    nret = sss_nss_make_request(SSS_NSS_GETGRNAM, &rd,
-                                &repbuf, &replen, errnop);
+    nret = sss_nss_get_getgr_cache(name, 0, GETGR_NAME,
+                                   &repbuf, &replen, errnop);
+    if (nret == NSS_STATUS_NOTFOUND) {
+        nret = sss_nss_make_request(SSS_NSS_GETGRNAM, &rd,
+                                    &repbuf, &replen, errnop);
+    }
     if (nret != NSS_STATUS_SUCCESS) {
         goto out;
     }
@@ -276,7 +401,11 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
 
     len = replen - 8;
     ret = sss_nss_getgr_readrep(&grrep, repbuf+8, &len);
-    free(repbuf);
+    if (ret == ERANGE) {
+        sss_nss_save_getgr_cache(name, 0, GETGR_NAME, &repbuf, replen);
+    } else {
+        free(repbuf);
+    }
     if (ret) {
         *errnop = ret;
         nret = NSS_STATUS_TRYAGAIN;
@@ -310,8 +439,12 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
 
     sss_nss_lock();
 
-    nret = sss_nss_make_request(SSS_NSS_GETGRGID, &rd,
-                                &repbuf, &replen, errnop);
+    nret = sss_nss_get_getgr_cache(NULL, gid, GETGR_GID,
+                                   &repbuf, &replen, errnop);
+    if (nret == NSS_STATUS_NOTFOUND) {
+        nret = sss_nss_make_request(SSS_NSS_GETGRGID, &rd,
+                                    &repbuf, &replen, errnop);
+    }
     if (nret != NSS_STATUS_SUCCESS) {
         goto out;
     }
@@ -337,7 +470,11 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
 
     len = replen - 8;
     ret = sss_nss_getgr_readrep(&grrep, repbuf+8, &len);
-    free(repbuf);
+    if (ret == ERANGE) {
+        sss_nss_save_getgr_cache(NULL, gid, GETGR_GID, &repbuf, replen);
+    } else {
+        free(repbuf);
+    }
     if (ret) {
         *errnop = ret;
         nret = NSS_STATUS_TRYAGAIN;
