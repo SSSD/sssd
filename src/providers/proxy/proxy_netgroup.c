@@ -87,7 +87,7 @@ static errno_t save_netgroup(struct sysdb_ctx *sysdb,
         }
     }
 
-    ret = sysdb_add_netgroup(sysdb, name, NULL, attrs, cache_timeout, 0);
+    ret = sysdb_add_netgroup(sysdb, name, NULL, attrs, NULL, cache_timeout, 0);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_add_netgroup failed.\n"));
         return ret;

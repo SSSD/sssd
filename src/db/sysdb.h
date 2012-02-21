@@ -532,6 +532,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
+                       char **missing,
                        int cache_timeout,
                        time_t now);
 
@@ -563,6 +564,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
 enum sysdb_member_type {
     SYSDB_MEMBER_USER,
     SYSDB_MEMBER_GROUP,
+    SYSDB_MEMBER_NETGROUP,
     SYSDB_MEMBER_SERVICE,
     SYSDB_MEMBER_AUTOFSENTRY
 };
