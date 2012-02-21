@@ -60,12 +60,16 @@
 #define nlw_object_match nl_object_match_filter
 #define NLW_OK NL_OK
 
-#define SYSFS_IFACE_TEMPLATE "/sys/class/net/%s/type"
-#define SYSFS_IFACE_PATH_MAX (21+IFNAMSIZ)
+#define SYSFS_IFACE_TEMPLATE "/sys/class/net/%s"
+#define SYSFS_IFACE_PATH_MAX (16+IFNAMSIZ)
 
 #define PHY_80211_SUBDIR   "phy80211"
 /* 9 = strlen(PHY_80211_SUBDIR)+1, 1 = path delimeter */
 #define SYSFS_SUBDIR_PATH_MAX (SYSFS_IFACE_PATH_MAX+9+1)
+
+#define TYPE_FILE "type"
+/* 5 = strlen(TYPE_FILE)+1, 1 = path delimeter */
+#define SYSFS_TYPE_PATH_MAX (SYSFS_IFACE_PATH_MAX+5+1)
 
 #define BUFSIZE 8
 
@@ -123,15 +127,27 @@ static bool has_wireless_extension(const char *ifname)
 
 static bool has_ethernet_encapsulation(const char *sysfs_path)
 {
+    char type_path[SYSFS_TYPE_PATH_MAX];
     errno_t ret;
     int fd = -1;
     char buf[BUFSIZE];
 
-    fd = open(sysfs_path, O_RDONLY);
+    ret = snprintf(type_path, SYSFS_TYPE_PATH_MAX,
+                   "%s/%s", sysfs_path, TYPE_FILE);
+    if (ret < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("snprintf failed\n"));
+        return false;
+    } else if (ret >= SYSFS_TYPE_PATH_MAX) {
+        DEBUG(SSSDBG_OP_FAILURE, ("path too long?!?!\n"));
+        return false;
+    }
+
+    errno = 0;
+    fd = open(type_path, O_RDONLY);
     if (fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, ("Could not open sysfs file %s: [%d] %s\n",
-              sysfs_path, ret, strerror(ret)));
+              type_path, ret, strerror(ret)));
         return false;
     }
 
