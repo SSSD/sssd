@@ -1123,7 +1123,7 @@ next:
     }
 
     if (state->check_count == 0) {
-        ret = sdap_save_users(state, state->sysdb, state->attrs,
+        ret = sdap_save_users(state, state->sysdb,
                               state->dom, state->opts,
                               state->new_members, state->count, NULL);
         if (ret) {

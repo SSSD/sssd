@@ -49,7 +49,6 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     const char *name = NULL;
     int ret;
     char *timestamp = NULL;
-    const char **ldap_attrs = NULL;
     char **missing = NULL;
 
     ret = sysdb_attrs_get_el(attrs,
@@ -129,27 +128,14 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = build_attrs_from_map(attrs, opts->netgroup_map, SDAP_OPTS_NETGROUP,
-                               &ldap_attrs);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to retrieve attributes from map\n"));
-        goto fail;
-    }
-
     /* Make sure that any attributes we requested from LDAP that we
      * did not receive are also removed from the sysdb
      */
     ret = list_missing_attrs(attrs, opts->netgroup_map, SDAP_OPTS_NETGROUP,
-                             ldap_attrs, attrs, &missing);
+                             attrs, &missing);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to list missing attributes\n"));
         goto fail;
-    }
-
-    /* Remove missing attributes */
-    if (missing && !missing[0]) {
-        /* Nothing to remove */
-        talloc_zfree(missing);
     }
 
     ret = sysdb_add_netgroup(ctx, name, NULL, netgroup_attrs, missing,

@@ -1511,7 +1511,6 @@ errno_t get_sysdb_attr_name(TALLOC_CTX *mem_ctx,
 errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
                            struct sdap_attr_map *map,
                            size_t map_size,
-                           const char **expected_attrs,
                            struct sysdb_attrs *recvd_attrs,
                            char ***missing_attrs)
 {
@@ -1519,16 +1518,22 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
     size_t attr_count = 0;
     size_t i, j, k;
     char **missing = NULL;
+    const char **expected_attrs;
     char *sysdb_name;
     TALLOC_CTX *tmp_ctx;
 
-    if (!expected_attrs || !recvd_attrs || !missing_attrs) {
+    if (!recvd_attrs || !missing_attrs) {
         return EINVAL;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    ret = build_attrs_from_map(tmp_ctx, map, map_size, &expected_attrs);
+    if (ret != EOK) {
+        goto done;
     }
 
     /* Count the expected attrs */
@@ -1591,11 +1596,14 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* Terminate the list */
-    missing[k] = NULL;
-
+    if (k == 0) {
+        *missing = NULL;
+    } else {
+        /* Terminate the list */
+        missing[k] = NULL;
+        *missing_attrs = talloc_steal(mem_ctx, missing);
+    }
     ret = EOK;
-    *missing_attrs = talloc_steal(mem_ctx, missing);
 
 done:
     talloc_free(tmp_ctx);
