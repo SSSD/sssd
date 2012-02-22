@@ -69,7 +69,6 @@ struct sudo_dom_ctx {
     const char *cased_username;
 
     /* cache results */
-    struct ldb_result *user;
     struct sysdb_attrs **res;
     size_t res_count;
 };
