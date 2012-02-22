@@ -95,7 +95,6 @@ BuildRequires: libsemanage-devel
 BuildRequires: bind-utils
 BuildRequires: keyutils-libs-devel
 BuildRequires: libnl-devel
-BuildRequires: nscd
 BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
