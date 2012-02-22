@@ -133,7 +133,8 @@ ipa_selinux_get_maps_next(struct tevent_req *req,
                                    state->opts->selinuxuser_map,
                                    IPA_OPTS_SELINUX_USERMAP,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         return ENOMEM;
     }

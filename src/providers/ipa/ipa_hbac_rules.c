@@ -233,7 +233,8 @@ ipa_hbac_rule_info_next(struct tevent_req *req,
                                    state->cur_filter, state->attrs,
                                    NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_get_generic_send failed.\n"));
         return ENOMEM;

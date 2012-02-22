@@ -309,7 +309,7 @@ automntmaps_process_members_next_base(struct tevent_req *req)
                                    state->filter, state->attrs,
                                    state->opts->autofs_entry_map,
                                    SDAP_OPTS_AUTOFS_ENTRY,
-                                   state->timeout);
+                                   state->timeout, true);
     if (!subreq) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot start search for entries\n"));
         return EIO;
@@ -492,7 +492,8 @@ sdap_get_automntmap_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->autofs_mobject_map, SDAP_OPTS_AUTOFS_MAP,
-            state->timeout);
+            state->timeout,
+            false);
     if (!subreq) {
         return EIO;
     }

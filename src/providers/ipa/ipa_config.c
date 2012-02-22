@@ -88,7 +88,8 @@ ipa_get_config_send(TALLOC_CTX *mem_ctx,
                                    LDAP_SCOPE_SUBTREE, IPA_CONFIG_FILTER,
                                    state->attrs, NULL, 0,
                                    dp_opt_get_int(opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
