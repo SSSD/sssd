@@ -277,16 +277,17 @@ AC_DEFUN([WITH_TEST_DIR],
 
 AC_DEFUN([WITH_NSCD],
   [ AC_ARG_WITH([nscd],
-                [AC_HELP_STRING([--with-nscd],
-                                [Whether to attempt to flush nscd cache after local domain operations [yes]]
+                [AC_HELP_STRING([--with-nscd=PATH],
+                                [Path to nscd binary to attempt to flush nscd cache after local domain operations [/usr/sbin/nscd]]
                                )
-                ],
-                [],
-                with_nscd=yes
+                ]
                )
-    if test x"$with_nscd" = xyes; then
-        AC_DEFINE_UNQUOTED(HAVE_NSCD, 1, [flush nscd cache after local domain operations])
+    NSCD_PATH="/usr/sbin/nscd"
+    if test x"$with_nscd" != x; then
+        NSCD_PATH=$with_nscd
+        AC_SUBST(NSCD_PATH)
     fi
+    AC_DEFINE_UNQUOTED(HAVE_NSCD, $NSCD_PATH, [flush nscd cache after local domain operations])
   ])
 
 AC_DEFUN([WITH_SEMANAGE],
