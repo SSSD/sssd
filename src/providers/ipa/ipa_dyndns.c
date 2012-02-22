@@ -344,10 +344,12 @@ static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
         return ret;
     }
 
+    errno = 0;
     ret = getsockname(fd, (struct sockaddr *) &ss, &ss_len);
     if (ret == -1) {
-        DEBUG(0,("Failed to get socket name\n"));
-        return errno;
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to get socket name\n"));
+        return ret;
     }
 
     switch(ss.ss_family) {
