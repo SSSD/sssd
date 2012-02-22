@@ -73,6 +73,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
     struct sudo_cmd_ctx *cmd_ctx = dctx->cmd_ctx;
     struct cli_ctx *cli_ctx = dctx->cmd_ctx->cli_ctx;
     struct sysdb_ctx *sysdb;
+    struct ldb_result *user;
     time_t cache_expire = 0;
     struct tevent_req *dpreq;
     struct dp_callback_ctx *cb_ctx;
@@ -119,7 +120,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
              goto done;
         }
 
-        ret = sysdb_getpwnam(dctx, sysdb, name, &dctx->user);
+        ret = sysdb_getpwnam(dctx, sysdb, name, &user);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Failed to make request to our cache!\n"));
@@ -127,14 +128,14 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
             goto done;
         }
 
-        if (dctx->user->count > 1) {
+        if (user->count > 1) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("getpwnam call returned more than one result !?!\n"));
             ret = EIO;
             goto done;
         }
 
-        if (dctx->user->count == 0 && !dctx->check_provider) {
+        if (user->count == 0 && !dctx->check_provider) {
             /* if a multidomain search, try with next */
             if (cmd_ctx->check_next) {
                 dctx->check_provider = true;
@@ -148,14 +149,14 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         }
 
         /* One result found, check cache expiry */
-        if (dctx->user->count == 1) {
-            cache_expire = ldb_msg_find_attr_as_uint64(dctx->user->msgs[0],
+        if (user->count == 1) {
+            cache_expire = ldb_msg_find_attr_as_uint64(user->msgs[0],
                                                        SYSDB_CACHE_EXPIRE, 0);
         }
 
         /* If cache miss and we haven't checked DP yet OR the entry is
          * outdated, go to DP */
-        if ((dctx->user->count == 0 || cache_expire < time(NULL))
+        if ((user->count == 0 || cache_expire < time(NULL))
             && dctx->check_provider) {
             dpreq = sss_dp_get_account_send(cli_ctx, cli_ctx->rctx,
                                             dom, false, SSS_DP_INITGROUPS,
@@ -187,7 +188,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         }
 
         /* user is stored in cache, remember cased and original name */
-        original_name = ldb_msg_find_attr_as_string(dctx->user->msgs[0],
+        original_name = ldb_msg_find_attr_as_string(user->msgs[0],
                                                     SYSDB_NAME, NULL);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no name?\n"));
