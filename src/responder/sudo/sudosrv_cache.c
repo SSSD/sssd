@@ -266,11 +266,23 @@ errno_t sudosrv_cache_lookup(hash_table_t *table,
                              struct sysdb_attrs ***rules)
 {
     struct sss_domain_info *domain = dctx->domain;
+    char *name = NULL;
     errno_t ret;
 
     if (!check_next) {
-        return sudosrv_cache_lookup_internal(table, dctx->domain, username,
-                                             num_rules, rules);
+        if (username != NULL) {
+            name = sss_get_cased_name(NULL, username,
+                                      dctx->domain->case_sensitive);
+            if (name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        ret = sudosrv_cache_lookup_internal(table, dctx->domain, name,
+                                            num_rules, rules);
+        goto done;
     }
 
     while (domain != NULL) {
@@ -279,15 +291,26 @@ errno_t sudosrv_cache_lookup(hash_table_t *table,
             continue;
         }
 
-        ret = sudosrv_cache_lookup_internal(table, domain, username,
+        if (username != NULL) {
+            talloc_free(name);
+            name = sss_get_cased_name(NULL, username,
+                                      dctx->domain->case_sensitive);
+            if (name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        ret = sudosrv_cache_lookup_internal(table, domain, name,
                                             num_rules, rules);
         if (ret == EOK) {
             /* user is in this domain */
             dctx->domain = domain;
-            return ret;
+            goto done;
         } else if (ret != ENOENT) {
             /* error */
-            return ret;
+            goto done;
         }
 
         /* user is not in this domain cache, check next */
@@ -295,5 +318,9 @@ errno_t sudosrv_cache_lookup(hash_table_t *table,
     }
 
     /* user is not in cache */
-    return ENOENT;
+    ret = ENOENT;
+
+done:
+    talloc_free(name);
+    return ret;
 }

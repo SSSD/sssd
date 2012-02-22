@@ -185,6 +185,8 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
         goto done;
     }
     dctx->cmd_ctx = cmd_ctx;
+    dctx->orig_username = NULL;
+    dctx->cased_username = NULL;
 
     /* get query */
     sss_packet_get_body(cli_ctx->creq->in, &query_body, &query_len);
@@ -284,6 +286,8 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
         goto done;
     }
     dctx->cmd_ctx = cmd_ctx;
+    dctx->orig_username = NULL;
+    dctx->cased_username = NULL;
 
     DEBUG(SSSDBG_FUNC_DATA, ("Requesting cn=defaults\n"));
 

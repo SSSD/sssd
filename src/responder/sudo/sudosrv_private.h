@@ -65,6 +65,8 @@ struct sudo_dom_ctx {
     struct sudo_cmd_ctx *cmd_ctx;
     struct sss_domain_info *domain;
     bool check_provider;
+    const char *orig_username;
+    const char *cased_username;
 
     /* cache results */
     struct ldb_result *user;
