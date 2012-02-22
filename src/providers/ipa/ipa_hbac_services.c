@@ -154,7 +154,8 @@ static errno_t ipa_hbac_service_info_next(struct tevent_req *req,
                                    state->cur_filter,
                                    state->attrs, NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting service info\n"));
         return EIO;
@@ -267,7 +268,8 @@ ipa_hbac_servicegroup_info_next(struct tevent_req *req,
                                    base->basedn, base->scope,
                                    state->cur_filter, state->attrs, NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting servicegroup info\n"));
         return EIO;

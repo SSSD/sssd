@@ -148,7 +148,8 @@ sdap_get_services_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->service_map, SDAP_OPTS_SERVICES,
-            state->timeout);
+            state->timeout,
+            state->enumeration); /* If we're enumerating, we need paging */
     if (!subreq) {
         return ENOMEM;
     }

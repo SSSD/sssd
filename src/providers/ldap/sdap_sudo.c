@@ -514,7 +514,8 @@ static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
                                    state->attrs,
                                    state->opts->sudorule_map,
                                    SDAP_OPTS_SUDO,
-                                   state->timeout);
+                                   state->timeout,
+                                   true);
     if (subreq == NULL) {
         return ENOMEM;
     }

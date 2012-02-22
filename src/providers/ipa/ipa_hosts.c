@@ -169,7 +169,8 @@ static errno_t ipa_host_info_next(struct tevent_req *req,
                                    state->attrs, state->map,
                                    state->map_num_attrs,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting host info\n"));
         talloc_zfree(state->cur_filter);
@@ -311,7 +312,8 @@ static errno_t ipa_hostgroup_info_next(struct tevent_req *req,
                                    state->cur_filter, state->attrs, hostgroup_map,
                                    HOSTGROUP_MAP_ATTRS_COUNT,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting hostgroup info\n"));
         talloc_zfree(state->cur_filter);

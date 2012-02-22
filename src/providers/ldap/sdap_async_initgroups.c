@@ -380,7 +380,8 @@ static errno_t sdap_initgr_rfc2307_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->group_map, SDAP_OPTS_GROUP,
-            state->timeout);
+            state->timeout,
+            true);
     if (!subreq) {
         return ENOMEM;
     }
@@ -774,7 +775,8 @@ static errno_t sdap_initgr_nested_noderef_search(struct tevent_req *req)
                                    state->filter, state->grp_attrs,
                                    state->opts->group_map, SDAP_OPTS_GROUP,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (!subreq) {
         return ENOMEM;
     }
@@ -904,7 +906,8 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
                                        state->opts->group_map,
                                        SDAP_OPTS_GROUP,
                                        dp_opt_get_int(state->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
+                                                      SDAP_SEARCH_TIMEOUT),
+                                       false);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1510,7 +1513,8 @@ static errno_t sdap_initgr_rfc2307bis_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->group_map, SDAP_OPTS_GROUP,
-            state->timeout);
+            state->timeout,
+            true);
     if (!subreq) {
         talloc_zfree(req);
         return ENOMEM;
@@ -2154,7 +2158,8 @@ static errno_t rfc2307bis_nested_groups_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->group_map, SDAP_OPTS_GROUP,
-            state->timeout);
+            state->timeout,
+            true);
     if (!subreq) {
         return ENOMEM;
     }
@@ -2472,7 +2477,8 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
             state->user_search_bases[state->user_base_iter]->scope,
             state->filter, state->user_attrs,
             state->opts->user_map, SDAP_OPTS_USER,
-            state->timeout);
+            state->timeout,
+            false);
     if (!subreq) {
         return ENOMEM;
     }

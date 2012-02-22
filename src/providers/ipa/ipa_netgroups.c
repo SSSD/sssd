@@ -269,7 +269,8 @@ static errno_t ipa_netgr_next_base(struct tevent_req *req)
             netgr_bases[state->netgr_base_iter]->scope,
             state->filter, state->attrs,
             state->opts->netgroup_map, IPA_OPTS_NETGROUP,
-            state->timeout);
+            state->timeout,
+            true);
     if (!subreq) {
         return ENOMEM;
     }
@@ -449,7 +450,7 @@ static int ipa_netgr_fetch_netgroups(struct ipa_get_netgroups_state *state,
                                    bases[state->netgr_base_iter]->basedn,
                                    bases[state->netgr_base_iter]->scope,
                                    filter, state->attrs, state->opts->netgroup_map,
-                                   IPA_OPTS_NETGROUP, state->timeout);
+                                   IPA_OPTS_NETGROUP, state->timeout, true);
 
     state->current_entity = ENTITY_NG;
     if (subreq == NULL) {
@@ -489,9 +490,8 @@ static int ipa_netgr_fetch_users(struct ipa_get_netgroups_state *state,
                                    dp_opt_get_string(state->opts->basic,
                                                      SDAP_USER_SEARCH_BASE),
                                    LDAP_SCOPE_SUBTREE,
-                                   filter, attrs,
-                                   state->opts->user_map,
-                                   SDAP_OPTS_USER, state->timeout);
+                                   filter, attrs, state->opts->user_map,
+                                   SDAP_OPTS_USER, state->timeout, true);
 
     state->current_entity = ENTITY_USER;
     if (subreq == NULL) {
@@ -537,9 +537,8 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    bases[state->host_base_iter]->basedn,
                                    bases[state->host_base_iter]->scope,
-                                   filter, attrs,
-                                   state->opts->host_map,
-                                   IPA_OPTS_HOST, state->timeout);
+                                   filter, attrs, state->opts->host_map,
+                                   IPA_OPTS_HOST, state->timeout, true);
 
     state->current_entity = ENTITY_HOST;
     if (subreq == NULL) {

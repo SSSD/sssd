@@ -746,7 +746,8 @@ sdap_process_missing_member_2307bis(struct tevent_req *req,
                                        grp_state->opts->user_map,
                                        SDAP_OPTS_USER,
                                        dp_opt_get_int(grp_state->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
+                                                      SDAP_SEARCH_TIMEOUT),
+                                       false);
         if (!subreq) {
             return ENOMEM;
         }
@@ -1109,7 +1110,8 @@ next:
                                        state->opts->user_map,
                                        SDAP_OPTS_USER,
                                        dp_opt_get_int(state->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
+                                                      SDAP_SEARCH_TIMEOUT),
+                                       false);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1258,7 +1260,8 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->group_map, SDAP_OPTS_GROUP,
-            state->timeout);
+            state->timeout,
+            state->enumeration); /* If we're enumerating, we need paging */
     if (!subreq) {
         return ENOMEM;
     }
@@ -2537,7 +2540,8 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                                    state->opts->user_map,
                                    SDAP_OPTS_USER,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (!subreq) {
         talloc_free(sdap_attrs);
         return EIO;
@@ -2618,7 +2622,8 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
                                    state->opts->group_map,
                                    SDAP_OPTS_GROUP,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (!subreq) {
         talloc_free(sdap_attrs);
         return EIO;

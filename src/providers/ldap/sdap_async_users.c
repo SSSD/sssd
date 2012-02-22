@@ -477,7 +477,8 @@ static errno_t sdap_get_users_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->user_map, SDAP_OPTS_USER,
-            state->timeout);
+            state->timeout,
+            state->enumeration); /* If we're enumerating, we need paging */
     if (!subreq) {
         return ENOMEM;
     }

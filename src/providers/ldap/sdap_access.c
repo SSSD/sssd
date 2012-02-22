@@ -940,7 +940,8 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
                                    state->filter, NULL,
                                    NULL, 0,
                                    dp_opt_get_int(state->sdap_ctx->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (subreq == NULL) {
         DEBUG(1, ("Could not start LDAP communication\n"));
         state->pam_status = PAM_SYSTEM_ERR;
