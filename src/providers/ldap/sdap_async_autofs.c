@@ -185,8 +185,12 @@ struct automntmaps_process_members_state {
     int    timeout;
     struct sysdb_ctx *sysdb;
 
+    char *clean_orig_dn;
+    char *base_filter;
     char *filter;
     const char **attrs;
+    size_t base_iter;
+    struct sdap_search_base **search_bases;
 
     struct sysdb_attrs *map;
 
@@ -196,6 +200,8 @@ struct automntmaps_process_members_state {
 
 static void
 automntmaps_process_members_done(struct tevent_req *subreq);
+static errno_t
+automntmaps_process_members_next_base(struct tevent_req *req);
 
 static struct tevent_req *
 automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
@@ -203,16 +209,15 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
                                  struct sdap_options *opts,
                                  struct sdap_handle *sh,
                                  struct sss_domain_info *dom,
+                                 struct sdap_search_base **search_bases,
                                  int    timeout,
                                  struct sysdb_ctx *sysdb,
                                  struct sysdb_attrs *map)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct automntmaps_process_members_state *state;
     const char *orig_dn;
-    char *clean_orig_dn;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct automntmaps_process_members_state);
@@ -224,13 +229,14 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
     state->sh = sh;
     state->sysdb = sysdb;
     state->timeout = timeout;
-
+    state->base_iter = 0;
     state->map = map;
+    state->search_bases = search_bases;
 
-    state->filter = talloc_asprintf(state, "(&(%s=*)(objectclass=%s))",
+    state->base_filter = talloc_asprintf(state, "(&(%s=*)(objectclass=%s))",
                     opts->autofs_entry_map[SDAP_AT_AUTOFS_ENTRY_KEY].name,
                     opts->autofs_entry_map[SDAP_OC_AUTOFS_ENTRY].name);
-    if (!state->filter) {
+    if (!state->base_filter) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build filter\n"));
         ret = ENOMEM;
         goto immediate;
@@ -250,27 +256,22 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    /* FIXME - should test if the DN is in the current base? */
-    ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
+    ret = sss_filter_sanitize(state, orig_dn, &state->clean_orig_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot sanitize originalDN\n"));
         goto immediate;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Examining autofs map [%s]\n", clean_orig_dn));
+          ("Examining autofs map [%s]\n", state->clean_orig_dn));
 
-    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   clean_orig_dn, LDAP_SCOPE_SUBTREE,
-                                   state->filter, state->attrs,
-                                   opts->autofs_entry_map,
-                                   SDAP_OPTS_AUTOFS_ENTRY,
-                                   state->timeout);
-    if (!subreq) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot start search for entries\n"));
+    ret = automntmaps_process_members_next_base(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("search failed [%d]: %s\n", ret, strerror(ret)));
         goto immediate;
     }
-    tevent_req_set_callback(subreq, automntmaps_process_members_done, req);
+
     return req;
 
 immediate:
@@ -283,6 +284,41 @@ immediate:
     return req;
 }
 
+static errno_t
+automntmaps_process_members_next_base(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct automntmaps_process_members_state *state =
+        tevent_req_data(req, struct automntmaps_process_members_state);
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_get_id_specific_filter(state,
+                        state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
+    if (!state->filter) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for automount map entries with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   state->clean_orig_dn,
+                                   state->search_bases[state->base_iter]->scope,
+                                   state->filter, state->attrs,
+                                   state->opts->autofs_entry_map,
+                                   SDAP_OPTS_AUTOFS_ENTRY,
+                                   state->timeout);
+    if (!subreq) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot start search for entries\n"));
+        return EIO;
+    }
+    tevent_req_set_callback(subreq, automntmaps_process_members_done, req);
+
+    return EOK;
+}
+
 static void
 automntmaps_process_members_done(struct tevent_req *subreq)
 {
@@ -291,14 +327,45 @@ automntmaps_process_members_done(struct tevent_req *subreq)
     struct automntmaps_process_members_state *state =
         tevent_req_data(req, struct automntmaps_process_members_state);
     errno_t ret;
+    struct sysdb_attrs **entries;
+    size_t entries_count, i;
 
     ret = sdap_get_generic_recv(subreq, state,
-                                &state->entries_count, &state->entries);
+                                &entries_count, &entries);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
+
+    if (entries_count > 0) {
+        state->entries = talloc_realloc(state, state->entries,
+                                        struct sysdb_attrs *,
+                                        state->entries_count + entries_count + 1);
+        if (state->entries == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        for (i=0; i < entries_count; i++) {
+            state->entries[state->entries_count + i] =
+                talloc_steal(state->entries, entries[i]);
+        }
+
+        state->entries_count += entries_count;
+        state->entries[state->entries_count] = NULL;
+    }
+
+    state->base_iter++;
+    if (state->search_bases[state->base_iter]) {
+        ret = automntmaps_process_members_next_base(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("No more search bases to try\n"));
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Search for autofs entries, returned %d results.\n",
@@ -481,6 +548,7 @@ sdap_get_automntmap_process(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Processing autofs maps\n"));
     subreq = automntmaps_process_members_send(state, state->ev, state->opts,
                                               state->sh, state->dom,
+                                              state->search_bases,
                                               state->timeout, state->sysdb,
                                               state->map[0]);
     if (!subreq) {
