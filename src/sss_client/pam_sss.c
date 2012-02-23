@@ -41,7 +41,9 @@
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <security/pam_modutil.h>
+#ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
+#endif
 #include "sss_pam_macros.h"
 
 #include "sss_cli.h"
@@ -1083,11 +1085,13 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     size_t replen;
     int pam_status = PAM_SYSTEM_ERR;
 
+#ifdef HAVE_SELINUX
     char *path = NULL;
     char *tmp_path = NULL;
     int pos, len;
     int fd;
     mode_t oldmask;
+#endif /* HAVE_SELINUX */
 
     print_pam_items(pi);
 
@@ -1184,6 +1188,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                 break;
             }
 
+#ifdef HAVE_SELINUX
             if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
                          pi->pam_user) <  0 ||
                 asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
@@ -1221,6 +1226,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
             free(path);
             free(tmp_path);
             umask(oldmask);
+#endif /* HAVE_SELINUX */
             break;
         case SSS_PAM_SETCRED:
         case SSS_PAM_CLOSE_SESSION:
