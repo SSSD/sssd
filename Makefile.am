@@ -960,7 +960,7 @@ pam_sss_la_SOURCES = \
 
 pam_sss_la_LDFLAGS = \
     -lpam \
-    -lselinux \
+    $(SELINUX_LIBS) \
     -module \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_pam.exports

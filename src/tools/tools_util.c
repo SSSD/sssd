@@ -29,9 +29,6 @@
 #include <fcntl.h>
 
 #include "config.h"
-#ifdef HAVE_SELINUX
-#include <selinux/selinux.h>
-#endif
 
 #include "util/util.h"
 #include "confdb/confdb.h"
