@@ -814,9 +814,12 @@ setautomntent_recv(struct tevent_req *req)
 static errno_t
 getautomntent_process(struct autofs_cmd_ctx *cmdctx,
                       struct autofs_map_ctx *map,
-                      uint32_t cursor);
+                      uint32_t cursor, uint32_t max_entries);
 static void
 getautomntent_implicit_done(struct tevent_req *req);
+static errno_t
+fill_autofs_entry(struct ldb_message *entry, struct sss_packet *packet, size_t *rp);
+
 
 static int
 sss_autofs_cmd_getautomntent(struct cli_ctx *client)
@@ -870,9 +873,11 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
     }
 
     SAFEALIGN_COPY_UINT32_CHECK(&cmdctx->cursor, body+c+namelen+1, blen, &c);
+    SAFEALIGN_COPY_UINT32_CHECK(&cmdctx->max_entries, body+c+namelen+1, blen, &c);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requested data of map %s cursor %d\n", cmdctx->mapname, cmdctx->cursor));
+          ("Requested data of map %s cursor %d max entries %d\n",
+           cmdctx->mapname, cmdctx->cursor, cmdctx->max_entries));
 
     ret = get_autofs_map(actx, cmdctx->mapname, &map);
     if (ret == ENOENT) {
@@ -915,7 +920,7 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
     DEBUG(SSSDBG_TRACE_INTERNAL,
           ("returning entries for [%s]\n", map->mapname));
 
-    ret = getautomntent_process(cmdctx, map, cmdctx->cursor);
+    ret = getautomntent_process(cmdctx, map, cmdctx->cursor, cmdctx->max_entries);
 
 done:
     return autofs_cmd_done(cmdctx, ret);
@@ -955,7 +960,8 @@ getautomntent_implicit_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = getautomntent_process(cmdctx, map, cmdctx->cursor);
+    ret = getautomntent_process(cmdctx, map,
+                                cmdctx->cursor, cmdctx->max_entries);
 done:
     autofs_cmd_done(cmdctx, ret);
     return;
@@ -964,18 +970,15 @@ done:
 static errno_t
 getautomntent_process(struct autofs_cmd_ctx *cmdctx,
                       struct autofs_map_ctx *map,
-                      uint32_t cursor)
+                      uint32_t cursor, uint32_t max_entries)
 {
     struct cli_ctx *client = cmdctx->cctx;
     errno_t ret;
-    const char *key;
-    size_t keylen;
-    const char *value;
-    size_t valuelen;
     struct ldb_message *entry;
-    size_t len;
+    size_t rp;
+    uint32_t i, stop, left, nentries;
     uint8_t *body;
-    size_t blen, rp;
+    size_t blen;
 
     /* create response packet */
     ret = sss_packet_new(client->creq, 0,
@@ -994,51 +997,92 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
         }
         goto done;
     }
-    entry = map->entries[cursor];
 
-    key = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_KEY, NULL);
-    value = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_VALUE, NULL);
-    if (!key || !value) {
-        ret = EAGAIN;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Incomplete entry\n"));
-        goto done;
-    }
-
-    /* FIXME - split below into a separate function */
-    keylen = 1 + strlen(key);
-    valuelen = 1 + strlen(value);
-    len = sizeof(uint32_t) + sizeof(uint32_t) + keylen  + sizeof(uint32_t)+ valuelen;
-
-    ret = sss_packet_grow(client->creq->out, len);
+    ret = sss_packet_grow(client->creq->out, sizeof(uint32_t));
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot grow packet\n"));
         goto done;
     }
 
     sss_packet_get_body(client->creq->out, &body, &blen);
+    rp = sizeof(uint32_t);  /* We'll write the number of entries here */
+
+    left = map->entry_count - cursor;
+    stop = max_entries < left ? max_entries : left;
+
+    nentries = 0;
+    for (i=0; i < stop; i++) {
+        entry = map->entries[cursor];
+        cursor++;
+
+        ret = fill_autofs_entry(entry, client->creq->out, &rp);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Cannot fill entry %d/%d, skipping\n", i, stop));
+            continue;
+        }
+        nentries++;
+    }
 
     rp = 0;
-    SAFEALIGN_SET_UINT32(&body[rp], len, &rp);
-    SAFEALIGN_SET_UINT32(&body[rp], keylen, &rp);
-
-    if (keylen == 1) {
-        body[rp] = '\0';
-    } else {
-        memcpy(&body[rp], key, keylen);
-    }
-    rp += keylen;
-
-    SAFEALIGN_SET_UINT32(&body[rp], valuelen, &rp);
-    if (valuelen == 1) {
-        body[rp] = '\0';
-    } else {
-        memcpy(&body[rp], value, valuelen);
-    }
-    rp += valuelen;
+    SAFEALIGN_SET_UINT32(&body[rp], nentries, &rp);
 
     ret = EOK;
 done:
     sss_packet_set_error(client->creq->out, ret);
     sss_cmd_done(client, cmdctx);
+
+    return EOK;
+}
+
+static errno_t
+fill_autofs_entry(struct ldb_message *entry, struct sss_packet *packet, size_t *rp)
+{
+    errno_t ret;
+    const char *key;
+    size_t keylen;
+    const char *value;
+    size_t valuelen;
+    uint8_t *body;
+    size_t blen;
+    size_t len;
+
+    key = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_KEY, NULL);
+    value = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_VALUE, NULL);
+    if (!key || !value) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Incomplete entry\n"));
+        return EINVAL;
+    }
+
+    keylen = 1 + strlen(key);
+    valuelen = 1 + strlen(value);
+    len = sizeof(uint32_t) + sizeof(uint32_t) + keylen + sizeof(uint32_t) + valuelen;
+
+    ret = sss_packet_grow(packet, len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot grow packet\n"));
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &body, &blen);
+
+    SAFEALIGN_SET_UINT32(&body[*rp], len, rp);
+    SAFEALIGN_SET_UINT32(&body[*rp], keylen, rp);
+
+    if (keylen == 1) {
+        body[*rp] = '\0';
+    } else {
+        memcpy(&body[*rp], key, keylen);
+    }
+    *rp += keylen;
+
+    SAFEALIGN_SET_UINT32(&body[*rp], valuelen, rp);
+    if (valuelen == 1) {
+        body[*rp] = '\0';
+    } else {
+        memcpy(&body[*rp], value, valuelen);
+    }
+    *rp += valuelen;
 
     return EOK;
 }
