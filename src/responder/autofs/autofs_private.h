@@ -37,6 +37,8 @@ struct autofs_ctx {
 struct autofs_cmd_ctx {
     struct cli_ctx *cctx;
     char *mapname;
+    char *key;
+    uint32_t cursor;
     bool check_next;
 };
 
