@@ -1440,6 +1440,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->base_iter = 0;
     state->search_bases = opts->group_search_bases;
+    state->orig_dn = orig_dn;
 
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
