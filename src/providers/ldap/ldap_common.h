@@ -203,5 +203,10 @@ errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases);
+errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
+                                 const char *unparsed_base,
+                                 const char *class_name,
+                                 const char *old_filter,
+                                 struct sdap_search_base ***_search_bases);
 
 #endif /* _LDAP_COMMON_H_ */

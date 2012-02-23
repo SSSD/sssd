@@ -327,6 +327,41 @@ done:
     return ret;
 }
 
+static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
+                                     struct dp_option *opts, int class,
+                                     struct sdap_search_base ***_search_bases)
+{
+    const char *class_name;
+    char *unparsed_base;
+
+    *_search_bases = NULL;
+
+    switch (class) {
+    case IPA_HBAC_SEARCH_BASE:
+        class_name = "IPA_HBAC";
+        break;
+    case IPA_HOST_SEARCH_BASE:
+        class_name = "IPA_HOST";
+        break;
+    case IPA_SELINUX_SEARCH_BASE:
+        class_name = "IPA_SELINUX";
+        break;
+    default:
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Unknown search base type: [%d]\n", class));
+        class_name = "UNKNOWN";
+        /* Non-fatal */
+        break;
+    }
+
+    unparsed_base = dp_opt_get_string(opts, class);
+    if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
+
+    return common_parse_search_base(mem_ctx, unparsed_base,
+                                    class_name, NULL,
+                                    _search_bases);
+}
+
 int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
@@ -584,9 +619,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_HOST_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->basic, ipa_opts->basic,
-                                 IPA_HOST_SEARCH_BASE,
-                                 &ipa_opts->host_search_bases);
+    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+                                IPA_HOST_SEARCH_BASE,
+                                &ipa_opts->host_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->basic,
@@ -607,9 +642,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_HBAC_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->basic, ipa_opts->basic,
-                                 IPA_HBAC_SEARCH_BASE,
-                                 &ipa_opts->hbac_search_bases);
+    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+                                IPA_HBAC_SEARCH_BASE,
+                                &ipa_opts->hbac_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->basic,
@@ -630,9 +665,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_SELINUX_SEARCH_BASE)));
     }
-    ret = sdap_parse_search_base(ipa_opts->basic, ipa_opts->basic,
-                                 IPA_SELINUX_SEARCH_BASE,
-                                 &ipa_opts->selinux_search_bases);
+    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+                                IPA_SELINUX_SEARCH_BASE,
+                                &ipa_opts->selinux_search_bases);
     if (ret != EOK) goto done;
 
     value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);
