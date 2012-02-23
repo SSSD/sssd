@@ -28,10 +28,28 @@
 #define MAX_AUTOMNTMAPNAME_LEN  NAME_MAX
 #define MAX_AUTOMNTKEYNAME_LEN  NAME_MAX
 
+/* How many entries shall _sss_getautomntent_r retreive at once */
+#define GETAUTOMNTENT_MAX_ENTRIES   512
+
 struct automtent {
     char *mapname;
     size_t cursor;
 };
+
+static struct sss_getautomntent_data {
+    char *mapname;
+    size_t len;
+    size_t ptr;
+    uint8_t *data;
+} sss_getautomntent_data;
+
+static void
+sss_getautomntent_data_clean(void)
+{
+    free(sss_getautomntent_data.data);
+    free(sss_getautomntent_data.mapname);
+    memset(&sss_getautomntent_data, 0, sizeof(struct sss_getautomntent_data));
+}
 
 errno_t
 _sss_setautomntent(const char *mapname, void **context)
@@ -48,6 +66,9 @@ _sss_setautomntent(const char *mapname, void **context)
     if (!mapname) return EINVAL;
 
     sss_nss_lock();
+
+    /* Make sure there are no leftovers from previous runs */
+    sss_getautomntent_data_clean();
 
     ret = sss_strnlen(mapname, MAX_AUTOMNTMAPNAME_LEN, &name_len);
     if (ret != 0) {
@@ -106,6 +127,118 @@ out:
     return ret;
 }
 
+static errno_t
+sss_getautomntent_data_return(const char *mapname, char **_key, char **_value)
+{
+    size_t dp;
+    uint32_t len = 0;
+    char *key = NULL;
+    uint32_t keylen;
+    char *value = NULL;
+    uint32_t vallen;
+    errno_t ret;
+
+    if (sss_getautomntent_data.mapname == NULL ||
+        sss_getautomntent_data.data == NULL ||
+        sss_getautomntent_data.ptr >= sss_getautomntent_data.len) {
+        /* We're done with this buffer */
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = strcmp(mapname, sss_getautomntent_data.mapname);
+    if (ret != EOK) {
+        /* The map we're looking for is not cached. Let responder
+         * do an implicit setautomntent */
+        ret = ENOENT;
+        goto done;
+    }
+
+    dp = sss_getautomntent_data.ptr;
+
+    SAFEALIGN_COPY_UINT32(&len, sss_getautomntent_data.data+dp, &dp);
+    if (len + sss_getautomntent_data.ptr > sss_getautomntent_data.len) {
+        /* len is bigger than the buffer */
+        ret = EIO;
+        goto done;
+    }
+
+    if (len == 0) {
+        /* There are no more records. */
+        *_key = NULL;
+        *_value = NULL;
+        ret = ENOENT;
+        goto done;
+    }
+
+    SAFEALIGN_COPY_UINT32(&keylen, sss_getautomntent_data.data+dp, &dp);
+    if (keylen + dp > sss_getautomntent_data.len) {
+        ret = EIO;
+        goto done;
+    }
+
+    key = malloc(keylen);
+    if (!key) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    safealign_memcpy(key, sss_getautomntent_data.data+dp, keylen, &dp);
+
+    SAFEALIGN_COPY_UINT32(&vallen, sss_getautomntent_data.data+dp, &dp);
+    if (vallen + dp > sss_getautomntent_data.len) {
+        ret = EIO;
+        goto done;
+    }
+
+    value = malloc(vallen);
+    if (!value) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    safealign_memcpy(value, sss_getautomntent_data.data+dp, vallen, &dp);
+
+    sss_getautomntent_data.ptr = dp;
+    *_key = key;
+    *_value = value;
+    return EOK;
+
+done:
+    free(key);
+    free(value);
+    sss_getautomntent_data_clean();
+    return ret;
+}
+
+/* The repbuf is owned by the sss_getautomntent_data once this
+ * function is called */
+static errno_t
+sss_getautomntent_data_save(const char *mapname, uint8_t **repbuf, size_t replen)
+{
+    size_t rp;
+    uint32_t num;
+
+    rp = 0;
+    SAFEALIGN_COPY_UINT32(&num, repbuf+rp, &rp);
+    if (num == 0) {
+        free(repbuf);
+        return ENOENT;
+    }
+
+    sss_getautomntent_data.mapname = strdup(mapname);
+    if (sss_getautomntent_data.mapname == NULL) {
+        free(repbuf);
+        return ENOENT;
+    }
+
+    sss_getautomntent_data.data = *repbuf;
+    sss_getautomntent_data.len = replen;
+    sss_getautomntent_data.ptr = rp;
+    *repbuf = NULL;
+    return EOK;
+}
+
 errno_t
 _sss_getautomntent_r(char **key, char **value, void *context)
 {
@@ -120,12 +253,6 @@ _sss_getautomntent_r(char **key, char **value, void *context)
     size_t data_len = 0;
     uint8_t *data;
     uint32_t v;
-
-    char *buf;
-    uint32_t len;
-    uint32_t keylen;
-    uint32_t vallen;
-    size_t rp;
 
     sss_nss_lock();
 
@@ -142,9 +269,21 @@ _sss_getautomntent_r(char **key, char **value, void *context)
         goto out;
     }
 
+    ret = sss_getautomntent_data_return(ctx->mapname, key, value);
+    if (ret == EOK) {
+        /* The results are available from cache. Just advance the
+         * cursor and return. */
+        ctx->cursor++;
+        ret = 0;
+        goto out;
+    }
+    /* Don't try to handle any error codes, just go to the responder again */
+
+    ret = 0;
     data_len = sizeof(uint32_t) +            /* mapname len */
                name_len + 1 +                /* mapname\0   */
-               sizeof(uint32_t);             /* index into the map */
+               sizeof(uint32_t) +            /* index into the map */
+               sizeof(uint32_t);             /* num entries to retreive */
 
     data = malloc(data_len);
     if (!data) {
@@ -152,12 +291,13 @@ _sss_getautomntent_r(char **key, char **value, void *context)
         goto out;
     }
 
-    v = name_len;
-    SAFEALIGN_COPY_UINT32(data, &v, &ctr);
+    SAFEALIGN_COPY_UINT32(data, &name_len, &ctr);
 
     safealign_memcpy(data+ctr, ctx->mapname, name_len + 1, &ctr);
 
-    v = ctx->cursor;
+    SAFEALIGN_COPY_UINT32(data+ctr, &ctx->cursor, &ctr);
+
+    v = GETAUTOMNTENT_MAX_ENTRIES;
     SAFEALIGN_COPY_UINT32(data+ctr, &v, &ctr);
 
     rd.data = data;
@@ -171,54 +311,28 @@ _sss_getautomntent_r(char **key, char **value, void *context)
         goto out;
     }
 
-    /* Got reply, let's parse it */
-    rp = 0;
-    SAFEALIGN_COPY_UINT32(&len, repbuf+rp, &rp);
-    if (len == 0) {
-        /* End of iteration */
+    /* Got reply, let's save it and return from "cache" */
+    ret = sss_getautomntent_data_save(ctx->mapname, &repbuf, replen);
+    if (ret == ENOENT) {
+        /* No results */
         *key = NULL;
         *value = NULL;
-        ret = ENOENT;
+        goto out;
+    } else if (ret != EOK) {
+        /* Unexpected error */
         goto out;
     }
 
-    SAFEALIGN_COPY_UINT32(&keylen, repbuf+rp, &rp);
-    if (keylen > len-rp) {
-        ret = EIO;
+    ret = sss_getautomntent_data_return(ctx->mapname, key, value);
+    if (ret != EOK) {
         goto out;
     }
-
-    buf = malloc(keylen);
-    if (!buf) {
-        ret = ENOMEM;
-        goto out;
-    }
-
-    safealign_memcpy(buf, repbuf+rp, keylen, &rp);
-    *key = buf;
-
-    SAFEALIGN_COPY_UINT32(&vallen, repbuf+rp, &rp);
-    if (vallen > len-rp) {
-        ret = EIO;
-        goto out;
-    }
-
-    buf = malloc(vallen);
-    if (!buf) {
-        free(*key);
-        ret = ENOMEM;
-        goto out;
-    }
-
-    safealign_memcpy(buf, repbuf+rp, vallen, &rp);
-    *value = buf;
 
     /* Advance the cursor so that we'll fetch the next map
      * next time getautomntent is called */
     ctx->cursor++;
     ret = 0;
 out:
-    free(repbuf);
     sss_nss_unlock();
     return ret;
 }
@@ -340,6 +454,8 @@ _sss_endautomntent(void **context)
     if (!context) return 0;
 
     sss_nss_lock();
+
+    sss_getautomntent_data_clean();
 
     fctx = (struct automtent *) *context;
 

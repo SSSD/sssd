@@ -39,6 +39,7 @@ struct autofs_cmd_ctx {
     char *mapname;
     char *key;
     uint32_t cursor;
+    uint32_t max_entries;
     bool check_next;
 };
 
