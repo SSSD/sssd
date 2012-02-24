@@ -185,7 +185,7 @@ struct automntmaps_process_members_state {
     int    timeout;
     struct sysdb_ctx *sysdb;
 
-    char *clean_orig_dn;
+    const char *orig_dn;
     char *base_filter;
     char *filter;
     const char **attrs;
@@ -217,7 +217,6 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct tevent_req *req;
     struct automntmaps_process_members_state *state;
-    const char *orig_dn;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct automntmaps_process_members_state);
@@ -250,20 +249,15 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = sysdb_attrs_get_string(state->map, SYSDB_ORIG_DN, &orig_dn);
+
+    ret = sysdb_attrs_get_string(state->map, SYSDB_ORIG_DN, &state->orig_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get originalDN\n"));
         goto immediate;
     }
 
-    ret = sss_filter_sanitize(state, orig_dn, &state->clean_orig_dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot sanitize originalDN\n"));
-        goto immediate;
-    }
-
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Examining autofs map [%s]\n", state->clean_orig_dn));
+          ("Examining autofs map [%s]\n", state->orig_dn));
 
     ret = automntmaps_process_members_next_base(req);
     if (ret != EOK) {
@@ -304,7 +298,7 @@ automntmaps_process_members_next_base(struct tevent_req *req)
            state->search_bases[state->base_iter]->basedn));
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
-                                   state->clean_orig_dn,
+                                   state->orig_dn,
                                    state->search_bases[state->base_iter]->scope,
                                    state->filter, state->attrs,
                                    state->opts->autofs_entry_map,
