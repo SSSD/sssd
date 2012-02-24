@@ -33,6 +33,7 @@ struct hosts_get_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     const char *name;
+    const char *alias;
 
     size_t count;
     struct sysdb_attrs **hosts;
@@ -44,6 +45,7 @@ hosts_get_send(TALLOC_CTX *memctx,
                struct tevent_context *ev,
                struct ipa_hostid_ctx *hostid_ctx,
                const char *name,
+               const char *alias,
                int attrs_type);
 static errno_t
 hosts_get_recv(struct tevent_req *req,
@@ -82,7 +84,7 @@ ipa_host_info_handler(struct be_req *breq)
     }
 
     req = hosts_get_send(breq, breq->be_ctx->ev, hostid_ctx,
-                         ar->filter_value,
+                         ar->filter_value, ar->extra_value,
                          ar->attr_type);
     if (!req) {
         ret = ENOMEM;
@@ -148,6 +150,7 @@ hosts_get_send(TALLOC_CTX *memctx,
                struct tevent_context *ev,
                struct ipa_hostid_ctx *hostid_ctx,
                const char *name,
+               const char *alias,
                int attrs_type)
 {
     struct tevent_req *req;
@@ -174,6 +177,7 @@ hosts_get_send(TALLOC_CTX *memctx,
     state->sysdb = ctx->be->sysdb;
     state->domain = ctx->be->domain;
     state->name = name;
+    state->alias = alias;
 
     ret = hosts_get_retry(req);
     if (ret != EOK) {
@@ -227,8 +231,7 @@ hosts_get_connect_done(struct tevent_req *subreq)
     subreq = ipa_host_info_send(state, state->ev, state->sysdb,
                                 sdap_id_op_handle(state->op),
                                 state->ctx->sdap_id_ctx->opts, state->name,
-                                state->ctx->ipa_opts->host_map,
-                                state->ctx->ipa_opts->hostgroup_map,
+                                state->ctx->ipa_opts->host_map, NULL,
                                 state->ctx->host_search_bases);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -246,7 +249,6 @@ hosts_get_done(struct tevent_req *subreq)
                                                     struct hosts_get_state);
     int dp_error = DP_ERR_FATAL;
     errno_t ret;
-    bool in_transaction = false;
 
     ret = ipa_host_info_recv(subreq, state,
                              &state->count, &state->hosts,
@@ -267,20 +269,6 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_transaction_start(state->sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to start update transaction\n"));
-        goto done;
-    }
-
-    in_transaction = true;
-
-    ret = sysdb_delete_ssh_host(state->sysdb, state->name);
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
-    }
-
     if (state->count == 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("No host with name [%s] found.\n", state->name));
@@ -295,18 +283,12 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_save_ssh_host(state->sysdb,
-                              state->name, state->hosts[0]);
+    ret = sysdb_store_ssh_host(state->sysdb, state->name, state->alias,
+                               state->hosts[0]);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = sysdb_transaction_commit(state->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    in_transaction = false;
     dp_error = DP_ERR_OK;
 
 done:
@@ -314,9 +296,6 @@ done:
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
-        if (in_transaction) {
-            sysdb_transaction_cancel(state->sysdb);
-        }
         tevent_req_error(req, ret);
     }
 }

@@ -1182,7 +1182,9 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     if (filter) {
         if (strncmp(filter, "name=", 5) == 0) {
             req->filter_type = BE_FILTER_NAME;
-            req->filter_value = &filter[5];
+            ret = split_service_name_filter(req, &filter[5],
+                                            &req->filter_value,
+                                            &req->extra_value);
         } else {
             err_maj = DP_ERR_FATAL;
             err_min = EINVAL;

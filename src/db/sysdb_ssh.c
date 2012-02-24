@@ -24,12 +24,19 @@
 #include "db/sysdb_private.h"
 
 errno_t
-sysdb_save_ssh_host(struct sysdb_ctx *sysdb_ctx,
-                    const char *name,
-                    struct sysdb_attrs *attrs)
+sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
+                     const char *name,
+                     const char *alias,
+                     struct sysdb_attrs *attrs)
 {
-    errno_t ret;
     TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    struct ldb_message **hosts;
+    size_t num_hosts;
+    struct ldb_message_element *el;
+    unsigned int i;
+    const char *search_attrs[] = { SYSDB_NAME_ALIAS, NULL };
+    bool in_transaction = false;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Adding host %s\n", name));
 
@@ -46,25 +53,89 @@ sysdb_save_ssh_host(struct sysdb_ctx *sysdb_ctx,
         }
     }
 
-    ret = sysdb_store_custom(sysdb_ctx, name, SSH_HOSTS_SUBDIR, attrs);
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to start update transaction\n"));
+        goto done;
+    }
+
+    in_transaction = true;
+
+    ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, name, search_attrs,
+                                 &hosts, &num_hosts);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    if (num_hosts > 1) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sysdb_delete_ssh_host(sysdb, name);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    if (num_hosts == 1) {
+        el = ldb_msg_find_element(hosts[0], SYSDB_NAME_ALIAS);
+
+        if (el) {
+            for (i = 0; i < el->num_values; i++) {
+                if (alias && strcmp((char *)el->values[i].data, alias) == 0) {
+                    alias = NULL;
+                }
+
+                ret = sysdb_attrs_add_val(attrs,
+                                          SYSDB_NAME_ALIAS, &el->values[i]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+                    goto done;
+                }
+            }
+        }
+    }
+
+    if (alias) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, alias);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            goto done;
+        }
+    }
+
+    ret = sysdb_store_custom(sysdb, name, SSH_HOSTS_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
               ret, strerror(ret)));
         goto done;
     }
 
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    in_transaction = false;
     ret = EOK;
+
 done:
+    if (in_transaction) {
+        sysdb_transaction_cancel(sysdb);
+    }
+
     talloc_free(tmp_ctx);
+
     return ret;
 }
 
 errno_t
-sysdb_delete_ssh_host(struct sysdb_ctx *sysdb_ctx,
+sysdb_delete_ssh_host(struct sysdb_ctx *sysdb,
                       const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting host %s\n", name));
-    return sysdb_delete_custom(sysdb_ctx, name, SSH_HOSTS_SUBDIR);
+    return sysdb_delete_custom(sysdb, name, SSH_HOSTS_SUBDIR);
 }
 
 errno_t
