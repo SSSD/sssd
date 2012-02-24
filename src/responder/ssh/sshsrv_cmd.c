@@ -26,6 +26,7 @@
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_ssh.h"
 #include "db/sysdb.h"
 #include "db/sysdb_ssh.h"
 #include "providers/data_provider.h"
@@ -364,6 +365,9 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
 }
 
 static errno_t
+ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx);
+
+static errno_t
 ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
@@ -412,6 +416,8 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
     }
 
     /* one result found */
+    ssh_host_pubkeys_update_known_hosts(cmd_ctx);
+
     return EOK;
 }
 
@@ -433,6 +439,131 @@ ssh_host_pubkeys_search_dp_callback(uint16_t err_maj,
 
     ret = ssh_host_pubkeys_search_next(cmd_ctx);
     ssh_cmd_done(cmd_ctx, ret);
+}
+
+static errno_t
+ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char *attrs[] = {
+        SYSDB_NAME,
+        SYSDB_NAME_ALIAS,
+        SYSDB_SSH_PUBKEY,
+        NULL
+    };
+    struct cli_ctx *cctx = cmd_ctx->cctx;
+    struct sss_domain_info *dom = cctx->rctx->domains;
+    struct sysdb_ctx *sysdb;
+    struct ldb_message **hosts;
+    size_t num_hosts, i, j, k;
+    struct sss_ssh_ent *ent;
+    int fd = -1;
+    char *filename, *pubkey, *line;
+    ssize_t wret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* write known_hosts file */
+    filename = talloc_strdup(tmp_ctx, SSS_SSH_KNOWN_HOSTS_TEMP_TMPL);
+    if (!filename) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    fd = mkstemp(filename);
+    if (fd == -1) {
+        ret = errno;
+        goto done;
+    }
+
+    while (dom) {
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Fatal: Sysdb CTX not found for this domain!\n"));
+            ret = EFAULT;
+            goto done;
+        }
+
+        ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, "*", attrs,
+                                     &hosts, &num_hosts);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        for (i = 0; i < num_hosts; i++) {
+            ret = sss_ssh_make_ent(tmp_ctx, hosts[i], &ent);
+            if (ret != EOK) {
+                continue;
+            }
+
+            for (j = 0; j < ent->num_pubkeys; j++) {
+                pubkey = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[j],
+                                               SSS_SSH_FORMAT_OPENSSH);
+                if (!pubkey) {
+                    continue;
+                }
+
+                line = talloc_strdup(tmp_ctx, ent->name);
+                if (!line) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+
+                for (k = 0; k < ent->num_aliases; k++) {
+                    line = talloc_asprintf_append(line, ",%s", ent->aliases[k]);
+                    if (!line) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+
+                line = talloc_asprintf_append(line, " %s\n", pubkey);
+                if (!line) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+
+                wret = sss_atomic_write(fd, line, strlen(line));
+                if (wret == -1) {
+                    ret = errno;
+                    goto done;
+                }
+            }
+        }
+
+        dom = dom->next;
+    }
+
+    close(fd);
+    fd = -1;
+
+    ret = chmod(filename, 0644);
+    if (ret == -1) {
+        ret = errno;
+        goto done;
+    }
+
+    ret = rename(filename, SSS_SSH_KNOWN_HOSTS_PATH);
+    if (ret == -1) {
+        ret = errno;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (fd != -1) {
+        close(fd);
+        unlink(filename);
+    }
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static errno_t
