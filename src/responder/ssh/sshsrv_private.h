@@ -34,6 +34,7 @@ struct ssh_cmd_ctx {
     struct cli_ctx *cctx;
     enum sss_dp_acct_type type;
     char *name;
+    char *alias;
     char *domname;
 
     struct sss_domain_info *domain;

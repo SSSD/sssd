@@ -26,12 +26,13 @@
 #define SSH_HOSTS_SUBDIR "ssh_hosts"
 
 errno_t
-sysdb_save_ssh_host(struct sysdb_ctx *sysdb_ctx,
-                    const char *name,
-                    struct sysdb_attrs *attrs);
+sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
+                     const char *name,
+                     const char *alias,
+                     struct sysdb_attrs *attrs);
 
 errno_t
-sysdb_delete_ssh_host(struct sysdb_ctx *sysdb_ctx,
+sysdb_delete_ssh_host(struct sysdb_ctx *sysdb,
                       const char *name);
 
 errno_t

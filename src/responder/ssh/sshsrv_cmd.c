@@ -22,6 +22,7 @@
 
 #include <talloc.h>
 #include <string.h>
+#include <netdb.h>
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
@@ -90,6 +91,8 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
 {
     struct ssh_cmd_ctx *cmd_ctx;
     errno_t ret;
+    struct addrinfo ai_hint;
+    struct addrinfo *ai = NULL;
 
     cmd_ctx = talloc_zero(cctx, struct ssh_cmd_ctx);
     if (!cmd_ctx) {
@@ -106,6 +109,27 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Requesting SSH host public keys for [%s] from [%s]\n",
            cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
+
+    /* canonicalize host name */
+    memset(&ai_hint, 0, sizeof(struct addrinfo));
+    ai_hint.ai_flags = AI_CANONNAME;
+
+    ret = getaddrinfo(cmd_ctx->name, NULL, &ai_hint, &ai);
+    if (!ret) {
+        if (strcmp(cmd_ctx->name, ai[0].ai_canonname) != 0) {
+            cmd_ctx->alias = cmd_ctx->name;
+            cmd_ctx->name = talloc_strdup(cmd_ctx, ai[0].ai_canonname);
+            if (!cmd_ctx->name) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+    }
+
+    freeaddrinfo(ai);
 
     if (cmd_ctx->domname) {
         cmd_ctx->domain = responder_get_domain(cctx->rctx->domains,
@@ -312,7 +336,7 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
     if (NEED_CHECK_PROVIDER(cmd_ctx->domain->provider)) {
         req = sss_dp_get_account_send(cmd_ctx, cmd_ctx->cctx->rctx,
                                       cmd_ctx->domain, false, SSS_DP_HOST,
-                                      cmd_ctx->name, 0, NULL);
+                                      cmd_ctx->name, 0, cmd_ctx->alias);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Out of memory sending data provider request\n"));
