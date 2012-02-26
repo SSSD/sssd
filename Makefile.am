@@ -322,6 +322,7 @@ dist_noinst_HEADERS = \
     src/util/sss_krb5.h \
     src/util/sss_selinux.h \
     src/util/sss_utf8.h \
+    src/util/sss_ssh.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -391,7 +392,7 @@ dist_noinst_HEADERS = \
     src/resolv/ares/ares_parse_txt_reply.h \
     src/resolv/ares/ares_data.h \
     src/tests/common.h \
-    src/sss_client/ssh/sss_ssh.h
+    src/sss_client/ssh/sss_ssh_client.h
 
 
 if HAVE_NSS
@@ -450,7 +451,9 @@ if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c
 endif
 if BUILD_SSH
-    libsss_util_la_SOURCES += src/db/sysdb_ssh.c
+libsss_util_la_SOURCES += \
+    src/db/sysdb_ssh.c \
+    src/util/sss_ssh.c
 endif
 
 lib_LTLIBRARIES = libipa_hbac.la
@@ -648,7 +651,7 @@ endif
 if BUILD_SSH
 sss_ssh_authorizedkeys_SOURCES = \
     src/sss_client/common.c \
-    src/sss_client/ssh/sss_ssh.c \
+    src/sss_client/ssh/sss_ssh_client.c \
     src/sss_client/ssh/sss_ssh_authorizedkeys.c
 sss_ssh_authorizedkeys_CFLAGS = $(AM_CFLAGS)
 sss_ssh_authorizedkeys_LDADD = \
@@ -656,7 +659,7 @@ sss_ssh_authorizedkeys_LDADD = \
 
 sss_ssh_knownhostsproxy_SOURCES = \
     src/sss_client/common.c \
-    src/sss_client/ssh/sss_ssh.c \
+    src/sss_client/ssh/sss_ssh_client.c \
     src/sss_client/ssh/sss_ssh_knownhostsproxy.c
 sss_ssh_knownhostsproxy_CFLAGS = $(AM_CFLAGS)
 sss_ssh_knownhostsproxy_LDADD = \

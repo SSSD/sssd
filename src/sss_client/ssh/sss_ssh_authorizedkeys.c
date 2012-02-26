@@ -24,8 +24,9 @@
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_ssh.h"
 #include "sss_client/sss_cli.h"
-#include "sss_client/ssh/sss_ssh.h"
+#include "sss_client/ssh/sss_ssh_client.h"
 
 int main(int argc, const char **argv)
 {
@@ -43,8 +44,8 @@ int main(int argc, const char **argv)
     };
     poptContext pc = NULL;
     const char *user;
-    struct sss_ssh_pubkey *pubkeys;
-    size_t num_pubkeys, i;
+    struct sss_ssh_ent *ent;
+    size_t i;
     char *repr;
     int ret;
 
@@ -96,24 +97,18 @@ int main(int argc, const char **argv)
     }
 
     /* look up public keys */
-    ret = sss_ssh_get_pubkeys(mem_ctx, SSS_SSH_GET_USER_PUBKEYS, user,
-                              &pubkeys, &num_pubkeys);
+    ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_USER_PUBKEYS, user, &ent);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("sss_ssh_get_pubkeys() failed (%d): %s\n", ret, strerror(ret)));
         ERROR("Error looking up public keys\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* print results */
-    for (i = 0; i < num_pubkeys; i++) {
-        ret = sss_ssh_format_pubkey(mem_ctx, &pubkeys[i],
-                                    SSS_SSH_FORMAT_OPENSSH, &repr);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                    ("sss_ssh_format_pubkey() failed (%d): %s\n",
-                     ret, strerror(ret)));
+    for (i = 0; i < ent->num_pubkeys; i++) {
+        repr = sss_ssh_format_pubkey(mem_ctx, ent, &ent->pubkeys[i],
+                                     SSS_SSH_FORMAT_OPENSSH);
+        if (!repr) {
             continue;
         }
 
