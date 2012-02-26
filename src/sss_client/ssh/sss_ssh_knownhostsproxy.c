@@ -23,9 +23,9 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
@@ -34,7 +34,6 @@
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_ssh.h"
-#include "tools/tools_util.h"
 #include "sss_client/sss_cli.h"
 #include "sss_client/ssh/sss_ssh_client.h"
 
@@ -42,8 +41,144 @@
 
 #define BUFFER_SIZE 8192
 
-/* run proxy command */
-static int run_proxy(char **args)
+/* connect to server using socket */
+static int
+connect_socket(const char *host,
+               const char *port)
+{
+    struct addrinfo ai_hint;
+    struct addrinfo *ai = NULL;
+    int flags;
+    int sock = -1;
+    struct pollfd fds[2];
+    char buffer[BUFFER_SIZE];
+    int i;
+    ssize_t res;
+    int ret;
+
+    /* get IP addresses of the host */
+    memset(&ai_hint, 0, sizeof(struct addrinfo));
+    ai_hint.ai_family = AF_UNSPEC;
+    ai_hint.ai_socktype = SOCK_STREAM;
+    ai_hint.ai_protocol = IPPROTO_TCP;
+    ai_hint.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
+
+    ret = getaddrinfo(host, port, &ai_hint, &ai);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* set O_NONBLOCK on standard input */
+    flags = fcntl(0, F_GETFL);
+    if (flags == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
+                ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = fcntl(0, F_SETFL, flags | O_NONBLOCK);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
+                ret, strerror(ret)));
+        goto done;
+    }
+
+    /* create socket */
+    sock = socket(ai[0].ai_family, SOCK_STREAM, IPPROTO_TCP);
+    if (sock == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("socket() failed (%d): %s\n",
+                ret, strerror(ret)));
+        ERROR("Failed to open a socket\n");
+        goto done;
+    }
+
+    /* connect to the server */
+    ret = connect(sock, ai[0].ai_addr, ai[0].ai_addrlen);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("connect() failed (%d): %s\n",
+                ret, strerror(ret)));
+        ERROR("Failed to connect to the server\n");
+        goto done;
+    }
+
+    /* set O_NONBLOCK on the socket */
+    flags = fcntl(sock, F_GETFL);
+    if (flags == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
+                ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
+                ret, strerror(ret)));
+        goto done;
+    }
+
+    fds[0].fd = 0;
+    fds[0].events = POLLIN;
+    fds[1].fd = sock;
+    fds[1].events = POLLIN;
+
+    while (1) {
+        ret = poll(fds, 2, -1);
+        if (ret == -1) {
+            ret = errno;
+            if (ret == EINTR || ret == EAGAIN) {
+                continue;
+            }
+            goto done;
+        }
+
+        /* read from standard input & write to socket */
+        /* read from socket & write to standard output */
+        for (i = 0; i < 2; i++) {
+            if (fds[i].revents & POLLIN) {
+                res = read(fds[i].fd, buffer, BUFFER_SIZE);
+                if (res == -1) {
+                    ret = errno;
+                    if (ret == EAGAIN || ret == EINTR || ret == EWOULDBLOCK) {
+                        continue;
+                    }
+                    goto done;
+                } else if (res == 0) {
+                    ret = EOK;
+                    goto done;
+                }
+
+                res = sss_atomic_write(i == 0 ? sock : 1, buffer, res);
+                if (res == -1) {
+                    ret = errno;
+                    goto done;
+                }
+            }
+            if (fds[i].revents & POLLHUP) {
+                ret = EOK;
+                goto done;
+            }
+        }
+    }
+
+done:
+    if (ai) freeaddrinfo(ai);
+    if (sock >= 0) close(sock);
+
+    return ret;
+}
+
+/* connect to server using proxy command */
+static int
+connect_proxy_command(char **args)
 {
     int ret;
 
@@ -54,171 +189,7 @@ static int run_proxy(char **args)
             ret, strerror(ret)));
     ERROR("Failed to execute proxy command\n");
 
-    return EXIT_FAILURE;
-}
-
-/* connect to server */
-static int run_connect(int af, struct sockaddr *addr, size_t addr_len)
-{
-    int flags;
-    int sock;
-    fd_set fds;
-    char buffer[BUFFER_SIZE];
-    ssize_t rd_len, wr_len, wr_offs;
-    int ret;
-
-    /* set O_NONBLOCK on standard input */
-    flags = fcntl(0, F_GETFL);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
-        return EXIT_FAILURE;
-    }
-
-    ret = fcntl(0, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
-        return EXIT_FAILURE;
-    }
-
-    /* create socket */
-    sock = socket(af, SOCK_STREAM, IPPROTO_TCP);
-    if (sock == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("socket() failed (%d): %s\n",
-                ret, strerror(ret)));
-        ERROR("Failed to open a socket\n");
-        return EXIT_FAILURE;
-    }
-
-    /* connect to the server */
-    ret = connect(sock, addr, addr_len);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("connect() failed (%d): %s\n",
-                ret, strerror(ret)));
-        ERROR("Failed to connect to the server\n");
-        close(sock);
-        return EXIT_FAILURE;
-    }
-
-    /* set O_NONBLOCK on the socket */
-    flags = fcntl(sock, F_GETFL);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
-        close(sock);
-        return EXIT_FAILURE;
-    }
-
-    ret = fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
-        close(sock);
-        return EXIT_FAILURE;
-    }
-
-    while (1) {
-        FD_SET(0, &fds);
-        FD_SET(sock, &fds);
-
-        ret = select(sock+1, &fds, NULL, NULL, NULL);
-        if (ret == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-
-            ret = errno;
-            DEBUG(SSSDBG_OP_FAILURE, ("select() failed (%d): %s\n",
-                    ret, strerror(ret)));
-            close(sock);
-            return EXIT_FAILURE;
-        }
-
-        /* read from standard input & write to socket */
-        if (FD_ISSET(0, &fds)) {
-            rd_len = read(0, buffer, BUFFER_SIZE);
-            if (rd_len == -1) {
-                if (errno == EAGAIN) {
-                    continue;
-                }
-
-                ret = errno;
-                DEBUG(SSSDBG_OP_FAILURE, ("read() failed (%d): %s\n",
-                        ret, strerror(ret)));
-                close(sock);
-                return EXIT_FAILURE;
-            }
-
-            wr_offs = 0;
-            do {
-                wr_len = send(sock, buffer+wr_offs, rd_len-wr_offs, 0);
-                if (wr_len == -1) {
-                    if (errno == EAGAIN) {
-                        continue;
-                    }
-
-                    ret = errno;
-                    DEBUG(SSSDBG_OP_FAILURE, ("send() failed (%d): %s\n",
-                            ret, strerror(ret)));
-                    close(sock);
-                    return EXIT_FAILURE;
-                }
-
-                if (wr_len == 0) {
-                    close(sock);
-                    return EXIT_SUCCESS;
-                }
-
-                wr_offs += wr_len;
-            } while(wr_offs < rd_len);
-        }
-
-        /* read from socket & write to standard output */
-        if (FD_ISSET(sock, &fds)) {
-            rd_len = recv(sock, buffer, BUFFER_SIZE, 0);
-            if (rd_len == -1) {
-                if (errno == EAGAIN) {
-                    continue;
-                }
-
-                ret = errno;
-                DEBUG(SSSDBG_OP_FAILURE, ("recv() failed (%d): %s\n",
-                        ret, strerror(ret)));
-                close(sock);
-                return EXIT_FAILURE;
-            }
-
-            if (rd_len == 0) {
-                close(sock);
-                return EXIT_SUCCESS;
-            }
-
-            wr_offs = 0;
-            do {
-                wr_len = write(1, buffer+wr_offs, rd_len-wr_offs);
-                if (wr_len == -1) {
-                    if (errno == EAGAIN) {
-                        continue;
-                    }
-
-                    ret = errno;
-                    DEBUG(SSSDBG_OP_FAILURE, ("write() failed (%d): %s\n",
-                            ret, strerror(ret)));
-                    close(sock);
-                    return EXIT_FAILURE;
-                }
-
-                wr_offs += wr_len;
-            } while(wr_offs < rd_len);
-        }
-    }
+    return ret;
 }
 
 int main(int argc, const char **argv)
@@ -247,7 +218,8 @@ int main(int argc, const char **argv)
     struct passwd *pwd;
     const char *host;
     FILE *f;
-    struct addrinfo ai_hint, *ai = NULL;
+    struct addrinfo ai_hint;
+    struct addrinfo *ai = NULL;
     struct sss_ssh_ent *ent;
     size_t i;
     char *repr;
@@ -382,10 +354,11 @@ int main(int argc, const char **argv)
 
     /* connect to server */
     if (pc_args) {
-        ret = run_proxy(discard_const(pc_args));
+        ret = connect_proxy_command(discard_const(pc_args));
     } else {
-        ret = run_connect(ai->ai_family, ai->ai_addr, ai->ai_addrlen);
+        ret = connect_socket(pc_host, pc_port);
     }
+    ret = (ret == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
 fini:
     poptFreeContext(pc);
