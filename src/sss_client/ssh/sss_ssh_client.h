@@ -18,8 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _SSS_SSH_H_
-#define _SSS_SSH_H_
+#ifndef _SSS_SSH_CLIENT_H_
+#define _SSS_SSH_CLIENT_H_
 
 void usage(poptContext pc, const char *error);
 int set_locale(void);
@@ -30,34 +30,10 @@ int set_locale(void);
         goto label;                               \
 } while(0)
 
-struct sss_ssh_pubkey {
-    uint32_t flags;
-    char *name;
-
-    uint8_t *key;
-    size_t key_len;
-};
-
 errno_t
-sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
-                    enum sss_cli_command command,
-                    const char *name,
-                    struct sss_ssh_pubkey **pubkeys,
-                    size_t *pubkeys_len);
+sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
+                enum sss_cli_command command,
+                const char *name,
+                struct sss_ssh_ent **result);
 
-char *
-sss_ssh_get_pubkey_algorithm(TALLOC_CTX *mem_ctx,
-                             struct sss_ssh_pubkey *pubkey);
-
-enum sss_ssh_pubkey_format {
-    SSS_SSH_FORMAT_RAW,
-    SSS_SSH_FORMAT_OPENSSH
-};
-
-errno_t
-sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
-                      struct sss_ssh_pubkey *pubkey,
-                      enum sss_ssh_pubkey_format format,
-                      char **result);
-
-#endif /* _SSS_SSH_H_ */
+#endif /* _SSS_SSH_CLIENT_H_ */

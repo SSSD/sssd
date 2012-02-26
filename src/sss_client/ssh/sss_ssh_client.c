@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <arpa/inet.h>
 #include <talloc.h>
 
 #include <popt.h>
@@ -31,9 +30,11 @@
 #include <libintl.h>
 #include <string.h>
 
+#include "util/util.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_ssh.h"
 #include "sss_client/sss_cli.h"
-#include "sss_client/ssh/sss_ssh.h"
+#include "sss_client/ssh/sss_ssh_client.h"
 
 /* FIXME - split from tools_util to create a common function */
 void usage(poptContext pc, const char *error)
@@ -69,9 +70,9 @@ int set_locale(void)
 
 /* SSH public key request:
  * 
- * 0..3: flags (unsigned int, must be 0)
- * 4..7: name length (unsigned int)
- * 8..$: name (null-terminated UTF-8 string)
+ * 0..3:     flags (unsigned int, must be 0)
+ * 4..7:     name length (unsigned int)
+ * 8..(X-1): name (null-terminated UTF-8 string)
  * 
  * SSH public key reply:
  * 
@@ -85,14 +86,15 @@ int set_locale(void)
  *   (X+4)..Y: key (public key blob as defined in RFC4253, section 6.6)
  */
 errno_t
-sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
-                    enum sss_cli_command command,
-                    const char *name,
-                    struct sss_ssh_pubkey **pubkeys,
-                    size_t *pubkeys_len)
+sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
+                enum sss_cli_command command,
+                const char *name,
+                struct sss_ssh_ent **result)
 {
     TALLOC_CTX *tmp_ctx;
-    errno_t ret = EOK;
+    struct sss_ssh_ent *res = NULL;
+    errno_t ret;
+    uint32_t flags;
     uint32_t name_len;
     size_t req_len;
     uint8_t *req = NULL;
@@ -102,7 +104,6 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
     uint8_t *rep = NULL;
     size_t rep_len;
     uint32_t count, reserved, len, i;
-    struct sss_ssh_pubkey *result = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -110,6 +111,7 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
     }
 
     /* build request */
+    flags = 0;
     name_len = strlen(name)+1;
     req_len = 2*sizeof(uint32_t) + name_len;
 
@@ -119,7 +121,7 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    SAFEALIGN_SET_UINT32(req+c, 0, &c);
+    SAFEALIGN_SET_UINT32(req+c, flags, &c);
     SAFEALIGN_SET_UINT32(req+c, name_len, &c);
     safealign_memcpy(req+c, name, name_len, &c);
 
@@ -152,12 +154,20 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    res = talloc_zero(tmp_ctx, struct sss_ssh_ent);
+    if (!res) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     if (count > 0) {
-        result = talloc_zero_array(tmp_ctx, struct sss_ssh_pubkey, count);
-        if (!result) {
+        res->pubkeys = talloc_zero_array(res, struct sss_ssh_pubkey, count);
+        if (!res->pubkeys) {
             ret = ENOMEM;
             goto done;
         }
+
+        res->num_pubkeys = count;
     }
 
     for (i = 0; i < count; i++) {
@@ -166,8 +176,8 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        SAFEALIGN_COPY_UINT32(&result[i].flags, rep+c, &c);
-        if (result[i].flags != 0) {
+        SAFEALIGN_COPY_UINT32(&flags, rep+c, &c);
+        if (flags != 0) {
             ret = EINVAL;
             goto done;
         }
@@ -179,16 +189,20 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        result[i].name = talloc_array(result, char, len);
-        if (!result[i].name) {
-            ret = ENOMEM;
-            goto done;
-        }
+        if (!res->name) {
+            res->name = talloc_array(res, char, len);
+            if (!res->name) {
+                ret = ENOMEM;
+                goto done;
+            }
 
-        safealign_memcpy(result[i].name, rep+c, len, &c);
-        if (strnlen(result[i].name, len) != len-1) {
-            ret = EINVAL;
-            goto done;
+            safealign_memcpy(res->name, rep+c, len, &c);
+            if (strnlen(res->name, len) != len-1) {
+                ret = EINVAL;
+                goto done;
+            }
+        } else {
+            c += len;
         }
 
         SAFEALIGN_COPY_UINT32(&len, rep+c, &c);
@@ -198,103 +212,18 @@ sss_ssh_get_pubkeys(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        result[i].key = talloc_array(result, uint8_t, len);
-        if (!result[i].key) {
+        res->pubkeys[i].data = talloc_array(res, uint8_t, len);
+        if (!res->pubkeys[i].data) {
             ret = ENOMEM;
             goto done;
         }
 
-        safealign_memcpy(result[i].key, rep+c, len, &c);
-        result[i].key_len = len;
+        safealign_memcpy(res->pubkeys[i].data, rep+c, len, &c);
+        res->pubkeys[i].data_len = len;
     }
 
-    *pubkeys = result ? talloc_steal(mem_ctx, result) : NULL;
-    *pubkeys_len = count;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
-char *
-sss_ssh_get_pubkey_algorithm(TALLOC_CTX *mem_ctx,
-                             struct sss_ssh_pubkey *pubkey)
-{
-    size_t c = 0;
-    uint32_t algo_len;
-    char *algo;
-
-    SAFEALIGN_COPY_UINT32(&algo_len, pubkey->key, &c);
-    algo_len = ntohl(algo_len);
-
-    algo = talloc_zero_array(mem_ctx, char, algo_len+1);
-    if (!algo) {
-        return NULL;
-    }
-
-    memcpy(algo, pubkey->key+c, algo_len);
-
-    return algo;
-}
-
-errno_t
-sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
-                      struct sss_ssh_pubkey *pubkey,
-                      enum sss_ssh_pubkey_format format,
-                      char **result)
-{
-    TALLOC_CTX *tmp_ctx;
-    errno_t ret = EOK;
-    char *pk;
-    char *algo;
-    char *out;
-
-    if (!pubkey) {
-        return EINVAL;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    pk = sss_base64_encode(tmp_ctx, pubkey->key, pubkey->key_len);
-    if (!pk) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    switch (format) {
-    case SSS_SSH_FORMAT_RAW:
-        /* base64-encoded key blob */
-
-        out = talloc_steal(mem_ctx, pk);
-
-        break;
-
-    case SSS_SSH_FORMAT_OPENSSH:
-        /* OpenSSH authorized_keys/known_hosts format */
-
-        algo = sss_ssh_get_pubkey_algorithm(tmp_ctx, pubkey);
-        if (!algo) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        out = talloc_asprintf(tmp_ctx, "%s %s %s",
-                              algo, pk, pubkey->name);
-        if (!out) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        talloc_steal(mem_ctx, out);
-
-        break;
-    }
-
-    *result = out;
+    *result = talloc_steal(mem_ctx, res);
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);
