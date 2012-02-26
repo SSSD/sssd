@@ -20,6 +20,7 @@
 
 #include <ctype.h>
 #include <netdb.h>
+#include <poll.h>
 
 #include "talloc.h"
 #include "util/util.h"
@@ -608,4 +609,42 @@ void to_sized_string(struct sized_string *out, const char *in)
     } else {
         out->len = 0;
     }
+}
+
+/* based on code from libssh <http://www.libssh.org> */
+ssize_t sss_atomic_io(int fd, void *buf, size_t n, bool do_read)
+{
+    char *b = buf;
+    size_t pos = 0;
+    ssize_t res;
+    struct pollfd pfd;
+
+    pfd.fd = fd;
+    pfd.events = do_read ? POLLIN : POLLOUT;
+
+    while (n > pos) {
+        if (do_read) {
+            res = read(fd, b + pos, n - pos);
+        } else {
+            res = write(fd, b + pos, n - pos);
+        }
+        switch (res) {
+        case -1:
+            if (errno == EINTR) {
+                continue;
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                (void) poll(&pfd, 1, -1);
+                continue;
+            }
+            return -1;
+        case 0:
+            errno = EPIPE;
+            return pos;
+        default:
+            pos += (size_t) res;
+        }
+    }
+
+    return pos;
 }
