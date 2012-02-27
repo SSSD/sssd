@@ -492,12 +492,18 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, "*", attrs,
                                      &hosts, &num_hosts);
         if (ret != EOK) {
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Host search failed for domain [%s]\n", dom->name));
+            }
             continue;
         }
 
         for (i = 0; i < num_hosts; i++) {
             ret = sss_ssh_make_ent(tmp_ctx, hosts[i], &ent);
             if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Failed to get SSH host public keys\n"));
                 continue;
             }
 
@@ -505,6 +511,8 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
                 pubkey = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[j],
                                                SSS_SSH_FORMAT_OPENSSH);
                 if (!pubkey) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("Out of memory formatting SSH public key\n"));
                     continue;
                 }
 

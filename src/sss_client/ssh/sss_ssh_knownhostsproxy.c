@@ -136,6 +136,8 @@ connect_socket(const char *host,
             if (ret == EINTR || ret == EAGAIN) {
                 continue;
             }
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("poll() failed (%d): %s\n", ret, strerror(ret)));
             goto done;
         }
 
@@ -149,24 +151,30 @@ connect_socket(const char *host,
                     if (ret == EAGAIN || ret == EINTR || ret == EWOULDBLOCK) {
                         continue;
                     }
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("read() failed (%d): %s\n", ret, strerror(ret)));
                     goto done;
                 } else if (res == 0) {
-                    ret = EOK;
-                    goto done;
+                    break;
                 }
 
                 res = sss_atomic_write(i == 0 ? sock : 1, buffer, res);
                 if (res == -1) {
                     ret = errno;
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("sss_atomic_write() failed (%d): %s\n",
+                           ret, strerror(ret)));
                     goto done;
                 }
             }
             if (fds[i].revents & POLLHUP) {
-                ret = EOK;
-                goto done;
+                break;
             }
         }
     }
+
+    ret = EOK;
+    DEBUG(SSSDBG_TRACE_FUNC, ("Connection closed\n"));
 
 done:
     if (ai) freeaddrinfo(ai);
@@ -274,6 +282,8 @@ int main(int argc, const char **argv)
     /* look up public keys */
     ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS, host, &ent);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
         ERROR("Error looking up public keys\n");
     }
 
