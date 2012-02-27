@@ -492,7 +492,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, "*", attrs,
                                      &hosts, &num_hosts);
         if (ret != EOK) {
-            goto done;
+            continue;
         }
 
         for (i = 0; i < num_hosts; i++) {
