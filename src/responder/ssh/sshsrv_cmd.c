@@ -476,6 +476,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
 
     fd = mkstemp(filename);
     if (fd == -1) {
+        filename = NULL;
         ret = errno;
         goto done;
     }
@@ -547,10 +548,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         dom = dom->next;
     }
 
-    close(fd);
-    fd = -1;
-
-    ret = chmod(filename, 0644);
+    ret = fchmod(fd, 0644);
     if (ret == -1) {
         ret = errno;
         goto done;
@@ -565,10 +563,8 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     ret = EOK;
 
 done:
-    if (fd != -1) {
-        close(fd);
-        unlink(filename);
-    }
+    if (fd != -1) close(fd);
+    if (ret != EOK && filename) unlink(filename);
     talloc_free(tmp_ctx);
 
     return ret;
