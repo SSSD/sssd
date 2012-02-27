@@ -35,8 +35,9 @@
             them in a custom OpenSSH known_hosts file (see the
             <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> section of
             <citerefentry><refentrytitle>sshd</refentrytitle>
-            <manvolnum>8</manvolnum></citerefentry> for more
-            information) and estabilishes connection to the host.
+            <manvolnum>8</manvolnum></citerefentry> for more information)
+            <filename>/var/lib/sss/pubconf/known_hosts</filename> and
+            estabilishes connection to the host.
         </para>
         <para>
             If <replaceable>PROXY_COMMAND</replaceable> is specified,
@@ -52,7 +53,7 @@
             <manvolnum>1</manvolnum></citerefentry> configuration:
 <programlisting>
 ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h
-UserKnownHostsFile2 .ssh/sss_known_hosts
+GlobalKnownHostsFile2 /var/lib/sss/pubconf/known_hosts
 </programlisting>
         </para>
         <para>
@@ -63,18 +64,6 @@ UserKnownHostsFile2 .ssh/sss_known_hosts
     <refsect1 id='options'>
         <title>OPTIONS</title>
         <variablelist remap='IP'>
-            <varlistentry>
-                <term>
-                    <option>-f</option>,<option>--file</option>
-                    <replaceable>FILE</replaceable>
-                </term>
-                <listitem>
-                    <para>
-                        Store host public keys in file <replaceable>FILE</replaceable>.
-                        By default, <filename>.ssh/sss_known_hosts</filename> is used.
-                    </para>
-                </listitem>
-            </varlistentry>
             <varlistentry>
                 <term>
                     <option>-p</option>,<option>--port</option>
