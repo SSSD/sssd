@@ -33,6 +33,7 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 #include "responder/ssh/sshsrv_private.h"
+#include "resolv/async_resolv.h"
 
 static errno_t
 ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx);
@@ -84,16 +85,16 @@ done:
     return ssh_cmd_done(cmd_ctx, ret);
 }
 
-static errno_t
-ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
+static void
+ssh_host_pubkeys_resolv_done(struct tevent_req *req);
 
 static int
 sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
 {
+    struct ssh_ctx *ssh_ctx = cctx->rctx->pvt_ctx;
     struct ssh_cmd_ctx *cmd_ctx;
     errno_t ret;
-    struct addrinfo ai_hint;
-    struct addrinfo *ai = NULL;
+    struct tevent_req *req;
 
     cmd_ctx = talloc_zero(cctx, struct ssh_cmd_ctx);
     if (!cmd_ctx) {
@@ -111,27 +112,6 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
           ("Requesting SSH host public keys for [%s] from [%s]\n",
            cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
 
-    /* canonicalize host name */
-    memset(&ai_hint, 0, sizeof(struct addrinfo));
-    ai_hint.ai_flags = AI_CANONNAME;
-
-    ret = getaddrinfo(cmd_ctx->name, NULL, &ai_hint, &ai);
-    if (!ret) {
-        if (strcmp(cmd_ctx->name, ai[0].ai_canonname) != 0) {
-            cmd_ctx->alias = cmd_ctx->name;
-            cmd_ctx->name = talloc_strdup(cmd_ctx, ai[0].ai_canonname);
-            if (!cmd_ctx->name) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
-    }
-
-    freeaddrinfo(ai);
-
     if (cmd_ctx->domname) {
         cmd_ctx->domain = responder_get_domain(cctx->rctx->domains,
                                                cmd_ctx->domname);
@@ -144,10 +124,52 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
         cmd_ctx->check_next = true;
     }
 
-    ret = ssh_host_pubkeys_search(cmd_ctx);
+    /* canonicalize host name */
+    req = resolv_gethostbyname_send(cmd_ctx, cctx->rctx->ev, ssh_ctx->resolv,
+                                    cmd_ctx->name, IPV4_FIRST,
+                                    default_host_dbs);
+    if (!req) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Out of memory sending resolver request\n"));
+        goto done;
+    }
+
+    tevent_req_set_callback(req, ssh_host_pubkeys_resolv_done, cmd_ctx);
+    ret = EAGAIN;
 
 done:
     return ssh_cmd_done(cmd_ctx, ret);
+}
+
+static errno_t
+ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
+
+static void
+ssh_host_pubkeys_resolv_done(struct tevent_req *req)
+{
+    struct ssh_cmd_ctx *cmd_ctx = tevent_req_callback_data(req,
+                                                           struct ssh_cmd_ctx);
+    errno_t ret;
+    int resolv_status;
+    struct resolv_hostent *hostent;
+
+    ret = resolv_gethostbyname_recv(req, cmd_ctx,
+                                    &resolv_status, NULL, &hostent);
+    talloc_zfree(req);
+    if (ret == EOK) {
+        if (strcmp(cmd_ctx->name, hostent->name) != 0) {
+            cmd_ctx->alias = cmd_ctx->name;
+            cmd_ctx->name = hostent->name;
+        }
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to resolve [%s]: %s\n", cmd_ctx->name,
+               resolv_strerror(resolv_status)));
+    }
+
+    ret = ssh_host_pubkeys_search(cmd_ctx);
+    ssh_cmd_done(cmd_ctx, ret);
 }
 
 static void
