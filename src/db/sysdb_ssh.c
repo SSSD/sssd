@@ -55,8 +55,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to start update transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
 
@@ -70,11 +69,15 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
     if (num_hosts > 1) {
         ret = EINVAL;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Found more than one host with name [%s].\n", name));
         goto done;
     }
 
     ret = sysdb_delete_ssh_host(sysdb, name);
     if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to delete host [%s].\n", name));
         goto done;
     }
 
@@ -90,7 +93,9 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
                 ret = sysdb_attrs_add_val(attrs,
                                           SYSDB_NAME_ALIAS, &el->values[i]);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("Could not add name alias [%s]\n",
+                           el->values[i].data));
                     goto done;
                 }
             }
@@ -100,7 +105,8 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
     if (alias) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, alias);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not add name alias [%s]\n", alias));
             goto done;
         }
     }
@@ -114,6 +120,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto done;
     }
 
