@@ -31,6 +31,7 @@
 
 struct ssh_ctx {
     struct resp_ctx *rctx;
+    struct resolv_ctx *resolv;
 };
 
 struct ssh_cmd_ctx {

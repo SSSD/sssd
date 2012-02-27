@@ -26,6 +26,7 @@
 #include "responder/common/responder.h"
 #include "responder/ssh/sshsrv_private.h"
 #include "providers/data_provider.h"
+#include "resolv/async_resolv.h"
 
 struct sbus_method monitor_ssh_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
@@ -126,6 +127,12 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     for (iter = ssh_ctx->rctx->be_conns; iter; iter = iter->next) {
         sbus_reconnect_init(iter->conn, max_retries,
                             ssh_dp_reconnect_init, iter);
+    }
+
+    ret = resolv_init(ssh_ctx, ev, RESOLV_DEFAULT_TIMEOUT, &ssh_ctx->resolv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not set up resolver context\n"));
+        return ret;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("SSH Initialization complete\n"));
