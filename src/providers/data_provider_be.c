@@ -595,16 +595,12 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
             goto done;
     }
 
-    /* return an error if corresponding backend target is not configured */
+    /* return PAM_MODULE_UNKNOWN if corresponding backend target is not
+     * configured
+     */
     if (!becli->bectx->bet_info[target].bet_ops) {
         DEBUG(7, ("Undefined backend target.\n"));
         pd->pam_status = PAM_MODULE_UNKNOWN;
-        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
-                               sizeof(MSG_TARGET_NO_CONFIGURED),
-                               (const uint8_t *) MSG_TARGET_NO_CONFIGURED);
-        if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
-        }
         goto done;
     }
 
