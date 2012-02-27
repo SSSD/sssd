@@ -157,6 +157,7 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
     case SSS_SSH_FORMAT_RAW:
         /* base64-encoded key blob */
         result = talloc_steal(mem_ctx, blob);
+        break;
 
     case SSS_SSH_FORMAT_OPENSSH:
         /* OpenSSH authorized_keys/known_hosts format */
@@ -166,6 +167,7 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
         }
 
         result = talloc_asprintf(mem_ctx, "%s %s %s", algo, blob, ent->name);
+        break;
     }
 
 done:
