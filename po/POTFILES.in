@@ -10,6 +10,8 @@ src/sss_client/nss_group.c
 src/sss_client/nss_passwd.c
 src/sss_client/pam_sss.c
 src/sss_client/pam_test_client.c
+src/sss_client/ssh/sss_ssh_authorizedkeys.c
+src/sss_client/ssh/sss_ssh_knownhostsproxy.c
 src/tools/sss_useradd.c
 src/tools/sss_groupadd.c
 src/tools/sss_groupdel.c
@@ -18,6 +20,8 @@ src/tools/sss_groupshow.c
 src/tools/sss_useradd.c
 src/tools/sss_userdel.c
 src/tools/sss_usermod.c
+src/tools/sss_cache.c
+src/tools/sss_debuglevel.c
 src/tools/tools_util.c
 src/tools/tools_util.h
 src/util/util.h
