@@ -36,8 +36,6 @@
 #include "sss_client/sss_cli.h"
 #include "sss_client/ssh/sss_ssh_client.h"
 
-#define DEFAULT_FILE ".ssh/sss_known_hosts"
-
 #define BUFFER_SIZE 8192
 
 /* connect to server using socket */
@@ -203,7 +201,6 @@ int main(int argc, const char **argv)
 {
     TALLOC_CTX *mem_ctx;
     int pc_debug = SSSDBG_DEFAULT;
-    const char *pc_file = DEFAULT_FILE;
     const char *pc_port = "22";
     const char *pc_domain = NULL;
     const char *pc_host = NULL;
@@ -212,8 +209,6 @@ int main(int argc, const char **argv)
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0,
           _("The debug level to run with"), NULL },
-        { "file", 'f', POPT_ARG_STRING, &pc_file, 0,
-          _("The known_hosts file to use"), NULL },
         { "port", 'p', POPT_ARG_STRING, &pc_port, 0,
           _("The port to use to connect to the host"), NULL },
         { "domain", 'd', POPT_ARG_STRING, &pc_domain, 0,
