@@ -185,6 +185,7 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfig.py \
     src/config/SSSDConfigTest.py \
     src/config/sssd_upgrade_config.py \
+    src/contrib/rhel/upgrade_debug_levels.py \
     src/tests/pyhbac-test.py
 
 dist_noinst_DATA = \
