@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-28 12:01-0500\n"
+"POT-Creation-Date: 2012-02-28 16:51-0500\n"
 "PO-Revision-Date: 2011-12-21 10:11+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -889,7 +889,7 @@ msgstr "Атрибут трійки груп у мережі"
 
 #: src/config/SSSDConfig.py:290
 #, fuzzy
-msgid "Base DN for automonter map lookups"
+msgid "Base DN for automounter map lookups"
 msgstr "Базова назва домену для пошуків користувачів"
 
 #: src/config/SSSDConfig.py:293
@@ -924,7 +924,7 @@ msgstr "Запуститися фонову службу (типова пове�
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2383
+#: src/monitor/monitor.c:2383 src/tools/sss_debuglevel.c:77
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
@@ -1041,12 +1041,70 @@ msgstr "Поточний пароль: "
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
-#: src/tools/sss_useradd.c:48 src/tools/sss_groupadd.c:41
-#: src/tools/sss_groupdel.c:43 src/tools/sss_groupmod.c:42
-#: src/tools/sss_groupshow.c:615 src/tools/sss_userdel.c:131
-#: src/tools/sss_usermod.c:47
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211 src/tools/sss_useradd.c:48
+#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
+#: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:615
+#: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
+#: src/tools/sss_cache.c:260 src/tools/sss_debuglevel.c:75
 msgid "The debug level to run with"
 msgstr "Рівень діагностики під час запуску"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
+#, fuzzy
+msgid "The SSSD domain to use"
+msgstr "Домени SSSD, які слід запустити"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
+#: src/tools/sss_groupadd.c:56 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupmod.c:63 src/tools/sss_groupshow.c:626
+#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:72
+#: src/tools/sss_cache.c:281
+msgid "Error setting the locale\n"
+msgstr "Помилка під час спроби встановити локаль\n"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
+#, fuzzy
+msgid "Not enough memory\n"
+msgstr "Не вистачає пам'яті\n"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
+msgid "User not specified\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:104
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:282
+msgid "Error looking up public keys\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:94
+msgid "Failed to open a socket\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:104
+msgid "Failed to connect to the server\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:195
+msgid "Failed to execute proxy command\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:213
+msgid "The port to use to connect to the host"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:255
+msgid "Host not specified\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:261
+msgid "The path to the proxy command must be absolute\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1083,13 +1141,6 @@ msgstr "Вказати альтернативний основний катал�
 #: src/tools/sss_useradd.c:57 src/tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
 msgstr "Ім’я користувача SELinux для входу до системи"
-
-#: src/tools/sss_useradd.c:71 src/tools/sss_groupadd.c:56
-#: src/tools/sss_groupdel.c:52 src/tools/sss_groupmod.c:63
-#: src/tools/sss_groupshow.c:626 src/tools/sss_userdel.c:148
-#: src/tools/sss_usermod.c:72
-msgid "Error setting the locale\n"
-msgstr "Помилка під час спроби встановити локаль\n"
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
@@ -1459,6 +1510,53 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 "Помилка під час виконання операції. Не вдалося змінити запис користувача.\n"
+
+#: src/tools/sss_cache.c:132
+#, c-format
+msgid "Couldn't invalidate %s"
+msgstr ""
+
+#: src/tools/sss_cache.c:138
+#, c-format
+msgid "Couldn't invalidate %s %s"
+msgstr ""
+
+#: src/tools/sss_cache.c:262
+msgid "Invalidate particular user"
+msgstr ""
+
+#: src/tools/sss_cache.c:264
+msgid "Invalidate all users"
+msgstr ""
+
+#: src/tools/sss_cache.c:266
+msgid "Invalidate particular group"
+msgstr ""
+
+#: src/tools/sss_cache.c:268
+msgid "Invalidate all groups"
+msgstr ""
+
+#: src/tools/sss_cache.c:270
+msgid "Invalidate particular netgroup"
+msgstr ""
+
+#: src/tools/sss_cache.c:272
+msgid "Invalidate all netgroups"
+msgstr ""
+
+#: src/tools/sss_cache.c:274
+msgid "Only invalidate entries from a particular domain"
+msgstr ""
+
+#: src/tools/sss_debuglevel.c:43
+msgid "\n"
+msgstr ""
+
+#: src/tools/sss_debuglevel.c:102
+#, fuzzy
+msgid "Specify debug level you want to set\n"
+msgstr "Рівень діагностики під час запуску"
 
 #: src/tools/tools_util.c:286
 msgid "Out of memory\n"

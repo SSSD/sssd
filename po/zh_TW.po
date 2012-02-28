@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-28 12:01-0500\n"
+"POT-Creation-Date: 2012-02-28 16:51-0500\n"
 "PO-Revision-Date: 2011-12-21 10:10+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Chinese (Taiwan) <trans-zh_TW@lists.fedoraproject.org>\n"
@@ -821,7 +821,7 @@ msgid "Automounter map entry value attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:290
-msgid "Base DN for automonter map lookups"
+msgid "Base DN for automounter map lookups"
 msgstr ""
 
 #: src/config/SSSDConfig.py:293
@@ -856,7 +856,7 @@ msgstr "作為幕後程式 (預設)"
 msgid "Run interactive (not a daemon)"
 msgstr "以互動方式執行 (非幕後程式)"
 
-#: src/monitor/monitor.c:2383
+#: src/monitor/monitor.c:2383 src/tools/sss_debuglevel.c:77
 msgid "Specify a non-default config file"
 msgstr "指定非預設的配置檔"
 
@@ -973,11 +973,69 @@ msgstr "目前的密碼："
 msgid "Password expired. Change your password now."
 msgstr "密碼已過期。請立刻變更您的密碼。"
 
-#: src/tools/sss_useradd.c:48 src/tools/sss_groupadd.c:41
-#: src/tools/sss_groupdel.c:43 src/tools/sss_groupmod.c:42
-#: src/tools/sss_groupshow.c:615 src/tools/sss_userdel.c:131
-#: src/tools/sss_usermod.c:47
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211 src/tools/sss_useradd.c:48
+#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
+#: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:615
+#: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
+#: src/tools/sss_cache.c:260 src/tools/sss_debuglevel.c:75
 msgid "The debug level to run with"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
+#, fuzzy
+msgid "The SSSD domain to use"
+msgstr "要啟動的 SSSD 網域"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
+#: src/tools/sss_groupadd.c:56 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupmod.c:63 src/tools/sss_groupshow.c:626
+#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:72
+#: src/tools/sss_cache.c:281
+msgid "Error setting the locale\n"
+msgstr "設定區域設置時發生錯誤\n"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
+#, fuzzy
+msgid "Not enough memory\n"
+msgstr "記憶體耗盡\n"
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
+msgid "User not specified\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:104
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:282
+msgid "Error looking up public keys\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:94
+msgid "Failed to open a socket\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:104
+msgid "Failed to connect to the server\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:195
+msgid "Failed to execute proxy command\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:213
+msgid "The port to use to connect to the host"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:255
+msgid "Host not specified\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:261
+msgid "The path to the proxy command must be absolute\n"
 msgstr ""
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
@@ -1015,13 +1073,6 @@ msgstr "指定替代的骨幹目錄"
 #: src/tools/sss_useradd.c:57 src/tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
 msgstr ""
-
-#: src/tools/sss_useradd.c:71 src/tools/sss_groupadd.c:56
-#: src/tools/sss_groupdel.c:52 src/tools/sss_groupmod.c:63
-#: src/tools/sss_groupshow.c:626 src/tools/sss_userdel.c:148
-#: src/tools/sss_usermod.c:72
-msgid "Error setting the locale\n"
-msgstr "設定區域設置時發生錯誤\n"
 
 #: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
 #: src/tools/sss_usermod.c:85
@@ -1357,6 +1408,53 @@ msgstr "無法修改使用者 - 使用者是否已經是群組的成員？\n"
 #: src/tools/sss_usermod.c:254
 msgid "Transaction error. Could not modify user.\n"
 msgstr "處理事項發生錯誤。無法修改使用者。\n"
+
+#: src/tools/sss_cache.c:132
+#, c-format
+msgid "Couldn't invalidate %s"
+msgstr ""
+
+#: src/tools/sss_cache.c:138
+#, c-format
+msgid "Couldn't invalidate %s %s"
+msgstr ""
+
+#: src/tools/sss_cache.c:262
+msgid "Invalidate particular user"
+msgstr ""
+
+#: src/tools/sss_cache.c:264
+msgid "Invalidate all users"
+msgstr ""
+
+#: src/tools/sss_cache.c:266
+msgid "Invalidate particular group"
+msgstr ""
+
+#: src/tools/sss_cache.c:268
+msgid "Invalidate all groups"
+msgstr ""
+
+#: src/tools/sss_cache.c:270
+msgid "Invalidate particular netgroup"
+msgstr ""
+
+#: src/tools/sss_cache.c:272
+msgid "Invalidate all netgroups"
+msgstr ""
+
+#: src/tools/sss_cache.c:274
+msgid "Only invalidate entries from a particular domain"
+msgstr ""
+
+#: src/tools/sss_debuglevel.c:43
+msgid "\n"
+msgstr ""
+
+#: src/tools/sss_debuglevel.c:102
+#, fuzzy
+msgid "Specify debug level you want to set\n"
+msgstr "指定要刪除的群組\n"
 
 #: src/tools/tools_util.c:286
 msgid "Out of memory\n"

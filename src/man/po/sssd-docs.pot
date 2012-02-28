@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: sssd-docs 1.8.0\n"
+"Project-Id-Version: sssd-docs 1.8.1\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-02-28 12:01-0500\n"
+"POT-Creation-Date: 2012-02-28 16:51-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. type: Content of: <reference><title>
-#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sssd-ipa.5.xml:5 sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_useradd.8.xml:5 sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5 sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5
+#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sssd-ipa.5.xml:5 sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_useradd.8.xml:5 sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5 sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5 sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_ssh_authorizedkeys.1.xml:5 sss_ssh_knownhostsproxy.1.xml:5
 msgid "SSSD Manual pages"
 msgstr ""
 
@@ -28,7 +28,7 @@ msgid "sss_groupmod"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
-#: sss_groupmod.8.xml:11 pam_sss.8.xml:14 sssd_krb5_locator_plugin.8.xml:11 sssd.8.xml:11 sss_obfuscate.8.xml:11 sss_useradd.8.xml:11 sss_groupadd.8.xml:11 sss_userdel.8.xml:11 sss_groupdel.8.xml:11 sss_groupshow.8.xml:11 sss_usermod.8.xml:11
+#: sss_groupmod.8.xml:11 pam_sss.8.xml:14 sssd_krb5_locator_plugin.8.xml:11 sssd.8.xml:11 sss_obfuscate.8.xml:11 sss_useradd.8.xml:11 sss_groupadd.8.xml:11 sss_userdel.8.xml:11 sss_groupdel.8.xml:11 sss_groupshow.8.xml:11 sss_usermod.8.xml:11 sss_cache.8.xml:11 sss_debuglevel.8.xml:11
 msgid "8"
 msgstr ""
 
@@ -46,7 +46,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:44 sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22 sssd-ipa.5.xml:21 sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_useradd.8.xml:30 sssd-krb5.5.xml:21 sss_groupadd.8.xml:30 sss_userdel.8.xml:30 sss_groupdel.8.xml:30 sss_groupshow.8.xml:30 sss_usermod.8.xml:30
+#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:44 sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22 sssd-ipa.5.xml:21 sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_useradd.8.xml:30 sssd-krb5.5.xml:21 sss_groupadd.8.xml:30 sss_userdel.8.xml:30 sss_groupdel.8.xml:30 sss_groupshow.8.xml:30 sss_usermod.8.xml:30 sss_cache.8.xml:29 sss_debuglevel.8.xml:30 sss_ssh_authorizedkeys.1.xml:30 sss_ssh_knownhostsproxy.1.xml:31
 msgid "DESCRIPTION"
 msgstr ""
 
@@ -58,7 +58,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:39 pam_sss.8.xml:51 sssd.8.xml:42 sss_obfuscate.8.xml:58 sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39 sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39
+#: sss_groupmod.8.xml:39 pam_sss.8.xml:51 sssd.8.xml:42 sss_obfuscate.8.xml:58 sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39 sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39 sss_cache.8.xml:38 sss_debuglevel.8.xml:38 sss_ssh_authorizedkeys.1.xml:78 sss_ssh_knownhostsproxy.1.xml:65
 msgid "OPTIONS"
 msgstr ""
 
@@ -93,7 +93,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:72 sssd.conf.5.xml:1331 sssd-ldap.5.xml:2096 pam_sss.8.xml:139 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143 sssd-ipa.5.xml:562 sssd.8.xml:191 sss_obfuscate.8.xml:103 sss_useradd.8.xml:167 sssd-krb5.5.xml:451 sss_groupadd.8.xml:58 sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58 sss_usermod.8.xml:138
+#: sss_groupmod.8.xml:72 sssd.conf.5.xml:1331 sssd-ldap.5.xml:2096 pam_sss.8.xml:139 sssd_krb5_locator_plugin.8.xml:75 sssd-simple.5.xml:143 sssd-ipa.5.xml:562 sssd.8.xml:191 sss_obfuscate.8.xml:103 sss_useradd.8.xml:167 sssd-krb5.5.xml:451 sss_groupadd.8.xml:58 sss_userdel.8.xml:93 sss_groupdel.8.xml:46 sss_groupshow.8.xml:58 sss_usermod.8.xml:138 sss_ssh_authorizedkeys.1.xml:96 sss_ssh_knownhostsproxy.1.xml:95
 msgid "SEE ALSO"
 msgstr ""
 
@@ -948,8 +948,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:662
 msgid ""
-"Specifies for how many seconds should the autofs respondercache negative "
-"cache hits (that is, queries for invalid map entries, like nonexistent ones) "
+"Specifies for how many seconds should the autofs responder negative cache "
+"hits (that is, queries for invalid map entries, like nonexistent ones) "
 "before asking the back end again."
 msgstr ""
 
@@ -3772,7 +3772,7 @@ msgstr ""
 #: sssd-ldap.5.xml:1815
 msgid ""
 "This manual page only describes attribute name mapping.  For detailed "
-"explanation of sudo related attribute sematics, see <citerefentry> "
+"explanation of sudo related attribute semantics, see <citerefentry> "
 "<refentrytitle>sudoers.ldap</refentrytitle><manvolnum>5</manvolnum> "
 "</citerefentry>"
 msgstr ""
@@ -5062,12 +5062,12 @@ msgid "Run in the foreground, don't become a daemon."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:117
+#: sssd.8.xml:117 sss_debuglevel.8.xml:42
 msgid "<option>-c</option>,<option>--config</option>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:121
+#: sssd.8.xml:121 sss_debuglevel.8.xml:46
 msgid ""
 "Specify a non-default config file. The default is "
 "<filename>/etc/sssd/sssd.conf</filename>. For reference on the config file "
@@ -5219,7 +5219,7 @@ msgid "The password to obfuscate will be read from standard input."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_obfuscate.8.xml:74
+#: sss_obfuscate.8.xml:74 sss_ssh_authorizedkeys.1.xml:82 sss_ssh_knownhostsproxy.1.xml:81
 msgid ""
 "<option>-d</option>,<option>--domain</option> "
 "<replaceable>DOMAIN</replaceable>"
@@ -6188,6 +6188,330 @@ msgid ""
 "</citerefentry>."
 msgstr ""
 
+#. type: Content of: <reference><refentry><refnamediv><refname>
+#: sss_cache.8.xml:10 sss_cache.8.xml:15
+msgid "sss_cache"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refpurpose>
+#: sss_cache.8.xml:16
+msgid "perform cache cleanup"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
+#: sss_cache.8.xml:21
+msgid ""
+"<command>sss_cache</command> <arg choice='opt'> "
+"<replaceable>options</replaceable> </arg>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_cache.8.xml:31
+msgid ""
+"<command>sss_cache</command> invalidates records in SSSD cache.  Invalidated "
+"records are forced to be reloaded from server as soon as related SSSD "
+"backend is online."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:42
+msgid "<option>-u</option>,<option>--user</option> <replaceable>login</replaceable>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:47
+msgid "Invalidate specific user."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:53
+msgid "<option>-U</option>,<option>--users</option>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:57
+msgid ""
+"Invalidate all user records. This option overrides invalidation of specific "
+"user if it was also set."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:64
+msgid ""
+"<option>-g</option>,<option>--group</option> "
+"<replaceable>group</replaceable>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:69
+msgid "Invalidate specific group."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:75
+msgid "<option>-G</option>,<option>--groups</option>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:79
+msgid ""
+"Invalidate all group records. This option overrides invalidation of specific "
+"group if it was also set."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:86
+msgid ""
+"<option>-n</option>,<option>--netgroup</option> "
+"<replaceable>netgroup</replaceable>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:91
+msgid "Invalidate specific netgroup."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:97
+msgid "<option>-N</option>,<option>--netgroups</option>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:101
+msgid ""
+"Invalidate all netgroup records. This option overrides invalidation of "
+"specific netgroup if it was also set."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_cache.8.xml:108
+msgid ""
+"<option>-d</option>,<option>--domain</option> "
+"<replaceable>domain</replaceable>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_cache.8.xml:113
+msgid "Restrict invalidation process only to a particular domain."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refname>
+#: sss_debuglevel.8.xml:10 sss_debuglevel.8.xml:15
+msgid "sss_debuglevel"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refpurpose>
+#: sss_debuglevel.8.xml:16
+msgid "change debug level while SSSD is running"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
+#: sss_debuglevel.8.xml:21
+msgid ""
+"<command>sss_debuglevel</command> <arg choice='opt'> "
+"<replaceable>options</replaceable> </arg> <arg "
+"choice='plain'><replaceable>NEW_DEBUG_LEVEL</replaceable></arg>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_debuglevel.8.xml:32
+msgid ""
+"<command>sss_debuglevel</command> changes debug level of SSSD monitor and "
+"providers to <replaceable>NEW_DEBUG_LEVEL</replaceable> while SSSD is "
+"running."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_debuglevel.8.xml:59
+msgid "<replaceable>NEW_DEBUG_LEVEL</replaceable>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refname>
+#: sss_ssh_authorizedkeys.1.xml:10 sss_ssh_authorizedkeys.1.xml:15
+msgid "sss_ssh_authorizedkeys"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refmeta><manvolnum>
+#: sss_ssh_authorizedkeys.1.xml:11 sss_ssh_knownhostsproxy.1.xml:11
+msgid "1"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refpurpose>
+#: sss_ssh_authorizedkeys.1.xml:16
+msgid "get OpenSSH authorized keys"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
+#: sss_ssh_authorizedkeys.1.xml:21
+msgid ""
+"<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> "
+"<replaceable>options</replaceable> </arg> <arg "
+"choice='plain'><replaceable>USER</replaceable></arg>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_authorizedkeys.1.xml:32
+msgid ""
+"<command>sss_ssh_authorizedkeys</command> acquires SSH public keys for user "
+"<replaceable>USER</replaceable> and outputs them in OpenSSH authorized_keys "
+"format (see the <quote>AUTHORIZED_KEYS FILE FORMAT</quote> section of "
+"<citerefentry><refentrytitle>sshd</refentrytitle> "
+"<manvolnum>8</manvolnum></citerefentry> for more information)."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_authorizedkeys.1.xml:41
+msgid ""
+"<citerefentry><refentrytitle>sshd</refentrytitle> "
+"<manvolnum>8</manvolnum></citerefentry> can be configured to use "
+"<command>sss_ssh_authorizedkeys</command> for public key user authentication "
+"if it is compiled with support for either "
+"<quote>AuthorizedKeysCommand</quote> or <quote>PubkeyAgent</quote> "
+"<citerefentry> <refentrytitle>sshd_config</refentrytitle> "
+"<manvolnum>5</manvolnum></citerefentry> options."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><programlisting>
+#: sss_ssh_authorizedkeys.1.xml:58
+#, no-wrap
+msgid "AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys\n"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_authorizedkeys.1.xml:51
+msgid ""
+"If <quote>AuthorizedKeysCommand</quote> is supported, "
+"<citerefentry><refentrytitle>sshd</refentrytitle> "
+"<manvolnum>8</manvolnum></citerefentry> can be configured to use it by "
+"putting the following directive in <citerefentry> "
+"<refentrytitle>sshd_config</refentrytitle> "
+"<manvolnum>5</manvolnum></citerefentry>: <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><programlisting>
+#: sss_ssh_authorizedkeys.1.xml:69
+#, no-wrap
+msgid "PubKeyAgent /usr/bin/sss_ssh_authorizedkeys %u\n"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_authorizedkeys.1.xml:62
+msgid ""
+"If <quote>PubkeyAgent</quote> is supported, "
+"<citerefentry><refentrytitle>sshd</refentrytitle> "
+"<manvolnum>8</manvolnum></citerefentry> can be configured to use it by using "
+"the following directive for <citerefentry> "
+"<refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></citerefentry> "
+"configuration: <placeholder type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_ssh_authorizedkeys.1.xml:87
+msgid ""
+"Search for user public keys in SSSD domain "
+"<replaceable>DOMAIN</replaceable>."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_authorizedkeys.1.xml:98
+msgid ""
+"<citerefentry> <refentrytitle>sshd</refentrytitle><manvolnum>8</manvolnum> "
+"</citerefentry>, <citerefentry> "
+"<refentrytitle>sshd_config</refentrytitle><manvolnum>5</manvolnum> "
+"</citerefentry>, <citerefentry> "
+"<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle><manvolnum>1</manvolnum> "
+"</citerefentry>."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refname>
+#: sss_ssh_knownhostsproxy.1.xml:10 sss_ssh_knownhostsproxy.1.xml:15
+msgid "sss_ssh_knownhostsproxy"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refnamediv><refpurpose>
+#: sss_ssh_knownhostsproxy.1.xml:16
+msgid "get OpenSSH host keys"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
+#: sss_ssh_knownhostsproxy.1.xml:21
+msgid ""
+"<command>sss_ssh_knownhostsproxy</command> <arg choice='opt'> "
+"<replaceable>options</replaceable> </arg> <arg "
+"choice='plain'><replaceable>HOST</replaceable></arg> <arg "
+"choice='opt'><replaceable>PROXY_COMMAND</replaceable></arg>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_knownhostsproxy.1.xml:33
+msgid ""
+"<command>sss_ssh_knownhostsproxy</command> acquires SSH host public keys for "
+"host <replaceable>HOST</replaceable>, stores them in a custom OpenSSH "
+"known_hosts file (see the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> section "
+"of <citerefentry><refentrytitle>sshd</refentrytitle> "
+"<manvolnum>8</manvolnum></citerefentry> for more information)  "
+"<filename>/var/lib/sss/pubconf/known_hosts</filename> and estabilishes "
+"connection to the host."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_knownhostsproxy.1.xml:43
+msgid ""
+"If <replaceable>PROXY_COMMAND</replaceable> is specified, it is used to "
+"create the connection to the host instead of opening a socket."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><programlisting>
+#: sss_ssh_knownhostsproxy.1.xml:55
+#, no-wrap
+msgid ""
+"ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h\n"
+"GlobalKnownHostsFile2 /var/lib/sss/pubconf/known_hosts\n"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_knownhostsproxy.1.xml:48
+msgid ""
+"<citerefentry><refentrytitle>ssh</refentrytitle> "
+"<manvolnum>1</manvolnum></citerefentry> can be configured to use "
+"<command>sss_ssh_knownhostsproxy</command> for host key authentication by "
+"using the following directives for "
+"<citerefentry><refentrytitle>ssh</refentrytitle> "
+"<manvolnum>1</manvolnum></citerefentry> configuration: <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_ssh_knownhostsproxy.1.xml:69
+msgid "<option>-p</option>,<option>--port</option> <replaceable>PORT</replaceable>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_ssh_knownhostsproxy.1.xml:74
+msgid ""
+"Use port <replaceable>PORT</replaceable> to connect to the host.  By "
+"default, port 22 is used."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_ssh_knownhostsproxy.1.xml:86
+msgid ""
+"Search for host public keys in SSSD domain "
+"<replaceable>DOMAIN</replaceable>."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_ssh_knownhostsproxy.1.xml:97
+msgid ""
+"<citerefentry> <refentrytitle>ssh</refentrytitle><manvolnum>8</manvolnum> "
+"</citerefentry>, <citerefentry> "
+"<refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum> "
+"</citerefentry>, <citerefentry> "
+"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle><manvolnum>1</manvolnum> "
+"</citerefentry>."
+msgstr ""
+
 #. type: Content of: <refsect1><title>
 #: include/service_discovery.xml:2
 msgid "SERVICE DISCOVERY"
@@ -6324,4 +6648,113 @@ msgstr ""
 #. type: Content of: <varlistentry><listitem><para>
 #: include/param_help.xml:7
 msgid "Display help message and exit."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:3
+msgid ""
+"Bit mask that indicates which debug levels will be visible. 0x0010 is the "
+"default value as well as the lowest allowed value, 0xFFF0 is the most "
+"verbose mode. This setting overrides the settings from config file."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:8
+msgid "Currently supported debug levels:"
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:11
+msgid ""
+"<emphasis>0x0010</emphasis>: Fatal failures. Anything that would prevent "
+"SSSD from starting up or causes it to cease running."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:15
+msgid ""
+"<emphasis>0x0020</emphasis>: Critical failures. An error that doesn't kill "
+"the SSSD, but one that indicates that at least one major feature is not "
+"going to work properly."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:20
+msgid ""
+"<emphasis>0x0040</emphasis>: Serious failures. An error announcing that a "
+"particular request or operation has failed."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:24
+msgid ""
+"<emphasis>0x0080</emphasis>: Minor failures. These are the errors that would "
+"percolate down to cause the operation failure of 2."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:28
+msgid "<emphasis>0x0100</emphasis>: Configuration settings."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:31
+msgid "<emphasis>0x0200</emphasis>: Function data."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:34
+msgid "<emphasis>0x0400</emphasis>: Trace messages for operation functions."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:37
+msgid "<emphasis>0x1000</emphasis>: Trace messages for internal control functions."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:40
+msgid ""
+"<emphasis>0x2000</emphasis>: Contents of function-internal variables that "
+"may be interesting."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:43
+msgid "<emphasis>0x4000</emphasis>: Extremely low-level tracing information."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:46
+msgid ""
+"To log required debug levels, simply add their numbers together as shown in "
+"following examples:"
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:49
+msgid ""
+"<emphasis>Example</emphasis>: To log fatal failures, critical failures, "
+"serious failures and function data use 0x0270."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:53
+msgid ""
+"<emphasis>Example</emphasis>: To log fatal failures, configuration settings, "
+"function data, trace messages for internal control functions use 0x1310."
+msgstr ""
+
+#. type: Content of: <listitem><para>
+#: include/debug_levels.xml:57
+msgid ""
+"<emphasis>Note</emphasis>: This is new format of debug levels introduced in "
+"1.7.0.  Older format (numbers from 0-10) is compatible but deprecated."
+msgstr ""
+
+#. type: Content of: outside any tag (error?)
+#: include/experimental.xml:1
+msgid ""
+"<emphasis> This is an experimental feature, please use "
+"http://fedorahosted.org/sssd to report any issues.  </emphasis>"
 msgstr ""
