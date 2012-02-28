@@ -287,7 +287,7 @@ option_strings = {
     'ldap_autofs_entry_object_class' : _('Object class for automounter map entries'),
     'ldap_autofs_entry_key' : _('Automounter map entry key attribute'),
     'ldap_autofs_entry_value' : _('Automounter map entry value attribute'),
-    'ldap_autofs_search_base' : _('Base DN for automonter map lookups'),
+    'ldap_autofs_search_base' : _('Base DN for automounter map lookups'),
 
     # [provider/simple/access]
     'simple_allow_users' : _('Comma separated list of allowed users'),
