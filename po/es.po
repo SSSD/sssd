@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-07 09:17-0500\n"
+"POT-Creation-Date: 2012-02-28 12:01-0500\n"
 "PO-Revision-Date: 2011-12-21 10:11+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Spanish (Castilian) <trans-es@lists.fedoraproject.org>\n"
@@ -919,19 +919,19 @@ msgstr "Nombre de la biblioteca NSS a usar"
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
-#: src/monitor/monitor.c:2399
+#: src/monitor/monitor.c:2379
 msgid "Become a daemon (default)"
 msgstr "Convertirse en demonio (predeterminado)"
 
-#: src/monitor/monitor.c:2401
+#: src/monitor/monitor.c:2381
 msgid "Run interactive (not a daemon)"
 msgstr "Ejecutarse en forma interactiva (no un demonio)"
 
-#: src/monitor/monitor.c:2403
+#: src/monitor/monitor.c:2383
 msgid "Specify a non-default config file"
 msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
-#: src/monitor/monitor.c:2405
+#: src/monitor/monitor.c:2385
 msgid "Print version number and exit"
 msgstr ""
 
@@ -954,7 +954,7 @@ msgstr "Mostrar marcas de tiempo con microsegundos"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: src/providers/data_provider_be.c:1949
+#: src/providers/data_provider_be.c:1938
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
@@ -983,65 +983,65 @@ msgid "Unexpected error while looking for an error description"
 msgstr ""
 "Ha ocurrido un error no esperado mientras se buscaba la descripción del error"
 
-#: src/sss_client/pam_sss.c:376
+#: src/sss_client/pam_sss.c:378
 msgid "Passwords do not match"
 msgstr "Las contraseñas no coinciden"
 
-#: src/sss_client/pam_sss.c:569
+#: src/sss_client/pam_sss.c:571
 msgid "Password reset by root is not supported."
 msgstr "No existe soporte para reseteado de la contraseña por el usuario root."
 
-#: src/sss_client/pam_sss.c:610
+#: src/sss_client/pam_sss.c:612
 msgid "Authenticated with cached credentials"
 msgstr "Autenticado mediante credenciales cacheada"
 
-#: src/sss_client/pam_sss.c:611
+#: src/sss_client/pam_sss.c:613
 msgid ", your cached password will expire at: "
 msgstr ", su contraseña cacheada vencerá el:"
 
-#: src/sss_client/pam_sss.c:641
+#: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr "Su contraseña ha expirado. Dispone de %d ingreso(s) excepcionales. "
 
-#: src/sss_client/pam_sss.c:687
+#: src/sss_client/pam_sss.c:689
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr "Su contraseña expirará en %d %s."
 
-#: src/sss_client/pam_sss.c:736
+#: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
 msgstr "La autenticación ha sido denegada hasta:"
 
-#: src/sss_client/pam_sss.c:757
+#: src/sss_client/pam_sss.c:759
 msgid "System is offline, password change not possible"
 msgstr "El sistema está fuera de línea, no se puede cambiar la contraseña"
 
-#: src/sss_client/pam_sss.c:787 src/sss_client/pam_sss.c:800
+#: src/sss_client/pam_sss.c:789 src/sss_client/pam_sss.c:802
 msgid "Password change failed. "
 msgstr "Falló el cambio de contraseña."
 
-#: src/sss_client/pam_sss.c:790 src/sss_client/pam_sss.c:801
+#: src/sss_client/pam_sss.c:792 src/sss_client/pam_sss.c:803
 msgid "Server message: "
 msgstr "Mensaje del servidor:"
 
-#: src/sss_client/pam_sss.c:1276
+#: src/sss_client/pam_sss.c:1286
 msgid "New Password: "
 msgstr "Nueva contraseña: "
 
-#: src/sss_client/pam_sss.c:1277
+#: src/sss_client/pam_sss.c:1287
 msgid "Reenter new Password: "
 msgstr "Reingrese la contraseña nueva:"
 
-#: src/sss_client/pam_sss.c:1363
+#: src/sss_client/pam_sss.c:1373
 msgid "Password: "
 msgstr "Contraseña: "
 
-#: src/sss_client/pam_sss.c:1395
+#: src/sss_client/pam_sss.c:1405
 msgid "Current Password: "
 msgstr "Contraseña actual: "
 
-#: src/sss_client/pam_sss.c:1542
+#: src/sss_client/pam_sss.c:1552
 msgid "Password expired. Change your password now."
 msgstr "La contraseña ha expirado. Modifíquela en este preciso momento."
 
@@ -1459,7 +1459,7 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Error de transacción. No se pudo modificar el usuario.\n"
 
-#: src/tools/tools_util.c:289
+#: src/tools/tools_util.c:286
 msgid "Out of memory\n"
 msgstr "Falta memoria\n"
 

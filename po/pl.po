@@ -3,16 +3,17 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Piotr Drąg <piotrdrag@gmail.com>, 2011.
+# Piotr Drąg <piotrdrag@gmail.com>, 2011, 2012.
 # sgallagh <sgallagh@redhat.com>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-07 09:17-0500\n"
-"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"POT-Creation-Date: 2012-02-28 12:01-0500\n"
+"PO-Revision-Date: 2012-02-24 19:08+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
-"Language-Team: Polish (http://www.transifex.net/projects/p/fedora/team/pl/)\n"
+"Language-Team: Polish (http://www.transifex.net/projects/p/fedora/language/"
+"pl/)\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -160,15 +161,14 @@ msgstr "Ile dni przed wygaśnięciem hasła wyświetlić ostrzeżenie"
 
 #: src/config/SSSDConfig.py:77
 msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr ""
+msgstr "Określa, czy szacować atrybuty oparte na czasie w regułach sudo"
 
 #: src/config/SSSDConfig.py:78
-#, fuzzy
 msgid ""
 "How many seconds to keep sudorules cached before asking the provider again"
 msgstr ""
-"Ile sekund zatrzymać informacje o tożsamości w pamięci podręcznej dla żądań "
-"PAM"
+"Ile sekund trzymać reguły sudo w pamięci podręcznej przed ponownym "
+"zapytaniem dostawcy"
 
 #: src/config/SSSDConfig.py:84
 msgid "Identity provider"
@@ -187,24 +187,20 @@ msgid "Password change provider"
 msgstr "Dostawca zmiany hasła"
 
 #: src/config/SSSDConfig.py:88
-#, fuzzy
 msgid "SUDO provider"
-msgstr "Dostawca tożsamości"
+msgstr "Dostawca SUDO"
 
 #: src/config/SSSDConfig.py:89
-#, fuzzy
 msgid "Autofs provider"
-msgstr "Dostawca uwierzytelniania"
+msgstr "Dostawca Autofs"
 
 #: src/config/SSSDConfig.py:90
-#, fuzzy
 msgid "Session-loading provider"
-msgstr "Dostawca kontroli dostępu"
+msgstr "Dostawca wczytywania sesji"
 
 #: src/config/SSSDConfig.py:91
-#, fuzzy
 msgid "Host identity provider"
-msgstr "Dostawca tożsamości"
+msgstr "Dostawca tożsamości komputera"
 
 #: src/config/SSSDConfig.py:94
 msgid "Minimum user ID"
@@ -311,7 +307,7 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:123
 msgid "The automounter location this IPA client is using"
-msgstr ""
+msgstr "Położenie automountera, którego używa ten klient IPA"
 
 #: src/config/SSSDConfig.py:126 src/config/SSSDConfig.py:127
 msgid "Kerberos server address"
@@ -512,7 +508,7 @@ msgstr "Jak długo utrzymywać połączenie z serwerem LDAP przed rozłączeniem
 
 #: src/config/SSSDConfig.py:183
 msgid "Disable the LDAP paging control"
-msgstr ""
+msgstr "Wyłącza kontrolę stronicowania LDAP"
 
 #: src/config/SSSDConfig.py:186
 msgid "Length of time to wait for a search request"
@@ -667,9 +663,8 @@ msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "Atrybut loginAllowedTimeMap NDS"
 
 #: src/config/SSSDConfig.py:226
-#, fuzzy
 msgid "SSH public key attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut klucza publicznego SSH"
 
 #: src/config/SSSDConfig.py:228
 msgid "Base DN for group lookups"
@@ -736,29 +731,24 @@ msgid "Modification time attribute for netgroups"
 msgstr "Atrybut czasu modyfikacji grup sieciowych"
 
 #: src/config/SSSDConfig.py:249
-#, fuzzy
 msgid "Base DN for service lookups"
-msgstr "Podstawowe DN dla wyszukiwania użytkowników"
+msgstr "Podstawowe DN do wyszukiwania usług"
 
 #: src/config/SSSDConfig.py:250
-#, fuzzy
 msgid "Objectclass for services"
-msgstr "Klasa obiektów dla użytkowników"
+msgstr "Klasa obiektów dla usług"
 
 #: src/config/SSSDConfig.py:251
-#, fuzzy
 msgid "Service name attribute"
-msgstr "Atrybut nazwy użytkownika"
+msgstr "Atrybut nazwy usługi"
 
 #: src/config/SSSDConfig.py:252
-#, fuzzy
 msgid "Service port attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut portu usługi"
 
 #: src/config/SSSDConfig.py:253
-#, fuzzy
 msgid "Service protocol attribute"
-msgstr "Atrybut powłoki"
+msgstr "Atrybut protokołu usługi"
 
 #: src/config/SSSDConfig.py:257
 msgid "Policy to evaluate the password expiration"
@@ -785,102 +775,84 @@ msgid "DNS service name for LDAP password change server"
 msgstr "Nazwa usługi DNS serwera zmiany hasła LDAP"
 
 #: src/config/SSSDConfig.py:269
-#, fuzzy
 msgid "Base DN for sudo rules lookups"
-msgstr "Podstawowe DN dla wyszukiwania użytkowników"
+msgstr "Podstawowe DN dla wyszukiwań reguł sudo"
 
 #: src/config/SSSDConfig.py:270
 msgid "Enable periodical update of all sudo rules"
-msgstr ""
+msgstr "Włącz okresową aktualizację wszystkich reguł sudo"
 
 #: src/config/SSSDConfig.py:271
-#, fuzzy
 msgid "Length of time between rules updates"
-msgstr "Czas między aktualizacjami wyliczania"
+msgstr "Okres czasu między aktualizacjami reguł"
 
 #: src/config/SSSDConfig.py:272
-#, fuzzy
 msgid "Object class for sudo rules"
-msgstr "Klasa obiektów dla użytkowników"
+msgstr "Klasa obiektów dla reguł sudo"
 
 #: src/config/SSSDConfig.py:273
 msgid "Sudo rule name"
-msgstr ""
+msgstr "Nazwa reguły sudo"
 
 #: src/config/SSSDConfig.py:274
-#, fuzzy
 msgid "Sudo rule command attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut polecenia reguły sudo"
 
 #: src/config/SSSDConfig.py:275
-#, fuzzy
 msgid "Sudo rule host attribute"
-msgstr "Atrybut lastUSN"
+msgstr "Atrybut komputera reguły sudo"
 
 #: src/config/SSSDConfig.py:276
-#, fuzzy
 msgid "Sudo rule user attribute"
-msgstr "Atrybut elementu grupy"
+msgstr "Atrybut użytkownika reguły sudo"
 
 #: src/config/SSSDConfig.py:277
-#, fuzzy
 msgid "Sudo rule option attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut opcji reguły sudo"
 
 #: src/config/SSSDConfig.py:278
-#, fuzzy
 msgid "Sudo rule runasuser attribute"
-msgstr "Atrybut nazwy użytkownika"
+msgstr "Atrybut runasuser reguły sudo"
 
 #: src/config/SSSDConfig.py:279
-#, fuzzy
 msgid "Sudo rule runasgroup attribute"
-msgstr "Atrybut UUID grupy sieciowej"
+msgstr "Atrybut runasgroup reguły sudo"
 
 #: src/config/SSSDConfig.py:280
-#, fuzzy
 msgid "Sudo rule notbefore attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut notbefore reguły sudo"
 
 #: src/config/SSSDConfig.py:281
-#, fuzzy
 msgid "Sudo rule notafter attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut notafter reguły sudo"
 
 #: src/config/SSSDConfig.py:282
-#, fuzzy
 msgid "Sudo rule order attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut kolejności reguły sudo"
 
 #: src/config/SSSDConfig.py:285
-#, fuzzy
 msgid "Object class for automounter maps"
-msgstr "Klasa obiektów dla użytkowników"
+msgstr "Klasa obiektów dla map automountera"
 
 #: src/config/SSSDConfig.py:286
-#, fuzzy
 msgid "Automounter map name attribute"
-msgstr "Atrybut nazwy użytkownika"
+msgstr "Atrybut nazwy mapy automountera"
 
 #: src/config/SSSDConfig.py:287
-#, fuzzy
 msgid "Object class for automounter map entries"
-msgstr "Klasa obiektów dla użytkowników"
+msgstr "Klasa obiektów dla wpisów map automountera"
 
 #: src/config/SSSDConfig.py:288
-#, fuzzy
 msgid "Automounter map entry key attribute"
-msgstr "Atrybut katalogu domowego"
+msgstr "Atrybut klucza wpisu mapy automountera"
 
 #: src/config/SSSDConfig.py:289
-#, fuzzy
 msgid "Automounter map entry value attribute"
-msgstr "Potrójny atrybut grupy sieciowej"
+msgstr "Atrybut wartości wpisu mapy automountera"
 
 #: src/config/SSSDConfig.py:290
-#, fuzzy
 msgid "Base DN for automonter map lookups"
-msgstr "Podstawowe DN dla wyszukiwania użytkowników"
+msgstr "Podstawowe DN dla wyszukiwań map automountera"
 
 #: src/config/SSSDConfig.py:293
 msgid "Comma separated list of allowed users"
@@ -906,19 +878,19 @@ msgstr "Nazwa używanej biblioteki NSS"
 msgid "PAM stack to use"
 msgstr "Używany stos PAM"
 
-#: src/monitor/monitor.c:2399
+#: src/monitor/monitor.c:2379
 msgid "Become a daemon (default)"
 msgstr "Uruchamia jako demon (domyślnie)"
 
-#: src/monitor/monitor.c:2401
+#: src/monitor/monitor.c:2381
 msgid "Run interactive (not a daemon)"
 msgstr "Uruchamia interaktywnie (nie jako demon)"
 
-#: src/monitor/monitor.c:2403
+#: src/monitor/monitor.c:2383
 msgid "Specify a non-default config file"
 msgstr "Podaje niedomyślny plik konfiguracji"
 
-#: src/monitor/monitor.c:2405
+#: src/monitor/monitor.c:2385
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
@@ -941,7 +913,7 @@ msgstr "Wyświetlanie dat z mikrosekundami"
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/data_provider_be.c:1949
+#: src/providers/data_provider_be.c:1938
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
@@ -969,65 +941,65 @@ msgstr "Wystąpił błąd, ale nie odnaleziono jego opisu."
 msgid "Unexpected error while looking for an error description"
 msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 
-#: src/sss_client/pam_sss.c:376
+#: src/sss_client/pam_sss.c:378
 msgid "Passwords do not match"
 msgstr "Hasła nie zgadzają się"
 
-#: src/sss_client/pam_sss.c:569
+#: src/sss_client/pam_sss.c:571
 msgid "Password reset by root is not supported."
 msgstr "Przywrócenie hasła przez użytkownika root nie jest obsługiwane."
 
-#: src/sss_client/pam_sss.c:610
+#: src/sss_client/pam_sss.c:612
 msgid "Authenticated with cached credentials"
 msgstr "Uwierzytelniono za pomocą danych z pamięci podręcznej"
 
-#: src/sss_client/pam_sss.c:611
+#: src/sss_client/pam_sss.c:613
 msgid ", your cached password will expire at: "
 msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 
-#: src/sss_client/pam_sss.c:641
+#: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr "Hasło wygasło. Pozostało %d możliwych logowań."
 
-#: src/sss_client/pam_sss.c:687
+#: src/sss_client/pam_sss.c:689
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr "Hasło wygaśnie za %d %s."
 
-#: src/sss_client/pam_sss.c:736
+#: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
 msgstr "Uwierzytelnianie jest zabronione do: "
 
-#: src/sss_client/pam_sss.c:757
+#: src/sss_client/pam_sss.c:759
 msgid "System is offline, password change not possible"
 msgstr "System jest w trybie offline, zmiana hasła nie jest możliwa"
 
-#: src/sss_client/pam_sss.c:787 src/sss_client/pam_sss.c:800
+#: src/sss_client/pam_sss.c:789 src/sss_client/pam_sss.c:802
 msgid "Password change failed. "
 msgstr "Zmiana hasła nie powiodła się. "
 
-#: src/sss_client/pam_sss.c:790 src/sss_client/pam_sss.c:801
+#: src/sss_client/pam_sss.c:792 src/sss_client/pam_sss.c:803
 msgid "Server message: "
 msgstr "Komunikat serwera: "
 
-#: src/sss_client/pam_sss.c:1276
+#: src/sss_client/pam_sss.c:1286
 msgid "New Password: "
 msgstr "Nowe hasło: "
 
-#: src/sss_client/pam_sss.c:1277
+#: src/sss_client/pam_sss.c:1287
 msgid "Reenter new Password: "
 msgstr "Proszę ponownie podać nowe hasło: "
 
-#: src/sss_client/pam_sss.c:1363
+#: src/sss_client/pam_sss.c:1373
 msgid "Password: "
 msgstr "Hasło: "
 
-#: src/sss_client/pam_sss.c:1395
+#: src/sss_client/pam_sss.c:1405
 msgid "Current Password: "
 msgstr "Bieżące hasło: "
 
-#: src/sss_client/pam_sss.c:1542
+#: src/sss_client/pam_sss.c:1552
 msgid "Password expired. Change your password now."
 msgstr "Hasło wygasło. Proszę je zmienić teraz."
 
@@ -1447,7 +1419,7 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Błąd transakcji. Nie można zmodyfikować użytkownika.\n"
 
-#: src/tools/tools_util.c:289
+#: src/tools/tools_util.c:286
 msgid "Out of memory\n"
 msgstr "Brak pamięci\n"
 

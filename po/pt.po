@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-07 09:17-0500\n"
+"POT-Creation-Date: 2012-02-28 12:01-0500\n"
 "PO-Revision-Date: 2011-12-21 10:11+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Portuguese <trans-pt@lists.fedoraproject.org>\n"
@@ -880,19 +880,19 @@ msgstr "O nome da biblioteca NSS a utilizar"
 msgid "PAM stack to use"
 msgstr "Stack PAM a utilizar"
 
-#: src/monitor/monitor.c:2399
+#: src/monitor/monitor.c:2379
 msgid "Become a daemon (default)"
 msgstr "Tornar-se num serviço (omissão)"
 
-#: src/monitor/monitor.c:2401
+#: src/monitor/monitor.c:2381
 msgid "Run interactive (not a daemon)"
 msgstr "Executar interactivamente (não como serviço)"
 
-#: src/monitor/monitor.c:2403
+#: src/monitor/monitor.c:2383
 msgid "Specify a non-default config file"
 msgstr "Especificar um ficheiro de configuração não standard"
 
-#: src/monitor/monitor.c:2405
+#: src/monitor/monitor.c:2385
 msgid "Print version number and exit"
 msgstr ""
 
@@ -915,7 +915,7 @@ msgstr ""
 msgid "An open file descriptor for the debug logs"
 msgstr "Um descritor de ficheiro aberto para os registos de depuração"
 
-#: src/providers/data_provider_be.c:1949
+#: src/providers/data_provider_be.c:1938
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domínio do fornecedor de informação (obrigatório)"
 
@@ -943,65 +943,65 @@ msgstr ""
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:376
+#: src/sss_client/pam_sss.c:378
 msgid "Passwords do not match"
 msgstr "Senhas não coincidem"
 
-#: src/sss_client/pam_sss.c:569
+#: src/sss_client/pam_sss.c:571
 msgid "Password reset by root is not supported."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:610
+#: src/sss_client/pam_sss.c:612
 msgid "Authenticated with cached credentials"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:611
+#: src/sss_client/pam_sss.c:613
 msgid ", your cached password will expire at: "
 msgstr ", a sua senha guardada em cache irá expirar em: "
 
-#: src/sss_client/pam_sss.c:641
+#: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr "A sua senha expirou. Restam-lhe %d sessões de tolerância."
 
-#: src/sss_client/pam_sss.c:687
+#: src/sss_client/pam_sss.c:689
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr "A sua senha irá expirar em %d %s."
 
-#: src/sss_client/pam_sss.c:736
+#: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:757
+#: src/sss_client/pam_sss.c:759
 msgid "System is offline, password change not possible"
 msgstr "O sistema está offline, a mudança de senha não é possível"
 
-#: src/sss_client/pam_sss.c:787 src/sss_client/pam_sss.c:800
+#: src/sss_client/pam_sss.c:789 src/sss_client/pam_sss.c:802
 msgid "Password change failed. "
 msgstr "Alteração da senha falhou."
 
-#: src/sss_client/pam_sss.c:790 src/sss_client/pam_sss.c:801
+#: src/sss_client/pam_sss.c:792 src/sss_client/pam_sss.c:803
 msgid "Server message: "
 msgstr "Mensagem do Servidor: "
 
-#: src/sss_client/pam_sss.c:1276
+#: src/sss_client/pam_sss.c:1286
 msgid "New Password: "
 msgstr "Nova Senha: "
 
-#: src/sss_client/pam_sss.c:1277
+#: src/sss_client/pam_sss.c:1287
 msgid "Reenter new Password: "
 msgstr "Digite a senha novamente: "
 
-#: src/sss_client/pam_sss.c:1363
+#: src/sss_client/pam_sss.c:1373
 msgid "Password: "
 msgstr "Senha: "
 
-#: src/sss_client/pam_sss.c:1395
+#: src/sss_client/pam_sss.c:1405
 msgid "Current Password: "
 msgstr "Senha actual: "
 
-#: src/sss_client/pam_sss.c:1542
+#: src/sss_client/pam_sss.c:1552
 msgid "Password expired. Change your password now."
 msgstr "A senha expirou. Altere a sua senha agora."
 
@@ -1415,7 +1415,7 @@ msgstr "Incapaz de modificar utilizador - utilizador já é membro de grupos?\n"
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Erro na transacção. Não foi possível modificar o utilizador.\n"
 
-#: src/tools/tools_util.c:289
+#: src/tools/tools_util.c:286
 msgid "Out of memory\n"
 msgstr "Memória esgotada\n"
 

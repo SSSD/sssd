@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-07 09:17-0500\n"
+"POT-Creation-Date: 2012-02-28 12:01-0500\n"
 "PO-Revision-Date: 2011-12-21 10:11+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -916,19 +916,19 @@ msgstr "Назва бібліотеки NSS, яку слід використо�
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: src/monitor/monitor.c:2399
+#: src/monitor/monitor.c:2379
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2401
+#: src/monitor/monitor.c:2381
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2403
+#: src/monitor/monitor.c:2383
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2405
+#: src/monitor/monitor.c:2385
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
@@ -951,7 +951,7 @@ msgstr "Показувати мікросекунди у часових позн
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:1949
+#: src/providers/data_provider_be.c:1938
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -979,65 +979,65 @@ msgstr "Сталася помилка, але не вдалося знайти �
 msgid "Unexpected error while looking for an error description"
 msgstr "Неочікувана помилка під час пошуку опису помилки"
 
-#: src/sss_client/pam_sss.c:376
+#: src/sss_client/pam_sss.c:378
 msgid "Passwords do not match"
 msgstr "Паролі не збігаються"
 
-#: src/sss_client/pam_sss.c:569
+#: src/sss_client/pam_sss.c:571
 msgid "Password reset by root is not supported."
 msgstr "Підтримки скидання пароля користувачем root не передбачено."
 
-#: src/sss_client/pam_sss.c:610
+#: src/sss_client/pam_sss.c:612
 msgid "Authenticated with cached credentials"
 msgstr "Розпізнано за реєстраційними даними з кешу"
 
-#: src/sss_client/pam_sss.c:611
+#: src/sss_client/pam_sss.c:613
 msgid ", your cached password will expire at: "
 msgstr ", строк дії вашого кешованого пароля завершиться: "
 
-#: src/sss_client/pam_sss.c:641
+#: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr "Строк дії вашого пароля вичерпано. Залишилося %d резервних входи."
 
-#: src/sss_client/pam_sss.c:687
+#: src/sss_client/pam_sss.c:689
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr "Строк дії вашого пароля завершиться за %d %s."
 
-#: src/sss_client/pam_sss.c:736
+#: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
 msgstr "Розпізнавання заборонено до: "
 
-#: src/sss_client/pam_sss.c:757
+#: src/sss_client/pam_sss.c:759
 msgid "System is offline, password change not possible"
 msgstr "Система працює у автономному режимі, зміна пароля неможлива"
 
-#: src/sss_client/pam_sss.c:787 src/sss_client/pam_sss.c:800
+#: src/sss_client/pam_sss.c:789 src/sss_client/pam_sss.c:802
 msgid "Password change failed. "
 msgstr "Спроба зміни пароля зазнала невдачі. "
 
-#: src/sss_client/pam_sss.c:790 src/sss_client/pam_sss.c:801
+#: src/sss_client/pam_sss.c:792 src/sss_client/pam_sss.c:803
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
-#: src/sss_client/pam_sss.c:1276
+#: src/sss_client/pam_sss.c:1286
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: src/sss_client/pam_sss.c:1277
+#: src/sss_client/pam_sss.c:1287
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: src/sss_client/pam_sss.c:1363
+#: src/sss_client/pam_sss.c:1373
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:1395
+#: src/sss_client/pam_sss.c:1405
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: src/sss_client/pam_sss.c:1542
+#: src/sss_client/pam_sss.c:1552
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
@@ -1460,7 +1460,7 @@ msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 "Помилка під час виконання операції. Не вдалося змінити запис користувача.\n"
 
-#: src/tools/tools_util.c:289
+#: src/tools/tools_util.c:286
 msgid "Out of memory\n"
 msgstr "Не вистачає пам'яті\n"
 
