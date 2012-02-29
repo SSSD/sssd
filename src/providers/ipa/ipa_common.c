@@ -958,6 +958,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     struct ipa_service *service;
     char **list = NULL;
     char *realm;
+    char *ipa_domain;
     int ret;
     int i;
 
@@ -1031,7 +1032,8 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         talloc_steal(service, list[i]);
 
         if (be_fo_is_srv_identifier(list[i])) {
-            ret = be_fo_add_srv_server(ctx, "IPA", "ldap",
+            ipa_domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
+            ret = be_fo_add_srv_server(ctx, "IPA", "ldap", ipa_domain,
                                        BE_FO_PROTO_TCP, false, NULL);
             if (ret) {
                 DEBUG(0, ("Failed to add server\n"));
