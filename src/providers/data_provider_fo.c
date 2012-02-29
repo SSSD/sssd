@@ -248,8 +248,11 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
     return EOK;
 }
 
-int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
-                         const char *query_service, enum be_fo_protocol proto,
+int be_fo_add_srv_server(struct be_ctx *ctx,
+                         const char *service_name,
+                         const char *query_service,
+                         const char *default_discovery_domain,
+                         enum be_fo_protocol proto,
                          bool proto_fallback, void *user_data)
 {
     struct be_svc_data *svc;
@@ -264,7 +267,7 @@ int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
 
     ret = confdb_get_string(ctx->cdb, svc, ctx->conf_path,
                             CONFDB_DOMAIN_DNS_DISCOVERY_NAME,
-                            NULL, &domain);
+                            default_discovery_domain, &domain);
     if (ret != EOK) {
         DEBUG(1, ("Failed reading %s from confdb\n",
                   CONFDB_DOMAIN_DNS_DISCOVERY_NAME));
