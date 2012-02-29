@@ -137,7 +137,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         } else {
             *e = '\0';
         }
-        num = strtouint32(p, &endptr, 10);
+        num = (uint32_t) strtoint32(p, &endptr, 10);
         error = errno;
         if (error != 0) {
             DEBUG(1, ("strtol failed [%s].\n", strerror(error)));
@@ -146,11 +146,6 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         if (*endptr != '\0') {
             DEBUG(1, ("uid contains extra characters\n"));
             return EINVAL;
-        }
-
-        if (num >= UINT32_MAX) {
-            DEBUG(1, ("uid out of range.\n"));
-            return ERANGE;
         }
 
     } else {
