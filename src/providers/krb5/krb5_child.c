@@ -1582,7 +1582,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -1600,27 +1600,33 @@ int main(int argc, const char *argv[])
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
-    DEBUG(7, ("krb5_child started.\n"));
-
-    pd = talloc_zero(NULL, struct pam_data);
-    if (pd == NULL) {
-        DEBUG(1, ("malloc failed.\n"));
-        _exit(-1);
+    debug_prg_name = talloc_asprintf(NULL, "[sssd[krb5_child[%d]]]", getpid());
+    if (!debug_prg_name) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed.\n"));
+        goto fail;
     }
-
-    debug_prg_name = talloc_asprintf(pd, "[sssd[krb5_child[%d]]]", getpid());
 
     if (debug_fd != -1) {
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(1, ("set_debug_file_from_fd failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("set_debug_file_from_fd failed.\n"));
         }
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, ("krb5_child started.\n"));
+
+    pd = talloc_zero(NULL, struct pam_data);
+    if (pd == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        talloc_free(discard_const(debug_prg_name));
+        goto fail;
+    }
+    talloc_steal(pd, debug_prg_name);
+
     buf = talloc_size(pd, sizeof(uint8_t)*IN_BUF_SIZE);
     if (buf == NULL) {
-        DEBUG(1, ("malloc failed.\n"));
-        _exit(-1);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("malloc failed.\n"));
+        goto fail;
     }
 
     while ((ret = read(STDIN_FILENO, buf + len, IN_BUF_SIZE - len)) != 0) {
