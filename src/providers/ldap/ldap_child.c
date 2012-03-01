@@ -366,7 +366,7 @@ int main(int argc, const char *argv[])
     int opt;
     int debug_fd = -1;
     poptContext pc;
-    TALLOC_CTX *main_ctx;
+    TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
     ssize_t len = 0;
     const char *ccname = NULL;
@@ -388,7 +388,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -406,22 +406,28 @@ int main(int argc, const char *argv[])
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
-    DEBUG(7, ("ldap_child started.\n"));
-
-    main_ctx = talloc_new(NULL);
-    if (main_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
-        _exit(-1);
+    debug_prg_name = talloc_asprintf(NULL, "[sssd[ldap_child[%d]]]", getpid());
+    if (!debug_prg_name) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed.\n"));
+        goto fail;
     }
-
-    debug_prg_name = talloc_asprintf(main_ctx, "[sssd[ldap_child[%d]]]", getpid());
 
     if (debug_fd != -1) {
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(1, ("set_debug_file_from_fd failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("set_debug_file_from_fd failed.\n"));
         }
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("ldap_child started.\n"));
+
+    main_ctx = talloc_new(NULL);
+    if (main_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        talloc_free(discard_const(debug_prg_name));
+        goto fail;
+    }
+    talloc_steal(main_ctx, debug_prg_name);
 
     buf = talloc_size(main_ctx, sizeof(uint8_t)*IN_BUF_SIZE);
     if (buf == NULL) {
