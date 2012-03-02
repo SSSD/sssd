@@ -71,7 +71,7 @@ int main(int argc, const char **argv)
     struct debuglevel_tool_ctx *ctx = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug", '\0', POPT_ARG_INT, &pc_debug,
+        {"debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
             0, _("The debug level to run with"), NULL },
         {"config", 'c', POPT_ARG_STRING, &pc_config_file,
             0, _("Specify a non-default config file"), NULL},
