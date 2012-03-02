@@ -281,8 +281,8 @@ ipa_host_info_done(struct tevent_req *subreq)
                 tevent_req_error(req, EIO);
                 return;
             }
+            tevent_req_set_callback(subreq, ipa_hostgroup_info_done, req);
         }
-        tevent_req_set_callback(subreq, ipa_hostgroup_info_done, req);
     } else {
         /* Nothing else to do, just complete the req */
         tevent_req_done(req);
