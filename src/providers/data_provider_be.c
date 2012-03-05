@@ -813,10 +813,12 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     pd->pam_status = PAM_SYSTEM_ERR;
-    pd->domain = talloc_strdup(pd, becli->bectx->domain->name);
     if (pd->domain == NULL) {
-        talloc_free(be_req);
-        return ENOMEM;
+        pd->domain = talloc_strdup(pd, becli->bectx->domain->name);
+        if (pd->domain == NULL) {
+            talloc_free(be_req);
+            return ENOMEM;
+        }
     }
 
 
