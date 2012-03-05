@@ -874,6 +874,7 @@ static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
     return;
 }
 
+static void pam_forwarder_cb(struct tevent_req *req);
 static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr);
 static int pam_check_user_search(struct pam_auth_req *preq);
@@ -896,6 +897,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     struct pam_ctx *pctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     uint32_t terminator = SSS_END_OF_PAM_REQUEST;
+    struct tevent_req *req;
+
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
         return ENOMEM;
@@ -944,11 +947,16 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (pd->domain) {
         preq->domain = responder_get_domain(preq, cctx->rctx, pd->domain);
         if (!preq->domain) {
-            ret = ENOENT;
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, pd->domain);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                tevent_req_set_callback(req, pam_forwarder_cb, preq);
+                ret = EAGAIN;
+            }
             goto done;
         }
-    }
-    else {
+    } else {
         for (dom = preq->cctx->rctx->domains; dom; dom = dom->next) {
             if (dom->fqnames) continue;
 
@@ -988,6 +996,36 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
 done:
     return pam_check_user_done(preq, ret);
+}
+
+static void pam_forwarder_cb(struct tevent_req *req)
+{
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+    struct cli_ctx *cctx = preq->cctx;
+    errno_t ret = EOK;
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (preq->pd->domain) {
+        preq->domain = responder_get_domain(preq, cctx->rctx, preq->pd->domain);
+        if (preq->domain == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    ret = pam_check_user_search(preq);
+    if (ret == EOK) {
+        pam_dom_forwarder(preq);
+    }
+
+done:
+    pam_check_user_done(preq, ret);
 }
 
 static void pam_dp_send_acct_req_done(struct tevent_req *req);
