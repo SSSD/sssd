@@ -2204,7 +2204,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
                                struct sysdb_attrs *,
                                state->parents_count + count + 1);
         if (!state->ldap_parents) {
-            tevent_req_error(req, ret);
+            tevent_req_error(req, ENOMEM);
             return;
         }
 
