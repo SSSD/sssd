@@ -588,7 +588,8 @@ static void auth_connect_done(struct tevent_req *subreq)
     if (ret) {
         if (state->srv) {
             /* mark this server as bad if connection failed */
-            fo_set_port_status(state->srv, PORT_NOT_WORKING);
+            be_fo_set_port_status(state->ctx->be,
+                                  state->srv, PORT_NOT_WORKING);
         }
         if (ret == ETIMEDOUT) {
             if (auth_get_server(req) == NULL) {
@@ -600,7 +601,7 @@ static void auth_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     } else if (state->srv) {
-        fo_set_port_status(state->srv, PORT_WORKING);
+        be_fo_set_port_status(state->ctx->be, state->srv, PORT_WORKING);
     }
 
     ret = get_user_dn(state, state->ctx->be->sysdb, state->ctx->opts,
