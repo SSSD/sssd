@@ -1476,3 +1476,10 @@ void fo_reset_services(struct fo_ctx *fo_ctx)
     }
 }
 
+struct fo_service *
+fo_get_server_service(struct fo_server *server)
+{
+    if (!server) return NULL;
+    return server->service;
+}
+
