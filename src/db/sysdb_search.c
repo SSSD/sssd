@@ -786,7 +786,8 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
     lret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attrs,
                      SYSDB_NETGR_TRIPLES_FILTER,
-                     sanitized_netgroup, netgroup_dn);
+                     sanitized_netgroup, sanitized_netgroup,
+                     netgroup_dn);
     ret = sysdb_error_to_errno(lret);
     if (ret != EOK) {
         goto done;
@@ -832,6 +833,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
     ret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
                      SYSDB_NETGR_FILTER,
+                     sanitized_netgroup,
                      sanitized_netgroup);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
