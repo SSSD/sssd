@@ -1454,25 +1454,12 @@ rpms: rpmbrprep
 	cd $(RPMBUILD); \
 	rpmbuild --define "_topdir $(RPMBUILD)" -ba SPECS/sssd.spec
 
-experimental-rpms: rpmbrprep
-	cd $(RPMBUILD); \
-	rpmbuild --define "_topdir $(RPMBUILD)"   \
-		 --define "enable_experimental 1" \
-		 -ba SPECS/sssd.spec
-
 if GIT_CHECKOUT
 prerelease-rpms:
 	cp $(srcdir)/version.m4 $(srcdir)/version.m4.orig
 	sed -e "s/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.`date +%Y%m%d.%H%M`.git`git log -1 --pretty=format:%h`\])/" < $(srcdir)/version.m4.orig > $(srcdir)/version.m4
 	$(MAKE) rpms
 	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
-
-prerelease-experimental-rpms:
-	cp $(srcdir)/version.m4 $(srcdir)/version.m4.orig
-	sed -e "s/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.`date +%Y%m%d.%H%M`.git`git log -1 --pretty=format:%h`\])/" < $(srcdir)/version.m4.orig > $(srcdir)/version.m4
-	$(MAKE) experimental-rpms
-	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
-endif
 
 # make srpms will use the old digest algorithm to be compatible
 # with RHEL5
