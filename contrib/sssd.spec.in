@@ -3,15 +3,18 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
-# we don't want to provide private python extension libs
-%{?filter_setup:
-%filter_provides_in %{python_sitearch}/.*\.so$ 
-%filter_setup
-}
-
 %if (0%{?rhel} == 5)
 %{!?is_rhel57: %global is_rhel57 %(%{__grep} -c "5\.[^0-6]" /etc/redhat-release)}
 %global with_unicode_lib --with-unicode-lib=glib2
+# we don't want to provide private python extension libs
+%{?filter_setup:
+%filter_provides_in %{python_sitearch}/.*\.so$
+%filter_setup
+}
+%else
+# Fedora and RHEL 6+
+# we don't want to provide private python extension libs
+%define __provides_exclude_from %{python_sitearch}/.*\.so$
 %endif
 
 %if (0%{?enable_experimental} == 1)
