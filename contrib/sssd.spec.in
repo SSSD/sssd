@@ -17,6 +17,8 @@
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
 %endif
 
+%global enable_experimental 1
+
 %if (0%{?enable_experimental} == 1)
 %global experimental --enable-all-experimental-features
 %endif
