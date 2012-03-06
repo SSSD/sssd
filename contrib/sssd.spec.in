@@ -285,8 +285,26 @@ rm -rf $RPM_BUILD_ROOT
 %doc src/examples/sssd-example.conf
 %{_initrddir}/%{name}
 %{_sbindir}/sssd
-%{_libexecdir}/%{servicename}/
-%{_libdir}/%{name}/
+
+%{_libexecdir}/%{servicename}/krb5_child
+%{_libexecdir}/%{servicename}/ldap_child
+%{_libexecdir}/%{servicename}/proxy_child
+%{_libexecdir}/%{servicename}/sssd_be
+%{_libexecdir}/%{servicename}/sssd_nss
+%{_libexecdir}/%{servicename}/sssd_pam
+
+%if (0%{?enable_experimental} == 1)
+%{_libexecdir}/%{servicename}/sssd_autofs
+%{_libexecdir}/%{servicename}/sssd_ssh
+%{_libexecdir}/%{servicename}/sssd_sudo
+%endif
+
+%{_libdir}/%{name}/libsss_ipa.so
+%{_libdir}/%{name}/libsss_krb5.so
+%{_libdir}/%{name}/libsss_ldap.so
+%{_libdir}/%{name}/libsss_proxy.so
+%{_libdir}/%{name}/libsss_simple.so
+
 %{ldb_modulesdir}/memberof.so
 %if (0%{?enable_experimental} == 1)
 %{_bindir}/sss_ssh_authorizedkeys
