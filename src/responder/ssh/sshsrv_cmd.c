@@ -483,6 +483,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     int fd = -1;
     char *filename, *pubkey, *line;
     ssize_t wret;
+    mode_t old_mask;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -496,7 +497,9 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         goto done;
     }
 
+    old_mask = umask(0133);
     fd = mkstemp(filename);
+    umask(old_mask)
     if (fd == -1) {
         filename = NULL;
         ret = errno;
