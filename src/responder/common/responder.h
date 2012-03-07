@@ -56,9 +56,13 @@ struct cli_protocol_version {
     const char *description;
 };
 
+struct resp_ctx;
+
 struct be_conn {
     struct be_conn *next;
     struct be_conn *prev;
+
+    struct resp_ctx *rctx;
 
     const char *cli_name;
     struct sss_domain_info *domain;
@@ -188,7 +192,7 @@ struct dp_callback_ctx {
     struct cli_ctx *cctx;
 };
 
-void handle_requests_after_reconnect(void);
+void handle_requests_after_reconnect(struct resp_ctx *rctx);
 
 int responder_logrotate(DBusMessage *message,
                         struct sbus_connection *conn);
