@@ -324,6 +324,9 @@ int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
     return EOK;
 }
 
+static struct tevent_req *krb5_next_kdc(struct tevent_req *req);
+static struct tevent_req *krb5_next_kpasswd(struct tevent_req *req);
+
 struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   struct be_ctx *be_ctx,
@@ -511,15 +514,13 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
 
     kr->srv = NULL;
     kr->kpasswd_srv = NULL;
-    subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
-                                    krb5_ctx->service->name);
-    if (subreq == NULL) {
-        DEBUG(1, ("be_resolve_server_send failed.\n"));
-        ret = ENOMEM;
+
+    subreq = krb5_next_kdc(req);
+    if (!subreq) {
+        DEBUG(1, ("krb5_next_kdc failed.\n"));
+        ret = EIO;
         goto done;
     }
-
-    tevent_req_set_callback(subreq, krb5_resolve_kdc_done, req);
 
     return req;
 
@@ -551,16 +552,12 @@ static void krb5_resolve_kdc_done(struct tevent_req *subreq)
         kr->is_offline = true;
     } else {
         if (kr->krb5_ctx->kpasswd_service != NULL) {
-            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
-                                            kr->krb5_ctx->kpasswd_service->name);
+            subreq = krb5_next_kpasswd(req);
             if (subreq == NULL) {
-                DEBUG(1, ("be_resolve_server_send failed.\n"));
-                ret = ENOMEM;
+                DEBUG(1, ("krb5_next_kpasswd failed.\n"));
+                ret = EIO;
                 goto failed;
             }
-
-            tevent_req_set_callback(subreq, krb5_resolve_kpasswd_done, req);
-
             return;
         }
     }
@@ -710,7 +707,6 @@ done:
 }
 
 static struct tevent_req *krb5_next_server(struct tevent_req *req);
-static struct tevent_req *krb5_next_kdc(struct tevent_req *req);
 static struct tevent_req *krb5_next_kpasswd(struct tevent_req *req);
 
 static void krb5_child_done(struct tevent_req *subreq)
@@ -1005,7 +1001,8 @@ static struct tevent_req *krb5_next_kdc(struct tevent_req *req)
 
     next_req = be_resolve_server_send(state, state->ev,
                                       state->be_ctx,
-                                      state->krb5_ctx->service->name);
+                                      state->krb5_ctx->service->name,
+                                      state->kr->srv == NULL ? true : false);
     if (next_req == NULL) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         return NULL;
@@ -1022,7 +1019,8 @@ static struct tevent_req *krb5_next_kpasswd(struct tevent_req *req)
 
     next_req = be_resolve_server_send(state, state->ev,
                                 state->be_ctx,
-                                state->krb5_ctx->kpasswd_service->name);
+                                state->krb5_ctx->kpasswd_service->name,
+                                state->kr->kpasswd_srv == NULL ? true : false);
     if (next_req == NULL) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         return NULL;

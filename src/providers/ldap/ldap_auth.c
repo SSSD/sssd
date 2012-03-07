@@ -517,7 +517,8 @@ static struct tevent_req *auth_get_server(struct tevent_req *req)
     next_req = be_resolve_server_send(state,
                                       state->ev,
                                       state->ctx->be,
-                                      state->sdap_service->name);
+                                      state->sdap_service->name,
+                                      state->srv == NULL ? true : false);
     if (!next_req) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         return NULL;
