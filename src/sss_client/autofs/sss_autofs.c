@@ -220,15 +220,15 @@ sss_getautomntent_data_save(const char *mapname, uint8_t **repbuf, size_t replen
     uint32_t num;
 
     rp = 0;
-    SAFEALIGN_COPY_UINT32(&num, repbuf+rp, &rp);
+    SAFEALIGN_COPY_UINT32(&num, *repbuf+rp, &rp);
     if (num == 0) {
-        free(repbuf);
+        free(*repbuf);
         return ENOENT;
     }
 
     sss_getautomntent_data.mapname = strdup(mapname);
     if (sss_getautomntent_data.mapname == NULL) {
-        free(repbuf);
+        free(*repbuf);
         return ENOENT;
     }
 
