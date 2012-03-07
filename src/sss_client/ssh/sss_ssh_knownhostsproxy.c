@@ -199,7 +199,7 @@ connect_proxy_command(char **args)
 
 int main(int argc, const char **argv)
 {
-    TALLOC_CTX *mem_ctx;
+    TALLOC_CTX *mem_ctx = NULL;
     int pc_debug = SSSDBG_DEFAULT;
     const char *pc_port = "22";
     const char *pc_domain = NULL;
