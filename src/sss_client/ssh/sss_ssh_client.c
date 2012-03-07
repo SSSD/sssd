@@ -227,6 +227,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_free(tmp_ctx);
+    free(rep);
 
     return ret;
 }
