@@ -79,9 +79,9 @@ int main(int argc, const char *argv[])
             ret = _sss_getautomntent_r(&key, &value, ctx);
             if (ret == 0) {
                 printf("key: %s\t\tvalue: %s\n", key, value);
+                free(key);
+                free(value);
             }
-            free(key);
-            free(value);
         } while(ret == 0);
 
         if (ret != 0 && ret != ENOENT) {
@@ -99,8 +99,8 @@ int main(int argc, const char *argv[])
             exit(EXIT_FAILURE);
         } else {
             printf("key: %s\t\tvalue: %s\n", pc_key, value);
+            free(value);
         }
-        free(value);
     }
 
     ret = _sss_endautomntent(&ctx);
