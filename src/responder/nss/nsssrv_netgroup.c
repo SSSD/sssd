@@ -510,7 +510,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         netgr->found = false;
         netgr->entries = NULL;
         netgr->lookup_table = step_ctx->nctx->netgroups;
-        netgr->name = talloc_strdup(netgr, name);
+        netgr->name = talloc_strdup(netgr, step_ctx->name);
         if (netgr->name == NULL) {
             DEBUG(1, ("talloc_strdup failed.\n"));
             talloc_free(netgr);
