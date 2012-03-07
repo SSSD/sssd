@@ -884,7 +884,8 @@ static struct tevent_req *sdap_kinit_next_kdc(struct tevent_req *req)
 
     next_req = be_resolve_server_send(state, state->ev,
                                       state->be,
-                                      state->krb_service_name);
+                                      state->krb_service_name,
+                                      state->kdc_srv == NULL ? true : false);
     if (next_req == NULL) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         return NULL;
@@ -1215,7 +1216,8 @@ static int sdap_cli_resolve_next(struct tevent_req *req)
     /* NOTE: this call may cause service->uri to be refreshed
      * with a new valid server. Do not use service->uri before */
     subreq = be_resolve_server_send(state, state->ev,
-                                    state->be, state->service->name);
+                                    state->be, state->service->name,
+                                    state->srv == NULL ? true : false);
     if (!subreq) {
         return ENOMEM;
     }

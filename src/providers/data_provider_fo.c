@@ -342,6 +342,7 @@ struct be_resolve_server_state {
     int attempts;
 
     struct fo_server *srv;
+    bool first_try;
 };
 
 static void be_resolve_server_done(struct tevent_req *subreq);
@@ -349,7 +350,8 @@ static void be_resolve_server_done(struct tevent_req *subreq);
 struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct be_ctx *ctx,
-                                          const char *service_name)
+                                          const char *service_name,
+                                          bool first_try)
 {
     struct tevent_req *req, *subreq;
     struct be_resolve_server_state *state;
@@ -370,6 +372,7 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
 
     state->svc = svc;
     state->attempts = 0;
+    state->first_try = first_try;
 
     subreq = fo_resolve_service_send(state, ev,
                                      ctx->be_fo->resolv,
@@ -443,7 +446,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     }
 
     /* all fine we got the server */
-    if (state->svc->first_resolved == NULL) {
+    if (state->svc->first_resolved == NULL || state->first_try == true) {
         DEBUG(SSSDBG_TRACE_LIBS, ("Saving the first resolved server\n"));
         state->svc->first_resolved = state->srv;
     } else if (state->svc->first_resolved == state->srv) {
