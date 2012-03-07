@@ -28,8 +28,6 @@
 #include "providers/data_provider.h"
 #include "sbus/sbus_client.h"
 
-hash_table_t *dp_requests = NULL;
-
 struct sss_dp_req;
 
 struct sss_dp_callback {
@@ -120,19 +118,19 @@ static int sss_dp_req_destructor(void *ptr)
     return 0;
 }
 
-void handle_requests_after_reconnect(void)
+void handle_requests_after_reconnect(struct resp_ctx *rctx)
 {
     int ret;
     hash_value_t *values;
     unsigned long count, i;
     struct sss_dp_req *sdp_req;
 
-    if (!dp_requests) {
+    if (!rctx->dp_request_table) {
         DEBUG(7, ("No requests to handle after reconnect\n"));
         return;
     }
 
-    ret = hash_values(dp_requests, &count, &values);
+    ret = hash_values(rctx->dp_request_table, &count, &values);
     if (ret != HASH_SUCCESS) {
         DEBUG(1, ("hash_values failed, "
                   "not all request might be handled after reconnect.\n"));
@@ -145,6 +143,7 @@ void handle_requests_after_reconnect(void)
         talloc_free(sdp_req);
     }
 }
+
 static int sss_dp_get_reply(DBusPendingCall *pending,
                             dbus_uint16_t *dp_err,
                             dbus_uint32_t *dp_ret,

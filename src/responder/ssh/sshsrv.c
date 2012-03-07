@@ -71,7 +71,7 @@ static void ssh_dp_reconnect_init(struct sbus_connection *conn,
                                 "SSH");
         /* all fine */
         if (ret == EOK) {
-            handle_requests_after_reconnect();
+            handle_requests_after_reconnect(be_conn->rctx);
             return;
         }
     }

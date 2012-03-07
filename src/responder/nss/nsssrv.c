@@ -229,7 +229,7 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                 "NSS");
         /* all fine */
         if (ret == EOK) {
-            handle_requests_after_reconnect();
+            handle_requests_after_reconnect(be_conn->rctx);
             return;
         }
     }

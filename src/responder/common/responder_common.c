@@ -326,6 +326,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     be_conn->cli_name = cli_name;
     be_conn->domain = domain;
     be_conn->intf = intf;
+    be_conn->rctx = rctx;
 
     /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(be_conn, &be_conn->sbus_address, domain->name);
