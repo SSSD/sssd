@@ -189,6 +189,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
 
     state->dctx = talloc_zero(state, struct nss_dom_ctx);
     if (!state->dctx) {
+        ret = ENOMEM;
         goto error;
     }
     dctx = state->dctx;
@@ -207,6 +208,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
     if (domname) {
         dctx->domain = responder_get_domain(client->rctx->domains, domname);
         if (!dctx->domain) {
+            ret = EINVAL;
             goto error;
         }
 
@@ -224,6 +226,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         /* Save the netgroup name for getnetgrent */
         client->netgr_name = talloc_strdup(client, state->netgr_shortname);
         if (!client->netgr_name) {
+            ret = ENOMEM;
             goto error;
         }
     }
@@ -264,6 +267,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
          */
         state->netgr = talloc_zero(nctx, struct getent_ctx);
         if (!state->netgr) {
+            ret = ENOMEM;
             goto error;
         }
         dctx->netgr = state->netgr;
@@ -275,6 +279,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
                                            client->netgr_name);
         if (!state->netgr->name) {
             talloc_free(state->netgr);
+            ret = ENOMEM;
             goto error;
         }
 
@@ -325,7 +330,8 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
                 return req;
             }
 
-            /* An unexpected error occurred */
+            /* An unexpected error occurred or no domains
+             * were eligible for the search */
             goto error;
         }
         tevent_req_done(req);
@@ -339,8 +345,9 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
     return req;
 
 error:
-    talloc_free(req);
-    return NULL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, cmdctx->cctx->ev);
+    return req;
 }
 
 static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
