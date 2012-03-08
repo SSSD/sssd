@@ -55,12 +55,6 @@ static void sdap_access_reply(struct be_req *be_req, int pam_status)
     }
 }
 
-static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct be_ctx *be_ctx,
-                                           struct sdap_access_ctx *access_ctx,
-                                           struct pam_data *pd);
-
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_ctx *be_ctx,
@@ -133,11 +127,12 @@ struct sdap_access_req_ctx {
 };
 
 static errno_t select_next_rule(struct tevent_req *req);
-static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct be_ctx *be_ctx,
-                                           struct sdap_access_ctx *access_ctx,
-                                           struct pam_data *pd)
+struct tevent_req *
+sdap_access_send(TALLOC_CTX *mem_ctx,
+                 struct tevent_context *ev,
+                 struct be_ctx *be_ctx,
+                 struct sdap_access_ctx *access_ctx,
+                 struct pam_data *pd)
 {
     errno_t ret;
     struct sdap_access_req_ctx *state;
@@ -1366,7 +1361,8 @@ static void sdap_access_host_done(struct tevent_req *subreq)
     return;
 }
 
-static errno_t sdap_access_recv(struct tevent_req *req, int *pam_status)
+errno_t
+sdap_access_recv(struct tevent_req *req, int *pam_status)
 {
     struct sdap_access_req_ctx *state =
             tevent_req_data(req, struct sdap_access_req_ctx);

@@ -56,4 +56,13 @@ struct sdap_access_ctx {
     int access_rule[LDAP_ACCESS_LAST + 1];
 };
 
+struct tevent_req *
+sdap_access_send(TALLOC_CTX *mem_ctx,
+                 struct tevent_context *ev,
+                 struct be_ctx *be_ctx,
+                 struct sdap_access_ctx *access_ctx,
+                 struct pam_data *pd);
+errno_t
+sdap_access_recv(struct tevent_req *req, int *pam_status);
+
 #endif /* SDAP_ACCESS_H_ */
