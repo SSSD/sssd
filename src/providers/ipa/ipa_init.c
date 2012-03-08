@@ -36,6 +36,7 @@
 #include "providers/ipa/ipa_hostid.h"
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ipa/ipa_session.h"
+#include "providers/ldap/sdap_access.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -395,6 +396,16 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
         DEBUG(1, ("dp_copy_options failed.\n"));
         goto done;
     }
+
+    /* Set up an sdap_access_ctx for checking expired/locked
+     * accounts.
+     */
+    ipa_access_ctx->sdap_access_ctx =
+            talloc_zero(ipa_access_ctx, struct sdap_access_ctx);
+
+    ipa_access_ctx->sdap_access_ctx->id_ctx = ipa_access_ctx->sdap_ctx;
+    ipa_access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
+    ipa_access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
 
     *ops = &ipa_access_ops;
     *pvt_data = ipa_access_ctx;
