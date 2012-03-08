@@ -100,7 +100,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_netgroup_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_nesting_level", DP_OPT_NUMBER, { .number = 2 }, NULL_NUMBER },
     { "ldap_deref", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_account_expire_policy", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_account_expire_policy", DP_OPT_STRING, { "ipa" }, NULL_STRING },
     { "ldap_access_order", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING },

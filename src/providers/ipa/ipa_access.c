@@ -27,6 +27,7 @@
 
 #include "util/util.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_access.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_hbac.h"
@@ -63,6 +64,7 @@ enum check_result {
     RULE_ERROR
 };
 
+static void ipa_hbac_check(struct tevent_req *req);
 static int hbac_retry(struct hbac_ctx *hbac_ctx);
 static void hbac_connect_done(struct tevent_req *subreq);
 static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret);
@@ -74,13 +76,67 @@ static void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx);
 void ipa_access_handler(struct be_req *be_req)
 {
     struct pam_data *pd;
+    struct ipa_access_ctx *ipa_access_ctx;
+    struct tevent_req *req;
+
+    pd = talloc_get_type(be_req->req_data, struct pam_data);
+
+    ipa_access_ctx = talloc_get_type(
+                              be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+                              struct ipa_access_ctx);
+
+    /* First, verify that this account isn't locked.
+     * We need to do this in case the auth phase was
+     * skipped (such as during GSSAPI single-sign-on
+     * or SSH public key exchange.
+     */
+    req = sdap_access_send(be_req,
+                           be_req->be_ctx->ev,
+                           be_req->be_ctx,
+                           ipa_access_ctx->sdap_access_ctx,
+                           pd);
+    if (!req) {
+        be_req->fn(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
+        return;
+    }
+    tevent_req_set_callback(req, ipa_hbac_check, be_req);
+}
+
+static void ipa_hbac_check(struct tevent_req *req)
+{
+    struct be_req *be_req;
+    struct pam_data *pd;
     struct hbac_ctx *hbac_ctx;
     const char *deny_method;
     int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
     int ret;
 
+    be_req = tevent_req_callback_data(req, struct be_req);
     pd = talloc_get_type(be_req->req_data, struct pam_data);
+
+    ret = sdap_access_recv(req, &pam_status);
+    if (ret != EOK) goto fail;
+
+    switch(pam_status) {
+    case PAM_SUCCESS:
+        /* Account wasn't locked. Continue below
+         * to HBAC processing.
+         */
+        break;
+    case PAM_PERM_DENIED:
+        /* Account was locked. Return permission denied
+         * here.
+         */
+        pd->pam_status = PAM_PERM_DENIED;
+        be_req->fn(be_req, DP_ERR_OK, PAM_PERM_DENIED, NULL);
+        return;
+    default:
+        /* We got an unexpected error. Return it as-is */
+        pd->pam_status = PAM_SYSTEM_ERR;
+        be_req->fn(be_req, DP_ERR_FATAL, pam_status, NULL);
+        return;
+    }
 
     hbac_ctx = talloc_zero(be_req, struct hbac_ctx);
     if (hbac_ctx == NULL) {
