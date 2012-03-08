@@ -1460,6 +1460,7 @@ prerelease-rpms:
 	sed -e "s/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.`date +%Y%m%d.%H%M`.git`git log -1 --pretty=format:%h`\])/" < $(srcdir)/version.m4.orig > $(srcdir)/version.m4
 	$(MAKE) rpms
 	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
+endif
 
 # make srpms will use the old digest algorithm to be compatible
 # with RHEL5
