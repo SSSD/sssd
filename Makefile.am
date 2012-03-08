@@ -896,6 +896,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ldap/ldap_id_netgroup.c \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_common.c \
+    src/providers/ldap/sdap_access.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_accounts.c \
     src/providers/ldap/sdap_async_connection.c \
