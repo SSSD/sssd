@@ -1544,6 +1544,8 @@ static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+    DEBUG(SSSDBG_TRACE_LIBS,
+          ("Found %d parent groups for user [%s]\n", count, state->name));
 
     /* Add this batch of groups to the list */
     if (count > 0) {
@@ -1975,8 +1977,7 @@ struct sdap_rfc2307bis_nested_ctx {
     size_t nesting_level;
 
     size_t group_iter;
-    struct sysdb_attrs **ldap_parents;
-    size_t parents_count;
+    struct sdap_nested_group **processed_groups;
 
     hash_table_t *group_hash;
     const char *primary_name;
@@ -1998,6 +1999,9 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     errno_t ret;
     struct tevent_req *req;
     struct sdap_rfc2307bis_nested_ctx *state;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("About to process %d groups in nesting level %d\n", num_groups, nesting));
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_rfc2307bis_nested_ctx);
@@ -2034,6 +2038,14 @@ struct tevent_req *rfc2307bis_nested_groups_send(
         goto done;
     }
 
+    state->processed_groups = talloc_array(state,
+                                           struct sdap_nested_group *,
+                                           state->num_groups);
+    if (state->processed_groups == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = rfc2307bis_nested_groups_step(req);
 
 done:
@@ -2058,6 +2070,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     TALLOC_CTX *tmp_ctx = NULL;
     char *clean_orig_dn;
     hash_key_t key;
+    hash_value_t value;
     struct sdap_rfc2307bis_nested_ctx *state =
             tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
 
@@ -2083,13 +2096,32 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
-    DEBUG(6, ("Processing group [%s]\n", state->primary_name));
+    DEBUG(SSSDBG_TRACE_LIBS, ("Processing group [%s]\n", state->primary_name));
 
-    if (hash_has_key(state->group_hash, &key)) {
+    ret = hash_lookup(state->group_hash, &key, &value);
+    if (ret == HASH_SUCCESS) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Group [%s] was already processed, "
+              "taking a shortcut\n", state->primary_name));
+        state->processed_groups[state->group_iter] =
+            talloc_get_type(value.ptr, struct sdap_nested_group);
         talloc_free(key.str);
         ret = EOK;
         goto done;
     }
+
+    /* Need to try to find parent groups for this group. */
+    state->processed_groups[state->group_iter] =
+            talloc_zero(state->processed_groups, struct sdap_nested_group);
+    if (!state->processed_groups[state->group_iter]) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* this steal doesn't change much now, but will be helpful later on
+     * if we steal the whole processed_group on the hash table */
+    state->processed_groups[state->group_iter]->group =
+        talloc_steal(state->processed_groups[state->group_iter],
+                     state->groups[state->group_iter]);
 
     /* Get any parent groups for this group */
     ret = sysdb_attrs_get_string(state->groups[state->group_iter],
@@ -2196,14 +2228,18 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
         return;
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS,
+          ("Found %d parent groups of [%s]\n", count, state->orig_dn));
+    ngr = state->processed_groups[state->group_iter];
+
     /* Add this batch of groups to the list */
     if (count > 0) {
-        state->ldap_parents =
-                talloc_realloc(state,
-                               state->ldap_parents,
+        ngr->ldap_parents =
+                talloc_realloc(ngr,
+                               ngr->ldap_parents,
                                struct sysdb_attrs *,
-                               state->parents_count + count + 1);
-        if (!state->ldap_parents) {
+                               ngr->parents_count + count + 1);
+        if (!ngr->ldap_parents) {
             tevent_req_error(req, ENOMEM);
             return;
         }
@@ -2214,13 +2250,16 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
          * we finish this nesting level.
          */
         for (i = 0; i < count; i++) {
-            state->ldap_parents[state->parents_count + i] =
-                talloc_steal(state->ldap_parents, ldap_groups[i]);
+            ngr->ldap_parents[ngr->parents_count + i] =
+                talloc_steal(ngr->ldap_parents, ldap_groups[i]);
         }
 
-        state->parents_count += count;
+        ngr->parents_count += count;
 
-        state->ldap_parents[state->parents_count] = NULL;
+        ngr->ldap_parents[ngr->parents_count] = NULL;
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Total of %d direct parents after this iteration\n",
+               ngr->parents_count));
     }
 
     state->base_iter++;
@@ -2239,22 +2278,17 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
     /* Reset the base iterator for future lookups */
     state->base_iter = 0;
 
-    ngr = talloc_zero(state->group_hash, struct sdap_nested_group);
-    if (!ngr) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    ngr->group = talloc_steal(ngr, state->groups[state->group_iter]);
-    ngr->ldap_parents = talloc_steal(ngr, state->ldap_parents);
-    ngr->parents_count = state->parents_count;
-
+    /* Save the group into the hash table */
     key.type = HASH_KEY_STRING;
     key.str = talloc_strdup(state, state->primary_name);
     if (!key.str) {
         tevent_req_error(req, ENOMEM);
         return;
     }
+
+    /* Steal the nested group entry on the group_hash context so it can
+     * outlive this request */
+    talloc_steal(state->group_hash, ngr);
 
     value.type = HASH_VALUE_PTR;
     value.ptr = ngr;
@@ -2267,7 +2301,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
     }
     talloc_free(key.str);
 
-    if (state->parents_count == 0) {
+    if (ngr->parents_count == 0) {
         /* No parent groups for this group in LDAP
          * Move on to the next group
          */
@@ -2298,8 +2332,8 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
     subreq = rfc2307bis_nested_groups_send(
             state, state->ev, state->opts, state->sysdb,
             state->dom, state->sh,
-            state->ldap_parents,
-            state->parents_count,
+            ngr->ldap_parents,
+            ngr->parents_count,
             state->group_hash,
             state->nesting_level+1);
     if (!subreq) {
