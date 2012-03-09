@@ -164,8 +164,9 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
 
     cmd_ctx = talloc_zero(cli_ctx, struct sudo_cmd_ctx);
     if (!cmd_ctx) {
-        ret = ENOMEM;
-        goto done;
+        /* kill the connection here as we have no context for reply */
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        return ENOMEM;
     }
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = SSS_DP_SUDO_USER;
@@ -173,16 +174,14 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
     /* get responder ctx */
     cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
     if (!cmd_ctx->sudo_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set\n"));
-        ret = EFAULT;
-        goto done;
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set, killing connection!\n"));
+        return EFAULT;
     }
 
     /* create domain ctx */
     dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
     if (!dctx) {
-        ret = ENOMEM;
-        goto done;
+        return sudosrv_cmd_send_error(cmd_ctx, cmd_ctx, ENOMEM);
     }
     dctx->cmd_ctx = cmd_ctx;
     dctx->orig_username = NULL;
@@ -263,8 +262,9 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
 
     cmd_ctx = talloc_zero(cli_ctx, struct sudo_cmd_ctx);
     if (!cmd_ctx) {
-        ret = ENOMEM;
-        goto done;
+        /* kill the connection here as we have no context for reply */
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        return ENOMEM;
     }
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = SSS_DP_SUDO_DEFAULTS;
@@ -274,16 +274,14 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
     /* get responder ctx */
     cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
     if (!cmd_ctx->sudo_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set\n"));
-        ret = EFAULT;
-        goto done;
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set, killing connection!\n"));
+        return EFAULT;
     }
 
     /* create domain ctx */
     dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
     if (!dctx) {
-        ret = ENOMEM;
-        goto done;
+        return sudosrv_cmd_send_error(cmd_ctx, cmd_ctx, ENOMEM);
     }
     dctx->cmd_ctx = cmd_ctx;
     dctx->orig_username = NULL;
