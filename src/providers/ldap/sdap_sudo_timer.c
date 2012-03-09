@@ -218,6 +218,7 @@ static void sdap_sudo_refresh_timeout(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_sudo_refresh_ctx *refresh_ctx = NULL;
     int delay;
+    int ret;
 
     refresh_ctx = tevent_req_callback_data(req, struct sdap_sudo_refresh_ctx);
 
@@ -226,7 +227,10 @@ static void sdap_sudo_refresh_timeout(struct tevent_context *ev,
           " Timeout too small? (%ds)!\n", delay));
 
     tv = tevent_timeval_current_ofs(delay, 0);
-    sdap_sudo_refresh_set_timer(refresh_ctx, tv);
+    ret = sdap_sudo_refresh_set_timer(refresh_ctx, tv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Error setting up SUDO refresh timer\n"));
+    }
 
     talloc_zfree(req);
 }
