@@ -70,6 +70,8 @@ int sss_sudo_parse_response(const char *message,
         return ENOMEM;
     }
 
+    memset(result, 0, sizeof(struct sss_sudo_result));
+
     /* rules_num */
     ret = sss_sudo_parse_uint32(message, message_len,
                                 &cursor, &result->num_rules);
