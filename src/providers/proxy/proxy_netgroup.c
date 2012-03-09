@@ -28,6 +28,8 @@
 
 #define BUFLEN  1024
 
+#define get_triple_el(s) ((s) ? (s) : "")
+
 static errno_t make_netgroup_attr(struct __netgrent netgrent,
                                   struct sysdb_attrs *attrs)
 {
@@ -42,9 +44,10 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
             return ret;
         }
     } else if (netgrent.type == triple_val) {
-        dummy = talloc_asprintf(attrs, "(%s,%s,%s)", netgrent.val.triple.host,
-                                netgrent.val.triple.user,
-                                netgrent.val.triple.domain);
+        dummy = talloc_asprintf(attrs, "(%s,%s,%s)",
+                                get_triple_el(netgrent.val.triple.host),
+                                get_triple_el(netgrent.val.triple.user),
+                                get_triple_el(netgrent.val.triple.domain));
         if (dummy == NULL) {
             DEBUG(1, ("talloc_asprintf failed.\n"));
             return ENOMEM;
