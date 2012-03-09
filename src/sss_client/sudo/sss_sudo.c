@@ -145,15 +145,18 @@ int sss_sudo_get_values(struct sss_sudo_rule *e,
             for (j = 0; j < attr->num_values; j++) {
                 values[j] = strdup(attr->values[j]);
                 if (values[j] == NULL) {
+                    sss_sudo_free_values(values);
                     return ENOMEM;
                 }
             }
 
             values[attr->num_values] = NULL;
+
+            break;
         }
     }
 
-    if (values == 0) {
+    if (values == NULL) {
         return ENOENT;
     }
 
