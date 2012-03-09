@@ -497,7 +497,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
 
     old_mask = umask(0133);
     fd = mkstemp(filename);
-    umask(old_mask)
+    umask(old_mask);
     if (fd == -1) {
         filename = NULL;
         ret = errno;
