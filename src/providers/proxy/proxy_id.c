@@ -443,13 +443,19 @@ done:
         } \
     } while(0)
 
+
+static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
+                                           struct group *grp,
+                                           time_t now);
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                       struct group *grp, uint64_t cache_timeout)
 {
-    errno_t ret;
+    errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
     char *lower;
     TALLOC_CTX *tmp_ctx;
+    time_t now = time(NULL);
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -457,6 +463,10 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     }
 
     DEBUG_GR_MEM(7, grp);
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) goto done;
+    in_transaction = true;
 
     if (grp->gr_mem && grp->gr_mem[0]) {
         attrs = sysdb_new_attrs(tmp_ctx);
@@ -471,6 +481,13 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                 (const char *const *)grp->gr_mem);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add group members\n"));
+            goto done;
+        }
+
+        /* Create fake users if they don't already exist */
+        ret = proxy_process_missing_users(sysdb, grp, now);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add missing members\n"));
             goto done;
         }
     }
@@ -505,13 +522,78 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                             grp->gr_gid,
                             attrs,
                             cache_timeout,
-                            0);
+                            now);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not add group to cache\n"));
         goto done;
     }
 
-    ret = EOK;
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not commit transaction: [%s]\n",
+               strerror(ret)));
+        goto done;
+    }
+    in_transaction = false;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+        }
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
+                                           struct group *grp,
+                                           time_t now)
+{
+    errno_t ret;
+    size_t i;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_message *msg;
+
+    if (!sysdb || !grp) return EINVAL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    for (i = 0; grp->gr_mem[i]; i++) {
+        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, grp->gr_mem[i],
+                                        NULL, &msg);
+        if (ret == EOK) {
+            /* Member already exists in the cache */
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("Member [%s] already cached\n", grp->gr_mem[i]));
+            /* clean up */
+            talloc_zfree(msg);
+            continue;
+        } else if (ret == ENOENT) {
+            /* No entry for this user. Create a fake user */
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  ("Member [%s] not cached, creating fake user entry\n",
+                   grp->gr_mem[i]));
+
+            ret = sysdb_add_fake_user(sysdb, grp->gr_mem[i], NULL, now);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Cannot store fake user entry: [%d]: %s\n",
+                       ret, strerror(ret)));
+                goto done;
+            }
+        } else {
+            /* Unexpected error */
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Error searching cache for user [%s]: [%s]\n",
+                   grp->gr_mem[i], strerror(ret)));
+            goto done;
+        }
+    }
+
 done:
     talloc_free(tmp_ctx);
     return ret;
