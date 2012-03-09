@@ -96,6 +96,41 @@ static errno_t save_netgroup(struct sysdb_ctx *sysdb,
     return EOK;
 }
 
+static errno_t handle_error(enum nss_status status,
+                            struct sysdb_ctx *sysdb, const char *name)
+{
+    errno_t ret;
+
+    switch (status) {
+    case NSS_STATUS_SUCCESS:
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Netgroup lookup succeeded\n"));
+        ret = EOK;
+        break;
+
+    case NSS_STATUS_NOTFOUND:
+        DEBUG(SSSDBG_MINOR_FAILURE, ("The netgroup was not found\n"));
+        ret = sysdb_delete_netgroup(sysdb, name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot delete netgroup: %d\n", ret));
+            ret = EIO;
+        }
+        break;
+
+    case NSS_STATUS_UNAVAIL:
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("The proxy target did not respond, going offline\n"));
+        ret = ENXIO;
+        break;
+
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unexpected error looking up netgroup\n"));
+        ret = EIO;
+        break;
+    }
+
+    return ret;
+}
+
 errno_t get_netgroup(struct proxy_id_ctx *ctx,
                      struct sysdb_ctx *sysdb,
                      struct sss_domain_info *dom,
@@ -105,49 +140,57 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
     enum nss_status status;
     char buffer[BUFLEN];
     int ret;
-    TALLOC_CTX *tmp_ctx;
+    TALLOC_CTX *tmp_ctx = NULL;
     struct sysdb_attrs *attrs;
 
-    memset(&result, 0 ,sizeof(result));
+    memset(&result, 0, sizeof(result));
     status = ctx->ops.setnetgrent(name, &result);
     if (status != NSS_STATUS_SUCCESS) {
-        DEBUG(5, ("setnetgrent failed for netgroup [%s].\n", name));
-        return EIO;
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("setnetgrent failed for netgroup [%s].\n", name));
+        ret = handle_error(status, sysdb, name);
+        goto done;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
-        return ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        ret = ENOMEM;
+        goto done;
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
     if (attrs == NULL) {
-        DEBUG(1, ("sysdb_new_attrs failed.\n"));
-        return ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_new_attrs failed.\n"));
+        ret = ENOMEM;
+        goto done;
     }
 
     do {
         status = ctx->ops.getnetgrent_r(&result, buffer, BUFLEN, &ret);
-        if (status != NSS_STATUS_SUCCESS && status != NSS_STATUS_RETURN) {
-            DEBUG(1, ("getnetgrent_r failed for netgroup [%s]: [%d][%s].\n",
-                      name, ret, strerror(ret)));
+        if (status != NSS_STATUS_SUCCESS &&
+            status != NSS_STATUS_RETURN &&
+            status != NSS_STATUS_NOTFOUND) {
+            ret = handle_error(status, sysdb, name);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("getnetgrent_r failed for netgroup [%s]: [%d][%s].\n",
+                   name, ret, strerror(ret)));
             goto done;
         }
 
         if (status == NSS_STATUS_SUCCESS) {
             ret = make_netgroup_attr(result, attrs);
             if (ret != EOK) {
-                DEBUG(1, ("make_netgroup_attr failed.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, ("make_netgroup_attr failed.\n"));
                 goto done;
             }
         }
-    } while (status != NSS_STATUS_RETURN);
+    } while (status != NSS_STATUS_RETURN && status != NSS_STATUS_NOTFOUND);
 
     status = ctx->ops.endnetgrent(&result);
     if (status != NSS_STATUS_SUCCESS) {
-        DEBUG(1, ("endnetgrent failed.\n"));
-        ret = EIO;
+        DEBUG(SSSDBG_OP_FAILURE, ("endnetgrent failed.\n"));
+        ret = handle_error(status, sysdb, name);
         goto done;
     }
 
@@ -155,7 +198,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
                         !dom->case_sensitive,
                         dom->netgroup_timeout);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_add_netgroup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_add_netgroup failed.\n"));
         goto done;
     }
 
@@ -163,6 +206,5 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
 
 done:
     talloc_free(tmp_ctx);
-
     return ret;
 }
