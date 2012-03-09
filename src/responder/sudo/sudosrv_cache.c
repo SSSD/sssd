@@ -107,6 +107,7 @@ errno_t sudosrv_cache_set_entry(struct tevent_context *ev,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
@@ -227,6 +228,7 @@ static errno_t sudosrv_cache_lookup_internal(hash_table_t *table,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
