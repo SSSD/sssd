@@ -106,7 +106,7 @@ static void ipa_hbac_check(struct tevent_req *req)
 {
     struct be_req *be_req;
     struct pam_data *pd;
-    struct hbac_ctx *hbac_ctx;
+    struct hbac_ctx *hbac_ctx = NULL;
     const char *deny_method;
     int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
