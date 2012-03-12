@@ -3,12 +3,13 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+# Fabien Archambault <marbolangos@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2012-02-23 12:39+0000\n"
+"POT-Creation-Date: 2012-03-12 16:26-0400\n"
+"PO-Revision-Date: 2012-03-08 11:41+0000\n"
 "Last-Translator: Fabien Archambault <marbolangos@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
@@ -848,9 +849,8 @@ msgid "Automounter map entry value attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:290
-#, fuzzy
 msgid "Base DN for automounter map lookups"
-msgstr "Base DN pour les recherches  d'utilisateurs"
+msgstr ""
 
 #: src/config/SSSDConfig.py:293
 msgid "Comma separated list of allowed users"
@@ -911,7 +911,7 @@ msgstr ""
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
-#: src/providers/data_provider_be.c:1938
+#: src/providers/data_provider_be.c:2022
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -1015,9 +1015,8 @@ msgstr "Le niveau de débogage utilisé avec"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
-#, fuzzy
 msgid "The SSSD domain to use"
-msgstr "Domaines SSSD à démarrer"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
@@ -1032,9 +1031,8 @@ msgstr "Erreur lors du paramétrage de la locale\n"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
-#, fuzzy
 msgid "Not enough memory\n"
-msgstr "Mémoire saturée\n"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
@@ -1518,12 +1516,11 @@ msgstr ""
 
 #: src/tools/sss_debuglevel.c:43
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/tools/sss_debuglevel.c:102
-#, fuzzy
 msgid "Specify debug level you want to set\n"
-msgstr "Le niveau de débogage utilisé avec"
+msgstr ""
 
 #: src/tools/tools_util.c:286
 msgid "Out of memory\n"

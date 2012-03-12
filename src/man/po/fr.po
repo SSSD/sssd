@@ -4,13 +4,14 @@
 #
 # Translators:
 # Fabien Archambault <marbolangos@gmail.com>, 2012.
+#   <sgallagh@redhat.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2012-02-23 12:50+0000\n"
-"Last-Translator: Fabien Archambault <marbolangos@gmail.com>\n"
+"PO-Revision-Date: 2012-03-12 20:08+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -395,10 +396,9 @@ msgid ""
 "manvolnum> </citerefentry>-compatible format that describes how to translate "
 "a (name, domain) tuple into a fully qualified name."
 msgstr ""
-"Un format compatible &lt;citerefentry&gt; &lt;refentrytitle&gt;printf&lt;/"
-"refentrytitle&gt; &lt;manvolnum&gt;3&lt;/manvolnum&gt; &lt;/citerefentry&gt; "
-"décrivant la traduction (nom, domaine) d'un tuple en un domaine totalement "
-"qualifé."
+"Un format compatible <citerefentry> <refentrytitle>printf</refentrytitle> "
+"<manvolnum>3</manvolnum> </citerefentry> décrivant la traduction (nom, "
+"domaine) d'un tuple en un domaine totalement qualifé."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:157
@@ -1139,20 +1139,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:662
-#, fuzzy
-#| msgid ""
-#| "Specifies for how many seconds nss_sss should cache negative cache hits "
-#| "(that is, queries for invalid database entries, like nonexistent ones)  "
-#| "before asking the back end again."
 msgid ""
 "Specifies for how many seconds should the autofs responder negative cache "
 "hits (that is, queries for invalid map entries, like nonexistent ones) "
 "before asking the back end again."
 msgstr ""
-"Spécifie le temps, en secondes, pendant lequel nss_sss doit mettre en cache "
-"les résultats négatifs du cache (c'est-à-dire les requêtes pour les bases de "
-"données invalides, comme celles qui n'existent pas) avant d'appeler à "
-"nouveau l'arrière plan."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:679
@@ -3528,10 +3519,9 @@ msgid ""
 "certificate is provided, the session proceeds normally. If a bad certificate "
 "is provided, it will be ignored and the session proceeds normally."
 msgstr ""
-"&lt;emphasis&gt;allow&lt;/emphasis&gt; : le certificat serveur est demandé. "
-"Si aucun certificat n'est fournit, la session continue normalement. Si un "
-"mauvais certificat est fournit, il est ignoré et la session continue "
-"normalement."
+"<emphasis>allow</emphasis> : le certificat serveur est demandé. Si aucun "
+"certificat n'est fournit, la session continue normalement. Si un mauvais "
+"certificat est fournit, il est ignoré et la session continue normalement."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1157
@@ -3551,9 +3541,9 @@ msgid ""
 "certificate is provided, or a bad certificate is provided, the session is "
 "immediately terminated."
 msgstr ""
-"&lt;emphasis&gt;demand&lt;/emphasis&gt; : le certificat serveur est demandé. "
-"Si aucun certificat ou un mauvais certificat est fournit, la session se "
-"termine immédiatement."
+"<emphasis>demand</emphasis> : le certificat serveur est demandé. Si aucun "
+"certificat ou un mauvais certificat est fournit, la session se termine "
+"immédiatement."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1169
@@ -4403,20 +4393,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:1815
-#, fuzzy
-#| msgid ""
-#| "Specifies acceptable cipher suites.  Typically this is a colon sperated "
-#| "list.  See <citerefentry><refentrytitle>ldap.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum></citerefentry> for format."
 msgid ""
 "This manual page only describes attribute name mapping.  For detailed "
 "explanation of sudo related attribute semantics, see <citerefentry> "
 "<refentrytitle>sudoers.ldap</refentrytitle><manvolnum>5</manvolnum> </"
 "citerefentry>"
 msgstr ""
-"Définit les fluxs de chiffrement acceptables. Usuellement c'est une liste "
-"séparée par des deux-points. Voir <citerefentry><refentrytitle>ldap.conf</"
-"refentrytitle> <manvolnum>5</manvolnum></citerefentry> pour le format."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1825
@@ -4708,8 +4690,8 @@ msgid ""
 "<productname>SSSD</productname> <orgname>The SSSD upstream - http://"
 "fedorahosted.org/sssd</orgname>"
 msgstr ""
-"&lt;productname&gt;SSSD&lt;/productname&gt; &lt;orgname&gt;Le projet SSSD - "
-"http://fedorahosted.org/sssd&lt;/orgname&gt;"
+"<productname>SSSD</productname> <orgname>Le projet SSSD - http://"
+"fedorahosted.org/sssd</orgname>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: pam_sss.8.xml:13 pam_sss.8.xml:18
@@ -6478,9 +6460,9 @@ msgstr ""
 "%d et %P. Si le dossier n'existe pas il sera créé. Si %u, %U, %p ou %h sont "
 "utilisés un répertoire privé appartenant à l'utilisateur est créé. Sinon un "
 "répertoire public avec un drapeau de restriction à la suppression (aussi "
-"appelé « sticky bit », voir &lt;citerefentry&gt; &lt;refentrytitle&gt;"
-"chmod&lt;/refentrytitle&gt; &lt;manvolnum&gt;1&lt;/manvolnum&gt; &lt;/"
-"citerefentry&gt; pour plus de détails) est créé."
+"appelé « sticky bit », voir <citerefentry> <refentrytitle>chmod</"
+"refentrytitle> <manvolnum>1</manvolnum> </citerefentry> pour plus de "
+"détails) est créé."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:151
@@ -7220,10 +7202,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_cache.8.xml:10 sss_cache.8.xml:15
-#, fuzzy
-#| msgid "sss_obfuscate"
 msgid "sss_cache"
-msgstr "sss_obfuscate"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_cache.8.xml:16
@@ -7232,16 +7212,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_cache.8.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sssd</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg>"
 msgid ""
 "<command>sss_cache</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg>"
 msgstr ""
-"<command>sssd</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_cache.8.xml:31
@@ -7253,13 +7227,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:42
-#, fuzzy
-#| msgid ""
-#| "<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
 msgid ""
 "<option>-u</option>,<option>--user</option> <replaceable>login</replaceable>"
 msgstr ""
-"<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:47
@@ -7268,10 +7238,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:53
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-U</option>,<option>--users</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:57
@@ -7282,15 +7250,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:64
-#, fuzzy
-#| msgid ""
-#| "<option>-G</option>,<option>--groups</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid ""
 "<option>-g</option>,<option>--group</option> <replaceable>group</replaceable>"
 msgstr ""
-"<option>-G</option>,<option>--groups</option> <replaceable>GROUPES</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:69
@@ -7299,10 +7261,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:75
-#, fuzzy
-#| msgid "<option>-r</option>,<option>--remove</option>"
 msgid "<option>-G</option>,<option>--groups</option>"
-msgstr "<option>-r</option>,<option>--remove</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:79
@@ -7313,16 +7273,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:86
-#, fuzzy
-#| msgid ""
-#| "<option>-G</option>,<option>--groups</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid ""
 "<option>-n</option>,<option>--netgroup</option> <replaceable>netgroup</"
 "replaceable>"
 msgstr ""
-"<option>-G</option>,<option>--groups</option> <replaceable>GROUPES</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:91
@@ -7331,10 +7285,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:97
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-N</option>,<option>--netgroups</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:101
@@ -7345,16 +7297,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
-#, fuzzy
-#| msgid ""
-#| "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
-#| "replaceable>"
 msgid ""
 "<option>-d</option>,<option>--domain</option> <replaceable>domain</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--domain</option> <replaceable>DOMAINE</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:113
@@ -7363,10 +7309,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_debuglevel.8.xml:10 sss_debuglevel.8.xml:15
-#, fuzzy
-#| msgid "sss_userdel"
 msgid "sss_debuglevel"
-msgstr "sss_userdel"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_debuglevel.8.xml:16
@@ -7375,19 +7319,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_debuglevel.8.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_debuglevel</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg> <arg choice='plain'><replaceable>NEW_DEBUG_LEVEL</"
 "replaceable></arg>"
 msgstr ""
-"<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_debuglevel.8.xml:32
@@ -7419,30 +7355,14 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_ssh_authorizedkeys.1.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> "
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>USER</replaceable></arg>"
 msgstr ""
-"<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:32
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of LDAP domains for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  Refer to the <quote>FILE FORMAT</quote> "
-#| "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page for detailed syntax "
-#| "information."
 msgid ""
 "<command>sss_ssh_authorizedkeys</command> acquires SSH public keys for user "
 "<replaceable>USER</replaceable> and outputs them in OpenSSH authorized_keys "
@@ -7450,21 +7370,9 @@ msgid ""
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
 "citerefentry> for more information)."
 msgstr ""
-"Ce manuel décrit la configuration des domaines LDAP pour <citerefentry> "
-"<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> </"
-"citerefentry>. Se référer à la section <quote>FILE FORMAT</quote> du manuel "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> pour des informations sur la syntaxe détaillée."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:41
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>"
 msgid ""
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
 "citerefentry> can be configured to use <command>sss_ssh_authorizedkeys</"
@@ -7473,10 +7381,6 @@ msgid ""
 "quote> <citerefentry> <refentrytitle>sshd_config</refentrytitle> "
 "<manvolnum>5</manvolnum></citerefentry> options."
 msgstr ""
-"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_authorizedkeys.1.xml:58
@@ -7486,14 +7390,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:51
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of LDAP domains for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  Refer to the <quote>FILE FORMAT</quote> "
-#| "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page for detailed syntax "
-#| "information."
 msgid ""
 "If <quote>AuthorizedKeysCommand</quote> is supported, "
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
@@ -7501,11 +7397,6 @@ msgid ""
 "in <citerefentry> <refentrytitle>sshd_config</refentrytitle> <manvolnum>5</"
 "manvolnum></citerefentry>: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Ce manuel décrit la configuration des domaines LDAP pour <citerefentry> "
-"<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> </"
-"citerefentry>. Se référer à la section <quote>FILE FORMAT</quote> du manuel "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> pour des informations sur la syntaxe détaillée."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_authorizedkeys.1.xml:69
@@ -7515,14 +7406,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:62
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of LDAP domains for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  Refer to the <quote>FILE FORMAT</quote> "
-#| "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page for detailed syntax "
-#| "information."
 msgid ""
 "If <quote>PubkeyAgent</quote> is supported, "
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
@@ -7531,11 +7414,6 @@ msgid ""
 "manvolnum></citerefentry> configuration: <placeholder type=\"programlisting"
 "\" id=\"0\"/>"
 msgstr ""
-"Ce manuel décrit la configuration des domaines LDAP pour <citerefentry> "
-"<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> </"
-"citerefentry>. Se référer à la section <quote>FILE FORMAT</quote> du manuel "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> pour des informations sur la syntaxe détaillée."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_authorizedkeys.1.xml:87
@@ -7545,13 +7423,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:98
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>"
 msgid ""
 "<citerefentry> <refentrytitle>sshd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sshd_config</"
@@ -7559,10 +7430,6 @@ msgid ""
 "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle><manvolnum>1</"
 "manvolnum> </citerefentry>."
 msgstr ""
-"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_knownhostsproxy.1.xml:10 sss_ssh_knownhostsproxy.1.xml:15
@@ -7576,20 +7443,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_ssh_knownhostsproxy.1.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_ssh_knownhostsproxy</command> <arg choice='opt'> "
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>HOST</replaceable></arg> <arg "
 "choice='opt'><replaceable>PROXY_COMMAND</replaceable></arg>"
 msgstr ""
-"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:33
@@ -7619,13 +7478,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:48
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>"
 msgid ""
 "<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
 "citerefentry> can be configured to use <command>sss_ssh_knownhostsproxy</"
@@ -7633,22 +7485,12 @@ msgid ""
 "<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
 "citerefentry> configuration: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_ssh_knownhostsproxy.1.xml:69
-#, fuzzy
-#| msgid ""
-#| "<option>-c</option>,<option>--gecos</option> <replaceable>COMMENT</"
-#| "replaceable>"
 msgid ""
 "<option>-p</option>,<option>--port</option> <replaceable>PORT</replaceable>"
 msgstr ""
-"<option>-c</option>,<option>--gecos</option> <replaceable>COMMENTAIRE</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_knownhostsproxy.1.xml:74
@@ -7665,13 +7507,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:97
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>"
 msgid ""
 "<citerefentry> <refentrytitle>ssh</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>ssh_config</"
@@ -7679,10 +7514,6 @@ msgid ""
 "<refentrytitle>sss_ssh_authorizedkeys</refentrytitle><manvolnum>1</"
 "manvolnum> </citerefentry>."
 msgstr ""
-"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 
 #. type: Content of: <refsect1><title>
 #: include/service_discovery.xml:2
@@ -7833,10 +7664,8 @@ msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:8
-#, fuzzy
-#| msgid "Currently sssd supports the following values:"
 msgid "Currently supported debug levels:"
-msgstr "Actuellement sssd supporte les valeurs :"
+msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:11
@@ -7869,36 +7698,24 @@ msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:28
-#, fuzzy
-#| msgid "<emphasis>2</emphasis>: show informational messages"
 msgid "<emphasis>0x0100</emphasis>: Configuration settings."
-msgstr "<emphasis>2</emphasis> : afficher les messages d'information"
+msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:31
-#, fuzzy
-#| msgid "<emphasis>s</emphasis> seconds"
 msgid "<emphasis>0x0200</emphasis>: Function data."
-msgstr "<emphasis>s</emphasis> secondes"
+msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:34
-#, fuzzy
-#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x0400</emphasis>: Trace messages for operation functions."
 msgstr ""
-"<emphasis>3</emphasis> : afficher tous les messages et informations de "
-"débogage"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:37
-#, fuzzy
-#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid ""
 "<emphasis>0x1000</emphasis>: Trace messages for internal control functions."
 msgstr ""
-"<emphasis>3</emphasis> : afficher tous les messages et informations de "
-"débogage"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:40
@@ -7909,12 +7726,8 @@ msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:43
-#, fuzzy
-#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x4000</emphasis>: Extremely low-level tracing information."
 msgstr ""
-"<emphasis>3</emphasis> : afficher tous les messages et informations de "
-"débogage"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:46

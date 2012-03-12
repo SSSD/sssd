@@ -9,9 +9,10 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2011-12-21 10:12+0000\n"
+"PO-Revision-Date: 2012-03-08 11:52+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
-"Language-Team: Czech (http://www.transifex.net/projects/p/fedora/team/cs/)\n"
+"Language-Team: Czech (http://www.transifex.net/projects/p/fedora/language/"
+"cs/)\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3597,10 +3598,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1639
-#, fuzzy
-#| msgid "OPTIONS"
 msgid "SUDO OPTIONS"
-msgstr "VOLBY"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1644
@@ -3813,10 +3812,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1825
-#, fuzzy
-#| msgid "OPTIONS"
 msgid "AUTOFS OPTIONS"
-msgstr "VOLBY"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:1827
@@ -6215,18 +6212,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_cache.8.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_cache</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_cache.8.xml:31
@@ -6238,11 +6227,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:42
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-u</option>,<option>--user</option> <replaceable>login</replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:47
@@ -6251,10 +6238,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:53
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-U</option>,<option>--users</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:57
@@ -6265,11 +6250,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:64
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-g</option>,<option>--group</option> <replaceable>group</replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:69
@@ -6278,10 +6261,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:75
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-G</option>,<option>--groups</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:79
@@ -6292,12 +6273,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:86
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-n</option>,<option>--netgroup</option> <replaceable>netgroup</"
 "replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:91
@@ -6306,10 +6285,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:97
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-N</option>,<option>--netgroups</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:101
@@ -6320,12 +6297,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-d</option>,<option>--domain</option> <replaceable>domain</"
 "replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:113
@@ -6344,19 +6319,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_debuglevel.8.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_debuglevel</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg> <arg choice='plain'><replaceable>NEW_DEBUG_LEVEL</"
 "replaceable></arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_debuglevel.8.xml:32
@@ -6388,19 +6355,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_ssh_authorizedkeys.1.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> "
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>USER</replaceable></arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:32
@@ -6464,17 +6423,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:98
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgid ""
 "<citerefentry> <refentrytitle>sshd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sshd_config</"
@@ -6482,15 +6430,6 @@ msgid ""
 "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle><manvolnum>1</"
 "manvolnum> </citerefentry>."
 msgstr ""
-"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_knownhostsproxy.1.xml:10 sss_ssh_knownhostsproxy.1.xml:15
@@ -6504,20 +6443,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_ssh_knownhostsproxy.1.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-#| "arg>"
 msgid ""
 "<command>sss_ssh_knownhostsproxy</command> <arg choice='opt'> "
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>HOST</replaceable></arg> <arg "
 "choice='opt'><replaceable>PROXY_COMMAND</replaceable></arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>volby</"
-"replaceable> </arg> <arg choice='plain'><replaceable>SKUPINA</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:33
@@ -6557,11 +6488,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_ssh_knownhostsproxy.1.xml:69
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-p</option>,<option>--port</option> <replaceable>PORT</replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_knownhostsproxy.1.xml:74
@@ -6578,17 +6507,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:97
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgid ""
 "<citerefentry> <refentrytitle>ssh</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>ssh_config</"
@@ -6596,15 +6514,6 @@ msgid ""
 "<refentrytitle>sss_ssh_authorizedkeys</refentrytitle><manvolnum>1</"
 "manvolnum> </citerefentry>."
 msgstr ""
-"<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <refsect1><title>
 #: include/service_discovery.xml:2

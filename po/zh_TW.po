@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2011-12-21 10:10+0000\n"
+"POT-Creation-Date: 2012-03-12 16:26-0400\n"
+"PO-Revision-Date: 2012-03-08 11:41+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Chinese (Taiwan) <trans-zh_TW@lists.fedoraproject.org>\n"
 "Language: zh_TW\n"
@@ -170,24 +170,20 @@ msgid "Password change provider"
 msgstr "密碼變更提供者"
 
 #: src/config/SSSDConfig.py:88
-#, fuzzy
 msgid "SUDO provider"
-msgstr "身分提供者"
+msgstr ""
 
 #: src/config/SSSDConfig.py:89
-#, fuzzy
 msgid "Autofs provider"
-msgstr "認證提供者"
+msgstr ""
 
 #: src/config/SSSDConfig.py:90
-#, fuzzy
 msgid "Session-loading provider"
-msgstr "存取控制提供者"
+msgstr ""
 
 #: src/config/SSSDConfig.py:91
-#, fuzzy
 msgid "Host identity provider"
-msgstr "身分提供者"
+msgstr ""
 
 #: src/config/SSSDConfig.py:94
 msgid "Minimum user ID"
@@ -752,9 +748,8 @@ msgid "Enable periodical update of all sudo rules"
 msgstr ""
 
 #: src/config/SSSDConfig.py:271
-#, fuzzy
 msgid "Length of time between rules updates"
-msgstr "搜尋請求的等候時間長度"
+msgstr ""
 
 #: src/config/SSSDConfig.py:272
 msgid "Object class for sudo rules"
@@ -883,7 +878,7 @@ msgstr ""
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:1938
+#: src/providers/data_provider_be.c:2022
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -984,9 +979,8 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
-#, fuzzy
 msgid "The SSSD domain to use"
-msgstr "要啟動的 SSSD 網域"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
@@ -1001,9 +995,8 @@ msgstr "設定區域設置時發生錯誤\n"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
-#, fuzzy
 msgid "Not enough memory\n"
-msgstr "記憶體耗盡\n"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
@@ -1452,9 +1445,8 @@ msgid "\n"
 msgstr ""
 
 #: src/tools/sss_debuglevel.c:102
-#, fuzzy
 msgid "Specify debug level you want to set\n"
-msgstr "指定要刪除的群組\n"
+msgstr ""
 
 #: src/tools/tools_util.c:286
 msgid "Out of memory\n"

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"POT-Creation-Date: 2012-03-12 16:26-0400\n"
+"PO-Revision-Date: 2012-03-08 11:42+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Hungarian <trans-hu@lists.fedoraproject.org>\n"
 "Language: hu\n"
@@ -175,18 +175,16 @@ msgid "SUDO provider"
 msgstr ""
 
 #: src/config/SSSDConfig.py:89
-#, fuzzy
 msgid "Autofs provider"
-msgstr "Azonosító-kiszolgáló"
+msgstr ""
 
 #: src/config/SSSDConfig.py:90
 msgid "Session-loading provider"
 msgstr ""
 
 #: src/config/SSSDConfig.py:91
-#, fuzzy
 msgid "Host identity provider"
-msgstr "Azonosító-kiszolgáló"
+msgstr ""
 
 #: src/config/SSSDConfig.py:94
 msgid "Minimum user ID"
@@ -881,7 +879,7 @@ msgstr "Mikroszekundum pontosságú időbélyegek"
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:1938
+#: src/providers/data_provider_be.c:2022
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -982,9 +980,8 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
-#, fuzzy
 msgid "The SSSD domain to use"
-msgstr "A felhasználó UID-je"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
@@ -999,9 +996,8 @@ msgstr ""
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
-#, fuzzy
 msgid "Not enough memory\n"
-msgstr "Elfogyott a memória\n"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"

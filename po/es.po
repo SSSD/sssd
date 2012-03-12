@@ -3,6 +3,8 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+# Adolfo Jayme Barrientos <fitoschido@gmail.com>, 2012.
+# Daniel Cabrera <logan@fedoraproject.org>, 2011.
 # Héctor Daniel Cabrera <logan@fedoraproject.org>, 2011.
 # Hugo Jiménez Hernández <hjimenezhdez@gmail.com>, 2011.
 #   <sgallagh@redhat.com>, 2011.
@@ -10,8 +12,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2011-12-21 10:11+0000\n"
+"POT-Creation-Date: 2012-03-12 16:26-0400\n"
+"PO-Revision-Date: 2012-03-08 11:41+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Spanish (Castilian) <trans-es@lists.fedoraproject.org>\n"
 "Language: es\n"
@@ -171,12 +173,9 @@ msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr ""
 
 #: src/config/SSSDConfig.py:78
-#, fuzzy
 msgid ""
 "How many seconds to keep sudorules cached before asking the provider again"
 msgstr ""
-"Cuanto segundos se mantendrá la información de identidad almacenada para "
-"solicitudes de PAM"
 
 #: src/config/SSSDConfig.py:84
 msgid "Identity provider"
@@ -195,24 +194,20 @@ msgid "Password change provider"
 msgstr "Proveedor de cambio de contraseña"
 
 #: src/config/SSSDConfig.py:88
-#, fuzzy
 msgid "SUDO provider"
-msgstr "Proveedor de identidad"
+msgstr "Proveedor de SUDO"
 
 #: src/config/SSSDConfig.py:89
-#, fuzzy
 msgid "Autofs provider"
-msgstr "Proveedor de Autenticación"
+msgstr "Proveedor de Autofs"
 
 #: src/config/SSSDConfig.py:90
-#, fuzzy
 msgid "Session-loading provider"
-msgstr "Proveedor de control de acceso"
+msgstr ""
 
 #: src/config/SSSDConfig.py:91
-#, fuzzy
 msgid "Host identity provider"
-msgstr "Proveedor de identidad"
+msgstr ""
 
 #: src/config/SSSDConfig.py:94
 msgid "Minimum user ID"
@@ -271,7 +266,7 @@ msgstr "Sustituye valor GID del proveedor de la identidad con este valor"
 
 #: src/config/SSSDConfig.py:106
 msgid "Treat usernames as case sensitive"
-msgstr ""
+msgstr "Trate al nombre de usuario con mayúsculas y minúsculas"
 
 #: src/config/SSSDConfig.py:114
 msgid "IPA domain"
@@ -315,10 +310,12 @@ msgstr ""
 #: src/config/SSSDConfig.py:122
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
+"Si se lo define en 'false', será ignorado el argumento de equipo ofrecido "
+"por PAM"
 
 #: src/config/SSSDConfig.py:123
 msgid "The automounter location this IPA client is using"
-msgstr ""
+msgstr "La ubicación de montaje automático que este cliente de IPA está usando"
 
 #: src/config/SSSDConfig.py:126 src/config/SSSDConfig.py:127
 msgid "Kerberos server address"
@@ -462,7 +459,7 @@ msgstr "Especifica el reinado de autorización sasl a ser utilizado"
 
 #: src/config/SSSDConfig.py:167
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "Especificar los SSF mínimos para autorizaciones sasl de LDAP"
 
 #: src/config/SSSDConfig.py:168
 msgid "Kerberos service keytab"
@@ -516,6 +513,8 @@ msgstr "atributo lastUSN"
 #: src/config/SSSDConfig.py:181
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
+"El período de tiempo máximo para retener una conexión con el servidor LDAP "
+"antes de desconectar"
 
 #: src/config/SSSDConfig.py:183
 msgid "Disable the LDAP paging control"
@@ -676,9 +675,8 @@ msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "loginAllowedTimeMap atributo de NDS"
 
 #: src/config/SSSDConfig.py:226
-#, fuzzy
 msgid "SSH public key attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr "Atributo de clave pública SSH"
 
 #: src/config/SSSDConfig.py:228
 msgid "Base DN for group lookups"
@@ -745,29 +743,24 @@ msgid "Modification time attribute for netgroups"
 msgstr "Atributo de modificación de tiempo para grupos de red"
 
 #: src/config/SSSDConfig.py:249
-#, fuzzy
 msgid "Base DN for service lookups"
-msgstr "DN base para búsquedas de usuario"
+msgstr ""
 
 #: src/config/SSSDConfig.py:250
-#, fuzzy
 msgid "Objectclass for services"
-msgstr "Objectclass para los usuarios"
+msgstr ""
 
 #: src/config/SSSDConfig.py:251
-#, fuzzy
 msgid "Service name attribute"
-msgstr "Atributo Username"
+msgstr ""
 
 #: src/config/SSSDConfig.py:252
-#, fuzzy
 msgid "Service port attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:253
-#, fuzzy
 msgid "Service protocol attribute"
-msgstr "Atributo shell"
+msgstr ""
 
 #: src/config/SSSDConfig.py:257
 msgid "Policy to evaluate the password expiration"
@@ -798,102 +791,84 @@ msgstr ""
 "Nombre del servicio DNS para el servidor de modificación de contraseñas LDAP"
 
 #: src/config/SSSDConfig.py:269
-#, fuzzy
 msgid "Base DN for sudo rules lookups"
-msgstr "DN base para búsquedas de usuario"
+msgstr ""
 
 #: src/config/SSSDConfig.py:270
 msgid "Enable periodical update of all sudo rules"
 msgstr ""
 
 #: src/config/SSSDConfig.py:271
-#, fuzzy
 msgid "Length of time between rules updates"
-msgstr "Tiempo en segundos entre las actualizaciones de enumeración"
+msgstr ""
 
 #: src/config/SSSDConfig.py:272
-#, fuzzy
 msgid "Object class for sudo rules"
-msgstr "Objectclass para los usuarios"
+msgstr ""
 
 #: src/config/SSSDConfig.py:273
 msgid "Sudo rule name"
 msgstr ""
 
 #: src/config/SSSDConfig.py:274
-#, fuzzy
 msgid "Sudo rule command attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:275
-#, fuzzy
 msgid "Sudo rule host attribute"
-msgstr "atributo lastUSN"
+msgstr ""
 
 #: src/config/SSSDConfig.py:276
-#, fuzzy
 msgid "Sudo rule user attribute"
-msgstr "Atributo de miembro del grupo"
+msgstr ""
 
 #: src/config/SSSDConfig.py:277
-#, fuzzy
 msgid "Sudo rule option attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:278
-#, fuzzy
 msgid "Sudo rule runasuser attribute"
-msgstr "Atributo Username"
+msgstr ""
 
 #: src/config/SSSDConfig.py:279
-#, fuzzy
 msgid "Sudo rule runasgroup attribute"
-msgstr "Atributo UUID de miembro de red"
+msgstr ""
 
 #: src/config/SSSDConfig.py:280
-#, fuzzy
 msgid "Sudo rule notbefore attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:281
-#, fuzzy
 msgid "Sudo rule notafter attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:282
-#, fuzzy
 msgid "Sudo rule order attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:285
-#, fuzzy
 msgid "Object class for automounter maps"
-msgstr "Objectclass para los usuarios"
+msgstr ""
 
 #: src/config/SSSDConfig.py:286
-#, fuzzy
 msgid "Automounter map name attribute"
-msgstr "Atributo Username"
+msgstr ""
 
 #: src/config/SSSDConfig.py:287
-#, fuzzy
 msgid "Object class for automounter map entries"
-msgstr "Objectclass para los usuarios"
+msgstr ""
 
 #: src/config/SSSDConfig.py:288
-#, fuzzy
 msgid "Automounter map entry key attribute"
-msgstr "Atributo Directorio de inicio"
+msgstr ""
 
 #: src/config/SSSDConfig.py:289
-#, fuzzy
 msgid "Automounter map entry value attribute"
-msgstr "Atributo triple de grupo de red"
+msgstr ""
 
 #: src/config/SSSDConfig.py:290
-#, fuzzy
 msgid "Base DN for automounter map lookups"
-msgstr "DN base para búsquedas de usuario"
+msgstr ""
 
 #: src/config/SSSDConfig.py:293
 msgid "Comma separated list of allowed users"
@@ -933,7 +908,7 @@ msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
 #: src/monitor/monitor.c:2385
 msgid "Print version number and exit"
-msgstr ""
+msgstr "Muestra el número de versión y finaliza"
 
 #: src/providers/krb5/krb5_child.c:1575 src/providers/ldap/ldap_child.c:381
 #: src/util/util.h:89
@@ -954,7 +929,7 @@ msgstr "Mostrar marcas de tiempo con microsegundos"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: src/providers/data_provider_be.c:1938
+#: src/providers/data_provider_be.c:2022
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
@@ -1056,9 +1031,8 @@ msgstr "Nivel de depuración en que se debe ejecutar"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
-#, fuzzy
 msgid "The SSSD domain to use"
-msgstr "Dominios SSSD a iniciar"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
@@ -1073,9 +1047,8 @@ msgstr "Error al poner la región\n"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
-#, fuzzy
 msgid "Not enough memory\n"
-msgstr "Falta memoria\n"
+msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
@@ -1553,9 +1526,8 @@ msgid "\n"
 msgstr ""
 
 #: src/tools/sss_debuglevel.c:102
-#, fuzzy
 msgid "Specify debug level you want to set\n"
-msgstr "Nivel de depuración en que se debe ejecutar"
+msgstr ""
 
 #: src/tools/tools_util.c:286
 msgid "Out of memory\n"
