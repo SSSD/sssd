@@ -182,6 +182,9 @@ if test x$has_dbus != xno; then
     LIBS="$SAFE_LIBS"
 fi
 
+# work around a bug in cov-build from Coverity
+test -n "$XML_CATALOG_FILES" || unset XML_CATALOG_FILES
+
 if test x$HAVE_MANPAGES != x; then
     CHECK_XML_TOOLS
 
