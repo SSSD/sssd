@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "sss_client/sss_cli.h"
 #include "sss_client/sudo/sss_sudo.h"
 #include "sss_client/sudo/sss_sudo_private.h"
 

@@ -31,11 +31,6 @@
 
 #include <stdint.h>
 
-/** The sss_sudo* functions in general return EOK on success */
-#ifndef EOK
-#define EOK 0
-#endif
-
 /** The value returned when the communication with SUDO is successful and
  *  the user was found in one of the domains
  */
@@ -109,10 +104,10 @@ struct sss_sudo_result {
  *                        the user was valid, this structure is "empty", which
  *                        means that the num_rules member is 0.
  *
- * @return The return value denotes whether communication with SSSD was
- * successful. It does not tell whether the result contains any rules or
- * whether SSSD knew the user at all. That information is transferred in the
- * _error parameter.
+ * @return 0 on success and other errno values on failure. The return value
+ *         denotes whether communication with SSSD was successful. It does not
+ *         tell whether the result contains any rules or whether SSSD knew the
+ *         user at all. That information is transferred in the _error parameter.
  */
 int sss_sudo_send_recv(const char *username,
                        uint32_t *_error,
@@ -134,9 +129,10 @@ int sss_sudo_send_recv(const char *username,
  *                        is "empty", which means that the num_rules member
  *                        is 0.
  *
- * @return The return value denotes whether communication with SSSD was
- * successful. It does not tell whether the result contains any options,
- * That information is transferred in the _error parameter.
+ * @return 0 on success and other errno values on failure. The return value
+ *         denotes whether communication with SSSD was successful. It does not
+ *         tell whether the result contains any rules or whether SSSD knew the
+ *         user at all. That information is transferred in the _error parameter.
  */
 int sss_sudo_send_recv_defaults(uint32_t *_error,
                                 struct sss_sudo_result **_result);
@@ -160,7 +156,7 @@ void sss_sudo_free_result(struct sss_sudo_result *result);
  *                        pointer. On failure (including when the attribute is
  *                        not found), the pointer address is not changed.
  *
- * @return EOK on success, ENOENT in case the attribute is not found and other
+ * @return 0 on success, ENOENT in case the attribute is not found and other
  * errno values on failure.
  *
  * @note the returned values should be freed using sss_sudo_free_values()
