@@ -179,7 +179,7 @@ done:
 
 /*
  * Response format:
- * <error_code(uint32_t)><num_entries(uint32_t)><rule1><rule2>...
+ * <error_code(uint32_t)><domain(char*)>\0<num_entries(uint32_t)><rule1><rule2>...
  * <ruleN> = <num_attrs(uint32_t)><attr1><attr2>...
  * <attrN>  = <name(char*)>\0<num_values(uint32_t)><value1(char*)>\0<value2(char*)>\0...
  *
@@ -187,6 +187,7 @@ done:
  */
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
+                               const char *domain,
                                int rules_num,
                                struct sysdb_attrs **rules,
                                uint8_t **_response_body,
@@ -213,6 +214,13 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
 
     if (error != SSS_SUDO_ERROR_OK) {
         goto done;
+    }
+
+    /* domain name */
+    ret = sudosrv_response_append_string(tmp_ctx, domain, strlen(domain) + 1,
+                                         &response_body, &response_len);
+    if (ret != EOK) {
+        goto fail;
     }
 
     /* rules count */
@@ -244,12 +252,13 @@ fail:
 
 /*
  * Query format:
- * <username[@domain]>
+ * <uid><username[@domain]>
  */
 errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
                             struct resp_ctx *rctx,
                             uint8_t *query_body,
                             size_t query_len,
+                            uid_t *_uid,
                             char **_username,
                             struct sss_domain_info **_domain)
 {
@@ -260,6 +269,7 @@ errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
     char *rawname = NULL;
     char *domainname = NULL;
     char *username = NULL;
+    uid_t uid;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -267,6 +277,15 @@ errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
         return ENOMEM;
     }
+
+    /* uid */
+
+    if (query_len < sizeof(uid_t)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Query is too small\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    safealign_memcpy(&uid, query_body, sizeof(uid_t), &offset);
 
     /* username[@domain] */
 
@@ -310,6 +329,7 @@ errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
         }
     }
 
+    *_uid = uid;
     *_username = talloc_steal(mem_ctx, username);
     *_domain = domain; /* do not steal on mem_ctx */
 

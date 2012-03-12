@@ -84,7 +84,7 @@ static errno_t sudosrv_cmd_send_error(TALLOC_CTX *mem_ctx,
         return EFAULT;
     }
 
-    ret = sudosrv_build_response(mem_ctx, error, 0, NULL,
+    ret = sudosrv_build_response(mem_ctx, error, NULL, 0, NULL,
                                  &response_body, &response_len);
     if (ret != EOK) {
         return ret;
@@ -117,7 +117,7 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
 
         /* send result */
         ret = sudosrv_build_response(cmd_ctx, SSS_SUDO_ERROR_OK,
-                                     num_rules, rules,
+                                     cmd_ctx->domain->name, num_rules, rules,
                                      &response_body, &response_len);
         if (ret != EOK) {
             return EFAULT;
@@ -158,10 +158,12 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
 static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
 {
     struct sudo_cmd_ctx *cmd_ctx = NULL;
-    struct sudo_dom_ctx *dctx = NULL;
+    struct sudo_dom_ctx *dom_ctx = NULL;
     uint8_t *query_body = NULL;
     size_t query_len = 0;
-    errno_t ret = EOK;
+    errno_t ret;
+
+    /* create cmd_ctx */
 
     cmd_ctx = talloc_zero(cli_ctx, struct sudo_cmd_ctx);
     if (cmd_ctx == NULL) {
@@ -169,108 +171,65 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
         DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
         return ENOMEM;
     }
+
     cmd_ctx->domain = NULL;
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = type;
-    cmd_ctx->username = NULL;
-    cmd_ctx->check_next = false;
-
-    /* get responder ctx */
     cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
-    if (!cmd_ctx->sudo_ctx) {
+    if (cmd_ctx->sudo_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set, killing connection!\n"));
-        ret = EFAULT;
+        return EFAULT;
+    }
+
+    /* parse query */
+
+    sss_packet_get_body(cli_ctx->creq->in, &query_body, &query_len);
+    if (query_len <= 0 || query_body == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Query is empty\n"));
+        ret = EINVAL;
         goto done;
+    }
+
+    ret = sudosrv_parse_query(cmd_ctx, cli_ctx->rctx,
+                              query_body, query_len,
+                              &cmd_ctx->uid, &cmd_ctx->username, &cmd_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid query: %s\n", strerror(ret)));
+        goto done;
+    }
+
+    cmd_ctx->check_next = cmd_ctx->domain == NULL;
+
+    switch (cmd_ctx->type) {
+        case SSS_DP_SUDO_DEFAULTS:
+            DEBUG(SSSDBG_FUNC_DATA, ("Requesting default options "
+                  "for [%s] from [%s]\n", cmd_ctx->username,
+                  cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>"));
+            break;
+        case SSS_DP_SUDO_USER:
+            DEBUG(SSSDBG_FUNC_DATA, ("Requesting rules "
+                  "for [%s] from [%s]\n", cmd_ctx->username,
+                  cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>"));
+            break;
     }
 
     /* create domain ctx */
-    dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
-    if (dctx == NULL) {
+
+    dom_ctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
+    if (dom_ctx == NULL) {
         ret = ENOMEM;
         goto done;
     }
-    dctx->cmd_ctx = cmd_ctx;
+    dom_ctx->cmd_ctx = cmd_ctx;
+    dom_ctx->domain = cmd_ctx->domain != NULL ? cmd_ctx->domain
+                                              : cli_ctx->rctx->domains;
 
-    switch (cmd_ctx->type) {
-    case SSS_DP_SUDO_USER:
-        /* get query */
-        sss_packet_get_body(cli_ctx->creq->in, &query_body, &query_len);
-        if (query_len <= 0 || query_body == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Query is empty\n"));
-            ret = EINVAL;
-            goto done;
-        }
-
-        ret = sudosrv_parse_query(cmd_ctx, cli_ctx->rctx,
-                                  query_body, query_len,
-                                  &cmd_ctx->username, &cmd_ctx->domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid query: %s\n", strerror(ret)));
-            goto done;
-        }
-
-        DEBUG(SSSDBG_FUNC_DATA, ("Requesting sudo rules for [%s] from [%s]\n",
-              cmd_ctx->username, cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>"));
-
-        if (cmd_ctx->domain == NULL) {
-            /* this is a multidomain search */
-            dctx->domain = cli_ctx->rctx->domains;
-            cmd_ctx->check_next = true;
-        } else {
-            dctx->domain = cmd_ctx->domain;
-            cmd_ctx->check_next = false;
-        }
-
-        /* try to find rules in in-memory cache */
-        ret = sudosrv_cache_lookup(cmd_ctx->sudo_ctx->cache, dctx,
-                                   cmd_ctx->check_next, cmd_ctx->username,
-                                   &cmd_ctx->num_rules, &cmd_ctx->rules);
-        if (ret == EOK) {
-            /* cache hit */
-            DEBUG(SSSDBG_FUNC_DATA, ("Returning rules for [%s@%s] "
-                  "from in-memory cache\n", cmd_ctx->username, dctx->domain->name));
-        } else if (ret == ENOENT) {
-            /* cache expired or missed */
-            ret = sudosrv_get_sudorules(dctx);
-        } /* else error */
-
-        break;
-    case SSS_DP_SUDO_DEFAULTS:
-        DEBUG(SSSDBG_FUNC_DATA, ("Requesting cn=defaults\n"));
-
-        /* sudo currently does not support domain selection
-         * so find first available domain
-         * TODO - support domain selection */
-        dctx->domain = cli_ctx->rctx->domains;
-        while (dctx->domain && dctx->domain->fqnames) {
-            dctx->domain = dctx->domain->next;
-        }
-        if (!dctx->domain) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("No valid domain found\n"));
-            ret = ENOENT;
-            goto done;
-        }
-
-        ret = sudosrv_cache_lookup(cmd_ctx->sudo_ctx->cache, dctx,
-                                   cmd_ctx->check_next, cmd_ctx->username,
-                                   &cmd_ctx->num_rules, &cmd_ctx->rules);
-
-        if (ret == EOK) {
-            /* cache hit */
-            DEBUG(SSSDBG_FUNC_DATA, ("Returning defaults settings for [%s] "
-                                     "from in-memory cache\n", dctx->domain->name));
-        } else if (ret == ENOENT) {
-            /* cache expired or missed */
-            cmd_ctx->domain = dctx->domain;
-            ret = sudosrv_get_rules(cmd_ctx);
-        } /* else error */
-
-        break;
-    }
+    ret = sudosrv_get_sudorules(dom_ctx);
 
 done:
     return sudosrv_cmd_done(cmd_ctx, ret);
 }
+
 
 static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
 {

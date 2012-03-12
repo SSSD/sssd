@@ -18,17 +18,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 
+#include "util/util.h"
 #include "sss_client/sss_cli.h"
 #include "sss_client/sudo/sss_sudo.h"
 #include "sss_client/sudo/sss_sudo_private.h"
 
-static int sss_sudo_create_query(const char *username,
-                                 char **_query,
-                                 int *_query_len);
+int sss_sudo_create_query(uid_t uid,
+                          const char *username,
+                          uint8_t **_query,
+                          size_t *_query_len);
 
 static void sss_sudo_free_rules(unsigned int num_rules,
                                 struct sss_sudo_rule *rules);
@@ -37,19 +42,34 @@ static void sss_sudo_free_attrs(unsigned int num_attrs,
                                 struct sss_sudo_attr *attrs);
 
 static int sss_sudo_send_recv_generic(enum sss_cli_command command,
-                                      struct sss_cli_req_data *request,
+                                      uid_t uid,
+                                      const char *username,
                                       uint32_t *_error,
+                                      char **_domainname,
                                       struct sss_sudo_result **_result)
 {
+    struct sss_cli_req_data request;
+    uint8_t *query_buf = NULL;
+    size_t query_len = 0;
     uint8_t *reply_buf = NULL;
     size_t reply_len = 0;
     int errnop = 0;
     int ret = 0;
 
+    /* create query */
+
+    ret = sss_sudo_create_query(uid, username, &query_buf, &query_len);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    request.len = query_len;
+    request.data = (const void*)query_buf;
+
     /* send query and receive response */
 
     errnop = 0;
-    ret = sss_sudo_make_request(command, request,
+    ret = sss_sudo_make_request(command, &request,
                                 &reply_buf, &reply_len, &errnop);
     if (ret != SSS_STATUS_SUCCESS) {
         ret = errnop;
@@ -59,69 +79,76 @@ static int sss_sudo_send_recv_generic(enum sss_cli_command command,
     /* parse structure */
 
     ret = sss_sudo_parse_response((const char*)reply_buf, reply_len,
-                                  _result, _error);
+                                  _domainname, _result, _error);
 
 done:
+    free(query_buf);
     free(reply_buf);
     return ret;
 }
 
-int sss_sudo_send_recv(const char *username,
+int sss_sudo_send_recv(uid_t uid,
+                       const char *username,
+                       const char *domainname,
                        uint32_t *_error,
                        struct sss_sudo_result **_result)
 {
-    struct sss_cli_req_data request;
-    char *query = NULL;
-    int query_len = 0;
-    int ret = 0;
+    char *fullname = NULL;
+    int ret;
 
-    /* create query */
-
-    ret = sss_sudo_create_query(username, &query, &query_len);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    request.len = query_len;
-    request.data = (const void*)query;
-
-    /* send query and recieve response */
-
-    ret = sss_sudo_send_recv_generic(SSS_SUDO_GET_SUDORULES, &request,
-                                     _error, _result);
-
-done:
-    free(query);
-    return ret;
-}
-
-int sss_sudo_send_recv_defaults(uint32_t *_error,
-                                struct sss_sudo_result **_result)
-{
-    struct sss_cli_req_data request;
-
-    request.len = 0;
-    request.data = (const void*)NULL;
-
-    return sss_sudo_send_recv_generic(SSS_SUDO_GET_DEFAULTS, &request,
-                                      _error, _result);
-}
-
-int sss_sudo_create_query(const char *username, char **_query, int *_query_len)
-{
-    char *data = NULL;
-    int data_len = strlen(username) + 1;
-
-    if (data_len <= 1) {
+    if (username == NULL || strlen(username) == 0) {
         return EINVAL;
     }
 
-    data = (char*)malloc(data_len * sizeof(char));
+    if (domainname != NULL) {
+        ret = asprintf(&fullname, "%s@%s", username, domainname);
+        if (ret == -1) {
+            return ENOMEM;
+        }
+    } else {
+        fullname = strdup(username);
+        if (fullname == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    /* send query and receive response */
+
+    ret = sss_sudo_send_recv_generic(SSS_SUDO_GET_SUDORULES, uid, fullname,
+                                     _error, NULL, _result);
+    free(fullname);
+    return ret;
+}
+
+int sss_sudo_send_recv_defaults(uid_t uid,
+                                const char *username,
+                                uint32_t *_error,
+                                char **_domainname,
+                                struct sss_sudo_result **_result)
+{
+    if (username == NULL || strlen(username) == 0) {
+        return EINVAL;
+    }
+
+    return sss_sudo_send_recv_generic(SSS_SUDO_GET_DEFAULTS, uid, username,
+                                      _error, _domainname, _result);
+}
+
+int sss_sudo_create_query(uid_t uid, const char *username,
+                          uint8_t **_query, size_t *_query_len)
+{
+    uint8_t *data = NULL;
+    size_t username_len = strlen(username) * sizeof(char) + 1;
+    size_t data_len = sizeof(uid_t) + username_len;
+    size_t offset = 0;
+
+    data = (uint8_t*)malloc(data_len * sizeof(uint8_t));
     if (data == NULL) {
         return ENOMEM;
     }
 
-    memcpy(data, username, data_len);
+    SAFEALIGN_SET_VALUE(data, uid, uid_t, &offset);
+    memcpy(data + offset, username, username_len);
 
     *_query = data;
     *_query_len = data_len;

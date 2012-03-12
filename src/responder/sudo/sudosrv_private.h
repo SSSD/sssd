@@ -60,6 +60,7 @@ struct sudo_cmd_ctx {
     enum sss_dp_sudo_type type;
 
     /* input data */
+    uid_t uid;
     char *username;
     const char *orig_username;
     const char *cased_username;
@@ -94,11 +95,13 @@ errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
                             struct resp_ctx *rctx,
                             uint8_t *query_body,
                             size_t query_len,
+                            uid_t *_uid,
                             char **_username,
                             struct sss_domain_info **_domain);
 
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
+                               const char *domain,
                                int rules_num,
                                struct sysdb_attrs **rules,
                                uint8_t **_response_body,

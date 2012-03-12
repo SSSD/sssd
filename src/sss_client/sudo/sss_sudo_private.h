@@ -26,6 +26,7 @@
 
 int sss_sudo_parse_response(const char *message,
                             size_t message_len,
+                            char **_domainname,
                             struct sss_sudo_result **_result,
                             uint32_t *_error);
 

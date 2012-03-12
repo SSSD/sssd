@@ -79,6 +79,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
     struct dp_callback_ctx *cb_ctx;
     const char *original_name = NULL;
     char *name = NULL;
+    uid_t uid = 0;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -186,6 +187,21 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
             goto done;
         }
 
+        /* check uid */
+        uid = ldb_msg_find_attr_as_int(user->msgs[0], SYSDB_UIDNUM, 0);
+        if (uid != cmd_ctx->uid) {
+            /* if a multidomain search, try with next */
+            if (cmd_ctx->check_next) {
+                dctx->check_provider = true;
+                dom = dom->next;
+                if (dom) continue;
+            }
+
+            DEBUG(SSSDBG_MINOR_FAILURE, ("UID does not match\n"));
+            ret = ENOENT;
+            goto done;
+        }
+
         /* user is stored in cache, remember cased and original name */
         original_name = ldb_msg_find_attr_as_string(user->msgs[0],
                                                     SYSDB_NAME, NULL);
@@ -265,7 +281,7 @@ static void sudosrv_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
         DEBUG(SSSDBG_OP_FAILURE,
               ("Could not look up the user [%d]: %s\n",
               ret, strerror(ret)));
-        sudosrv_cmd_done(dctx->cmd_ctx, EIO);
+        sudosrv_cmd_done(dctx->cmd_ctx, ret);
         return;
     }
 
@@ -297,8 +313,18 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     struct tevent_req *dpreq;
     struct dp_callback_ctx *cb_ctx = NULL;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("getting rules for %s\n",
-          cmd_ctx->username ? cmd_ctx->username : "default options"));
+    switch (cmd_ctx->type) {
+        case SSS_DP_SUDO_DEFAULTS:
+            DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving default options "
+                  "for [%s] from [%s]\n", cmd_ctx->orig_username,
+                  cmd_ctx->domain->name));
+            break;
+        case SSS_DP_SUDO_USER:
+            DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving rules "
+                  "for [%s] from [%s]\n", cmd_ctx->orig_username,
+                  cmd_ctx->domain->name));
+            break;
+    }
 
     dpreq = sss_dp_get_sudoers_send(cmd_ctx->cli_ctx,
                                     cmd_ctx->cli_ctx->rctx,
@@ -393,8 +419,6 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
     struct sysdb_ctx *sysdb;
-    struct sudo_ctx *sudo_ctx = cmd_ctx->sudo_ctx;
-    uid_t uid = 0;
     char **groupnames = NULL;
     const char *debug_name = NULL;
 
@@ -421,7 +445,7 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
     case SSS_DP_SUDO_USER:
         debug_name = cmd_ctx->cased_username;
         ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->orig_username, sysdb,
-                                       &uid, &groupnames);
+                                       NULL, &groupnames);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                  ("Unable to retrieve user info [%d]: %s\n", strerror(ret)));
@@ -435,25 +459,12 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
 
     ret = sudosrv_get_sudorules_query_cache(cmd_ctx, sysdb, cmd_ctx->type,
                                             cmd_ctx->orig_username,
-                                            uid, groupnames,
+                                            cmd_ctx->uid, groupnames,
                                             &cmd_ctx->rules, &cmd_ctx->num_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
              ("Unable to retrieve sudo rules [%d]: %s\n", strerror(ret)));
         goto done;
-    }
-
-    /* Store result in in-memory cache */
-    ret = sudosrv_cache_set_entry(sudo_ctx->rctx->ev, sudo_ctx, sudo_ctx->cache,
-                                  cmd_ctx->domain, cmd_ctx->cased_username,
-                                  cmd_ctx->num_rules, cmd_ctx->rules,
-                                  sudo_ctx->cache_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to store rules in cache for "
-              "[%s@%s]\n", debug_name, cmd_ctx->domain->name));
-    } else {
-        DEBUG(SSSDBG_FUNC_DATA, ("Rules for [%s@%s] stored in in-memory cache\n",
-                                 debug_name, cmd_ctx->domain->name));
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Returning rules for [%s@%s]\n",

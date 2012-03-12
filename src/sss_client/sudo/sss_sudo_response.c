@@ -51,10 +51,12 @@ static int sss_sudo_parse_string(const char *message,
 
 int sss_sudo_parse_response(const char *message,
                             size_t message_len,
+                            char **_domainname,
                             struct sss_sudo_result **_result,
                             uint32_t *_error)
 {
     struct sss_sudo_result *result = NULL;
+    char *domainname = NULL;
     size_t cursor = 0;
     int ret = EOK;
     int i = 0;
@@ -63,6 +65,16 @@ int sss_sudo_parse_response(const char *message,
     ret = sss_sudo_parse_uint32(message, message_len, &cursor, _error);
     if (ret != EOK || *_error != SSS_SUDO_ERROR_OK) {
         return ret;
+    }
+
+    /* domain name */
+    ret = sss_sudo_parse_string(message, message_len, &cursor, &domainname);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (_domainname != NULL) {
+        *_domainname = domainname;
     }
 
     /* result */

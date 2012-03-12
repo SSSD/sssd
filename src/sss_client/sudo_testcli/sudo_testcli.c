@@ -23,6 +23,8 @@
 #include <errno.h>
 #include <string.h>
 #include <talloc.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include "sss_client/sss_cli.h"
 #include "sss_client/sudo/sss_sudo.h"
@@ -38,40 +40,74 @@ int main(int argc, char **argv)
 {
     int ret = 0;
     struct sss_sudo_result *result = NULL;
+    struct passwd *passwd = NULL;
+    const char *username = NULL;
+    char *domainname = NULL;
+    uid_t uid = 0;
     uint32_t error = 0;
 
-    if (argc > 2) {
-        fprintf(stderr, "Usage: sss_sudo_cli username\n");
+    if (argc > 3) {
+        fprintf(stderr, "Usage: sss_sudo_cli username [uid]\n");
         goto fail;
+    }
+
+    username = argv[1];
+    if (argc == 3) {
+        uid = atoi(argv[2]);
+    } else {
+        passwd = getpwnam(username);
+        if (passwd == NULL) {
+            fprintf(stderr, "Unknown user\n");
+            goto fail;
+        }
+        uid = passwd->pw_uid;
     }
 
     /* get sss_result - it will send new query to responder */
 
-    if (argc == 1) {
-        ret = sss_sudo_send_recv_defaults(&error, &result);
-        if (ret != EOK) {
-            fprintf(stderr, "sss_sudo_send_recv_defaults() failed: %s\n", strerror(ret));
-            goto fail;
-        }
-    } else {
-        ret = sss_sudo_send_recv(argv[1], &error, &result);
-        if (ret != EOK) {
-            fprintf(stderr, "sss_sudo_send_recv() failed: %s\n", strerror(ret));
-            goto fail;
-        }
+    /* get default options */
+
+    ret = sss_sudo_send_recv_defaults(uid, username, &error,
+                                      &domainname, &result);
+    if (ret != EOK) {
+        fprintf(stderr, "sss_sudo_send_recv_defaults() failed: %s\n",
+                strerror(ret));
+        goto fail;
     }
 
-    printf("=== Printing response data ===\n");
+    printf("User [%s:%llu] found in domain: %s\n\n",
+            username, (unsigned long long)uid,
+            domainname != NULL ? domainname : "<NULL>");
+
+    printf("=== Printing response data [default options] ===\n");
+    printf("Response code: %d\n\n", error);
+    if (error == SSS_SUDO_ERROR_OK) {
+        print_sss_result(result);
+    }
+
+    sss_sudo_free_result(result);
+
+    /* get rules */
+
+    ret = sss_sudo_send_recv(uid, username, domainname, &error, &result);
+    if (ret != EOK) {
+        fprintf(stderr, "sss_sudo_send_recv() failed: %s\n", strerror(ret));
+        goto fail;
+    }
+
+    printf("\n=== Printing response data [rules] ===\n");
     printf("Response code: %d\n\n", error);
     if (error == SSS_SUDO_ERROR_OK) {
         print_sss_result(result);
     }
 
 
+    free(domainname);
     sss_sudo_free_result(result);
     return 0;
 
 fail:
+    free(domainname);
     sss_sudo_free_result(result);
     return 1;
 }
