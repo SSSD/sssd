@@ -164,10 +164,11 @@
                             attribute names retrieved from the servers may vary.
                             The way that some attributes are handled may also differ.
 
-                            Three schema types are currently supported:
+                            Four schema types are currently supported:
                             rfc2307
                             rfc2307bis
                             IPA
+                            AD
 
                             The main difference between these schema types is
                             how group memberships are recorded in the server.
@@ -175,6 +176,8 @@
                             <emphasis>memberUid</emphasis> attribute.
                             With rfc2307bis and IPA, group members are listed by DN
                             and stored in the <emphasis>member</emphasis> attribute.
+                            The AD schema type sets the attributes to correspond with
+                            Active Directory 2008r2 values.
                         </para>
                         <para>
                             Default: rfc2307

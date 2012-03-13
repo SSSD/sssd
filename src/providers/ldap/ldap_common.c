@@ -215,6 +215,53 @@ struct sdap_attr_map rfc2307bis_group_map[] = {
     { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL }
 };
 
+struct sdap_attr_map ad2008r2_user_map[] = {
+    { "ldap_user_object_class", "user", SYSDB_USER_CLASS, NULL },
+    { "ldap_user_name", "sAMAccountName", SYSDB_NAME, NULL },
+    { "ldap_user_pwd", "unixUserPassword", SYSDB_PWD, NULL },
+    { "ldap_user_uid_number", "uidNumber", SYSDB_UIDNUM, NULL },
+    { "ldap_user_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_user_gecos", "gecos", SYSDB_GECOS, NULL },
+    { "ldap_user_home_directory", "unixHomeDirectory", SYSDB_HOMEDIR, NULL },
+    { "ldap_user_shell", "loginShell", SYSDB_SHELL, NULL },
+    { "ldap_user_principal", "userPrincipalName", SYSDB_UPN, NULL },
+    { "ldap_user_fullname", "name", SYSDB_FULLNAME, NULL },
+    { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
+    { "ldap_user_uuid", "objectGUID", SYSDB_UUID, NULL },
+    { "ldap_user_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
+    { "ldap_user_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
+    { "ldap_user_shadow_last_change", NULL, SYSDB_SHADOWPW_LASTCHANGE, NULL },
+    { "ldap_user_shadow_min", NULL, SYSDB_SHADOWPW_MIN, NULL },
+    { "ldap_user_shadow_max", NULL, SYSDB_SHADOWPW_MAX, NULL },
+    { "ldap_user_shadow_warning", NULL, SYSDB_SHADOWPW_WARNING, NULL },
+    { "ldap_user_shadow_inactive", NULL, SYSDB_SHADOWPW_INACTIVE, NULL },
+    { "ldap_user_shadow_expire", NULL, SYSDB_SHADOWPW_EXPIRE, NULL },
+    { "ldap_user_shadow_flag", NULL, SYSDB_SHADOWPW_FLAG, NULL },
+    { "ldap_user_krb_last_pwd_change", NULL, SYSDB_KRBPW_LASTCHANGE, NULL },
+    { "ldap_user_krb_password_expiration", NULL, SYSDB_KRBPW_EXPIRATION, NULL },
+    { "ldap_pwd_attribute", NULL, SYSDB_PWD_ATTRIBUTE, NULL },
+    { "ldap_user_authorized_service", NULL, SYSDB_AUTHORIZED_SERVICE, NULL },
+    { "ldap_user_ad_account_expires", "accountExpires", SYSDB_AD_ACCOUNT_EXPIRES, NULL},
+    { "ldap_user_ad_user_account_control", "userAccountControl", SYSDB_AD_USER_ACCOUNT_CONTROL, NULL},
+    { "ldap_ns_account_lock", NULL, SYSDB_NS_ACCOUNT_LOCK, NULL},
+    { "ldap_user_authorized_host", NULL, SYSDB_AUTHORIZED_HOST, NULL },
+    { "ldap_user_nds_login_disabled", NULL, SYSDB_NDS_LOGIN_DISABLED, NULL },
+    { "ldap_user_nds_login_expiration_time", NULL, SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
+    { "ldap_user_nds_login_allowed_time_map", NULL, SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
+    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL }
+};
+
+struct sdap_attr_map ad2008r2_group_map[] = {
+    { "ldap_group_object_class", "group", SYSDB_GROUP_CLASS, NULL },
+    { "ldap_group_name", "name", SYSDB_NAME, NULL },
+    { "ldap_group_pwd", NULL, SYSDB_PWD, NULL },
+    { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
+    { "ldap_group_uuid", "objectGUID", SYSDB_UUID, NULL },
+    { "ldap_group_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
+    { "ldap_group_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL }
+};
+
 struct sdap_attr_map netgroup_map[] = {
     { "ldap_netgroup_object_class", "nisNetgroup", SYSDB_NETGROUP_CLASS, NULL },
     { "ldap_netgroup_name", "cn", SYSDB_NAME, NULL },
@@ -466,8 +513,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
         default_attr_map = gen_ad_attr_map;
-        default_user_map = rfc2307bis_user_map;
-        default_group_map = rfc2307bis_group_map;
+        default_user_map = ad2008r2_user_map;
+        default_group_map = ad2008r2_group_map;
         default_netgroup_map = netgroup_map;
         default_service_map = service_map;
     } else {
