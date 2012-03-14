@@ -82,6 +82,8 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
 
     DEBUG(8, ("Checking negative cache for [%s]\n", str));
 
+    data.dptr = NULL;
+
     ret = string_to_tdb_data(str, &key);
     if (ret != EOK) goto done;
 
@@ -127,6 +129,7 @@ done:
         ret = ENOENT;
     }
 
+    free(data.dptr);
     return ret;
 }
 
