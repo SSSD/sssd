@@ -937,6 +937,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR, NULL);
+    if (tmp != NULL) {
+        domain->subdomain_homedir = talloc_strdup(domain, tmp);
+        if (!domain->subdomain_homedir) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     ret = get_entry_as_bool(res->msgs[0], &domain->case_sensitive,
                             CONFDB_DOMAIN_CASE_SENSITIVE, true);
     if(ret != EOK) {

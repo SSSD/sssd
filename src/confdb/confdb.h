@@ -143,6 +143,7 @@
 #define CONFDB_DOMAIN_ACCOUNT_CACHE_EXPIRATION "account_cache_expiration"
 #define CONFDB_DOMAIN_OVERRIDE_GID "override_gid"
 #define CONFDB_DOMAIN_CASE_SENSITIVE "case_sensitive"
+#define CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR "subdomain_homedir"
 
 #define CONFDB_DOMAIN_USER_CACHE_TIMEOUT "entry_cache_user_timeout"
 #define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"
@@ -188,6 +189,7 @@ struct sss_domain_info {
 
     gid_t override_gid;
     const char *override_homedir;
+    const char *subdomain_homedir;
 
     uint32_t user_timeout;
     uint32_t group_timeout;

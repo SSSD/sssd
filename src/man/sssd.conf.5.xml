@@ -1273,6 +1273,21 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>subdomain_homedir (string)</term>
+                    <listitem>
+                        <para>
+                            Use this homedir as default value for all subdomains
+                            within this domain. See <emphasis>override_homedir</emphasis>
+                            for info about possible values.
+                        </para>
+                        <para>
+                            The value can be overridden by
+                            <emphasis>override_homedir</emphasis> option.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

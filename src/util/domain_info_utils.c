@@ -85,6 +85,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->service_timeout = parent->service_timeout;
     dom->override_homedir = parent->override_homedir;
 
+    dom->subdomain_homedir = parent->subdomain_homedir;
+
     if (parent->sysdb == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Missing sysdb context in parent domain.\n"));
         goto fail;
