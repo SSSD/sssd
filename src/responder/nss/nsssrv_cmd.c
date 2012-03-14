@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "util/sss_nss.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_netgroup.h"
@@ -105,114 +106,6 @@ struct setent_ctx {
 /****************************************************************************
  * PASSWD db related functions
  ***************************************************************************/
-char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
-                              const char *username, uint32_t uid,
-                              const char *domain)
-{
-    char *copy;
-    char *p;
-    char *n;
-    char *result = NULL;
-    char *res = NULL;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    if (template == NULL) {
-        DEBUG(1, ("Missing template.\n"));
-        return NULL;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return NULL;
-
-    copy = talloc_strdup(tmp_ctx, template);
-    if (copy == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
-        goto done;
-    }
-
-    result = talloc_strdup(tmp_ctx, "");
-    if (result == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
-        goto done;
-    }
-
-    p = copy;
-    while ( (n = strchr(p, '%')) != NULL) {
-        *n = '\0';
-        n++;
-        if ( *n == '\0' ) {
-            DEBUG(1, ("format error, single %% at the end of the template.\n"));
-            goto done;
-        }
-        switch( *n ) {
-            case 'u':
-                if (username == NULL) {
-                    DEBUG(1, ("Cannot expand user name template "
-                              "because user name is empty.\n"));
-                    goto done;
-                }
-                result = talloc_asprintf_append(result, "%s%s", p,
-                                                username);
-                break;
-
-            case 'U':
-                if (uid == 0) {
-                    DEBUG(1, ("Cannot expand uid template "
-                              "because uid is invalid.\n"));
-                    goto done;
-                }
-                result = talloc_asprintf_append(result, "%s%d", p,
-                                                uid);
-                break;
-
-            case 'd':
-                if (domain == NULL) {
-                    DEBUG(1, ("Cannot expand domain name template "
-                              "because domain name is empty.\n"));
-                    goto done;
-                }
-                result = talloc_asprintf_append(result, "%s%s", p,
-                                                domain);
-                break;
-
-            case 'f':
-                if (domain == NULL || username == NULL) {
-                    DEBUG(1, ("Cannot expand fully qualified name template "
-                              "because domain or user name is empty.\n"));
-                    goto done;
-                }
-                result = talloc_asprintf_append(result, "%s%s@%s", p,
-                                                username, domain);
-                break;
-
-            case '%':
-                result = talloc_asprintf_append(result, "%s%%", p);
-                break;
-
-            default:
-                DEBUG(1, ("format error, unknown template [%%%c].\n", *n));
-                goto done;
-        }
-
-        if (result == NULL) {
-            DEBUG(1, ("talloc_asprintf_append failed.\n"));
-            goto done;
-        }
-
-        p = n + 1;
-    }
-
-    result = talloc_asprintf_append(result, "%s", p);
-    if (result == NULL) {
-        DEBUG(1, ("talloc_asprintf_append failed.\n"));
-        goto done;
-    }
-
-    res = talloc_move(mem_ctx, &result);
-done:
-    talloc_zfree(tmp_ctx);
-    return res;
-}
 
 static gid_t get_gid_override(struct ldb_message *msg,
                               struct sss_domain_info *dom)
