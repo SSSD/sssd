@@ -534,11 +534,9 @@ if BUILD_SSH
 sssd_ssh_SOURCES = \
     src/responder/ssh/sshsrv.c \
     src/responder/ssh/sshsrv_cmd.c \
-    $(SSSD_RESPONDER_OBJ) \
-    $(SSSD_RESOLV_OBJ)
+    $(SSSD_RESPONDER_OBJ)
 sssd_ssh_LDADD = \
     $(SSSD_LIBS) \
-    $(CARES_LIBS) \
     libsss_util.la
 endif
 

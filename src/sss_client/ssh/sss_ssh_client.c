@@ -70,9 +70,13 @@ int set_locale(void)
 
 /* SSH public key request:
  * 
- * 0..3:     flags (unsigned int, must be 0)
+ * 0..3:     flags (unsigned int, must be 0 or 1)
  * 4..7:     name length (unsigned int)
  * 8..(X-1): name (null-terminated UTF-8 string)
+ * if (flags & 1) {
+ *   X..(X+3): alias length (unsigned int)
+ *   (X+4)..Y: alias (null-terminated UTF-8 string)
+ * }
  * 
  * SSH public key reply:
  * 
@@ -89,6 +93,7 @@ errno_t
 sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
                 enum sss_cli_command command,
                 const char *name,
+                const char *alias,
                 struct sss_ssh_ent **result)
 {
     TALLOC_CTX *tmp_ctx;
@@ -96,6 +101,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     errno_t ret;
     uint32_t flags;
     uint32_t name_len;
+    uint32_t alias_len;
     size_t req_len;
     uint8_t *req = NULL;
     size_t c = 0;
@@ -115,6 +121,12 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     name_len = strlen(name)+1;
     req_len = 2*sizeof(uint32_t) + name_len;
 
+    if (alias) {
+        flags |= 1;
+        alias_len = strlen(alias)+1;
+        req_len += sizeof(uint32_t) + alias_len;
+    }
+
     req = talloc_array(tmp_ctx, uint8_t, req_len);
     if (!req) {
         ret = ENOMEM;
@@ -124,6 +136,10 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     SAFEALIGN_SET_UINT32(req+c, flags, &c);
     SAFEALIGN_SET_UINT32(req+c, name_len, &c);
     safealign_memcpy(req+c, name, name_len, &c);
+    if (alias) {
+        SAFEALIGN_SET_UINT32(req+c, alias_len, &c);
+        safealign_memcpy(req+c, alias, alias_len, &c);
+    }
 
     /* send request */
     rd.data = req;

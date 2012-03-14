@@ -97,7 +97,8 @@ int main(int argc, const char **argv)
     }
 
     /* look up public keys */
-    ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_USER_PUBKEYS, user, &ent);
+    ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_USER_PUBKEYS,
+                          user, NULL, &ent);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
@@ -111,9 +112,9 @@ int main(int argc, const char **argv)
         repr = sss_ssh_format_pubkey(mem_ctx, ent, &ent->pubkeys[i],
                                      SSS_SSH_FORMAT_OPENSSH);
         if (!repr) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Out of memory formatting SSH public key\n"));
-            continue;
+            ERROR("Not enough memory\n");
+            ret = EXIT_FAILURE;
+            goto fini;
         }
 
         printf("%s\n", repr);

@@ -34,6 +34,7 @@ errno_t
 sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
                 enum sss_cli_command command,
                 const char *name,
+                const char *alias,
                 struct sss_ssh_ent **result);
 
 #endif /* _SSS_SSH_CLIENT_H_ */

@@ -275,7 +275,8 @@ int main(int argc, const char **argv)
     }
 
     /* look up public keys */
-    ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS, host, &ent);
+    ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
+                          host, NULL, &ent);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
