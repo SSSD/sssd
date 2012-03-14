@@ -57,7 +57,7 @@ static void sdap_access_reply(struct be_req *be_req, int pam_status)
 
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
-                                             struct be_ctx *be_ctx,
+                                             struct be_req *be_req,
                                              struct sdap_access_ctx *access_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry);
@@ -104,7 +104,7 @@ void sdap_pam_access_handler(struct be_req *breq)
 
     req = sdap_access_send(breq,
                            breq->be_ctx->ev,
-                           breq->be_ctx,
+                           breq,
                            access_ctx,
                            pd);
     if (req == NULL) {
@@ -120,7 +120,7 @@ struct sdap_access_req_ctx {
     struct pam_data *pd;
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
-    struct be_ctx *be_ctx;
+    struct be_req *be_req;
     int pam_status;
     struct ldb_message *user_entry;
     size_t current_rule;
@@ -130,7 +130,7 @@ static errno_t select_next_rule(struct tevent_req *req);
 struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct tevent_context *ev,
-                 struct be_ctx *be_ctx,
+                 struct be_req *be_req,
                  struct sdap_access_ctx *access_ctx,
                  struct pam_data *pd)
 {
@@ -146,7 +146,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->be_ctx = be_ctx;
+    state->be_req = be_req;
     state->pd = pd;
     state->pam_status = PAM_SYSTEM_ERR;
     state->ev = ev;
@@ -163,7 +163,8 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Get original user DN */
-    ret = sysdb_get_user_attr(state, be_ctx->sysdb, pd->user, attrs, &res);
+    ret = sysdb_get_user_attr(state, be_req->sysdb,
+                              pd->user, attrs, &res);
     if (ret != EOK) {
         if (ret == ENOENT) {
             /* If we can't find the user, return permission denied */
@@ -225,7 +226,7 @@ static errno_t select_next_rule(struct tevent_req *req)
             break;
 
         case LDAP_ACCESS_FILTER:
-            subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
+            subreq = sdap_access_filter_send(state, state->ev, state->be_req,
                                              state->access_ctx,
                                              state->pd->user,
                                              state->user_entry);
@@ -752,7 +753,7 @@ struct sdap_access_filter_req_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct sdap_id_op *sdap_op;
     struct sysdb_handle *handle;
-    struct be_ctx *be_ctx;
+    struct be_req *be_req;
     int pam_status;
     bool cached_access;
     char *basedn;
@@ -764,7 +765,7 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq);
 static void sdap_access_filter_get_access_done(struct tevent_req *req);
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
-                                             struct be_ctx *be_ctx,
+                                             struct be_req *be_req,
                                              struct sdap_access_ctx *access_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry)
@@ -785,12 +786,12 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
         DEBUG(6, ("No filter set. Access is denied.\n"));
         state->pam_status = PAM_PERM_DENIED;
         tevent_req_done(req);
-        tevent_req_post(req, be_ctx->ev);
+        tevent_req_post(req, be_req->be_ctx->ev);
         return req;
     }
 
     state->filter = NULL;
-    state->be_ctx = be_ctx;
+    state->be_req = be_req;
     state->username = username;
     state->pam_status = PAM_SYSTEM_ERR;
     state->sdap_ctx = access_ctx->id_ctx;
@@ -803,7 +804,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                                      SYSDB_LDAP_ACCESS_FILTER,
                                                      false);
     /* Ok, we have one result, check if we are online or offline */
-    if (be_is_offline(state->be_ctx)) {
+    if (be_is_offline(state->be_req->be_ctx)) {
         /* Ok, we're offline. Return from the cache */
         sdap_access_filter_decide_offline(req);
         goto finished;
@@ -1046,7 +1047,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_set_user_attr(state->be_ctx->sysdb,
+    ret = sysdb_set_user_attr(state->be_req->sysdb,
                               state->username,
                               attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
