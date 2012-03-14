@@ -40,11 +40,8 @@
 
 /* connect to server using socket */
 static int
-connect_socket(const char *host,
-               const char *port)
+connect_socket(int family, struct sockaddr *addr, size_t addr_len)
 {
-    struct addrinfo ai_hint;
-    struct addrinfo *ai = NULL;
     int flags;
     int sock = -1;
     struct pollfd fds[2];
@@ -52,21 +49,6 @@ connect_socket(const char *host,
     int i;
     ssize_t res;
     int ret;
-
-    /* get IP addresses of the host */
-    memset(&ai_hint, 0, sizeof(struct addrinfo));
-    ai_hint.ai_family = AF_UNSPEC;
-    ai_hint.ai_socktype = SOCK_STREAM;
-    ai_hint.ai_protocol = IPPROTO_TCP;
-    ai_hint.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
-
-    ret = getaddrinfo(host, port, &ai_hint, &ai);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
-        ret = ENOENT;
-        goto done;
-    }
 
     /* set O_NONBLOCK on standard input */
     flags = fcntl(0, F_GETFL);
@@ -86,7 +68,7 @@ connect_socket(const char *host,
     }
 
     /* create socket */
-    sock = socket(ai[0].ai_family, SOCK_STREAM, IPPROTO_TCP);
+    sock = socket(family, SOCK_STREAM, IPPROTO_TCP);
     if (sock == -1) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, ("socket() failed (%d): %s\n",
@@ -96,7 +78,7 @@ connect_socket(const char *host,
     }
 
     /* connect to the server */
-    ret = connect(sock, ai[0].ai_addr, ai[0].ai_addrlen);
+    ret = connect(sock, addr, addr_len);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, ("connect() failed (%d): %s\n",
@@ -175,7 +157,6 @@ connect_socket(const char *host,
     DEBUG(SSSDBG_TRACE_FUNC, ("Connection closed\n"));
 
 done:
-    if (ai) freeaddrinfo(ai);
     if (sock >= 0) close(sock);
 
     return ret;
@@ -216,6 +197,9 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
+    struct addrinfo ai_hint;
+    struct addrinfo *ai = NULL;
+    char canonhost[NI_MAXHOST];
     const char *host;
     struct sss_ssh_ent *ent;
     int ret;
@@ -262,21 +246,48 @@ int main(int argc, const char **argv)
                 ret, fini);
     }
 
+    /* get IP addresses of the host */
+    memset(&ai_hint, 0, sizeof(struct addrinfo));
+    ai_hint.ai_family = AF_UNSPEC;
+    ai_hint.ai_socktype = SOCK_STREAM;
+    ai_hint.ai_protocol = IPPROTO_TCP;
+    ai_hint.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
+
+    ret = getaddrinfo(pc_host, pc_port, &ai_hint, &ai);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+        ERROR("Host name cannot be resolved\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    /* canonicalize hostname */
+    ret = getnameinfo(ai[0].ai_addr, ai[0].ai_addrlen,
+                      canonhost, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+        ERROR("Reverse lookup failed\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
     /* append domain to hostname if domain is specified */
     if (pc_domain) {
-        host = talloc_asprintf(mem_ctx, "%s@%s", pc_host, pc_domain);
+        host = talloc_asprintf(mem_ctx, "%s@%s", canonhost, pc_domain);
         if (!host) {
             ERROR("Not enough memory\n");
             ret = EXIT_FAILURE;
             goto fini;
         }
     } else {
-        host = pc_host;
+        host = canonhost;
     }
 
     /* look up public keys */
     ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
-                          host, NULL, &ent);
+                          host, pc_host, &ent);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
@@ -287,12 +298,13 @@ int main(int argc, const char **argv)
     if (pc_args) {
         ret = connect_proxy_command(discard_const(pc_args));
     } else {
-        ret = connect_socket(pc_host, pc_port);
+        ret = connect_socket(ai[0].ai_family, ai[0].ai_addr, ai[0].ai_addrlen);
     }
     ret = (ret == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
 fini:
     poptFreeContext(pc);
+    if (ai) freeaddrinfo(ai);
     talloc_free(mem_ctx);
 
     return ret;
