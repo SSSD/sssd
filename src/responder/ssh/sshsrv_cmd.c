@@ -33,7 +33,6 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 #include "responder/ssh/sshsrv_private.h"
-#include "resolv/async_resolv.h"
 
 static errno_t
 ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx);
@@ -85,16 +84,14 @@ done:
     return ssh_cmd_done(cmd_ctx, ret);
 }
 
-static void
-ssh_host_pubkeys_resolv_done(struct tevent_req *req);
+static errno_t
+ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
 
 static int
 sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
 {
-    struct ssh_ctx *ssh_ctx = cctx->rctx->pvt_ctx;
-    struct ssh_cmd_ctx *cmd_ctx;
     errno_t ret;
-    struct tevent_req *req;
+    struct ssh_cmd_ctx *cmd_ctx;
 
     cmd_ctx = talloc_zero(cctx, struct ssh_cmd_ctx);
     if (!cmd_ctx) {
@@ -109,8 +106,9 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting SSH host public keys for [%s] from [%s]\n",
-           cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
+          ("Requesting SSH host public keys for [%s][%s] from [%s]\n",
+           cmd_ctx->name, cmd_ctx->alias ? cmd_ctx->alias : "",
+           cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
 
     if (cmd_ctx->domname) {
         cmd_ctx->domain = responder_get_domain(cctx->rctx->domains,
@@ -124,52 +122,10 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
         cmd_ctx->check_next = true;
     }
 
-    /* canonicalize host name */
-    req = resolv_gethostbyname_send(cmd_ctx, cctx->rctx->ev, ssh_ctx->resolv,
-                                    cmd_ctx->name, IPV4_FIRST,
-                                    default_host_dbs);
-    if (!req) {
-        ret = ENOMEM;
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("Out of memory sending resolver request\n"));
-        goto done;
-    }
-
-    tevent_req_set_callback(req, ssh_host_pubkeys_resolv_done, cmd_ctx);
-    ret = EAGAIN;
+    ret = ssh_host_pubkeys_search(cmd_ctx);
 
 done:
     return ssh_cmd_done(cmd_ctx, ret);
-}
-
-static errno_t
-ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
-
-static void
-ssh_host_pubkeys_resolv_done(struct tevent_req *req)
-{
-    struct ssh_cmd_ctx *cmd_ctx = tevent_req_callback_data(req,
-                                                           struct ssh_cmd_ctx);
-    errno_t ret;
-    int resolv_status;
-    struct resolv_hostent *hostent;
-
-    ret = resolv_gethostbyname_recv(req, cmd_ctx,
-                                    &resolv_status, NULL, &hostent);
-    talloc_zfree(req);
-    if (ret == EOK) {
-        if (strcmp(cmd_ctx->name, hostent->name) != 0) {
-            cmd_ctx->alias = cmd_ctx->name;
-            cmd_ctx->name = hostent->name;
-        }
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("Failed to resolve [%s]: %s\n", cmd_ctx->name,
-               resolv_strerror(resolv_status)));
-    }
-
-    ret = ssh_host_pubkeys_search(cmd_ctx);
-    ssh_cmd_done(cmd_ctx, ret);
 }
 
 static void
@@ -603,28 +559,30 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     uint8_t *body;
     size_t body_len;
     size_t c = 0;
-    uint32_t reserved;
+    uint32_t flags;
     uint32_t name_len;
     char *name;
+    uint32_t alias_len;
+    char *alias;
 
     sss_packet_get_body(cctx->creq->in, &body, &body_len);
 
-    SAFEALIGN_COPY_UINT32_CHECK(&reserved, body+c, body_len, &c);
-    if (reserved != 0) {
+    SAFEALIGN_COPY_UINT32_CHECK(&flags, body+c, body_len, &c);
+    if (flags > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid flags received [0x%x]\n", flags));
         return EINVAL;
     }
 
     SAFEALIGN_COPY_UINT32_CHECK(&name_len, body+c, body_len, &c);
     if (name_len == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Zero-length name is not valid\n"));
         return EINVAL;
     }
 
     name = (char *)(body+c);
-    if (!sss_utf8_check((const uint8_t *)name, name_len-1)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Supplied data is not valid UTF-8 string\n"));
-        return EINVAL;
-    }
-    if (strnlen(name, name_len) != name_len-1) {
+    if (!sss_utf8_check((const uint8_t *)name, name_len-1) ||
+            name[name_len-1] != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Name is not valid UTF-8 string\n"));
         return EINVAL;
     }
     c += name_len;
@@ -634,6 +592,27 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", name));
         return ENOENT;
+    }
+
+    if (flags & 1) {
+        SAFEALIGN_COPY_UINT32_CHECK(&alias_len, body+c, body_len, &c);
+        if (alias_len == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Zero-length alias is not valid\n"));
+            return EINVAL;
+        }
+
+        alias = (char *)(body+c);
+        if (!sss_utf8_check((const uint8_t *)alias, alias_len-1) ||
+                alias[alias_len-1] != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Alias is not valid UTF-8 string\n"));
+            return EINVAL;
+        }
+        c += alias_len;
+
+        if (strcmp(cmd_ctx->name, alias) != 0) {
+            cmd_ctx->alias = talloc_strdup(cmd_ctx, alias);
+            if (!cmd_ctx->alias) return ENOMEM;
+        }
     }
 
     return EOK;
