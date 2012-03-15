@@ -80,6 +80,7 @@ void ipa_account_info_handler(struct be_req *breq)
     case BE_REQ_USER: /* user */
     case BE_REQ_GROUP: /* group */
     case BE_REQ_INITGROUPS: /* init groups for user */
+    case BE_REQ_SERVICES: /* Services. Not natively supported by IPA */
         return sdap_handle_account_info(breq, ctx);
 
     case BE_REQ_NETGROUP:
