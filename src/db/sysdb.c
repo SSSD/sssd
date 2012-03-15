@@ -1680,7 +1680,7 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_message_element *sysdb_name_el;
-    size_t i, ai, num;
+    size_t i, ai;
     errno_t ret;
     const char **aliases = NULL;
     const char *name;
@@ -1701,47 +1701,56 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    num = lowercase ? 2 * sysdb_name_el->num_values : sysdb_name_el->num_values;
-    aliases = talloc_array(tmp_ctx, const char *, num+1);
+    aliases = talloc_array(tmp_ctx, const char *,
+                           sysdb_name_el->num_values + 1);
     if (!aliases) {
         ret = ENOMEM;
         goto done;
     }
 
-    ai = 0;
-    for (i=0; i < sysdb_name_el->num_values; i++) {
-        name = (const char *)sysdb_name_el->values[i].data;
-        if (strcmp(primary, name) != 0) {
-            aliases[ai] = talloc_strdup(aliases, name);
-            if (!aliases[ai]) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ai++;
-        }
-    }
-
     if (lowercase) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               ("Domain is case-insensitive; will add lowercased aliases\n"));
-        for (i=0; i < sysdb_name_el->num_values; i++) {
-            name = (const char *)sysdb_name_el->values[i].data;
+    }
+
+    ai = 0;
+    for (i=0; i < sysdb_name_el->num_values; i++) {
+        name = (const char *)sysdb_name_el->values[i].data;
+
+        if (lowercase) {
+            /* Domain is case-insensitive. Save the lower-cased version */
             lower = sss_tc_utf8_str_tolower(tmp_ctx, name);
             if (!lower) {
                 ret = ENOMEM;
                 goto done;
             }
 
-            if (strcmp(name, lower) != 0) {
+            if (sss_utf8_case_eq((const uint8_t *) primary,
+                                 (const uint8_t *) lower) == ENOMATCH) {
                 aliases[ai] = talloc_strdup(aliases, lower);
+                if (!aliases[ai]) {
+                    ret = ENOMEM;
+                    goto done;
+                }
                 ai++;
             }
-            talloc_free(lower);
+        } else {
+            /* Domain is case-sensitive. Save it as-is */
+            if (strcmp(primary, name) != 0) {
+                aliases[ai] = talloc_strdup(aliases, name);
+                if (!aliases[ai]) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                ai++;
+            }
         }
     }
 
     aliases[ai] = NULL;
+
     ret = EOK;
+
 done:
     *_aliases = talloc_steal(mem_ctx, aliases);
     talloc_free(tmp_ctx);
