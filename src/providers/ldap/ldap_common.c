@@ -1645,7 +1645,7 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
     }
 
     if (k == 0) {
-        *missing = NULL;
+        *missing_attrs = NULL;
     } else {
         /* Terminate the list */
         missing[k] = NULL;
