@@ -489,27 +489,27 @@ static void lookup_service_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (state->cased_name) {
+    if (state->name) {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Re-checking cache for [%s:%s@%s]\n",
-               state->cased_name,
-               state->cased_proto ? state->cased_proto : "<ANY>",
+               SVC_NAME_CASED,
+               SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
 
         ret = sysdb_getservbyname(state, sysdb,
-                                  state->cased_name,
-                                  state->cased_proto,
+                                  SVC_NAME_CASED,
+                                  SVC_PROTO_CASED,
                                   &state->res);
     } else {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Re-checking cache for [%lu:%s@%s]\n",
                state->port,
-               state->cased_proto ? state->cased_proto : "<ANY>",
+               SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
 
         ret = sysdb_getservbyport(state, sysdb,
                                   state->port,
-                                  state->cased_proto,
+                                  SVC_PROTO_CASED,
                                   &state->res);
     }
 
