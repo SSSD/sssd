@@ -596,9 +596,9 @@ fill_service(struct sss_packet *packet,
 {
     errno_t ret;
     unsigned int msg_count = *count;
-    size_t rzero, rsize;
+    size_t rzero, rsize, aptr;
     unsigned int num, i, j;
-    uint32_t num_aliases;
+    uint32_t num_aliases, written_aliases;
     struct ldb_message *msg;
     struct ldb_message_element *el;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -710,8 +710,9 @@ fill_service(struct sss_packet *packet,
             num_aliases = el->num_values;
         }
 
-        /* Store the alias count */
-        SAFEALIGN_SET_UINT32(&body[rzero + rsize], num_aliases, &rsize);
+        /* We'll store the alias count here */
+        aptr = rzero+rsize;
+        rsize += sizeof(uint32_t);
 
         /* Store the primary name */
         safealign_memcpy(&body[rzero + rsize],
@@ -725,11 +726,14 @@ fill_service(struct sss_packet *packet,
                          cased_proto.len,
                          &rsize);
 
+        written_aliases = 0;
         for (j = 0; j < num_aliases; j++) {
-            tmpstr = sss_get_cased_name(tmp_ctx,
-                                        (const char *)el->values[j].data,
-                                        dom->case_sensitive);
-            to_sized_string(&alias, tmpstr);
+            if (sss_string_equal(dom->case_sensitive,
+                             (const char *)el->values[j].data,
+                             cased_name.str)) {
+                continue;
+            }
+            to_sized_string(&alias, (const char *)el->values[j].data);
 
             ret = sss_packet_grow(packet, alias.len);
             if (ret != EOK) {
@@ -744,8 +748,10 @@ fill_service(struct sss_packet *packet,
                              alias.len,
                              &rsize);
 
+            written_aliases++;
             talloc_zfree(tmpstr);
         }
+        SAFEALIGN_SET_UINT32(&body[aptr], written_aliases, &rsize);
 
         num++;
     }
