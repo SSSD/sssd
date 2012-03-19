@@ -1680,7 +1680,7 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_message_element *sysdb_name_el;
-    size_t i, ai;
+    size_t i, j, ai;
     errno_t ret;
     const char **aliases = NULL;
     const char *name;
@@ -1725,8 +1725,14 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            if (sss_utf8_case_eq((const uint8_t *) primary,
-                                 (const uint8_t *) lower) == ENOMATCH) {
+            for (j=0; j < ai; j++) {
+                if (sss_utf8_case_eq((const uint8_t *) aliases[j],
+                                     (const uint8_t *) lower) == ENOMATCH) {
+                    break;
+                }
+            }
+
+            if (ai == 0 || j < ai) {
                 aliases[ai] = talloc_strdup(aliases, lower);
                 if (!aliases[ai]) {
                     ret = ENOMEM;
