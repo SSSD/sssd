@@ -171,3 +171,12 @@ errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
 #else
 #error No unicode library
 #endif
+
+bool sss_string_equal(bool cs, const char *s1, const char *s2)
+{
+    if (cs) {
+        return strcmp(s1, s2) == 0;
+    }
+
+    return sss_utf8_case_eq((const uint8_t *)s1, (const uint8_t *)s2) == EOK;
+}
