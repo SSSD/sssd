@@ -550,8 +550,10 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         close(ofd);
     }
 
+    errno = 0;
     ret = unlink(mc_ctx->file);
     if (ret == -1) {
+        ret = errno;
         DEBUG(SSSDBG_TRACE_FUNC, ("Failed to rm mmap file %s: %d(%s)\n",
                                   mc_ctx->file, ret, strerror(ret)));
     }
