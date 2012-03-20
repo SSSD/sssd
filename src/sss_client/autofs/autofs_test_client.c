@@ -41,8 +41,8 @@ int main(int argc, const char *argv[])
     void *ctx;
     errno_t ret;
     const char *mapname;
-    char *key;
-    char *value;
+    char *key = NULL;
+    char *value = NULL;
     char *pc_key = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -61,8 +61,11 @@ int main(int argc, const char *argv[])
     if (mapname == NULL) {
         poptPrintUsage(pc, stderr, 0);
         fprintf(stderr, "Please specify the automounter map name\n");
+        poptFreeContext(pc);
         exit(EXIT_FAILURE);
     }
+
+    poptFreeContext(pc);
 
     ret = _sss_setautomntent(mapname, &ctx);
     if (ret) {
@@ -73,21 +76,27 @@ int main(int argc, const char *argv[])
     printf("setautomntent done for %s\n", mapname);
 
     if (!pc_key) {
-        key = NULL;
-        value = NULL;
         do {
             ret = _sss_getautomntent_r(&key, &value, ctx);
             if (ret == 0) {
+                if (!key || !value) {
+                    fprintf(stderr,
+                            "getautomntent returned success but no data?\n");
+                    goto end;
+                }
+
                 printf("key: %s\t\tvalue: %s\n", key, value);
                 free(key);
+                key = NULL;
                 free(value);
+                value = NULL;
             }
         } while(ret == 0);
 
         if (ret != 0 && ret != ENOENT) {
             fprintf(stderr, "getautomntent_r failed [%d]: %s\n",
                     ret, strerror(ret));
-            exit(EXIT_FAILURE);
+            goto end;
         }
     } else {
         ret = _sss_getautomntbyname_r(pc_key, &value, ctx);
@@ -96,13 +105,20 @@ int main(int argc, const char *argv[])
         } else if (ret != 0) {
             fprintf(stderr, "getautomntent_r failed [%d]: %s\n",
                     ret, strerror(ret));
-            exit(EXIT_FAILURE);
+            goto end;
         } else {
+            if (!value) {
+                fprintf(stderr, "_sss_getautomntbyname_r "
+                        "returned success but no data?\n");
+                goto end;
+            }
+
             printf("key: %s\t\tvalue: %s\n", pc_key, value);
             free(value);
         }
     }
 
+end:
     ret = _sss_endautomntent(&ctx);
     if (ret) {
         fprintf(stderr, "endautomntent failed [%d]: %s\n",
@@ -110,7 +126,5 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
     printf("endautomntent done for %s\n", mapname);
-
-    poptFreeContext(pc);
     return 0;
 }
