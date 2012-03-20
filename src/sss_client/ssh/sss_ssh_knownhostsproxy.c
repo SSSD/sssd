@@ -135,26 +135,29 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
                           ("read() failed (%d): %s\n", ret, strerror(ret)));
                     goto done;
                 } else if (res == 0) {
-                    break;
+                    ret = EOK;
+                    goto done;
                 }
 
+                errno = 0;
                 res = sss_atomic_write(i == 0 ? sock : 1, buffer, res);
+                ret = errno;
                 if (res == -1) {
-                    ret = errno;
                     DEBUG(SSSDBG_OP_FAILURE,
                           ("sss_atomic_write() failed (%d): %s\n",
                            ret, strerror(ret)));
                     goto done;
+                } else if (ret == EPIPE) {
+                    ret = EOK;
+                    goto done;
                 }
             }
             if (fds[i].revents & POLLHUP) {
-                break;
+                ret = EOK;
+                goto done;
             }
         }
     }
-
-    ret = EOK;
-    DEBUG(SSSDBG_TRACE_FUNC, ("Connection closed\n"));
 
 done:
     if (sock >= 0) close(sock);
