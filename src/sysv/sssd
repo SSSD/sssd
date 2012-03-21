@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #
-# chkconfig: - 30 80
+# chkconfig: - 12 88
 # description: Provides a set of daemons to manage access to remote directories
 #              and authentication mechanisms. It provides an NSS and PAM
 #              interface toward the system and a pluggable backend system to
