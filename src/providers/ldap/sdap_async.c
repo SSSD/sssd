@@ -185,7 +185,9 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     }
 
     if (ret == -1) {
-        DEBUG(4, ("ldap_result gave -1, something bad happend!\n"));
+        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &ret);
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("ldap_result error: [%s]\n", ldap_err2string(ret)));
         sdap_handle_release(sh);
         return;
     }
