@@ -373,7 +373,7 @@ _sss_getautomntbyname_r(const char *key, char **value, void *context)
         goto out;
     }
 
-    ret = sss_strnlen(ctx->mapname, MAX_AUTOMNTKEYNAME_LEN, &key_len);
+    ret = sss_strnlen(key, MAX_AUTOMNTKEYNAME_LEN, &key_len);
     if (ret != 0) {
         ret = EINVAL;
         goto out;
