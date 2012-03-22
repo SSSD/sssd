@@ -951,6 +951,9 @@ void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
     if (data) {
         *realm = data->data;
         *len = data->length;
+    } else {
+        *realm = NULL;
+        *len = 0;
     }
 }
 #endif
