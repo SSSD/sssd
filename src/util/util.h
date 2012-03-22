@@ -405,6 +405,10 @@ char *
 sss_get_cased_name(TALLOC_CTX *mem_ctx, const char *orig_name,
                    bool case_sensitive);
 
+errno_t
+sss_get_cased_name_list(TALLOC_CTX *mem_ctx, const char * const *orig,
+                        bool case_sensitive, const char ***_cased);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 

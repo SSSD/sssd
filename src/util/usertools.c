@@ -182,3 +182,40 @@ sss_get_cased_name(TALLOC_CTX *mem_ctx,
     return case_sensitive ? talloc_strdup(mem_ctx, orig_name) :
                             sss_tc_utf8_str_tolower(mem_ctx, orig_name);
 }
+
+errno_t
+sss_get_cased_name_list(TALLOC_CTX *mem_ctx, const char * const *orig,
+                        bool case_sensitive, const char ***_cased)
+{
+    const char **out;
+    size_t num, i;
+
+    if (orig == NULL) {
+        *_cased = NULL;
+        return EOK;
+    }
+
+    for (num=0; orig[num]; num++);  /* count the num of strings */
+
+    if (num == 0) {
+        *_cased = NULL;
+        return EOK;
+    }
+
+    out = talloc_array(mem_ctx, const char *, num + 1);
+    if (out == NULL) {
+        return ENOMEM;
+    }
+
+    for (i = 0; i < num; i++) {
+        out[i] = sss_get_cased_name(out, orig[i], case_sensitive);
+        if (out[i] == NULL) {
+            talloc_free(out);
+            return ENOMEM;
+        }
+    }
+
+    out[num] = NULL;
+    *_cased = out;
+    return EOK;
+}
