@@ -38,7 +38,6 @@ proxy_save_service(struct sysdb_ctx *sysdb,
     const char **protocols;
     const char **cased_aliases;
     TALLOC_CTX *tmp_ctx;
-    size_t num_aliases, i;
     time_t now = time(NULL);
 
     tmp_ctx = talloc_new(NULL);
@@ -65,26 +64,11 @@ proxy_save_service(struct sysdb_ctx *sysdb,
     protocols[1] = NULL;
 
     /* Count the aliases */
-    for(num_aliases = 0; svc->s_aliases[num_aliases]; num_aliases++);
-
-    if (num_aliases >= 1) {
-        cased_aliases = talloc_array(tmp_ctx, const char *, num_aliases + 1);
-        if (!cased_aliases) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        for (i = 0; i < num_aliases; i++) {
-            cased_aliases[i] = sss_get_cased_name(tmp_ctx, svc->s_aliases[i],
-                                                  !lowercase);
-            if (!cased_aliases[i]) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-        cased_aliases[num_aliases] = NULL;
-    } else {
-        cased_aliases = NULL;
+    ret = sss_get_cased_name_list(tmp_ctx,
+                                  (const char * const *) svc->s_aliases,
+                                  !lowercase, &cased_aliases);
+    if (ret != EOK) {
+        goto done;
     }
 
     ret = sysdb_store_service(sysdb,
@@ -199,38 +183,6 @@ done:
     return ret;
 }
 
-static errno_t
-get_const_aliases(TALLOC_CTX *mem_ctx,
-                  char **aliases,
-                  const char ***const_aliases)
-{
-    errno_t ret;
-    size_t i, num_aliases;
-    const char **alias_list = NULL;
-
-    for (num_aliases = 0; aliases[num_aliases]; num_aliases++);
-
-    alias_list = talloc_zero_array(mem_ctx, const char *, num_aliases + 1);
-    if (!alias_list) return ENOMEM;
-
-    for (i = 0; aliases[i]; i++) {
-        alias_list[i] = talloc_strdup(alias_list, aliases[i]);
-        if (!alias_list[i]) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    ret = EOK;
-    *const_aliases = alias_list;
-
-done:
-    if (ret != EOK) {
-        talloc_zfree(alias_list);
-    }
-    return ret;
-}
-
 errno_t
 enum_services(struct proxy_id_ctx *ctx,
               struct sysdb_ctx *sysdb,
@@ -246,6 +198,7 @@ enum_services(struct proxy_id_ctx *ctx,
     errno_t ret, sret;
     time_t now = time(NULL);
     const char *protocols[2] = { NULL, NULL };
+    const char **cased_aliases;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Enumerating services\n"));
 
@@ -320,10 +273,17 @@ again:
               ("Service found (%s, %d/%s)\n",
                svc->s_name, svc->s_port, svc->s_proto));
 
-        protocols[0] = svc->s_proto;
+        protocols[0] = sss_get_cased_name(protocols, svc->s_proto,
+                                          dom->case_sensitive);
+        if (!protocols[0]) {
+            ret = ENOMEM;
+            goto done;
+        }
+        protocols[1] = NULL;
 
-        const char **const_aliases;
-        ret = get_const_aliases(tmpctx, svc->s_aliases, &const_aliases);
+        ret = sss_get_cased_name_list(tmpctx,
+                                      (const char * const *) svc->s_aliases,
+                                      dom->case_sensitive, &cased_aliases);
         if (ret != EOK) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -336,7 +296,7 @@ again:
         ret = sysdb_store_service(sysdb,
                                   svc->s_name,
                                   svc->s_port,
-                                  const_aliases,
+                                  cased_aliases,
                                   protocols,
                                   NULL, NULL,
                                   dom->service_timeout,
