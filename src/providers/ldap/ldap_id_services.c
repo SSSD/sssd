@@ -79,6 +79,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->sysdb = id_ctx->be->sysdb;
     state->domain = state->id_ctx->be->domain;
     state->name = name;
+    state->protocol = protocol;
     state->filter_type = filter_type;
 
     state->op = sdap_id_op_create(state, state->id_ctx->conn_cache);
