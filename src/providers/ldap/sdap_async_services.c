@@ -351,6 +351,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     const char *name = NULL;
     const char **aliases;
     const char **protocols;
+    const char **cased_protocols;
+    const char **store_protocols;
     char **missing;
     uint16_t port;
     uint64_t cache_timeout;
@@ -412,6 +414,20 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (dom->case_sensitive == false) {
+        /* Don't perform the extra mallocs if not necessary */
+        ret = sss_get_cased_name_list(tmp_ctx, protocols,
+                                      dom->case_sensitive, &cased_protocols);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                ("Failed to get case_sensitive protocols names: [%s]\n",
+                strerror(ret)));
+            goto done;
+        }
+    }
+
+    store_protocols = dom->case_sensitive ? protocols : cased_protocols;
+
     /* Get the USN value, if available */
     ret = sysdb_attrs_get_el(attrs,
                       opts->service_map[SDAP_AT_SERVICE_USN].sys_name, &el);
@@ -456,7 +472,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
 
     cache_timeout = dom->service_timeout;
 
-    ret = sysdb_store_service(sysdb, name, port, aliases, protocols,
+    ret = sysdb_store_service(sysdb, name, port, aliases, store_protocols,
                               svc_attrs, missing, cache_timeout, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
