@@ -275,7 +275,7 @@ install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
 
 # Suppress developer-only documentation
-rm -Rf ${RPM_BUILD_ROOT}/%{_docdir}/%{name}/doc
+rm -Rf ${RPM_BUILD_ROOT}/%{_docdir}/%{name}
 
 # Older versions of rpmbuild can only handle one -f option
 # So we need to append to the sssd.lang file
@@ -446,10 +446,10 @@ A utility library to allow communication between Autofs and SSSD
 
 %files -n libsss_sudo-devel
 %if 0%{?fedora}
-%doc hbac_doc/html
+%doc libsss_sudo_doc/html
 %endif
 %if 0%{?rhel} >= 6
-%doc hbac_doc/html
+%doc libsss_sudo_doc/html
 %endif
 %{_includedir}/sss_sudo.h
 %{_libdir}/libsss_sudo.so

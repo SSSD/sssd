@@ -409,6 +409,14 @@ if HAVE_NSS
     dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
 endif
 
+SSSD_DOCS = \
+	doc \
+	hbac_doc \
+	idmap_doc
+if BUILD_SUDO
+	SSSD_DOCS += libsss_sudo_doc
+endif
+
 #####################
 # Utility libraries #
 #####################
@@ -1420,7 +1428,11 @@ if BUILD_PYTHON_BINDINGS
 		cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/src/config/.files; \
 	fi
 endif
-	mkdir -p doc $(DESTDIR)/$(docdir); cp -a doc $(DESTDIR)/$(docdir)/
+	for doc in $(SSSD_DOCS); do \
+		mkdir -p $$doc $(DESTDIR)/$(docdir); \
+		cp -a $$doc $(DESTDIR)/$(docdir)/; \
+	done;
+
 if HAVE_SYSTEMD_UNIT
 	mkdir -p $(DESTDIR)$(systemdunitdir)
 else
@@ -1440,13 +1452,17 @@ uninstall-hook:
 	    cat $(abs_builddir)/src/config/.files | xargs -iq rm -f $(DESTDIR)/q; \
 	    rm $(abs_builddir)/src/config/.files ; \
 	fi
-	rm -Rf $(DESTDIR)/$(docdir)/doc
+	for doc in $(SSSD_DOCS); do \
+		rm -Rf $(DESTDIR)/$(docdir)/$$doc; \
+	done;
 
 clean-local:
 if BUILD_PYTHON_BINDINGS
 	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
 endif
-	rm -Rf doc
+	for doc in $(SSSD_DOCS); do \
+		rm -Rf $$doc; \
+	done;
 	rm -Rf ldb_mod_test_dir
 
 CLEANFILES = *.X */*.X */*/*.X
