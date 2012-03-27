@@ -27,11 +27,13 @@
 
 /* =Getpwnam-wrapper======================================================*/
 
-static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain, const char *name);
-
 static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
-                     struct passwd *pwd, uint64_t cache_timeout);
+                     struct passwd *pwd, const char *alias,
+                     uint64_t cache_timeout);
+
+static int
+handle_getpw_result(enum nss_status status, struct passwd *pwd,
+                    struct sss_domain_info *dom, bool *del_user);
 
 static int get_pw_name(TALLOC_CTX *mem_ctx,
                        struct proxy_id_ctx *ctx,
@@ -45,10 +47,12 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
+    uid_t uid;
+    bool del_user;
 
-    DEBUG(7, ("Searching user by name (%s)\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by name (%s)\n", name));
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -71,67 +75,114 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
     status = ctx->ops.getpwnam_r(name, pwd, buffer, buflen, &ret);
+    ret = handle_getpw_result(status, pwd, dom, &del_user);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getpwnam failed [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    if (del_user) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("User %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", name));
+        ret = sysdb_delete_user(sysdb, name, 0);
+        goto done;
+    }
+
+    uid = pwd->pw_uid;
+    memset(buffer, 0, buflen);
+
+    /* Canonicalize the username in case it was actually an alias */
+    status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
+    ret = handle_getpw_result(status, pwd, dom, &del_user);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    if (del_user) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("User %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", name));
+        ret = sysdb_delete_user(sysdb, name, uid);
+        goto done;
+    }
+
+    /* Both lookups went fine, we can save the user now */
+    ret = save_user(sysdb, !dom->case_sensitive, pwd,
+                    name, dom->user_timeout);
+
+done:
+    talloc_zfree(tmpctx);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("proxy -> getpwnam_r failed for '%s' <%d>\n",
+               name, status));
+    }
+    return ret;
+}
+
+static int
+handle_getpw_result(enum nss_status status, struct passwd *pwd,
+                    struct sss_domain_info *dom, bool *del_user)
+{
+    int ret = EOK;
+
+    if (!del_user) {
+        return EINVAL;
+    }
+    *del_user = false;
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(7, ("User %s not found.\n", name));
-        ret = delete_user(tmpctx, sysdb, dom, name);
-        if (ret) {
-            goto done;
-        }
+        DEBUG(SSSDBG_MINOR_FAILURE, ("User not found.\n"));
+        *del_user = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
-        DEBUG(7, ("User %s found: (%s, %d, %d)\n",
-                  name, pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
+        DEBUG(SSSDBG_TRACE_FUNC, ("User found: (%s, %d, %d)\n",
+              pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
         /* also check that the id is in the valid range for this domain */
         if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
             OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n", name));
-            ret = delete_user(tmpctx, sysdb, dom, name);
-            if (ret) {
-                goto done;
-            }
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("User filtered out! (id out of range)\n"));
+            *del_user = true;
             break;
-        }
-
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
-        if (ret) {
-            goto done;
         }
         break;
 
     case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Remote back end is not available. Entering offline mode\n"));
         ret = ENXIO;
-        goto done;
+        break;
 
     default:
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown return code %d\n", status));
         ret = EIO;
-        goto done;
+        break;
     }
 
-done:
-    talloc_zfree(tmpctx);
-    if (ret) {
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-                  name, status));
-    }
     return ret;
 }
 
 static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
-                     struct passwd *pwd, uint64_t cache_timeout)
+                     struct passwd *pwd, const char *alias,
+                     uint64_t cache_timeout)
 {
     const char *shell;
     char *lower;
     struct sysdb_attrs *attrs = NULL;
     errno_t ret;
+    const char *cased_alias;
 
     if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
         shell = pwd->pw_shell;
@@ -139,13 +190,15 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
         shell = NULL;
     }
 
-    if (lowercase) {
+    if (!lowercase || alias) {
         attrs = sysdb_new_attrs(NULL);
         if (!attrs) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
             return ENOMEM;
         }
+    }
 
+    if (lowercase) {
         lower = sss_tc_utf8_str_tolower(attrs, pwd->pw_name);
         if (!lower) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
@@ -154,6 +207,21 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
         }
 
         ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            talloc_zfree(attrs);
+            return ret;
+        }
+    }
+
+    if (alias) {
+        cased_alias = sss_get_cased_name(attrs, alias, !lowercase);
+        if (!cased_alias) {
+            talloc_zfree(attrs);
+            return ENOMEM;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
             talloc_zfree(attrs);
@@ -182,22 +250,6 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
     return EOK;
 }
 
-static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain, const char *name)
-{
-    struct ldb_dn *dn;
-
-    DEBUG(7, ("User %s does not exist (or is invalid) on remote server,"
-              " deleting!\n", name));
-
-    dn = sysdb_user_dn(sysdb, mem_ctx, domain->name, name);
-    if (!dn) {
-        return ENOMEM;
-    }
-
-    return sysdb_delete_entry(sysdb, dn, true);
-}
-
 /* =Getpwuid-wrapper======================================================*/
 
 static int get_pw_uid(TALLOC_CTX *mem_ctx,
@@ -214,9 +266,9 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     bool del_user = false;
     int ret;
 
-    DEBUG(7, ("Searching user by uid (%d)\n", uid));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by uid (%d)\n", uid));
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -224,75 +276,40 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     pwd = talloc_zero(tmpctx, struct passwd);
     if (!pwd) {
         ret = ENOMEM;
-        DEBUG(1, ("proxy -> getpwuid_r failed for '%d': [%d] %s\n",
-                  uid, ret, strerror(ret)));
-        return ret;
+        goto done;
     }
 
     buflen = DEFAULT_BUFSIZE;
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
         ret = ENOMEM;
-        DEBUG(1, ("proxy -> getpwuid_r failed for '%d': [%d] %s\n",
-                  uid, ret, strerror(ret)));
-        return ret;
+        goto done;
     }
 
     status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
-
-    switch (status) {
-    case NSS_STATUS_NOTFOUND:
-
-        DEBUG(7, ("User %d not found.\n", uid));
-        del_user = true;
-        break;
-
-    case NSS_STATUS_SUCCESS:
-
-        DEBUG(7, ("User %d found (%s, %d, %d)\n",
-                  uid, pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
-
-        /* uid=0 or gid=0 are invalid values */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
-
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      pwd->pw_name));
-            del_user = true;
-            break;
-        }
-
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
-        if (ret) {
-            goto done;
-        }
-        break;
-
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        goto done;
-
-    default:
-        ret = EIO;
+    ret = handle_getpw_result(status, pwd, dom, &del_user);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
     if (del_user) {
-        DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
-                  " deleting!\n", uid));
-
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("User %d does not exist (or is invalid) on remote server,"
+               " deleting!\n", uid));
         ret = sysdb_delete_user(sysdb, NULL, uid);
-        if (ret) {
-            goto done;
-        }
+        goto done;
     }
+
+    ret = save_user(sysdb, !dom->case_sensitive, pwd,
+                    NULL, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
     if (ret) {
-        DEBUG(2, ("proxy -> getpwuid_r failed for '%d' <%d>\n", uid, status));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("proxy -> getpwuid_r failed for '%d' <%d>\n", uid, status));
     }
     return ret;
 }
@@ -394,7 +411,8 @@ again:
             goto again; /* skip */
         }
 
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
+        ret = save_user(sysdb, !dom->case_sensitive, pwd,
+                        NULL, dom->user_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -448,11 +466,13 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
                                            struct group *grp,
                                            time_t now);
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
-                      struct group *grp, uint64_t cache_timeout)
+                      struct group *grp, const char *alias,
+                      uint64_t cache_timeout)
 {
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
     char *lower;
+    const char *cased_alias;
     TALLOC_CTX *tmp_ctx;
     time_t now = time(NULL);
     bool in_transaction = false;
@@ -492,7 +512,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         }
     }
 
-    if (dom->case_sensitive == false) {
+    if (dom->case_sensitive == false || alias) {
         if (!attrs) {
             attrs = sysdb_new_attrs(tmp_ctx);
             if (!attrs) {
@@ -502,18 +522,35 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
             }
         }
 
-        lower = sss_tc_utf8_str_tolower(attrs, grp->gr_name);
-        if (!lower) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
-            ret = ENOMEM;
-            goto done;
+        if (dom->case_sensitive == false) {
+            lower = sss_tc_utf8_str_tolower(attrs, grp->gr_name);
+            if (!lower) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+                ret = ENOMEM;
+                goto done;
+            }
         }
 
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
-            ret = ENOMEM;
-            goto done;
+        if (alias) {
+            cased_alias = sss_get_cased_name(attrs, alias, dom->case_sensitive);
+            if (!cased_alias) {
+                talloc_zfree(attrs);
+                return ENOMEM;
+            }
+
+            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
@@ -600,6 +637,73 @@ done:
 }
 
 /* =Getgrnam-wrapper======================================================*/
+static char *
+grow_group_buffer(TALLOC_CTX *mem_ctx,
+                  char **buffer, size_t *buflen)
+{
+    char *newbuf;
+
+    if (*buflen == 0) {
+        *buflen = DEFAULT_BUFSIZE;
+    }
+    if (*buflen < MAX_BUF_SIZE) {
+        *buflen *= 2;
+    }
+    if (*buflen > MAX_BUF_SIZE) {
+        *buflen = MAX_BUF_SIZE;
+    }
+
+    newbuf = talloc_realloc_size(mem_ctx, *buffer, *buflen);
+    if (!newbuf) {
+        return NULL;
+    }
+    *buffer = newbuf;
+
+    return *buffer;
+}
+
+static errno_t
+handle_getgr_result(enum nss_status status, struct group *grp,
+                    struct sss_domain_info *dom,
+                    bool *delete_group)
+{
+    switch (status) {
+    case NSS_STATUS_TRYAGAIN:
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Buffer too small\n"));
+        return EAGAIN;
+
+    case NSS_STATUS_NOTFOUND:
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Group not found.\n"));
+        *delete_group = true;
+        break;
+
+    case NSS_STATUS_SUCCESS:
+        DEBUG(SSSDBG_FUNC_DATA, ("Group found: (%s, %d)\n",
+              grp->gr_name, grp->gr_gid));
+
+        /* gid=0 is an invalid value */
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Group filtered out! (id out of range)\n"));
+            *delete_group = true;
+            break;
+        }
+        break;
+
+    case NSS_STATUS_UNAVAIL:
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Remote back end is not available. Entering offline mode\n"));
+        return ENXIO;
+
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown return code %d\n", status));
+        return EIO;
+    }
+
+    return EOK;
+}
+
 static int get_gr_name(TALLOC_CTX *mem_ctx,
                        struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
@@ -609,15 +713,15 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmpctx;
     struct group *grp;
     enum nss_status status;
-    char *buffer;
-    char *newbuf;
-    size_t buflen;
+    char *buffer = 0;
+    size_t buflen = 0;
     bool delete_group = false;
     int ret;
+    gid_t gid;
 
-    DEBUG(7, ("Searching group by name (%s)\n", name));
+    DEBUG(SSSDBG_FUNC_DATA, ("Searching group by name (%s)\n", name));
 
-    tmpctx = talloc_new(mem_ctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
@@ -625,111 +729,83 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     grp = talloc(tmpctx, struct group);
     if (!grp) {
         ret = ENOMEM;
-        DEBUG(1, ("proxy -> getgrnam_r failed for '%s': [%d] %s\n",
-                  name, ret, strerror(ret)));
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("proxy -> getgrnam_r failed for '%s': [%d] %s\n",
+              name, ret, strerror(ret)));
+        goto done;
     }
 
-    buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(tmpctx, buflen);
-    if (!buffer) {
-        ret = ENOMEM;
-        DEBUG(1, ("proxy -> getgrnam_r failed for '%s': [%d] %s\n",
-                  name, ret, strerror(ret)));
-        return ret;
-    }
-
-    /* FIXME: should we move this call outside the transaction to keep the
-     * transaction as short as possible ? */
-again:
-    /* always zero out the grp structure */
-    memset(grp, 0, sizeof(struct group));
-
-    status = ctx->ops.getgrnam_r(name, grp, buffer, buflen, &ret);
-
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
-        }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
-        }
-        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
-        if (!newbuf) {
+    do {
+        /* always zero out the grp structure */
+        memset(grp, 0, sizeof(struct group));
+        buffer = grow_group_buffer(tmpctx, &buffer, &buflen);
+        if (!buffer) {
             ret = ENOMEM;
             goto done;
         }
-        buffer = newbuf;
-        goto again;
 
-    case NSS_STATUS_NOTFOUND:
+        status = ctx->ops.getgrnam_r(name, grp, buffer, buflen, &ret);
 
-        DEBUG(7, ("Group %s not found.\n", name));
-        delete_group = true;
-        break;
+        ret = handle_getgr_result(status, grp, dom, &delete_group);
+    } while (ret == EAGAIN);
 
-    case NSS_STATUS_SUCCESS:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getgrnam failed [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
 
-        DEBUG(7, ("Group %s found: (%s, %d)\n",
-                  name, grp->gr_name, grp->gr_gid));
+    gid = grp->gr_gid;
+    talloc_zfree(buffer);
+    buflen = 0;
 
-        /* gid=0 is an invalid value */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
-
-                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          name));
-            delete_group = true;
-            break;
-        }
-
-        ret = save_group(sysdb, dom, grp, dom->group_timeout);
-        if (ret) {
+    /* Canonicalize the group name in case it was actually an alias */
+    do {
+        memset(grp, 0, sizeof(struct group));
+        buffer = grow_group_buffer(tmpctx, &buffer, &buflen);
+        if (!buffer) {
+            ret = ENOMEM;
             goto done;
         }
-        break;
 
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        goto done;
+        status = ctx->ops.getgrgid_r(gid, grp, buffer, buflen, &ret);
 
-    default:
-        ret = EIO;
+        ret = handle_getgr_result(status, grp, dom, &delete_group);
+    } while(ret == EAGAIN);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getgrgid failed [%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
     if (delete_group) {
-        struct ldb_dn *dn;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Group %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", name));
 
-        DEBUG(7, ("Group %s does not exist (or is invalid) on remote server,"
-                  " deleting!\n", name));
+        ret = sysdb_delete_group(sysdb, NULL, gid);
+        goto done;
+    }
 
-        dn = sysdb_group_dn(sysdb, tmpctx, dom->name, name);
-        if (!dn) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_delete_entry(sysdb, dn, true);
-        if (ret) {
-            goto done;
-        }
+    ret = save_group(sysdb, dom, grp, name, dom->group_timeout);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot save group [%d]: %s\n", ret, strerror(ret)));
+        goto done;
     }
 
 done:
     talloc_zfree(tmpctx);
     if (ret) {
-        DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
-                  name, status));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("proxy -> getgrnam_r failed for '%s' <%d>\n",
+              name, status));
     }
     return ret;
 }
 
 /* =Getgrgid-wrapper======================================================*/
-
 static int get_gr_gid(TALLOC_CTX *mem_ctx,
                       struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
@@ -740,13 +816,12 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmpctx;
     struct group *grp;
     enum nss_status status;
-    char *buffer;
-    char *newbuf;
-    size_t buflen;
+    char *buffer = NULL;
+    size_t buflen = 0;
     bool delete_group = false;
     int ret;
 
-    DEBUG(7, ("Searching group by gid (%d)\n", gid));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Searching group by gid (%d)\n", gid));
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -756,96 +831,45 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     grp = talloc(tmpctx, struct group);
     if (!grp) {
         ret = ENOMEM;
-        DEBUG(1, ("proxy -> getgrgid_r failed for '%d': [%d] %s\n",
-                  gid, ret, strerror(ret)));
-        return ret;
+        goto done;
     }
 
-    buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(tmpctx, buflen);
-    if (!buffer) {
-        ret = ENOMEM;
-        DEBUG(1, ("proxy -> getgrgid_r failed for '%d': [%d] %s\n",
-                  gid, ret, strerror(ret)));
-        return ret;
-    }
-
-again:
-    /* always zero out the group structure */
-    memset(grp, 0, sizeof(struct group));
-
-    status = ctx->ops.getgrgid_r(gid, grp, buffer, buflen, &ret);
-
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
-        }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
-        }
-        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
-        if (!newbuf) {
+    do {
+        /* always zero out the grp structure */
+        memset(grp, 0, sizeof(struct group));
+        buffer = grow_group_buffer(tmpctx, &buffer, &buflen);
+        if (!buffer) {
             ret = ENOMEM;
             goto done;
         }
-        buffer = newbuf;
-        goto again;
 
-    case NSS_STATUS_NOTFOUND:
+        status = ctx->ops.getgrgid_r(gid, grp, buffer, buflen, &ret);
 
-        DEBUG(7, ("Group %d not found.\n", gid));
-        delete_group = true;
-        break;
+        ret = handle_getgr_result(status, grp, dom, &delete_group);
+    } while (ret == EAGAIN);
 
-    case NSS_STATUS_SUCCESS:
+    if (delete_group) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Group %d does not exist (or is invalid) on remote server,"
+               " deleting!\n", gid));
 
-        DEBUG(7, ("Group %d found (%s, %d)\n",
-                  gid, grp->gr_name, grp->gr_gid));
-
-        /* gid=0 is an invalid value */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
-
-                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          grp->gr_name));
-            delete_group = true;
-            break;
-        }
-
-        ret = save_group(sysdb, dom, grp, dom->group_timeout);
-        if (ret) {
-            goto done;
-        }
-        break;
-
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        goto done;
-
-    default:
-        ret = EIO;
+        ret = sysdb_delete_group(sysdb, NULL, gid);
         goto done;
     }
 
-    if (delete_group) {
-
-        DEBUG(7, ("Group %d does not exist (or is invalid) on remote server,"
-                  " deleting!\n", gid));
-
-        ret = sysdb_delete_group(sysdb, NULL, gid);
-        if (ret) {
-            goto done;
-        }
+    ret = save_group(sysdb, dom, grp, NULL, dom->group_timeout);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot save user [%d]: %s\n", ret, strerror(ret)));
+        goto done;
     }
 
 done:
     talloc_zfree(tmpctx);
     if (ret) {
-        DEBUG(2, ("proxy -> getgrgid_r failed for '%d' <%d>\n",
-                  gid, status));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("proxy -> getgrgid_r failed for '%d' <%d>\n",
+               gid, status));
     }
     return ret;
 }
@@ -946,7 +970,7 @@ again:
             goto again; /* skip */
         }
 
-        ret = save_group(sysdb, dom, grp, dom->group_timeout);
+        ret = save_group(sysdb, dom, grp, NULL, dom->group_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -997,6 +1021,8 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
+    bool del_user;
+    uid_t uid;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -1006,74 +1032,90 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     pwd = talloc_zero(tmpctx, struct passwd);
     if (!pwd) {
         ret = ENOMEM;
-        goto done;
+        goto fail;
     }
 
     buflen = DEFAULT_BUFSIZE;
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
         ret = ENOMEM;
-        goto done;
+        goto fail;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        goto done;
+        goto fail;
     }
     in_transaction = true;
 
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
     status = ctx->ops.getpwnam_r(name, pwd, buffer, buflen, &ret);
+    ret = handle_getpw_result(status, pwd, dom, &del_user);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getpwnam failed [%d]: %s\n", ret, strerror(ret)));
+        goto fail;
+    }
 
-    switch (status) {
-    case NSS_STATUS_NOTFOUND:
-
-        DEBUG(7, ("User %s not found.\n", name));
-        ret = delete_user(tmpctx, sysdb, dom, name);
+    if (del_user) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("User %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", name));
+        ret = sysdb_delete_user(sysdb, name, 0);
         if (ret) {
-            goto done;
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
+            goto fail;
         }
-        break;
+        goto done;
+    }
 
-    case NSS_STATUS_SUCCESS:
+    uid = pwd->pw_uid;
+    memset(buffer, 0, buflen);
 
-        /* uid=0 or gid=0 are invalid values */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
+    /* Canonicalize the username in case it was actually an alias */
+    status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
+    ret = handle_getpw_result(status, pwd, dom, &del_user);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+        goto fail;
+    }
 
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      name));
-            ret = delete_user(tmpctx, sysdb, dom, name);
-            break;
-        }
-
-        ret = save_user(sysdb, !dom->case_sensitive, pwd, dom->user_timeout);
+    if (del_user) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("User %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", name));
+        ret = sysdb_delete_user(sysdb, name, uid);
         if (ret) {
-            goto done;
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
+            goto fail;
         }
+        goto done;
+    }
 
-        ret = get_initgr_groups_process(tmpctx, ctx, sysdb, dom, pwd);
-        if (ret == EOK) {
-            ret = sysdb_transaction_commit(sysdb);
-            in_transaction = true;
-        }
-        break;
+    ret = save_user(sysdb, !dom->case_sensitive, pwd,
+                    name, dom->user_timeout);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not save user\n"));
+        goto fail;
+    }
 
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        break;
-
-    default:
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-                  name, status));
-        ret = EIO;
-        break;
+    ret = get_initgr_groups_process(tmpctx, ctx, sysdb, dom, pwd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not process initgroups\n"));
+        goto fail;
     }
 
 done:
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to commit transaction\n"));
+        goto fail;
+    }
+    in_transaction = false;
+
+fail:
     talloc_zfree(tmpctx);
     if (in_transaction) {
         sysdb_transaction_cancel(sysdb);
