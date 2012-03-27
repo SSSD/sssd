@@ -390,7 +390,7 @@ static bool match_principal(krb5_context ctx,
     const char *realm_name;
     int realm_len;
 
-    int mode = MODE_NORMAL;
+    enum matching_mode mode = MODE_NORMAL;
     TALLOC_CTX *tmp_ctx;
     bool ret = false;
 
@@ -404,10 +404,10 @@ static bool match_principal(krb5_context ctx,
 
     if (pattern_primary) {
         tmp_len = strlen(pattern_primary);
-        if (pattern_primary[tmp_len] == '*') {
+        if (pattern_primary[tmp_len-1] == '*') {
             mode = MODE_PREFIX;
             primary_str = talloc_strdup(tmp_ctx, pattern_primary);
-            primary_str[tmp_len] = '\0';
+            primary_str[tmp_len-1] = '\0';
             primary_str_len = tmp_len-1;
         } else if (pattern_primary[0] == '*') {
             mode = MODE_POSTFIX;
