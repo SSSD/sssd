@@ -639,8 +639,9 @@ ipa_dyndns_update_get_addrs_done(struct tevent_req *subreq)
                                      struct ipa_dyndns_update_get_addrs_state);
     struct resolv_hostent *rhostent;
     int i;
+    int resolv_status;
 
-    ret = resolv_gethostbyname_recv(subreq, state, NULL, NULL,
+    ret = resolv_gethostbyname_recv(subreq, state, &resolv_status, NULL,
                                     &rhostent);
     talloc_zfree(subreq);
 
@@ -666,6 +667,10 @@ ipa_dyndns_update_get_addrs_done(struct tevent_req *subreq)
         tevent_req_done(req);
         return;
     } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not resolve address for this machine, error [%d]: %s, "
+               "resolver returned: [%d]: %s\n", ret, strerror(ret),
+               resolv_status, resolv_strerror(resolv_status)));
         tevent_req_error(req, ret);
         return;
     }

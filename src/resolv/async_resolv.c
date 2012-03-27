@@ -511,7 +511,9 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
     struct resolv_ctx *ctx;
 
     if (timeout < 1) {
-        return EINVAL;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("The timeout is too short, DNS operations are going to fail. "
+               "This is a bug outside unit tests\n"));
     }
 
     ctx = talloc_zero(mem_ctx, struct resolv_ctx);
@@ -1389,6 +1391,9 @@ resolv_gethostbyname_done(struct tevent_req *subreq)
         /* No more databases and/or address families */
         tevent_req_error(req, ENOENT);
         return;
+    } else if (ret == ETIMEDOUT) {
+        /* In case we killed the request before c-ares answered */
+        state->status = ARES_ETIMEOUT;
     }
 
     if (ret != EOK) {

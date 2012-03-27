@@ -946,12 +946,8 @@ fo_resolve_service_done(struct tevent_req *subreq)
     /* Take care of all requests for this server. */
     while ((request = common->request_list) != NULL) {
         DLIST_REMOVE(common->request_list, request);
-        if (resolv_status) {
-            /* FIXME FIXME: resolv_status is an ARES error.
-             * but any caller will expect classic error codes.
-             * also the send() function may return ENOENT, so this mix
-             * IS explosive (ENOENT = 2 = ARES_EFORMER) */
-            tevent_req_error(request->req, resolv_status);
+        if (ret) {
+            tevent_req_error(request->req, ret);
         } else {
             tevent_req_done(request->req);
         }
@@ -1285,16 +1281,20 @@ static void resolve_get_domain_done(struct tevent_req *subreq)
                                                       struct resolve_get_domain_state);
     struct resolv_hostent *rhostent;
     int ret;
+    int resolv_status;
 
-    ret = resolv_gethostbyname_recv(subreq, req, NULL, NULL, &rhostent);
+    ret = resolv_gethostbyname_recv(subreq, req, &resolv_status,
+                                    NULL, &rhostent);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(2, ("Could not get fully qualified name for host name %s "
-                  "resolver returned: [%d]: %s\n",
-                  state->hostname, ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not get fully qualified name for host name %s "
+               "error [%d]: %s, resolver returned: [%d]: %s\n",
+               state->hostname, ret, strerror(ret), resolv_status,
+               resolv_strerror(resolv_status)));
         /* We'll proceed with hostname in this case */
     } else {
-        DEBUG(7, ("The full FQDN is: %s\n", rhostent->name));
+        DEBUG(SSSDBG_TRACE_LIBS, ("The full FQDN is: %s\n", rhostent->name));
         state->fqdn = rhostent->name;
     }
     tevent_req_done(req);

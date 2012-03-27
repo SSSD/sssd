@@ -37,6 +37,8 @@
 /* Interface under test */
 #include "resolv/async_resolv.h"
 
+#define RESOLV_DEFAULT_TIMEOUT 5
+
 static int use_net_test;
 static char *txt_host;
 static char *srv_host;
@@ -55,7 +57,7 @@ struct resolv_test_ctx {
     bool done;
 };
 
-static int setup_resolv_test(struct resolv_test_ctx **ctx)
+static int setup_resolv_test(int timeout, struct resolv_test_ctx **ctx)
 {
     struct resolv_test_ctx *test_ctx;
     int ret;
@@ -73,7 +75,7 @@ static int setup_resolv_test(struct resolv_test_ctx **ctx)
         return EFAULT;
     }
 
-    ret = resolv_init(test_ctx, test_ctx->ev, 5, &test_ctx->resolv);
+    ret = resolv_init(test_ctx, test_ctx->ev, timeout, &test_ctx->resolv);
     if (ret != EOK) {
         fail("Could not init resolv context");
         talloc_free(test_ctx);
@@ -194,7 +196,7 @@ START_TEST(test_resolv_ip_addr)
     struct tevent_req *req;
     const char *hostname = "127.0.0.1";
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -263,7 +265,7 @@ START_TEST(test_resolv_localhost)
     struct tevent_req *req;
     const char *hostname = "localhost.localdomain";
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -319,7 +321,7 @@ START_TEST(test_resolv_negative)
     const char *hostname = "sssd.foo";
     struct resolv_test_ctx *test_ctx;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -424,7 +426,7 @@ START_TEST(test_resolv_internet)
     const char *hostname = "redhat.com";
     struct resolv_test_ctx *test_ctx;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -457,7 +459,7 @@ START_TEST(test_resolv_internet_txt)
     struct tevent_req *req;
     struct resolv_test_ctx *test_ctx;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     fail_if(ret != EOK, "Could not set up test");
     test_ctx->tested_function = TESTING_TXT;
 
@@ -482,7 +484,7 @@ START_TEST(test_resolv_internet_srv)
     struct tevent_req *req;
     struct resolv_test_ctx *test_ctx;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     fail_if(ret != EOK, "Could not set up test");
     test_ctx->tested_function = TESTING_SRV;
 
@@ -531,7 +533,7 @@ START_TEST(test_resolv_free_context)
     struct tevent_timer *free_timer, *terminate_timer;
     struct timeval free_tv, terminate_tv;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -591,7 +593,7 @@ START_TEST(test_resolv_sort_srv_reply)
     int num_replies = 3;
     int i;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -678,7 +680,7 @@ START_TEST(test_resolv_free_req)
     struct tevent_timer *free_timer, *terminate_timer;
     struct timeval free_tv, terminate_tv;
 
-    ret = setup_resolv_test(&test_ctx);
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
         fail("Could not set up test");
         return;
@@ -721,6 +723,64 @@ done:
 }
 END_TEST
 
+static void test_timeout(struct tevent_req *req)
+{
+    int recv_status;
+    int status;
+    struct resolv_test_ctx *test_ctx;
+    TALLOC_CTX *tmp_ctx;
+    struct resolv_hostent *rhostent = NULL;
+
+    test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
+
+    test_ctx->done = true;
+
+    tmp_ctx = talloc_new(test_ctx);
+    check_leaks_push(tmp_ctx);
+
+    fail_unless(test_ctx->tested_function == TESTING_HOSTNAME);
+    recv_status = resolv_gethostbyname_recv(req, tmp_ctx,
+                                            &status, NULL, &rhostent);
+    talloc_zfree(req);
+    fail_unless(recv_status == ETIMEDOUT);
+    fail_unless(status == ARES_ETIMEOUT);
+    check_leaks_pop(tmp_ctx);
+    talloc_free(tmp_ctx);
+}
+
+START_TEST(test_resolv_timeout)
+{
+    struct resolv_test_ctx *test_ctx;
+    errno_t ret;
+    struct tevent_req *req;
+    const char *hostname = "redhat.com";
+
+    ret = setup_resolv_test(0, &test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up test");
+        return;
+    }
+
+    test_ctx->tested_function = TESTING_HOSTNAME;
+
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_FIRST,
+                                    default_host_dbs);
+    DEBUG(7, ("Sent resolv_gethostbyname\n"));
+    if (req == NULL) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_timeout, test_ctx);
+        ret = test_loop(test_ctx);
+    }
+
+    fail_unless(ret == EOK);
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
 Suite *create_resolv_suite(void)
 {
     Suite *s = suite_create("resolv");
@@ -736,6 +796,7 @@ Suite *create_resolv_suite(void)
         tcase_add_test(tc_resolv, test_resolv_internet);
         tcase_add_test(tc_resolv, test_resolv_negative);
         tcase_add_test(tc_resolv, test_resolv_localhost);
+        tcase_add_test(tc_resolv, test_resolv_timeout);
         if (txt_host != NULL) {
             tcase_add_test(tc_resolv, test_resolv_internet_txt);
         }
