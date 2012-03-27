@@ -1047,17 +1047,17 @@ endif
 ####################
 # Plugin Libraries #
 ####################
-libsss_ldap_la_SOURCES = \
-    src/util/find_uid.c \
+
+noinst_LTLIBRARIES += libsss_ldap_common.la
+libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \
     src/providers/ldap/ldap_id_netgroup.c \
     src/providers/ldap/ldap_id_services.c \
-    src/providers/ldap/sdap_access.c \
     src/providers/ldap/ldap_auth.c \
-    src/providers/ldap/ldap_init.c \
     src/providers/ldap/ldap_common.c \
+    src/providers/ldap/sdap_access.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_users.c \
     src/providers/ldap/sdap_async_groups.c \
@@ -1068,7 +1068,37 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_id_op.c \
-    src/providers/ldap/sdap.c \
+    src/providers/ldap/sdap.c
+
+if BUILD_SUDO
+libsss_ldap_common_la_SOURCES += \
+    src/providers/ldap/sdap_sudo_cache.c \
+    src/providers/ldap/sdap_sudo_timer.c \
+    src/providers/ldap/sdap_sudo.c
+endif
+
+if BUILD_AUTOFS
+libsss_ldap_common_la_SOURCES += \
+    src/providers/ldap/sdap_autofs.c \
+    src/providers/ldap/sdap_async_autofs.c
+endif
+
+
+noinst_LTLIBRARIES += libsss_krb5_common.la
+libsss_krb5_common_la_SOURCES = \
+    src/providers/krb5/krb5_utils.c \
+    src/providers/krb5/krb5_become_user.c \
+    src/providers/krb5/krb5_delayed_online_authentication.c \
+    src/providers/krb5/krb5_renew_tgt.c \
+    src/providers/krb5/krb5_wait_queue.c \
+    src/providers/krb5/krb5_common.c \
+    src/providers/krb5/krb5_auth.c \
+    src/providers/krb5/krb5_access.c \
+    src/providers/krb5/krb5_child_handler.c
+
+libsss_ldap_la_SOURCES = \
+    src/util/find_uid.c \
+    src/providers/ldap/ldap_init.c \
     src/providers/krb5/krb5_common.c \
     src/util/user_info_msg.c \
     src/util/sss_ldap.c \
@@ -1081,19 +1111,12 @@ libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
-    libsss_util.la
+    libsss_util.la \
+    libsss_ldap_common.la
 libsss_ldap_la_LDFLAGS = \
     -avoid-version \
     -module
-if BUILD_SUDO
-libsss_ldap_la_SOURCES += src/providers/ldap/sdap_sudo_cache.c \
-                 src/providers/ldap/sdap_sudo_timer.c \
-                 src/providers/ldap/sdap_sudo.c
-endif
-if BUILD_AUTOFS
-libsss_ldap_la_SOURCES += src/providers/ldap/sdap_autofs.c \
-                          src/providers/ldap/sdap_async_autofs.c
-endif
+
 
 libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_common.c \
@@ -1123,17 +1146,8 @@ libsss_simple_la_LDFLAGS = \
     -module
 
 libsss_krb5_la_SOURCES = \
-    src/util/find_uid.c \
-    src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_become_user.c \
-    src/providers/krb5/krb5_delayed_online_authentication.c \
-    src/providers/krb5/krb5_renew_tgt.c \
-    src/providers/krb5/krb5_wait_queue.c \
-    src/providers/krb5/krb5_auth.c \
-    src/providers/krb5/krb5_access.c \
-    src/providers/krb5/krb5_child_handler.c \
-    src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_init.c \
+    src/util/find_uid.c \
     src/util/sss_krb5.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1142,7 +1156,8 @@ libsss_krb5_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
-    libsss_util.la
+    libsss_util.la \
+    libsss_krb5_common.la
 libsss_krb5_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -1168,38 +1183,10 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_session.c \
     src/providers/ipa/ipa_selinux_maps.c \
     src/providers/ipa/ipa_selinux_common.c \
-    src/providers/ldap/ldap_id.c \
-    src/providers/ldap/ldap_id_enum.c \
-    src/providers/ldap/ldap_id_cleanup.c \
-    src/providers/ldap/ldap_id_netgroup.c \
-    src/providers/ldap/ldap_id_services.c \
-    src/providers/ldap/ldap_auth.c \
-    src/providers/ldap/ldap_common.c \
-    src/providers/ldap/sdap_access.c \
-    src/providers/ldap/sdap_async.c \
-    src/providers/ldap/sdap_async_users.c \
-    src/providers/ldap/sdap_async_groups.c \
-    src/providers/ldap/sdap_async_initgroups.c \
-    src/providers/ldap/sdap_async_connection.c \
-    src/providers/ldap/sdap_async_netgroups.c \
-    src/providers/ldap/sdap_async_services.c \
-    src/providers/ldap/sdap_child_helpers.c \
-    src/providers/ldap/sdap_fd_events.c \
-    src/providers/ldap/sdap_id_op.c \
-    src/providers/ldap/sdap.c \
     src/util/user_info_msg.c \
-    src/util/sss_ldap.c \
-    src/util/sss_krb5.c \
     src/util/find_uid.c \
-    src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_become_user.c \
-    src/providers/krb5/krb5_delayed_online_authentication.c \
-    src/providers/krb5/krb5_renew_tgt.c \
-    src/providers/krb5/krb5_wait_queue.c \
-    src/providers/krb5/krb5_common.c \
-    src/providers/krb5/krb5_auth.c \
-    src/providers/krb5/krb5_access.c \
-    src/providers/krb5/krb5_child_handler.c
+    src/util/sss_ldap.c \
+    src/util/sss_krb5.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
@@ -1211,20 +1198,17 @@ libsss_ipa_la_LIBADD = \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     libsss_util.la \
+    libsss_ldap_common.la \
+    libsss_krb5_common.la \
     libipa_hbac.la
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
     -module
-if BUILD_SUDO
-libsss_ipa_la_SOURCES += src/providers/ldap/sdap_sudo_cache.c \
-                 src/providers/ldap/sdap_sudo_timer.c \
-                 src/providers/ldap/sdap_sudo.c
-endif
 if BUILD_AUTOFS
-libsss_ipa_la_SOURCES += src/providers/ldap/sdap_autofs.c \
-                         src/providers/ldap/sdap_async_autofs.c \
-                         src/providers/ipa/ipa_autofs.c
+libsss_ipa_la_SOURCES += \
+    src/providers/ipa/ipa_autofs.c
 endif
+
 if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif
