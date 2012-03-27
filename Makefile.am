@@ -117,6 +117,7 @@ if HAVE_CHECK
         find_uid-tests \
         auth-tests \
         ipa_ldap_opt-tests \
+        ad_ldap_opt-tests \
         simple_access-tests \
         crypto-tests \
         util-tests \
@@ -151,6 +152,7 @@ sssdlib_LTLIBRARIES = \
     libsss_krb5.la \
     libsss_proxy.la \
     libsss_ipa.la \
+    libsss_ad.la \
     libsss_simple.la
 
 ldblib_LTLIBRARIES = \
@@ -931,6 +933,16 @@ ipa_ldap_opt_tests_LDADD = \
     $(TALLOC_LIBS) \
     libsss_test_common.la
 
+ad_ldap_opt_tests_SOURCES = \
+    src/tests/ad_ldap_opt-tests.c
+ad_ldap_opt_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+ad_ldap_opt_tests_LDADD = \
+    $(CHECK_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la
+
 simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
     src/providers/simple/simple_access.c
@@ -1334,6 +1346,36 @@ if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif
 
+
+libsss_ad_la_SOURCES = \
+    src/providers/ad/ad_common.c \
+    src/providers/ad/ad_common.h \
+    src/providers/ad/ad_init.c \
+    src/providers/ad/ad_id.c \
+    src/providers/ad/ad_id.h \
+    src/providers/ad/ad_opts.h \
+    src/util/find_uid.c \
+    src/util/user_info_msg.c \
+    src/util/sss_krb5.c \
+    src/util/sss_ldap.c
+
+libsss_ad_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(LDAP_CFLAGS) \
+    $(DHASH_CFLAGS) \
+    $(KRB5_CFLAGS)
+libsss_ad_la_LIBADD = \
+    $(OPENLDAP_LIBS) \
+    $(DHASH_LIBS) \
+    $(KEYUTILS_LIBS) \
+    $(KRB5_LIBS) \
+    libsss_util.la \
+    libsss_ldap_common.la \
+    libsss_krb5_common.la \
+    libsss_idmap.la
+libsss_ad_la_LDFLAGS = \
+    -avoid-version \
+    -module
 
 krb5_child_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
