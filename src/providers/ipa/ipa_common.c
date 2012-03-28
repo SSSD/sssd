@@ -176,14 +176,6 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     int ret;
     int i;
 
-    /* self check test, this should never fail, unless someone forgot
-     * to properly update the code after new ldap options have been added */
-    if (SDAP_OPTS_BASIC != IPA_OPTS_BASIC_TEST) {
-        DEBUG(0, ("Option numbers do not match (%d != %d)\n",
-                   SDAP_OPTS_BASIC, IPA_OPTS_BASIC_TEST));
-        abort();
-    }
-
     tmpctx = talloc_new(ipa_opts);
     if (!tmpctx) {
         return ENOMEM;
@@ -585,14 +577,6 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     char *value;
     char *copy = NULL;
     int ret;
-
-    /* self check test, this should never fail, unless someone forgot
-     * to properly update the code after new ldap options have been added */
-    if (KRB5_OPTS != IPA_KRB5_OPTS_TEST) {
-        DEBUG(0, ("Option numbers do not match (%d != %d)\n",
-                   KRB5_OPTS, IPA_KRB5_OPTS_TEST));
-        abort();
-    }
 
     ipa_opts->auth = talloc_zero(ipa_opts, struct dp_option);
     if (ipa_opts->auth == NULL) {

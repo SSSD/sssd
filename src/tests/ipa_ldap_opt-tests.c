@@ -30,6 +30,7 @@
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/ldap_opts.h"
+#include "providers/krb5/krb5_opts.h"
 #include "providers/krb5/krb5_common.h"
 #include "tests/common.h"
 
@@ -73,16 +74,6 @@ START_TEST(test_domain_to_basedn)
     }
 
     talloc_free(tmp_ctx);
-}
-END_TEST
-
-START_TEST(test_check_num_opts)
-{
-    fail_if(IPA_OPTS_BASIC_TEST != SDAP_OPTS_BASIC);
-    fail_if(IPA_OPTS_SVC_TEST != SDAP_OPTS_SERVICES);
-    fail_if(IPA_OPTS_AUTOMNTMAP_TEST != SDAP_OPTS_AUTOFS_MAP);
-    fail_if(IPA_OPTS_AUTOMNTENTRY_TEST != SDAP_OPTS_AUTOFS_ENTRY);
-    fail_if(IPA_KRB5_OPTS_TEST != KRB5_OPTS);
 }
 END_TEST
 
@@ -143,7 +134,6 @@ Suite *ipa_ldap_opt_suite (void)
 
     TCase *tc_ipa_ldap_opt = tcase_create ("ipa_ldap_opt");
 
-    tcase_add_test (tc_ipa_ldap_opt, test_check_num_opts);
     tcase_add_test (tc_ipa_ldap_opt, test_compare_opts);
     tcase_add_test (tc_ipa_ldap_opt, test_compare_sdap_attrs);
     suite_add_tcase (s, tc_ipa_ldap_opt);
