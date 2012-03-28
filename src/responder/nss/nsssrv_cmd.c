@@ -886,7 +886,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
               cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = responder_get_domain(cctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;
@@ -2203,7 +2203,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
               cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = responder_get_domain(cctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;
@@ -3257,7 +3257,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
               cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = responder_get_domain(cctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;

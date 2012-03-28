@@ -226,7 +226,7 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
           cmd_ctx->username, domname ? domname : "<ALL>"));
 
     if (domname) {
-        dctx->domain = responder_get_domain(cli_ctx->rctx->domains, domname);
+        dctx->domain = responder_get_domain(dctx, cli_ctx->rctx, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;

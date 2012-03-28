@@ -566,13 +566,14 @@ int sss_ncache_reset_permament(struct sss_nc_ctx *ctx)
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
                                struct sss_names_ctx *names_ctx,
-                               struct sss_domain_info *domain_list)
+                               struct resp_ctx *rctx)
 {
     errno_t ret;
     bool filter_set = false;
     char **filter_list = NULL;
     char *name = NULL;
     struct sss_domain_info *dom = NULL;
+    struct sss_domain_info *domain_list = rctx->domains;
     char *domainname = NULL;
     char *conf_path = NULL;
     TALLOC_CTX *tmpctx = talloc_new(NULL);
@@ -649,7 +650,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            dom = responder_get_domain(domain_list, domainname);
+            dom = responder_get_domain(tmpctx, rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Invalid domain name [%s]\n", domainname));
@@ -746,7 +747,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            dom = responder_get_domain(domain_list, domainname);
+            dom = responder_get_domain(tmpctx, rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Invalid domain name [%s]\n", domainname));

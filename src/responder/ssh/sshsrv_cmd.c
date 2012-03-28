@@ -67,7 +67,7 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
            cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
 
     if (cmd_ctx->domname) {
-        cmd_ctx->domain = responder_get_domain(cctx->rctx->domains,
+        cmd_ctx->domain = responder_get_domain(cmd_ctx, cctx->rctx,
                                                cmd_ctx->domname);
         if (!cmd_ctx->domain) {
             ret = ENOENT;
@@ -111,7 +111,7 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
            cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
 
     if (cmd_ctx->domname) {
-        cmd_ctx->domain = responder_get_domain(cctx->rctx->domains,
+        cmd_ctx->domain = responder_get_domain(cmd_ctx, cctx->rctx,
                                                cmd_ctx->domname);
         if (!cmd_ctx->domain) {
             ret = ENOENT;

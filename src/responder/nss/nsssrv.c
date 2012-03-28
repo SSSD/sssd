@@ -163,7 +163,7 @@ static int nss_get_config(struct nss_ctx *nctx,
     }
 
     ret = sss_ncache_prepopulate(nctx->ncache, cdb, nctx->rctx->names,
-                                 nctx->rctx->domains);
+                                 nctx->rctx);
     if (ret != EOK) {
         goto done;
     }

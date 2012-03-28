@@ -172,7 +172,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = sss_ncache_prepopulate(pctx->ncache, cdb, pctx->rctx->names,
-                                 pctx->rctx->domains);
+                                 pctx->rctx);
     if (ret != EOK) {
         goto done;
     }

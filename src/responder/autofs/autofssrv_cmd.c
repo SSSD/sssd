@@ -386,7 +386,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
          state->mapname, domname?domname:"<ALL>"));
 
     if (domname) {
-        dctx->domain = responder_get_domain(client->rctx->domains, domname);
+        dctx->domain = responder_get_domain(dctx, client->rctx, domname);
         if (!dctx->domain) {
             goto fail;
         }
