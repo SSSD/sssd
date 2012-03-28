@@ -369,6 +369,7 @@ dist_noinst_HEADERS = \
     src/providers/krb5/krb5_auth.h \
     src/providers/krb5/krb5_common.h \
     src/providers/krb5/krb5_utils.h \
+    src/providers/krb5/krb5_opts.h \
     src/providers/ldap/ldap_common.h \
     src/providers/ldap/sdap.h \
     src/providers/ldap/sdap_access.h \
@@ -379,6 +380,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_sudo.h \
     src/providers/ldap/sdap_autofs.h \
     src/providers/ldap/sdap_id_op.h \
+    src/providers/ldap/ldap_opts.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
@@ -390,6 +392,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_id.h \
     src/providers/ipa/ipa_hostid.h \
+    src/providers/ipa/ipa_opts.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \

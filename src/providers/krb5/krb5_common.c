@@ -30,24 +30,7 @@
 
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
-
-struct dp_option default_krb5_opts[] = {
-    { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_ccachedir", DP_OPT_STRING, { "/tmp" }, NULL_STRING },
-    { "krb5_ccname_template", DP_OPT_STRING, { "FILE:%d/krb5cc_%U_XXXXXX" }, NULL_STRING},
-    { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
-    { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
-    { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
-    { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
-};
+#include "providers/krb5/krb5_opts.h"
 
 errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
                                   const char *env_name)
