@@ -26,6 +26,8 @@
 #define __TESTS_COMMON_H__
 
 #include <talloc.h>
+#include "util/util.h"
+#include "providers/data_provider.h"
 
 extern TALLOC_CTX *global_talloc_context;
 
@@ -43,5 +45,9 @@ void leak_check_setup(void);
 void leak_check_teardown(void);
 
 void tests_set_cwd(void);
+
+errno_t
+compare_dp_options(struct dp_option *map1, size_t size1,
+                   struct dp_option *map2);
 
 #endif /* !__TESTS_COMMON_H__ */

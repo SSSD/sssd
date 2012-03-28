@@ -27,7 +27,9 @@
 #include <talloc.h>
 
 #include "providers/ipa/ipa_common.h"
+#include "providers/ipa/ipa_opts.h"
 #include "providers/ldap/sdap.h"
+#include "providers/ldap/ldap_opts.h"
 #include "providers/krb5/krb5_common.h"
 #include "tests/common.h"
 
@@ -84,6 +86,20 @@ START_TEST(test_check_num_opts)
 }
 END_TEST
 
+START_TEST(test_compare_opts)
+{
+    errno_t ret;
+
+    ret = compare_dp_options(default_basic_opts, SDAP_OPTS_BASIC,
+                             ipa_def_ldap_opts);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    ret = compare_dp_options(default_krb5_opts, KRB5_OPTS,
+                             ipa_def_krb5_opts);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+}
+END_TEST
+
 Suite *ipa_ldap_opt_suite (void)
 {
     Suite *s = suite_create ("ipa_ldap_opt");
@@ -91,6 +107,7 @@ Suite *ipa_ldap_opt_suite (void)
     TCase *tc_ipa_ldap_opt = tcase_create ("ipa_ldap_opt");
 
     tcase_add_test (tc_ipa_ldap_opt, test_check_num_opts);
+    tcase_add_test (tc_ipa_ldap_opt, test_compare_opts);
     suite_add_tcase (s, tc_ipa_ldap_opt);
 
     TCase *tc_ipa_utils = tcase_create ("ipa_utils");

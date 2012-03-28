@@ -41,3 +41,29 @@ tests_set_cwd(void)
         }
     }
 }
+
+/* Check that the option names of the two maps are the same
+ * and appear in the same order.
+ */
+errno_t
+compare_dp_options(struct dp_option *map1, size_t size1,
+                   struct dp_option *map2)
+{
+    size_t i;
+
+    for (i = 0; i < size1; i++) {
+        /* Check for a valid option */
+        if (map1[i].opt_name == NULL) return EINVAL;
+
+        /* Check whether we've gone past the end of map2 */
+        if (map2[i].opt_name == NULL) return ERANGE;
+
+        /* Ensure that the option names are the same */
+        if(strcmp(map1[i].opt_name, map2[i].opt_name) != 0) return EINVAL;
+    }
+
+    /* Leftover options in map2 */
+    if (map2[i].opt_name != NULL) return ERANGE;
+
+    return EOK;
+}
