@@ -40,7 +40,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
+    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    DP_OPTION_TERMINATOR
 };
 
 #endif /* KRB5_OPTS_H_ */

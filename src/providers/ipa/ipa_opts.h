@@ -42,7 +42,8 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_hbac_refresh", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ipa_hbac_treat_deny_as", DP_OPT_STRING, { "DENY_ALL" }, NULL_STRING },
     { "ipa_hbac_support_srchost", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ipa_automount_location", DP_OPT_STRING, { "default" }, NULL_STRING }
+    { "ipa_automount_location", DP_OPT_STRING, { "default" }, NULL_STRING },
+    DP_OPTION_TERMINATOR
 };
 
 struct dp_option ipa_def_ldap_opts[] = {
@@ -110,7 +111,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_deref_threshold", DP_OPT_NUMBER, { .number = 10 }, NULL_NUMBER },
     { "ldap_sasl_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_connection_expire_timeout", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER },
-    { "ldap_disable_paging", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
+    { "ldap_disable_paging", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    DP_OPTION_TERMINATOR
 };
 
 struct sdap_attr_map ipa_attr_map[] = {
@@ -223,7 +225,8 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE }
+    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    DP_OPTION_TERMINATOR
 };
 
 struct sdap_attr_map ipa_service_map[] = {

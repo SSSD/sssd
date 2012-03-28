@@ -257,6 +257,8 @@ struct dp_option {
     union dp_opt_value val;
 };
 
+#define DP_OPTION_TERMINATOR { NULL, 0, NULL_STRING, NULL_STRING }
+
 int dp_get_options(TALLOC_CTX *memctx,
                    struct confdb_ctx *cdb,
                    const char *conf_path,
