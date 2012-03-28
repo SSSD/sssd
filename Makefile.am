@@ -460,7 +460,8 @@ libsss_util_la_SOURCES = \
     src/util/sss_tc_utf8.c \
     src/util/murmurhash3.c \
     src/util/atomic_io.c \
-    src/util/sss_selinux.c
+    src/util/sss_selinux.c \
+    src/util/domain_info_utils.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS) \

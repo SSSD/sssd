@@ -527,4 +527,13 @@ struct sized_string {
 
 void to_sized_string(struct sized_string *out, const char *in);
 
+/* form domain_info.c */
+struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *parent,
+                                      const char *name,
+                                      const char *flat_name,
+                                      const char *id);
+struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *subdomain);
+
 #endif /* __SSSD_UTIL_H__ */

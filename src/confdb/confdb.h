@@ -192,6 +192,7 @@ struct sss_domain_info {
 
     struct sysdb_ctx *sysdb;
 
+    struct sss_domain_info *parent;
     char *flat_name;
     char *domain_id;
 
