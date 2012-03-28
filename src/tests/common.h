@@ -28,6 +28,7 @@
 #include <talloc.h>
 #include "util/util.h"
 #include "providers/data_provider.h"
+#include "providers/ldap/sdap.h"
 
 extern TALLOC_CTX *global_talloc_context;
 
@@ -49,5 +50,9 @@ void tests_set_cwd(void);
 errno_t
 compare_dp_options(struct dp_option *map1, size_t size1,
                    struct dp_option *map2);
+
+errno_t
+compare_sdap_attr_maps(struct sdap_attr_map *map1, size_t size1,
+                       struct sdap_attr_map *map2);
 
 #endif /* !__TESTS_COMMON_H__ */
