@@ -100,17 +100,20 @@ struct dp_option default_basic_opts[] = {
 
 struct sdap_attr_map generic_attr_map[] = {
     { "ldap_entry_usn", NULL, SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", NULL, SYSDB_HIGH_USN, NULL }
+    { "ldap_rootdse_last_usn", NULL, SYSDB_HIGH_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map gen_ipa_attr_map[] = {
     { "ldap_entry_usn", SDAP_IPA_USN, SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", SDAP_IPA_LAST_USN, SYSDB_HIGH_USN, NULL }
+    { "ldap_rootdse_last_usn", SDAP_IPA_LAST_USN, SYSDB_HIGH_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map gen_ad_attr_map[] = {
     { "ldap_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", SDAP_AD_LAST_USN, SYSDB_HIGH_USN, NULL }
+    { "ldap_rootdse_last_usn", SDAP_AD_LAST_USN, SYSDB_HIGH_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307_user_map[] = {
@@ -146,7 +149,8 @@ struct sdap_attr_map rfc2307_user_map[] = {
     { "ldap_user_nds_login_disabled", "loginDisabled", SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", "loginExpirationTime", SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", "loginAllowedTimeMap", SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
-    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL }
+    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307_group_map[] = {
@@ -157,7 +161,8 @@ struct sdap_attr_map rfc2307_group_map[] = {
     { "ldap_group_member", "memberuid", SYSDB_MEMBER, NULL },
     { "ldap_group_uuid", NULL, SYSDB_UUID, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
-    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL }
+    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307bis_user_map[] = {
@@ -194,7 +199,8 @@ struct sdap_attr_map rfc2307bis_user_map[] = {
     { "ldap_user_nds_login_disabled", "loginDisabled", SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", "loginExpirationTime", SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", "loginAllowedTimeMap", SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
-    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL }
+    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307bis_group_map[] = {
@@ -206,7 +212,8 @@ struct sdap_attr_map rfc2307bis_group_map[] = {
     /* FIXME: this is 389ds specific */
     { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
-    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL }
+    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ad2008r2_user_map[] = {
@@ -242,7 +249,8 @@ struct sdap_attr_map ad2008r2_user_map[] = {
     { "ldap_user_nds_login_disabled", NULL, SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", NULL, SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", NULL, SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
-    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL }
+    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ad2008r2_group_map[] = {
@@ -253,7 +261,8 @@ struct sdap_attr_map ad2008r2_group_map[] = {
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
     { "ldap_group_uuid", "objectGUID", SYSDB_UUID, NULL },
     { "ldap_group_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
-    { "ldap_group_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL }
+    { "ldap_group_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map netgroup_map[] = {
@@ -263,7 +272,8 @@ struct sdap_attr_map netgroup_map[] = {
     { "ldap_netgroup_triple", "nisNetgroupTriple", SYSDB_NETGROUP_TRIPLE, NULL },
     /* FIXME: this is 389ds specific */
     { "ldap_netgroup_uuid", "nsUniqueId", SYSDB_UUID, NULL },
-    { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+    { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map native_sudorule_map[] = {
@@ -277,7 +287,8 @@ struct sdap_attr_map native_sudorule_map[] = {
     { "ldap_sudorule_runasgroup", "sudoRunAsGroup", SYSDB_SUDO_CACHE_AT_RUNASGROUP, NULL },
     { "ldap_sudorule_notbefore", "sudoNotBefore", SYSDB_SUDO_CACHE_AT_NOTBEFORE, NULL },
     { "ldap_sudorule_notafter", "sudoNotAfter", SYSDB_SUDO_CACHE_AT_NOTAFTER, NULL },
-    { "ldap_sudorule_order", "sudoOrder", SYSDB_SUDO_CACHE_AT_ORDER, NULL }
+    { "ldap_sudorule_order", "sudoOrder", SYSDB_SUDO_CACHE_AT_ORDER, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map service_map[] = {
@@ -285,29 +296,34 @@ struct sdap_attr_map service_map[] = {
     { "ldap_service_name", "cn", SYSDB_NAME, NULL },
     { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
     { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
-    { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL }
+    { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307_autofs_mobject_map[] = {
     { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
-    { "ldap_autofs_map_name", "ou", SYSDB_AUTOFS_MAP_NAME, NULL }
+    { "ldap_autofs_map_name", "ou", SYSDB_AUTOFS_MAP_NAME, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307_autofs_entry_map[] = {
     { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
     { "ldap_autofs_entry_key", "cn", SYSDB_AUTOFS_ENTRY_KEY, NULL },
     { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307bis_autofs_mobject_map[] = {
     { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
-    { "ldap_autofs_map_name", "automountMapName", SYSDB_AUTOFS_MAP_NAME, NULL }
+    { "ldap_autofs_map_name", "automountMapName", SYSDB_AUTOFS_MAP_NAME, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307bis_autofs_entry_map[] = {
     { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
     { "ldap_autofs_entry_key", "automountKey", SYSDB_AUTOFS_ENTRY_KEY, NULL },
     { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 #endif /* LDAP_OPTS_H_ */

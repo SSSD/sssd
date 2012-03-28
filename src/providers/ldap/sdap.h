@@ -335,6 +335,7 @@ struct sdap_attr_map {
     const char *sys_name;
     char *name;
 };
+#define SDAP_ATTR_MAP_TERMINATOR { NULL, NULL, NULL, NULL }
 
 struct sdap_search_base {
     const char *basedn;

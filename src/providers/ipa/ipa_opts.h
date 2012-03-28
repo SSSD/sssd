@@ -117,7 +117,8 @@ struct dp_option ipa_def_ldap_opts[] = {
 
 struct sdap_attr_map ipa_attr_map[] = {
     { "ldap_entry_usn", "entryUSN", SYSDB_USN, NULL },
-    { "ldap_rootdse_last_usn", "lastUSN", SYSDB_HIGH_USN, NULL }
+    { "ldap_rootdse_last_usn", "lastUSN", SYSDB_HIGH_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_user_map[] = {
@@ -153,7 +154,8 @@ struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_nds_login_disabled", "loginDisabled", SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", "loginExpirationTime", SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", "loginAllowedTimeMap", SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
-    { "ldap_user_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL }
+    { "ldap_user_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_group_map[] = {
@@ -164,7 +166,8 @@ struct sdap_attr_map ipa_group_map[] = {
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
     { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
-    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL }
+    { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_netgroup_map[] = {
@@ -177,6 +180,7 @@ struct sdap_attr_map ipa_netgroup_map[] = {
     { "ipa_netgroup_member_ext_host", "externalHost", SYSDB_ORIG_NETGROUP_EXTERNAL_HOST, NULL },
     { "ipa_netgroup_domain", "nisDomainName", SYSDB_NETGROUP_DOMAIN, NULL },
     { "ipa_netgroup_uuid", "ipaUniqueID", SYSDB_UUID, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_host_map[] = {
@@ -186,7 +190,8 @@ struct sdap_attr_map ipa_host_map[] = {
     { "ipa_host_serverhostname", "serverHostname", SYSDB_SERVERHOSTNAME, NULL },
     { "ipa_host_member_of", "memberOf", SYSDB_ORIG_MEMBEROF, NULL },
     { "ipa_host_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
-    { "ipa_host_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
+    { "ipa_host_uuid", "ipaUniqueID", SYSDB_UUID, NULL},
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_hostgroup_map[] = {
@@ -194,7 +199,8 @@ struct sdap_attr_map ipa_hostgroup_map[] = {
     { "ipa_hostgroup_name", "cn", SYSDB_NAME, NULL},
     { "ipa_hostgroup_member", "member", SYSDB_MEMBER, NULL},
     { "ipa_hostgroup_memberof", "memberOf", SYSDB_ORIG_MEMBEROF, NULL},
-    { "ipa_hostgroup_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
+    { "ipa_hostgroup_uuid", "ipaUniqueID", SYSDB_UUID, NULL},
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_selinux_user_map[] = {
@@ -207,7 +213,8 @@ struct sdap_attr_map ipa_selinux_user_map[] = {
     { "ipa_selinux_usermap_enabled", "ipaEnabledFlag", SYSDB_SELINUX_ENABLED, NULL},
     { "ipa_selinux_usermap_user_category", "userCategory", SYSDB_USER_CATEGORY, NULL},
     { "ipa_selinux_usermap_host_category", "hostCategory", SYSDB_HOST_CATEGORY, NULL},
-    { "ipa_selinux_usermap_uuid", "ipaUniqueID", SYSDB_UUID, NULL}
+    { "ipa_selinux_usermap_uuid", "ipaUniqueID", SYSDB_UUID, NULL},
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct dp_option ipa_def_krb5_opts[] = {
@@ -234,18 +241,21 @@ struct sdap_attr_map ipa_service_map[] = {
     { "ldap_service_name", "cn", SYSDB_NAME, NULL },
     { "ldap_service_port", "ipServicePort", SYSDB_SVC_PORT, NULL },
     { "ldap_service_proto", "ipServiceProtocol", SYSDB_SVC_PROTO, NULL },
-    { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL }
+    { "ldap_service_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_autofs_mobject_map[] = {
     { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
-    { "ldap_autofs_map_name", "automountMapName", SYSDB_AUTOFS_MAP_NAME, NULL }
+    { "ldap_autofs_map_name", "automountMapName", SYSDB_AUTOFS_MAP_NAME, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map ipa_autofs_entry_map[] = {
     { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
     { "ldap_autofs_entry_key", "automountKey", SYSDB_AUTOFS_ENTRY_KEY, NULL },
     { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };
 
 #endif /* IPA_OPTS_H_ */
