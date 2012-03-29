@@ -50,8 +50,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    dom->name = talloc_strdup(dom, parent->name);
-    if (dom->name == NULL) {
+    dom->conn_name = talloc_strdup(dom, parent->conn_name);
+    if (dom->conn_name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy connection name.\n"));
         goto fail;
     }

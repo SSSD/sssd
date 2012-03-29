@@ -170,6 +170,7 @@ struct config_file_ctx;
  */
 struct sss_domain_info {
     char *name;
+    char *conn_name;
     char *provider;
     int timeout;
     bool enumerate;

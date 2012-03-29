@@ -727,6 +727,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         ret = ENOMEM;
         goto done;
     }
+    domain->conn_name = domain->name;
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_DOMAIN_ID_PROVIDER,

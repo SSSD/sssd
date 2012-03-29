@@ -641,7 +641,7 @@ sss_dp_internal_get_send(struct resp_ctx *rctx,
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    ret = sss_dp_get_domain_conn(rctx, dom->name, &be_conn);
+    ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("BUG: The Data Provider connection for %s is not available!",
