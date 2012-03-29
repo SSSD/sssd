@@ -904,6 +904,16 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         /* this is a multidomain search */
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
+        if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, false, NULL);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                tevent_req_set_callback(req, nss_cmd_getpwnam_cb, dctx);
+                ret = EAGAIN;
+            }
+            goto done;
+        }
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
@@ -2264,6 +2274,16 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
         /* this is a multidomain search */
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
+        if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, false, NULL);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                tevent_req_set_callback(req, nss_cmd_getgrnam_cb, dctx);
+                ret = EAGAIN;
+            }
+            goto done;
+        }
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
@@ -3361,6 +3381,16 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
         /* this is a multidomain search */
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
+        if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
+            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, false, NULL);
+            if (req == NULL) {
+                ret = ENOMEM;
+            } else {
+                tevent_req_set_callback(req, nss_cmd_initgroups_cb, dctx);
+                ret = EAGAIN;
+            }
+            goto done;
+        }
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
