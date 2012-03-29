@@ -53,6 +53,7 @@
 #define DP_METHOD_SUDOHANDLER "sudoHandler"
 #define DP_METHOD_AUTOFSHANDLER "autofsHandler"
 #define DP_METHOD_HOSTHANDLER "hostHandler"
+#define DP_METHOD_GETDOMAINS "getDomains"
 /**
  * @defgroup pamHandler PAM DBUS request
  * @ingroup sss_pam

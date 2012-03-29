@@ -68,6 +68,9 @@
 #define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
 
+/* Responders */
+#define CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT "get_domains_timeout"
+
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"
 #define CONFDB_NSS_ENUM_CACHE_TIMEOUT "enum_cache_timeout"
@@ -193,9 +196,12 @@ struct sss_domain_info {
 
     struct sysdb_ctx *sysdb;
 
+    struct sss_domain_info **subdomains;
+    uint32_t subdomain_count;
     struct sss_domain_info *parent;
     char *flat_name;
     char *domain_id;
+    struct timeval subdomains_last_checked;
 
     struct sss_domain_info *next;
 };

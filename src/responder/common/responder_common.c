@@ -545,6 +545,14 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->priv_sock_name = sss_priv_pipe_name;
     rctx->confdb_service_path = confdb_service_path;
 
+    ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
+                         CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT,
+                         GET_DOMAINS_DEFAULT_TIMEOUT, &rctx->domains_timeout);
+    if (rctx->domains_timeout < 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("timeout can't be set to negative value, setting default\n"));
+        rctx->domains_timeout = GET_DOMAINS_DEFAULT_TIMEOUT;
+    }
+
     ret = confdb_get_domains(rctx->cdb, &rctx->domains);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up domain map\n"));

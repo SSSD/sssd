@@ -246,7 +246,8 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_cmd.c \
     src/responder/common/responder_common.c \
     src/responder/common/responder_dp.c \
-    src/responder/common/responder_packet.c
+    src/responder/common/responder_packet.c \
+    src/responder/common/responder_get_domains.c
 
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \

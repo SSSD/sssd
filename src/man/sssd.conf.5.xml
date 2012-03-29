@@ -498,6 +498,18 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>get_domains_timeout (int)</term>
+                    <listitem>
+                        <para>
+                            Specifies time in seconds for which the list of
+                            subdomains will be considered valid.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>
@@ -623,6 +635,18 @@
                       Default: 7
                     </para>
                   </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>get_domains_timeout (int)</term>
+                    <listitem>
+                        <para>
+                            Specifies time in seconds for which the list of
+                            subdomains will be considered valid.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
                 </varlistentry>
             </variablelist>
         </refsect2>

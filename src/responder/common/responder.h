@@ -86,6 +86,7 @@ struct resp_ctx {
     struct be_conn *be_conns;
 
     struct sss_domain_info *domains;
+    int domains_timeout;
     struct sysdb_ctx_list *db_list;
 
     struct sss_cmd_table *sss_cmds;
@@ -95,6 +96,8 @@ struct resp_ctx {
     struct sss_names_ctx *names;
 
     hash_table_t *dp_request_table;
+
+    struct timeval get_domains_last_call;
 
     void *pvt_ctx;
 };
@@ -273,4 +276,12 @@ bool sss_utf8_check(const uint8_t *s, size_t n);
 
 void responder_set_fd_limit(rlim_t fd_limit);
 
+#define GET_DOMAINS_DEFAULT_TIMEOUT 60
+
+struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
+                                           struct resp_ctx *rctx,
+                                           bool force,
+                                           const char *hint);
+
+errno_t sss_dp_get_domains_recv(struct tevent_req *req);
 #endif /* __SSS_RESPONDER_H__ */
