@@ -1446,6 +1446,14 @@
                             higher.
                         </para>
                         <para>
+                            Chasing referrals may incur a performance penalty
+                            in environments that use them heavily, a notable
+                            example is Microsoft Active Directory. If
+                            your setup does not in fact require the use
+                            of referrals, setting this option to false
+                            might bring a noticeable performance improvement.
+                        </para>
+                        <para>
                             Default: true
                         </para>
                     </listitem>
