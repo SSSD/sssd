@@ -707,6 +707,10 @@ int sbus_conn_send(struct sbus_connection *conn,
     dbus_bool_t dbret;
 
     dbus_conn = sbus_get_connection(conn);
+    if (!dbus_conn) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+        return ENOTCONN;
+    }
 
     dbret = dbus_connection_send_with_reply(dbus_conn, msg,
                                             &pending_reply,
