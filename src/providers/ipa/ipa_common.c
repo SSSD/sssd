@@ -745,7 +745,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
                        ipa_service_map,
-                       IPA_OPTS_HOST,
+                       SDAP_OPTS_SERVICES,
                        &ipa_opts->id->service_map);
     if (ret != EOK) {
         goto done;
