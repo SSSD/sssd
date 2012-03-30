@@ -349,6 +349,11 @@ static void acctinfo_callback(struct be_req *req,
         }
 
         dbus_conn = sbus_get_connection(req->becli->conn);
+        if (!dbus_conn) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            return;
+        }
+
         dbus_connection_send(dbus_conn, reply, NULL);
         dbus_message_unref(reply);
 
@@ -592,6 +597,11 @@ static void be_pam_handler_callback(struct be_req *req,
     }
 
     dbus_conn = sbus_get_connection(req->becli->conn);
+    if (!dbus_conn) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+        return;
+    }
+
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -751,6 +761,11 @@ static void be_sudo_handler_reply(struct sbus_connection *conn,
                              dp_err, dp_ret, errstr ? errstr : "<NULL>"));
 
     dbus_conn = sbus_get_connection(conn);
+    if (!dbus_conn) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+        return;
+    }
+
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 }
@@ -1139,6 +1154,11 @@ static void be_autofs_handler_callback(struct be_req *req,
         }
 
         dbus_conn = sbus_get_connection(req->becli->conn);
+        if (!dbus_conn) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            return;
+        }
+
         dbus_connection_send(dbus_conn, reply, NULL);
         dbus_message_unref(reply);
 
