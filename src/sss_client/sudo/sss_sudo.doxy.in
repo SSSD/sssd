@@ -782,10 +782,11 @@ IGNORE_PREFIX          =
 
 GENERATE_HTML          = YES
 
-# If the HTML_FOOTER_DESCRIPTION tag is set to YES, Doxygen will
-# add generated date, project name and doxygen version to HTML footer.
+# If the HTML_TIMESTAMP tag is set to YES then the footer of each generated
+# HTML page will contain the date and time when the page was generated. Setting
+# this to NO can help when comparing the output of multiple runs.
 
-HTML_FOOTER_DESCRIPTION= NO
+HTML_TIMESTAMP = NO
 
 # The HTML_OUTPUT tag is used to specify where the HTML docs will be put.
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be
