@@ -33,9 +33,8 @@ int backup_file(const char *src_file, int dbglvl)
     int src_fd = -1;
     int dst_fd = -1;
     char *dst_file;
-    ssize_t count;
-    ssize_t num;
-    ssize_t pos;
+    ssize_t numread;
+    ssize_t written;
     int ret, i;
 
     src_fd = open(src_file, O_RDONLY);
@@ -84,31 +83,30 @@ int backup_file(const char *src_file, int dbglvl)
 
     /* copy file contents */
     while (1) {
-        num = read(src_fd, buf, BUFFER_SIZE);
-        if (num < 0) {
-            if (errno == EINTR || errno == EAGAIN) continue;
+        errno = 0;
+        numread = sss_atomic_read_s(src_fd, buf, BUFFER_SIZE);
+        if (numread < 0) {
             ret = errno;
             DEBUG(dbglvl, ("Error (%d [%s]) reading from source %s\n",
                            ret, strerror(ret), src_file));
             goto done;
         }
-        if (num == 0) break;
+        if (numread == 0) break;
 
-        count = num;
+        errno = 0;
+        written = sss_atomic_write_s(dst_fd, buf, numread);
+        if (written == -1) {
+            ret = errno;
+            DEBUG(dbglvl, ("Error (%d [%s]) writing to destination %s\n",
+                            ret, strerror(ret), dst_file));
+            goto done;
+        }
 
-        pos = 0;
-        while (count > 0) {
-            errno = 0;
-            num = write(dst_fd, &buf[pos], count);
-            if (num < 0) {
-                if (errno == EINTR || errno == EAGAIN) continue;
-                ret = errno;
-                DEBUG(dbglvl, ("Error (%d [%s]) writing to destination %s\n",
-                               ret, strerror(ret), dst_file));
-                goto done;
-            }
-            pos += num;
-            count -= num;
+        if (written != numread) {
+            DEBUG(dbglvl, ("Wrote %d bytes expected %d bytes\n",
+                  written, numread));
+            ret = EIO;
+            goto done;
         }
     }
 

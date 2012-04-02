@@ -337,42 +337,36 @@ static void write_pipe_handler(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct write_pipe_state *state = tevent_req_data(req,
                                                      struct write_pipe_state);
-    ssize_t size;
+    errno_t ret;
 
     if (flags & TEVENT_FD_READ) {
-        DEBUG(1, ("write_pipe_done called with TEVENT_FD_READ,"
-                  " this should not happen.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("write_pipe_done called with TEVENT_FD_READ,"
+               " this should not happen.\n"));
         tevent_req_error(req, EINVAL);
         return;
     }
 
-    size = write(state->fd,
-                 state->buf + state->written,
-                 state->len - state->written);
-    if (size == -1) {
-        if (errno == EAGAIN || errno == EINTR) return;
-        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        tevent_req_error(req, errno);
-        return;
-
-    } else if (size >= 0) {
-        state->written += size;
-        if (state->written > state->len) {
-            DEBUG(1, ("write to much, this should never happen.\n"));
-            tevent_req_error(req, EINVAL);
-            return;
-        }
-    } else {
-        DEBUG(1, ("unexpected return value of write [%d].\n", size));
-        tevent_req_error(req, EINVAL);
+    errno = 0;
+    state->written = sss_atomic_write_s(state->fd, state->buf, state->len);
+    if (state->written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("write failed [%d][%s].\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
         return;
     }
 
-    if (state->len == state->written) {
-        DEBUG(6, ("All data has been sent!\n"));
-        tevent_req_done(req);
+    if (state->len != state->written) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Wrote %d bytes, expected %d\n",
+              state->written, state->len));
+        tevent_req_error(req, EIO);
         return;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("All data has been sent!\n"));
+    tevent_req_done(req);
+    return;
 }
 
 int write_pipe_recv(struct tevent_req *req)
@@ -438,16 +432,13 @@ static void read_pipe_handler(struct tevent_context *ev,
         return;
     }
 
-    size = read(state->fd,
+    size = sss_atomic_read_s(state->fd,
                 buf,
                 CHILD_MSG_CHUNK);
     if (size == -1) {
         err = errno;
-        if (err == EAGAIN || err == EINTR) {
-            return;
-        }
-
-        DEBUG(1, ("read failed [%d][%s].\n", err, strerror(err)));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("read failed [%d][%s].\n", err, strerror(err)));
         tevent_req_error(req, err);
         return;
 

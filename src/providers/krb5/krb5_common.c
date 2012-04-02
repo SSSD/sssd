@@ -321,25 +321,19 @@ errno_t write_krb5info_file(const char *realm, const char *server,
         goto done;
     }
 
-    written = 0;
-    while (written < server_len) {
-        ret = write(fd, server+written, server_len-written);
-        if (ret == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            ret = errno;
-            DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
-            goto done;
-        }
-        else {
-            written += ret;
-        }
+    errno = 0;
+    written = sss_atomic_write_s(fd, discard_const(server), server_len);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("write failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
     }
 
     if (written != server_len) {
-        DEBUG(1, ("Write error, wrote [%d] bytes, expected [%d]\n",
-                   written, server_len));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Write error, wrote [%d] bytes, expected [%d]\n",
+               written, server_len));
         ret = EIO;
         goto done;
     }

@@ -47,6 +47,7 @@
 #include "sss_pam_macros.h"
 
 #include "sss_cli.h"
+#include "util/atomic_io.h"
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
@@ -499,17 +500,12 @@ static errno_t display_pw_reset_message(pam_handle_t *pamh,
         goto done;
     }
 
-
-    total_len = 0;
-    while (total_len < stat_buf.st_size) {
-        ret = read(fd, msg_buf + total_len, stat_buf.st_size - total_len);
-        if (ret == -1) {
-            if (errno == EINTR || errno == EAGAIN) continue;
-            ret = errno;
-            D(("read failed [%d][%s].", ret, strerror(ret)));
-            goto done;
-        }
-        total_len += ret;
+    errno = 0;
+    total_len = sss_atomic_read_s(fd, msg_buf, stat_buf.st_size);
+    if (ret == -1) {
+        ret = errno;
+        D(("read failed [%d][%s].", ret, strerror(ret)));
+        goto done;
     }
 
     ret = close(fd);
@@ -1088,7 +1084,8 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 #ifdef HAVE_SELINUX
     char *path = NULL;
     char *tmp_path = NULL;
-    int pos, len;
+    ssize_t written;
+    int len;
     int fd;
     mode_t oldmask;
 #endif /* HAVE_SELINUX */
@@ -1206,21 +1203,24 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                 goto done;
             }
 
-            pos = 0;
             len = strlen(pi->selinux_user);
-            while (pos < len) {
-                ret = write(fd, pi->selinux_user + pos, len-pos);
-                if (ret < 0) {
-                    if (errno != EINTR) {
-                        logger(pamh, LOG_ERR, "writing to SELinux data file "
-                               "failed. %s", tmp_path);
-                        pam_status = PAM_SYSTEM_ERR;
-                        goto done;
-                    }
-                    continue;
-                }
-                pos += ret;
+
+            errno = 0;
+            written = sss_atomic_write_s(fd, pi->selinux_user, len);
+            if (written == -1) {
+                ret = errno;
+                logger(pamh, LOG_ERR, "writing to SELinux data file "
+                        "failed. %s", tmp_path);
+                pam_status = PAM_SYSTEM_ERR;
+                goto done;
             }
+
+            if (written != len) {
+                logger(pamh, LOG_ERR, "Expected to write %d bytes, wrote %d",
+                       written, len);
+                goto done;
+            }
+
             close(fd);
 
             rename(tmp_path, path);

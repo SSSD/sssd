@@ -140,11 +140,11 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
                 }
 
                 errno = 0;
-                res = sss_atomic_write(i == 0 ? sock : 1, buffer, res);
+                res = sss_atomic_write_s(i == 0 ? sock : 1, buffer, res);
                 ret = errno;
                 if (res == -1) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          ("sss_atomic_write() failed (%d): %s\n",
+                          ("sss_atomic_write_s() failed (%d): %s\n",
                            ret, strerror(ret)));
                     goto done;
                 } else if (ret == EPIPE) {

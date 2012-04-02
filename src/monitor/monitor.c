@@ -1498,11 +1498,12 @@ static void process_config_file(struct tevent_context *ev,
     struct inotify_event *in_event;
     char *buf;
     char *name;
-    ssize_t len, total_len;
+    ssize_t len;
     ssize_t event_size;
     struct config_file_ctx *file_ctx;
     struct config_file_callback *cb;
     struct rewatch_ctx *rw_ctx;
+    errno_t ret;
 
     event_size = sizeof(struct inotify_event);
     file_ctx = talloc_get_type(ptr, struct config_file_ctx);
@@ -1517,16 +1518,14 @@ static void process_config_file(struct tevent_context *ev,
         goto done;
     }
 
-    total_len = 0;
-    while (total_len < event_size) {
-        len = read(file_ctx->mt_ctx->inotify_fd, buf+total_len,
-                   event_size-total_len);
-        if (len == -1) {
-            if (errno == EINTR || errno == EAGAIN) continue;
-            DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
-            goto done;
-        }
-        total_len += len;
+    errno = 0;
+    len = sss_atomic_read_s(file_ctx->mt_ctx->inotify_fd, buf, event_size);
+    if (len == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Critical error reading inotify file descriptor [%d]: %s\n",
+               ret, strerror(ret)));
+        goto done;
     }
 
     in_event = (struct inotify_event *)buf;
@@ -1535,19 +1534,19 @@ static void process_config_file(struct tevent_context *ev,
         /* Read in the name, even though we don't use it,
          * so that read ptr is in the right place
          */
-        name = talloc_size(tmp_ctx, len);
+        name = talloc_size(tmp_ctx, in_event->len);
         if (!name) {
             goto done;
         }
-        total_len = 0;
-        while (total_len < in_event->len) {
-            len = read(file_ctx->mt_ctx->inotify_fd, &name, in_event->len);
-            if (len == -1) {
-                if (errno == EINTR || errno == EAGAIN) continue;
-                DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
-                goto done;
-            }
-            total_len += len;
+
+        errno = 0;
+        len = sss_atomic_read_s(file_ctx->mt_ctx->inotify_fd, name, in_event->len);
+        if (len == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                ("Critical error reading inotify file descriptor [%d]: %s\n",
+                ret, strerror(ret)));
+            goto done;
         }
     }
 

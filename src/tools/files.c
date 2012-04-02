@@ -411,7 +411,7 @@ static int copy_file(const char *src,
     int ifd = -1;
     int ofd = -1;
     char buf[1024];
-    ssize_t cnt, written, res;
+    ssize_t cnt, written;
     struct stat fstatbuf;
 
     ifd = open(src, O_RDONLY);
@@ -463,41 +463,28 @@ static int copy_file(const char *src,
         goto fail;
     }
 
-    while ((cnt = read(ifd, buf, sizeof(buf))) != 0) {
+    while ((cnt = sss_atomic_read_s(ifd, buf, sizeof(buf))) != 0) {
         if (cnt == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-
-            DEBUG(1, ("Cannot read() from source file '%s': [%d][%s].\n",
-                        src, ret, strerror(ret)));
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot read() from source file '%s': [%d][%s].\n",
+                   src, ret, strerror(ret)));
             goto fail;
         }
-        else if (cnt > 0) {
-            /* Copy the buffer to the new file */
-            written = 0;
-            while (written < cnt) {
-                res = write(ofd, buf+written, (size_t)cnt-written);
-                if (res == -1) {
-                    ret = errno;
-                    if (ret == EINTR || ret == EAGAIN) {
-                        /* retry the write */
-                        continue;
-                    }
-                    DEBUG(1, ("Cannot write() to destination file '%s': [%d][%s].\n",
-                                dst, ret, strerror(ret)));
-                    goto fail;
-                }
-                else if (res <= 0) {
-                    DEBUG(1, ("Unexpected result from write(): [%d]\n", res));
-                    goto fail;
-                }
 
-                written += res;
-            }
+        errno = 0;
+        written = sss_atomic_write_s(ofd, buf, cnt);
+        if (written == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot write() to destination file '%s': [%d][%s].\n",
+                   dst, ret, strerror(ret)));
+            goto fail;
         }
-        else {
-            DEBUG(1, ("Unexpected return code of read [%d]\n", cnt));
+
+        if (written != cnt) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Wrote %d bytes, expected %d\n", written, cnt));
             goto fail;
         }
     }

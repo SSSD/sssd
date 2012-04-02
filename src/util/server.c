@@ -117,51 +117,36 @@ int pidfile(const char *path, const char *name)
     fd = open(file, O_RDONLY, 0644);
     err = errno;
     if (fd != -1) {
-        len = 0;
-        while ((ret = read(fd, pid_str + len, pidlen - len)) != 0) {
-            if (ret == -1) {
-                if (errno == EINTR || errno == EAGAIN) {
-                    continue;
-                }
-                DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-                break;
-            } else if (ret > 0) {
-                len += ret;
-                if (len > pidlen) {
-                    DEBUG(1, ("read too much, this should never happen.\n"));
-                    close(fd);
-                    talloc_free(file);
-                    return EINVAL;
-                }
-                continue;
-            } else {
-                DEBUG(1, ("unexpected return code of read [%d].\n", ret));
-                break;
-            }
+        errno = 0;
+        len = sss_atomic_read_s(fd, pid_str, pidlen);
+        ret = errno;
+        if (len == -1) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("read failed [%d][%s].\n", ret, strerror(ret)));
+            close(fd);
+            talloc_free(file);
+            return EINVAL;
         }
 
         /* Ensure NULL-termination */
         pid_str[len] = '\0';
 
-        if (ret == 0) {
-            /* let's check the pid */
-
-            pid = (pid_t)atoi(pid_str);
-            if (pid != 0) {
-                errno = 0;
-                ret = kill(pid, 0);
-                /* succeeded in signaling the process -> another sssd process */
-                if (ret == 0) {
-                    close(fd);
-                    talloc_free(file);
-                    return EEXIST;
-                }
-                if (ret != 0 && errno != ESRCH) {
-                    err = errno;
-                    close(fd);
-                    talloc_free(file);
-                    return err;
-                }
+        /* let's check the pid */
+        pid = (pid_t)atoi(pid_str);
+        if (pid != 0) {
+            errno = 0;
+            ret = kill(pid, 0);
+            /* succeeded in signaling the process -> another sssd process */
+            if (ret == 0) {
+                close(fd);
+                talloc_free(file);
+                return EEXIST;
+            }
+            if (ret != 0 && errno != ESRCH) {
+                err = errno;
+                close(fd);
+                talloc_free(file);
+                return err;
             }
         }
 
@@ -188,25 +173,20 @@ int pidfile(const char *path, const char *name)
     snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
     size = strlen(pid_str);
 
-    written = 0;
-    while (written < size) {
-        ret = write(fd, pid_str+written, size-written);
-        if (ret == -1) {
-            err = errno;
-            if (err == EINTR || err == EAGAIN) {
-                continue;
-            }
-            DEBUG(1, ("write failed [%d][%s]\n", err, strerror(err)));
-            break;
-        }
-        else {
-            written += ret;
-        }
+    errno = 0;
+    written = sss_atomic_write_s(fd, pid_str, size);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("write failed [%d][%s]\n", err, strerror(err)));
+        return err;
     }
 
     if (written != size) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Wrote %d bytes expected %d\n", written, size));
         close(fd);
-        return err;
+        return EIO;
     }
 
     close(fd);
@@ -317,8 +297,10 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
 {
 	const char *binary_name = (const char *)private;
 	uint8_t c;
-	if (read(0, &c, 1) == 0) {
-		DEBUG(0,("%s: EOF on stdin - terminating\n", binary_name));
+
+        errno = 0;
+        if (sss_atomic_read_s(0, &c, 1) == 0) {
+		DEBUG(SSSDBG_CRIT_FAILURE,("%s: EOF on stdin - terminating\n", binary_name));
 #if HAVE_GETPGRP
 		if (getpgrp() == getpid()) {
 			kill(-getpgrp(), SIGTERM);

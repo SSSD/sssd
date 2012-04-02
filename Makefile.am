@@ -777,6 +777,7 @@ endif
 files_tests_SOURCES = \
     src/tests/files-tests.c \
     src/util/check_and_open.c \
+    src/util/atomic_io.c \
     src/tools/selinux.c \
     src/tools/files.c
 files_tests_CFLAGS = \
@@ -835,6 +836,7 @@ fail_over_tests_LDADD = \
 find_uid_tests_SOURCES = \
     src/tests/find_uid-tests.c \
     src/util/find_uid.c \
+    src/util/atomic_io.c \
     src/util/strtonum.c
 find_uid_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1225,6 +1227,7 @@ krb5_child_SOURCES = \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
+    src/util/atomic_io.c \
     src/util/util.c \
     src/util/signal.c
 krb5_child_CFLAGS = \
@@ -1243,6 +1246,7 @@ krb5_child_LDADD = \
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/util/sss_krb5.c \
+    src/util/atomic_io.c \
     src/util/util.c \
     src/util/signal.c
 ldap_child_CFLAGS = \
@@ -1284,7 +1288,8 @@ memberof_la_LDFLAGS = \
 
 if BUILD_KRB5_LOCATOR_PLUGIN
 sssd_krb5_locator_plugin_la_SOURCES = \
-    src/krb5_plugin/sssd_krb5_locator_plugin.c
+    src/krb5_plugin/sssd_krb5_locator_plugin.c \
+    src/util/atomic_io.c
 sssd_krb5_locator_plugin_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)

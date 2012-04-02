@@ -516,7 +516,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
                     goto done;
                 }
 
-                wret = sss_atomic_write(fd, line, strlen(line));
+                wret = sss_atomic_write_s(fd, line, strlen(line));
                 if (wret == -1) {
                     ret = errno;
                     goto done;

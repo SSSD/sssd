@@ -446,25 +446,14 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
-    while ((ret = read(STDIN_FILENO, buf + len, IN_BUF_SIZE - len)) != 0) {
-        if (ret == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-            goto fail;
-        } else if (ret > 0) {
-            len += ret;
-            if (len > IN_BUF_SIZE) {
-                DEBUG(1, ("read too much, this should never happen.\n"));
-                goto fail;
-            }
-            continue;
-        } else {
-            DEBUG(1, ("unexpected return code of read [%d].\n", ret));
-            goto fail;
-        }
+    errno = 0;
+    len = sss_atomic_read_s(STDIN_FILENO, buf, IN_BUF_SIZE);
+    if (len == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("read failed [%d][%s].\n", ret, strerror(ret)));
+        goto fail;
     }
+
     close(STDIN_FILENO);
 
     ret = unpack_buffer(buf, len, ibuf);
@@ -484,22 +473,22 @@ int main(int argc, const char *argv[])
 
     ret = prepare_response(main_ctx, ccname, expire_time, kerr, &resp);
     if (ret != EOK) {
-        DEBUG(1, ("prepare_response failed. [%d][%s].\n", ret, strerror(ret)));
-        return ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("prepare_response failed. [%d][%s].\n", ret, strerror(ret)));
+        goto fail;
     }
 
-    written = 0;
-    while (written < resp->size) {
-        ret = write(STDOUT_FILENO, resp->buf + written, resp->size - written);
-        if (ret == -1) {
-            if (errno == EAGAIN || errno == EINTR) {
-                continue;
-            }
-            ret = errno;
-            DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
-            return ret;
-        }
-        written += ret;
+    errno = 0;
+    written = sss_atomic_write_s(STDOUT_FILENO, resp->buf, resp->size);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("write failed [%d][%s].\n", ret, strerror(ret)));
+        goto fail;
+    }
+
+    if (written != resp->size) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Expected to write %d bytes, wrote %d\n",
+              resp->size, written));
+        goto fail;
     }
 
     close(STDOUT_FILENO);

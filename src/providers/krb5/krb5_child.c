@@ -461,18 +461,20 @@ static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
         return ENOMEM;
     }
 
-    written = 0;
-    while (written < resp->size) {
-        ret = write(fd, resp->buf + written, resp->size - written);
-        if (ret == -1) {
-            if (errno == EAGAIN || errno == EINTR) {
-                continue;
-            }
-            ret = errno;
-            DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
-            return ret;
-        }
-        written += ret;
+    errno = 0;
+    written = sss_atomic_write_s(fd, resp->buf, resp->size);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("write failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
+    }
+
+    if (written != resp->size) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Write error, wrote [%d] bytes, expected [%d]\n",
+               written, resp->size));
+        return EOK;
     }
 
     return EOK;
@@ -1631,25 +1633,14 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
-    while ((ret = read(STDIN_FILENO, buf + len, IN_BUF_SIZE - len)) != 0) {
-        if (ret == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-            goto fail;
-        } else if (ret > 0) {
-            len += ret;
-            if (len > IN_BUF_SIZE) {
-                DEBUG(1, ("read too much, this should never happen.\n"));
-                goto fail;
-            }
-            continue;
-        } else {
-            DEBUG(1, ("unexpected return code of read [%d].\n", ret));
-            goto fail;
-        }
+    errno = 0;
+    len = sss_atomic_read_s(STDIN_FILENO, buf, IN_BUF_SIZE);
+    if (len == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("read failed [%d][%s].\n", ret, strerror(ret)));
+        goto fail;
     }
+
     close(STDIN_FILENO);
 
     kr = talloc_zero(pd, struct krb5_req);

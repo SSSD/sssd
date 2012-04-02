@@ -86,7 +86,6 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
     char *krb5info_name = NULL;
     size_t len;
     uint8_t buf[BUFSIZE + 1];
-    uint8_t *p;
     int fd = -1;
     const char *name_tmpl = NULL;
     char *port_str;
@@ -129,23 +128,19 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
         goto done;
     }
 
-    len = BUFSIZE;
-    p = buf;
     memset(buf, 0, BUFSIZE+1);
-    while (len != 0 && (ret = read(fd, p, len)) != 0) {
-        if (ret == -1) {
-            if (errno == EINTR || errno == EAGAIN) continue;
-            PLUGIN_DEBUG(("read failed [%d][%s].\n", errno, strerror(errno)));
-            close(fd);
-            goto done;
-        }
 
-        len -= ret;
-        p += ret;
+    errno = 0;
+    len = sss_atomic_read_s(fd, buf, BUFSIZE);
+    if (len == -1) {
+        ret = errno;
+        PLUGIN_DEBUG(("read failed [%d][%s].\n", ret, strerror(ret)));
+        close(fd);
+        goto done;
     }
     close(fd);
 
-    if (len == 0) {
+    if (len == BUFSIZE) {
         PLUGIN_DEBUG(("Content of krb5info file [%s] is [%d] or larger.\n",
                       krb5info_name, BUFSIZE));
     }
@@ -212,6 +207,7 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
             goto done;
     }
 
+    ret = 0;
 done:
     free(krb5info_name);
     return ret;

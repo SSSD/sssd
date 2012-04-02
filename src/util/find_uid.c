@@ -107,15 +107,13 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         goto fail_fd;
     }
 
-    while ((ret = read(fd, buf, BUFSIZE)) != 0) {
-        if (ret == -1) {
-            error = errno;
-            if (error == EINTR || error == EAGAIN) {
-                continue;
-            }
-            DEBUG(1, ("read failed [%d][%s].\n", error, strerror(error)));
-            goto fail_fd;
-        }
+    errno = 0;
+    ret = sss_atomic_read_s(fd, buf, BUFSIZE);
+    if (ret == -1) {
+        error = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("read failed [%d][%s].\n", error, strerror(error)));
+        goto fail_fd;
     }
 
     /* Guarantee NULL-termination in case we read the full BUFSIZE somehow */

@@ -512,16 +512,16 @@ static errno_t sss_mc_set_recycled(int fd)
         /* What do we do now ? */
         return errno;
     }
-    pos = 0;
-    while (pos < sizeof(h.status)) {
-        ret = write(fd, ((uint8_t *)&w) + pos, sizeof(h.status) - pos);
-        if (ret == -1) {
-            if (errno != EINTR) {
-                return errno;
-            }
-            continue;
-        }
-        pos += ret;
+
+    errno = 0;
+    ret = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(h.status));
+    if (ret == -1) {
+        return errno;
+    }
+
+    if (ret != sizeof(h.status)) {
+        /* Write error */
+        return EIO;
     }
 
     return EOK;

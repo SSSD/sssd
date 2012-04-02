@@ -153,19 +153,17 @@ static bool has_ethernet_encapsulation(const char *sysfs_path)
     }
 
     memset(buf, 0, BUFSIZE);
-    while ((ret = read(fd, buf, BUFSIZE)) != 0) {
-        if (ret == -1) {
-            ret = errno;
-            if (ret == EINTR || ret == EAGAIN) {
-                continue;
-            }
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("read failed [%d][%s].\n", ret, strerror(ret)));
-            close(fd);
-            return false;
-        }
+    errno = 0;
+    ret = sss_atomic_read_s(fd, buf, BUFSIZE);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("read failed [%d][%s].\n", ret, strerror(ret)));
+        close(fd);
+        return false;
     }
     close(fd);
+    buf[BUFSIZE-1] = '\0';
 
     return strncmp(buf, "1\n", BUFSIZE) == 0;
 }
