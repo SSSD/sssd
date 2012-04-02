@@ -639,7 +639,8 @@ ssize_t sss_atomic_io(int fd, void *buf, size_t n, bool do_read)
             }
             return -1;
         case 0:
-            errno = EPIPE;
+            /* read returns 0 on end-of-file */
+            errno = do_read ? 0 : EPIPE;
             return pos;
         default:
             pos += (size_t) res;

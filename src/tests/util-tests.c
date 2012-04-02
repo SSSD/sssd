@@ -25,10 +25,17 @@
 #include <popt.h>
 #include <talloc.h>
 #include <check.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "util/util.h"
 #include "util/sss_utf8.h"
 #include "util/murmurhash3.h"
 #include "tests/common.h"
+
+#define FILENAME_TEMPLATE "tests-atomicio-XXXXXX"
+char *filename;
+int atio_fd;
 
 START_TEST(test_parse_args)
 {
@@ -445,6 +452,194 @@ START_TEST(test_murmurhash3_random)
 }
 END_TEST
 
+void setup_atomicio(void)
+{
+    int ret;
+    mode_t old_umask;
+
+    filename = strdup(FILENAME_TEMPLATE);
+    fail_unless(filename != NULL, "strdup failed");
+
+    atio_fd = -1;
+    old_umask = umask(077);
+    ret = mkstemp(filename);
+    umask(old_umask);
+    fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
+    atio_fd = ret;
+}
+
+void teardown_atomicio(void)
+{
+    int ret;
+
+    if (atio_fd != -1) {
+        ret = close(atio_fd);
+        fail_unless(ret == 0, "close failed [%d][%s]", errno, strerror(errno));
+    }
+
+    fail_unless(filename != NULL, "unknown filename");
+    ret = unlink(filename);
+    free(filename);
+    fail_unless(ret == 0, "unlink failed [%d][%s]", errno, strerror(errno));
+}
+
+START_TEST(test_atomicio_read_from_file)
+{
+    const ssize_t bufsize = 64;
+    char buf[64];
+    int fd;
+    ssize_t numread;
+    errno_t ret;
+
+    fd = open("/dev/zero", O_RDONLY);
+    fail_if(fd == -1, "Cannot open /dev/zero");
+
+    errno = 0;
+    numread = sss_atomic_read(fd, buf, bufsize);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while reading\n", ret);
+    fail_unless(numread == bufsize,
+                "Read %d bytes expected %d\n", numread, bufsize);
+    close(fd);
+}
+END_TEST
+
+START_TEST(test_atomicio_read_from_small_file)
+{
+    char wbuf[] = "foobar";
+    ssize_t wsize = strlen(wbuf)+1;
+    ssize_t numwritten;
+    char rbuf[64];
+    ssize_t numread;
+    errno_t ret;
+
+    fail_if(atio_fd < 0, "No fd to test?\n");
+
+    errno = 0;
+    numwritten = sss_atomic_write(atio_fd, wbuf, wsize);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while writing\n", ret);
+    fail_unless(numwritten == wsize,
+                "Wrote %d bytes expected %d\n", numwritten, wsize);
+
+    fsync(atio_fd);
+    lseek(atio_fd, 0, SEEK_SET);
+
+    errno = 0;
+    numread = sss_atomic_read(atio_fd, rbuf, 64);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while reading\n", ret);
+    fail_unless(numread == numwritten,
+                "Read %d bytes expected %d\n", numread, numwritten);
+}
+END_TEST
+
+START_TEST(test_atomicio_read_from_large_file)
+{
+    char wbuf[] = "123456781234567812345678";
+    ssize_t wsize = strlen(wbuf)+1;
+    ssize_t numwritten;
+    char rbuf[8];
+    ssize_t numread;
+    ssize_t total;
+    errno_t ret;
+
+    fail_if(atio_fd < 0, "No fd to test?\n");
+
+    errno = 0;
+    numwritten = sss_atomic_write(atio_fd, wbuf, wsize);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while writing\n", ret);
+    fail_unless(numwritten == wsize,
+                "Wrote %d bytes expected %d\n", numwritten, wsize);
+
+    fsync(atio_fd);
+    lseek(atio_fd, 0, SEEK_SET);
+
+    total = 0;
+    do {
+        errno = 0;
+        numread = sss_atomic_read(atio_fd, rbuf, 8);
+        ret = errno;
+
+        fail_if(numread == -1, "Read error %d: %s\n", ret, strerror(ret));
+        total += numread;
+    } while (numread != 0);
+
+    fail_unless(ret == 0, "Error %d while reading\n", ret);
+    fail_unless(total == numwritten,
+                "Read %d bytes expected %d\n", numread, numwritten);
+}
+END_TEST
+
+START_TEST(test_atomicio_read_exact_sized_file)
+{
+    char wbuf[] = "12345678";
+    ssize_t wsize = strlen(wbuf)+1;
+    ssize_t numwritten;
+    char rbuf[9];
+    ssize_t numread;
+    errno_t ret;
+
+    fail_if(atio_fd < 0, "No fd to test?\n");
+
+    errno = 0;
+    numwritten = sss_atomic_write(atio_fd, wbuf, wsize);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while writing\n", ret);
+    fail_unless(numwritten == wsize,
+                "Wrote %d bytes expected %d\n", numwritten, wsize);
+
+    fsync(atio_fd);
+    lseek(atio_fd, 0, SEEK_SET);
+
+    errno = 0;
+    numread = sss_atomic_read(atio_fd, rbuf, 9);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while reading\n", ret);
+    fail_unless(numread == numwritten,
+                "Read %d bytes expected %d\n", numread, numwritten);
+
+    fail_unless(rbuf[8] == '\0', "String not NULL terminated?");
+    fail_unless(strcmp(wbuf, rbuf) == 0, "Read something else than wrote?");
+
+    /* We've reached end-of-file, next read must return 0 */
+    errno = 0;
+    numread = sss_atomic_read(atio_fd, rbuf, 9);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while reading\n", ret);
+    fail_unless(numread == 0, "More data to read?");
+}
+END_TEST
+
+START_TEST(test_atomicio_read_from_empty_file)
+{
+    char buf[64];
+    int fd;
+    ssize_t numread;
+    errno_t ret;
+
+    fd = open("/dev/null", O_RDONLY);
+    fail_if(fd == -1, "Cannot open /dev/null");
+
+    errno = 0;
+    numread = sss_atomic_read(fd, buf, 64);
+    ret = errno;
+
+    fail_unless(ret == 0, "Error %d while reading\n", ret);
+    fail_unless(numread == 0,
+                "Read %d bytes expected 0\n", numread);
+    close(fd);
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -471,9 +666,20 @@ Suite *util_suite(void)
     tcase_add_test (tc_mh3, test_murmurhash3_random);
     tcase_set_timeout(tc_mh3, 60);
 
+    TCase *tc_atomicio = tcase_create("atomicio");
+    tcase_add_checked_fixture (tc_atomicio,
+                               setup_atomicio,
+                               teardown_atomicio);
+    tcase_add_test(tc_atomicio, test_atomicio_read_from_file);
+    tcase_add_test(tc_atomicio, test_atomicio_read_from_small_file);
+    tcase_add_test(tc_atomicio, test_atomicio_read_from_large_file);
+    tcase_add_test(tc_atomicio, test_atomicio_read_exact_sized_file);
+    tcase_add_test(tc_atomicio, test_atomicio_read_from_empty_file);
+
     suite_add_tcase (s, tc_util);
     suite_add_tcase (s, tc_utf8);
     suite_add_tcase (s, tc_mh3);
+    suite_add_tcase (s, tc_atomicio);
 
     return s;
 }
