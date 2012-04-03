@@ -51,8 +51,9 @@ static int sss_sudo_send_recv_generic(enum sss_cli_command command,
     errnop = 0;
     ret = sss_sudo_make_request(command, request,
                                 &reply_buf, &reply_len, &errnop);
-    if (errnop != EOK) {
-        return errnop;
+    if (ret != SSS_STATUS_SUCCESS) {
+        ret = errnop;
+        goto done;
     }
 
     /* parse structure */
@@ -60,6 +61,7 @@ static int sss_sudo_send_recv_generic(enum sss_cli_command command,
     ret = sss_sudo_parse_response((const char*)reply_buf, reply_len,
                                   _result, _error);
 
+done:
     free(reply_buf);
     return ret;
 }
