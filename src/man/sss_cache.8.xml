@@ -105,6 +105,50 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>-s</option>,<option>--service</option>
+                    <replaceable>service</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific service.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-S</option>,<option>--services</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all service records. This option overrides
+                        invalidation of specific service if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_autofs">
+                <term>
+                    <option>-a</option>,<option>--autofs-map</option>
+                    <replaceable>autofs-map</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific autofs maps.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_autofs">
+                <term>
+                    <option>-A</option>,<option>--autofs-maps</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all autofs maps. This option overrides
+                        invalidation of specific map if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>-d</option>,<option>--domain</option>
                     <replaceable>domain</replaceable>
                 </term>

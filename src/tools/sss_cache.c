@@ -28,24 +28,43 @@
 #include "util/util.h"
 #include "tools/sss_sync_ops.h"
 #include "db/sysdb.h"
+#include "db/sysdb_services.h"
+#include "db/sysdb_autofs.h"
 
 #define INVALIDATE_NONE 0
 #define INVALIDATE_USERS 1
 #define INVALIDATE_GROUPS 2
 #define INVALIDATE_NETGROUPS 4
+#define INVALIDATE_SERVICES 8
+#define INVALIDATE_AUTOFSMAPS 16
 
-#define TYPE_USER  0
-#define TYPE_GROUP 1
-#define TYPE_NETGROUP 2
+enum sss_cache_entry {
+    TYPE_USER=0,
+    TYPE_GROUP,
+    TYPE_NETGROUP,
+    TYPE_SERVICE,
+    TYPE_AUTOFSMAP
+};
+
 struct entry_type_t {
     const char *type_string;
     int (* search_fn)(TALLOC_CTX *, struct sysdb_ctx *,
                const char *, const char **, size_t *, struct ldb_message ***);
 };
+
+static errno_t search_services(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                              const char *sub_filter, const char **attrs,
+                              size_t *msgs_count, struct ldb_message ***msgs);
+static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                                 const char *sub_filter, const char **attrs,
+                                 size_t *msgs_count, struct ldb_message ***msgs);
+
 static struct entry_type_t entry_types[] = {
     {"user", sysdb_search_users},
     {"group", sysdb_search_groups},
-    {"netgroup", sysdb_search_netgroups}
+    {"netgroup", sysdb_search_netgroups},
+    {"service", search_services},
+    {"autofsmap", search_autofsmaps}
 };
 
 struct cache_tool_ctx {
@@ -56,6 +75,8 @@ struct cache_tool_ctx {
     char *user_filter;
     char *group_filter;
     char *netgroup_filter;
+    char *service_filter;
+    char *autofs_filter;
 };
 
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
@@ -63,7 +84,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                          const char *name, int entry_type);
 void invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                        int entry_type, const char *filter);
+                        enum sss_cache_entry entry_type, const char *filter);
 
 int main(int argc, const char *argv[])
 {
@@ -89,6 +110,8 @@ int main(int argc, const char *argv[])
         invalidate_entries(tctx, sysdb, TYPE_USER, tctx->user_filter);
         invalidate_entries(tctx, sysdb, TYPE_GROUP, tctx->group_filter);
         invalidate_entries(tctx, sysdb, TYPE_NETGROUP, tctx->netgroup_filter);
+        invalidate_entries(tctx, sysdb, TYPE_SERVICE, tctx->service_filter);
+        invalidate_entries(tctx, sysdb, TYPE_AUTOFSMAP, tctx->autofs_filter);
 
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
@@ -102,9 +125,8 @@ done:
     return ret;
 }
 
-
 void invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                        int entry_type, const char *filter)
+                        enum sss_cache_entry entry_type, const char *filter)
 {
     const char *attrs[] = {SYSDB_NAME, NULL};
     size_t msg_count;
@@ -168,6 +190,14 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                     ret = sysdb_set_netgroup_attr(sysdb, name,
                             sys_attrs, SYSDB_MOD_REP);
                     break;
+                case TYPE_SERVICE:
+                    ret = sysdb_set_service_attr(sysdb, name,
+                                                 sys_attrs, SYSDB_MOD_REP);
+                    break;
+                case TYPE_AUTOFSMAP:
+                    ret = sysdb_set_autofsmap_attr(sysdb, name,
+                                                   sys_attrs, SYSDB_MOD_REP);
+                    break;
                 default:
                     return EINVAL;
             }
@@ -185,7 +215,8 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
     return ret;
 }
 
-errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain) {
+errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
+{
     char *confdb_path;
     int ret;
     struct sysdb_ctx *db_ctx = NULL;
@@ -243,6 +274,8 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     char *user = NULL;
     char *group = NULL;
     char *netgroup = NULL;
+    char *service = NULL;
+    char *map = NULL;
     char *domain = NULL;
     int debug = SSSDBG_DEFAULT;
     errno_t ret = EOK;
@@ -264,6 +297,16 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
             _("Invalidate particular netgroup"), NULL },
         { "netgroups", 'N', POPT_ARG_NONE, NULL, 'n',
             _("Invalidate all netgroups"), NULL },
+        { "service", 's', POPT_ARG_STRING, &service, 0,
+            _("Invalidate particular service"), NULL },
+        { "services", 'S', POPT_ARG_NONE, NULL, 's',
+            _("Invalidate all services"), NULL },
+#ifdef BUILD_AUTOFS
+        { "autofs-map", 'a', POPT_ARG_STRING, &map, 0,
+            _("Invalidate particular autofs map"), NULL },
+        { "autofs-maps", 'A', POPT_ARG_NONE, NULL, 'a',
+            _("Invalidate all autofs maps"), NULL },
+#endif /* BUILD_AUTOFS */
         { "domain", 'd', POPT_ARG_STRING, &domain, 0,
             _("Only invalidate entries from a particular domain"), NULL },
         POPT_TABLEEND
@@ -287,6 +330,12 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
                 break;
             case 'n':
                 idb |= INVALIDATE_NETGROUPS;
+                break;
+            case 's':
+                idb |= INVALIDATE_SERVICES;
+                break;
+            case 'a':
+                idb |= INVALIDATE_AUTOFSMAPS;
                 break;
         }
     }
@@ -323,9 +372,27 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         ctx->netgroup_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME,
                                                netgroup);
     }
+
+    if (idb & INVALIDATE_SERVICES) {
+        ctx->service_filter = talloc_strdup(ctx, "*");
+    } else if (service) {
+        ctx->service_filter = talloc_strdup(ctx, service);
+    }
+
+    if (idb & INVALIDATE_AUTOFSMAPS) {
+        ctx->autofs_filter = talloc_asprintf(ctx, "(&(objectclass=%s)(%s=*))",
+                                             SYSDB_AUTOFS_MAP_OC, SYSDB_NAME);
+    } else if (map) {
+        ctx->autofs_filter = talloc_asprintf(ctx, "(&(objectclass=%s)(%s=%s))",
+                                             SYSDB_AUTOFS_MAP_OC,
+                                             SYSDB_NAME, map);
+    }
+
     if (((idb & INVALIDATE_USERS || user) && !ctx->user_filter) ||
         ((idb & INVALIDATE_GROUPS || group) && !ctx->group_filter) ||
-        ((idb & INVALIDATE_NETGROUPS || netgroup) && !ctx->netgroup_filter)) {
+        ((idb & INVALIDATE_NETGROUPS || netgroup) && !ctx->netgroup_filter) ||
+        ((idb & INVALIDATE_SERVICES || service) && !ctx->service_filter) ||
+        ((idb & INVALIDATE_AUTOFSMAPS || map) && !ctx->autofs_filter)) {
         DEBUG(1, ("Construction of filters failed\n"));
         ret = ENOMEM;
         goto fini;
@@ -352,4 +419,46 @@ fini:
         *tctx = ctx;
     }
     return ret;
+}
+
+static errno_t
+search_services(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                const char *sub_filter, const char **attrs,
+                size_t *msgs_count, struct ldb_message ***msgs)
+{
+    errno_t ret;
+    struct ldb_result *res;
+
+    if (strcmp(sub_filter, "*") == 0) {
+        /* All services */
+        ret = sysdb_enumservent(mem_ctx, sysdb, &res);
+    } else {
+        /* Get service by name */
+        ret = sysdb_getservbyname(mem_ctx, sysdb, sub_filter,
+                                  NULL, &res);
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not get service from sysdb: "
+              "[%d]: %s\n", ret, strerror(ret)));
+        return ret;
+    }
+
+    *msgs_count = res->count;
+    *msgs = res->msgs;
+    return EOK;
+}
+
+static errno_t
+search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                  const char *sub_filter, const char **attrs,
+                  size_t *msgs_count, struct ldb_message ***msgs)
+{
+#ifdef BUILD_AUTOFS
+    return sysdb_search_custom(mem_ctx, sysdb, sub_filter,
+                               AUTOFS_MAP_SUBDIR, attrs,
+                               msgs_count, msgs);
+#else
+    return ENOSYS;
+#endif  /* BUILD_AUTOFS */
 }
