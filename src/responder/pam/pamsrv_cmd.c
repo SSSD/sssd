@@ -1141,7 +1141,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         return EAGAIN;
     }
 
-    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("No matching domain found for [%s], fail!\n", preq->pd->user));
     return ENOENT;
 }
 

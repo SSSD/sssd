@@ -128,7 +128,7 @@ ipa_selinux_get_maps_next(struct tevent_req *req,
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Trying to fetch SELinux maps with following "
                               "parameters: [%d][%s][%s]\n", base->scope,
-                              base->filter, base->basedn));
+                              state->cur_filter, base->basedn));
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
                                    state->sh, base->basedn,
                                    base->scope, state->cur_filter,

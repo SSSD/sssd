@@ -45,6 +45,8 @@
     } \
 } while(0)
 
+#define PAM_SAFE_ITEM(item) item ? item : "not set"
+
 static const char *pamcmd2str(int cmd) {
     switch (cmd) {
     case SSS_PAM_AUTHENTICATE:
@@ -138,12 +140,12 @@ failed:
 void pam_print_data(int l, struct pam_data *pd)
 {
     DEBUG(l, ("command: %s\n", pamcmd2str(pd->cmd)));
-    DEBUG(l, ("domain: %s\n", pd->domain));
-    DEBUG(l, ("user: %s\n", pd->user));
-    DEBUG(l, ("service: %s\n", pd->service));
-    DEBUG(l, ("tty: %s\n", pd->tty));
-    DEBUG(l, ("ruser: %s\n", pd->ruser));
-    DEBUG(l, ("rhost: %s\n", pd->rhost));
+    DEBUG(l, ("domain: %s\n", PAM_SAFE_ITEM(pd->domain)));
+    DEBUG(l, ("user: %s\n", PAM_SAFE_ITEM(pd->user)));
+    DEBUG(l, ("service: %s\n", PAM_SAFE_ITEM(pd->service)));
+    DEBUG(l, ("tty: %s\n", PAM_SAFE_ITEM(pd->tty)));
+    DEBUG(l, ("ruser: %s\n", PAM_SAFE_ITEM(pd->ruser)));
+    DEBUG(l, ("rhost: %s\n", PAM_SAFE_ITEM(pd->rhost)));
     DEBUG(l, ("authtok type: %d\n", pd->authtok_type));
     DEBUG(l, ("authtok size: %d\n", pd->authtok_size));
     DEBUG(l, ("newauthtok type: %d\n", pd->newauthtok_type));

@@ -52,13 +52,16 @@ int dp_get_options(TALLOC_CTX *memctx,
             if (ret != EOK ||
                 ((opts[i].def_val.string != NULL) &&
                  (opts[i].val.string == NULL))) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                       opts[i].opt_name));
                 if (ret == EOK) ret = EINVAL;
                 goto done;
             }
-            DEBUG(6, ("Option %s has value %s\n",
-                  opts[i].opt_name, opts[i].val.cstring));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+                  opts[i].opt_name,
+                  opts[i].val.cstring ? "" : " no",
+                  opts[i].val.cstring ? opts[i].val.cstring : ""));
             break;
 
         case DP_OPT_BLOB:
@@ -66,8 +69,9 @@ int dp_get_options(TALLOC_CTX *memctx,
                                     opts[i].opt_name,
                                     NULL, &tmp);
             if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name));
                 goto done;
             }
 
@@ -79,9 +83,8 @@ int dp_get_options(TALLOC_CTX *memctx,
                 opts[i].val.blob.length = 0;
             }
 
-            DEBUG(6, ("Option %s has %s binary value.\n",
-                      opts[i].opt_name,
-                      opts[i].val.blob.length?"a":"no"));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has %s binary value.\n",
+                  opts[i].opt_name, opts[i].val.blob.length?"a":"no"));
             break;
 
         case DP_OPT_NUMBER:
@@ -90,11 +93,12 @@ int dp_get_options(TALLOC_CTX *memctx,
                                  opts[i].def_val.number,
                                  &opts[i].val.number);
             if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name));
                 goto done;
             }
-            DEBUG(6, ("Option %s has value %d\n",
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has value %d\n",
                   opts[i].opt_name, opts[i].val.number));
             break;
 
@@ -104,13 +108,13 @@ int dp_get_options(TALLOC_CTX *memctx,
                                   opts[i].def_val.boolean,
                                   &opts[i].val.boolean);
             if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name));
                 goto done;
             }
-            DEBUG(6, ("Option %s is %s\n",
-                      opts[i].opt_name,
-                      opts[i].val.boolean?"TRUE":"FALSE"));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s is %s\n",
+                  opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE"));
             break;
         }
     }
@@ -150,12 +154,15 @@ int dp_copy_options(TALLOC_CTX *memctx,
                 ret = dp_opt_set_string(opts, i, src_opts[i].def_val.string);
             }
             if (ret != EOK) {
-                DEBUG(0, ("Failed to copy value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to copy value for option (%s)\n",
+                       opts[i].opt_name));
                 goto done;
             }
-            DEBUG(6, ("Option %s has value %s\n",
-                  opts[i].opt_name, opts[i].val.cstring));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+                  opts[i].opt_name,
+                  opts[i].val.cstring ? "" : " no",
+                  opts[i].val.cstring ? opts[i].val.cstring : ""));
             break;
 
         case DP_OPT_BLOB:
@@ -165,13 +172,13 @@ int dp_copy_options(TALLOC_CTX *memctx,
                 ret = dp_opt_set_blob(opts, i, src_opts[i].def_val.blob);
             }
             if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                       opts[i].opt_name));
                 goto done;
             }
-            DEBUG(6, ("Option %s has %s binary value.\n",
-                      opts[i].opt_name,
-                      opts[i].val.blob.length?"a":"no"));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has %s binary value.\n",
+                  opts[i].opt_name, opts[i].val.blob.length?"a":"no"));
             break;
 
         case DP_OPT_NUMBER:
@@ -181,11 +188,12 @@ int dp_copy_options(TALLOC_CTX *memctx,
                 ret = dp_opt_set_int(opts, i, src_opts[i].def_val.number);
             }
             if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name));
                 goto done;
             }
-            DEBUG(6, ("Option %s has value %d\n",
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has value %d\n",
                   opts[i].opt_name, opts[i].val.number));
             break;
 
@@ -196,13 +204,13 @@ int dp_copy_options(TALLOC_CTX *memctx,
                 ret = dp_opt_set_int(opts, i, src_opts[i].def_val.boolean);
             }
             if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts[i].opt_name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to retrieve value for option (%s)\n",
+                       opts[i].opt_name));
                 goto done;
             }
-            DEBUG(6, ("Option %s is %s\n",
-                      opts[i].opt_name,
-                      opts[i].val.boolean?"TRUE":"FALSE"));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s is %s\n",
+                  opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE"));
             break;
         }
     }

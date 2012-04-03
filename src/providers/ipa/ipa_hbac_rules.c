@@ -226,7 +226,7 @@ ipa_hbac_rule_info_next(struct tevent_req *req,
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Sending request for next search base: "
                               "[%s][%d][%s]\n", base->basedn, base->scope,
-                              base->filter));
+                              state->cur_filter));
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    base->basedn, base->scope,

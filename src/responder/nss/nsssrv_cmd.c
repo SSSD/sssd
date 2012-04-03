@@ -784,7 +784,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         return EOK;
     }
 
-    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("No matching domain found for [%s], fail!\n", cmdctx->name));
     return ENOENT;
 }
 
@@ -2100,7 +2101,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         return EOK;
     }
 
-    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("No matching domain found for [%s], fail!\n", cmdctx->name));
     return ENOENT;
 }
 
@@ -3156,7 +3158,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         return nss_cmd_initgr_send_reply(dctx);
     }
 
-    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("No matching domain found for [%s], fail!\n", cmdctx->name));
     return ENOENT;
 }
 

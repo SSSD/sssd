@@ -54,7 +54,8 @@ int sdap_get_map(TALLOC_CTX *memctx,
                                 map[i].def_name,
                                 &name);
         if (ret != EOK) {
-            DEBUG(0, ("Failed to retrieve value for %s\n", map[i].opt_name));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to retrieve value for %s\n", map[i].opt_name));
             talloc_zfree(map);
             return EINVAL;
         }
@@ -62,7 +63,8 @@ int sdap_get_map(TALLOC_CTX *memctx,
         if (name) {
             ret = sss_filter_sanitize(map, name, &map[i].name);
             if (ret != EOK) {
-                DEBUG(1, ("Could not sanitize attribute [%s]\n", name));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Could not sanitize attribute [%s]\n", name));
                 talloc_zfree(map);
                 return EINVAL;
             }
@@ -72,14 +74,17 @@ int sdap_get_map(TALLOC_CTX *memctx,
         }
 
         if (map[i].def_name && !map[i].name) {
-            DEBUG(0, ("Failed to retrieve value for %s\n", map[i].opt_name));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to retrieve value for %s\n", map[i].opt_name));
             if (ret != EOK) {
                 talloc_zfree(map);
                 return EINVAL;
             }
         }
 
-        DEBUG(5, ("Option %s has value %s\n", map[i].opt_name, map[i].name));
+        DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+              map[i].opt_name, map[i].name ? "" : " no",
+              map[i].name ? map[i].name : ""));
     }
 
     *_map = map;

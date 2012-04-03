@@ -507,7 +507,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     }
 
     /* If we've gotten here, then no domain contained this netgroup */
-    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("No matching domain found for [%s], fail!\n", step_ctx->name));
 
     netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
     if (netgr == NULL) {
