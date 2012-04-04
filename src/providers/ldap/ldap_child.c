@@ -228,8 +228,10 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         krberr = krb5_kt_default(context, &keytab);
     }
     if (krberr) {
-        DEBUG(0, ("Failed to read keytab file: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to read keytab file [%s]: %s\n",
+               KEYTAB_CLEAN_NAME,
+               sss_krb5_get_error_message(context, krberr)));
         goto done;
     }
 
@@ -272,11 +274,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                         keytab, 0, NULL, &options);
 
     if (krberr) {
-        DEBUG(0, ("Failed to init credentials: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        sss_log(SSS_LOG_ERR, "Failed to initialize credentials using keytab [%s]: %s. "
-                             "Unable to create GSSAPI-encrypted LDAP connection.",
-                             keytab_name, sss_krb5_get_error_message(context, krberr));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to init credentials: %s\n",
+               sss_krb5_get_error_message(context, krberr)));
+        sss_log(SSS_LOG_ERR,
+                "Failed to initialize credentials using keytab [%s]: %s. "
+                "Unable to create GSSAPI-encrypted LDAP connection.",
+                KEYTAB_CLEAN_NAME,
+                sss_krb5_get_error_message(context, krberr));
         goto done;
     }
 
