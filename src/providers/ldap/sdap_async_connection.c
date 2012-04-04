@@ -1504,9 +1504,15 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     struct tevent_req *subreq;
     time_t now;
     int expire_timeout;
+    const char *sasl_mech = dp_opt_get_string(state->opts->basic,
+                                              SDAP_SASL_MECH);
+    const char *user_dn = dp_opt_get_string(state->opts->basic,
+                                            SDAP_DEFAULT_BIND_DN);
 
-    if (!state->do_auth) {
-        /* No authentication requested or GSSAPI auth forced off */
+    if (!state->do_auth ||
+        (sasl_mech == NULL && user_dn == NULL)) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("No authentication requested or SASL auth forced off\n"));
         tevent_req_done(req);
         return;
     }
@@ -1524,12 +1530,10 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     subreq = sdap_auth_send(state,
                             state->ev,
                             state->sh,
-                            dp_opt_get_string(state->opts->basic,
-                                                          SDAP_SASL_MECH),
+                            sasl_mech,
                             dp_opt_get_string(state->opts->basic,
                                                         SDAP_SASL_AUTHID),
-                            dp_opt_get_string(state->opts->basic,
-                                                    SDAP_DEFAULT_BIND_DN),
+                            user_dn,
                             dp_opt_get_string(state->opts->basic,
                                                SDAP_DEFAULT_AUTHTOK_TYPE),
                             dp_opt_get_blob(state->opts->basic,
