@@ -78,8 +78,10 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         kerr = krb5_kt_default(krb_ctx, &keytab);
     }
     if (kerr) {
-        DEBUG(0, ("Failed to read keytab file: %s\n",
-                  sss_krb5_get_error_message(krb_ctx, kerr)));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to read keytab [%s]: %s\n",
+               KEYTAB_CLEAN_NAME,
+               sss_krb5_get_error_message(krb_ctx, kerr)));
         ret = EFAULT;
         goto done;
     }
@@ -231,8 +233,10 @@ int sss_krb5_verify_keytab(const char *principal,
     }
 
     if (krberr) {
-        DEBUG(0, ("Failed to read keytab file: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to read keytab file: %s\n",
+                KEYTAB_CLEAN_NAME,
+                sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }
@@ -309,11 +313,13 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
 
     krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (krberr) {
-        DEBUG(0, ("Cannot read keytab [%s].\n", keytab_name));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Cannot read keytab [%s].\n", KEYTAB_CLEAN_NAME));
 
         sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
-                             "Unable to create GSSAPI-encrypted LDAP connection.",
-                             keytab_name, krberr,
+                             "Unable to create GSSAPI-encrypted LDAP "
+                             "connection.",
+                             KEYTAB_CLEAN_NAME, krberr,
                              sss_krb5_get_error_message(context, krberr));
 
         return EIO;
@@ -344,17 +350,19 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
     if (krberr) {
         DEBUG(0, ("Could not close keytab.\n"));
         sss_log(SSS_LOG_ERR, "Could not close keytab file [%s].",
-                             keytab_name);
+                             KEYTAB_CLEAN_NAME);
         return EIO;
     }
 
     if (!found) {
-        DEBUG(0, ("Principal [%s] not found in keytab [%s]\n",
-                  principal, keytab_name ? keytab_name : "default"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Principal [%s] not found in keytab [%s]\n",
+               principal,
+               KEYTAB_CLEAN_NAME));
         sss_log(SSS_LOG_ERR, "Error processing keytab file [%s]: "
                              "Principal [%s] was not found. "
                              "Unable to create GSSAPI-encrypted LDAP connection.",
-                             keytab_name, principal);
+                             KEYTAB_CLEAN_NAME, principal);
 
         return EFAULT;
     }

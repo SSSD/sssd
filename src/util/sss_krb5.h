@@ -34,6 +34,8 @@
 
 #include "util/util.h"
 
+#define KEYTAB_CLEAN_NAME keytab_name ? keytab_name : "default"
+
 const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,
                                                    krb5_error_code);
 

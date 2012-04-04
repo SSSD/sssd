@@ -1273,8 +1273,10 @@ static krb5_error_code check_fast_ccache(krb5_context ctx, const char *primary,
         kerr = krb5_kt_default(ctx, &keytab);
     }
     if (kerr) {
-        DEBUG(0, ("Failed to read keytab file [%s].\n",
-                  keytab_name != NULL ? keytab_name : "(default)"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to read keytab file [%s]: %s\n",
+               KEYTAB_CLEAN_NAME,
+               sss_krb5_get_error_message(ctx, kerr)));
         goto done;
     }
 
