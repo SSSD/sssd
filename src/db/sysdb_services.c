@@ -759,3 +759,31 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t
+sysdb_set_service_attr(struct sysdb_ctx *sysdb,
+                       const char *name,
+                       struct sysdb_attrs *attrs,
+                       int mod_op)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    dn = sysdb_svc_dn(sysdb, tmp_ctx, sysdb->domain->name, name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_set_entry_attr(sysdb, dn, attrs, mod_op);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

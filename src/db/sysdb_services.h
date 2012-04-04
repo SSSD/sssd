@@ -85,4 +85,10 @@ sysdb_svc_delete(struct sysdb_ctx *sysdb,
                  int port,
                  const char *proto);
 
+errno_t
+sysdb_set_service_attr(struct sysdb_ctx *sysdb,
+                       const char *name,
+                       struct sysdb_attrs *attrs,
+                       int mod_op);
+
 #endif /* SYSDB_SERVICES_H_ */

@@ -85,4 +85,10 @@ sysdb_autofs_map_update_members(struct sysdb_ctx *sysdb,
                                 const char *const *add_entries,
                                 const char *const *del_entries);
 
+errno_t
+sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,
+                         const char *name,
+                         struct sysdb_attrs *attrs,
+                         int mod_op);
+
 #endif /* _SYSDB_AUTOFS_H_ */
