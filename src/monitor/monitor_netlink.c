@@ -117,7 +117,8 @@ static bool has_wireless_extension(const char *ifname)
         return false;
     }
 
-    strncpy(iwr.ifr_ifrn.ifrn_name, ifname, IFNAMSIZ);
+    strncpy(iwr.ifr_ifrn.ifrn_name, ifname, IFNAMSIZ-1);
+    iwr.ifr_ifrn.ifrn_name[IFNAMSIZ-1] = '\0';
     /* Does the interface support a wireless extension? */
     ret = ioctl(s, SIOCGIWNAME, &iwr);
     close(s);
