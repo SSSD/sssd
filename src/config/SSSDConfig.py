@@ -1966,7 +1966,7 @@ class SSSDConfig(SSSDChangeConf):
         for option in self.options(sectionname):
             if option['type'] == 'option':
                 if option['name'] not in domain.get_all_options():
-                    self.delete_option_subtree(section_subtree['values'], 'option', option['name'], True)
+                    self.delete_option_subtree(section_subtree['value'], 'option', option['name'], True)
 
         for option,value in domain.get_all_options().items():
             if (type(value) == list):
