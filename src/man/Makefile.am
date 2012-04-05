@@ -93,7 +93,7 @@ EXTRA_DIST += \
 	$(POTFILE)\
 	$(PO4A_CONFIG)
 
-XML_DOC = $(man_MANS:%=$(srcdir)/%.xml) $(wildcard $(srcdir)/include/*.xml)
+XML_DOC = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 
 if HAVE_PO4A
 
