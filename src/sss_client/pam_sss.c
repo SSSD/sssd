@@ -1198,6 +1198,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 
             oldmask = umask(022);
             fd = mkstemp(tmp_path);
+            umask(oldmask);
             if (fd < 0) {
                 logger(pamh, LOG_ERR, "creating the temp file for SELinux "
                        "data failed. %s", tmp_path);
@@ -1223,9 +1224,6 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
             close(fd);
 
             rename(tmp_path, path);
-            free(path);
-            free(tmp_path);
-            umask(oldmask);
 #endif /* HAVE_SELINUX */
             break;
         case SSS_PAM_SETCRED:
@@ -1242,6 +1240,10 @@ done:
         free(buf);
     }
     free(repbuf);
+#ifdef HAVE_SELINUX
+    free(path);
+    free(tmp_path);
+#endif /* HAVE_SELINUX */
 
     return pam_status;
 }
