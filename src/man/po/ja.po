@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-02-28 16:51-0500\n"
-"PO-Revision-Date: 2012-03-09 23:57+0000\n"
+"POT-Creation-Date: 2012-04-09 13:53-0300\n"
+"PO-Revision-Date: 2012-03-29 00:57+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
@@ -3800,6 +3800,8 @@ msgid ""
 "Specifies if the host principal should be canonicalized when connecting to "
 "LDAP server. This feature is available with MIT Kerberos >= 1.7"
 msgstr ""
+"LDAP サーバーに接続するとき、ホストのプリンシパルが正規化されるかどうかを指定"
+"します。この機能は MIT Kerberos >= 1.7 で利用可能です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1403
@@ -3954,6 +3956,10 @@ msgid ""
 "access during their last login, they will continue to be granted access "
 "while offline and vice-versa."
 msgstr ""
+"この機能に対するオフラインキャッシュは、ユーザーの最終オンラインログインがア"
+"クセス権を許可されたかどうかを決めることに制限されます。採集ログインの間にア"
+"クセスが許可されていると、オフラインの間にアクセスが許可され続けます。逆もま"
+"た同様です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1512 sssd-ldap.5.xml:1562
@@ -4795,6 +4801,10 @@ msgid ""
 "calling PAM handles the user dialog on its own. A typical example is "
 "<command>sshd</command> with <option>PasswordAuthentication</option>."
 msgstr ""
+"このオプションは、アプリケーションが呼び出す PAM が自身においてユーザーダイア"
+"ログを処理すると仮定して動作しません。典型的な例は "
+"<option>PasswordAuthentication</option> を用いた <command>sshd</command> で"
+"す。"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:110
@@ -4822,6 +4832,9 @@ msgid ""
 "does not support password resets, an individual message can be displayed. "
 "This message can e.g. contain instructions about how to reset a password."
 msgstr ""
+"対応する SSSD プロバイダーがパスワードリセットをサポートしないため、root によ"
+"るパスワードリセットが失敗すると、それぞれのメッセージが表示されます。たとえ"
+"ば、このメッセージはパスワードをリセットする方法に関する説明があります。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:123
@@ -4886,6 +4899,12 @@ msgid ""
 "libraries it reads and evaluates these variables and returns them to the "
 "libraries."
 msgstr ""
+"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
+"</citerefentry> は、レルム、および KDC の名前または IP アドレスを、それぞれ "
+"SSSD_KRB5_REALM および SSSD_KRB5_KDC の中に置きます。"
+"<command>sssd_krb5_locator_plugin</command> が Kerberos ライブラリーにより呼"
+"び出されるとき、それがこれらの変数を読み込み、評価し、ライブラリーに返しま"
+"す。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:63
@@ -4894,6 +4913,10 @@ msgid ""
 "<command>sssd_krb5_locator_plugin</command> is not available on your system "
 "you have to edit /etc/krb5.conf to reflect your Kerberos setup."
 msgstr ""
+"すべての Kerberos 実装がプラグインの使用をサポートしているとは限りません。 "
+"<command>sssd_krb5_locator_plugin</command> がシステムにおいて利用可能でなけ"
+"れば、Kerberos の構築を反映するように /etc/krb5.conf を編集する必要がありま"
+"す。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:69
@@ -5132,6 +5155,11 @@ msgid ""
 "krb5</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> authentication "
 "provider with some exceptions described below."
 msgstr ""
+"IPA プロバイダーは <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> 識別プロバイダーおよび "
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> 認証プロバイダーにより使用されるものと同じオプショ"
+"ンを受け付けます。いくつかの例外は以下に説明されています。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:55
@@ -5142,6 +5170,12 @@ msgid ""
 "freeipa.org for more information about HBAC. No configuration of access "
 "provider is required on the client side."
 msgstr ""
+"しかし、これらのオプションを設定することは必要ありません、また推奨もされませ"
+"ん。IPA プロバイダーはアクセスプロバイダーおよびパスワード変更プロバイダーと"
+"しても使用できます。アクセスプロバイダーとしては、HBAC (ホストベースアクセス"
+"制御) ルールを使用します。HBAC の詳細は freeipa.org を参照してください。アク"
+"セスプロバイダーが設定されていなければ、クライアント側において必要になりま"
+"す。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:72
@@ -5765,6 +5799,13 @@ msgid ""
 "FreeIPA. It provides a more robust database to store local users as well as "
 "extended user data."
 msgstr ""
+"<command>SSSD</command> はリモートディレクトリーへのアクセスと認証メカニズム"
+"を管理するための一組のデーモンを提供します。システムへの NSS と PAM インター"
+"フェースを提供します。また、D-Bus インターフェースのように複数の異なるアカウ"
+"ントソースに接続するための取り外し可能なバックエンドシステムを提供します。ク"
+"ライアント監査、およびFreeIPA のようなプロジェクトに対するポリシーサービスを"
+"提供する基礎となります。ローカルユーザーだけでなく拡張ユーザーデータを保存す"
+"るためのより強靭なデータベースを提供します。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:46
@@ -5825,6 +5866,9 @@ msgid ""
 "are stored in <filename>/var/log/sssd</filename> and there are separate log "
 "files for every SSSD service and domain."
 msgstr ""
+"デバッグ出力を標準エラーの代わりにファイルに送信します。初期状態で、ログファ"
+"イルは <filename>/var/log/sssd</filename> に保存され、すべての SSSD サービス"
+"とドメインに対して別々のログファイルがあります。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:97
@@ -6022,6 +6066,10 @@ msgid ""
 "such as client side certificates or GSSAPI is <emphasis>strongly</emphasis> "
 "advised."
 msgstr ""
+"パスワードをわかりにくくすることは、攻撃者がパスワードをリバースエンジニアリ"
+"ングできるので <emphasis>実際にセキュリティの便益</emphasis> は提供されませ"
+"ん。クライアントサイド証明書や GSSAPI のようなより良い認証機構を使用すること"
+"を <emphasis>強く</emphasis> 推奨します。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:63
@@ -6331,6 +6379,13 @@ msgid ""
 "page for the applicable identity provider for details on how to configure "
 "this."
 msgstr ""
+"Kerberos 5 認証バックエンドは認証プロバイダーおよびパスワード変更プロバイダー"
+"を含みます。正しく機能するためには識別プロダイバーと組み合わせて使用する必要"
+"があります (たとえば、id_provider = ldap)。Kerberos 5 認証バックエンドにより"
+"必要とされるいくつかの情報は、ユーザーの Kerberos プリンシパル名 (UPN) のよう"
+"な、識別プロバイダーにより提供される必要があります。識別プロバイダーの設定は "
+"UPN を指定するためのエントリーがある必要があります。これを設定する方法に関す"
+"る詳細は適用可能な識別プロバイダーのマニュアルページを参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:47
@@ -6342,6 +6397,12 @@ msgid ""
 "To activate this feature use 'access_provider = krb5' in your sssd "
 "configuration."
 msgstr ""
+"このバックエンドは、ユーザーのホームディレクトリーにある .k5login ファイルに"
+"基づいたアクセス制御を提供します。詳細は <citerefentry> <refentrytitle>."
+"k5login</refentrytitle><manvolnum>5</manvolnum> </citerefentry> を参照してく"
+"ださい。空の .k5login ファイルがあると、このユーザーに対するすべてのアクセス"
+"が拒否されます。この機能を有効にするには、SSSD 設定において 'access_provider "
+"= krb5' を使用します。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
@@ -6373,6 +6434,9 @@ msgid ""
 "can be defined here. An optional port number (preceded by a colon) may be "
 "appended to the addresses or hostnames."
 msgstr ""
+"パスワード変更サービスが KDC において実行されていなければ、代替サーバーがここ"
+"で指定できます。オプションのポート番号が（コロンに続けて）アドレスまたはホス"
+"ト名に追加できます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:122
@@ -6382,6 +6446,10 @@ msgid ""
 "kpasswd servers to try the back end is not switch to offline if "
 "authentication against the KDC is still possible."
 msgstr ""
+"フェイルオーバーとサーバー冗長性に関する詳細は、<quote>フェイルオーバー</"
+"quote>のセクションを参照してください。KDC に対する認証がまだ可能であるなら"
+"ば、たとえすべての kpasswd サーバーがなかったとしても、バックエンドをオフライ"
+"ンに切り替えないことに注意してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:129
@@ -6404,6 +6472,13 @@ msgid ""
 "<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> </"
 "citerefentry> for details) is created."
 msgstr ""
+"クレディンシャルキャッシュを保存するディレクトリーです。すべての "
+"krb5_ccname_template の置換シーケンスが、%d と %P を除き、ここで使用できま"
+"す。ディレクトリーが存在しなければ、作成されます。%u, %U, %p または %h が使用"
+"されていると、ユーザーが所属するプライベートディレクトリーが作成されます。そ"
+"うでなければ、削除制限フラグ（つまりスティッキービットです、詳細は "
+"<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
+"</citerefentry> を参照してください）を持つ公開ディレクトリーが作成されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:151
@@ -6474,6 +6549,11 @@ msgid ""
 "ends with 'XXXXXX' mkstemp(3) is used to create a unique filename in a safe "
 "way."
 msgstr ""
+"ユーザーのクレディンシャルキャッシュの位置です。現在、ファイルベースのクレ"
+"ディンシャルキャッシュのみがサポートされます。テンプレートにおいて、以下の"
+"シーケンスが置換されます: <placeholder type=\"variablelist\" id=\"0\"/> テン"
+"プレートが 'XXXXXX' で終わっていると、 mkstemp(3) が安全な方法で一意なファイ"
+"ル名を作成するために使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:209
@@ -6534,6 +6614,9 @@ msgid ""
 "Passwords stored in this way are kept in plaintext in the kernel keyring and "
 "are potentially accessible by the root user (with difficulty)."
 msgstr ""
+"この機能は現在 Linux プラットフォームにおいてのみ利用可能なことに注意してくだ"
+"さい。この方法で保存したパスワードは、カーネルのキーリングに平文で保持され、"
+"潜在的に root ユーザーによりアクセスできる可能性があります（難しいです）。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:275
@@ -6741,6 +6824,9 @@ msgid ""
 "example shows only configuration of Kerberos authentication, it does not "
 "include any identity provider."
 msgstr ""
+"以下の例は、SSSD が正しく設定され、FOO が <replaceable>[sssd]</replaceable> "
+"セクションにあるドメインの 1 つであると仮定しています。この例は Kerberos 認証"
+"の設定のみを示し、識別プロバイダーを何も含みません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-krb5.5.xml:442

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-03-12 16:26-0400\n"
+"POT-Creation-Date: 2012-04-09 13:53-0400\n"
 "PO-Revision-Date: 2012-03-08 11:41+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -906,26 +906,26 @@ msgstr "Вказати нетиповий файл налаштувань"
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/providers/krb5/krb5_child.c:1575 src/providers/ldap/ldap_child.c:381
+#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:383
+#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:385
+#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:387
+#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:2022
+#: src/providers/data_provider_be.c:2042
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1016,7 +1016,7 @@ msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211 src/tools/sss_useradd.c:48
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:195 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:615
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
@@ -1025,12 +1025,12 @@ msgid "The debug level to run with"
 msgstr "Рівень діагностики під час запуску"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:199
 msgid "The SSSD domain to use"
 msgstr "Домен SSSD, який слід використовувати"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:216 src/tools/sss_useradd.c:71
 #: src/tools/sss_groupadd.c:56 src/tools/sss_groupdel.c:52
 #: src/tools/sss_groupmod.c:63 src/tools/sss_groupshow.c:626
 #: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:72
@@ -1040,8 +1040,9 @@ msgstr "Помилка під час спроби встановити лока�
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:115
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:223
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:283
 msgid "Not enough memory\n"
 msgstr "Недостатньо пам’яті\n"
 
@@ -1049,34 +1050,42 @@ msgstr "Недостатньо пам’яті\n"
 msgid "User not specified\n"
 msgstr "Не вказано користувача\n"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:104
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:282
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:105
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:297
 msgid "Error looking up public keys\n"
 msgstr "Помилка під час спроби пошуку відкритих ключів\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:94
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:76
 msgid "Failed to open a socket\n"
 msgstr "Не вдалося відкрити сокет\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:104
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:86
 msgid "Failed to connect to the server\n"
 msgstr "Не вдалося встановити з’єднання з сервером\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:195
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:179
 msgid "Failed to execute proxy command\n"
 msgstr "Не вдалося виконати команду проксі-сервера\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:213
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:197
 msgid "The port to use to connect to the host"
 msgstr "Порт, яким слід користуватися для встановлення з’єднань з вузлом"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:255
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:242
 msgid "Host not specified\n"
 msgstr "Не вказано вузол\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:261
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:248
 msgid "The path to the proxy command must be absolute\n"
 msgstr "Має бути вказано абсолютний шлях до команди проксі-сервера\n"
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
+msgid "Host name cannot be resolved\n"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:274
+msgid "Reverse lookup failed\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"

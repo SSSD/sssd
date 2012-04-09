@@ -4,13 +4,14 @@
 #
 # Translators:
 # Fabien Archambault <marbolangos@gmail.com>, 2012.
+# Mariko Vincent <dweu60@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-03-12 16:26-0400\n"
-"PO-Revision-Date: 2012-03-08 11:41+0000\n"
-"Last-Translator: Fabien Archambault <marbolangos@gmail.com>\n"
+"POT-Creation-Date: 2012-04-09 13:53-0400\n"
+"PO-Revision-Date: 2012-03-14 09:58+0000\n"
+"Last-Translator: Mariko Vincent <dweu60@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -29,6 +30,7 @@ msgstr "Ajouter l'horodatage dans les fichiers de débogage"
 #: src/config/SSSDConfig.py:41
 msgid "Include microseconds in timestamps in debug logs"
 msgstr ""
+"Ajouter les microsecondes pour l'horodatage dans les journaux de débogage"
 
 #: src/config/SSSDConfig.py:42
 msgid "Write debug messages to logfiles"
@@ -71,6 +73,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Répertoire du système de fichiers où SSSD doit stocker les fichiers de "
+"relecture de Kerberos."
 
 #: src/config/SSSDConfig.py:56
 msgid "Enumeration cache timeout length (seconds)"
@@ -165,12 +169,14 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:77
 msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr ""
+msgstr "Faut-il évaluer les attributs dépendants du temps dans les règles sudo"
 
 #: src/config/SSSDConfig.py:78
 msgid ""
 "How many seconds to keep sudorules cached before asking the provider again"
 msgstr ""
+"Durée, en secondes, pendant laquelle les règles sudo sont mises en cache "
+"avant de demander au fournisseur à nouveau"
 
 #: src/config/SSSDConfig.py:84
 msgid "Identity provider"
@@ -190,19 +196,19 @@ msgstr "Fournisseur de changement de mot de passe"
 
 #: src/config/SSSDConfig.py:88
 msgid "SUDO provider"
-msgstr ""
+msgstr "Fournisseur SUDO"
 
 #: src/config/SSSDConfig.py:89
 msgid "Autofs provider"
-msgstr ""
+msgstr "Fournisseur autofs"
 
 #: src/config/SSSDConfig.py:90
 msgid "Session-loading provider"
-msgstr ""
+msgstr "Fournisseur de chargement de session"
 
 #: src/config/SSSDConfig.py:91
 msgid "Host identity provider"
-msgstr ""
+msgstr "Fournisseur d'identité de l'hôte"
 
 #: src/config/SSSDConfig.py:94
 msgid "Minimum user ID"
@@ -261,7 +267,7 @@ msgstr "Écraser la valeur du GID du fournisseur d'identité avec cette valeur"
 
 #: src/config/SSSDConfig.py:106
 msgid "Treat usernames as case sensitive"
-msgstr ""
+msgstr "Considère les noms d'utilisateur comme casse dépendant"
 
 #: src/config/SSSDConfig.py:114
 msgid "IPA domain"
@@ -301,11 +307,12 @@ msgstr "Si les règles DENY sont présentes, utiliser soit DENY_ALL soit IGNORE"
 
 #: src/config/SSSDConfig.py:122
 msgid "If set to false, host argument given by PAM will be ignored"
-msgstr ""
+msgstr "Si mit à false, l’argument de l'hôte donné par PAM est ignoré"
 
 #: src/config/SSSDConfig.py:123
 msgid "The automounter location this IPA client is using"
 msgstr ""
+"L'emplacement de la carte de montage automatique utilisée par le client IPA"
 
 #: src/config/SSSDConfig.py:126 src/config/SSSDConfig.py:127
 msgid "Kerberos server address"
@@ -359,11 +366,11 @@ msgstr "Active FAST"
 
 #: src/config/SSSDConfig.py:141
 msgid "Selects the principal to use for FAST"
-msgstr ""
+msgstr "Sélectionne le principal pour être utilisé avec FAST"
 
 #: src/config/SSSDConfig.py:142
 msgid "Enables principal canonicalization"
-msgstr ""
+msgstr "Active la canonisation du principal"
 
 #: src/config/SSSDConfig.py:145
 msgid "Server where the change password service is running if not on the KDC"
@@ -449,7 +456,7 @@ msgstr "Spécifier le domaine d'authorisation SASL à utiliser"
 
 #: src/config/SSSDConfig.py:167
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "Spécifie le minimum SSF pour l'autorisation sasl LDAP"
 
 #: src/config/SSSDConfig.py:168
 msgid "Kerberos service keytab"
@@ -490,6 +497,8 @@ msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
+"Est-ce que la bibliothèque LDAP doit effectuer une requête pour canoniser le "
+"nom d'hôte pendant une connexion SASL ?"
 
 #: src/config/SSSDConfig.py:178
 msgid "entryUSN attribute"
@@ -502,10 +511,12 @@ msgstr "attribut lastUSN"
 #: src/config/SSSDConfig.py:181
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
+"Combien de temps conserver la connexion au serveur LDAP avant de se "
+"déconnecter"
 
 #: src/config/SSSDConfig.py:183
 msgid "Disable the LDAP paging control"
-msgstr ""
+msgstr "Désactiver le contrôle des pages LDAP"
 
 #: src/config/SSSDConfig.py:186
 msgid "Length of time to wait for a search request"
@@ -662,7 +673,7 @@ msgstr "Attribut NDS loginAllowedTimeMap"
 
 #: src/config/SSSDConfig.py:226
 msgid "SSH public key attribute"
-msgstr ""
+msgstr "Attribut de clé public SSH"
 
 #: src/config/SSSDConfig.py:228
 msgid "Base DN for group lookups"
@@ -730,23 +741,23 @@ msgstr "Attribut date de modification pour les groupes réseau"
 
 #: src/config/SSSDConfig.py:249
 msgid "Base DN for service lookups"
-msgstr ""
+msgstr "Nom de domaine (DN) de base pour les recherches de service"
 
 #: src/config/SSSDConfig.py:250
 msgid "Objectclass for services"
-msgstr ""
+msgstr "Classe objet pour les services"
 
 #: src/config/SSSDConfig.py:251
 msgid "Service name attribute"
-msgstr ""
+msgstr "Attribut de nom de service"
 
 #: src/config/SSSDConfig.py:252
 msgid "Service port attribute"
-msgstr ""
+msgstr "Attribut de port du service"
 
 #: src/config/SSSDConfig.py:253
 msgid "Service protocol attribute"
-msgstr ""
+msgstr "Attribut de service du protocole"
 
 #: src/config/SSSDConfig.py:257
 msgid "Policy to evaluate the password expiration"
@@ -774,83 +785,83 @@ msgstr "Nom du service DNS pour le serveur de changement de mot de passe LDAP"
 
 #: src/config/SSSDConfig.py:269
 msgid "Base DN for sudo rules lookups"
-msgstr ""
+msgstr "Nom de domaine (DN) de base pour les recherches de règles sudo"
 
 #: src/config/SSSDConfig.py:270
 msgid "Enable periodical update of all sudo rules"
-msgstr ""
+msgstr "Activer la mise à jour périodique de toutes les règles sudo"
 
 #: src/config/SSSDConfig.py:271
 msgid "Length of time between rules updates"
-msgstr ""
+msgstr "Intervalle de temps entre deux mises à jour de règles"
 
 #: src/config/SSSDConfig.py:272
 msgid "Object class for sudo rules"
-msgstr ""
+msgstr "Classe objet pour les règles sudo"
 
 #: src/config/SSSDConfig.py:273
 msgid "Sudo rule name"
-msgstr ""
+msgstr "Règle de nom sudo"
 
 #: src/config/SSSDConfig.py:274
 msgid "Sudo rule command attribute"
-msgstr ""
+msgstr "Attribut de commande de règle sudo"
 
 #: src/config/SSSDConfig.py:275
 msgid "Sudo rule host attribute"
-msgstr ""
+msgstr "Attribut hôte de la règle sudo"
 
 #: src/config/SSSDConfig.py:276
 msgid "Sudo rule user attribute"
-msgstr ""
+msgstr "Attribut utilisateur de la règle sudo"
 
 #: src/config/SSSDConfig.py:277
 msgid "Sudo rule option attribute"
-msgstr ""
+msgstr "Attribut option de la règle sudo"
 
 #: src/config/SSSDConfig.py:278
 msgid "Sudo rule runasuser attribute"
-msgstr ""
+msgstr "Attribut runasuser de la règle sudo"
 
 #: src/config/SSSDConfig.py:279
 msgid "Sudo rule runasgroup attribute"
-msgstr ""
+msgstr "Attribut runasgroup de la règle sudo"
 
 #: src/config/SSSDConfig.py:280
 msgid "Sudo rule notbefore attribute"
-msgstr ""
+msgstr "Attribut notbefore de la règle sudo"
 
 #: src/config/SSSDConfig.py:281
 msgid "Sudo rule notafter attribute"
-msgstr ""
+msgstr "Attribut notafter de règle sudo"
 
 #: src/config/SSSDConfig.py:282
 msgid "Sudo rule order attribute"
-msgstr ""
+msgstr "Attribut d'ordre de règle sudo"
 
 #: src/config/SSSDConfig.py:285
 msgid "Object class for automounter maps"
-msgstr ""
+msgstr "Classe objet pour la carte de montage automatique"
 
 #: src/config/SSSDConfig.py:286
 msgid "Automounter map name attribute"
-msgstr ""
+msgstr "Nom de l'attribut de carte de montage automatique"
 
 #: src/config/SSSDConfig.py:287
 msgid "Object class for automounter map entries"
-msgstr ""
+msgstr "Classe objet pour l'entrée de référence de montage automatique"
 
 #: src/config/SSSDConfig.py:288
 msgid "Automounter map entry key attribute"
-msgstr ""
+msgstr "Attribut de clé d'entrée pour la carte de montage automatique"
 
 #: src/config/SSSDConfig.py:289
 msgid "Automounter map entry value attribute"
-msgstr ""
+msgstr "Attribut de valeur pour la carte de montage automatique"
 
 #: src/config/SSSDConfig.py:290
 msgid "Base DN for automounter map lookups"
-msgstr ""
+msgstr "Base DN pour les requêtes de carte de montage automatique"
 
 #: src/config/SSSDConfig.py:293
 msgid "Comma separated list of allowed users"
@@ -890,28 +901,28 @@ msgstr "Définir un fichier de configuration différent de celui par défaut"
 
 #: src/monitor/monitor.c:2385
 msgid "Print version number and exit"
-msgstr ""
+msgstr "Afficher le numéro de version et quitte"
 
-#: src/providers/krb5/krb5_child.c:1575 src/providers/ldap/ldap_child.c:381
+#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Niveau de débogage"
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:383
+#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Ajouter l'horodatage au débogage"
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:385
+#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
-msgstr ""
+msgstr "Afficher l'horodatage en microsecondes"
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:387
+#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
-#: src/providers/data_provider_be.c:2022
+#: src/providers/data_provider_be.c:2042
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -923,6 +934,7 @@ msgstr ""
 #: src/sss_client/common.c:881
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
+"Le socket public a de mauvaises permissions ou un mauvais propriétaire."
 
 #: src/sss_client/common.c:884
 msgid "Unexpected format of the server credential message."
@@ -1005,7 +1017,7 @@ msgid "Password expired. Change your password now."
 msgstr "Mot de passe expiré. Changez votre mot de passe maintenant."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:211 src/tools/sss_useradd.c:48
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:195 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:615
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
@@ -1014,12 +1026,12 @@ msgid "The debug level to run with"
 msgstr "Le niveau de débogage utilisé avec"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:215
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:199
 msgid "The SSSD domain to use"
-msgstr ""
+msgstr "Le domaine SSSD à utiliser"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:229 src/tools/sss_useradd.c:71
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:216 src/tools/sss_useradd.c:71
 #: src/tools/sss_groupadd.c:56 src/tools/sss_groupdel.c:52
 #: src/tools/sss_groupmod.c:63 src/tools/sss_groupshow.c:626
 #: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:72
@@ -1029,42 +1041,51 @@ msgstr "Erreur lors du paramétrage de la locale\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:236
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:269
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:115
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:223
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:283
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "Mémoire insuffisante\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
-msgstr ""
+msgstr "Utilisateur non spécifié\n"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:104
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:282
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:105
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:297
 msgid "Error looking up public keys\n"
-msgstr ""
+msgstr "Erreur lors de la recherche des clés publiques\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:94
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:76
 msgid "Failed to open a socket\n"
-msgstr ""
+msgstr "Échec lors de l'ouverture du socket\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:104
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:86
 msgid "Failed to connect to the server\n"
-msgstr ""
+msgstr "Échec lors de la connexion au serveur\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:195
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:179
 msgid "Failed to execute proxy command\n"
-msgstr ""
+msgstr "Échec lors de l'exécution de la commande proxy\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:213
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:197
 msgid "The port to use to connect to the host"
-msgstr ""
+msgstr "Le port à utiliser pour se connecter à l'hôte"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:255
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:242
 msgid "Host not specified\n"
+msgstr "Hôte non spécifié\n"
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:248
+msgid "The path to the proxy command must be absolute\n"
+msgstr "Le chemin vers la commande de proxy doit être absolue\n"
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
+msgid "Host name cannot be resolved\n"
 msgstr ""
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:261
-msgid "The path to the proxy command must be absolute\n"
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:274
+msgid "Reverse lookup failed\n"
 msgstr ""
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
@@ -1305,7 +1326,7 @@ msgstr "%s%s groupe : %s\n"
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
-msgstr ""
+msgstr "Magie privée"
 
 #: src/tools/sss_groupshow.c:565
 #, c-format
@@ -1479,40 +1500,40 @@ msgstr "Erreur de transaction. Impossible de modifier l'utlisateur.\n"
 #: src/tools/sss_cache.c:132
 #, c-format
 msgid "Couldn't invalidate %s"
-msgstr ""
+msgstr "Impossible d'invalider %s"
 
 #: src/tools/sss_cache.c:138
 #, c-format
 msgid "Couldn't invalidate %s %s"
-msgstr ""
+msgstr "Impossible d'invalider %s %s"
 
 #: src/tools/sss_cache.c:262
 msgid "Invalidate particular user"
-msgstr ""
+msgstr "Invalider un utilisateur spécifique"
 
 #: src/tools/sss_cache.c:264
 msgid "Invalidate all users"
-msgstr ""
+msgstr "Invalider tous les utilisateurs"
 
 #: src/tools/sss_cache.c:266
 msgid "Invalidate particular group"
-msgstr ""
+msgstr "Invalider un groupe particulier"
 
 #: src/tools/sss_cache.c:268
 msgid "Invalidate all groups"
-msgstr ""
+msgstr "Invalider tous les groupes"
 
 #: src/tools/sss_cache.c:270
 msgid "Invalidate particular netgroup"
-msgstr ""
+msgstr "Invalider un groupe réseau particulier"
 
 #: src/tools/sss_cache.c:272
 msgid "Invalidate all netgroups"
-msgstr ""
+msgstr "Invalider tous les groupes réseau"
 
 #: src/tools/sss_cache.c:274
 msgid "Only invalidate entries from a particular domain"
-msgstr ""
+msgstr "N'invalider des entrées que d'un domaine spécifique"
 
 #: src/tools/sss_debuglevel.c:43
 msgid "\n"
@@ -1520,7 +1541,7 @@ msgstr "\n"
 
 #: src/tools/sss_debuglevel.c:102
 msgid "Specify debug level you want to set\n"
-msgstr ""
+msgstr "Définir le niveau de débogage à utiliser\n"
 
 #: src/tools/tools_util.c:286
 msgid "Out of memory\n"
