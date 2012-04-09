@@ -42,6 +42,8 @@
 #include <ldb.h>
 #include <dhash.h>
 
+#include "util/atomic_io.h"
+
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
@@ -509,11 +511,6 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
 
 char *
 sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
-
-ssize_t sss_atomic_io(int fd, void *buf, size_t n, bool do_read);
-
-#define sss_atomic_read(fd, buf, n)  sss_atomic_io(fd, buf, n, true)
-#define sss_atomic_write(fd, buf, n) sss_atomic_io(fd, buf, n, false)
 
 /* from sss_tc_utf8.c */
 char *

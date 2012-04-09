@@ -495,7 +495,7 @@ START_TEST(test_atomicio_read_from_file)
     fail_if(fd == -1, "Cannot open /dev/zero");
 
     errno = 0;
-    numread = sss_atomic_read(fd, buf, bufsize);
+    numread = sss_atomic_read_s(fd, buf, bufsize);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
@@ -517,7 +517,7 @@ START_TEST(test_atomicio_read_from_small_file)
     fail_if(atio_fd < 0, "No fd to test?\n");
 
     errno = 0;
-    numwritten = sss_atomic_write(atio_fd, wbuf, wsize);
+    numwritten = sss_atomic_write_s(atio_fd, wbuf, wsize);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while writing\n", ret);
@@ -528,7 +528,7 @@ START_TEST(test_atomicio_read_from_small_file)
     lseek(atio_fd, 0, SEEK_SET);
 
     errno = 0;
-    numread = sss_atomic_read(atio_fd, rbuf, 64);
+    numread = sss_atomic_read_s(atio_fd, rbuf, 64);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
@@ -550,7 +550,7 @@ START_TEST(test_atomicio_read_from_large_file)
     fail_if(atio_fd < 0, "No fd to test?\n");
 
     errno = 0;
-    numwritten = sss_atomic_write(atio_fd, wbuf, wsize);
+    numwritten = sss_atomic_write_s(atio_fd, wbuf, wsize);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while writing\n", ret);
@@ -563,7 +563,7 @@ START_TEST(test_atomicio_read_from_large_file)
     total = 0;
     do {
         errno = 0;
-        numread = sss_atomic_read(atio_fd, rbuf, 8);
+        numread = sss_atomic_read_s(atio_fd, rbuf, 8);
         ret = errno;
 
         fail_if(numread == -1, "Read error %d: %s\n", ret, strerror(ret));
@@ -588,7 +588,7 @@ START_TEST(test_atomicio_read_exact_sized_file)
     fail_if(atio_fd < 0, "No fd to test?\n");
 
     errno = 0;
-    numwritten = sss_atomic_write(atio_fd, wbuf, wsize);
+    numwritten = sss_atomic_write_s(atio_fd, wbuf, wsize);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while writing\n", ret);
@@ -599,7 +599,7 @@ START_TEST(test_atomicio_read_exact_sized_file)
     lseek(atio_fd, 0, SEEK_SET);
 
     errno = 0;
-    numread = sss_atomic_read(atio_fd, rbuf, 9);
+    numread = sss_atomic_read_s(atio_fd, rbuf, 9);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
@@ -611,7 +611,7 @@ START_TEST(test_atomicio_read_exact_sized_file)
 
     /* We've reached end-of-file, next read must return 0 */
     errno = 0;
-    numread = sss_atomic_read(atio_fd, rbuf, 9);
+    numread = sss_atomic_read_s(atio_fd, rbuf, 9);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
@@ -630,7 +630,7 @@ START_TEST(test_atomicio_read_from_empty_file)
     fail_if(fd == -1, "Cannot open /dev/null");
 
     errno = 0;
-    numread = sss_atomic_read(fd, buf, 64);
+    numread = sss_atomic_read_s(fd, buf, 64);
     ret = errno;
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
