@@ -864,7 +864,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_disable_paging</term>
+                    <term>ldap_disable_paging (boolean)</term>
                     <listitem>
                         <para>
                             Disable the LDAP paging control. This option
@@ -883,6 +883,9 @@
                             support a one paging control at a time on a single
                             connection. On busy clients, this can result in
                             some requests being denied.
+                        </para>
+                        <para>
+                            Default: False
                         </para>
                     </listitem>
                 </varlistentry>
