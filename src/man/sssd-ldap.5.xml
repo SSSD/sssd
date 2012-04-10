@@ -1512,7 +1512,7 @@
                             granted access on this host. If
                             access_provider = ldap and this option is
                             not set, it will result in all users being
-                            denied access. Use access_provider = allow to
+                            denied access. Use access_provider = permit to
                             change this default behavior.
                         </para>
                         <para>
