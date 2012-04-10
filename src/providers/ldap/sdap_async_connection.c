@@ -1747,7 +1747,8 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
                                                         SDAP_DEFAULT_AUTHTOK),
                                         &password);
             if (ret != EOK) {
-                DEBUG(1, ("sdap_auth_get_authtok failed.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                     ("sdap_auth_get_authtok failed.\n"));
                 ret = LDAP_LOCAL_ERROR;
                 goto done;
             }
@@ -1756,8 +1757,9 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
         ret = ldap_sasl_bind_s(ldap, user_dn, LDAP_SASL_SIMPLE, &password,
                                request_controls, NULL, NULL);
         if (ret != LDAP_SUCCESS) {
-            DEBUG(1, ("ldap_sasl_bind_s failed (%d)[%s]\n", ret,
-                      sss_ldap_err2string(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("ldap_sasl_bind_s failed (%d)[%s]\n", ret,
+                  sss_ldap_err2string(ret)));
         }
     } else {
         sasl_bind_state = talloc_zero(tmp_ctx, struct sasl_bind_state);
@@ -1783,7 +1785,7 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
              (ret == LDAP_SUCCESS ? "Successfully" : "Failed to"), url));
 
 done:
+    if (ctrls[0]) ldap_control_free(ctrls[0]);
     talloc_free(tmp_ctx);
-
     return ret;
 }
