@@ -612,6 +612,14 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     krb5_error_code kerr = 0;
     krb5_creds creds;
     krb5_get_init_creds_opt options;
+    krb5_enctype *etype_list;
+    krb5_error_code krberr;
+    TALLOC_CTX *tmp_ctx;
+    int n_etype_list;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL)
+        return ENOMEM;
 
     memset(&creds, 0, sizeof(creds));
     memset(&options, 0, sizeof(options));
@@ -620,6 +628,18 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     krb5_get_init_creds_opt_set_forwardable(&options, 0);
     krb5_get_init_creds_opt_set_proxiable(&options, 0);
     krb5_set_canonicalize(&options);
+
+    krberr = sss_krb5_read_etypes_for_keytab(tmp_ctx, ctx, keytab, princ,
+                                             &etype_list, &n_etype_list);
+    if (krberr) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to load etypes from keytab: %s\n",
+                                     sss_krb5_get_error_message(ctx, krberr)));
+    } else if (n_etype_list > 0) {
+        krb5_get_init_creds_opt_set_etype_list(&options, etype_list,
+                                               n_etype_list);
+        DEBUG(SSSDBG_FUNC_DATA, ("Loaded %d enctypes from keytab\n",
+                                 n_etype_list));
+    }
 
     kerr = krb5_get_init_creds_keytab(ctx, &creds, princ, keytab, 0, NULL,
                                       &options);
@@ -638,6 +658,7 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
 
 done:
     krb5_free_cred_contents(ctx, &creds);
+    talloc_free(tmp_ctx);
 
     return kerr;
 
