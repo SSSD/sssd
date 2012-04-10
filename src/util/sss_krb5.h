@@ -132,4 +132,12 @@ typedef krb5_ticket_times sss_krb5_ticket_times;
 typedef krb5_times sss_krb5_ticket_times;
 #endif
 
+krb5_error_code
+sss_krb5_read_etypes_for_keytab(TALLOC_CTX *mem_ctx,
+                                krb5_context context,
+                                krb5_keytab keytab,
+                                krb5_principal princ,
+                                krb5_enctype **etype_list,
+                                int *n_etype_list);
+
 #endif /* __SSS_KRB5_H__ */
