@@ -266,22 +266,6 @@
                         </para>
                     </listitem>
                 </varlistentry>
-                <varlistentry>
-                    <term>command (string)</term>
-                    <listitem>
-                        <para>
-                            By default, the executable
-                            representing this service is called
-                            <command>sssd_${service_name}</command>.
-                            This directive allows to change the executable
-                            name for the service. In the vast majority of
-                            configurations, the default values should suffice.
-                        </para>
-                        <para>
-                            Default: <command>sssd_${service_name}</command>
-                        </para>
-                    </listitem>
-                </varlistentry>
             </variablelist>
         </refsect2>
 
