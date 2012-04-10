@@ -236,7 +236,7 @@ struct sdap_attr_map rfc2307bis_group_map[] = {
     SDAP_ATTR_MAP_TERMINATOR
 };
 
-struct sdap_attr_map ad2008r2_user_map[] = {
+struct sdap_attr_map gen_ad2008r2_user_map[] = {
     { "ldap_user_object_class", "user", SYSDB_USER_CLASS, NULL },
     { "ldap_user_name", "sAMAccountName", SYSDB_NAME, NULL },
     { "ldap_user_pwd", "unixUserPassword", SYSDB_PWD, NULL },
@@ -275,7 +275,7 @@ struct sdap_attr_map ad2008r2_user_map[] = {
     SDAP_ATTR_MAP_TERMINATOR
 };
 
-struct sdap_attr_map ad2008r2_group_map[] = {
+struct sdap_attr_map gen_ad2008r2_group_map[] = {
     { "ldap_group_object_class", "group", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_name", "name", SYSDB_NAME, NULL },
     { "ldap_group_pwd", NULL, SYSDB_PWD, NULL },

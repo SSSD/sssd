@@ -237,8 +237,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
         default_attr_map = gen_ad_attr_map;
-        default_user_map = ad2008r2_user_map;
-        default_group_map = ad2008r2_group_map;
+        default_user_map = gen_ad2008r2_user_map;
+        default_group_map = gen_ad2008r2_group_map;
         default_netgroup_map = netgroup_map;
         default_service_map = service_map;
     } else {
