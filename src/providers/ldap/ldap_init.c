@@ -118,7 +118,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 
     urls = dp_opt_get_string(ctx->opts->basic, SDAP_URI);
     if (!urls) {
-        DEBUG(1, ("Missing ldap_uri, will use service discovery\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Missing ldap_uri, will use service discovery\n"));
     }
 
     ret = sdap_service_init(ctx, ctx->be, "LDAP",

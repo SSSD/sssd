@@ -360,7 +360,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
     responder_set_fd_limit(fd_limit);
 
-    DEBUG(1, ("NSS Initialization complete\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, ("NSS Initialization complete\n"));
 
     return EOK;
 }

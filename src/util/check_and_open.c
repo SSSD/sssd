@@ -50,8 +50,8 @@ errno_t check_file(const char *filename, const int uid, const int gid,
     ret = follow_symlink ? stat(filename, stat_buf) : \
                            lstat(filename, stat_buf);
     if (ret == -1) {
-        DEBUG(1, ("lstat for [%s] failed: [%d][%s].\n", filename, errno,
-                                                        strerror(errno)));
+        DEBUG(SSSDBG_TRACE_FUNC, ("lstat for [%s] failed: [%d][%s].\n", filename, errno,
+                                                                        strerror(errno)));
         return errno;
     }
 

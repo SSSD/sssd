@@ -266,7 +266,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     }
 
     tmp = dbus_server_get_address(dbus_server);
-    DEBUG(3, ("D-BUS Server listening on %s\n", tmp));
+    DEBUG(SSSDBG_TRACE_FUNC, ("D-BUS Server listening on %s\n", tmp));
     free(tmp);
 
     server = talloc_zero(tmp_ctx, struct sbus_connection);

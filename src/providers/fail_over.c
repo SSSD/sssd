@@ -143,8 +143,8 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     ctx->opts->family_order  = opts->family_order;
     ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
 
-    DEBUG(3, ("Created new fail over context, retry timeout is %d\n",
-              ctx->opts->retry_timeout));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Created new fail over context, retry timeout is %d\n",
+                              ctx->opts->retry_timeout));
     return ctx;
 }
 
@@ -397,7 +397,7 @@ fo_new_service(struct fo_ctx *ctx, const char *name,
     struct fo_service *service;
     int ret;
 
-    DEBUG(3, ("Creating new service '%s'\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Creating new service '%s'\n", name));
     ret = fo_get_service(ctx, name, &service);
     if (ret == EOK) {
         DEBUG(5, ("Service '%s' already exists\n", name));
@@ -514,9 +514,9 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
 {
     struct fo_server *server;
 
-    DEBUG(3, ("Adding new SRV server in domain '%s', to service '%s' using %s\n",
-              discovery_domain ? discovery_domain : "unknown",
-              service->name, proto));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Adding new SRV server in domain '%s', to service '%s' using %s\n",
+                              discovery_domain ? discovery_domain : "unknown",
+                              service->name, proto));
 
     DLIST_FOR_EACH(server, service->server_list) {
         if (server->user_data != user_data)

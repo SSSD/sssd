@@ -391,8 +391,8 @@ int server_setup(const char *name, int flags,
     if (flags & FLAGS_PID_FILE) {
         ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
-            DEBUG(0, ("Error creating pidfile! (%d [%s])\n",
-                      ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Error creating pidfile: %s/%s! (%d [%s])\n",
+                                         PID_PATH, name, ret, strerror(ret)));
             return ret;
         }
     }
@@ -526,7 +526,7 @@ int server_setup(const char *name, int flags,
 
     sss_log(SSS_LOG_INFO, "Starting up");
 
-    DEBUG(3, ("CONFDB: %s\n", conf_db));
+    DEBUG(SSSDBG_TRACE_FUNC, ("CONFDB: %s\n", conf_db));
 
     if (flags & FLAGS_INTERACTIVE) {
         /* terminate when stdin goes away */

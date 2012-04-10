@@ -808,7 +808,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
     if (!domain->enumerate) {
-        DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
+        DEBUG(SSSDBG_TRACE_FUNC, ("No enumeration for [%s]!\n", domain->name));
     }
 
     /* Determine if user/group names will be Fully Qualified

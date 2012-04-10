@@ -349,8 +349,8 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
             !ctx->allow_groups &&
             !ctx->deny_users &&
             !ctx->deny_groups) {
-        DEBUG(1, ("No rules supplied for simple access provider. "
-                  "Access will be granted for all users.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("No rules supplied for simple access provider. "
+                                  "Access will be granted for all users.\n"));
     }
 
     *ops = &simple_access_ops;

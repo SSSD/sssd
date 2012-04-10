@@ -166,13 +166,13 @@ errno_t check_and_export_options(struct dp_option *opts,
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
     if (dummy == NULL) {
-        DEBUG(1, ("No KDC explicitly configured, using defaults.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, ("No KDC explicitly configured, using defaults.\n"));
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KPASSWD);
     if (dummy == NULL) {
-        DEBUG(1, ("No kpasswd server explicitly configured, "
-                  "using the KDC or defaults.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, ("No kpasswd server explicitly configured, "
+                                     "using the KDC or defaults.\n"));
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_CCNAME_TMPL);

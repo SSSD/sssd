@@ -1043,7 +1043,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
 
     krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDC);
     if (krb5_servers == NULL) {
-        DEBUG(1, ("Missing krb5_server option, using service discovery!\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Missing krb5_server option, using service discovery!\n"));
     }
 
     krb5_opt_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);

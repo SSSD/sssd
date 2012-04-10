@@ -705,7 +705,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    DEBUG(1, ("Responder Initialization complete\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Responder Initialization complete\n"));
 
     *responder_ctx = rctx;
     return EOK;

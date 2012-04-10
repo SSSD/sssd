@@ -2274,7 +2274,7 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
-    DEBUG(1, ("Backend provider (%s) started!\n", be_domain));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Backend provider (%s) started!\n", be_domain));
 
     /* loop on main */
     server_loop(main_ctx);

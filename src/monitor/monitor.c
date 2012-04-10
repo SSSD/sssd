@@ -2078,7 +2078,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
     struct mon_init_conn *mini;
     struct timeval tv;
 
-    DEBUG(3, ("Initializing D-BUS Service\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Initializing D-BUS Service\n"));
 
     ctx = talloc_get_type(data, struct mt_ctx);
 
@@ -2447,7 +2447,7 @@ int main(int argc, const char *argv[])
 
     uid = getuid();
     if (uid != 0) {
-        DEBUG(1, ("Running under %d, must be root\n", uid));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Running under %d, must be root\n", uid));
         sss_log(SSS_LOG_ALERT, "sssd must be run as root");
         return 8;
     }
