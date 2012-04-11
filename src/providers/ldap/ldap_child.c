@@ -285,7 +285,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
-    krberr = krb5_cc_initialize(context, ccache, kprinc);
+    /* Use updated principal if changed due to canonicalization. */
+    krberr = krb5_cc_initialize(context, ccache, my_creds.client);
     if (krberr) {
         DEBUG(2, ("Failed to init ccache: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
