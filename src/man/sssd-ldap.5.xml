@@ -331,6 +331,21 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_objectsid (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the objectSID of
+                            an LDAP user object. This is usually only
+                            necessary for ActiveDirectory servers.
+                        </para>
+                        <para>
+                            Default: objectSid for ActiveDirectory, not set
+                            for other servers.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_modify_timestamp (string)</term>
                     <listitem>
                         <para>
@@ -767,6 +782,21 @@
                         </para>
                         <para>
                             Default: nsUniqueId
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_group_objectsid (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the objectSID of
+                            an LDAP group object. This is usually only
+                            necessary for ActiveDirectory servers.
+                        </para>
+                        <para>
+                            Default: objectSid for ActiveDirectory, not set
+                            for other servers.
                         </para>
                     </listitem>
                 </varlistentry>
