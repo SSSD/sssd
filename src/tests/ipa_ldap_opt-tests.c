@@ -128,6 +128,33 @@ START_TEST(test_compare_sdap_attrs)
 }
 END_TEST
 
+START_TEST(test_compare_2307_with_2307bis)
+{
+    errno_t ret;
+
+    /* User Attributes */
+    ret = compare_sdap_attr_maps(rfc2307_user_map, SDAP_OPTS_USER,
+                                 rfc2307bis_user_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    /* Group Attributes */
+    ret = compare_sdap_attr_maps(rfc2307_group_map, SDAP_OPTS_GROUP,
+                                 rfc2307bis_group_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    /* AutoFS Attributes */
+    ret = compare_sdap_attr_maps(rfc2307_autofs_mobject_map,
+                                 SDAP_OPTS_AUTOFS_MAP,
+                                 rfc2307bis_autofs_mobject_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    ret = compare_sdap_attr_maps(rfc2307_autofs_entry_map,
+                                 SDAP_OPTS_AUTOFS_ENTRY,
+                                 rfc2307bis_autofs_entry_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+}
+END_TEST
+
 Suite *ipa_ldap_opt_suite (void)
 {
     Suite *s = suite_create ("ipa_ldap_opt");
@@ -136,6 +163,7 @@ Suite *ipa_ldap_opt_suite (void)
 
     tcase_add_test (tc_ipa_ldap_opt, test_compare_opts);
     tcase_add_test (tc_ipa_ldap_opt, test_compare_sdap_attrs);
+    tcase_add_test (tc_ipa_ldap_opt, test_compare_2307_with_2307bis);
     suite_add_tcase (s, tc_ipa_ldap_opt);
 
     TCase *tc_ipa_utils = tcase_create ("ipa_utils");
