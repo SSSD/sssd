@@ -646,7 +646,8 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
         return kerr;
     }
 
-    kerr = create_ccache_file(ctx, princ, ccname, &creds);
+    /* Use the updated principal in the creds in case canonicalized */
+    kerr = create_ccache_file(ctx, creds.client, ccname, &creds);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
@@ -704,7 +705,10 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         }
     }
 
-    kerr = create_ccache_file(kr->ctx, kr->princ, kr->ccname, kr->creds);
+    /* Use the updated principal in the creds in case canonicalized */
+    kerr = create_ccache_file(kr->ctx,
+                              kr->creds ? kr->creds->client : kr->princ,
+                              kr->ccname, kr->creds);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto done;
