@@ -54,10 +54,13 @@ static int sss_names_ctx_destructor(struct sss_names_ctx *snctx)
     return 0;
 }
 
-int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names_ctx **out)
+int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
+                   const char *domain, struct sss_names_ctx **out)
 {
     struct sss_names_ctx *ctx;
+    TALLOC_CTX *tmpctx = NULL;
     const char *errstr;
+    char *conf_path;
     int errval;
     int errpos;
     int ret;
@@ -66,9 +69,25 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
     if (!ctx) return ENOMEM;
     talloc_set_destructor(ctx, sss_names_ctx_destructor);
 
-    ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_NAME_REGEX, NULL, &ctx->re_pattern);
+    tmpctx = talloc_new(NULL);
+    if (tmpctx == NULL) goto done;
+
+    conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, domain);
+    if (conf_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_string(cdb, ctx, conf_path,
+                            CONFDB_NAME_REGEX, NULL, &ctx->re_pattern);
     if (ret != EOK) goto done;
+
+    /* If not found in the domain, look in globals */
+    if (ctx->re_pattern == NULL) {
+        ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
+                                CONFDB_NAME_REGEX, NULL, &ctx->re_pattern);
+        if (ret != EOK) goto done;
+    }
 
     if (!ctx->re_pattern) {
         ctx->re_pattern = talloc_strdup(ctx,
@@ -87,9 +106,16 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
 #endif
     }
 
-    ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
+    ret = confdb_get_string(cdb, ctx, conf_path,
+                            CONFDB_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
     if (ret != EOK) goto done;
+
+    /* If not found in the domain, look in globals */
+    if (ctx->fq_fmt == NULL) {
+        ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
+                                CONFDB_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
+        if (ret != EOK) goto done;
+    }
 
     if (!ctx->fq_fmt) {
         ctx->fq_fmt = talloc_strdup(ctx, "%1$s@%2$s");
@@ -113,6 +139,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
     ret = EOK;
 
 done:
+    talloc_free(tmpctx);
     if (ret != EOK) {
         talloc_free(ctx);
     }
@@ -132,8 +159,10 @@ int sss_parse_name(TALLOC_CTX *memctx,
     origlen = strlen(orig);
 
     ret = pcre_exec(re, NULL, orig, origlen, 0, PCRE_NOTEMPTY, ovec, 30);
-    if (ret < 0) {
-        DEBUG(2, ("PCRE Matching error, %d\n", ret));
+    if (ret == PCRE_ERROR_NOMATCH) {
+        return EINVAL;
+    } else if (ret < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("PCRE Matching error, %d\n", ret));
         return EINVAL;
     }
 
@@ -169,6 +198,108 @@ int sss_parse_name(TALLOC_CTX *memctx,
             pcre_free_substring(result);
             *domain = NULL;
         }
+    }
+
+    return EOK;
+}
+
+static struct sss_domain_info * match_any_domain_or_subdomain_name (
+        struct sss_domain_info *dom, const char *dmatch)
+{
+    uint32_t i;
+
+    if (strcasecmp (dom->name, dmatch) == 0)
+        return dom;
+
+    for (i = 0; i < dom->subdomain_count; i++) {
+        if (strcasecmp(dom->subdomains[i]->name, dmatch) == 0) {
+            return dom->subdomains[i];
+        }
+    }
+
+    return NULL;
+}
+
+int sss_parse_name_for_domains(TALLOC_CTX *memctx,
+                               struct sss_domain_info *domains,
+                               const char *orig, char **domain, char **name)
+{
+    struct sss_domain_info *dom, *match;
+    char *rdomain, *rname;
+    char *dmatch, *nmatch;
+    char *only_name = NULL;
+    bool only_name_seen = false;
+    bool only_name_mismatch = false;
+    TALLOC_CTX *tmp_ctx;
+    int code;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL)
+        return ENOMEM;
+
+    rname = NULL;
+    rdomain = NULL;
+
+    for (dom = domains; dom != NULL; dom = dom->next) {
+        code = sss_parse_name(tmp_ctx, dom->names, orig, &dmatch, &nmatch);
+        if (code == EOK) {
+            /*
+             * If the name matched without the domain part, make note of it.
+             * All the other domain expressions must agree on the domain-less
+             * name.
+             */
+            if (dmatch == NULL) {
+                if (!only_name_seen) {
+                    only_name = nmatch;
+                } else if (nmatch == NULL || only_name == NULL ||
+                           strcasecmp(only_name, nmatch) != 0) {
+                    only_name_mismatch = true;
+                }
+                only_name_seen = true;
+
+            /*
+             * If a domain was returned, then it must match the name of the
+             * domain that this expression was found on, or one of the
+             * subdomains.
+             */
+            } else {
+                match = match_any_domain_or_subdomain_name (dom, dmatch);
+                if (match != NULL) {
+                    DEBUG(SSSDBG_FUNC_DATA, ("name '%s' matched expression for "
+                                             "domain '%s', user is %s\n",
+                                             orig, dom->name, nmatch));
+                    rdomain = dmatch;
+                    rname = nmatch;
+                    break;
+                }
+            }
+
+        /* EINVAL is returned when name doesn't match */
+        } else if (code != EINVAL) {
+            talloc_free(tmp_ctx);
+            return code;
+        }
+    }
+
+    if (rdomain == NULL && rname == NULL &&
+        only_name_seen && !only_name_mismatch && only_name != NULL) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("name '%s' matched without domain, user is %s\n", orig, nmatch));
+        rdomain = NULL;
+        rname = only_name;
+    }
+
+    if (rdomain != NULL)
+        *domain = talloc_steal(memctx, rdomain);
+    if (rname != NULL)
+        *name = talloc_steal(memctx, rname);
+
+    talloc_free(tmp_ctx);
+
+    if (rdomain == NULL && rname == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("name '%s' did not match any domain's expression\n", orig));
+        return EINVAL;
     }
 
     return EOK;

@@ -162,8 +162,7 @@ static int nss_get_config(struct nss_ctx *nctx,
         nctx->cache_refresh_percent = 0;
     }
 
-    ret = sss_ncache_prepopulate(nctx->ncache, cdb, nctx->rctx->names,
-                                 nctx->rctx);
+    ret = sss_ncache_prepopulate(nctx->ncache, cdb, nctx->rctx);
     if (ret != EOK) {
         goto done;
     }

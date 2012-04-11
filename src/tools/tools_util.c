@@ -268,7 +268,7 @@ int init_sss_tools(struct tools_ctx **_tctx)
         goto fini;
     }
 
-    ret = sss_names_init(tctx, tctx->confdb, &tctx->snctx);
+    ret = sss_names_init(tctx, tctx->confdb, tctx->local->name, &tctx->snctx);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up parsing\n"));
         goto fini;

@@ -704,8 +704,8 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     }
     c += name_len;
 
-    ret = sss_parse_name(cmd_ctx, cctx->rctx->names, name,
-                         &cmd_ctx->domname, &cmd_ctx->name);
+    ret = sss_parse_name_for_domains(cmd_ctx, cctx->rctx->domains, name,
+                                     &cmd_ctx->domname, &cmd_ctx->name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", name));
         return ENOENT;

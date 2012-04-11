@@ -115,7 +115,7 @@ static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd
     return EOK;
 }
 
-static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
+static int pam_parse_in_data_v2(struct sss_domain_info *domains,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
 {
@@ -153,8 +153,8 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
                     ret = extract_string(&pam_user, size, body, blen, &c);
                     if (ret != EOK) return ret;
 
-                    ret = sss_parse_name(pd, snctx, pam_user,
-                                         &pd->domain, &pd->user);
+                    ret = sss_parse_name_for_domains(pd, domains, pam_user,
+                                                     &pd->domain, &pd->user);
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_SERVICE:
@@ -205,13 +205,13 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
 
 }
 
-static int pam_parse_in_data_v3(struct sss_names_ctx *snctx,
+static int pam_parse_in_data_v3(struct sss_domain_info *domains,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
 {
     int ret;
 
-    ret = pam_parse_in_data_v2(snctx, pd, body, blen);
+    ret = pam_parse_in_data_v2(domains, pd, body, blen);
     if (ret != EOK) {
         DEBUG(1, ("pam_parse_in_data_v2 failed.\n"));
         return ret;
@@ -225,7 +225,7 @@ static int pam_parse_in_data_v3(struct sss_names_ctx *snctx,
     return EOK;
 }
 
-static int pam_parse_in_data(struct sss_names_ctx *snctx,
+static int pam_parse_in_data(struct sss_domain_info *domains,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
 {
@@ -241,7 +241,7 @@ static int pam_parse_in_data(struct sss_names_ctx *snctx,
     for (start = end; end < last; end++) if (body[end] == '\0') break;
     if (body[end++] != '\0') return EINVAL;
 
-    ret = sss_parse_name(pd, snctx, (char *)&body[start], &pd->domain, &pd->user);
+    ret = sss_parse_name_for_domains(pd, domains, (char *)&body[start], &pd->domain, &pd->user);
     if (ret != EOK) return ret;
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
@@ -891,13 +891,13 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     switch (cctx->cli_protocol_version->version) {
         case 1:
-            ret = pam_parse_in_data(cctx->rctx->names, pd, body, blen);
+            ret = pam_parse_in_data(cctx->rctx->domains, pd, body, blen);
             break;
         case 2:
-            ret = pam_parse_in_data_v2(cctx->rctx->names, pd, body, blen);
+            ret = pam_parse_in_data_v2(cctx->rctx->domains, pd, body, blen);
             break;
         case 3:
-            ret = pam_parse_in_data_v3(cctx->rctx->names, pd, body, blen);
+            ret = pam_parse_in_data_v3(cctx->rctx->domains, pd, body, blen);
             break;
         default:
             DEBUG(1, ("Illegal protocol version [%d].\n",

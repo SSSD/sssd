@@ -72,7 +72,6 @@ int sss_ncache_reset_permament(struct sss_nc_ctx *ctx);
  */
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
-                               struct sss_names_ctx *names_ctx,
                                struct resp_ctx *rctx);
 
 #endif /* _NSS_NEG_CACHE_H_ */

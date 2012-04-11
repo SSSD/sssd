@@ -214,8 +214,8 @@ static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
     }
 
     domname = NULL;
-    ret = sss_parse_name(cmd_ctx, cli_ctx->rctx->names, rawname,
-                         &domname, &cmd_ctx->username);
+    ret = sss_parse_name_for_domains(cmd_ctx, cli_ctx->rctx->domains, rawname,
+                                     &domname, &cmd_ctx->username);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;

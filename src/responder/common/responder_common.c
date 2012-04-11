@@ -581,6 +581,14 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
             continue;
         }
 
+        ret = sss_names_init(rctx->cdb, rctx->cdb, dom->name, &dom->names);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("fatal error initializing regex data for domain: %s\n",
+                   dom->name));
+            return ret;
+        }
+
         ret = sss_dp_init(rctx, dp_intf, cli_name, dom);
         if (ret != EOK) {
             DEBUG(0, ("fatal error setting up backend connector\n"));
@@ -591,12 +599,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_init(rctx, cdb, NULL, false, &rctx->db_list);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing resp_ctx\n"));
-        return ret;
-    }
-
-    ret = sss_names_init(rctx, rctx->cdb, &rctx->names);
-    if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing regex data\n"));
         return ret;
     }
 

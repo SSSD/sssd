@@ -397,6 +397,7 @@ struct sss_names_ctx {
 
 int sss_names_init(TALLOC_CTX *mem_ctx,
                    struct confdb_ctx *cdb,
+                   const char *domain,
                    struct sss_names_ctx **out);
 
 int sss_parse_name(TALLOC_CTX *memctx,

@@ -565,7 +565,6 @@ int sss_ncache_reset_permament(struct sss_nc_ctx *ctx)
 
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
-                               struct sss_names_ctx *names_ctx,
                                struct resp_ctx *rctx)
 {
     errno_t ret;
@@ -597,8 +596,8 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         filter_set = true;
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
-            ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
-                                 &domainname, &name);
+            ret = sss_parse_name_for_domains(tmpctx, domain_list, filter_list[i],
+                                             &domainname, &name);
             if (ret != EOK) {
                 DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
                          filter_list[i], ret));
@@ -642,8 +641,8 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     else if (ret != EOK) goto done;
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
-        ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
-                             &domainname, &name);
+        ret = sss_parse_name_for_domains(tmpctx, domain_list, filter_list[i],
+                                         &domainname, &name);
         if (ret != EOK) {
             DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
                      filter_list[i], ret));
@@ -694,7 +693,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         filter_set = true;
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
-            ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
+            ret = sss_parse_name(tmpctx, dom->names, filter_list[i],
                                  &domainname, &name);
             if (ret != EOK) {
                 DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
@@ -739,8 +738,8 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     else if (ret != EOK) goto done;
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
-        ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
-                             &domainname, &name);
+        ret = sss_parse_name_for_domains(tmpctx, domain_list, filter_list[i],
+                                         &domainname, &name);
         if (ret != EOK) {
             DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
                      filter_list[i], ret));

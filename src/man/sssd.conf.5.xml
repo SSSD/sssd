@@ -122,25 +122,12 @@
                         <term>re_expression (string)</term>
                         <listitem>
                             <para>
-                                Regular expression that describes how to parse the string
+                                Default regular expression that describes how to parse the string
                                 containing user name and domain into these components.
                             </para>
                             <para>
-                                Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
-                                which translates to "the name is everything up to the
-                                <quote>@</quote> sign, the domain everything after that"
-                            </para>
-                            <para>
-                                PLEASE NOTE: the support for non-unique named
-                                subpatterns is not available on all platforms
-                                (e.g. RHEL5 and SLES10). Only platforms with
-                                libpcre version 7 or higher can support non-unique
-                                named subpatterns.
-                            </para>
-                            <para>
-                                PLEASE NOTE ALSO: older version of libpcre only
-                                support the Python syntax (?P&lt;name&gt;) to label
-                                subpatterns.
+                                Each domain can have an individual regular expression configured.
+                                see DOMAIN SECTIONS for more info on these regular expressions.
                             </para>
                         </listitem>
                     </varlistentry>
@@ -148,7 +135,7 @@
                         <term>full_name_format (string)</term>
                         <listitem>
                             <para>
-                                A <citerefentry>
+                                The default <citerefentry>
                                     <refentrytitle>printf</refentrytitle>
                                     <manvolnum>3</manvolnum>
                                 </citerefentry>-compatible format that describes how to
@@ -156,7 +143,8 @@
                                 name.
                             </para>
                             <para>
-                                Default: <quote>%1$s@%2$s</quote>.
+                                Each domain can have an individual format string configured.
+                                see DOMAIN SECTIONS for more info on this option.
                             </para>
                         </listitem>
                     </varlistentry>
@@ -1282,6 +1270,49 @@
                         <para>
                             Default: The value of <quote>id_provider</quote> is used if it
                             is set.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>re_expression (string)</term>
+                    <listitem>
+                        <para>
+                            Regular expression for this domain that describes how to parse
+                            the string containing user name and domain into these components.
+                        </para>
+                        <para>
+                            Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
+                            which translates to "the name is everything up to the
+                            <quote>@</quote> sign, the domain everything after that"
+                        </para>
+                        <para>
+                            PLEASE NOTE: the support for non-unique named
+                            subpatterns is not available on all platforms
+                            (e.g. RHEL5 and SLES10). Only platforms with
+                            libpcre version 7 or higher can support non-unique
+                            named subpatterns.
+                        </para>
+                        <para>
+                            PLEASE NOTE ALSO: older version of libpcre only
+                            support the Python syntax (?P&lt;name&gt;) to label
+                            subpatterns.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>full_name_format (string)</term>
+                    <listitem>
+                        <para>
+                            A <citerefentry>
+                                <refentrytitle>printf</refentrytitle>
+                                <manvolnum>3</manvolnum>
+                            </citerefentry>-compatible format that describes how to
+                             translate a (name, domain) tuple for this domain into a fully
+                             qualified name.
+                        </para>
+                        <para>
+                            Default: <quote>%1$s@%2$s</quote>.
                         </para>
                     </listitem>
                 </varlistentry>

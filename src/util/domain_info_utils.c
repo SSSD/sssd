@@ -85,6 +85,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->netgroup_timeout = parent->netgroup_timeout;
     dom->service_timeout = parent->service_timeout;
     dom->override_homedir = parent->override_homedir;
+    dom->names = parent->names;
 
     dom->subdomain_homedir = parent->subdomain_homedir;
 

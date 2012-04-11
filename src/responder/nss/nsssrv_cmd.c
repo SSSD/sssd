@@ -235,10 +235,12 @@ static int fill_pwent(struct sss_packet *packet,
     int i, ret, num, t;
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
-    const char *namefmt = nctx->rctx->names->fq_fmt;
+    const char *namefmt;
     bool packet_initialized = false;
     int ncret;
     TALLOC_CTX *tmp_ctx = NULL;
+
+    namefmt = dom->names->fq_fmt;
 
     if (add_domain) dom_len = strlen(domain);
 
@@ -794,8 +796,8 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = sss_parse_name(cmdctx, cctx->rctx->names, rawname,
-                         &domname, &cmdctx->name);
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+                                     &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;
@@ -1681,7 +1683,7 @@ static int fill_members(struct sss_packet *packet,
     size_t rsize = *_rsize;
     char *tmpstr;
     struct sized_string name;
-    const char *namefmt = nctx->rctx->names->fq_fmt;
+    const char *namefmt = dom->names->fq_fmt;
     TALLOC_CTX *tmp_ctx = NULL;
 
     size_t delim;
@@ -1820,8 +1822,10 @@ static int fill_grent(struct sss_packet *packet,
     size_t rzero, rsize;
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
-    const char *namefmt = nctx->rctx->names->fq_fmt;
+    const char *namefmt;
     TALLOC_CTX *tmp_ctx = NULL;
+
+    namefmt = dom->names->fq_fmt;
 
     if (add_domain) {
         delim = 1;
@@ -2258,8 +2262,8 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = sss_parse_name(cmdctx, cctx->rctx->names, rawname,
-                         &domname, &cmdctx->name);
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+                                     &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;
@@ -3368,8 +3372,8 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = sss_parse_name(cmdctx, cctx->rctx->names, rawname,
-                         &domname, &cmdctx->name);
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+                                     &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;

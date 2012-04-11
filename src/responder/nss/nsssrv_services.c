@@ -779,7 +779,7 @@ done:
 
 errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
                             uint8_t *body, size_t blen,
-                            struct sss_names_ctx *names,
+                            struct sss_domain_info *domains,
                             char **domain_name,
                             char **service_name,
                             char **service_protocol);
@@ -820,7 +820,7 @@ int nss_cmd_getservbyname(struct cli_ctx *cctx)
     }
 
     ret = parse_getservbyname(cmdctx, body, blen,
-                              cctx->rctx->names,
+                              cctx->rctx->domains,
                               &domname,
                               &service_name,
                               &service_protocol);
@@ -870,7 +870,7 @@ done:
 
 errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
                             uint8_t *body, size_t blen,
-                            struct sss_names_ctx *names,
+                            struct sss_domain_info *domains,
                             char **domain_name,
                             char **service_name,
                             char **service_protocol)
@@ -959,8 +959,8 @@ errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sss_parse_name(tmp_ctx, names, rawname,
-                         &domname, &svc_name);
+    ret = sss_parse_name_for_domains(tmp_ctx, domains, rawname,
+                                     &domname, &svc_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not split name and domain of [%s]\n",
@@ -1034,7 +1034,6 @@ nss_cmd_getserv_done(struct tevent_req *req)
 
 errno_t parse_getservbyport(TALLOC_CTX *mem_ctx,
                             uint8_t *body, size_t blen,
-                            struct sss_names_ctx *names,
                             uint16_t *service_port,
                             char **service_protocol)
 {
@@ -1138,7 +1137,6 @@ int nss_cmd_getservbyport(struct cli_ctx *cctx)
     }
 
     ret = parse_getservbyport(cmdctx, body, blen,
-                              cctx->rctx->names,
                               &port,
                               &service_protocol);
     if (ret != EOK) {

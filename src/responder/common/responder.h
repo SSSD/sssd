@@ -93,8 +93,6 @@ struct resp_ctx {
     const char *sss_pipe_name;
     const char *confdb_service_path;
 
-    struct sss_names_ctx *names;
-
     hash_table_t *dp_request_table;
 
     struct timeval get_domains_last_call;
@@ -153,6 +151,10 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **domain, char **name);
+
+int sss_parse_name_for_domains(TALLOC_CTX *memctx,
+                               struct sss_domain_info *domains,
+                               const char *orig, char **domain, char **name);
 
 int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
                            struct be_conn **_conn);

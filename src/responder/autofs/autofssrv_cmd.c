@@ -374,8 +374,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     dctx->cmd_ctx = state->cmdctx;
     state->dctx = dctx;
 
-    ret = sss_parse_name(state, client->rctx->names, rawname,
-                         &domname, &state->mapname);
+    ret = sss_parse_name_for_domains(state, client->rctx->domains, rawname,
+                                     &domname, &state->mapname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Invalid name received [%s]\n", rawname));

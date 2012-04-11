@@ -63,10 +63,12 @@
 #define CONFDB_MONITOR_SBUS_TIMEOUT "sbus_timeout"
 #define CONFDB_MONITOR_ACTIVE_SERVICES "services"
 #define CONFDB_MONITOR_ACTIVE_DOMAINS "domains"
-#define CONFDB_MONITOR_NAME_REGEX   "re_expression"
-#define CONFDB_MONITOR_FULL_NAME_FORMAT "full_name_format"
 #define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
+
+/* Both monitor and domains */
+#define CONFDB_NAME_REGEX   "re_expression"
+#define CONFDB_FULL_NAME_FORMAT "full_name_format"
 
 /* Responders */
 #define CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT "get_domains_timeout"
@@ -207,6 +209,7 @@ struct sss_domain_info {
     int pwd_expiration_warning;
 
     struct sysdb_ctx *sysdb;
+    struct sss_names_ctx *names;
 
     struct sss_domain_info **subdomains;
     uint32_t subdomain_count;
