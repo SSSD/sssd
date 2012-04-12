@@ -100,6 +100,7 @@ struct authtok_conv {
 
 struct proxy_id_ctx {
     struct be_ctx *be;
+    bool fast_alias;
     struct proxy_nss_ops ops;
     void *handle;
 };

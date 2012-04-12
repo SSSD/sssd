@@ -28,8 +28,8 @@
 /* =Getpwnam-wrapper======================================================*/
 
 static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
-                     struct passwd *pwd, const char *alias,
-                     uint64_t cache_timeout);
+                     struct passwd *pwd, const char *real_name,
+                     const char *alias, uint64_t cache_timeout);
 
 static int
 handle_getpw_result(enum nss_status status, struct passwd *pwd,
@@ -49,6 +49,8 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     int ret;
     uid_t uid;
     bool del_user;
+    struct ldb_result *cached_pwd = NULL;
+    const char *real_name = NULL;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by name (%s)\n", name));
 
@@ -91,15 +93,38 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     }
 
     uid = pwd->pw_uid;
-    memset(buffer, 0, buflen);
 
     /* Canonicalize the username in case it was actually an alias */
-    status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
-    ret = handle_getpw_result(status, pwd, dom, &del_user);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
-        goto done;
+
+    if (ctx->fast_alias == true) {
+        ret = sysdb_getpwuid(tmpctx, sysdb, uid, &cached_pwd);
+        if (ret != EOK) {
+            /* Non-fatal, attempt to canonicalize online */
+            DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        }
+
+        if (ret == EOK && cached_pwd->count == 1) {
+            real_name = ldb_msg_find_attr_as_string(cached_pwd->msgs[0],
+                                                    SYSDB_NAME, NULL);
+            if (!real_name) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Cached user has no name?\n"));
+            }
+        }
+    }
+
+    if (real_name == NULL) {
+        memset(buffer, 0, buflen);
+
+        status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
+        ret = handle_getpw_result(status, pwd, dom, &del_user);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
+        real_name = pwd->pw_name;
     }
 
     if (del_user) {
@@ -112,7 +137,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
 
     /* Both lookups went fine, we can save the user now */
     ret = save_user(sysdb, !dom->case_sensitive, pwd,
-                    name, dom->user_timeout);
+                    real_name, name, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
@@ -175,8 +200,8 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
 }
 
 static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
-                     struct passwd *pwd, const char *alias,
-                     uint64_t cache_timeout)
+                     struct passwd *pwd, const char *real_name,
+                     const char *alias, uint64_t cache_timeout)
 {
     const char *shell;
     char *lower;
@@ -230,7 +255,7 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
     }
 
     ret = sysdb_store_user(sysdb,
-                           pwd->pw_name,
+                           real_name,
                            pwd->pw_passwd,
                            pwd->pw_uid,
                            pwd->pw_gid,
@@ -303,7 +328,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     }
 
     ret = save_user(sysdb, !dom->case_sensitive, pwd,
-                    NULL, dom->user_timeout);
+                    pwd->pw_name, NULL, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
@@ -412,7 +437,7 @@ again:
         }
 
         ret = save_user(sysdb, !dom->case_sensitive, pwd,
-                        NULL, dom->user_timeout);
+                        pwd->pw_name, NULL, dom->user_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -466,8 +491,8 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
                                            struct group *grp,
                                            time_t now);
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
-                      struct group *grp, const char *alias,
-                      uint64_t cache_timeout)
+                      struct group *grp, const char *real_name,
+                      const char *alias, uint64_t cache_timeout)
 {
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
@@ -555,7 +580,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     }
 
     ret = sysdb_store_group(sysdb,
-                            grp->gr_name,
+                            real_name,
                             grp->gr_gid,
                             attrs,
                             cache_timeout,
@@ -718,6 +743,8 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     bool delete_group = false;
     int ret;
     gid_t gid;
+    struct ldb_result *cached_grp = NULL;
+    const char *real_name = NULL;
 
     DEBUG(SSSDBG_FUNC_DATA, ("Searching group by name (%s)\n", name));
 
@@ -756,27 +783,49 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     }
 
     gid = grp->gr_gid;
-    talloc_zfree(buffer);
-    buflen = 0;
 
     /* Canonicalize the group name in case it was actually an alias */
-    do {
-        memset(grp, 0, sizeof(struct group));
-        buffer = grow_group_buffer(tmpctx, &buffer, &buflen);
-        if (!buffer) {
-            ret = ENOMEM;
+    if (ctx->fast_alias == true) {
+        ret = sysdb_getgrgid(tmpctx, sysdb, gid, &cached_grp);
+        if (ret != EOK) {
+            /* Non-fatal, attempt to canonicalize online */
+            DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        }
+
+        if (ret == EOK && cached_grp->count == 1) {
+            real_name = ldb_msg_find_attr_as_string(cached_grp->msgs[0],
+                                                    SYSDB_NAME, NULL);
+            if (!real_name) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Cached group has no name?\n"));
+            }
+        }
+    }
+
+    if (real_name == NULL) {
+        talloc_zfree(buffer);
+        buflen = 0;
+
+        do {
+            memset(grp, 0, sizeof(struct group));
+            buffer = grow_group_buffer(tmpctx, &buffer, &buflen);
+            if (!buffer) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            status = ctx->ops.getgrgid_r(gid, grp, buffer, buflen, &ret);
+
+            ret = handle_getgr_result(status, grp, dom, &delete_group);
+        } while (ret == EAGAIN);
+
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("getgrgid failed [%d]: %s\n", ret, strerror(ret)));
             goto done;
         }
 
-        status = ctx->ops.getgrgid_r(gid, grp, buffer, buflen, &ret);
-
-        ret = handle_getgr_result(status, grp, dom, &delete_group);
-    } while(ret == EAGAIN);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("getgrgid failed [%d]: %s\n", ret, strerror(ret)));
-        goto done;
+        real_name = grp->gr_name;
     }
 
     if (delete_group) {
@@ -788,7 +837,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_group(sysdb, dom, grp, name, dom->group_timeout);
+    ret = save_group(sysdb, dom, grp, real_name, name, dom->group_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot save group [%d]: %s\n", ret, strerror(ret)));
@@ -857,7 +906,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_group(sysdb, dom, grp, NULL, dom->group_timeout);
+    ret = save_group(sysdb, dom, grp, grp->gr_name, NULL, dom->group_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot save user [%d]: %s\n", ret, strerror(ret)));
@@ -970,7 +1019,8 @@ again:
             goto again; /* skip */
         }
 
-        ret = save_group(sysdb, dom, grp, NULL, dom->group_timeout);
+        ret = save_group(sysdb, dom, grp, grp->gr_name,
+                         NULL, dom->group_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
@@ -1023,6 +1073,8 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     int ret;
     bool del_user;
     uid_t uid;
+    struct ldb_result *cached_pwd = NULL;
+    const char *real_name = NULL;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -1074,12 +1126,35 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     memset(buffer, 0, buflen);
 
     /* Canonicalize the username in case it was actually an alias */
-    status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
-    ret = handle_getpw_result(status, pwd, dom, &del_user);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
-        goto fail;
+    if (ctx->fast_alias == true) {
+        ret = sysdb_getpwuid(tmpctx, sysdb, uid, &cached_pwd);
+        if (ret != EOK) {
+            /* Non-fatal, attempt to canonicalize online */
+            DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
+                  ret, strerror(ret)));
+        }
+
+        if (ret == EOK && cached_pwd->count == 1) {
+            real_name = ldb_msg_find_attr_as_string(cached_pwd->msgs[0],
+                                                    SYSDB_NAME, NULL);
+            if (!real_name) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Cached user has no name?\n"));
+            }
+        }
+    }
+
+    if (real_name == NULL) {
+        memset(buffer, 0, buflen);
+
+        status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
+        ret = handle_getpw_result(status, pwd, dom, &del_user);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
+        real_name = pwd->pw_name;
     }
 
     if (del_user) {
@@ -1095,7 +1170,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     ret = save_user(sysdb, !dom->case_sensitive, pwd,
-                    name, dom->user_timeout);
+                    real_name, name, dom->user_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not save user\n"));
         goto fail;
