@@ -24,9 +24,11 @@
 #include "sss_client/autofs/sss_autofs_private.h"
 #include "sss_client/sss_cli.h"
 
-/* Historically, autofs map and key names were just file names */
+/* Historically, autofs map names were just file names. Direct key names
+ * may be full directory paths
+ */
 #define MAX_AUTOMNTMAPNAME_LEN  NAME_MAX
-#define MAX_AUTOMNTKEYNAME_LEN  NAME_MAX
+#define MAX_AUTOMNTKEYNAME_LEN  PATH_MAX
 
 /* How many entries shall _sss_getautomntent_r retreive at once */
 #define GETAUTOMNTENT_MAX_ENTRIES   512
