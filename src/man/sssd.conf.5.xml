@@ -1206,6 +1206,23 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>proxy_fast_alias (boolean)</term>
+                    <listitem>
+                        <para>
+                            When a user or group is looked up by name in
+                            the proxy provider, a second lookup by ID is
+                            performed to "canonicalize" the name in case
+                            the requested name was an alias. Setting this
+                            option to true would cause the SSSD to perform
+                            the ID lookup from cache for performance reasons.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

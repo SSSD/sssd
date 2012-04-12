@@ -299,6 +299,7 @@ option_strings = {
 
     # [provider/proxy/id]
     'proxy_lib_name' : _('The name of the NSS library to use'),
+    'proxy_fast_alias' : _('Whether to look up canonical group name from cache if possible'),
 
     # [provider/proxy/auth]
     'proxy_pam_target' : _('PAM stack to use')
