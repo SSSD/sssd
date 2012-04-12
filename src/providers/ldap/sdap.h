@@ -180,6 +180,7 @@ enum sdap_basic_opt {
     SDAP_TLS_KEY,
     SDAP_TLS_CIPHER_SUITE,
     SDAP_ID_TLS,
+    SDAP_ID_MAPPING,
     SDAP_SASL_MECH,
     SDAP_SASL_AUTHID,
     SDAP_SASL_REALM,

@@ -193,6 +193,7 @@ option_strings = {
     'ldap_enumeration_refresh_timeout' : _('Length of time between enumeration updates'),
     'ldap_purge_cache_timeout' : _('Length of time between cache cleanups'),
     'ldap_id_use_start_tls' : _('Require TLS for ID lookups'),
+    'ldap_id_mapping' : _('Use ID-mapping of objectSID instead of pre-set IDs'),
     'ldap_user_search_base' : _('Base DN for user lookups'),
     'ldap_user_search_scope' : _('Scope of user lookups'),
     'ldap_user_search_filter' : _('Filter for user lookups'),
