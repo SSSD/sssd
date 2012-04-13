@@ -49,8 +49,6 @@ int ipa_autofs_init(struct be_ctx *be_ctx,
     *ops = &ipa_autofs_ops;
     *pvt_data = id_ctx->sdap_id_ctx;
 
-    DEBUG(0, ("sleeping\n"));
-
     ret = ipa_get_autofs_options(id_ctx->ipa_options, be_ctx->cdb,
                                  be_ctx->conf_path, &id_ctx->sdap_id_ctx->opts);
     if (ret != EOK) {
