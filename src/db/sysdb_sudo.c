@@ -302,38 +302,48 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
         goto done;
     }
 
-    uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
-    if (!uid) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no UID?\n"));
-        ret = EIO;
-        goto done;
+    if (_uid != NULL) {
+        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        if (!uid) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no UID?\n"));
+            ret = EIO;
+            goto done;
+        }
     }
 
-    groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    if (!groups || groups->num_values == 0) {
-        /* No groups for this user in sysdb currently */
-        sysdb_groupnames = NULL;
-    } else {
-        sysdb_groupnames = talloc_array(tmp_ctx, char *, groups->num_values+1);
-        NULL_CHECK(sysdb_groupnames, ret, done);
+    if (groupnames != NULL) {
+        groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+        if (!groups || groups->num_values == 0) {
+            /* No groups for this user in sysdb currently */
+            sysdb_groupnames = NULL;
+        } else {
+            sysdb_groupnames = talloc_array(tmp_ctx, char *, groups->num_values+1);
+            NULL_CHECK(sysdb_groupnames, ret, done);
 
-        /* Get a list of the groups by groupname only */
-        for (i = 0; i < groups->num_values; i++) {
-            ret = sysdb_group_dn_name(sysdb,
-                                      sysdb_groupnames,
-                                      (const char *)groups->values[i].data,
-                                      &sysdb_groupnames[i]);
-            if (ret != EOK) {
-                ret = ENOMEM;
-                goto done;
+            /* Get a list of the groups by groupname only */
+            for (i = 0; i < groups->num_values; i++) {
+                ret = sysdb_group_dn_name(sysdb,
+                                          sysdb_groupnames,
+                                          (const char *)groups->values[i].data,
+                                          &sysdb_groupnames[i]);
+                if (ret != EOK) {
+                    ret = ENOMEM;
+                    goto done;
+                }
             }
+            sysdb_groupnames[groups->num_values] = NULL;
         }
-        sysdb_groupnames[groups->num_values] = NULL;
     }
 
     ret = EOK;
-    *_uid = uid;
-    *groupnames = talloc_steal(mem_ctx, sysdb_groupnames);
+
+    if (_uid != NULL) {
+        *_uid = uid;
+    }
+
+    if (groupnames != NULL) {
+        *groupnames = talloc_steal(mem_ctx, sysdb_groupnames);
+    }
 done:
     talloc_free(tmp_ctx);
     return ret;
