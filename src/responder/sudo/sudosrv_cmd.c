@@ -93,25 +93,22 @@ static errno_t sudosrv_cmd_send_error(TALLOC_CTX *mem_ctx,
     return sudosrv_cmd_send_reply(cmd_ctx, response_body, response_len);
 }
 
-errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret)
+errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
 {
     uint8_t *response_body = NULL;
     size_t response_len = 0;
-    size_t num_rules = dctx->res_count;
-    struct sysdb_attrs **rules = dctx->res;
+    size_t num_rules = cmd_ctx->num_rules;
+    struct sysdb_attrs **rules = cmd_ctx->rules;
 
     switch (ret) {
     case EOK:
         /*
-         * Parent of dctx->res is in-memory cache, we must not talloc_free it!
+         * Parent of cmd_ctx->rules is in-memory cache, we must not talloc_free it!
          */
-        if (!dctx->cmd_ctx->sudo_ctx->timed) {
-            num_rules = dctx->res_count;
-            rules = dctx->res;
-        } else {
+        if (cmd_ctx->sudo_ctx->timed) {
             /* filter rules by time */
-            ret = sysdb_sudo_filter_rules_by_time(dctx, dctx->res_count,
-                                                  dctx->res, 0,
+            ret = sysdb_sudo_filter_rules_by_time(cmd_ctx, cmd_ctx->num_rules,
+                                                  cmd_ctx->rules, 0,
                                                   &num_rules, &rules);
             if (ret != EOK) {
                 return EFAULT;
@@ -119,14 +116,14 @@ errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret)
         }
 
         /* send result */
-        ret = sudosrv_build_response(dctx->cmd_ctx, SSS_SUDO_ERROR_OK,
+        ret = sudosrv_build_response(cmd_ctx, SSS_SUDO_ERROR_OK,
                                      num_rules, rules,
                                      &response_body, &response_len);
         if (ret != EOK) {
             return EFAULT;
         }
 
-        ret = sudosrv_cmd_send_reply(dctx->cmd_ctx, response_body, response_len);
+        ret = sudosrv_cmd_send_reply(cmd_ctx, response_body, response_len);
         break;
 
     case EAGAIN:
@@ -145,13 +142,13 @@ errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret)
 
     default:
         /* send error */
-        ret = sudosrv_cmd_send_error(dctx->cmd_ctx, dctx->cmd_ctx, ret);
+        ret = sudosrv_cmd_send_error(cmd_ctx, cmd_ctx, ret);
         break;
     }
 
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Fatal error, killing connection!\n"));
-        talloc_free(dctx->cmd_ctx->cli_ctx);
+        talloc_free(cmd_ctx->cli_ctx);
         return EFAULT;
     }
 
@@ -164,14 +161,15 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
     struct sudo_dom_ctx *dctx = NULL;
     uint8_t *query_body = NULL;
     size_t query_len = 0;
-    int ret = EOK;
+    errno_t ret = EOK;
 
     cmd_ctx = talloc_zero(cli_ctx, struct sudo_cmd_ctx);
-    if (!cmd_ctx) {
+    if (cmd_ctx == NULL) {
         /* kill the connection here as we have no context for reply */
         DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
         return ENOMEM;
     }
+    cmd_ctx->domain = NULL;
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = type;
     cmd_ctx->username = NULL;
@@ -181,18 +179,17 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
     cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
     if (!cmd_ctx->sudo_ctx) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("sudo_ctx not set, killing connection!\n"));
-        talloc_free(cmd_ctx);
-        return EFAULT;
+        ret = EFAULT;
+        goto done;
     }
 
     /* create domain ctx */
     dctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
-    if (!dctx) {
-        return sudosrv_cmd_send_error(cmd_ctx, cmd_ctx, ENOMEM);
+    if (dctx == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
     dctx->cmd_ctx = cmd_ctx;
-    dctx->orig_username = NULL;
-    dctx->cased_username = NULL;
 
     switch (cmd_ctx->type) {
     case SSS_DP_SUDO_USER:
@@ -206,25 +203,28 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
 
         ret = sudosrv_parse_query(cmd_ctx, cli_ctx->rctx,
                                   query_body, query_len,
-                                  &cmd_ctx->username, &dctx->domain);
+                                  &cmd_ctx->username, &cmd_ctx->domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid query: %s\n", strerror(ret)));
             goto done;
         }
 
         DEBUG(SSSDBG_FUNC_DATA, ("Requesting sudo rules for [%s] from [%s]\n",
-              cmd_ctx->username, dctx->domain ? dctx->domain->name : "<ALL>"));
+              cmd_ctx->username, cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>"));
 
-        if (dctx->domain == NULL) {
+        if (cmd_ctx->domain == NULL) {
             /* this is a multidomain search */
             dctx->domain = cli_ctx->rctx->domains;
             cmd_ctx->check_next = true;
+        } else {
+            dctx->domain = cmd_ctx->domain;
+            cmd_ctx->check_next = false;
         }
 
         /* try to find rules in in-memory cache */
         ret = sudosrv_cache_lookup(cmd_ctx->sudo_ctx->cache, dctx,
                                    cmd_ctx->check_next, cmd_ctx->username,
-                                   &dctx->res_count, &dctx->res);
+                                   &cmd_ctx->num_rules, &cmd_ctx->rules);
         if (ret == EOK) {
             /* cache hit */
             DEBUG(SSSDBG_FUNC_DATA, ("Returning rules for [%s@%s] "
@@ -252,8 +252,8 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
         }
 
         ret = sudosrv_cache_lookup(cmd_ctx->sudo_ctx->cache, dctx,
-                                       cmd_ctx->check_next, cmd_ctx->username,
-                                       &dctx->res_count, &dctx->res);
+                                   cmd_ctx->check_next, cmd_ctx->username,
+                                   &cmd_ctx->num_rules, &cmd_ctx->rules);
 
         if (ret == EOK) {
             /* cache hit */
@@ -261,14 +261,15 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
                                      "from in-memory cache\n", dctx->domain->name));
         } else if (ret == ENOENT) {
             /* cache expired or missed */
-            ret = sudosrv_get_rules(dctx);
+            cmd_ctx->domain = dctx->domain;
+            ret = sudosrv_get_rules(cmd_ctx);
         } /* else error */
 
         break;
     }
 
 done:
-    return sudosrv_cmd_done(dctx, ret);
+    return sudosrv_cmd_done(cmd_ctx, ret);
 }
 
 static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)

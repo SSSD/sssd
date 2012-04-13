@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <talloc.h>
+#include <sys/types.h>
 
 #include "src/db/sysdb.h"
 #include "responder/common/responder.h"
@@ -57,20 +58,23 @@ struct sudo_cmd_ctx {
     struct cli_ctx *cli_ctx;
     struct sudo_ctx *sudo_ctx;
     enum sss_dp_sudo_type type;
+
+    /* input data */
     char *username;
+    const char *orig_username;
+    const char *cased_username;
+    struct sss_domain_info *domain;
     bool check_next;
+
+    /* output data */
+    struct sysdb_attrs **rules;
+    size_t num_rules;
 };
 
 struct sudo_dom_ctx {
     struct sudo_cmd_ctx *cmd_ctx;
     struct sss_domain_info *domain;
     bool check_provider;
-    const char *orig_username;
-    const char *cased_username;
-
-    /* cache results */
-    struct sysdb_attrs **res;
-    size_t res_count;
 };
 
 struct sudo_dp_request {
@@ -80,11 +84,11 @@ struct sudo_dp_request {
 
 struct sss_cmd_table *get_sudo_cmds(void);
 
-errno_t sudosrv_cmd_done(struct sudo_dom_ctx *dctx, int ret);
+errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret);
 
 errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx);
 
-errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx);
+errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx);
 
 errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
                             struct resp_ctx *rctx,
