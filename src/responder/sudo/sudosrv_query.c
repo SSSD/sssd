@@ -26,11 +26,11 @@
 #include "util/util.h"
 #include "responder/sudo/sudosrv_private.h"
 
-int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
-                                   const char *str,
-                                   size_t str_len,
-                                   uint8_t **_response_body,
-                                   size_t *_response_len)
+static int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
+                                          const char *str,
+                                          size_t str_len,
+                                          uint8_t **_response_body,
+                                          size_t *_response_len)
 {
     size_t response_len = *_response_len;
     uint8_t *response_body = *_response_body;
@@ -50,10 +50,10 @@ int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int sudosrv_response_append_uint32(TALLOC_CTX *mem_ctx,
-                                   uint32_t number,
-                                   uint8_t **_response_body,
-                                   size_t *_response_len)
+static int sudosrv_response_append_uint32(TALLOC_CTX *mem_ctx,
+                                          uint32_t number,
+                                          uint8_t **_response_body,
+                                          size_t *_response_len)
 {
     size_t response_len = *_response_len;
     uint8_t *response_body = *_response_body;
@@ -72,57 +72,12 @@ int sudosrv_response_append_uint32(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int sudosrv_response_append_rule(TALLOC_CTX *mem_ctx,
-                                 int attrs_num,
-                                 struct ldb_message_element *attrs,
-                                 uint8_t **_response_body,
-                                 size_t *_response_len)
-{
-    uint8_t *response_body = *_response_body;
-    size_t response_len = *_response_len;
-    TALLOC_CTX *tmp_ctx = NULL;
-    int i = 0;
-    int ret = EOK;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
-        return ENOMEM;
-    }
-
-    /* attrs count */
-    ret = sudosrv_response_append_uint32(tmp_ctx, attrs_num,
-                                         &response_body, &response_len);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* attrs */
-    for (i = 0; i < attrs_num; i++) {
-        ret = sudosrv_response_append_attr(tmp_ctx, attrs[i].name,
-                                           attrs[i].num_values, attrs[i].values,
-                                           &response_body, &response_len);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    *_response_body = talloc_steal(mem_ctx, response_body);
-    *_response_len = response_len;
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
-                                 const char *name,
-                                 unsigned int values_num,
-                                 struct ldb_val *values,
-                                 uint8_t **_response_body,
-                                 size_t *_response_len)
+static int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
+                                        const char *name,
+                                        unsigned int values_num,
+                                        struct ldb_val *values,
+                                        uint8_t **_response_body,
+                                        size_t *_response_len)
 {
     uint8_t *response_body = *_response_body;
     size_t response_len = *_response_len;
@@ -169,6 +124,194 @@ int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
 
     *_response_body = talloc_steal(mem_ctx, response_body);
     *_response_len = response_len;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static int sudosrv_response_append_rule(TALLOC_CTX *mem_ctx,
+                                        int attrs_num,
+                                        struct ldb_message_element *attrs,
+                                        uint8_t **_response_body,
+                                        size_t *_response_len)
+{
+    uint8_t *response_body = *_response_body;
+    size_t response_len = *_response_len;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int i = 0;
+    int ret = EOK;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    /* attrs count */
+    ret = sudosrv_response_append_uint32(tmp_ctx, attrs_num,
+                                         &response_body, &response_len);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* attrs */
+    for (i = 0; i < attrs_num; i++) {
+        ret = sudosrv_response_append_attr(tmp_ctx, attrs[i].name,
+                                           attrs[i].num_values, attrs[i].values,
+                                           &response_body, &response_len);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    *_response_body = talloc_steal(mem_ctx, response_body);
+    *_response_len = response_len;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/*
+ * Response format:
+ * <error_code(uint32_t)><num_entries(uint32_t)><rule1><rule2>...
+ * <ruleN> = <num_attrs(uint32_t)><attr1><attr2>...
+ * <attrN>  = <name(char*)>\0<num_values(uint32_t)><value1(char*)>\0<value2(char*)>\0...
+ *
+ * if <error_code> is not SSS_SUDO_ERROR_OK, the rest of the data is skipped.
+ */
+errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
+                               uint32_t error,
+                               int rules_num,
+                               struct sysdb_attrs **rules,
+                               uint8_t **_response_body,
+                               size_t *_response_len)
+{
+    uint8_t *response_body = NULL;
+    size_t response_len = 0;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int i = 0;
+    errno_t ret = EOK;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    /* error code */
+    ret = sudosrv_response_append_uint32(tmp_ctx, error,
+                                         &response_body, &response_len);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    if (error != SSS_SUDO_ERROR_OK) {
+        goto done;
+    }
+
+    /* rules count */
+    ret = sudosrv_response_append_uint32(tmp_ctx, (uint32_t)rules_num,
+                                         &response_body, &response_len);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* rules */
+    for (i = 0; i < rules_num; i++) {
+        ret = sudosrv_response_append_rule(tmp_ctx, rules[i]->num, rules[i]->a,
+                                           &response_body, &response_len);
+        if (ret != EOK) {
+            goto fail;
+        }
+    }
+
+done:
+    *_response_body = talloc_steal(mem_ctx, response_body);
+    *_response_len = response_len;
+
+    ret = EOK;
+
+fail:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/*
+ * Query format:
+ * <username[@domain]>
+ */
+errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
+                            struct resp_ctx *rctx,
+                            uint8_t *query_body,
+                            size_t query_len,
+                            char **_username,
+                            struct sss_domain_info **_domain)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    size_t offset = 0;
+    size_t rawname_len = 0;
+    char *rawname = NULL;
+    char *domainname = NULL;
+    char *username = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    /* username[@domain] */
+
+    rawname = (char*)(query_body + offset);
+    rawname_len = query_len - offset; /* strlen + zero */
+
+    if (rawname[rawname_len - 1] != '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Username is not zero terminated\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (rawname_len < 2) { /* at least one character and zero */
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Query does not contain username\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (!sss_utf8_check((uint8_t*)rawname, rawname_len - 1)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Supplied data is not valid UTF-8 string\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* parse username */
+
+    ret = sss_parse_name_for_domains(tmp_ctx, rctx->domains, rawname,
+                                     &domainname, &username);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid name received [%s]\n", rawname));
+        goto done;
+    }
+
+    if (domainname != NULL) {
+        /* mem_ctx because it duplicates only subdomains not domains
+         * so I cannot easily steal it */
+        domain = responder_get_domain(mem_ctx, rctx, domainname);
+        if (domain == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    *_username = talloc_steal(mem_ctx, username);
+    *_domain = domain; /* do not steal on mem_ctx */
 
     ret = EOK;
 

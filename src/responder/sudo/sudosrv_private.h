@@ -86,40 +86,19 @@ errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx);
 
 errno_t sudosrv_get_rules(struct sudo_dom_ctx *dctx);
 
-char * sudosrv_get_sudorules_parse_query(TALLOC_CTX *mem_ctx,
-                                         const char *query_body,
-                                         int query_len);
+errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
+                            struct resp_ctx *rctx,
+                            uint8_t *query_body,
+                            size_t query_len,
+                            char **_username,
+                            struct sss_domain_info **_domain);
 
-int sudosrv_get_sudorules_build_response(TALLOC_CTX *mem_ctx,
-                                         uint32_t error,
-                                         int rules_num,
-                                         struct sysdb_attrs **rules,
-                                         uint8_t **_response_body,
-                                         size_t *_response_len);
-
-int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
-                                   const char *str,
-                                   size_t str_len,
-                                   uint8_t **_response_body,
-                                   size_t *_response_len);
-
-int sudosrv_response_append_uint32(TALLOC_CTX *mem_ctx,
-                                   uint32_t number,
-                                   uint8_t **_response_body,
-                                   size_t *_response_len);
-
-int sudosrv_response_append_rule(TALLOC_CTX *mem_ctx,
-                                 int attrs_num,
-                                 struct ldb_message_element *attrs,
-                                 uint8_t **_response_body,
-                                 size_t *_response_len);
-
-int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
-                                 const char *name,
-                                 unsigned int values_num,
-                                 struct ldb_val *values,
-                                 uint8_t **_response_body,
-                                 size_t *_response_len);
+errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
+                               uint32_t error,
+                               int rules_num,
+                               struct sysdb_attrs **rules,
+                               uint8_t **_response_body,
+                               size_t *_response_len);
 
 struct tevent_req *
 sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
