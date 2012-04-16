@@ -263,6 +263,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'services',
             'domains',
             'timeout',
+            'force_timeout',
             'sbus_timeout',
             're_expression',
             'full_name_format',

@@ -59,6 +59,9 @@
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
+/* terminate the child after this interval by default if it
+ * doesn't shutdown on receiving SIGTERM */
+#define MONITOR_DEF_FORCE_TIME 60
 
 /* Special value to leave the Kerberos Replay Cache set to use
  * the libkrb5 defaults
@@ -93,6 +96,7 @@ struct mt_svc {
     pid_t pid;
 
     int ping_time;
+    int kill_time;
 
     bool svc_started;
 
@@ -568,7 +572,7 @@ static int monitor_kill_service (struct mt_svc *svc)
     /* Set up a timer to send SIGKILL if this process
      * doesn't exit within sixty seconds
      */
-    tv = tevent_timeval_current_ofs(60, 0);
+    tv = tevent_timeval_current_ofs(svc->kill_time, 0);
     svc->sigkill_ev = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
                                        mt_svc_sigkill, svc);
 
@@ -936,7 +940,8 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                          CONFDB_SERVICE_TIMEOUT,
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
-        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to get ping timeout for %s\n", svc->name));
         talloc_free(svc);
         return ret;
     }
@@ -944,6 +949,21 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     /* 'timeout = 0' should be translated to the default */
     if (svc->ping_time == 0) {
         svc->ping_time = MONITOR_DEF_PING_TIME;
+    }
+
+    ret = confdb_get_int(ctx->cdb, path,
+                         CONFDB_SERVICE_FORCE_TIMEOUT,
+                         MONITOR_DEF_FORCE_TIME, &svc->kill_time);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to get kill timeout for %s\n", svc->name));
+        talloc_free(svc);
+        return ret;
+    }
+
+    /* 'force_timeout = 0' should be translated to the default */
+    if (svc->kill_time == 0) {
+        svc->kill_time = MONITOR_DEF_FORCE_TIME;
     }
 
     svc->last_restart = now;
@@ -2072,7 +2092,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
     mini->ctx = ctx;
     mini->conn = conn;
 
-    /* 5 seconds should be plenty */
+    /* 10 seconds should be plenty */
     tv = tevent_timeval_current_ofs(10, 0);
 
     mini->timeout = tevent_add_timer(ctx->ev, mini, tv, init_timeout, mini);
