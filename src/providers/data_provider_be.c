@@ -110,7 +110,7 @@ static struct bet_data bet_data[] = {
     {BET_ACCESS, CONFDB_DOMAIN_ACCESS_PROVIDER, "sssm_%s_access_init"},
     {BET_CHPASS, CONFDB_DOMAIN_CHPASS_PROVIDER, "sssm_%s_chpass_init"},
     {BET_SUDO, CONFDB_DOMAIN_SUDO_PROVIDER, "sssm_%s_sudo_init"},
-    {BET_AUTOFS, CONFDB_DOMAIN_SUDO_PROVIDER, "sssm_%s_autofs_init"},
+    {BET_AUTOFS, CONFDB_DOMAIN_AUTOFS_PROVIDER, "sssm_%s_autofs_init"},
     {BET_SESSION, CONFDB_DOMAIN_SESSION_PROVIDER, "sssm_%s_session_init"},
     {BET_HOSTID, CONFDB_DOMAIN_HOSTID_PROVIDER, "sssm_%s_hostid_init"},
     {BET_MAX, NULL, NULL}
