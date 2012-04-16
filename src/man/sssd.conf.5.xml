@@ -1035,6 +1035,66 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry condition="with_autofs">
+                    <term>autofs_provider (string)</term>
+                    <listitem>
+                        <para>
+                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+                        </para>
+                        <para>
+                            The autofs provider used for the domain.
+                            Supported autofs providers are:
+                        </para>
+                        <para>
+                            <quote>ldap</quote> to load maps stored in LDAP. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>ipa</quote> to load maps stored in an IPA
+                            server. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring IPA.
+                        </para>
+                        <para>
+                            <quote>none</quote> disables autofs explicitly.
+                        </para>
+                        <para>
+                            Default: The value of <quote>id_provider</quote> is used if it
+                            is set.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>hostid_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The provider used for retreiving host identity information.
+                            Supported hostid providers are:
+                        </para>
+                        <para>
+                            <quote>ipa</quote> to load host identity stored in an IPA
+                            server. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring IPA.
+                        </para>
+                        <para>
+                            <quote>none</quote> disables hostid explicitly.
+                        </para>
+                        <para>
+                            Default: The value of <quote>id_provider</quote> is used if it
+                            is set.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>lookup_family_order (string)</term>
                     <listitem>
