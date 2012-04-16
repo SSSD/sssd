@@ -96,6 +96,9 @@ EXTRA_DIST += \
 XML_DOC = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 
 if HAVE_PO4A
+CFG_PAGES = $(addprefix $(srcdir)/, $(shell grep '\[type:docbook\]' $(PO4A_CONFIG) | awk '{print $$2}' | tr '\n' ' '))
+NONTRANSLATED_PAGES = $(filter-out $(CFG_PAGES), $(XML_DOC))
+
 
 # FIXME: Use a stamp file until po4a supports them internally.
 man.stamp: $(XML_DOC) $(POTFILE) $(PO4A_CONFIG)
@@ -104,6 +107,10 @@ man.stamp: $(XML_DOC) $(POTFILE) $(PO4A_CONFIG)
 	touch $@
 
 update-po:
+	@if test x"$(NONTRANSLATED_PAGES)" != "x"; then \
+	    echo "The following pages are not translated" $(NONTRANSLATED_PAGES); \
+	    exit 1; \
+	fi
 	cd $(srcdir) && \
 	$(PO4A) $(PO4A_BUILD_OPTS) --force $(PO4A_CONFIG)
 
