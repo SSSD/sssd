@@ -254,6 +254,19 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Timeout in seconds between heartbeats for this
+                            service. This is used to ensure that the process
+                            is alive and capable of answering requests.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>reconnection_retries (integer)</term>
                     <listitem>
                         <para>
@@ -683,20 +696,6 @@
                         </para>
                         <para>
                             Default: 1 for min_id, 0 (no limit) for max_id
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Timeout in seconds between heartbeats for this domain.
-                            This is used to ensure that the backend process is
-                            alive and capable of answering requests.
-                        </para>
-                        <para>
-                            Default: 10
                         </para>
                     </listitem>
                 </varlistentry>
