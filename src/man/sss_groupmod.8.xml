@@ -68,6 +68,8 @@
         </variablelist>
     </refsect1>
 
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/local.xml" />
+
     <refsect1 id='see_also'>
         <title>SEE ALSO</title>
         <para>
