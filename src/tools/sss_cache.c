@@ -64,7 +64,7 @@ static struct entry_type_t entry_types[] = {
     {"group", sysdb_search_groups},
     {"netgroup", sysdb_search_netgroups},
     {"service", search_services},
-    {"autofsmap", search_autofsmaps}
+    {"autofs map", search_autofsmaps}
 };
 
 struct cache_tool_ctx {
@@ -77,14 +77,21 @@ struct cache_tool_ctx {
     char *netgroup_filter;
     char *service_filter;
     char *autofs_filter;
+
+    char *user_name;
+    char *group_name;
+    char *netgroup_name;
+    char *service_name;
+    char *autofs_name;
 };
 
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
 errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                          const char *name, int entry_type);
-void invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                        enum sss_cache_entry entry_type, const char *filter);
+bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+                        enum sss_cache_entry entry_type, const char *filter,
+                        const char *name);
 
 int main(int argc, const char *argv[])
 {
@@ -92,10 +99,12 @@ int main(int argc, const char *argv[])
     struct cache_tool_ctx *tctx = NULL;
     struct sysdb_ctx *sysdb;
     int i;
+    bool skipped;
 
     ret = init_context(argc, argv, &tctx);
     if (ret != EOK) {
-        DEBUG(2, ("Error initializing context for the application\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error initializing context for the application\n"));
         goto done;
     }
 
@@ -103,20 +112,32 @@ int main(int argc, const char *argv[])
         sysdb = tctx->sysdb_list->dbs[i];
         ret = sysdb_transaction_start(sysdb);
         if (ret != EOK) {
-            DEBUG(1, ("Could not start the transaction!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not start the transaction!\n"));
             goto done;
         }
 
-        invalidate_entries(tctx, sysdb, TYPE_USER, tctx->user_filter);
-        invalidate_entries(tctx, sysdb, TYPE_GROUP, tctx->group_filter);
-        invalidate_entries(tctx, sysdb, TYPE_NETGROUP, tctx->netgroup_filter);
-        invalidate_entries(tctx, sysdb, TYPE_SERVICE, tctx->service_filter);
-        invalidate_entries(tctx, sysdb, TYPE_AUTOFSMAP, tctx->autofs_filter);
+        skipped = true;
+        skipped &= !invalidate_entries(tctx, sysdb, TYPE_USER,
+                                   tctx->user_filter, tctx->user_name);
+        skipped &= !invalidate_entries(tctx, sysdb, TYPE_GROUP,
+                                   tctx->group_filter, tctx->group_name);
+        skipped &= !invalidate_entries(tctx, sysdb, TYPE_NETGROUP,
+                                   tctx->netgroup_filter, tctx->netgroup_name);
+        skipped &= !invalidate_entries(tctx, sysdb, TYPE_SERVICE,
+                                   tctx->service_filter, tctx->service_name);
+        skipped &= !invalidate_entries(tctx, sysdb, TYPE_AUTOFSMAP,
+                                   tctx->autofs_filter, tctx->autofs_name);
 
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
-            DEBUG(1, ("Could not commit the transaction!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not commit the transaction!\n"));
             sysdb_transaction_cancel(sysdb);
+        }
+
+        if (skipped == true) {
+            ERROR("No cache object matched the specified search\n");
+            ret = ENOENT;
+            goto done;
         }
     }
 
@@ -125,8 +146,9 @@ done:
     return ret;
 }
 
-void invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                        enum sss_cache_entry entry_type, const char *filter)
+bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+                        enum sss_cache_entry entry_type, const char *filter,
+                        const char *name)
 {
     const char *attrs[] = {SYSDB_NAME, NULL};
     size_t msg_count;
@@ -135,35 +157,47 @@ void invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
     errno_t ret;
     int i;
     const char *c_name;
+    bool iret;
+
+    if (!filter) return false;
 
     type_rec = entry_types[entry_type];
-    if (filter) {
-        ret = type_rec.search_fn(ctx, sysdb, filter, attrs,
-                                 &msg_count, &msgs);
-        if (ret != EOK) {
-            DEBUG(3, ("Searching for %s with filter %s failed\n",
-                      type_rec.type_string, filter));
-            return;
+    ret = type_rec.search_fn(ctx, sysdb, filter, attrs,
+                                &msg_count, &msgs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Searching for %s with filter %s failed\n",
+               type_rec.type_string, filter));
+        if (name) {
+            ERROR("No such %s named %s, skipping\n",
+                    type_rec.type_string, name);
+        } else {
+            ERROR("No objects of type %s in the cache, skipping\n",
+                    type_rec.type_string);
         }
+        return false;
+    }
 
-        for (i = 0; i < msg_count; i++) {
-            c_name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
-            if (c_name == NULL) {
-                DEBUG(3, ("Something bad happened, can't find attribute %s",
-                            SYSDB_NAME));
-                ERROR("Couldn't invalidate %s", type_rec.type_string);
-            } else {
-                ret = invalidate_entry(ctx, sysdb, c_name, entry_type);
-                if (ret != EOK) {
-                    DEBUG(3, ("Couldn't invalidate %s %s", type_rec.type_string,
-                              c_name));
-                    ERROR("Couldn't invalidate %s %s", type_rec.type_string,
-                          c_name);
-                }
+    iret = true;
+    for (i = 0; i < msg_count; i++) {
+        c_name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        if (c_name == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Something bad happened, can't find attribute %s", SYSDB_NAME));
+            ERROR("Couldn't invalidate %s", type_rec.type_string);
+            iret = false;
+        } else {
+            ret = invalidate_entry(ctx, sysdb, c_name, entry_type);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Couldn't invalidate %s %s", type_rec.type_string, c_name));
+                ERROR("Couldn't invalidate %s %s", type_rec.type_string, c_name);
+                iret = false;
             }
         }
-        talloc_zfree(msgs);
     }
+    talloc_zfree(msgs);
+    return iret;
 }
 
 errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
@@ -339,8 +373,16 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
                 break;
         }
     }
+
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
+    }
+
+    if (idb == INVALIDATE_NONE && !user && !group &&
+        !netgroup && !service && !map) {
+        BAD_POPT_PARAMS(pc,
+                _("Please select at least one object to invalidate\n"),
+                ret, fini);
     }
 
     debug_level = debug_convert_old_level(debug);
@@ -358,12 +400,14 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         ctx->user_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
     } else if (user) {
         ctx->user_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME, user);
+        ctx->user_name = talloc_strdup(ctx, user);
     }
 
     if (idb & INVALIDATE_GROUPS) {
         ctx->group_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
     } else if (group) {
         ctx->group_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME, group);
+        ctx->group_name = talloc_strdup(ctx, group);
     }
 
     if (idb & INVALIDATE_NETGROUPS) {
@@ -371,12 +415,14 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     } else if (netgroup) {
         ctx->netgroup_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME,
                                                netgroup);
+        ctx->netgroup_name = talloc_strdup(ctx, netgroup);
     }
 
     if (idb & INVALIDATE_SERVICES) {
         ctx->service_filter = talloc_strdup(ctx, "*");
     } else if (service) {
         ctx->service_filter = talloc_strdup(ctx, service);
+        ctx->service_name = talloc_strdup(ctx, service);
     }
 
     if (idb & INVALIDATE_AUTOFSMAPS) {
@@ -386,13 +432,18 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         ctx->autofs_filter = talloc_asprintf(ctx, "(&(objectclass=%s)(%s=%s))",
                                              SYSDB_AUTOFS_MAP_OC,
                                              SYSDB_NAME, map);
+        ctx->autofs_name = talloc_strdup(ctx, map);
     }
+
 
     if (((idb & INVALIDATE_USERS || user) && !ctx->user_filter) ||
         ((idb & INVALIDATE_GROUPS || group) && !ctx->group_filter) ||
         ((idb & INVALIDATE_NETGROUPS || netgroup) && !ctx->netgroup_filter) ||
         ((idb & INVALIDATE_SERVICES || service) && !ctx->service_filter) ||
-        ((idb & INVALIDATE_AUTOFSMAPS || map) && !ctx->autofs_filter)) {
+        ((idb & INVALIDATE_AUTOFSMAPS || map) && !ctx->autofs_filter) ||
+         (user && !ctx->user_name) || (group && !ctx->group_name) ||
+         (netgroup && !ctx->netgroup_name) || (map && !ctx->autofs_name) ||
+         (service && !ctx->service_name)) {
         DEBUG(1, ("Construction of filters failed\n"));
         ret = ENOMEM;
         goto fini;
@@ -400,7 +451,13 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     ret = init_domains(ctx, domain);
     if (ret != EOK) {
-        DEBUG(3, ("Initialization of sysdb connections failed\n"));
+        if (domain) {
+            ERROR("Could not open domain %s\n", domain);
+        } else {
+            ERROR("Could not open available domains\n");
+        }
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Initialization of sysdb connections failed\n"));
         goto fini;
     }
 
