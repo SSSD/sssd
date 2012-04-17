@@ -212,7 +212,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sdap_options *opts,
                            struct sss_domain_info *dom,
                            struct sysdb_attrs *attrs,
-                           bool store_members,
                            bool populate_members,
                            char **_usn_value,
                            time_t now)
@@ -328,24 +327,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
         el->values = el1->values;
         el->num_values = el1->num_values;
-    } else if (store_members) {
-        ret = sysdb_attrs_get_el(attrs,
-                        opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
-        if (ret != EOK) {
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            DEBUG(7, ("No members for group [%s]\n", name));
-
-        } else {
-            DEBUG(7, ("Adding member users to group [%s]\n", name));
-
-            ret = sdap_fill_memberships(group_attrs, ctx, opts, dom,
-                                        el->values, el->num_values);
-            if (ret) {
-                goto fail;
-            }
-        }
     }
 
     ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, group_attrs);
@@ -502,7 +483,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         /* if 2 pass savemembers = false */
         ret = sdap_save_group(tmpctx, sysdb,
                               opts, dom, groups[i],
-                              (!twopass), populate_members, &usn_value, now);
+                              populate_members, &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
