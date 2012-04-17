@@ -108,7 +108,7 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
     }
 
     /* Just allocate both big enough to contain all members for now */
-    el->values = talloc_realloc(el, el->values, struct ldb_val,
+    el->values = talloc_realloc(group_attrs, el->values, struct ldb_val,
                                 el->num_values + num_values);
     if (!el->values) {
         ret = ENOMEM;
