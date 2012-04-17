@@ -650,52 +650,6 @@ int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
     return EOK;
 }
 
-int sysdb_attrs_users_from_ldb_vals(struct sysdb_attrs *attrs,
-                                    const char *attr_name,
-                                    const char *domain,
-                                    struct ldb_val *values,
-                                    int num_values)
-{
-    struct ldb_message_element *el = NULL;
-    struct ldb_val *vals;
-    int i, j;
-    char *member;
-    int ret;
-
-    ret = sysdb_attrs_get_el(attrs, attr_name, &el);
-    if (ret) {
-        return ret;
-    }
-
-    vals = talloc_realloc(attrs->a, el->values, struct ldb_val,
-                          el->num_values + num_values);
-    if (!vals) {
-        return ENOMEM;
-    }
-    el->values = vals;
-
-    DEBUG(9, ("Adding %d members to existing %d ones\n",
-              num_values, el->num_values));
-
-    for (i = 0, j = el->num_values; i < num_values; i++) {
-        member = sysdb_user_strdn(el->values, domain,
-                                  (char *)values[i].data);
-        if (!member) {
-            DEBUG(4, ("Failed to get user dn for [%s]\n",
-                      (char *)values[i].data));
-            return ENOMEM;
-        }
-        el->values[j].data = (uint8_t *)member;
-        el->values[j].length = strlen(member);
-        j++;
-
-        DEBUG(7, ("    member #%d: [%s]\n", i, member));
-    }
-    el->num_values = j;
-
-    return EOK;
-}
-
 static char *build_dom_dn_str_escape(TALLOC_CTX *mem_ctx, const char *template,
                                      const char *domain, const char *name)
 {

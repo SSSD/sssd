@@ -242,11 +242,6 @@ int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,
                                     const char *const *list);
-int sysdb_attrs_users_from_ldb_vals(struct sysdb_attrs *attrs,
-                                    const char *attr_name,
-                                    const char *domain,
-                                    struct ldb_val *values,
-                                    int num_values);
 errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
                                  struct sysdb_attrs *attrs,
                                  const char *ldap_attr,
