@@ -102,70 +102,42 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
     int i, j;
     int ret;
 
-    switch (opts->schema_type) {
-    case SDAP_SCHEMA_RFC2307:
-        DEBUG(9, ("[RFC2307 Schema]\n"));
-
-        ret = sysdb_attrs_users_from_ldb_vals(group_attrs, SYSDB_MEMBER,
-                                              domain->name,
-                                              values, num_values);
-        if (ret) {
-            goto done;
-        }
-
-        break;
-
-    case SDAP_SCHEMA_RFC2307BIS:
-    case SDAP_SCHEMA_IPA_V1:
-    case SDAP_SCHEMA_AD:
-        DEBUG(9, ("[IPA or AD Schema]\n"));
-
-        ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
-        if (ret) {
-            goto done;
-        }
-
-        /* Just allocate both big enough to contain all members for now */
-        el->values = talloc_realloc(el, el->values, struct ldb_val,
-                                    el->num_values + num_values);
-        if (!el->values) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        for (i = 0, j = el->num_values; i < num_values; i++) {
-
-            /* sync search entry with this as origDN */
-            ret = sdap_find_entry_by_origDN(el->values, ctx, domain,
-                                            (char *)values[i].data,
-                                            (char **)&el->values[j].data);
-            if (ret != EOK) {
-                if (ret != ENOENT) {
-                    goto done;
-                }
-
-                DEBUG(7, ("    member #%d (%s): not found!\n",
-                          i, (char *)values[i].data));
-            } else {
-                DEBUG(7, ("    member #%d (%s): [%s]\n",
-                          i, (char *)values[i].data,
-                          (char *)el->values[j].data));
-
-                el->values[j].length = strlen((char *)el->values[j].data);
-                j++;
-            }
-        }
-        el->num_values = j;
-
-        break;
-
-    default:
-        DEBUG(0, ("FATAL ERROR: Unhandled schema type! (%d)\n",
-                  opts->schema_type));
-        ret = EFAULT;
+    ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
+    if (ret) {
         goto done;
     }
 
+    /* Just allocate both big enough to contain all members for now */
+    el->values = talloc_realloc(el, el->values, struct ldb_val,
+                                el->num_values + num_values);
+    if (!el->values) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0, j = el->num_values; i < num_values; i++) {
+
+        /* sync search entry with this as origDN */
+        ret = sdap_find_entry_by_origDN(el->values, ctx, domain,
+                                        (char *)values[i].data,
+                                        (char **)&el->values[j].data);
+        if (ret != EOK) {
+            if (ret != ENOENT) {
+                goto done;
+            }
+
+            DEBUG(7, ("    member #%d (%s): not found!\n",
+                      i, (char *)values[i].data));
+        } else {
+            DEBUG(7, ("    member #%d (%s): [%s]\n",
+                      i, (char *)values[i].data,
+                      (char *)el->values[j].data));
+
+            el->values[j].length = strlen((char *)el->values[j].data);
+            j++;
+        }
+    }
+    el->num_values = j;
     ret = EOK;
 
 done:
