@@ -970,6 +970,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
     }
 
     ret = EOK;
+    talloc_free(memberel->values);
     memberel->values = talloc_steal(state->group, state->sysdb_dns->values);
     memberel->num_values = state->sysdb_dns->num_values;
 
