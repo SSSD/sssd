@@ -153,6 +153,7 @@ noinst_LTLIBRARIES = \
 
 if HAVE_NSS
     SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_base64.c \
+                        src/util/crypto/nss/nss_hmac_sha1.c \
                         src/util/crypto/nss/nss_sha512crypt.c \
                         src/util/crypto/nss/nss_obfuscate.c \
                         src/util/crypto/nss/nss_util.c
@@ -160,6 +161,7 @@ if HAVE_NSS
     SSS_CRYPT_LIBS = $(NSS_LIBS)
 else
     SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
+                        src/util/crypto/libcrypto/crypto_hmac_sha1.c \
                         src/util/crypto/libcrypto/crypto_sha512crypt.c \
                         src/util/crypto/libcrypto/crypto_obfuscate.c
     SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)

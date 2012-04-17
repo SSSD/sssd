@@ -91,6 +91,41 @@ START_TEST(test_encrypt_decrypt)
 }
 END_TEST
 
+START_TEST(test_hmac_sha1)
+{
+    const char *message = "test message";
+    const char *keys[] = {
+        "short",
+        "proper6789012345678901234567890123456789012345678901234567890123",
+        "longlonglonglonglonglonglonglonglonglonglonglonglonglonglonglonglong",
+        NULL };
+    const char *results[] = {
+        "\x2b\x27\x53\x07\x17\xd8\xc0\x8f\x97\x27\xdd\xb3\xec\x41\xd8\xa3\x94\x97\xaa\x35",
+        "\x37\xe7\x0a\x6f\x71\x0b\xa9\x93\x81\x53\x8f\x5c\x06\x83\x44\x2f\xc9\x41\xe3\xed",
+        "\xbd\x99\xa7\x7f\xfc\x5e\xde\x04\x32\x7f\x7b\x71\x4d\xc0\x3f\x51\x2d\x25\x01\x28",
+        NULL };
+    unsigned char out[SSS_SHA1_LENGTH];
+    int ret, expected;
+    int i;
+
+#ifdef HAVE_NSS
+    expected = EOK;
+#elif HAVE_LIBCRYPTO
+    expected = ENOSYS;
+#else
+#error Unknown crypto back end
+#endif
+
+    for (i = 0; keys[i]; i++) {
+        ret = sss_hmac_sha1((const unsigned char *)keys[i], strlen(keys[i]),
+                            (const unsigned char *)message, strlen(message),
+                            out);
+        fail_if(ret != expected);
+        fail_if(ret == EOK && memcmp(out, results[i], SSS_SHA1_LENGTH) != 0);
+    }
+}
+END_TEST
+
 Suite *crypto_suite(void)
 {
     Suite *s = suite_create("sss_crypto");
@@ -102,6 +137,7 @@ Suite *crypto_suite(void)
     tcase_add_test(tc, test_nss_init);
 #endif
     tcase_add_test(tc, test_encrypt_decrypt);
+    tcase_add_test(tc, test_hmac_sha1);
     /* Add all test cases to the test suite */
     suite_add_tcase(s, tc);
 
