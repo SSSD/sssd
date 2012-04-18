@@ -417,6 +417,139 @@ ssh_host_pubkeys_search_dp_callback(uint16_t err_maj,
     ssh_cmd_done(cmd_ctx, ret);
 }
 
+static char *
+ssh_host_pubkeys_format_known_host_plain(TALLOC_CTX *mem_ctx,
+                                         struct sss_ssh_ent *ent)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *name, *pubkey, *result;
+    size_t i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return NULL;
+    }
+
+    name = talloc_strdup(tmp_ctx, ent->name);
+    if (!name) {
+        goto done;
+    }
+
+    for (i = 0; i < ent->num_aliases; i++) {
+        name = talloc_asprintf_append(name, ",%s", ent->aliases[i]);
+        if (!name) {
+            goto done;
+        }
+    }
+
+    result = talloc_strdup(tmp_ctx, "");
+    if (!result) {
+        goto done;
+    }
+
+    for (i = 0; i < ent->num_pubkeys; i++) {
+        pubkey = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[i],
+                                       SSS_SSH_FORMAT_OPENSSH, "");
+        if (!pubkey) {
+            result = NULL;
+            goto done;
+        }
+
+        result = talloc_asprintf_append(result, "%s %s\n", name, pubkey);
+        if (!result) {
+            goto done;
+        }
+
+        talloc_free(pubkey);
+    }
+
+    talloc_steal(mem_ctx, result);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return result;
+}
+
+static char *
+ssh_host_pubkeys_format_known_host_hashed(TALLOC_CTX *mem_ctx,
+                                          struct sss_ssh_ent *ent)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    char *name, *pubkey, *saltstr, *hashstr, *result;
+    unsigned char salt[SSS_SHA1_LENGTH], hash[SSS_SHA1_LENGTH];
+    size_t i, j, k;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return NULL;
+    }
+
+    result = talloc_strdup(tmp_ctx, "");
+    if (!result) {
+        goto done;
+    }
+
+    for (i = 0; i < ent->num_pubkeys; i++) {
+        pubkey = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[i],
+                                       SSS_SSH_FORMAT_OPENSSH, "");
+        if (!pubkey) {
+            result = NULL;
+            goto done;
+        }
+
+        for (j = 0; j <= ent->num_aliases; j++) {
+            name = (j == 0 ? ent->name : ent->aliases[j-1]);
+
+            for (k = 0; k < SSS_SHA1_LENGTH; k++) {
+                salt[k] = rand();
+            }
+
+            ret = sss_hmac_sha1(salt, SSS_SHA1_LENGTH,
+                                (unsigned char *)name, strlen(name),
+                                hash);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("sss_hmac_sha1() failed (%d): %s\n",
+                       ret, strerror(ret)));
+                result = NULL;
+                goto done;
+            }
+
+            saltstr = sss_base64_encode(tmp_ctx, salt, SSS_SHA1_LENGTH);
+            if (!saltstr) {
+                result = NULL;
+                goto done;
+            }
+
+            hashstr = sss_base64_encode(tmp_ctx, hash, SSS_SHA1_LENGTH);
+            if (!hashstr) {
+                result = NULL;
+                goto done;
+            }
+
+            result = talloc_asprintf_append(result, "|1|%s|%s %s\n",
+                                            saltstr, hashstr, pubkey);
+            if (!result) {
+                goto done;
+            }
+
+            talloc_free(saltstr);
+            talloc_free(hashstr);
+        }
+
+        talloc_free(pubkey);
+    }
+
+    talloc_steal(mem_ctx, result);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return result;
+}
+
 static errno_t
 ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
 {
@@ -430,12 +563,13 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     };
     struct cli_ctx *cctx = cmd_ctx->cctx;
     struct sss_domain_info *dom = cctx->rctx->domains;
+    struct ssh_ctx *ssh_ctx = (struct ssh_ctx *)cctx->rctx->pvt_ctx;
     struct sysdb_ctx *sysdb;
     struct ldb_message **hosts;
-    size_t num_hosts, i, j, k;
+    size_t num_hosts, i;
     struct sss_ssh_ent *ent;
     int fd = -1;
-    char *filename, *pubkey, *line;
+    char *filename, *entstr;
     ssize_t wret;
     mode_t old_mask;
 
@@ -487,42 +621,28 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
                 continue;
             }
 
-            for (j = 0; j < ent->num_pubkeys; j++) {
-                pubkey = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[j],
-                                               SSS_SSH_FORMAT_OPENSSH);
-                if (!pubkey) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          ("Out of memory formatting SSH public key\n"));
-                    continue;
-                }
-
-                line = talloc_strdup(tmp_ctx, ent->name);
-                if (!line) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                for (k = 0; k < ent->num_aliases; k++) {
-                    line = talloc_asprintf_append(line, ",%s", ent->aliases[k]);
-                    if (!line) {
-                        ret = ENOMEM;
-                        goto done;
-                    }
-                }
-
-                line = talloc_asprintf_append(line, " %s\n", pubkey);
-                if (!line) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                wret = sss_atomic_write_s(fd, line, strlen(line));
-                if (wret == -1) {
-                    ret = errno;
-                    goto done;
-                }
+            if (ssh_ctx->hash_known_hosts) {
+                entstr = ssh_host_pubkeys_format_known_host_hashed(ent, ent);
+            } else {
+                entstr = ssh_host_pubkeys_format_known_host_plain(ent, ent);
             }
+            if (!entstr) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Failed to format known_hosts data for [%s]\n",
+                       ent->name));
+                continue;
+            }
+
+            wret = sss_atomic_write_s(fd, entstr, strlen(entstr));
+            if (wret == -1) {
+                ret = errno;
+                goto done;
+            }
+
+            talloc_free(ent);
         }
+
+        talloc_free(hosts);
 
         dom = dom->next;
     }

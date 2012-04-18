@@ -110,7 +110,7 @@ int main(int argc, const char **argv)
     /* print results */
     for (i = 0; i < ent->num_pubkeys; i++) {
         repr = sss_ssh_format_pubkey(mem_ctx, ent, &ent->pubkeys[i],
-                                     SSS_SSH_FORMAT_OPENSSH);
+                                     SSS_SSH_FORMAT_OPENSSH, NULL);
         if (!repr) {
             ERROR("Not enough memory\n");
             ret = EXIT_FAILURE;

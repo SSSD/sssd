@@ -82,6 +82,9 @@ option_strings = {
     # [autofs]
     'autofs_negative_timeout' : _('Negative cache timeout length (seconds)'),
 
+    # [ssh]
+    'ssh_hash_known_hosts': _('Whether to hash host names and adresses in the known_hosts file'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),

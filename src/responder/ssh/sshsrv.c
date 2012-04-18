@@ -128,6 +128,19 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                             ssh_dp_reconnect_init, iter);
     }
 
+    /* Get responder options */
+
+    /* Get ssh_hash_known_hosts option */
+    ret = confdb_get_bool(ssh_ctx->rctx->cdb,
+                          CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_HASH_KNOWN_HOSTS,
+                          CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS,
+                          &ssh_ctx->hash_known_hosts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
+              ret, strerror(ret)));
+        return ret;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, ("SSH Initialization complete\n"));
 
     return EOK;

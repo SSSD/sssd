@@ -136,12 +136,17 @@ char *
 sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
                       struct sss_ssh_ent *ent,
                       struct sss_ssh_pubkey *pubkey,
-                      enum sss_ssh_pubkey_format format)
+                      enum sss_ssh_pubkey_format format,
+                      const char *comment)
 {
     TALLOC_CTX *tmp_ctx;
     char *blob;
     char *algo;
     char *result = NULL;
+
+    if (!comment) {
+        comment = ent->name;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -166,7 +171,7 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        result = talloc_asprintf(mem_ctx, "%s %s %s", algo, blob, ent->name);
+        result = talloc_asprintf(mem_ctx, "%s %s %s", algo, blob, comment);
         break;
     }
 

@@ -729,6 +729,31 @@
             </variablelist>
         </refsect2>
 
+        <refsect2 id='SSH' condition="with_ssh">
+            <title>SSH configuration options</title>
+            <para>
+                These options can be used to configure the SSH service.
+            </para>
+            <para>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+            </para>
+
+            <variablelist>
+                <varlistentry>
+                    <term>ssh_hash_known_hosts (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether or not to hash host names and adresses in
+                            the managed known_hosts file.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
     </refsect1>
 
     <refsect1 id='domain-sections'>

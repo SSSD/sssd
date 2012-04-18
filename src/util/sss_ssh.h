@@ -54,6 +54,7 @@ char *
 sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
                       struct sss_ssh_ent *ent,
                       struct sss_ssh_pubkey *pubkey,
-                      enum sss_ssh_pubkey_format format);
+                      enum sss_ssh_pubkey_format format,
+                      const char *comment);
 
 #endif /* _SSS_SSH_H_ */

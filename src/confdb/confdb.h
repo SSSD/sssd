@@ -109,6 +109,8 @@
 
 /* SSH */
 #define CONFDB_SSH_CONF_ENTRY "config/ssh"
+#define CONFDB_SSH_HASH_KNOWN_HOSTS "ssh_hash_known_hosts"
+#define CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS true
 
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"

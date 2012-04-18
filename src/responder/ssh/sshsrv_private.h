@@ -31,6 +31,8 @@
 
 struct ssh_ctx {
     struct resp_ctx *rctx;
+
+    bool hash_known_hosts;
 };
 
 struct ssh_cmd_ctx {
