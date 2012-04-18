@@ -55,7 +55,6 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
         return ENOMEM;
     }
     cmd_ctx->cctx = cctx;
-    cmd_ctx->type = SSS_DP_USER;
 
     ret = ssh_cmd_parse_request(cmd_ctx);
     if (ret != EOK) {
@@ -98,7 +97,6 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
         return ENOMEM;
     }
     cmd_ctx->cctx = cctx;
-    cmd_ctx->type = SSS_DP_HOST;
 
     ret = ssh_cmd_parse_request(cmd_ctx);
     if (ret != EOK) {
@@ -139,9 +137,9 @@ ssh_dp_send_req_done(struct tevent_req *req)
     dbus_uint32_t err_min;
     char *err_msg;
 
-    ret = sss_dp_get_account_recv(cb_ctx->mem_ctx, req,
-                                  &err_maj, &err_min,
-                                  &err_msg);
+    ret = sss_dp_get_ssh_host_recv(cb_ctx->mem_ctx, req,
+                                   &err_maj, &err_min,
+                                   &err_msg);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -312,9 +310,9 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
 
     /* refresh the host's cache entry */
     if (NEED_CHECK_PROVIDER(cmd_ctx->domain->provider)) {
-        req = sss_dp_get_account_send(cmd_ctx, cmd_ctx->cctx->rctx,
-                                      cmd_ctx->domain, false, SSS_DP_HOST,
-                                      cmd_ctx->name, 0, cmd_ctx->alias);
+        req = sss_dp_get_ssh_host_send(cmd_ctx, cmd_ctx->cctx->rctx,
+                                       cmd_ctx->domain, false,
+                                       cmd_ctx->name, cmd_ctx->alias);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Out of memory sending data provider request\n"));

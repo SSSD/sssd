@@ -490,34 +490,24 @@ sss_dp_get_account_msg(void *pvt)
     uint32_t be_type;
     uint32_t attrs = BE_ATTR_CORE;
     char *filter;
-    const char *dp_method;
 
     info = talloc_get_type(pvt, struct sss_dp_account_info);
 
     switch (info->type) {
         case SSS_DP_USER:
             be_type = BE_REQ_USER;
-            dp_method = DP_METHOD_GETACCTINFO;
             break;
         case SSS_DP_GROUP:
             be_type = BE_REQ_GROUP;
-            dp_method = DP_METHOD_GETACCTINFO;
             break;
         case SSS_DP_INITGROUPS:
             be_type = BE_REQ_INITGROUPS;
-            dp_method = DP_METHOD_GETACCTINFO;
             break;
         case SSS_DP_NETGR:
             be_type = BE_REQ_NETGROUP;
-            dp_method = DP_METHOD_GETACCTINFO;
             break;
         case SSS_DP_SERVICES:
             be_type = BE_REQ_SERVICES;
-            dp_method = DP_METHOD_GETACCTINFO;
-            break;
-        case SSS_DP_HOST:
-            be_type = 0;
-            dp_method = DP_METHOD_HOSTHANDLER;
             break;
     }
 
@@ -550,7 +540,7 @@ sss_dp_get_account_msg(void *pvt)
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
                                        DP_INTERFACE,
-                                       dp_method);
+                                       DP_METHOD_GETACCTINFO);
     if (msg == NULL) {
         talloc_free(filter);
         DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));

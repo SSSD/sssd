@@ -45,8 +45,7 @@ hosts_get_send(TALLOC_CTX *memctx,
                struct tevent_context *ev,
                struct ipa_hostid_ctx *hostid_ctx,
                const char *name,
-               const char *alias,
-               int attrs_type);
+               const char *alias);
 static errno_t
 hosts_get_recv(struct tevent_req *req,
                int *dp_error_out);
@@ -59,7 +58,7 @@ ipa_host_info_handler(struct be_req *breq)
 {
     struct ipa_hostid_ctx *hostid_ctx;
     struct sdap_id_ctx *ctx;
-    struct be_acct_req *ar;
+    struct be_host_req *hr;
     struct tevent_req *req;
     int dp_error = DP_ERR_FATAL;
     errno_t ret = EOK;
@@ -75,17 +74,16 @@ ipa_host_info_handler(struct be_req *breq)
         goto done;
     }
 
-    ar = talloc_get_type(breq->req_data, struct be_acct_req);
+    hr = talloc_get_type(breq->req_data, struct be_host_req);
 
-    if (ar->filter_type != BE_FILTER_NAME) {
+    if (hr->filter_type != BE_FILTER_NAME) {
         ret = EINVAL;
         err = "Invalid filter type";
         goto done;
     }
 
     req = hosts_get_send(breq, breq->be_ctx->ev, hostid_ctx,
-                         ar->filter_value, ar->extra_value,
-                         ar->attr_type);
+                         hr->name, hr->alias);
     if (!req) {
         ret = ENOMEM;
         err = "Out of memory";
@@ -150,8 +148,7 @@ hosts_get_send(TALLOC_CTX *memctx,
                struct tevent_context *ev,
                struct ipa_hostid_ctx *hostid_ctx,
                const char *name,
-               const char *alias,
-               int attrs_type)
+               const char *alias)
 {
     struct tevent_req *req;
     struct hosts_get_state *state;

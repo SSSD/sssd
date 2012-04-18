@@ -37,7 +37,6 @@ struct ssh_ctx {
 
 struct ssh_cmd_ctx {
     struct cli_ctx *cctx;
-    enum sss_dp_acct_type type;
     char *name;
     char *alias;
     char *domname;
@@ -50,5 +49,20 @@ struct ssh_cmd_ctx {
 };
 
 struct sss_cmd_table *get_ssh_cmds(void);
+
+struct tevent_req *
+sss_dp_get_ssh_host_send(TALLOC_CTX *mem_ctx,
+                         struct resp_ctx *rctx,
+                         struct sss_domain_info *dom,
+                         bool fast_reply,
+                         const char *name,
+                         const char *alias);
+
+errno_t
+sss_dp_get_ssh_host_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         dbus_uint16_t *dp_err,
+                         dbus_uint32_t *dp_ret,
+                         char **err_msg);
 
 #endif /* _SSHSRV_PRIVATE_H_ */

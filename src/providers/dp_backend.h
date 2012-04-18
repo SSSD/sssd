@@ -173,6 +173,13 @@ struct be_get_subdomains_req {
     struct subdomain_info **domain_list;
 };
 
+struct be_host_req {
+    uint32_t type;
+    int filter_type;
+    char *name;
+    char *alias;
+};
+
 bool be_is_offline(struct be_ctx *ctx);
 void be_mark_offline(struct be_ctx *ctx);
 

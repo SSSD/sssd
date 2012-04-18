@@ -570,6 +570,7 @@ endif
 if BUILD_SSH
 sssd_ssh_SOURCES = \
     src/responder/ssh/sshsrv.c \
+    src/responder/ssh/sshsrv_dp.c \
     src/responder/ssh/sshsrv_cmd.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_ssh_LDADD = \

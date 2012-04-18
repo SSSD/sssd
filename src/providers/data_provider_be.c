@@ -1336,7 +1336,7 @@ static void be_autofs_handler_callback(struct be_req *req,
 
 static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
 {
-    struct be_acct_req *req;
+    struct be_host_req *req;
     struct be_req *be_req;
     struct be_client *becli;
     DBusMessage *reply;
@@ -1345,7 +1345,6 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     void *user_data;
     uint32_t flags;
     char *filter;
-    uint32_t attr_type;
     int ret;
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
@@ -1362,7 +1361,6 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
 
     ret = dbus_message_get_args(message, &dbus_error,
                                 DBUS_TYPE_UINT32, &flags,
-                                DBUS_TYPE_UINT32, &attr_type,
                                 DBUS_TYPE_STRING, &filter,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
@@ -1372,7 +1370,7 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Got request for [%u][%d][%s]\n", flags, attr_type, filter));
+          ("Got request for [%u][%s]\n", flags, filter));
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
@@ -1420,35 +1418,27 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->fn = acctinfo_callback;
     be_req->pvt = reply;
 
-    req = talloc(be_req, struct be_acct_req);
+    req = talloc(be_req, struct be_host_req);
     if (!req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
         goto done;
     }
-    req->entry_type = BE_REQ_HOST | (flags & BE_REQ_FAST);
-    req->attr_type = (int)attr_type;
+    req->type = BE_REQ_HOST | (flags & BE_REQ_FAST);
 
     be_req->req_data = req;
 
-    if ((attr_type != BE_ATTR_CORE) &&
-        (attr_type != BE_ATTR_MEM) &&
-        (attr_type != BE_ATTR_ALL)) {
-        /* Unrecognized attr type */
-        err_maj = DP_ERR_FATAL;
-        err_min = EINVAL;
-        err_msg = "Invalid Attrs Parameter";
-        goto done;
-    }
-
     if (filter) {
-        if (strncmp(filter, "name=", 5) == 0) {
+        ret = strncmp(filter, "name=", 5);
+        if (ret == 0) {
             req->filter_type = BE_FILTER_NAME;
             ret = split_name_extended(req, &filter[5],
-                                      &req->filter_value,
-                                      &req->extra_value);
-        } else {
+                                      &req->name,
+                                      &req->alias);
+        }
+
+        if (ret) {
             err_maj = DP_ERR_FATAL;
             err_min = EINVAL;
             err_msg = "Invalid Filter";
