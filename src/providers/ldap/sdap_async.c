@@ -2082,7 +2082,7 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
     struct ldb_message *msg;
     TALLOC_CTX *tmp_ctx = NULL;
     char **parents;
-    uid_t alias_uid;
+    uid_t alias_uid, uid;
     int i;
 
     tmp_ctx = talloc_new(NULL);
@@ -2092,14 +2092,22 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
                                    opts->user_map[SDAP_AT_USER_NAME].name,
                                    &name);
     if (ret != EOK) {
-        DEBUG(1, ("Could not get the primary name\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Could not get the primary name\n"));
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_uint32_t(user_attrs,
+                                   opts->user_map[SDAP_AT_USER_UID].name,
+                                   &uid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Could not get UID\n"));
         goto done;
     }
 
     ret = sysdb_attrs_get_aliases(tmp_ctx, user_attrs, name,
                                   !dom->case_sensitive, &aliases);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to get the alias list\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Failed to get the alias list\n"));
         goto done;
     }
 
@@ -2110,21 +2118,28 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
         ret = sysdb_search_user_by_name(tmp_ctx, sysdb,
                                         aliases[i], NULL, &msg);
         if (ret && ret != ENOENT) {
-            DEBUG(1, ("Error searching the cache\n"));
+            DEBUG(SSSDBG_TRACE_INTERNAL, ("Error searching the cache\n"));
             goto done;
         } else if (ret == ENOENT) {
-            DEBUG(9, ("No user with primary name same as alias %s\n", aliases[i]));
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("No user with primary name same as alias %s\n", aliases[i]));
             continue;
         }
 
         alias_uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
         if (alias_uid) {
-            DEBUG(1, ("Cache contains non-fake user with same name "
-                      "as alias %s\n", aliases[i]));
+            if (alias_uid == uid) {
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      ("User already cached, skipping\n"));
+                continue;
+            }
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Cache contains non-fake user with same name "
+                   "as alias %s\n", aliases[i]));
             ret = EIO;
             goto done;
         }
-        DEBUG(7, ("%s is a fake user\n", aliases[i]));
+        DEBUG(SSSDBG_TRACE_FUNC, ("%s is a fake user\n", aliases[i]));
 
         if (steal_memberships) {
             /* Get direct sysdb parents */
@@ -2132,8 +2147,9 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
                                            SYSDB_MEMBER_USER,
                                            aliases[i], &parents);
             if (ret) {
-                DEBUG(1, ("Could not get direct parents for %s: %d [%s]\n",
-                          aliases[i], ret, strerror(ret)));
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Could not get direct parents for %s: %d [%s]\n",
+                       aliases[i], ret, strerror(ret)));
                 goto done;
             }
 
@@ -2141,15 +2157,17 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
                                     (const char *const *) parents,
                                     NULL);
             if (ret != EOK) {
-                DEBUG(1, ("Membership update failed [%d]: %s\n",
-                          ret, strerror(ret)));
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Membership update failed [%d]: %s\n",
+                      ret, strerror(ret)));
                 goto done;
             }
         }
 
         ret = sysdb_delete_user(sysdb, aliases[i], alias_uid);
         if (ret) {
-            DEBUG(1, ("Error deleting fake user %s\n", aliases[i]));
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Error deleting fake user %s\n", aliases[i]));
             goto done;
         }
     }
