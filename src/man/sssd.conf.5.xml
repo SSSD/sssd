@@ -1076,7 +1076,7 @@
                     <term>hostid_provider (string)</term>
                     <listitem>
                         <para>
-                            The provider used for retreiving host identity information.
+                            The provider used for retrieving host identity information.
                             Supported hostid providers are:
                         </para>
                         <para>
