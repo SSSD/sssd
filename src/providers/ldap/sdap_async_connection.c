@@ -1149,6 +1149,7 @@ struct sdap_cli_connect_state {
     struct be_ctx *be;
 
     bool use_rootdse;
+    struct sysdb_attrs *rootdse;
 
     struct sdap_handle *sh;
 
@@ -1165,10 +1166,12 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq);
 static void sdap_cli_connect_done(struct tevent_req *subreq);
 static void sdap_cli_rootdse_step(struct tevent_req *req);
 static void sdap_cli_rootdse_done(struct tevent_req *subreq);
+static errno_t sdap_cli_use_rootdse(struct sdap_cli_connect_state *state);
 static void sdap_cli_kinit_step(struct tevent_req *req);
 static void sdap_cli_kinit_done(struct tevent_req *subreq);
 static void sdap_cli_auth_step(struct tevent_req *req);
 static void sdap_cli_auth_done(struct tevent_req *subreq);
+static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
@@ -1357,11 +1360,10 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
-    struct sysdb_attrs *rootdse;
     const char *sasl_mech;
     int ret;
 
-    ret = sdap_get_rootdse_recv(subreq, state, &rootdse);
+    ret = sdap_get_rootdse_recv(subreq, state, &state->rootdse);
     talloc_zfree(subreq);
     if (ret) {
         if (ret == ETIMEDOUT) { /* retry another server */
@@ -1379,39 +1381,20 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
          * features requested by the config
          * work properly.
          */
-        state->use_rootdse = false;
-        rootdse = NULL;
+        state->rootdse = NULL;
     }
 
-    if (state->use_rootdse) {
-        /* save rootdse data about supported features */
-        ret = sdap_set_rootdse_supported_lists(rootdse, state->sh);
-        if (ret) {
-            tevent_req_error(req, ret);
-            return;
-        }
 
-        ret = sdap_set_config_options_with_rootdse(rootdse, state->opts);
-        if (ret) {
-            DEBUG(1, ("sdap_set_config_options_with_rootdse failed.\n"));
-            tevent_req_error(req, ret);
-            return;
-        }
-
-    }
-
-    ret = sdap_get_server_opts_from_rootdse(state,
-                                            state->service->uri, rootdse,
-                                            state->opts, &state->srv_opts);
-    if (ret) {
-        DEBUG(1, ("sdap_get_server_opts_from_rootdse failed.\n"));
+    ret = sdap_cli_use_rootdse(state);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_cli_use_rootdse failed\n"));
         tevent_req_error(req, ret);
         return;
     }
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
-    if (state->do_auth && sasl_mech && state->use_rootdse) {
+    if (state->do_auth && sasl_mech && state->rootdse) {
         /* check if server claims to support GSSAPI */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
@@ -1427,6 +1410,41 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
     }
 
     sdap_cli_auth_step(req);
+}
+
+static errno_t sdap_cli_use_rootdse(struct sdap_cli_connect_state *state)
+{
+    errno_t ret;
+
+    if (state->rootdse) {
+        /* save rootdse data about supported features */
+        ret = sdap_set_rootdse_supported_lists(state->rootdse, state->sh);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sdap_set_rootdse_supported_lists failed\n"));
+            return ret;
+        }
+
+        ret = sdap_set_config_options_with_rootdse(state->rootdse, state->opts);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sdap_set_config_options_with_rootdse failed.\n"));
+            return ret;
+        }
+
+    }
+
+    ret = sdap_get_server_opts_from_rootdse(state,
+                                            state->service->uri,
+                                            state->rootdse,
+                                            state->opts, &state->srv_opts);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("sdap_get_server_opts_from_rootdse failed.\n"));
+        return ret;
+    }
+
+    return EOK;
 }
 
 static void sdap_cli_kinit_step(struct tevent_req *req)
@@ -1545,6 +1563,8 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                             struct sdap_cli_connect_state);
     enum sdap_result result;
     int ret;
 
@@ -1556,6 +1576,64 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
     }
     if (result != SDAP_AUTH_SUCCESS) {
         tevent_req_error(req, EACCES);
+        return;
+    }
+
+    if (state->use_rootdse && !state->rootdse) {
+        /* We weren't able to read rootDSE during unauthenticated bind.
+         * Let's try again now that we are authenticated */
+        subreq = sdap_get_rootdse_send(state, state->ev,
+                                       state->opts, state->sh);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, sdap_cli_rootdse_auth_done, req);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                             struct sdap_cli_connect_state);
+
+    ret = sdap_get_rootdse_recv(subreq, state, &state->rootdse);
+    talloc_zfree(subreq);
+    if (ret) {
+        if (ret == ETIMEDOUT) {
+            /* The server we authenticated against went down. Retry another
+             * one */
+            be_fo_set_port_status(state->be, state->srv, PORT_NOT_WORKING);
+            ret = sdap_cli_resolve_next(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+
+        /* RootDSE was not available on
+         * the server.
+         * Continue, and just assume that the
+         * features requested by the config
+         * work properly.
+         */
+        state->use_rootdse = false;
+        state->rootdse = NULL;
+        tevent_req_done(req);
+        return;
+    }
+
+    /* We were able to get rootDSE after authentication */
+    ret = sdap_cli_use_rootdse(state);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_cli_use_rootdse failed\n"));
+        tevent_req_error(req, ret);
         return;
     }
 
