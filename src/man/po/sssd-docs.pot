@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.8.3\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-04-20 11:22-0300\n"
+"POT-Creation-Date: 2012-04-20 13:21-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1423,7 +1423,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1079
 msgid ""
-"The provider used for retreiving host identity information.  Supported "
+"The provider used for retrieving host identity information.  Supported "
 "hostid providers are:"
 msgstr ""
 
