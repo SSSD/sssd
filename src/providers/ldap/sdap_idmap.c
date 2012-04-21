@@ -196,15 +196,21 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     } else {
         /* If slice is -1, we're being asked to pick a new slice */
 
-        /* Hash the domain sid string */
-        hash_val = murmurhash3(dom_sid, strlen(dom_sid), 0xdeadbeef);
+        if (dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_AUTORID_COMPAT)) {
+            /* In autorid compatibility mode, always start at 0 and find the first
+             * free value.
+             */
+            orig_slice = 0;
+        } else {
+            /* Hash the domain sid string */
+            hash_val = murmurhash3(dom_sid, strlen(dom_sid), 0xdeadbeef);
 
-        /* Now get take the modulus of the hash val and the max_slices
-         * to determine its optimal position in the range.
-         */
-        new_slice->slice_num = hash_val % max_slices;
-        orig_slice = new_slice->slice_num;
-
+            /* Now get take the modulus of the hash val and the max_slices
+             * to determine its optimal position in the range.
+             */
+            new_slice->slice_num = hash_val % max_slices;
+            orig_slice = new_slice->slice_num;
+        }
         /* Verify that this slice is not already in use */
         do {
             DLIST_FOR_EACH(s, idmap_ctx->slices) {

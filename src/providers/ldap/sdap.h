@@ -214,6 +214,7 @@ enum sdap_basic_opt {
     SDAP_IDMAP_LOWER,
     SDAP_IDMAP_UPPER,
     SDAP_IDMAP_RANGESIZE,
+    SDAP_IDMAP_AUTORID_COMPAT,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
