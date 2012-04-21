@@ -29,6 +29,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define DOM_SID_PREFIX "S-1-5-21-"
+#define DOM_SID_PREFIX_LEN (sizeof(DOM_SID_PREFIX) - 1)
+
 /**
  * @defgroup sss_idmap Map Unix UIDs and GIDs to SIDs and back
  * Libsss_idmap provides a mechanism to translate a SID to a UNIX UID or GID

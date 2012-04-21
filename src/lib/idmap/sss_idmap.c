@@ -29,8 +29,6 @@
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
 
-#define DOM_SID_PREFIX "S-1-5-21-"
-#define DOM_SID_PREFIX_LEN (sizeof(DOM_SID_PREFIX) - 1)
 #define SID_FMT "%s-%d"
 #define SID_STR_MAX_LEN 1024
 

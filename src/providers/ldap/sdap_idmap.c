@@ -322,3 +322,47 @@ done:
     }
     return ret;
 }
+
+errno_t
+sdap_idmap_get_dom_sid_from_object(TALLOC_CTX *mem_ctx,
+                                   const char *object_sid,
+                                   char **dom_sid_str)
+{
+    const char *p;
+    long long a;
+    size_t c;
+    char *endptr;
+
+    if (object_sid == NULL
+            || strncmp(object_sid, DOM_SID_PREFIX, DOM_SID_PREFIX_LEN) != 0) {
+        return EINVAL;
+    }
+
+    p = object_sid + DOM_SID_PREFIX_LEN;
+    c = 0;
+
+    do {
+        errno = 0;
+        a = strtoull(p, &endptr, 10);
+        if (errno != 0 || a > UINT32_MAX) {
+            return EINVAL;
+        }
+
+        if (*endptr == '-') {
+            p = endptr + 1;
+        } else {
+            return EINVAL;
+        }
+        c++;
+    } while(c < 3);
+
+    /* If we made it here, we are now one character past
+     * the last hyphen in the object-sid.
+     * Copy the dom-sid substring.
+     */
+    *dom_sid_str = talloc_strndup(mem_ctx, object_sid,
+                                  (endptr-object_sid));
+    if (!*dom_sid_str) return ENOMEM;
+
+    return EOK;
+}

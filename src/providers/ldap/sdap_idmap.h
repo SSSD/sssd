@@ -49,4 +49,9 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
                       const char *dom_name,
                       const char *dom_sid,
                       id_t slice);
+
+errno_t
+sdap_idmap_get_dom_sid_from_object(TALLOC_CTX *mem_ctx,
+                                   const char *object_sid,
+                                   char **dom_sid_str);
 #endif /* SDAP_IDMAP_H_ */
