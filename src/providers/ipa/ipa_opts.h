@@ -118,6 +118,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_idmap_range_max", DP_OPT_NUMBER, { .number = 2000100000LL }, NULL_NUMBER },
     { "ldap_idmap_range_size", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
     { "ldap_idmap_autorid_compat", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_idmap_default_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_idmap_default_domain_sid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 

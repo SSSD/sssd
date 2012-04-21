@@ -129,6 +129,42 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
                 goto done;
             }
         }
+    } else {
+        /* This is the first time we're setting up id-mapping
+         * Store the default domain as slice 0
+         */
+        dom_name = dp_opt_get_string(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_DEFAULT_DOMAIN);
+        if (!dom_name) {
+            /* If it's not explicitly specified, use the SSSD domain name */
+            dom_name = idmap_ctx->id_ctx->be->domain->name;
+            ret = dp_opt_set_string(idmap_ctx->id_ctx->opts->basic,
+                                    SDAP_IDMAP_DEFAULT_DOMAIN,
+                                    dom_name);
+            if (ret != EOK) goto done;
+        }
+
+        sid_str = dp_opt_get_string(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_DEFAULT_DOMAIN_SID);
+        if (sid_str) {
+            /* Set the default domain as slice 0 */
+            ret = sdap_idmap_add_domain(idmap_ctx, dom_name,
+                                        sid_str, 0);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Could not add domain [%s][%s][%u] to ID map: [%s]\n",
+                       dom_name, sid_str, 0, strerror(ret)));
+                goto done;
+            }
+        } else {
+            if (dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_AUTORID_COMPAT)) {
+                /* In autorid compatibility mode, we MUST have a slice 0 */
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Autorid compatibility mode selected, but %s is not set\n",
+                       idmap_ctx->id_ctx->opts->basic[SDAP_IDMAP_DEFAULT_DOMAIN_SID].opt_name));
+                ret = EINVAL;
+                goto done;
+            }
+            /* Otherwise, we'll just fall back to hash values as they are seen */
+        }
     }
 
     *_idmap_ctx = talloc_steal(mem_ctx, idmap_ctx);

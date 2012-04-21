@@ -265,6 +265,8 @@ option_strings = {
     'ldap_idmap_range_max' : _('Upper bound for ID-mapping'),
     'ldap_idmap_range_size' : _('Number of IDs for each slice when ID-mapping'),
     'ldap_idmap_autorid_compat' : _('Use autorid-compatible algorithm for ID-mapping'),
+    'ldap_idmap_default_domain' : _('Name of the default domain for ID-mapping'),
+    'ldap_idmap_default_domain_sid' : _('SID of the default domain for ID-mapping'),
 
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
