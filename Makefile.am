@@ -445,6 +445,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_services.c \
     src/db/sysdb_autofs.c \
     src/db/sysdb_subdomains.c \
+    src/db/sysdb_idmap.c \
     src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \

@@ -822,4 +822,35 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
                                  const char *name,
                                  char ***_direct_parents);
 
+/* === Functions related to ID-mapping === */
+
+#define SYSDB_IDMAP_CONTAINER "cn=id_mappings"
+
+#define SYSDB_IDMAP_SUBTREE "idmap"
+#define SYSDB_IDMAP_MAPPING_OC "id_mapping"
+#define SYSDB_IDMAP_FILTER "(objectClass="SYSDB_IDMAP_MAPPING_OC")"
+#define SYSDB_IDMAP_SID_ATTR "objectSID"
+#define SYSDB_IDMAP_SLICE_ATTR "slice"
+
+#define SYSDB_IDMAP_ATTRS { \
+    SYSDB_NAME, \
+    SYSDB_IDMAP_SID_ATTR, \
+    SYSDB_IDMAP_SLICE_ATTR, \
+    NULL }
+
+#define SYSDB_TMPL_IDMAP_BASE SYSDB_IDMAP_CONTAINER",cn=%s,"SYSDB_BASE
+#define SYSDB_TMPL_IDMAP SYSDB_IDMAP_SID_ATTR"=%s,"SYSDB_TMPL_IDMAP_BASE
+
+struct ldb_dn *sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                              const char *object_sid);
+
+errno_t sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
+                                  const char *dom_name,
+                                  const char *dom_sid,
+                                  id_t slice_num);
+
+errno_t sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_ctx *sysdb,
+                                 struct ldb_result **_result);
+
 #endif /* __SYS_DB_H__ */
