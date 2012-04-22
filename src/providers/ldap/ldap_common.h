@@ -27,6 +27,7 @@
 #include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"
 #include "providers/krb5/krb5_common.h"
+#include "lib/idmap/sss_idmap.h"
 
 #define PWD_POL_OPT_NONE "none"
 #define PWD_POL_OPT_SHADOW "shadow"

@@ -25,6 +25,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_idmap.h"
 
 /* ==Save-User-Entry====================================================== */
 
@@ -54,6 +55,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *usn_value = NULL;
     char **missing = NULL;
     TALLOC_CTX *tmpctx = NULL;
+    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
+    struct dom_sid *dom_sid;
+    char *sid_str;
+    enum idmap_error_code err;
 
     DEBUG(9, ("Save user\n"));
 
@@ -110,16 +115,56 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_uint32_t(attrs,
-                                   opts->user_map[SDAP_AT_USER_UID].sys_name,
-                                   &uid);
-    if (ret != EOK) {
-        DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
-                  name, dom->name));
-        ret = EINVAL;
-        goto fail;
-    }
+    /* Retrieve or map the UID as appropriate */
+    if (use_id_mapping) {
+        ret = sysdb_attrs_get_el(attrs,
+                                 opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
+                                 &el);
+        if (ret != EOK || el->num_values != 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("No [%s] attribute for user [%s] while id-mapping\n",
+                   opts->user_map[SDAP_AT_USER_OBJECTSID].name,
+                   name));
+            goto fail;
+        }
 
+        ret = binary_to_dom_sid(tmpctx,
+                                el->values[0].data,
+                                el->values[0].length,
+                                &dom_sid);
+        if (ret != EOK) goto fail;
+
+        ret = dom_sid_to_string(tmpctx, dom_sid, &sid_str);
+        talloc_zfree(dom_sid);
+        if (ret != EOK) goto fail;
+
+        /* Add string representation to the cache for easier
+         * debugging
+         */
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR, sid_str);
+        if (ret != EOK) goto fail;
+
+        /* Convert the SID into a UNIX user ID */
+        err = sss_idmap_sid_to_unix(
+                opts->idmap_ctx->map,
+                                    sid_str,
+                                    (uint32_t *)&uid);
+        if (err != IDMAP_SUCCESS) {
+            ret = EIO;
+            goto fail;
+        }
+
+    } else {
+        ret = sysdb_attrs_get_uint32_t(attrs,
+                                       opts->user_map[SDAP_AT_USER_UID].sys_name,
+                                       &uid);
+        if (ret != EOK) {
+            DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
+                      name, dom->name));
+            ret = EINVAL;
+            goto fail;
+        }
+    }
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",

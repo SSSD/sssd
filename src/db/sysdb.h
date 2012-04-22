@@ -108,6 +108,7 @@
 
 #define SYSDB_UUID "uniqueID"
 #define SYSDB_SID "objectSID"
+#define SYSDB_SID_STR "objectSIDString"
 #define SYSDB_UPN "userPrincipalName"
 #define SYSDB_CCACHE_FILE "ccacheFile"
 
