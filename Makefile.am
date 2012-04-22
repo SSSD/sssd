@@ -1096,6 +1096,8 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_id_op.c \
+    src/providers/ldap/sdap_idmap.c \
+    src/providers/ldap/sdap_idmap.h \
     src/providers/ldap/sdap.c
 
 if BUILD_SUDO
@@ -1140,7 +1142,8 @@ libsss_ldap_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     libsss_util.la \
-    libsss_ldap_common.la
+    libsss_ldap_common.la \
+    libsss_idmap.la
 libsss_ldap_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -1231,7 +1234,8 @@ libsss_ipa_la_LIBADD = \
     libsss_util.la \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
-    libipa_hbac.la
+    libipa_hbac.la \
+    libsss_idmap.la
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
     -module
