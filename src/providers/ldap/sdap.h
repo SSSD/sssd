@@ -211,6 +211,9 @@ enum sdap_basic_opt {
     SDAP_SASL_CANONICALIZE,
     SDAP_EXPIRE_TIMEOUT,
     SDAP_DISABLE_PAGING,
+    SDAP_IDMAP_LOWER,
+    SDAP_IDMAP_UPPER,
+    SDAP_IDMAP_RANGESIZE,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

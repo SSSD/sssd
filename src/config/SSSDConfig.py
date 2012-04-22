@@ -261,6 +261,10 @@ option_strings = {
     'ldap_service_proto' : _('Service protocol attribute'),
     #replaced by ldap_entry_usn# 'ldap_service_entry_usn' : _('Service entryUSN attribute'),
 
+    'ldap_idmap_range_min' : _('Lower bound for ID-mapping'),
+    'ldap_idmap_range_max' : _('Upper bound for ID-mapping'),
+    'ldap_idmap_range_size' : _('Number of IDs for each slice when ID-mapping'),
+
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
 
