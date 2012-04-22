@@ -334,7 +334,11 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     struct groups_get_state *state;
     const char *attr_name;
     char *clean_name;
+    char *endptr;
     int ret;
+    gid_t gid;
+    enum idmap_error_code err;
+    char *sid;
     bool use_id_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
@@ -359,15 +363,53 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     switch(filter_type) {
     case BE_FILTER_NAME:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
+
+        ret = sss_filter_sanitize(state, name, &clean_name);
+        if (ret != EOK) {
+            goto fail;
+        }
         break;
     case BE_FILTER_IDNUM:
-        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_GID].name;
+        if (dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING)) {
+            /* If we're ID-mapping, we need to use the objectSID
+             * in the search filter.
+             */
+            gid = strtouint32(name, &endptr, 10);
+            if (errno != EOK) {
+                ret = EINVAL;
+                goto fail;
+            }
+
+            /* Convert the UID to its objectSID */
+            err = sss_idmap_unix_to_sid(ctx->opts->idmap_ctx->map,
+                                        gid, &sid);
+            if (err != IDMAP_SUCCESS) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Mapping ID [%s] to SID failed: [%s]\n",
+                       name, idmap_error_string(err)));
+                ret = EIO;
+                goto fail;
+            }
+
+            attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
+            ret = sss_filter_sanitize(state, sid, &clean_name);
+            if (ret != EOK) {
+                goto fail;
+            }
+
+        } else {
+            attr_name = ctx->opts->group_map[SDAP_AT_GROUP_GID].name;
+            ret = sss_filter_sanitize(state, name, &clean_name);
+            if (ret != EOK) {
+                goto fail;
+            }
+        }
+        break;
         break;
     default:
         ret = EINVAL;
         goto fail;
     }
-
 
     if (use_id_mapping) {
         /* When mapping IDs, we don't want to limit ourselves
@@ -388,6 +430,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                         ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                                         ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     }
+
     talloc_zfree(clean_name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
