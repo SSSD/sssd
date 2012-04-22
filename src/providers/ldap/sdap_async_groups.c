@@ -25,6 +25,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_idmap.h"
 
 /* ==Group-Parsing Routines=============================================== */
 
@@ -196,6 +197,11 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     char *usn_value = NULL;
     TALLOC_CTX *tmpctx = NULL;
     bool posix_group;
+    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
+    struct dom_sid *dom_sid;
+    char *sid_str;
+    char *dom_sid_str;
+    enum idmap_error_code err;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -217,27 +223,108 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix_group);
-    if (ret == ENOENT) {
+    if (use_id_mapping) {
         posix_group = true;
-    } else if (ret != EOK) {
-        goto fail;
-    }
 
-    DEBUG(8, ("This is%s a posix group\n", (posix_group)?"":" not"));
-    ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, posix_group);
-    if (ret != EOK) {
-        goto fail;
-    }
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("Mapping group [%s] objectSID to unix ID\n", name));
 
-    ret = sysdb_attrs_get_uint32_t(attrs,
-                                   opts->group_map[SDAP_AT_GROUP_GID].sys_name,
-                                   &gid);
-    if (ret != EOK) {
-        DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
-                  name, dom->name));
-        ret = EINVAL;
-        goto fail;
+        ret = sysdb_attrs_get_el(attrs,
+                                 opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
+                                 &el);
+        if (ret != EOK || el->num_values != 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("No [%s] attribute for group [%s] while id-mapping\n",
+                   opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
+                   name));
+            goto fail;
+        }
+
+        ret = binary_to_dom_sid(tmpctx,
+                                el->values[0].data,
+                                el->values[0].length,
+                                &dom_sid);
+        if (ret != EOK) goto fail;
+
+        ret = dom_sid_to_string(tmpctx, dom_sid, &sid_str);
+        talloc_zfree(dom_sid);
+        if (ret != EOK) goto fail;
+
+        /* Add string representation to the cache for easier
+         * debugging
+         */
+        ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR, sid_str);
+        if (ret != EOK) goto fail;
+
+        /* Convert the SID into a UNIX group ID */
+        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
+                                    sid_str,
+                                    (uint32_t *)&gid);
+        if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not convert objectSID [%s] to a UNIX ID\n",
+                   sid_str));
+            ret = EIO;
+            goto fail;
+        } else if (err == IDMAP_NO_DOMAIN) {
+            /* This is the first time we've seen this domain
+             * Create a new domain for it. We'll use the dom-sid
+             * as the domain name for now, since we don't have
+             * any way to get the real name.
+             */
+            ret = sdap_idmap_get_dom_sid_from_object(tmpctx, sid_str,
+                                                     &dom_sid_str);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Could not parse domain SID from [%s]\n", sid_str));
+                goto fail;
+            }
+
+            ret = sdap_idmap_add_domain(opts->idmap_ctx,
+                                        dom_sid_str, dom_sid_str,
+                                        -1);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Could not add new domain for sid [%s]\n", sid_str));
+                goto fail;
+            }
+
+            /* Now try converting to a UNIX ID again */
+            err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
+                                        sid_str,
+                                        (uint32_t *)&gid);
+            if (err != IDMAP_SUCCESS) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Could not convert objectSID [%s] to a UNIX ID\n",
+                       sid_str));
+                ret = EIO;
+                goto fail;
+            }
+        }
+
+    } else {
+        ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix_group);
+        if (ret == ENOENT) {
+            posix_group = true;
+        } else if (ret != EOK) {
+            goto fail;
+        }
+
+        DEBUG(8, ("This is%s a posix group\n", (posix_group)?"":" not"));
+        ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, posix_group);
+        if (ret != EOK) {
+            goto fail;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(attrs,
+                                       opts->group_map[SDAP_AT_GROUP_GID].sys_name,
+                                       &gid);
+        if (ret != EOK) {
+            DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
+                      name, dom->name));
+            ret = EINVAL;
+            goto fail;
+        }
     }
 
     /* check that the gid is valid for this domain */

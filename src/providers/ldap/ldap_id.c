@@ -335,6 +335,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     const char *attr_name;
     char *clean_name;
     int ret;
+    bool use_id_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
     if (!req) return NULL;
@@ -367,18 +368,26 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sss_filter_sanitize(state, name, &clean_name);
-    if (ret != EOK) {
-        goto fail;
-    }
 
-    state->filter = talloc_asprintf(state,
-                                    "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
-                                    attr_name, clean_name,
-                                    ctx->opts->group_map[SDAP_OC_GROUP].name,
-                                    ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                    ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
-                                    ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
+    if (use_id_mapping) {
+        /* When mapping IDs, we don't want to limit ourselves
+         * to groups with a GID value
+         */
+
+        state->filter = talloc_asprintf(state,
+                                        "(&(%s=%s)(objectclass=%s)(%s=*))",
+                                        attr_name, clean_name,
+                                        ctx->opts->group_map[SDAP_OC_GROUP].name,
+                                        ctx->opts->group_map[SDAP_AT_GROUP_NAME].name);
+    } else {
+        state->filter = talloc_asprintf(state,
+                                        "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
+                                        attr_name, clean_name,
+                                        ctx->opts->group_map[SDAP_OC_GROUP].name,
+                                        ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                        ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
+                                        ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
+    }
     talloc_zfree(clean_name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
