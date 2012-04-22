@@ -357,6 +357,9 @@ struct sdap_options {
     struct sdap_attr_map *netgroup_map;
     struct sdap_attr_map *service_map;
 
+    /* ID-mapping support */
+    struct sdap_idmap_ctx *idmap_ctx;
+
     /* FIXME - should this go to a special struct to avoid mixing with name-service-switch maps? */
     struct sdap_attr_map *sudorule_map;
     struct sdap_attr_map *autofs_mobject_map;
