@@ -118,6 +118,7 @@ option_strings = {
     'entry_cache_netgroup_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_service_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_autofs_timeout' : _('Entry cache timeout length (seconds)'),
+    'entry_cache_sudo_timeout' : _('Entry cache timeout length (seconds)'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

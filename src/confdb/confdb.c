@@ -922,6 +922,17 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    /* Override the sudo cache timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->sudo_timeout,
+                              CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT));
+        goto done;
+    }
+
     /* Set the PAM warning time, if specified */
     val = ldb_msg_find_attr_as_int(res->msgs[0],
                                    CONFDB_DOMAIN_PWD_EXPIRATION_WARNING,
