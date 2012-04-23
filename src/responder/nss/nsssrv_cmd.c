@@ -1667,6 +1667,135 @@ done:
 #define MNUM_ROFFSET sizeof(uint32_t)
 #define STRS_ROFFSET 2*sizeof(uint32_t)
 
+static int fill_members(struct sss_packet *packet,
+                        struct sss_domain_info *dom,
+                        struct nss_ctx *nctx,
+                        struct ldb_message_element *el,
+                        size_t *_rzero,
+                        size_t *_rsize,
+                        int *_memnum)
+{
+    int i, ret = EOK;
+    int memnum = *_memnum;
+    size_t rzero= *_rzero;
+    size_t rsize = *_rsize;
+    char *tmpstr;
+    struct sized_string name;
+    const char *namefmt = nctx->rctx->names->fq_fmt;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    size_t delim;
+    size_t dom_len;
+
+    uint8_t *body;
+    size_t blen;
+
+    const char *domain = dom->name;
+    bool add_domain = dom->fqnames;
+
+    if (add_domain) {
+        delim = 1;
+        dom_len = strlen(domain);
+    } else {
+        delim = 0;
+        dom_len = 0;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    sss_packet_get_body(packet, &body, &blen);
+    for (i = 0; i < el->num_values; i++) {
+        tmpstr = sss_get_cased_name(tmp_ctx, (char *)el->values[i].data,
+                                    dom->case_sensitive);
+        if (tmpstr == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("sss_get_cased_name failed, skipping\n"));
+            continue;
+        }
+
+        if (nctx->filter_users_in_groups) {
+            ret = sss_ncache_check_user(nctx->ncache,
+                                        nctx->neg_timeout,
+                                        dom, tmpstr);
+            if (ret == EEXIST) {
+                DEBUG(SSSDBG_TRACE_FUNC, ("Group [%s] member [%s@%s] filtered out!"
+                                          " (negative cache)\n",
+                                          (char *)&body[rzero+STRS_ROFFSET],
+                                          tmpstr, domain));
+                continue;
+            }
+        }
+
+        to_sized_string(&name, tmpstr);
+
+        if (add_domain) {
+            ret = sss_packet_grow(packet, name.len + delim + dom_len);
+        } else {
+            ret = sss_packet_grow(packet, name.len);
+        }
+        if (ret != EOK) {
+            goto done;
+        }
+        sss_packet_get_body(packet, &body, &blen);
+
+        if (add_domain) {
+            ret = snprintf((char *)&body[rzero + rsize],
+                           name.len + delim + dom_len,
+                           namefmt, name.str, domain);
+            if (ret >= (name.len + delim + dom_len)) {
+                /* need more space,
+                 * got creative with the print format ? */
+                int t = ret - name.len + delim + dom_len + 1;
+                ret = sss_packet_grow(packet, t);
+                if (ret != EOK) {
+                    goto done;
+                }
+                sss_packet_get_body(packet, &body, &blen);
+                delim += t;
+
+                /* retry */
+                ret = snprintf((char *)&body[rzero + rsize],
+                               name.len + delim + dom_len,
+                               namefmt, name.str, domain);
+            }
+
+            if (ret != name.len + delim + dom_len - 1) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Failed to generate a fully qualified name"
+                                          " for member [%s@%s] of group [%s]!"
+                                          " Skipping\n", name.str, domain,
+                                          (char *)&body[rzero+STRS_ROFFSET]));
+                /* reclaim space */
+                ret = sss_packet_shrink(packet, name.len + delim + dom_len);
+                if (ret != EOK) {
+                    goto done;
+                }
+                continue;
+            }
+
+        } else {
+            memcpy(&body[rzero + rsize], name.str, name.len);
+        }
+
+        if (add_domain) {
+            rsize += name.len + delim + dom_len;
+        } else {
+            rsize += name.len;
+        }
+
+        memnum++;
+    }
+
+done:
+    *_memnum = memnum;
+    *_rzero = rzero;
+    *_rsize = rsize;
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 static int fill_grent(struct sss_packet *packet,
                       struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
@@ -1687,7 +1816,6 @@ static int fill_grent(struct sss_packet *packet,
     size_t delim;
     size_t dom_len;
     int i = 0;
-    int j = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
     bool add_domain = dom->fqnames;
@@ -1821,99 +1949,29 @@ static int fill_grent(struct sss_packet *packet,
         memcpy(&body[rzero+STRS_ROFFSET + fullname.len],
                                             pwfield.str, pwfield.len);
 
+        memnum = 0;
         el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
         if (el) {
-            memnum = 0;
-
-            for (j = 0; j < el->num_values; j++) {
-                tmpstr = sss_get_cased_name(tmp_ctx, (char *)el->values[j].data,
-                                            dom->case_sensitive);
-                if (tmpstr == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("sss_get_cased_name failed, skipping\n"));
-                    continue;
-                }
-
-                if (nctx->filter_users_in_groups) {
-                    ret = sss_ncache_check_user(nctx->ncache,
-                                                nctx->neg_timeout,
-                                                dom, tmpstr);
-                    if (ret == EEXIST) {
-                        DEBUG(6, ("Group [%s] member [%s@%s] filtered out!"
-                                  " (negative cache)\n",
-                                  (char *)&body[rzero+STRS_ROFFSET],
-                                  tmpstr, domain));
-                        continue;
-                    }
-                }
-
-                to_sized_string(&name, tmpstr);
-
-                if (add_domain) {
-                    ret = sss_packet_grow(packet, name.len + delim + dom_len);
-                } else {
-                    ret = sss_packet_grow(packet, name.len);
-                }
-                if (ret != EOK) {
-                    num = 0;
-                    goto done;
-                }
-                sss_packet_get_body(packet, &body, &blen);
-
-                if (add_domain) {
-                    ret = snprintf((char *)&body[rzero + rsize],
-                                    name.len + delim + dom_len,
-                                    namefmt, name.str, domain);
-                    if (ret >= (name.len + delim + dom_len)) {
-                        /* need more space,
-                         * got creative with the print format ? */
-                        int t = ret - name.len + delim + dom_len + 1;
-                        ret = sss_packet_grow(packet, t);
-                        if (ret != EOK) {
-                            num = 0;
-                            goto done;
-                        }
-                        sss_packet_get_body(packet, &body, &blen);
-                        delim += t;
-
-                        /* retry */
-                        ret = snprintf((char *)&body[rzero + rsize],
-                                        name.len + delim + dom_len,
-                                        namefmt, name.str, domain);
-                    }
-
-                    if (ret != name.len + delim + dom_len - 1) {
-                        DEBUG(1, ("Failed to generate a fully qualified name"
-                                  " for member [%s@%s] of group [%s]!"
-                                  " Skipping\n", name.str, domain,
-                                  (char *)&body[rzero+STRS_ROFFSET]));
-                        /* reclaim space */
-                        ret = sss_packet_shrink(packet,
-                                                name.len + delim + dom_len);
-                        if (ret != EOK) {
-                            num = 0;
-                            goto done;
-                        }
-                        continue;
-                    }
-
-                } else {
-                    memcpy(&body[rzero + rsize], name.str, name.len);
-                }
-
-                if (add_domain) {
-                    rsize += name.len + delim + dom_len;
-                } else {
-                    rsize += name.len;
-                }
-
-                memnum++;
+            ret = fill_members(packet, dom, nctx, el, &rzero, &rsize, &memnum);
+            if (ret != EOK) {
+                num = 0;
+                goto done;
             }
+            sss_packet_get_body(packet, &body, &blen);
+        }
 
-            if (memnum) {
-                /* set num of members */
-                SAFEALIGN_SET_UINT32(&body[rzero+MNUM_ROFFSET], memnum, NULL);
+        el = ldb_msg_find_element(msg, SYSDB_GHOST);
+        if (el) {
+            ret = fill_members(packet, dom, nctx, el, &rzero, &rsize, &memnum);
+            if (ret != EOK) {
+                num = 0;
+                goto done;
             }
+            sss_packet_get_body(packet, &body, &blen);
+        }
+        if (memnum) {
+            /* set num of members */
+            SAFEALIGN_SET_UINT32(&body[rzero+MNUM_ROFFSET], memnum, NULL);
         }
 
         num++;
