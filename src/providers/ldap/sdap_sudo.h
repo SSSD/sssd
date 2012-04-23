@@ -31,9 +31,10 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
 /* sdap async interface */
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct be_ctx *be_ctx,
-                                          struct be_sudo_req *sudo_req,
                                           struct sdap_options *opts,
-                                          struct sdap_id_conn_cache *conn_cache);
+                                          struct sdap_id_conn_cache *conn_cache,
+                                          const char *ldap_filter,
+                                          const char *sysdb_filter);
 
 int sdap_sudo_refresh_recv(struct tevent_req *req,
                            int *dp_error,

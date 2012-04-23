@@ -129,9 +129,10 @@ static void sdap_sudo_refresh_timer(struct tevent_context *ev,
     sudo_req->username = NULL;
 
     /* send request */
-    req = sdap_sudo_refresh_send(refresh_ctx, refresh_ctx->id_ctx->be, sudo_req,
+    req = sdap_sudo_refresh_send(refresh_ctx, refresh_ctx->id_ctx->be,
                                  refresh_ctx->id_ctx->opts,
-                                 refresh_ctx->id_ctx->conn_cache);
+                                 refresh_ctx->id_ctx->conn_cache,
+                                 NULL, NULL);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to schedule refresh of SUDO rules, "
               "retrying later!\n"));

@@ -176,8 +176,8 @@ void sdap_sudo_handler(struct be_req *be_req)
         sudo_req->groups = NULL;
     }
 
-    req = sdap_sudo_refresh_send(be_req, id_ctx->be, sudo_req, id_ctx->opts,
-                                 id_ctx->conn_cache);
+    req = sdap_sudo_refresh_send(be_req, id_ctx->be, id_ctx->opts,
+                                 id_ctx->conn_cache, NULL, NULL);
     if (req == NULL) {
         ret = ENOMEM;
         goto fail;
