@@ -141,6 +141,7 @@
 #define BE_REQ_SUDO_ALL      0x0006
 #define BE_REQ_SUDO_DEFAULTS 0x0007
 #define BE_REQ_SUDO_USER     0x0008
+#define BE_REQ_SUDO_FULL     0x0100 /* todo: change it after clean up */
 #define BE_REQ_AUTOFS        0x0009
 #define BE_REQ_HOST          0x0010
 #define BE_REQ_FAST          0x1000

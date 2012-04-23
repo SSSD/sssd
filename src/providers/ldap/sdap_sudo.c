@@ -149,12 +149,24 @@ int sdap_sudo_setup_tasks(struct sdap_id_ctx *id_ctx)
 static void sdap_sudo_reply(struct tevent_req *req)
 {
     struct be_req *be_req = NULL;
+    struct be_sudo_req *sudo_req = NULL;
     int dp_error;
     int error;
     int ret;
 
     be_req = tevent_req_callback_data(req, struct be_req);
-    ret = sdap_sudo_refresh_recv(req, &dp_error, &error);
+    sudo_req = talloc_get_type(be_req->req_data, struct be_sudo_req);
+
+    switch (sudo_req->type) {
+    case BE_REQ_SUDO_FULL:
+        ret = sdap_sudo_full_refresh_recv(req, &dp_error, &error);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type: %d\n",
+                                    sudo_req->type));
+        ret = EINVAL;
+    }
+
     talloc_zfree(req);
     if (ret != EOK) {
         sdap_handler_done(be_req, DP_ERR_FATAL, ret, strerror(ret));
@@ -176,24 +188,21 @@ void sdap_sudo_handler(struct be_req *be_req)
 
     sudo_req = talloc_get_type(be_req->req_data, struct be_sudo_req);
 
-    /* get user info */
-    if (sudo_req->username != NULL) {
-        ret = sysdb_get_sudo_user_info(sudo_req, sudo_req->username,
-                                       id_ctx->be->sysdb,
-                                       &sudo_req->uid, &sudo_req->groups);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to get uid and groups of %s\n",
-                  sudo_req->username));
-            goto fail;
-        }
-    } else {
-        sudo_req->uid = 0;
-        sudo_req->groups = NULL;
+    switch (sudo_req->type) {
+    case BE_REQ_SUDO_FULL:
+        DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a full refresh of sudo rules\n"));
+        req = sdap_sudo_full_refresh_send(be_req, id_ctx);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type: %d\n",
+                                    sudo_req->type));
+        ret = EINVAL;
+        goto fail;
     }
 
-    req = sdap_sudo_refresh_send(be_req, id_ctx->be, id_ctx->opts,
-                                 id_ctx->conn_cache, NULL, NULL);
     if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to send request: %d\n",
+                                    sudo_req->type));
         ret = ENOMEM;
         goto fail;
     }
