@@ -1169,3 +1169,150 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
+{
+
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_result *res;
+    struct ldb_message *msg;
+    struct ldb_message *user;
+    struct ldb_message_element *memberof_el;
+    const char *name;
+    struct ldb_dn *basedn;
+    const char *filter = "(&(objectClass=user)(!(uidNumber=*))(memberOf=*))";
+    const char *attrs[] = { "name", "memberof", NULL };
+    int i, j;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_USER_BASE,
+                            sysdb->domain->name);
+    if (basedn == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_11));
+
+    ret = ldb_transaction_start(sysdb->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, basedn, LDB_SCOPE_SUBTREE,
+                     attrs, "%s", filter);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    for (i = 0; i < res->count; i++) {
+        user = res->msgs[i];
+        memberof_el = ldb_msg_find_element(user, "memberof");
+        name = ldb_msg_find_attr_as_string(user, "name", NULL);
+        if (name == NULL) {
+            ret = EIO;
+            goto done;
+        }
+
+        for (j = 0; j < memberof_el->num_values; j++) {
+            msg = ldb_msg_new(tmp_ctx);
+            if (msg == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            msg->dn = ldb_dn_from_ldb_val(tmp_ctx, sysdb->ldb, &memberof_el->values[j]);
+            if (msg->dn == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            if (!ldb_dn_validate(msg->dn)) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("DN validation failed during "
+                                             "upgrade: [%s]\n",
+                                             memberof_el->values[j].data));
+                talloc_zfree(msg);
+                continue;
+            }
+
+            ret = ldb_msg_add_empty(msg, "ghost", LDB_FLAG_MOD_ADD, NULL);
+            if (ret != LDB_SUCCESS) {
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = ldb_msg_add_string(msg, "ghost", name);
+            if (ret != LDB_SUCCESS) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = ldb_msg_add_empty(msg, "member", LDB_FLAG_MOD_DELETE, NULL);
+            if (ret != LDB_SUCCESS) {
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = ldb_msg_add_string(msg, "member", ldb_dn_get_linearized(user->dn));
+            if (ret != LDB_SUCCESS) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = ldb_modify(sysdb->ldb, msg);
+            talloc_zfree(msg);
+            if (ret != LDB_SUCCESS) {
+                ret = sysdb_error_to_errno(ret);
+                goto done;
+            }
+        }
+
+        ret = ldb_delete(sysdb->ldb, user->dn);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        /* conversion done, upgrade version number */
+        msg = ldb_msg_new(tmp_ctx);
+        if (!msg) {
+            ret = ENOMEM;
+            goto done;
+        }
+        msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
+        if (!msg->dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_11);
+        if (ret != LDB_SUCCESS) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_modify(sysdb->ldb, msg);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_11, ver);
+    talloc_free(tmp_ctx);
+    return ret;
+}
