@@ -572,7 +572,6 @@ sssd_sudo_SOURCES = \
     src/responder/sudo/sudosrv_get_sudorules.c \
     src/responder/sudo/sudosrv_query.c \
     src/responder/sudo/sudosrv_dp.c \
-    src/responder/sudo/sudosrv_cache.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_sudo_LDADD = \
     $(SSSD_LIBS) \
