@@ -34,6 +34,7 @@
 #include "util/crypto/sss_crypto.h"
 
 #include "providers/ldap/ldap_opts.h"
+#include "providers/ldap/sdap_idmap.h"
 
 /* a fd the child process would log into */
 int ldap_child_debug_fd = -1;
@@ -1408,4 +1409,40 @@ char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
                                  base_filter, extra_filter);
     }
     return filter; /* NULL or not */
+}
+
+errno_t
+sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
+                       struct sdap_idmap_ctx *idmap_ctx,
+                       struct sysdb_attrs *sysdb_attrs,
+                       const char *sid_attr,
+                       char **_sid_str)
+{
+    errno_t ret;
+    enum idmap_error_code err;
+    struct ldb_message_element *el;
+    char *sid_str;
+
+    ret = sysdb_attrs_get_el(sysdb_attrs, sid_attr, &el);
+    if (ret != EOK || el->num_values != 1) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("No [%s] attribute while id-mapping. [%d][%s]\n",
+               sid_attr, el->num_values, strerror(ret)));
+        return ret;
+    }
+
+    err = sss_idmap_bin_sid_to_sid(idmap_ctx->map,
+                                   el->values[0].data,
+                                   el->values[0].length,
+                                   &sid_str);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not convert SID: [%s]\n",
+               idmap_error_string(err)));
+        return EIO;
+    }
+
+    *_sid_str = talloc_steal(mem_ctx, sid_str);
+
+    return EOK;
 }

@@ -56,7 +56,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char **missing = NULL;
     TALLOC_CTX *tmpctx = NULL;
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
-    struct dom_sid *dom_sid;
     char *sid_str;
     char *dom_sid_str = NULL;
     char *group_sid_str;
@@ -122,25 +121,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_TRACE_LIBS,
               ("Mapping user [%s] objectSID to unix ID\n", name));
 
-        ret = sysdb_attrs_get_el(attrs,
-                                 opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
-                                 &el);
-        if (ret != EOK || el->num_values != 1) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No [%s] attribute for user [%s] while id-mapping. [%d][%s]\n",
-                   opts->user_map[SDAP_AT_USER_OBJECTSID].name,
-                   name, el->num_values, strerror(ret)));
-            goto fail;
-        }
-
-        ret = binary_to_dom_sid(tmpctx,
-                                el->values[0].data,
-                                el->values[0].length,
-                                &dom_sid);
-        if (ret != EOK) goto fail;
-
-        ret = dom_sid_to_string(tmpctx, dom_sid, &sid_str);
-        talloc_zfree(dom_sid);
+        ret = sdap_attrs_get_sid_str(
+                tmpctx, opts->idmap_ctx, attrs,
+                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
+                &sid_str);
         if (ret != EOK) goto fail;
 
         /* Add string representation to the cache for easier

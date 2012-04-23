@@ -209,4 +209,10 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                                  const char *old_filter,
                                  struct sdap_search_base ***_search_bases);
 
+errno_t
+sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
+                       struct sdap_idmap_ctx *idmap_ctx,
+                       struct sysdb_attrs *sysdb_attrs,
+                       const char *sid_attr,
+                       char **_sid_str);
 #endif /* _LDAP_COMMON_H_ */

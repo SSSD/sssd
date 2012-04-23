@@ -198,7 +198,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     TALLOC_CTX *tmpctx = NULL;
     bool posix_group;
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
-    struct dom_sid *dom_sid;
     char *sid_str;
     char *dom_sid_str;
     enum idmap_error_code err;
@@ -229,25 +228,10 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_TRACE_LIBS,
               ("Mapping group [%s] objectSID to unix ID\n", name));
 
-        ret = sysdb_attrs_get_el(attrs,
-                                 opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
-                                 &el);
-        if (ret != EOK || el->num_values != 1) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No [%s] attribute for group [%s] while id-mapping\n",
-                   opts->group_map[SDAP_AT_GROUP_OBJECTSID].name,
-                   name));
-            goto fail;
-        }
-
-        ret = binary_to_dom_sid(tmpctx,
-                                el->values[0].data,
-                                el->values[0].length,
-                                &dom_sid);
-        if (ret != EOK) goto fail;
-
-        ret = dom_sid_to_string(tmpctx, dom_sid, &sid_str);
-        talloc_zfree(dom_sid);
+        ret = sdap_attrs_get_sid_str(
+                tmpctx, opts->idmap_ctx, attrs,
+                opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
+                &sid_str);
         if (ret != EOK) goto fail;
 
         /* Add string representation to the cache for easier

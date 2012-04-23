@@ -25,6 +25,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_idmap.h"
 
 /* ==Save-fake-group-list=====================================*/
 static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
@@ -44,6 +45,9 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     bool in_transaction = false;
     bool posix;
     time_t now;
+    char *sid_str;
+    enum idmap_error_code err;
+    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
 
     /* There are no groups in LDAP but we should add user to groups ?? */
     if (ldap_groups_count == 0) return EOK;
@@ -104,18 +108,50 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
             if (strcmp(name, missing[i]) == 0) {
                 posix = true;
-                ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
-                                               SYSDB_GIDNUM,
-                                               &gid);
-                if (ret == ENOENT || (ret == EOK && gid == 0)) {
-                    DEBUG(9, ("The group %s gid was %s\n",
-                              name, ret == ENOENT ? "missing" : "zero"));
-                    DEBUG(8, ("Marking group %s as non-posix and setting GID=0!\n", name));
-                    gid = 0;
-                    posix = false;
-                } else if (ret) {
-                    DEBUG(1, ("The GID attribute is malformed\n"));
-                    goto fail;
+
+                if (use_id_mapping) {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          ("Mapping group [%s] objectSID to unix ID\n", name));
+
+                    ret = sdap_attrs_get_sid_str(
+                            tmp_ctx, opts->idmap_ctx, ldap_groups[ai],
+                            opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
+                            &sid_str);
+                    if (ret != EOK) goto fail;
+
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("Group [%s] has objectSID [%s]\n",
+                           name, sid_str));
+
+                    /* Convert the SID into a UNIX group ID */
+                    err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
+                                                sid_str,
+                                                (uint32_t *)&gid);
+                    if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
+                        DEBUG(SSSDBG_MINOR_FAILURE,
+                              ("Could not convert objectSID [%s] to a UNIX ID\n",
+                               sid_str));
+                        ret = EIO;
+                        goto fail;
+                    }
+
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("Group [%s] has mapped gid [%lu]\n",
+                           name, (unsigned long)gid));
+                } else {
+                    ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
+                                                   SYSDB_GIDNUM,
+                                                   &gid);
+                    if (ret == ENOENT || (ret == EOK && gid == 0)) {
+                        DEBUG(9, ("The group %s gid was %s\n",
+                                  name, ret == ENOENT ? "missing" : "zero"));
+                        DEBUG(8, ("Marking group %s as non-posix and setting GID=0!\n", name));
+                        gid = 0;
+                        posix = false;
+                    } else if (ret) {
+                        DEBUG(1, ("The GID attribute is malformed\n"));
+                        goto fail;
+                    }
                 }
 
                 ret = sysdb_attrs_get_string(ldap_groups[ai],
@@ -2627,6 +2663,11 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
+    case SDAP_SCHEMA_AD:
+        /* TODO: AD uses a different member/memberof schema
+         *       We need an AD specific call that is able to unroll
+         *       nested groups by doing extensive recursive searches */
+
         ret = sysdb_attrs_get_string(state->orig_user,
                                      SYSDB_ORIG_DN,
                                      &orig_dn);
@@ -2647,11 +2688,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         tevent_req_set_callback(subreq, sdap_get_initgr_done, req);
         break;
     case SDAP_SCHEMA_IPA_V1:
-    case SDAP_SCHEMA_AD:
-        /* TODO: AD uses a different member/memberof schema
-         *       We need an AD specific call that is able to unroll
-         *       nested groups by doing extensive recursive searches */
-
         subreq = sdap_initgr_nested_send(state, state->ev, state->opts,
                                          state->sysdb, state->dom, state->sh,
                                          state->orig_user, state->grp_attrs);
@@ -2677,10 +2713,23 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     struct sdap_get_initgr_state *state = tevent_req_data(req,
                                                struct sdap_get_initgr_state);
     int ret;
+    TALLOC_CTX *tmp_ctx;
     gid_t primary_gid;
     char *gid;
+    char *sid_str;
+    char *dom_sid_str;
+    char *group_sid_str;
+    enum idmap_error_code err;
+    struct sdap_options *opts = state->opts;
+    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
 
     DEBUG(9, ("Initgroups done\n"));
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
 
     switch (state->opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
@@ -2706,35 +2755,102 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     if (ret) {
         DEBUG(9, ("Error in initgroups: [%d][%s]\n",
                   ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
     /* We also need to update the user's primary group, since
      * the user may not be an explicit member of that group
      */
-    ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM, &primary_gid);
-    if (ret != EOK) {
-        DEBUG(6, ("Could not find user's primary GID\n"));
-        tevent_req_error(req, ret);
-        return;
+
+    if (use_id_mapping) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("Mapping primary group to unix ID\n"));
+
+        /* The primary group ID is just the RID part of the objectSID
+         * of the group. Generate the GID by adding this to the domain
+         * SID value.
+         */
+
+        /* Get the user SID so we can extract the domain SID
+         * from it.
+         */
+        ret = sdap_attrs_get_sid_str(
+                tmp_ctx, opts->idmap_ctx, state->orig_user,
+                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
+                &sid_str);
+        if (ret != EOK) goto fail;
+
+        /* Get the domain SID from the user SID */
+        ret = sdap_idmap_get_dom_sid_from_object(tmp_ctx, sid_str,
+                                                 &dom_sid_str);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not parse domain SID from [%s]\n", sid_str));
+            goto fail;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(
+                state->orig_user,
+                opts->user_map[SDAP_AT_USER_PRIMARY_GROUP].sys_name,
+                &primary_gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("no primary group ID provided\n"));
+            ret = EINVAL;
+            goto fail;
+        }
+
+        /* Add the RID to the end */
+        group_sid_str = talloc_asprintf(tmp_ctx, "%s-%lu",
+                                        dom_sid_str,
+                                        (unsigned long)primary_gid);
+        if (!group_sid_str) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        /* Convert the SID into a UNIX group ID */
+        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
+                                    sid_str,
+                                    (uint32_t *)&primary_gid);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not convert objectSID [%s] to a UNIX ID\n",
+                   sid_str));
+            ret = EIO;
+            goto fail;
+        }
+    } else {
+        ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM,
+                                       &primary_gid);
+        if (ret != EOK) {
+            DEBUG(6, ("Could not find user's primary GID\n"));
+            goto fail;
+        }
     }
 
     gid = talloc_asprintf(state, "%lu", (unsigned long)primary_gid);
     if (gid == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto fail;
     }
 
     subreq = groups_get_send(req, state->ev, state->id_ctx, gid,
                              BE_FILTER_IDNUM, BE_ATTR_ALL);
     if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto fail;
     }
     tevent_req_set_callback(subreq, sdap_get_initgr_pgid, req);
 
+    talloc_free(tmp_ctx);
     tevent_req_done(req);
+    return;
+
+fail:
+    talloc_free(tmp_ctx);
+    tevent_req_error(req, ret);
+    return;
 }
 
 static void sdap_get_initgr_pgid(struct tevent_req *subreq)
