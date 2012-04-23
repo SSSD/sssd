@@ -199,8 +199,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     bool posix_group;
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
     char *sid_str;
-    char *dom_sid_str;
-    enum idmap_error_code err;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -241,50 +239,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         if (ret != EOK) goto fail;
 
         /* Convert the SID into a UNIX group ID */
-        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                    sid_str,
-                                    (uint32_t *)&gid);
-        if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert objectSID [%s] to a UNIX ID\n",
-                   sid_str));
-            ret = EIO;
-            goto fail;
-        } else if (err == IDMAP_NO_DOMAIN) {
-            /* This is the first time we've seen this domain
-             * Create a new domain for it. We'll use the dom-sid
-             * as the domain name for now, since we don't have
-             * any way to get the real name.
-             */
-            ret = sdap_idmap_get_dom_sid_from_object(tmpctx, sid_str,
-                                                     &dom_sid_str);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not parse domain SID from [%s]\n", sid_str));
-                goto fail;
-            }
-
-            ret = sdap_idmap_add_domain(opts->idmap_ctx,
-                                        dom_sid_str, dom_sid_str,
-                                        -1);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not add new domain for sid [%s]\n", sid_str));
-                goto fail;
-            }
-
-            /* Now try converting to a UNIX ID again */
-            err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                        sid_str,
-                                        (uint32_t *)&gid);
-            if (err != IDMAP_SUCCESS) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not convert objectSID [%s] to a UNIX ID\n",
-                       sid_str));
-                ret = EIO;
-                goto fail;
-            }
-        }
+        ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &gid);
+        if (ret != EOK) goto fail;
 
         /* Store the GID in the ldap_attrs so it doesn't get
          * treated as a missing attribute from LDAP and removed.

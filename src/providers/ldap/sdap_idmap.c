@@ -366,3 +366,65 @@ sdap_idmap_get_dom_sid_from_object(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+errno_t
+sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
+                       const char *sid_str,
+                       id_t *id)
+{
+    errno_t ret;
+    enum idmap_error_code err;
+    char *dom_sid_str = NULL;
+
+    /* Convert the SID into a UNIX ID */
+    err = sss_idmap_sid_to_unix(idmap_ctx->map,
+                                sid_str,
+                                (uint32_t *)id);
+    if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not convert objectSID [%s] to a UNIX ID\n",
+               sid_str));
+        ret = EIO;
+        goto done;
+    } else if (err == IDMAP_NO_DOMAIN) {
+        /* This is the first time we've seen this domain
+         * Create a new domain for it. We'll use the dom-sid
+         * as the domain name for now, since we don't have
+         * any way to get the real name.
+         */
+        ret = sdap_idmap_get_dom_sid_from_object(NULL, sid_str,
+                                                 &dom_sid_str);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not parse domain SID from [%s]\n", sid_str));
+            goto done;
+        }
+
+        ret = sdap_idmap_add_domain(idmap_ctx,
+                                    dom_sid_str, dom_sid_str,
+                                    -1);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not add new domain for sid [%s]\n", sid_str));
+            goto done;
+        }
+
+        /* Now try converting to a UNIX ID again */
+        err = sss_idmap_sid_to_unix(idmap_ctx->map,
+                                    sid_str,
+                                    (uint32_t *)id);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not convert objectSID [%s] to a UNIX ID\n",
+                   sid_str));
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(dom_sid_str);
+    return ret;
+}

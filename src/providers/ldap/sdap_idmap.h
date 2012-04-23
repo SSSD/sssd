@@ -54,4 +54,10 @@ errno_t
 sdap_idmap_get_dom_sid_from_object(TALLOC_CTX *mem_ctx,
                                    const char *object_sid,
                                    char **dom_sid_str);
+
+errno_t
+sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
+                       const char *sid_str,
+                       id_t *id);
+
 #endif /* SDAP_IDMAP_H_ */

@@ -46,7 +46,6 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     bool posix;
     time_t now;
     char *sid_str;
-    enum idmap_error_code err;
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
 
     /* There are no groups in LDAP but we should add user to groups ?? */
@@ -124,10 +123,9 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                            name, sid_str));
 
                     /* Convert the SID into a UNIX group ID */
-                    err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                                sid_str,
-                                                (uint32_t *)&gid);
-                    if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
+                    ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str,
+                                                 &gid);
+                    if (ret != EOK) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
                               ("Could not convert objectSID [%s] to a UNIX ID\n",
                                sid_str));
@@ -2719,7 +2717,6 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     char *sid_str;
     char *dom_sid_str;
     char *group_sid_str;
-    enum idmap_error_code err;
     struct sdap_options *opts = state->opts;
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
 
@@ -2810,16 +2807,8 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         }
 
         /* Convert the SID into a UNIX group ID */
-        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                    sid_str,
-                                    (uint32_t *)&primary_gid);
-        if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert objectSID [%s] to a UNIX ID\n",
-                   sid_str));
-            ret = EIO;
-            goto fail;
-        }
+        ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &primary_gid);
+        if (ret != EOK) goto fail;
     } else {
         ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM,
                                        &primary_gid);

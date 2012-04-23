@@ -59,7 +59,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *sid_str;
     char *dom_sid_str = NULL;
     char *group_sid_str;
-    enum idmap_error_code err;
 
     DEBUG(9, ("Save user\n"));
 
@@ -134,50 +133,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
         if (ret != EOK) goto fail;
 
         /* Convert the SID into a UNIX user ID */
-        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                    sid_str,
-                                    (uint32_t *)&uid);
-        if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert objectSID [%s] to a UNIX ID\n",
-                   sid_str));
-            ret = EIO;
-            goto fail;
-        } else if (err == IDMAP_NO_DOMAIN) {
-            /* This is the first time we've seen this domain
-             * Create a new domain for it. We'll use the dom-sid
-             * as the domain name for now, since we don't have
-             * any way to get the real name.
-             */
-            ret = sdap_idmap_get_dom_sid_from_object(tmpctx, sid_str,
-                                                     &dom_sid_str);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not parse domain SID from [%s]\n", sid_str));
-                goto fail;
-            }
-
-            ret = sdap_idmap_add_domain(opts->idmap_ctx,
-                                        dom_sid_str, dom_sid_str,
-                                        -1);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not add new domain for sid [%s]\n", sid_str));
-                goto fail;
-            }
-
-            /* Now try converting to a UNIX ID again */
-            err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                        sid_str,
-                                        (uint32_t *)&uid);
-            if (err != IDMAP_SUCCESS) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not convert objectSID [%s] to a UNIX ID\n",
-                       sid_str));
-                ret = EIO;
-                goto fail;
-            }
-        }
+        ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &uid);
+        if (ret != EOK) goto fail;
 
         /* Store the UID in the ldap_attrs so it doesn't get
          * treated as a missing attribute from LDAP and removed.
@@ -197,7 +154,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+            DEBUG(2, ("User [%s] filtered out! (uid out of range)\n",
                       name));
         ret = EINVAL;
         goto fail;
@@ -242,16 +199,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
 
         /* Convert the SID into a UNIX group ID */
-        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
-                                    group_sid_str,
-                                    (uint32_t *)&gid);
-        if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert objectSID [%s] to a UNIX ID\n",
-                   group_sid_str));
-            ret = EIO;
-            goto fail;
-        }
+        ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, group_sid_str, &gid);
+        if (ret != EOK) goto fail;
 
         /* Store the GID in the ldap_attrs so it doesn't get
          * treated as a missing attribute from LDAP and removed.
@@ -272,7 +221,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     /* check that the gid is valid for this domain */
     if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+            DEBUG(2, ("User [%s] filtered out! (primary gid out of range)\n",
                       name));
         ret = EINVAL;
         goto fail;
