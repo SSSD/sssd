@@ -28,6 +28,7 @@
 #include "dhash.h"
 
 #define DB_MEMBER "member"
+#define DB_GHOST "ghost"
 #define DB_MEMBEROF "memberof"
 #define DB_MEMBERUID "memberuid"
 #define DB_NAME "name"
@@ -191,7 +192,8 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
                             int *_num_muops,
                             int flags,
                             struct ldb_dn *parent,
-                            const char *name)
+                            const char *name,
+                            const char *element_name)
 {
     struct mbof_memberuid_op *muops = *_muops;
     int num_muops = *_num_muops;
@@ -229,7 +231,7 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
         if (!op->el) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
-        op->el->name = talloc_strdup(op->el, DB_MEMBERUID);
+        op->el->name = talloc_strdup(op->el, element_name);
         if (!op->el->name) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
@@ -534,7 +536,8 @@ static int mbof_add_callback(struct ldb_request *req,
 static int mbof_next_add(struct mbof_add_operation *addop)
 {
     static const char *attrs[] = { DB_OC, DB_NAME,
-                                   DB_MEMBER, DB_MEMBEROF, NULL };
+                                   DB_MEMBER, DB_GHOST,
+                                   DB_MEMBEROF, NULL };
     struct ldb_context *ldb;
     struct ldb_request *req;
     struct mbof_add_ctx *add_ctx;
@@ -789,7 +792,8 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
             ret = mbof_append_muop(add_ctx, &add_ctx->muops,
                                    &add_ctx->num_muops,
                                    LDB_FLAG_MOD_ADD,
-                                   parents->dns[i], name);
+                                   parents->dns[i], name,
+                                   DB_MEMBERUID);
             if (ret != LDB_SUCCESS) {
                 return ret;
             }
@@ -804,6 +808,35 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     default:
         /* an error occured, return */
         return ret;
+    }
+
+    el = ldb_msg_find_element(addop->entry, DB_GHOST);
+    if (el) {
+        for (i = 0; i < el->num_values; i++) {
+            /* add memberuid to all group's parents */
+            for (j = 0; j < parents->num; j++) {
+                ret = mbof_append_muop(add_ctx, &add_ctx->muops,
+                                       &add_ctx->num_muops,
+                                       LDB_FLAG_MOD_ADD,
+                                       parents->dns[j],
+                                       (char *)el->values[i].data,
+                                       DB_GHOST);
+                if (ret != LDB_SUCCESS) {
+                    return ret;
+                }
+            }
+
+            /* now add memberuid to the group itself */
+            ret = mbof_append_muop(add_ctx, &add_ctx->muops,
+                                   &add_ctx->num_muops,
+                                   LDB_FLAG_MOD_ADD,
+                                   addop->entry_dn,
+                                   (char *)el->values[i].data,
+                                   DB_GHOST);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
     }
 
     /* we are done with the entry now */
@@ -2071,7 +2104,8 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
             ret = mbof_append_muop(del_ctx, &del_ctx->muops,
                                    &del_ctx->num_muops,
                                    LDB_FLAG_MOD_DELETE,
-                                   diff[i], name);
+                                   diff[i], name,
+                                   DB_MEMBERUID);
             if (ret != LDB_SUCCESS) {
                 return ret;
             }
@@ -2311,7 +2345,8 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
         ret = mbof_append_muop(del_ctx, &del_ctx->muops,
                                &del_ctx->num_muops,
                                LDB_FLAG_MOD_DELETE,
-                               valdn, name);
+                               valdn, name,
+                               DB_MEMBERUID);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
