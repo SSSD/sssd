@@ -583,11 +583,6 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                    int cache_timeout,
                    time_t now);
 
-int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
-                        const char *name,
-                        const char *original_dn,
-                        time_t now);
-
 /* Add group (only basic attrs and w/o checks) */
 int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
                           const char *name, gid_t gid);

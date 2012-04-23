@@ -866,9 +866,16 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
+    struct ldb_message **groups;
+    struct ldb_message_element *alias_el;
+    size_t group_count = 0;
     struct sysdb_attrs *id_attrs;
+    const char *group_attrs[] = {SYSDB_NAME, SYSDB_GHOST, NULL};
+    struct ldb_dn *tmpdn;
+    const char *userdn;
+    char *filter;
     uint32_t id;
-    int ret;
+    int ret, i, j;
 
     struct sss_domain_info *domain = sysdb->domain;
 
@@ -977,6 +984,105 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
     ret = sysdb_set_user_attr(sysdb, name, attrs, SYSDB_MOD_REP);
 
+    /* remove all ghost users */
+    filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)", SYSDB_GHOST, name);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = sysdb_attrs_get_el(attrs, SYSDB_NAME_ALIAS, &alias_el);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (i = 0; i < alias_el->num_values; i++) {
+        filter = talloc_asprintf_append(filter, "(%s=%s)",
+                                        SYSDB_GHOST, alias_el->values[i].data);
+        if (filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    filter = talloc_asprintf_append(filter, ")");
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain->name, name);
+    if (!tmpdn) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    userdn = ldb_dn_get_linearized(tmpdn);
+    if (!userdn) {
+        ERROR_OUT(ret, EINVAL, done);
+    }
+
+    tmpdn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+    if (!tmpdn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* We need to find all groups that contain this object as a ghost user
+     * and replace the ghost user there by actual member record
+     * Note that this object can be referred to either by its name or any
+     * of its aliases
+     */
+    ret = sysdb_search_entry(tmp_ctx, sysdb, tmpdn, LDB_SCOPE_SUBTREE, filter,
+                             group_attrs, &group_count, &groups);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    for (i = 0; i < group_count; i++) {
+        msg = ldb_msg_new(tmp_ctx);
+        if (!msg) {
+            ERROR_OUT(ret, ENOMEM, done);
+        }
+
+        msg->dn = groups[i]->dn;
+        ret = ldb_msg_add_empty(msg, SYSDB_MEMBER, SYSDB_MOD_ADD, NULL);
+        if (ret != LDB_SUCCESS) {
+            ERROR_OUT(ret, ENOMEM, done);
+        }
+
+        ret = ldb_msg_add_fmt(msg, SYSDB_MEMBER, "%s", userdn);
+        if (ret != LDB_SUCCESS) {
+            ERROR_OUT(ret, EINVAL, done);
+        }
+
+        ret = ldb_msg_add_empty(msg, SYSDB_GHOST, SYSDB_MOD_DEL, NULL);
+        if (ret != LDB_SUCCESS) {
+            ERROR_OUT(ret, ENOMEM, done);
+        }
+        ret = ldb_msg_add_fmt(msg, SYSDB_GHOST, "%s", name);
+        if (ret != LDB_SUCCESS) {
+            ERROR_OUT(ret, EINVAL, done);
+        }
+        /* Delete aliases from the ghost attribute as well */
+        for (j = 0; j < alias_el->num_values; j++) {
+            ret = ldb_msg_add_fmt(msg, SYSDB_GHOST, "%s",
+                                  (char *)alias_el->values[j].data);
+            if (ret != LDB_SUCCESS) {
+                ERROR_OUT(ret, EINVAL, done);
+            }
+        }
+
+        ret = ldb_modify(sysdb->ldb, msg);
+        ret = sysdb_error_to_errno(ret);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        talloc_zfree(msg);
+    }
+
+    ret = EOK;
+
 done:
     if (ret == EOK) {
         ret = ldb_transaction_commit(sysdb->ldb);
@@ -984,76 +1090,6 @@ done:
     } else {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         ldb_transaction_cancel(sysdb->ldb);
-    }
-    talloc_zfree(tmp_ctx);
-    return ret;
-}
-
-int sysdb_add_fake_user(struct sysdb_ctx *sysdb,
-                        const char *name,
-                        const char *original_dn,
-                        time_t now)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_message *msg;
-    int ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        ERROR_OUT(ret, ENOMEM, done);
-    }
-
-    /* user dn */
-    msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain->name, name);
-    if (!msg->dn) {
-        ERROR_OUT(ret, ENOMEM, done);
-    }
-
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
-    if (ret) goto done;
-
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
-    if (ret) goto done;
-
-    if (!now) {
-        now = time(NULL);
-    }
-
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
-                    (unsigned long) now);
-    if (ret) goto done;
-
-    /* set last login so that the fake entry does not get cleaned up
-     * immediately */
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_LAST_LOGIN,
-                    (unsigned long) now);
-    if (ret) return ret;
-
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_LAST_UPDATE,
-                    (unsigned long) now);
-    if (ret) goto done;
-
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CACHE_EXPIRE,
-                    (unsigned long) now-1);
-    if (ret) goto done;
-
-    if (original_dn) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD,
-                         SYSDB_ORIG_DN, original_dn);
-        if (ret) goto done;
-    }
-
-    ret = ldb_add(sysdb->ldb, msg);
-    ret = sysdb_error_to_errno(ret);
-
-done:
-    if (ret != EOK) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2245,8 +2281,13 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
                       const char *name, uid_t uid)
 {
     TALLOC_CTX *tmp_ctx;
+    const char *attrs[] = {SYSDB_GHOST, NULL};
+    size_t msg_count;
+    char *filter;
+    struct ldb_message **msgs;
     struct ldb_message *msg;
     int ret;
+    int i;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -2260,33 +2301,70 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
         ret = sysdb_search_user_by_uid(tmp_ctx, sysdb,
                                        uid, NULL, &msg);
     }
-    if (ret) {
+    if (ret == EOK) {
+        if (name && uid) {
+            /* verify name/gid match */
+            const char *c_name;
+            uint64_t c_uid;
+
+            c_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            c_uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+            if (c_name == NULL || c_uid == 0) {
+                DEBUG(2, ("Attribute is missing but this should never happen!\n"));
+                ret = EFAULT;
+                goto fail;
+            }
+            if (strcmp(name, c_name) || uid != c_uid) {
+                /* this is not the entry we are looking for */
+                ret = EINVAL;
+                goto fail;
+            }
+        }
+
+        ret = sysdb_delete_entry(sysdb, msg->dn, false);
+        if (ret) {
+            goto fail;
+        }
+    } else if (ret == ENOENT && name != NULL) {
+        /* Perhaps a ghost user? */
+        filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_GHOST, name);
+        if (filter == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        ret = sysdb_search_groups(tmp_ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        if (ret != EOK) {
+            goto fail;
+        }
+
+        for (i = 0; i < msg_count; i++) {
+            msg = ldb_msg_new(tmp_ctx);
+            if (!msg) {
+                ERROR_OUT(ret, ENOMEM, fail);
+            }
+
+            msg->dn = msgs[i]->dn;
+            ret = ldb_msg_add_empty(msg, SYSDB_GHOST, SYSDB_MOD_DEL, NULL);
+            if (ret != LDB_SUCCESS) {
+                ERROR_OUT(ret, ENOMEM, fail);
+            }
+            ret = ldb_msg_add_fmt(msg, SYSDB_GHOST, "%s", name);
+            if (ret != LDB_SUCCESS) {
+                ERROR_OUT(ret, EINVAL, fail);
+            }
+            ret = ldb_modify(sysdb->ldb, msg);
+            ret = sysdb_error_to_errno(ret);
+            if (ret != EOK) {
+                goto fail;
+            }
+
+            talloc_zfree(msg);
+        }
+    } else {
         goto fail;
     }
 
-    if (name && uid) {
-        /* verify name/gid match */
-        const char *c_name;
-        uint64_t c_uid;
-
-        c_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        c_uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
-        if (c_name == NULL || c_uid == 0) {
-            DEBUG(2, ("Attribute is missing but this should never happen!\n"));
-            ret = EFAULT;
-            goto fail;
-        }
-        if (strcmp(name, c_name) || uid != c_uid) {
-            /* this is not the entry we are looking for */
-            ret = EINVAL;
-            goto fail;
-        }
-    }
-
-    ret = sysdb_delete_entry(sysdb, msg->dn, false);
-    if (ret) {
-        goto fail;
-    }
 
     talloc_zfree(tmp_ctx);
     return EOK;
