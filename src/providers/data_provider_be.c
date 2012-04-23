@@ -968,13 +968,18 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusError dbus_error;
     DBusMessage *reply = NULL;
+    DBusMessageIter iter;
+    dbus_bool_t iter_next = FALSE;
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
     struct be_sudo_req *sudo_req = NULL;
     void *user_data = NULL;
     int ret = 0;
     uint32_t type;
+    uint32_t rules_num = 0;
+    const char *rule = NULL;
     const char *err_msg = NULL;
+    int i;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Entering be_sudo_handler()\n"));
 
@@ -1009,18 +1014,17 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->fn = be_sudo_handler_callback;
 
     dbus_error_init(&dbus_error);
+    dbus_message_iter_init(message, &iter);
 
     /* get type of the request */
-    ret = dbus_message_get_args(message, &dbus_error,
-                                DBUS_TYPE_UINT32, &type,
-                                DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse message!\n"));
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
         ret = EIO;
-        err_msg = "dbus_message_get_args failed";
+        err_msg = "Invalid D-Bus message format";
         goto fail;
     }
+    dbus_message_iter_get_basic(&iter, &type);
+    dbus_message_iter_next(&iter); /* step behind the request type */
 
     /* If we are offline and fast reply was requested
      * return offline immediately
@@ -1050,6 +1054,56 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     switch (sudo_req->type) {
     case BE_REQ_SUDO_FULL:
         /* no arguments required */
+        break;
+    case BE_REQ_SUDO_RULES:
+        /* additional arguments:
+         * rules_num
+         * rules[rules_num]
+         */
+        /* read rules_num */
+        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+            ret = EIO;
+            err_msg = "Invalid D-Bus message format";
+            goto fail;
+        }
+
+        dbus_message_iter_get_basic(&iter, &rules_num);
+
+        sudo_req->rules = talloc_array(sudo_req, char*, rules_num + 1);
+        if (sudo_req->rules == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_array failed.\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        /* read the rules */
+        for (i = 0; i < rules_num; i++) {
+            iter_next = dbus_message_iter_next(&iter);
+            if (iter_next == FALSE) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+                ret = EIO;
+                err_msg = "Invalid D-Bus message format";
+                goto fail;
+            }
+            if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+                ret = EIO;
+                err_msg = "Invalid D-Bus message format";
+                goto fail;
+            }
+
+            dbus_message_iter_get_basic(&iter, &rule);
+            sudo_req->rules[i] = talloc_strdup(sudo_req->rules, rule);
+            if (sudo_req->rules[i] == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+                ret = ENOMEM;
+                goto fail;
+            }
+        }
+
+        sudo_req->rules[rules_num] = NULL;
+
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type %d\n", sudo_req->type));
