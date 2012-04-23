@@ -40,6 +40,7 @@ struct sdap_sudo_refresh_state {
     struct sdap_id_op *sdap_op;
     struct sdap_id_conn_cache *sdap_conn_cache;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
 
     const char *ldap_filter;    /* search */
     const char *sysdb_filter;   /* delete */
@@ -115,6 +116,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->sdap_op = NULL;
     state->sdap_conn_cache = conn_cache;
     state->sysdb = be_ctx->sysdb;
+    state->domain = be_ctx->domain;
     state->ldap_filter = talloc_strdup(state, ldap_filter);
     state->sysdb_filter = talloc_strdup(state, sysdb_filter);
     state->dp_error = DP_ERR_OK;
