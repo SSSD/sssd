@@ -2646,13 +2646,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     switch (state->opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
-        ret = sdap_check_aliases(state->sysdb, state->orig_user, state->dom,
-                                 state->opts, false);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
         subreq = sdap_initgr_rfc2307_send(state, state->ev, state->opts,
                                           state->sysdb, state->sh,
                                           cname);

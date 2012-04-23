@@ -195,12 +195,6 @@ int sdap_deref_search_recv(struct tevent_req *req,
                            size_t *reply_count,
                            struct sdap_deref_attrs ***reply);
 
-errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
-                           struct sysdb_attrs *user_attrs,
-                           struct sss_domain_info *dom,
-                           struct sdap_options *opts,
-                           bool steal_memberships);
-
 errno_t
 sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
                          const char *attr_name,

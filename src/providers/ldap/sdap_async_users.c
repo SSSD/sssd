@@ -411,12 +411,6 @@ int sdap_save_users(TALLOC_CTX *memctx,
             DEBUG(9, ("User %d processed!\n", i));
         }
 
-        ret = sdap_check_aliases(sysdb, users[i], dom,
-                                 opts, true);
-        if (ret) {
-            DEBUG(2, ("Failed to check aliases for user %d. Ignoring.\n", i));
-        }
-
         if (usn_value) {
             if (higher_usn) {
                 if ((strlen(usn_value) > strlen(higher_usn)) ||
