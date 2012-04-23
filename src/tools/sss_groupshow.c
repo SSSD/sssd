@@ -31,7 +31,7 @@
 
 #define PADDING_SPACES   4
 #define GROUP_SHOW_ATTRS { SYSDB_MEMBEROF, SYSDB_GIDNUM, \
-                           SYSDB_MEMBER, SYSDB_NAME, \
+                           SYSDB_MEMBER, SYSDB_GHOST, SYSDB_NAME, \
                            NULL }
 #define GROUP_SHOW_MPG_ATTRS { SYSDB_MEMBEROF, SYSDB_UIDNUM, \
                                 SYSDB_NAME, NULL }
@@ -189,8 +189,8 @@ static int parse_members(TALLOC_CTX *mem_ctx,
     }
 
     *user_members = um;
-    *group_members = gm;
-    *num_group_members = gm_index;
+    if (group_members) *group_members = gm;
+    if (num_group_members) *num_group_members = gm_index;
     talloc_zfree(tmp_ctx);
     return EOK;
 
@@ -211,8 +211,10 @@ static int process_group(TALLOC_CTX *mem_ctx,
                          int    *num_group_members)
 {
     struct ldb_message_element *el;
-    int ret;
+    int ret, i, j;
+    int count = 0;
     struct group_info *gi = NULL;
+    const char **user_members;
 
     DEBUG(6, ("Found entry %s\n", ldb_dn_get_linearized(msg->dn)));
 
@@ -244,6 +246,40 @@ static int process_group(TALLOC_CTX *mem_ctx,
                             group_members, num_group_members);
         if (ret != EOK) {
             goto done;
+        }
+        if (gi->user_members == NULL) {
+            count = 0;
+        } else {
+            for (count = 0; gi->user_members[count]; count++) ;
+        }
+    }
+    el = ldb_msg_find_element(msg, SYSDB_GHOST);
+    if (el) {
+        ret = parse_members(gi, ldb, domain, el,
+                            parent_name,
+                            &user_members,
+                            NULL, NULL);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        if (user_members != NULL) {
+            i = count;
+            for (count = 0; user_members[count]; count++) ;
+            gi->user_members = talloc_realloc(gi, gi->user_members,
+                                              const char *,
+                                              i + count + 1);
+            if (gi->user_members == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            for (j = 0; j < count; j++, i++) {
+                gi->user_members[i] = talloc_steal(gi->user_members,
+                                                   user_members[j]);
+            }
+            gi->user_members[i] = NULL;
+
+            talloc_zfree(user_members);
         }
     }
 
