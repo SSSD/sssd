@@ -47,7 +47,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     const char *homedir;
     const char *shell;
     uid_t uid;
-    gid_t gid;
+    gid_t gid, primary_gid;
     struct sysdb_attrs *user_attrs;
     char *upn = NULL;
     size_t i;
@@ -58,7 +58,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
     struct dom_sid *dom_sid;
     char *sid_str;
-    char *dom_sid_str;
+    char *dom_sid_str = NULL;
+    char *group_sid_str;
     enum idmap_error_code err;
 
     DEBUG(9, ("Save user\n"));
@@ -126,9 +127,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                  &el);
         if (ret != EOK || el->num_values != 1) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No [%s] attribute for user [%s] while id-mapping\n",
+                  ("No [%s] attribute for user [%s] while id-mapping. [%d][%s]\n",
                    opts->user_map[SDAP_AT_USER_OBJECTSID].name,
-                   name));
+                   name, el->num_values, strerror(ret)));
             goto fail;
         }
 
@@ -213,14 +214,65 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_attrs_get_uint32_t(attrs,
-                                   opts->user_map[SDAP_AT_USER_GID].sys_name,
-                                   &gid);
-    if (ret != EOK) {
-        DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
-                  name, dom->name));
-        ret = EINVAL;
-        goto fail;
+    if (use_id_mapping) {
+        ret = sysdb_attrs_get_uint32_t(
+                attrs,
+                opts->user_map[SDAP_AT_USER_PRIMARY_GROUP].sys_name,
+                &primary_gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("no primary group ID provided for [%s] in domain [%s].\n",
+                   name, dom->name));
+            ret = EINVAL;
+            goto fail;
+        }
+
+        /* The primary group ID is just the RID part of the objectSID
+         * of the group. Generate the GID by adding this to the domain
+         * SID value.
+         */
+
+        /* First, get the domain SID if we didn't do so above */
+        if (!dom_sid_str) {
+            ret = sdap_idmap_get_dom_sid_from_object(tmpctx, sid_str,
+                                                     &dom_sid_str);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Could not parse domain SID from [%s]\n", sid_str));
+                goto fail;
+            }
+        }
+
+        /* Add the RID to the end */
+        group_sid_str = talloc_asprintf(tmpctx, "%s-%lu",
+                                        dom_sid_str,
+                                        (unsigned long)primary_gid);
+        if (!group_sid_str) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        /* Convert the SID into a UNIX group ID */
+        err = sss_idmap_sid_to_unix(opts->idmap_ctx->map,
+                                    group_sid_str,
+                                    (uint32_t *)&gid);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not convert objectSID [%s] to a UNIX ID\n",
+                   group_sid_str));
+            ret = EIO;
+            goto fail;
+        }
+    } else {
+        ret = sysdb_attrs_get_uint32_t(attrs,
+                                       opts->user_map[SDAP_AT_USER_GID].sys_name,
+                                       &gid);
+        if (ret != EOK) {
+            DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
+                      name, dom->name));
+            ret = EINVAL;
+            goto fail;
+        }
     }
 
     /* check that the gid is valid for this domain */

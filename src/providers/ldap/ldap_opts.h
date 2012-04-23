@@ -137,6 +137,7 @@ struct sdap_attr_map rfc2307_user_map[] = {
     { "ldap_user_member_of", NULL, SYSDB_MEMBEROF, NULL },
     { "ldap_user_uuid", NULL, SYSDB_UUID, NULL },
     { "ldap_user_objectsid", NULL, SYSDB_SID, NULL },
+    { "ldap_user_primary_group", NULL, SYSDB_PRIMARY_GROUP, NULL },
     { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_user_entry_usn", NULL, SYSDB_USN, NULL },
     { "ldap_user_shadow_last_change", "shadowLastChange", SYSDB_SHADOWPW_LASTCHANGE, NULL },
@@ -189,6 +190,7 @@ struct sdap_attr_map rfc2307bis_user_map[] = {
     /* FIXME: this is 389ds specific */
     { "ldap_user_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_user_objectsid", NULL, SYSDB_SID, NULL },
+    { "ldap_user_primary_group", NULL, SYSDB_PRIMARY_GROUP, NULL },
     { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_user_entry_usn", NULL, SYSDB_USN, NULL },
     { "ldap_user_shadow_last_change", "shadowLastChange", SYSDB_SHADOWPW_LASTCHANGE, NULL },
@@ -241,6 +243,7 @@ struct sdap_attr_map ad2008r2_user_map[] = {
     { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
     { "ldap_user_uuid", "objectGUID", SYSDB_UUID, NULL },
     { "ldap_user_objectsid", "objectSID", SYSDB_SID, NULL },
+    { "ldap_user_primary_group", "primaryGroupID", SYSDB_PRIMARY_GROUP, NULL },
     { "ldap_user_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_user_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
     { "ldap_user_shadow_last_change", NULL, SYSDB_SHADOWPW_LASTCHANGE, NULL },

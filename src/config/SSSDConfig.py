@@ -207,6 +207,7 @@ option_strings = {
     'ldap_user_shell' : _('Shell attribute'),
     'ldap_user_uuid' : _('UUID attribute'),
     'ldap_user_objectsid' : _("objectSID attribute"),
+    'ldap_user_primary_group' : _('Active Directory primary group attribute for ID-mapping'),
     'ldap_user_principal' : _('User principal attribute (for Kerberos)'),
     'ldap_user_fullname' : _('Full Name'),
     'ldap_user_member_of' : _('memberOf attribute'),
