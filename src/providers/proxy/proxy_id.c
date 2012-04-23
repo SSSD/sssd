@@ -489,6 +489,7 @@ done:
 
 
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
+                                           struct sysdb_attrs *group_attrs,
                                            struct group *grp,
                                            time_t now);
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
@@ -530,8 +531,8 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
             goto done;
         }
 
-        /* Create fake users if they don't already exist */
-        ret = proxy_process_missing_users(sysdb, grp, now);
+        /* Create ghost users */
+        ret = proxy_process_missing_users(sysdb, attrs, grp, now);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add missing members\n"));
             goto done;
@@ -612,6 +613,7 @@ done:
 }
 
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
+                                           struct sysdb_attrs *group_attrs,
                                            struct group *grp,
                                            time_t now)
 {
@@ -636,15 +638,15 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
             talloc_zfree(msg);
             continue;
         } else if (ret == ENOENT) {
-            /* No entry for this user. Create a fake user */
+            /* No entry for this user. Create a ghost user */
             DEBUG(SSSDBG_TRACE_LIBS,
-                  ("Member [%s] not cached, creating fake user entry\n",
+                  ("Member [%s] not cached, creating ghost user entry\n",
                    grp->gr_mem[i]));
 
-            ret = sysdb_add_fake_user(sysdb, grp->gr_mem[i], NULL, now);
+            ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST, grp->gr_mem[i]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Cannot store fake user entry: [%d]: %s\n",
+                      ("Cannot store ghost user entry: [%d]: %s\n",
                        ret, strerror(ret)));
                 goto done;
             }
