@@ -1186,6 +1186,7 @@ if BUILD_SUDO
 libsss_ldap_common_la_SOURCES += \
     src/providers/ldap/sdap_sudo_cache.c \
     src/providers/ldap/sdap_sudo_timer.c \
+    src/providers/ldap/sdap_async_sudo.c \
     src/providers/ldap/sdap_sudo.c
 endif
 
