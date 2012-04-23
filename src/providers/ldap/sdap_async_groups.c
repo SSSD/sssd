@@ -286,6 +286,11 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             }
         }
 
+        /* Store the GID in the ldap_attrs so it doesn't get
+         * treated as a missing attribute from LDAP and removed.
+         */
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
+        if (ret != EOK) goto fail;
     } else {
         ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix_group);
         if (ret == ENOENT) {

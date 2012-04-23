@@ -179,6 +179,11 @@ int sdap_save_user(TALLOC_CTX *memctx,
             }
         }
 
+        /* Store the UID in the ldap_attrs so it doesn't get
+         * treated as a missing attribute from LDAP and removed.
+         */
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, uid);
+        if (ret != EOK) goto fail;
     } else {
         ret = sysdb_attrs_get_uint32_t(attrs,
                                        opts->user_map[SDAP_AT_USER_UID].sys_name,
@@ -247,6 +252,12 @@ int sdap_save_user(TALLOC_CTX *memctx,
             ret = EIO;
             goto fail;
         }
+
+        /* Store the GID in the ldap_attrs so it doesn't get
+         * treated as a missing attribute from LDAP and removed.
+         */
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
+        if (ret != EOK) goto fail;
     } else {
         ret = sysdb_attrs_get_uint32_t(attrs,
                                        opts->user_map[SDAP_AT_USER_GID].sys_name,
