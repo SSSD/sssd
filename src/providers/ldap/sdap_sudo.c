@@ -171,6 +171,9 @@ static void sdap_sudo_reply(struct tevent_req *req)
     case BE_REQ_SUDO_FULL:
         ret = sdap_sudo_full_refresh_recv(req, &dp_error, &error);
         break;
+    case BE_REQ_SUDO_RULES:
+        ret = sdap_sudo_rules_refresh_recv(req, &dp_error, &error);
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type: %d\n",
                                     sudo_req->type));
@@ -202,6 +205,11 @@ void sdap_sudo_handler(struct be_req *be_req)
     case BE_REQ_SUDO_FULL:
         DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a full refresh of sudo rules\n"));
         req = sdap_sudo_full_refresh_send(be_req, id_ctx);
+        break;
+    case BE_REQ_SUDO_RULES:
+        DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a refresh of specific sudo rules\n"));
+        req = sdap_sudo_rules_refresh_send(be_req, id_ctx->be, id_ctx->opts,
+                                           id_ctx->conn_cache, sudo_req->rules);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type: %d\n",
