@@ -96,12 +96,17 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
                                  struct sysdb_ctx *ctx,
                                  struct sdap_options *opts,
                                  struct sss_domain_info *domain,
+                                 hash_table_t *ghosts,
                                  struct ldb_val *values,
                                  int num_values)
 {
     struct ldb_message_element *el;
-    int i, j;
+    struct ldb_message_element *ghostel;
+    int i, j, k;
     int ret;
+    errno_t hret;
+    hash_key_t key;
+    hash_value_t value;
 
     ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
     if (ret) {
@@ -116,29 +121,76 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
         goto done;
     }
 
-    for (i = 0, j = el->num_values; i < num_values; i++) {
+    ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &ghostel);
+    if (ret) {
+        goto done;
+    }
 
-        /* sync search entry with this as origDN */
-        ret = sdap_find_entry_by_origDN(el->values, ctx, domain,
-                                        (char *)values[i].data,
-                                        (char **)&el->values[j].data);
+    if (ghostel->num_values == 0) {
+        /* Element was probably newly created, look for "member" again */
+        ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
         if (ret != EOK) {
-            if (ret != ENOENT) {
+            goto done;
+        }
+    }
+
+
+    /* Just allocate both big enough to contain all members for now */
+    ghostel->values = talloc_realloc(group_attrs, ghostel->values, struct ldb_val,
+                                     ghostel->num_values + num_values);
+    if (!ghostel->values) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    j = el->num_values;
+    k = ghostel->num_values;
+    for (i = 0; i < num_values; i++) {
+        if (ghosts == NULL) {
+            hret = HASH_ERROR_KEY_NOT_FOUND;
+        } else {
+            key.type = HASH_KEY_STRING;
+            key.str = (char *)values[i].data;
+            hret = hash_lookup(ghosts, &key, &value);
+        }
+
+        if (hret == HASH_ERROR_KEY_NOT_FOUND) {
+            /* sync search entry with this as origDN */
+            ret = sdap_find_entry_by_origDN(el->values, ctx, domain,
+                                            (char *)values[i].data,
+                                            (char **)&el->values[j].data);
+            if (ret != EOK) {
+                /* This should never return ENOENT
+                 * -> fail if it does
+                 */
                 goto done;
             }
 
-            DEBUG(7, ("    member #%d (%s): not found!\n",
-                      i, (char *)values[i].data));
-        } else {
             DEBUG(7, ("    member #%d (%s): [%s]\n",
                       i, (char *)values[i].data,
                       (char *)el->values[j].data));
 
             el->values[j].length = strlen((char *)el->values[j].data);
             j++;
+        } else if (hret != HASH_SUCCESS) {
+            ret = EFAULT;
+            goto done;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, ("    member #%d (%s): ghost!\n",
+                                      i, (char *)values[i].data));
+            ghostel->values[k].data = (uint8_t *)talloc_strdup(ghostel->values,
+                                                               value.ptr);
+            if (ghostel->values[k].data == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            ghostel->values[k].length = strlen((char *)ghostel->values[k].data);
+            k++;
         }
     }
     el->num_values = j;
+    ghostel->num_values = k;
+
     ret = EOK;
 
 done:
@@ -186,6 +238,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sss_domain_info *dom,
                            struct sysdb_attrs *attrs,
                            bool populate_members,
+                           hash_table_t *ghosts,
                            char **_usn_value,
                            time_t now)
 {
@@ -193,12 +246,14 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
     gid_t gid;
-    int ret;
+    int ret, cnt, i;
     char *usn_value = NULL;
     TALLOC_CTX *tmpctx = NULL;
     bool posix_group;
     bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
     char *sid_str;
+    hash_key_t key;
+    hash_value_t value;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -321,16 +376,58 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     if (populate_members) {
         struct ldb_message_element *el1;
+        struct ldb_message_element *gh;
         ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el1);
         if (ret != EOK) {
             goto fail;
         }
+
         ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
         if (ret != EOK) {
             goto fail;
         }
         el->values = el1->values;
         el->num_values = el1->num_values;
+
+        ret = sysdb_attrs_get_el(attrs, SYSDB_GHOST, &gh);
+        if (ret != EOK) {
+            goto fail;
+        }
+        ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &el);
+        if (ret != EOK) {
+            goto fail;
+        }
+        el->values = gh->values;
+        el->num_values = gh->num_values;
+
+        /* Now process RFC2307bis ghost hash table */
+        if (ghosts != NULL) {
+            cnt = el->num_values + el1->num_values;
+            el->values = talloc_realloc(attrs, el->values, struct ldb_val,
+                                        cnt);
+            if (el->values == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            for (i = 0; i < el1->num_values; i++) {
+                key.type = HASH_KEY_STRING;
+                key.str = (char *)el1->values[i].data;
+                ret = hash_lookup(ghosts, &key, &value);
+                if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+                    continue;
+                } else if (ret != HASH_SUCCESS) {
+                    ret = EFAULT;
+                    goto fail;
+                }
+                el->values[el->num_values].data = (uint8_t *)talloc_strdup(el->values, value.ptr);
+                if (el->values[el->num_values].data == NULL) {
+                    ret = ENOMEM;
+                    goto fail;
+                }
+                el->values[el->num_values].length = strlen(value.ptr)+1;
+                el->num_values++;
+            }
+        }
     }
 
     ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, group_attrs);
@@ -373,6 +470,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
                             struct sdap_options *opts,
                             struct sss_domain_info *dom,
                             struct sysdb_attrs *attrs,
+                            hash_table_t *ghosts,
                             time_t now)
 {
     struct ldb_message_element *el;
@@ -405,6 +503,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         }
 
         ret = sdap_fill_memberships(group_attrs, ctx, opts, dom,
+                                    ghosts,
                                     el->values, el->num_values);
         if (ret) {
             goto fail;
@@ -434,6 +533,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
                             struct sysdb_attrs **groups,
                             int num_groups,
                             bool populate_members,
+                            hash_table_t *ghosts,
                             char **_usn_value)
 {
     TALLOC_CTX *tmpctx;
@@ -487,7 +587,8 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         /* if 2 pass savemembers = false */
         ret = sdap_save_group(tmpctx, sysdb,
                               opts, dom, groups[i],
-                              populate_members, &usn_value, now);
+                              populate_members, ghosts,
+                              &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -520,7 +621,8 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
 
         for (i = 0; i < nsaved_groups; i++) {
 
-            ret = sdap_save_grpmem(tmpctx, sysdb, opts, dom, saved_groups[i], now);
+            ret = sdap_save_grpmem(tmpctx, sysdb, opts, dom, saved_groups[i],
+                                   ghosts, now);
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
             if (ret) {
@@ -557,13 +659,12 @@ struct sdap_process_group_state {
     struct sysdb_ctx *sysdb;
 
     struct sysdb_attrs *group;
-    struct sysdb_attrs **new_members;
     struct ldb_message_element* sysdb_dns;
+    struct ldb_message_element* ghost_dns;
     char **queued_members;
     int queue_len;
     const char **attrs;
     const char *filter;
-    size_t member_idx;
     size_t queue_idx;
     size_t count;
     size_t check_count;
@@ -578,7 +679,32 @@ static int sdap_process_group_members_2307bis(struct tevent_req *req,
                                    struct sdap_process_group_state *state,
                                    struct ldb_message_element *memberel);
 static int sdap_process_group_members_2307(struct sdap_process_group_state *state,
-                                   struct ldb_message_element *memberel);
+                                   struct ldb_message_element *memberel,
+                                   struct ldb_message_element *ghostel);
+
+static errno_t sdap_process_group_create_dns(TALLOC_CTX *mem_ctx,
+                                             size_t num_values,
+                                             struct ldb_message_element **_dns)
+{
+    struct ldb_message_element *dns;
+
+    dns = talloc(mem_ctx, struct ldb_message_element);
+    if (dns == NULL) {
+        return ENOMEM;
+    }
+
+    dns->num_values = 0;
+    dns->values = talloc_array(dns, struct ldb_val,
+                               num_values);
+    if (dns->values == NULL) {
+        talloc_zfree(dns);
+        return ENOMEM;
+    }
+
+    *_dns = dns;
+
+    return EOK;
+}
 
 struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
                                            struct tevent_context *ev,
@@ -590,6 +716,7 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
                                            bool enumeration)
 {
     struct ldb_message_element *el;
+    struct ldb_message_element *ghostel;
     struct sdap_process_group_state *grp_state;
     struct tevent_req *req = NULL;
     const char **attrs;
@@ -621,8 +748,6 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
     grp_state->sysdb = sysdb;
     grp_state->group =  group;
     grp_state->check_count = 0;
-    grp_state->new_members = NULL;
-    grp_state->member_idx = 0;
     grp_state->queue_idx = 0;
     grp_state->queued_members = NULL;
     grp_state->queue_len = 0;
@@ -644,27 +769,47 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    grp_state->sysdb_dns = talloc(grp_state, struct ldb_message_element);
-    if (!grp_state->sysdb_dns) {
-        talloc_zfree(req);
-        return NULL;
+    ret = sysdb_attrs_get_el(group,
+                             SYSDB_GHOST,
+                             &ghostel);
+    if (ret) {
+        goto done;
     }
-    grp_state->sysdb_dns->values = talloc_array(grp_state, struct ldb_val,
-                                                el->num_values);
-    if (!grp_state->sysdb_dns->values) {
-        talloc_zfree(req);
-        return NULL;
+
+    if (ghostel->num_values == 0) {
+        /* Element was probably newly created, look for "member" again */
+        ret = sysdb_attrs_get_el(group,
+                                 opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                                 &el);
+        if (ret != EOK) {
+            goto done;
+        }
     }
-    grp_state->sysdb_dns->num_values = 0;
+
+
+    ret = sdap_process_group_create_dns(grp_state, el->num_values,
+                                        &grp_state->sysdb_dns);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_process_group_create_dns(grp_state, el->num_values,
+                                        &grp_state->ghost_dns);
+    if (ret != EOK) {
+        goto done;
+    }
 
     switch (opts->schema_type) {
         case SDAP_SCHEMA_RFC2307:
-            ret = sdap_process_group_members_2307(grp_state, el);
+            ret = sdap_process_group_members_2307(grp_state, el, ghostel);
             break;
 
         case SDAP_SCHEMA_IPA_V1:
         case SDAP_SCHEMA_AD:
         case SDAP_SCHEMA_RFC2307BIS:
+            /* Note that this code branch will be used only if
+             * ldap_nesting_level = 0 is set in config file
+             */
             ret = sdap_process_group_members_2307bis(req, grp_state, el);
             break;
 
@@ -815,12 +960,6 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
         memberel->num_values = state->sysdb_dns->num_values;
     } else {
         state->count = state->check_count;
-        state->new_members = talloc_zero_array(state,
-                struct sysdb_attrs *,
-                state->count + 1);
-        if (!state->new_members) {
-            return ENOMEM;
-        }
         ret = EBUSY;
     }
 
@@ -828,40 +967,34 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
 }
 
 static int
-sdap_add_group_member_2307(struct sdap_process_group_state *state,
+sdap_add_group_member_2307(struct ldb_message_element *sysdb_dns,
+                           struct sss_domain_info *dom,
                            const char *username)
 {
-    char *strdn;
-
-    strdn = sysdb_user_strdn(state->sysdb_dns->values,
-                             state->dom->name, username);
-    if (!strdn) {
+    sysdb_dns->values[sysdb_dns->num_values].data =
+            (uint8_t *) talloc_strdup(sysdb_dns->values, username);
+    if (sysdb_dns->values[sysdb_dns->num_values].data == NULL) {
         return ENOMEM;
     }
-
-    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
-            (uint8_t *) strdn;
-    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
-            strlen(strdn);
-    state->sysdb_dns->num_values++;
+    sysdb_dns->values[sysdb_dns->num_values].length =
+            strlen(username);
+    sysdb_dns->num_values++;
 
     return EOK;
 }
 
 static int
 sdap_process_missing_member_2307(struct sdap_process_group_state *state,
-                                 char *member_name, bool *in_transaction,
-                                 time_t now)
+                                 char *member_name, time_t now)
 {
-    int ret, sret;
+    int ret;
     TALLOC_CTX *tmp_ctx;
     const char *filter;
     const char *username;
+    const char *user_dn;
     size_t count;
     struct ldb_message **msgs = NULL;
     static const char *attrs[] = { SYSDB_NAME, NULL };
-
-    if (!in_transaction) return EINVAL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -870,7 +1003,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
     filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_NAME_ALIAS, member_name);
     if (!filter) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     ret = sysdb_search_users(tmp_ctx, state->sysdb, filter,
@@ -881,74 +1014,51 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         if (count != 1) {
             DEBUG(1, ("More than one entry with this alias?\n"));
             ret = EIO;
-            goto fail;
+            goto done;
         }
 
         /* fill username with primary name */
         username = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
-        goto done;
-    } else if (ret != EOK && ret != ENOENT) {
-        ret = EIO;
-        goto fail;
-    }
+        if (username == NULL) {
+            ret = EINVAL;
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Inconsistent sysdb: user "
+                                         "without primary name?\n"));
+            goto done;
+        }
+        user_dn = sysdb_user_strdn(tmp_ctx, state->dom->name, username);
+        if (username == NULL) {
+            return ENOMEM;
+        }
 
-    username = member_name;
-    /* The entry really does not exist, add a fake entry */
-    DEBUG(7, ("Adding a dummy entry\n"));
-
-    if (!*in_transaction) {
-        ret = sysdb_transaction_start(state->sysdb);
+        ret = sdap_add_group_member_2307(state->sysdb_dns, state->dom, user_dn);
         if (ret != EOK) {
-            DEBUG(1, ("Cannot start sysdb transaction: [%d]: %s\n",
-                       ret, strerror(ret)));
-            return ret;
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add group member %s\n", username));
         }
-        *in_transaction = true;
+    } else if (ret == ENOENT || count == 0) {
+        /* The entry really does not exist, add a ghost */
+        DEBUG(SSSDBG_TRACE_FUNC, ("Adding a ghost entry\n"));
+        ret = sdap_add_group_member_2307(state->ghost_dns, state->dom, member_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add group member %s\n", member_name));
+        }
+    } else {
+        ret = EIO;
     }
 
-    ret = sysdb_add_fake_user(state->sysdb, username, NULL, now);
-    if (ret != EOK) {
-        DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
-                  ret, strerror(ret)));
-        goto fail;
-    }
-
-    /*
-     * Convert the just received DN into the corresponding sysdb DN
-     * for saving into member attribute of the group
-     */
 done:
-    ret = sdap_add_group_member_2307(state, username);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not add group member %s\n", username));
-        goto fail;
-    }
-
     talloc_free(tmp_ctx);
-    return EOK;
-fail:
-    talloc_free(tmp_ctx);
-    if (*in_transaction) {
-        sret = sysdb_transaction_cancel(state->sysdb);
-        if (sret == EOK) {
-            *in_transaction = false;
-        } else {
-            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
-                       sret, strerror(sret)));
-        }
-    }
     return ret;
 }
 
 static int
 sdap_process_group_members_2307(struct sdap_process_group_state *state,
-                                struct ldb_message_element *memberel)
+                                struct ldb_message_element *memberel,
+                                struct ldb_message_element *ghostel)
 {
     struct ldb_message *msg;
-    bool in_transaction = false;
     char *member_name;
+    char *userdn;
     int ret;
-    errno_t sret;
     time_t now;
     int i;
 
@@ -968,7 +1078,12 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
              */
             DEBUG(7, ("Member already cached in sysdb: %s\n", member_name));
 
-            ret = sdap_add_group_member_2307(state, member_name);
+            userdn = sysdb_user_strdn(state->sysdb_dns, state->dom->name, member_name);
+            if (userdn == NULL) {
+                return ENOMEM;
+            }
+
+            ret = sdap_add_group_member_2307(state->sysdb_dns, state->dom, userdn);
             if (ret != EOK) {
                 DEBUG(1, ("Could not add member %s into sysdb\n", member_name));
                 goto done;
@@ -978,8 +1093,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
             DEBUG(7, ("member #%d (%s): not found in sysdb\n",
                        i, member_name));
 
-            ret = sdap_process_missing_member_2307(state, member_name,
-                                                   &in_transaction, now);
+            ret = sdap_process_missing_member_2307(state, member_name, now);
             if (ret != EOK) {
                 DEBUG(1, ("Error processing missing member #%d (%s):\n",
                           i, member_name));
@@ -992,30 +1106,15 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
         }
     }
 
-    /* sdap_process_missing_member_2307 starts transaction */
-    if (in_transaction) {
-        ret = sysdb_transaction_commit(state->sysdb);
-        if (ret) {
-            DEBUG(2, ("Cannot commit sysdb transaction\n"));
-            goto done;
-        }
-        in_transaction = false;
-    }
-
     ret = EOK;
     talloc_free(memberel->values);
     memberel->values = talloc_steal(state->group, state->sysdb_dns->values);
     memberel->num_values = state->sysdb_dns->num_values;
+    talloc_free(ghostel->values);
+    ghostel->values = talloc_steal(state->group, state->ghost_dns->values);
+    ghostel->num_values = state->ghost_dns->num_values;
 
 done:
-    if (in_transaction) {
-        /* If the transaction is still active here, we need to cancel it */
-        sret = sysdb_transaction_cancel(state->sysdb);
-        if (sret != EOK) {
-            DEBUG(0, ("Unable to cancel transaction! [%d][%s]\n",
-                      sret, strerror(sret)));
-        }
-    }
     return ret;
 }
 
@@ -1029,8 +1128,7 @@ static void sdap_process_group_members(struct tevent_req *subreq)
     struct sdap_process_group_state *state =
                         tevent_req_data(req, struct sdap_process_group_state);
     struct ldb_message_element *el;
-    struct ldb_dn *dn;
-    char* dn_string;
+    uint8_t* name_string;
 
     state->check_count--;
     DEBUG(9, ("Members remaining: %d\n", state->check_count));
@@ -1055,31 +1153,12 @@ static void sdap_process_group_members(struct tevent_req *subreq)
         goto next;
     }
 
-    /*
-     * Convert the just received DN into the corresponding sysdb DN
-     * for later usage by sdap_save_groups()
-     */
-    dn = sysdb_user_dn(state->sysdb, state, state->dom->name,
-                       (char*)el[0].values[0].data);
-    if (!dn) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    dn_string = ldb_dn_alloc_linearized(state->group, dn);
-    if (!dn_string) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
-            (uint8_t*)dn_string;
-    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
-            strlen(dn_string);
-    state->sysdb_dns->num_values++;
-
-    state->new_members[state->member_idx] = usr_attrs[0];
-    state->member_idx++;
+    name_string = el[0].values[0].data;
+    state->ghost_dns->values[state->ghost_dns->num_values].data =
+            talloc_steal(state->ghost_dns->values, name_string);
+    state->ghost_dns->values[state->ghost_dns->num_values].length =
+            strlen((char *)name_string);
+    state->ghost_dns->num_values++;
 
 next:
     if (ret) {
@@ -1110,21 +1189,13 @@ next:
     }
 
     if (state->check_count == 0) {
-        ret = sdap_save_users(state, state->sysdb,
-                              state->dom, state->opts,
-                              state->new_members, state->count, NULL);
-        if (ret) {
-            DEBUG(2, ("Failed to store users.\n"));
-            tevent_req_error(req, ret);
-            return;
-        }
-
         /*
          * To avoid redundant sysdb lookups, populate the "member" attribute
          * of the group entry with the sysdb DNs of the members.
          */
         ret = sysdb_attrs_get_el(state->group,
-                state->opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
+                        state->opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                        &el);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Failed to get the group member attribute [%d]: %s\n",
@@ -1134,6 +1205,14 @@ next:
         }
         el->values = talloc_steal(state->group, state->sysdb_dns->values);
         el->num_values = state->sysdb_dns->num_values;
+
+        ret = sysdb_attrs_get_el(state->group, SYSDB_GHOST, &el);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+        el->values = talloc_steal(state->group, state->ghost_dns->values);
+        el->num_values = state->ghost_dns->num_values;
         DEBUG(9, ("Processed Group - Done\n"));
         tevent_req_done(req);
     }
@@ -1446,7 +1525,8 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         DEBUG(9, ("Saving groups without members first "
                   "to allow unrolling of nested groups.\n"));
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                               state->groups, state->count, false, NULL);
+                               state->groups, state->count, false,
+                               NULL, NULL);
         if (ret) {
             DEBUG(2, ("Failed to store groups.\n"));
             tevent_req_error(req, ret);
@@ -1497,7 +1577,7 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
         DEBUG(9, ("All groups processed\n"));
 
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                               state->groups, state->count, true,
+                               state->groups, state->count, true, NULL,
                                &state->higher_usn);
         if (ret) {
             DEBUG(2, ("Failed to store groups.\n"));
@@ -1530,10 +1610,12 @@ int sdap_get_groups_recv(struct tevent_req *req,
     return EOK;
 }
 
-static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
+static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
+                                                struct sysdb_ctx *sysdb,
                                                 struct sdap_options *opts,
                                                 struct sysdb_attrs **users,
-                                                int num_users);
+                                                int num_users,
+                                                hash_table_t **_ghosts);
 
 static void sdap_nested_done(struct tevent_req *subreq)
 {
@@ -1546,6 +1628,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
     bool in_transaction = false;
     struct sysdb_attrs **users = NULL;
     struct sysdb_attrs **groups = NULL;
+    hash_table_t *ghosts;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_get_groups_state *state = tevent_req_data(req,
@@ -1608,14 +1691,15 @@ static void sdap_nested_done(struct tevent_req *subreq)
     }
     in_transaction = true;
 
-    ret = sdap_nested_group_populate_users(state->sysdb, state->opts,
-                                           users, user_count);
+    ret = sdap_nested_group_populate_users(state, state->sysdb, state->opts,
+                                           users, user_count, &ghosts);
     if (ret != EOK) {
         goto fail;
     }
 
     ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                           groups, group_count, false, &state->higher_usn);
+                           groups, group_count, false, ghosts,
+                           &state->higher_usn);
     if (ret != EOK) {
         goto fail;
     }
@@ -1641,10 +1725,12 @@ fail:
     tevent_req_error(req, ret);
 }
 
-static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
+static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
+                                                struct sysdb_ctx *sysdb,
                                                 struct sdap_options *opts,
                                                 struct sysdb_attrs **users,
-                                                int num_users)
+                                                int num_users,
+                                                hash_table_t **_ghosts)
 {
     int i;
     errno_t ret, sret;
@@ -1659,16 +1745,29 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
     const char *sysdb_name;
     struct sysdb_attrs *attrs;
     static const char *search_attrs[] = { SYSDB_NAME, NULL };
+    hash_table_t *ghosts;
+    hash_key_t key;
+    hash_value_t value;
     size_t count;
-    time_t now;
+
+    if (_ghosts == NULL) {
+        return EINVAL;
+    }
 
     if (num_users == 0) {
         /* Nothing to do if there are no users */
+        *_ghosts = NULL;
         return EOK;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
+
+    ret = sss_hash_create(tmp_ctx, num_users, &ghosts);
+    if (ret != HASH_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
@@ -1676,7 +1775,6 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    now = time(NULL);
     for (i = 0; i < num_users; i++) {
         ret = sysdb_attrs_primary_name(sysdb, users[i],
                                     opts->user_map[SDAP_AT_USER_NAME].name,
@@ -1744,15 +1842,17 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
             ret = sysdb_set_user_attr(sysdb, sysdb_name, attrs, SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         }
-
-        /* If the entry does not exist add a fake user record */
-        ret = sysdb_add_fake_user(sysdb, username, original_dn, now);
-        if (ret != EOK) {
-            DEBUG(1, ("Cannot store fake user entry, ignoring: [%d]: %s\n",
-                      ret, strerror(ret)));
-            continue;
-        } else {
-            DEBUG(9, ("Added incomplete user %s!\n", username));
+        else
+        {
+            key.type = HASH_KEY_STRING;
+            key.str = discard_const(original_dn);
+            value.type = HASH_VALUE_PTR;
+            value.ptr = discard_const(username);
+            ret = hash_enter(ghosts, &key, &value);
+            if (ret != HASH_SUCCESS) {
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
@@ -1764,13 +1864,16 @@ static errno_t sdap_nested_group_populate_users(struct sysdb_ctx *sysdb,
 
     ret = EOK;
 done:
-    talloc_zfree(tmp_ctx);
     if (ret != EOK) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
             DEBUG(2, ("Could not cancel transaction\n"));
         }
+        *_ghosts = NULL;
+    } else {
+        *_ghosts = talloc_steal(mem_ctx, ghosts);
     }
+    talloc_zfree(tmp_ctx);
     return ret;
 }
 
@@ -2242,7 +2345,6 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs = NULL;
     char *member_dn;
     uint64_t expiration;
-    uint64_t create_time;
     uid_t user_uid;
     time_t now = time(NULL);
     static const char *attrs[] = { SYSDB_CACHE_EXPIRE, SYSDB_UIDNUM,
@@ -2288,11 +2390,9 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
 
         user_uid = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_UIDNUM, 0);
         if (!user_uid) {
-            /* Refresh the fake user if he was created before cache_timeout */
-            create_time = ldb_msg_find_attr_as_uint64(msgs[0],
-                                                    SYSDB_CREATE_TIME,
-                                                    0);
-            expiration = create_time + dom->user_timeout;
+            DEBUG(SSSDBG_OP_FAILURE, ("User with no UID? Skipping\n"));
+            ret = EIO;
+            goto fail;
         } else {
             /* Regular user, check if we need a refresh */
             expiration = ldb_msg_find_attr_as_uint64(msgs[0],
