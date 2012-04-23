@@ -125,17 +125,20 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                     /* Convert the SID into a UNIX group ID */
                     ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str,
                                                  &gid);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
-                              ("Could not convert objectSID [%s] to a UNIX ID\n",
-                               sid_str));
-                        ret = EIO;
-                        goto fail;
+                    if (ret == EOK) {
+                        DEBUG(SSSDBG_TRACE_INTERNAL,
+                              ("Group [%s] has mapped gid [%lu]\n",
+                               name, (unsigned long)gid));
+                    } else {
+                        posix = false;
+                        gid = 0;
+
+                        DEBUG(SSSDBG_TRACE_INTERNAL,
+                              ("Group [%s] cannot be mapped. "
+                               "Treating as a non-POSIX group\n",
+                               name));
                     }
 
-                    DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("Group [%s] has mapped gid [%lu]\n",
-                           name, (unsigned long)gid));
                 } else {
                     ret = sysdb_attrs_get_uint32_t(ldap_groups[ai],
                                                    SYSDB_GIDNUM,
