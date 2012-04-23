@@ -68,6 +68,7 @@
 
 #define SYSDB_MEMBER "member"
 #define SYSDB_MEMBERUID "memberUid"
+#define SYSDB_GHOST "ghost"
 #define SYSDB_POSIX "isPosix"
 #define SYSDB_USER_CATEGORY "userCategory"
 #define SYSDB_HOST_CATEGORY "hostCategory"
@@ -167,6 +168,7 @@
                         NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_MEMBERUID, \
+                           SYSDB_GHOST, \
                            SYSDB_DEFAULT_ATTRS, \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
