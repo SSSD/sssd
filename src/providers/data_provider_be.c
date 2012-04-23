@@ -974,7 +974,6 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     void *user_data = NULL;
     int ret = 0;
     uint32_t type;
-    char *filter;
     const char *err_msg = NULL;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Entering be_sudo_handler()\n"));
@@ -1009,12 +1008,11 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->pvt = reply;
     be_req->fn = be_sudo_handler_callback;
 
-    /* get arguments */
     dbus_error_init(&dbus_error);
 
+    /* get type of the request */
     ret = dbus_message_get_args(message, &dbus_error,
                                 DBUS_TYPE_UINT32, &type,
-                                DBUS_TYPE_STRING, &filter,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse message!\n"));
@@ -1023,7 +1021,6 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
         err_msg = "dbus_message_get_args failed";
         goto fail;
     }
-
 
     /* If we are offline and fast reply was requested
      * return offline immediately
@@ -1048,32 +1045,11 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     sudo_req->type = (~BE_REQ_FAST) & type;
-    sudo_req->uid = 0;
-    sudo_req->groups = NULL;
 
+    /* get additional arguments according to the request type */
     switch (sudo_req->type) {
-    case BE_REQ_SUDO_ALL:
-    case BE_REQ_SUDO_DEFAULTS:
-        sudo_req->username = NULL;
-        break;
-    case BE_REQ_SUDO_USER:
-        if (filter) {
-            if (strncmp(filter, "name=", 5) == 0) {
-                sudo_req->username = talloc_strdup(sudo_req, &filter[5]);
-                if (sudo_req->username == NULL) {
-                    ret = ENOMEM;
-                    goto fail;
-                }
-            } else {
-                ret = EINVAL;
-                err_msg = "Invalid Filter";
-                goto fail;
-            }
-        } else {
-            ret = EINVAL;
-            err_msg = "Missing Filter Parameter";
-            goto fail;
-        }
+    case BE_REQ_SUDO_FULL:
+        /* no arguments required */
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type %d\n", sudo_req->type));
