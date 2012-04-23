@@ -39,6 +39,7 @@ struct sdap_sudo_refresh_state {
     struct sdap_options *opts;
     struct sdap_id_op *sdap_op;
     struct sdap_id_conn_cache *sdap_conn_cache;
+    struct sysdb_ctx *sysdb;
 
     const char *ldap_filter;    /* search */
     const char *sysdb_filter;   /* delete */
@@ -113,6 +114,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->sdap_op = NULL;
     state->sdap_conn_cache = conn_cache;
+    state->sysdb = be_ctx->sysdb;
     state->ldap_filter = talloc_strdup(state, ldap_filter);
     state->sysdb_filter = talloc_strdup(state, sysdb_filter);
     state->dp_error = DP_ERR_OK;
@@ -449,7 +451,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, ("Received %d rules\n", rules_count));
 
     /* start transaction */
-    ret = sysdb_transaction_start(state->be_ctx->sysdb);
+    ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
         goto done;
     }
@@ -457,22 +459,20 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 
     /* purge cache */
     if (state->sysdb_filter != NULL) {
-        ret = sysdb_sudo_purge_byfilter(state->be_ctx->sysdb,
-                                        state->sysdb_filter);
+        ret = sysdb_sudo_purge_byfilter(state->sysdb, state->sysdb_filter);
         if (ret != EOK) {
             goto done;
         }
     }
 
     /* store rules */
-    ret = sdap_sudo_store_sudoers(state->be_ctx->sysdb, state->opts,
-                                  rules_count, rules);
+    ret = sdap_sudo_store_sudoers(state->sysdb, state->opts, rules_count, rules);
     if (ret != EOK) {
         goto done;
     }
 
     /* commit transaction */
-    ret = sysdb_transaction_commit(state->be_ctx->sysdb);
+    ret = sysdb_transaction_commit(state->sysdb);
     if (ret == EOK) {
         in_transaction = false;
     }
@@ -483,7 +483,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 
 done:
     if (in_transaction) {
-        sret = sysdb_transaction_cancel(state->be_ctx->sysdb);
+        sret = sysdb_transaction_cancel(state->sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
         }
