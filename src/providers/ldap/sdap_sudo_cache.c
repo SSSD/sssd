@@ -26,7 +26,9 @@
 static errno_t
 sdap_save_native_sudorule(struct sysdb_ctx *sysdb_ctx,
                           struct sdap_attr_map *map,
-                          struct sysdb_attrs *attrs)
+                          struct sysdb_attrs *attrs,
+                          int cache_timeout,
+                          time_t now)
 {
     errno_t ret;
     const char *rule_name;
@@ -35,6 +37,14 @@ sdap_save_native_sudorule(struct sysdb_ctx *sysdb_ctx,
                                  &rule_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not get rule name [%d]: %s\n",
+              ret, strerror(ret)));
+        return ret;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 (cache_timeout ? (now + cache_timeout) : 0));
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not set sysdb cache expire [%d]: %s\n",
               ret, strerror(ret)));
         return ret;
     }
@@ -52,7 +62,9 @@ errno_t
 sdap_save_native_sudorule_list(struct sysdb_ctx *sysdb_ctx,
                                struct sdap_attr_map *map,
                                struct sysdb_attrs **replies,
-                               size_t replies_count)
+                               size_t replies_count,
+                               int cache_timeout,
+                               time_t now)
 {
     errno_t ret, tret;
     bool in_transaction = false;
@@ -66,7 +78,8 @@ sdap_save_native_sudorule_list(struct sysdb_ctx *sysdb_ctx,
     in_transaction = true;
 
     for (i=0; i<replies_count; i++) {
-        ret = sdap_save_native_sudorule(sysdb_ctx, map, replies[i]);
+        ret = sdap_save_native_sudorule(sysdb_ctx, map, replies[i],
+                                        cache_timeout, now);
         if (ret != EOK) {
             goto fail;
         }

@@ -28,6 +28,8 @@ errno_t
 sdap_save_native_sudorule_list(struct sysdb_ctx *sysdb_ctx,
                                struct sdap_attr_map *map,
                                struct sysdb_attrs **replies,
-                               size_t replies_count);
+                               size_t replies_count,
+                               int cache_timeout,
+                               time_t now);
 
 #endif /* _SDAP_SUDO_CACHE_H_ */

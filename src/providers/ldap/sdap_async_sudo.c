@@ -87,7 +87,9 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq);
 static int sdap_sudo_store_sudoers(struct sysdb_ctx *sysdb_ctx,
                                    struct sdap_options *opts,
                                    size_t rules_count,
-                                   struct sysdb_attrs **rules);
+                                   struct sysdb_attrs **rules,
+                                   int cache_timeout,
+                                   time_t now);
 
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct be_ctx *be_ctx,
@@ -440,6 +442,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     int ret;
     errno_t sret;
     bool in_transaction = false;
+    time_t now;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
@@ -468,7 +471,9 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     }
 
     /* store rules */
-    ret = sdap_sudo_store_sudoers(state->sysdb, state->opts, rules_count, rules);
+    now = time(NULL);
+    ret = sdap_sudo_store_sudoers(state->sysdb, state->opts, rules_count, rules,
+                                  state->domain->sudo_timeout, now);
     if (ret != EOK) {
         goto done;
     }
@@ -504,7 +509,9 @@ done:
 static int sdap_sudo_store_sudoers(struct sysdb_ctx *sysdb_ctx,
                                    struct sdap_options *opts,
                                    size_t rules_count,
-                                   struct sysdb_attrs **rules)
+                                   struct sysdb_attrs **rules,
+                                   int cache_timeout,
+                                   time_t now)
 {
     errno_t ret;
 
@@ -514,7 +521,7 @@ static int sdap_sudo_store_sudoers(struct sysdb_ctx *sysdb_ctx,
     }
 
     ret = sdap_save_native_sudorule_list(sysdb_ctx, opts->sudorule_map,
-                                         rules, rules_count);
+                                         rules, rules_count, cache_timeout, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("failed to save sudo rules [%d]: %s\n",
               ret, strerror(ret)));
