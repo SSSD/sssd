@@ -695,14 +695,10 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = execv(binary, argv);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(1, ("execv failed [%d][%s].\n", err, strerror(err)));
-        return err;
-    }
-
-    return EOK;
+    execv(binary, argv);
+    err = errno;
+    DEBUG(SSSDBG_OP_FAILURE, ("execv failed [%d][%s].\n", err, strerror(err)));
+    return err;
 }
 
 void child_cleanup(int readfd, int writefd)

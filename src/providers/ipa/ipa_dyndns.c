@@ -1015,11 +1015,9 @@ fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx)
         }
 
         errno = 0;
-        ret = execv(NSUPDATE_PATH, args);
-        if(ret == -1) {
-            err = errno;
-            DEBUG(1, ("execv failed [%d][%s].\n", err, strerror(err)));
-        }
+        execv(NSUPDATE_PATH, args);
+        err = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("execv failed [%d][%s].\n", err, strerror(err)));
         return NULL;
     }
 
