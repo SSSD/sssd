@@ -516,10 +516,10 @@ static void acctinfo_callback(struct be_req *req,
 }
 
 static errno_t
-split_service_name_filter(TALLOC_CTX *mem_ctx,
-                          const char *filter,
-                          char **name,
-                          char **protocol)
+split_name_extended(TALLOC_CTX *mem_ctx,
+                    const char *filter,
+                    char **name,
+                    char **extended)
 {
     char *p;
 
@@ -530,12 +530,12 @@ split_service_name_filter(TALLOC_CTX *mem_ctx,
 
     p = strchr(*name, ':');
     if (p) {
-        /* Protocol included */
+        /* Extended info included */
         *p = '\0';
 
-        *protocol = p + 1;
+        *extended = p + 1;
     } else {
-        *protocol = NULL;
+        *extended = NULL;
     }
 
     return EOK;
@@ -660,14 +660,14 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         ret = EOK;
         if (strncmp(filter, "name=", 5) == 0) {
             req->filter_type = BE_FILTER_NAME;
-            ret = split_service_name_filter(req, &filter[5],
-                                            &req->filter_value,
-                                            &req->extra_value);
+            ret = split_name_extended(req, &filter[5],
+                                      &req->filter_value,
+                                      &req->extra_value);
         } else if (strncmp(filter, "idnumber=", 9) == 0) {
             req->filter_type = BE_FILTER_IDNUM;
-            ret = split_service_name_filter(req, &filter[9],
-                                            &req->filter_value,
-                                            &req->extra_value);
+            ret = split_name_extended(req, &filter[9],
+                                      &req->filter_value,
+                                      &req->extra_value);
         } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
             req->filter_type = BE_FILTER_ENUM;
             req->filter_value = NULL;
@@ -1445,9 +1445,9 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     if (filter) {
         if (strncmp(filter, "name=", 5) == 0) {
             req->filter_type = BE_FILTER_NAME;
-            ret = split_service_name_filter(req, &filter[5],
-                                            &req->filter_value,
-                                            &req->extra_value);
+            ret = split_name_extended(req, &filter[5],
+                                      &req->filter_value,
+                                      &req->extra_value);
         } else {
             err_maj = DP_ERR_FATAL;
             err_min = EINVAL;
