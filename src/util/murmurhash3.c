@@ -29,7 +29,7 @@ static uint32_t rotl(uint32_t x, int8_t r)
 /* slower than original but is endian neutral and handles platforms that
  * do only aligned reads */
 __attribute__((always_inline))
-static uint32_t getblock(const uint8_t *p, int i)
+static inline uint32_t getblock(const uint8_t *p, int i)
 {
     uint32_t r;
     size_t size = sizeof(uint32_t);
@@ -44,7 +44,7 @@ static uint32_t getblock(const uint8_t *p, int i)
  */
 
 __attribute__((always_inline))
-static uint32_t fmix(uint32_t h)
+static inline uint32_t fmix(uint32_t h)
 {
     h ^= h >> 16;
     h *= 0x85ebca6b;
