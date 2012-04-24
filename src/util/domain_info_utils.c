@@ -107,6 +107,6 @@ fail:
 struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *subdomain)
 {
-    return new_subdomain(mem_ctx, subdomain, subdomain->name,
+    return new_subdomain(mem_ctx, subdomain->parent, subdomain->name,
                          subdomain->flat_name, subdomain->domain_id);
 }

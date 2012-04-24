@@ -244,6 +244,12 @@ static errno_t get_domains_done(struct tevent_req *req)
         goto done;
     }
 
+    if (subdomain_count == 0) {
+        talloc_zfree(domain->subdomains);
+        domain->subdomain_count = 0;
+        goto done;
+    }
+
     new_sd_list = talloc_zero_array(domain, struct sss_domain_info *,
                                     subdomain_count);
     if (new_sd_list == NULL) {
