@@ -3181,8 +3181,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         }
 
         DEBUG(6, ("Initgroups for [%s@%s] completed\n", name, dom->name));
-
-        return nss_cmd_initgr_send_reply(dctx);
+        return EOK;
     }
 
     DEBUG(SSSDBG_MINOR_FAILURE,
@@ -3222,6 +3221,10 @@ static void nss_cmd_initgroups_dp_callback(uint16_t err_maj, uint32_t err_min,
 
     /* ok the backend returned, search to see if we have updated results */
     ret = nss_cmd_initgroups_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_initgr_send_reply(dctx);
+    }
 
 done:
     ret = nss_cmd_done(cmdctx, ret);
@@ -3318,6 +3321,10 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 
     /* ok, find it ! */
     ret = nss_cmd_initgroups_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_initgr_send_reply(dctx);
+    }
 
 done:
     return nss_cmd_done(cmdctx, ret);
@@ -3350,7 +3357,7 @@ static void nss_cmd_initgroups_cb(struct tevent_req *req)
     ret = nss_cmd_initgroups_search(dctx);
     if (ret == EOK) {
         /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, false);
+        ret = nss_cmd_initgr_send_reply(dctx);
     }
 
 done:
