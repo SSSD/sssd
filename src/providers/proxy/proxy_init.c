@@ -109,7 +109,7 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = confdb_get_bool(bectx->cdb, bectx->conf_path,
+    ret = confdb_get_bool(bectx->cdb, ctx, bectx->conf_path,
                           CONFDB_PROXY_FAST_ALIAS, false, &ctx->fast_alias);
     if (ret != EOK) goto done;
 
