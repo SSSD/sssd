@@ -1315,6 +1315,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_id_mapping (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies that SSSD should attempt to map user and
+                            group IDs from the ldap_user_objectsid and
+                            ldap_group_objectsid attributes instead of relying
+                            on ldap_user_uid_number and ldap_group_gid_number.
+                        </para>
+                        <para>
+                            Currently this feature supports only
+                            ActiveDirectory objectSID mapping.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_sasl_mech (string)</term>
                     <listitem>
                         <para>
@@ -2119,6 +2138,8 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_id_mapping.xml" />
 
     <refsect1 id='example'>
         <title>EXAMPLE</title>

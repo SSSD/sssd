@@ -1,0 +1,192 @@
+<refsect1 id='idmap'>
+    <title>ID MAPPING</title>
+    <para>
+        The ID-mapping feature allows SSSD to act as a client of Active
+        Directory without requiring administrators to extend user attributes
+        to support POSIX attributes for user and group identifiers.
+    </para>
+    <para>
+        NOTE: When ID-mapping is enabled, the uidNumber and gidNumber
+        attributes are ignored. This is to avoid the possibility of conflicts
+        between automatically-assigned and manually-assigned values. If you
+        need to use manually-assigned values, ALL values must be
+        manually-assigned.
+    </para>
+
+    <refsect2 id='idmap_algorithm'>
+        <title>Mapping Algorithm</title>
+        <para>
+            Active Directory provides an objectSID for every user and group
+            object in the directory. This objectSID can be broken up into
+            components that represent the Active Directory domain identity and
+            the relative identifier (RID) of the user or group object.
+        </para>
+        <para>
+            The SSSD ID-mapping algorithm takes a range of available UIDs and
+            divides it into equally-sized component sections - called
+            "slices"-. Each slice represents the space available to an Active
+            Directory domain.
+        </para>
+        <para>
+            When a user or group entry for a particular domain is encountered
+            for the first time, the SSSD allocates one of the available slices
+            for that domain. In order to make this slice-assignment repeatable
+            on different client machines, we select the slice based on the
+            following algorithm:
+        </para>
+        <para>
+            The SID string is passed through the murmurhash3 algorithm to
+            convert it to a 32-bit hashed value. We then take the modulus of
+            this value with the total number of available slices to pick the
+            slice.
+        </para>
+        <para>
+            NOTE: It is possible to encounter collisions in the hash and
+            subsequent modulus. In these situations, we will select the next
+            available slice, but it may not be possible to reproduce the same
+            exact set of slices on other machines (since the order that they
+            are encountered will determine their slice). In this situation, it
+            is recommended to either switch to using explicit POSIX attributes
+            in Active Directory (disabling ID-mapping) or configure a default
+            domain to guarantee that at least one is always consistent. See
+            <quote>Configuration</quote> for details.
+        </para>
+    </refsect2>
+
+    <refsect2 id='idmap_config'>
+        <title>Configuration</title>
+        <para>
+            Minimum configuration (in the <quote>[domain/DOMAINNAME]</quote>
+            section):
+        </para>
+        <para>
+<programlisting>
+ldap_id_mapping = True
+ldap_schema = ad
+</programlisting>
+        </para>
+        <para>
+            The default configuration results in configuring 10,000 slices,
+            each capable of holding up to 200,000 IDs, starting from 10,001
+            and going up to 2,000,100,000. This should be sufficient for
+            most deployments.
+        </para>
+        <refsect3 id='idmap_advanced_config'>
+            <title>Advanced Configuration</title>
+            <variablelist>
+                <varlistentry>
+                    <term>ldap_idmap_range_min (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the lower bound of the range of POSIX IDs to
+                            use for mapping Active Directory user and group SIDs.
+                        </para>
+                        <para>
+                            NOTE: This option is different from
+                            <quote>id_mn</quote> in that <quote>id_min</quote>
+                            acts to filter the output of requests to this domain,
+                            whereas this option controls the range of ID
+                            assignment. This is a subtle distinction, but the
+                            good general advice would be to have
+                            <quote>id_min</quote> be less-than or equal to
+                            <quote>ldap_idmap_range_min</quote>
+                        </para>
+                        <para>
+                            Default: 10001
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ldap_idmap_range_max (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the upper bound of the range of POSIX IDs to
+                            use for mapping Active Directory user and group SIDs.
+                        </para>
+                        <para>
+                            NOTE: This option is different from
+                            <quote>id_max</quote> in that <quote>id_max</quote>
+                            acts to filter the output of requests to this domain,
+                            whereas this option controls the range of ID
+                            assignment. This is a subtle distinction, but the
+                            good general advice would be to have
+                            <quote>id_max</quote> be greater-than or equal to
+                            <quote>ldap_idmap_range_max</quote>
+                        </para>
+                        <para>
+                            Default: 2000100000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ldap_idmap_range_size (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the number of IDs available for each slice.
+                            If the range size does not divide evenly into the min
+                            and max values, it will create as many complete slices
+                            as it can.
+                        </para>
+                        <para>
+                            Default: 200000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ldap_idmap_default_domain_sid (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the domain SID of the default domain. This
+                            will guarantee that this domain will always be
+                            assigned to slice zero in the ID map, bypassing
+                            the murmurhash algorithm described above.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ldap_idmap_default_domain (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the name of the default domain.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ldap_idmap_autorid_compat (boolean)</term>
+                    <listitem>
+                        <para>
+                            Changes the behavior of the ID-mapping algorithm
+                            to behave more similarly to winbind's
+                            <quote>idmap_autorid</quote> algorithm.
+                        </para>
+                        <para>
+                            When this option is configured, domains will be
+                            allocated starting with slice zero and increasing
+                            monatomically with each additional domain.
+                        </para>
+                        <para>
+                            NOTE: This algorithm is non-deterministic (it
+                            depends on the order that users and groups are
+                            requested). If this mode is required for
+                            compatibility with machines running winbind, it
+                            is recommended to also use the
+                            <quote>ldap_idmap_default_domain_sid</quote>
+                            option to guarantee that at least one domain is
+                            consistently allocated to slice zero.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect3>
+    </refsect2>
+
+</refsect1>
