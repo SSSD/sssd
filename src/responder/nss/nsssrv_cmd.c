@@ -1818,7 +1818,13 @@ static int fill_grent(struct sss_packet *packet,
             memnum = 0;
 
             for (j = 0; j < el->num_values; j++) {
-                tmpstr = (char *)el->values[j].data;
+                tmpstr = sss_get_cased_name(tmp_ctx, (char *)el->values[j].data,
+                                            dom->case_sensitive);
+                if (tmpstr == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("sss_get_cased_name failed, skipping\n"));
+                    continue;
+                }
 
                 if (nctx->filter_users_in_groups) {
                     ret = sss_ncache_check_user(nctx->ncache,
