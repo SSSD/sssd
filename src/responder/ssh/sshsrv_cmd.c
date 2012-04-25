@@ -422,7 +422,8 @@ ssh_host_pubkeys_format_known_host_plain(TALLOC_CTX *mem_ctx,
                                          struct sss_ssh_ent *ent)
 {
     TALLOC_CTX *tmp_ctx;
-    char *name, *pubkey, *result;
+    char *name, *pubkey;
+    char *result = NULL;
     size_t i;
 
     tmp_ctx = talloc_new(NULL);
