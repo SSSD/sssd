@@ -336,7 +336,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
     *groupnames = talloc_steal(mem_ctx, sysdb_groupnames);
 done:
     talloc_free(tmp_ctx);
-    return EOK;
+    return ret;
 }
 
 errno_t
