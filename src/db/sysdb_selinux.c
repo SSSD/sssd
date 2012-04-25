@@ -56,6 +56,7 @@ static errno_t get_rm_msg(TALLOC_CTX *mem_ctx,
         rm_msg->num_elements++;
     }
 
+    ret = EOK;
 done:
     if (ret != EOK) {
         talloc_free(rm_msg);
