@@ -1613,7 +1613,7 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
     ret = sysdb_attrs_get_el(attrs,
                              SYSDB_NAME,
                              &sysdb_name_el);
-    if (sysdb_name_el->num_values == 0) {
+    if (ret != EOK || sysdb_name_el->num_values == 0) {
         ret = EINVAL;
         goto done;
     }
@@ -1730,7 +1730,7 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_el(attrs,
                              SYSDB_NAME,
                              &sysdb_name_el);
-    if (sysdb_name_el->num_values == 0) {
+    if (ret != EOK || sysdb_name_el->num_values == 0) {
         ret = EINVAL;
         goto done;
     }
