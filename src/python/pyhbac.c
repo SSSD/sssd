@@ -1684,6 +1684,7 @@ HbacRequest_repr(HbacRequest *self)
         Py_DECREF(targethost_repr);
         Py_DECREF(srchost_repr);
         Py_DECREF(format);
+        return NULL;
     }
 
     o = PyUnicode_Format(format, args);
