@@ -85,6 +85,11 @@ struct sss_idmap_range {
 };
 
 /**
+ * Opaque type for SIDs
+ */
+struct dom_sid;
+
+/**
  * Opaque type for the idmap context
  */
 struct sss_idmap_ctx;
@@ -146,6 +151,42 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                                             uint32_t *id);
 
 /**
+ * @brief Translate a SID stucture to a unix UID or GID
+ *
+ * @param[in] ctx     Idmap context
+ * @param[in] dom_sid SID structure
+ * @param[out] id     Returned unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ */
+enum idmap_error_code sss_idmap_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                struct dom_sid *dom_sid,
+                                                uint32_t *id);
+
+/**
+ * @brief Translate a binary SID to a unix UID or GID
+ *
+ * @param[in] ctx     Idmap context
+ * @param[in] bin_sid Array with the binary SID
+ * @param[in] length  Size of the array containing the binary SID
+ * @param[out] id     Returned unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ */
+enum idmap_error_code sss_idmap_bin_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                uint8_t *bin_sid,
+                                                size_t length,
+                                                uint32_t *id);
+
+/**
  * @brief Translate unix UID or GID to a SID
  *
  * @param[in] ctx  Idmap context
@@ -161,6 +202,41 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
 enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
                                             uint32_t id,
                                             char **sid);
+
+/**
+ * @brief Translate unix UID or GID to a SID structure
+ *
+ * @param[in] ctx      Idmap context
+ * @param[in] id       unix UID or GID
+ * @param[out] dom_sid SID structure, must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN: No domains are added to the idmap context
+ *  - #IDMAP_NO_RANGE:  The provided ID cannot be found in the domains added
+ *                      to the idmap context
+ */
+enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
+                                                uint32_t id,
+                                                struct dom_sid **dom_sid);
+
+/**
+ * @brief Translate unix UID or GID to a binary SID
+ *
+ * @param[in] ctx      Idmap context
+ * @param[in] id       unix UID or GID
+ * @param[out] bin_sid Array with the binary SID,
+ *                     must be freed if not needed anymore
+ * @param[out] length  size of the array containing the binary SID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN: No domains are added to the idmap context
+ *  - #IDMAP_NO_RANGE:  The provided ID cannot be found in the domains added
+ *                      to the idmap context
+ */
+enum idmap_error_code sss_idmap_unix_to_bin_sid(struct sss_idmap_ctx *ctx,
+                                                uint32_t id,
+                                                uint8_t **bin_sid,
+                                                size_t *length);
 
 /**
  * @brief Free all the allocated memory of the idmap context
@@ -193,6 +269,109 @@ const char *idmap_error_string(enum idmap_error_code err);
  */
 bool is_domain_sid(const char *str);
 
+/**
+ * @brief Convert binary SID to SID structure
+ *
+ * @param[in] ctx      Idmap context
+ * @param[in] bin_sid  Array with the binary SID
+ * @param[in] length   Size of the array containing the binary SID
+ * @param[out] dom_sid SID structure,
+ *                     must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
+                                                   const uint8_t *bin_sid,
+                                                   size_t length,
+                                                   struct dom_sid **dom_sid);
+
+/**
+ * @brief Convert binary SID to SID string
+ *
+ * @param[in] ctx      Idmap context
+ * @param[in] bin_sid  Array with the binary SID
+ * @param[in] length   Size of the array containing the binary SID
+ * @param[out] sid     Zero-terminated string representation of the SID,
+ *                     must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_bin_sid_to_sid(struct sss_idmap_ctx *ctx,
+                                               const uint8_t *bin_sid,
+                                               size_t length,
+                                               char **sid);
+
+/**
+ * @brief Convert SID structure to binary SID
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] dom_sid   SID structure
+ * @param[out] bin_sid  Array with the binary SID,
+ *                      must be freed if not needed anymore
+ * @param[out] length   Size of the array containing the binary SID
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_dom_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *dom_sid,
+                                                   uint8_t **bin_sid,
+                                                   size_t *length);
+
+/**
+ * @brief Convert SID string to binary SID
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] sid       Zero-terminated string representation of the SID
+ * @param[out] bin_sid  Array with the binary SID,
+ *                      must be freed if not needed anymore
+ * @param[out] length   Size of the array containing the binary SID
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
+                                               const char *sid,
+                                               uint8_t **bin_sid,
+                                               size_t *length);
+
+/**
+ * @brief Convert SID structure to SID string
+ *
+ * @param[in] ctx      Idmap context
+ * @param[in] dom_sid  SID structure
+ * @param[out] sid     Zero-terminated string representation of the SID,
+ *                     must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
+                                               struct dom_sid *dom_sid,
+                                               char **sid);
+
+/**
+ * @brief Convert SID string to SID structure
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] sid       Zero-terminated string representation of the SID
+ * @param[out] dom_sid  SID structure,
+ *                      must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
+                                               const char *sid,
+                                               struct dom_sid **dom_sid);
 /**
  * @}
  */

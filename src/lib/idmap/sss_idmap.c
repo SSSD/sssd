@@ -27,30 +27,18 @@
 #include <errno.h>
 
 #include "lib/idmap/sss_idmap.h"
+#include "lib/idmap/sss_idmap_private.h"
 
 #define DOM_SID_PREFIX "S-1-5-21-"
 #define DOM_SID_PREFIX_LEN (sizeof(DOM_SID_PREFIX) - 1)
 #define SID_FMT "%s-%d"
 #define SID_STR_MAX_LEN 1024
 
-#define CHECK_IDMAP_CTX(ctx, ret) do { \
-    if (ctx == NULL || ctx->alloc_func == NULL || ctx->free_func == NULL) { \
-        return ret; \
-    } \
-} while(0)
-
 struct idmap_domain_info {
     char *name;
     char *sid;
     struct sss_idmap_range *range;
     struct idmap_domain_info *next;
-};
-
-struct sss_idmap_ctx {
-    idmap_alloc_func *alloc_func;
-    void *alloc_pvt;
-    idmap_free_func *free_func;
-    struct idmap_domain_info *idmap_domain_info;
 };
 
 static void *default_alloc(size_t size, void *pvt)
@@ -372,4 +360,117 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
     }
 
     return IDMAP_NO_DOMAIN;
+}
+
+enum idmap_error_code sss_idmap_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                struct dom_sid *dom_sid,
+                                                uint32_t *id)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_dom_sid_to_sid(ctx, dom_sid, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_unix(ctx, sid, id);
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_bin_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                uint8_t *bin_sid,
+                                                size_t length,
+                                                uint32_t *id)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_bin_sid_to_sid(ctx, bin_sid, length, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_unix(ctx, sid, id);
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
+                                                uint32_t id,
+                                                struct dom_sid **_dom_sid)
+{
+    enum idmap_error_code err;
+    char *sid = NULL;
+    struct dom_sid *dom_sid = NULL;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_unix_to_sid(ctx, id, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_dom_sid(ctx, sid, &dom_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    *_dom_sid = dom_sid;
+    err = IDMAP_SUCCESS;
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(dom_sid, ctx->alloc_pvt);
+    }
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_unix_to_bin_sid(struct sss_idmap_ctx *ctx,
+                                                uint32_t id,
+                                                uint8_t **_bin_sid,
+                                                size_t *_length)
+{
+    enum idmap_error_code err;
+    char *sid = NULL;
+    uint8_t *bin_sid = NULL;
+    size_t length;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_unix_to_sid(ctx, id, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_bin_sid(ctx, sid, &bin_sid, &length);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    *_bin_sid = bin_sid;
+    *_length = length;
+    err = IDMAP_SUCCESS;
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(bin_sid, ctx->alloc_pvt);
+    }
+
+    return err;
+
 }

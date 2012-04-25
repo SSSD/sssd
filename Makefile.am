@@ -407,7 +407,8 @@ dist_noinst_HEADERS = \
     src/resolv/ares/ares_parse_txt_reply.h \
     src/resolv/ares/ares_data.h \
     src/tests/common.h \
-    src/sss_client/ssh/sss_ssh_client.h
+    src/sss_client/ssh/sss_ssh_client.h \
+    src/lib/idmap/sss_idmap_private.h
 
 
 if HAVE_NSS
@@ -494,7 +495,8 @@ libipa_hbac_la_LDFLAGS = \
 
 dist_pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
 libsss_idmap_la_SOURCES = \
-    src/lib/idmap/sss_idmap.c
+    src/lib/idmap/sss_idmap.c \
+    src/lib/idmap/sss_idmap_conv.c
 libsss_idmap_la_LDFLAGS = \
     -version 1:0:1
 

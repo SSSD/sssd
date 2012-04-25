@@ -28,6 +28,13 @@
 #define IDMAP_RANGE_MIN 1234
 #define IDMAP_RANGE_MAX 9876
 
+const char test_sid[] = "S-1-5-21-2127521184-1604012920-1887927527-72713";
+uint8_t test_bin_sid[] = {0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15,
+                          0x00, 0x00, 0x00, 0xA0, 0x65, 0xCF, 0x7E, 0x78, 0x4B,
+                          0x9B, 0x5F, 0xE7, 0x7C, 0x87, 0x70, 0x09, 0x1C, 0x01,
+                          0x00};
+size_t test_bin_sid_length = sizeof(test_bin_sid);
+
 struct sss_idmap_ctx *idmap_ctx;
 
 static void *idmap_talloc(size_t size, void *pvt)
@@ -150,6 +157,46 @@ START_TEST(idmap_test_sid2uid)
 }
 END_TEST
 
+START_TEST(idmap_test_bin_sid2uid)
+{
+    enum idmap_error_code err;
+    uint32_t id;
+    uint8_t *bin_sid = NULL;
+    size_t length;
+
+    err = sss_idmap_sid_to_bin_sid(idmap_ctx, "S-1-5-21-1-2-3-1000",
+                                   &bin_sid, &length);
+    fail_unless(err == IDMAP_SUCCESS, "Failed to convert SID to binary SID");
+
+    err = sss_idmap_bin_sid_to_unix(idmap_ctx, bin_sid, length , &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_bin_sid_to_unix failed.");
+    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+                "sss_idmap_bin_sid_to_unix returned wrong id, "
+                "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
+
+    talloc_free(bin_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_dom_sid2uid)
+{
+    enum idmap_error_code err;
+    uint32_t id;
+    struct dom_sid *dom_sid = NULL;
+
+    err = sss_idmap_sid_to_dom_sid(idmap_ctx, "S-1-5-21-1-2-3-1000", &dom_sid);
+    fail_unless(err == IDMAP_SUCCESS, "Failed to convert SID to SID structure");
+
+    err = sss_idmap_dom_sid_to_unix(idmap_ctx, dom_sid, &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_dom_sid_to_unix failed.");
+    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+                "sss_idmap_dom_sid_to_unix returned wrong id, "
+                "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
+
+    talloc_free(dom_sid);
+}
+END_TEST
+
 START_TEST(idmap_test_uid2sid)
 {
     enum idmap_error_code err;
@@ -164,6 +211,145 @@ START_TEST(idmap_test_uid2sid)
     fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
+
+    talloc_free(sid);
+}
+END_TEST
+
+START_TEST(idmap_test_uid2dom_sid)
+{
+    enum idmap_error_code err;
+    struct dom_sid *dom_sid = NULL;
+    char *sid = NULL;
+
+    err = sss_idmap_unix_to_dom_sid(idmap_ctx, 10000, &dom_sid);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_dom_sid did not detect "
+                                        "id out of range");
+
+    err = sss_idmap_unix_to_dom_sid(idmap_ctx, 2234, &dom_sid);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_dom_sid failed.");
+
+    err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &sid);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_dom_sid_to_sid failed.");
+
+    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+                "sss_idmap_unix_to_dom_sid returned wrong SID, "
+                "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
+
+    talloc_free(sid);
+    talloc_free(dom_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_uid2bin_sid)
+{
+    enum idmap_error_code err;
+    uint8_t *bin_sid = NULL;
+    size_t length;
+    char *sid = NULL;
+
+    err = sss_idmap_unix_to_bin_sid(idmap_ctx, 10000, &bin_sid, &length);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_bin_sid did not detect "
+                                        "id out of range");
+
+    err = sss_idmap_unix_to_bin_sid(idmap_ctx, 2234, &bin_sid, &length);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_bin_sid failed.");
+
+    err = sss_idmap_bin_sid_to_sid(idmap_ctx, bin_sid, length, &sid);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_bin_sid_to_sid failed.");
+
+    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+                "sss_idmap_unix_to_bin_sid returned wrong SID, "
+                "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
+
+    talloc_free(sid);
+    talloc_free(bin_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_sid_bin2dom_sid)
+{
+    struct dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t *new_bin_sid = NULL;
+    size_t new_bin_sid_length;
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, test_bin_sid,
+                                       test_bin_sid_length, &dom_sid);
+
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert binary SID to struct dom_sid.");
+
+    err = sss_idmap_dom_sid_to_bin_sid(idmap_ctx, dom_sid, &new_bin_sid,
+                                       &new_bin_sid_length);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert struct dom_sid to binary SID.");
+
+    fail_unless(new_bin_sid_length == test_bin_sid_length,
+                "Length of binary SIDs do not match.");
+    fail_unless(memcmp(test_bin_sid, new_bin_sid, test_bin_sid_length) == 0,
+                "Binary SIDs do not match.");
+
+    talloc_free(dom_sid);
+    talloc_free(new_bin_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_sid2dom_sid)
+{
+    struct dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    char *new_sid = NULL;
+
+    err = sss_idmap_sid_to_dom_sid(idmap_ctx, "S-1-5-21-1-2-3-1000", &dom_sid);
+
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert SID string to struct dom_sid.");
+
+    err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &new_sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert struct dom_sid to SID string.");
+
+    fail_unless(new_sid != NULL, "SID string not set");
+    fail_unless(strlen("S-1-5-21-1-2-3-1000") == strlen(new_sid),
+                "Length of SID strings do not match.");
+    fail_unless(strcmp("S-1-5-21-1-2-3-1000", new_sid) == 0,
+                "SID strings do not match.");
+
+    talloc_free(dom_sid);
+    talloc_free(new_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_sid2bin_sid)
+{
+    enum idmap_error_code err;
+    size_t length;
+    uint8_t *bin_sid = NULL;
+
+    err = sss_idmap_sid_to_bin_sid(idmap_ctx, test_sid, &bin_sid, &length);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert SID string to binary sid.");
+    fail_unless(length == test_bin_sid_length,
+                "Size of binary SIDs do not match, got [%d], expected [%d]",
+                length, test_bin_sid_length);
+    fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
+                "Binary SIDs do not match");
+
+    talloc_free(bin_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_bin_sid2sid)
+{
+    enum idmap_error_code err;
+    char *sid = NULL;
+
+    err = sss_idmap_bin_sid_to_sid(idmap_ctx, test_bin_sid, test_bin_sid_length,
+                                   &sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert binary SID to SID string.");
+    fail_unless(strcmp(sid, test_sid) == 0, "SID strings do not match");
 
     talloc_free(sid);
 }
@@ -196,6 +382,21 @@ Suite *idmap_test_suite (void)
 
     suite_add_tcase(s, tc_dom);
 
+    TCase *tc_conv = tcase_create("IDMAP SID conversion tests");
+    tcase_add_checked_fixture(tc_conv,
+                              leak_check_setup,
+                              leak_check_teardown);
+    tcase_add_checked_fixture(tc_conv,
+                              idmap_ctx_setup,
+                              idmap_ctx_teardown);
+
+    tcase_add_test(tc_conv, idmap_test_sid_bin2dom_sid);
+    tcase_add_test(tc_conv, idmap_test_sid2dom_sid);
+    tcase_add_test(tc_conv, idmap_test_sid2bin_sid);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2sid);
+
+    suite_add_tcase(s, tc_conv);
+
     TCase *tc_map = tcase_create("IDMAP mapping tests");
     tcase_add_checked_fixture(tc_map,
                               leak_check_setup,
@@ -208,9 +409,14 @@ Suite *idmap_test_suite (void)
                               NULL);
 
     tcase_add_test(tc_map, idmap_test_sid2uid);
+    tcase_add_test(tc_map, idmap_test_bin_sid2uid);
+    tcase_add_test(tc_map, idmap_test_dom_sid2uid);
     tcase_add_test(tc_map, idmap_test_uid2sid);
+    tcase_add_test(tc_map, idmap_test_uid2dom_sid);
+    tcase_add_test(tc_map, idmap_test_uid2bin_sid);
 
     suite_add_tcase(s, tc_map);
+
     return s;
 }
 int main(int argc, const char *argv[])
