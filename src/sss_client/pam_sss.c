@@ -1209,8 +1209,8 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
             written = sss_atomic_write_s(fd, pi->selinux_user, len);
             if (written == -1) {
                 ret = errno;
-                logger(pamh, LOG_ERR, "writing to SELinux data file "
-                        "failed. %s", tmp_path);
+                logger(pamh, LOG_ERR, "writing to SELinux data file %s"
+                        "failed [%d]: %s", tmp_path, ret, strerror(ret));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
