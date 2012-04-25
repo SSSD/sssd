@@ -1092,6 +1092,13 @@ next:
          */
         ret = sysdb_attrs_get_el(state->group,
                 state->opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to get the group member attribute [%d]: %s\n",
+                  ret, strerror(ret)));
+            tevent_req_error(req, ret);
+            return;
+        }
         el->values = talloc_steal(state->group, state->sysdb_dns->values);
         el->num_values = state->sysdb_dns->num_values;
         DEBUG(9, ("Processed Group - Done\n"));
