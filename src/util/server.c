@@ -175,7 +175,7 @@ int pidfile(const char *path, const char *name)
 
     errno = 0;
     written = sss_atomic_write_s(fd, pid_str, size);
-    if (ret == -1) {
+    if (written == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("write failed [%d][%s]\n", err, strerror(err)));
