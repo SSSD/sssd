@@ -143,8 +143,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-               name, status));
+              ("proxy -> getpwnam_r failed for '%s' <%d>: %s\n",
+               name, ret, strerror(ret)));
     }
     return ret;
 }
@@ -334,7 +334,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("proxy -> getpwuid_r failed for '%d' <%d>\n", uid, status));
+              ("proxy -> getpwuid_r failed for '%d' <%d>: %s\n",
+               uid, ret, strerror(ret)));
     }
     return ret;
 }
@@ -656,6 +657,7 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
         }
     }
 
+    ret = EOK;
 done:
     talloc_free(tmp_ctx);
     return ret;
@@ -848,8 +850,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("proxy -> getgrnam_r failed for '%s' <%d>\n",
-              name, status));
+              ("proxy -> getgrnam_r failed for '%s' <%d>: %s\n",
+              name, ret, strerror(ret)));
     }
     return ret;
 }
@@ -917,8 +919,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("proxy -> getgrgid_r failed for '%d' <%d>\n",
-               gid, status));
+              ("proxy -> getgrgid_r failed for '%d' <%d>: %s\n",
+               gid, ret, strerror(ret)));
     }
     return ret;
 }
