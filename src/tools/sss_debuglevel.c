@@ -218,7 +218,7 @@ errno_t send_sighup()
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, ("Could not send SIGHUP to process %d: %s\n",
               pid, strerror(errno)));
-        return errno;
+        return ret;
     }
 
     return EOK;
@@ -333,7 +333,7 @@ errno_t get_sssd_pid(pid_t *out_pid)
         goto done;
     }
 
-    ret = fread(pid_str, sizeof(char), MAX_PID_LENGTH * sizeof(char), pid_file);
+    fread(pid_str, sizeof(char), MAX_PID_LENGTH * sizeof(char), pid_file);
     if (!feof(pid_file)) {
         /* eof not reached */
         ret = ferror(pid_file);
@@ -347,6 +347,7 @@ errno_t get_sssd_pid(pid_t *out_pid)
         goto done;
     }
 
+    pid_str[MAX_PID_LENGTH-1] = '\0';
     *out_pid = parse_pid(pid_str);
     if (*out_pid == 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
