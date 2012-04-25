@@ -548,6 +548,13 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
                          CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT,
                          GET_DOMAINS_DEFAULT_TIMEOUT, &rctx->domains_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannnot get the default domain timeout [%d]: %s\n",
+               ret, strerror(ret)));
+        return ret;
+    }
+
     if (rctx->domains_timeout < 0) {
         DEBUG(SSSDBG_CONF_SETTINGS, ("timeout can't be set to negative value, setting default\n"));
         rctx->domains_timeout = GET_DOMAINS_DEFAULT_TIMEOUT;
