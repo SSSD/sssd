@@ -994,6 +994,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         }
     }
 
+    ret = EOK;
 done:
     return ret;
 }
