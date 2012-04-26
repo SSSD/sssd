@@ -64,7 +64,6 @@ ipa_get_config_send(TALLOC_CTX *mem_ctx,
         state->attrs[1] = IPA_CONFIG_SELINUX_DEFAULT_MAP;
         state->attrs[2] = IPA_CONFIG_SELINUX_MAP_ORDER;
         state->attrs[3] = NULL;
-        attrs = state->attrs;
     } else {
         state->attrs = attrs;
     }
