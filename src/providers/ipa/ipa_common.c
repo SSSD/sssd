@@ -916,6 +916,10 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &ipa_opts->id->autofs_search_bases);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse autofs search base\n"));
+        goto done;
+    }
 
     ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
                        ipa_autofs_mobject_map,
@@ -924,7 +928,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Could not get autofs map object attribute map\n"));
-        return ret;
+        goto done;
     }
 
     ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
@@ -934,7 +938,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Could not get autofs entry object attribute map\n"));
-        return ret;
+        goto done;
     }
 
     *_opts = ipa_opts->id;

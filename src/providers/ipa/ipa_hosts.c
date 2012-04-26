@@ -332,6 +332,12 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
                                     &hostgroup_count,
                                     &hostgroups);
         talloc_zfree(subreq);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sdap_get_generic_recv failed: [%d]\n", ret));
+            tevent_req_error(req, ret);
+            return;
+        }
 
         /* Merge the two arrays */
         if (hostgroup_count > 0) {
