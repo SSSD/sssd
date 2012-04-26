@@ -147,8 +147,10 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
         } else {
             /* An error occurred processing this rule */
             result = HBAC_EVAL_ERROR;
-            (*info)->code = ret;
-            (*info)->rule_name = strdup(rules[i]->name);
+            if (info) {
+                (*info)->code = ret;
+                (*info)->rule_name = strdup(rules[i]->name);
+            }
             /* Explicitly not checking the result of strdup(), since if
              * it's NULL, we can't do anything anyway.
              */
