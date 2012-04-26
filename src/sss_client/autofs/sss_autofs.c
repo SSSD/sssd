@@ -281,7 +281,6 @@ _sss_getautomntent_r(char **key, char **value, void *context)
     }
     /* Don't try to handle any error codes, just go to the responder again */
 
-    ret = 0;
     data_len = sizeof(uint32_t) +            /* mapname len */
                name_len + 1 +                /* mapname\0   */
                sizeof(uint32_t) +            /* index into the map */

@@ -361,13 +361,14 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     if (!req) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Could not create tevent request for setautomntent\n"));
-        goto fail;
+        return NULL;
     }
     state->cmdctx = cmdctx;
 
     dctx = talloc_zero(state, struct autofs_dom_ctx);
     if (!dctx) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory\n"));
+        ret = ENOMEM;
         goto fail;
     }
     dctx->cmd_ctx = state->cmdctx;
@@ -388,11 +389,13 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     if (domname) {
         dctx->domain = responder_get_domain(dctx, client->rctx, domname);
         if (!dctx->domain) {
+            ret = EINVAL;
             goto fail;
         }
 
         client->automntmap_name = talloc_strdup(client, rawname);
         if (!client->automntmap_name) {
+            ret = ENOMEM;
             goto fail;
         }
     } else {
@@ -402,6 +405,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
 
         client->automntmap_name = talloc_strdup(client, state->mapname);
         if (!client->automntmap_name) {
+            ret = ENOMEM;
             goto fail;
         }
     }
@@ -504,6 +508,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get data from cache\n"));
             talloc_free(state->map);
+            ret = ENOMEM;
             goto fail;
         }
 
@@ -520,8 +525,9 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     return req;
 
 fail:
-    talloc_free(req);
-    return NULL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, actx->rctx->ev);
+    return req;
 }
 
 static errno_t
@@ -585,7 +591,6 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
                 }
                 else break;
             }
-            ret = EOK;
         }
 
         ret = get_autofs_map(lookup_ctx->actx, lookup_ctx->mapname, &map);
