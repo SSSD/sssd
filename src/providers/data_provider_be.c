@@ -416,7 +416,7 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     /* return an error if corresponding backend target is not configured */
     if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
-        ret = ENODEV;
+        status = ENODEV;
         goto done;
     }
 
