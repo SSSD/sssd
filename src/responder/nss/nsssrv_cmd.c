@@ -1900,6 +1900,11 @@ static int fill_grent(struct sss_packet *packet,
                                             fullname.len + pwfield.len,
                                           rsize - STRS_ROFFSET -
                                             fullname.len - pwfield.len);
+            if (ret != EOK && ret != ENOMEM) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Failed to store group %s(%s) in mmap cache!",
+                       name.str, domain));
+            }
         }
 
         continue;
