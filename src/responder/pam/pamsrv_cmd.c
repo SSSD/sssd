@@ -42,7 +42,6 @@ enum pam_verbosity {
 };
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
-#define DEFAULT_PAM_PWD_EXPIRATION_WARNING 7
 
 static void pam_reply(struct pam_auth_req *preq);
 
@@ -515,16 +514,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
     struct response_data *resp;
     uint32_t user_info_type;
     int64_t expire_date;
-    uint32_t expire_warn;
-    TALLOC_CTX *tmp_ctx;
     int pam_verbosity;
-    int pam_expiration_warning;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
-        return ENOMEM;
-    }
 
     ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
@@ -534,20 +524,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
-
-    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
-                         CONFDB_PAM_PWD_EXPIRATION_WARNING,
-                         DEFAULT_PAM_PWD_EXPIRATION_WARNING,
-                         &pam_expiration_warning);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to read PAM expiration warning, not fatal.\n"));
-        pam_expiration_warning = DEFAULT_PAM_PWD_EXPIRATION_WARNING;
-    }
-
-    talloc_free(tmp_ctx);
-
     resp = resp_list;
-
     while(resp != NULL) {
         if (resp->type == SSS_PAM_USER_INFO) {
             if (resp->len < sizeof(uint32_t)) {
@@ -580,18 +557,6 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
                         resp->do_not_send_to_client = true;
                     }
 
-                    break;
-                case SSS_PAM_USER_INFO_EXPIRE_WARN:
-                    if (resp->len != 2 * sizeof(uint32_t)) {
-                        DEBUG(1, ("User info expire warning entry is "
-                                  "too short.\n"));
-                        return EINVAL;
-                    }
-                    memcpy(&expire_warn, resp->data + sizeof(uint32_t),
-                           sizeof(uint32_t));
-                    if(expire_warn > pam_expiration_warning * (60 * 60 * 24)) {
-                        resp->do_not_send_to_client = true;
-                    }
                     break;
                 default:
                     DEBUG(7, ("User info type [%d] not filtered.\n"));

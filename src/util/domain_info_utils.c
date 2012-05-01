@@ -77,6 +77,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     /* FIXME: get ranges from the server */
     dom->id_min = 0;
     dom->id_max = 0xffffffff;
+    dom->pwd_expiration_warning = parent->pwd_expiration_warning;
     dom->cache_credentials = parent->cache_credentials;
     dom->case_sensitive = parent->case_sensitive;
     dom->user_timeout = parent->user_timeout;

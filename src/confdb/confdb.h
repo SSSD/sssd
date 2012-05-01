@@ -152,6 +152,7 @@
 #define CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT "entry_cache_netgroup_timeout"
 #define CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT "entry_cache_service_timeout"
 #define CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT "entry_cache_autofs_timeout"
+#define CONFDB_DOMAIN_PWD_EXPIRATION_WARNING "pwd_expiration_warning"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -198,6 +199,8 @@ struct sss_domain_info {
     uint32_t netgroup_timeout;
     uint32_t service_timeout;
     uint32_t autofsmap_timeout;
+
+    int pwd_expiration_warning;
 
     struct sysdb_ctx *sysdb;
 

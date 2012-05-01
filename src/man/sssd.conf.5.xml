@@ -632,7 +632,17 @@
                       warning.
                     </para>
                     <para>
-                      Default: 7
+                      If zero is set, then this filter is not applied,
+                      i.e. if the expiration warning was received from
+                      backend server, it will automatically be displayed.
+                    </para>
+                    <para>
+                      This setting can be overridden by setting
+                      <emphasis>pwd_expiration_warning</emphasis>
+                      for a particular domain.
+                    </para>
+                    <para>
+                      Default: 0
                     </para>
                   </listitem>
                 </varlistentry>
@@ -921,6 +931,29 @@
                             Default: 0 (unlimited)
                         </para>
                     </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>pwd_expiration_warning (integer)</term>
+                  <listitem>
+                    <para>
+                      Display a warning N days before the password expires.
+                    </para>
+                    <para>
+                        If zero is set, then this filter is not applied,
+                        i.e. if the expiration warning was received from
+                        backend server, it will automatically be displayed.
+                    </para>
+                    <para>
+                      Please note that the backend server has to provide
+                      information about the expiration time of the password.
+                      If this information is missing, sssd cannot display a
+                      warning. Also an auth provider has to be configured for
+                      the backend.
+                    </para>
+                    <para>
+                      Default: 7 (Kerberos), 0 (LDAP)
+                    </para>
+                  </listitem>
                 </varlistentry>
 
                 <varlistentry>

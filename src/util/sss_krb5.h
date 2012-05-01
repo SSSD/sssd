@@ -34,6 +34,11 @@
 
 #include "util/util.h"
 
+/* MIT Kerberos has the same hardcoded warning interval of 7 days. Due to the
+ * fact that using the expiration time of a Kerberos password with LDAP
+ * authentication is presumably a rare case a separate config option is not
+ * necessary. */
+#define KERBEROS_PWEXPIRE_WARNING_TIME (7 * 24 * 60 * 60)
 #define KEYTAB_CLEAN_NAME keytab_name ? keytab_name : "default"
 
 const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,

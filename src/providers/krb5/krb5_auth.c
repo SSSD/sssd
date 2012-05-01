@@ -734,8 +734,16 @@ static void krb5_child_done(struct tevent_req *subreq)
     int32_t msg_len;
     int64_t time_data;
     struct tgt_times tgtt;
+    int pwd_exp_warning;
+    uint32_t *expiration;
+    uint32_t *msg_subtype;
+    bool skip;
 
     memset(&tgtt, 0, sizeof(tgtt));
+    pwd_exp_warning = state->be_ctx->domain->pwd_expiration_warning;
+    if (pwd_exp_warning < 0) {
+        pwd_exp_warning = KERBEROS_PWEXPIRE_WARNING_TIME;
+    }
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -771,6 +779,7 @@ static void krb5_child_done(struct tevent_req *subreq)
     SAFEALIGN_COPY_INT32(&msg_status, buf+p, &p);
 
     while (p < len) {
+        skip = false;
         SAFEALIGN_COPY_INT32(&msg_type, buf+p, &p);
         SAFEALIGN_COPY_INT32(&msg_len, buf+p, &p);
 
@@ -813,10 +822,24 @@ static void krb5_child_done(struct tevent_req *subreq)
                       tgtt.starttime, tgtt.endtime, tgtt.renew_till));
         }
 
-        ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);
-        if (ret != EOK) {
-            /* This is not a fatal error */
-            DEBUG(1, ("pam_add_response failed.\n"));
+        if (msg_type == SSS_PAM_USER_INFO) {
+            msg_subtype = (uint32_t *)&buf[p];
+            if (*msg_subtype == SSS_PAM_USER_INFO_EXPIRE_WARN)
+            {
+                expiration = (uint32_t *)&buf[p+sizeof(uint32_t)];
+                if (pwd_exp_warning > 0 &&
+                    difftime(pwd_exp_warning, *expiration) < 0.0) {
+                    skip = true;
+                }
+            }
+        }
+
+        if (!skip) {
+            ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);
+            if (ret != EOK) {
+                /* This is not a fatal error */
+                DEBUG(1, ("pam_add_response failed.\n"));
+            }
         }
         p += msg_len;
 
