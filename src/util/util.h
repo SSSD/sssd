@@ -536,4 +536,21 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
 struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *subdomain);
 
+/* Endianness-compatibility for systems running older versions of glibc */
+
+#ifndef le32toh
+#include <byteswap.h>
+
+/* Copied from endian.h on glibc 2.15 */
+#ifdef __USE_BSD
+/* Conversion interfaces.  */
+# if __BYTE_ORDER == __LITTLE_ENDIAN
+#  define le32toh(x) (x)
+# else
+#  define le32toh(x) __bswap_32 (x)
+# endif
+#endif /* __USE_BSD */
+
+#endif /* le32toh */
+
 #endif /* __SSSD_UTIL_H__ */
