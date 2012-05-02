@@ -29,18 +29,27 @@ static int finish_upgrade(int result, struct ldb_context *ldb,
                           const char *next_ver, const char **ver)
 {
     int ret = result;
+    int lret;
 
     if (ret == EOK) {
-        ret = ldb_transaction_commit(ldb);
-        ret = sysdb_error_to_errno(ret);
+        lret = ldb_transaction_commit(ldb);
+        ret = sysdb_error_to_errno(lret);
         if (ret == EOK) {
             *ver = next_ver;
         }
     }
 
     if (ret != EOK) {
-        ret = ldb_transaction_cancel(ldb);
-        ret = sysdb_error_to_errno(ret);
+        lret = ldb_transaction_cancel(ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Could not cancel transaction! [%s]\n",
+                   ldb_strerror(lret)));
+            /* Do not overwrite ret here, we want to return
+             * the original failure, not the failure of the
+             * transaction cancellation.
+             */
+        }
     }
 
     return ret;
