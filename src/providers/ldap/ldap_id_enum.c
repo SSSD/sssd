@@ -484,6 +484,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     struct tevent_req *req, *subreq;
     struct enum_users_state *state;
     int ret;
+    bool use_mapping;
 
     req = tevent_req_create(memctx, &state, struct enum_users_state);
     if (!req) return NULL;
@@ -492,27 +493,63 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->op = op;
 
-    if (ctx->srv_opts && ctx->srv_opts->max_user_value && !purge) {
-        state->filter = talloc_asprintf(
-                state,
-                "(&(objectclass=%s)(%s=*)(%s=*)(%s=*)(%s>=%s)(!(%s=%s)))",
-                ctx->opts->user_map[SDAP_OC_USER].name,
-                ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+    use_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
+
+    /* We always want to filter on objectclass and an available name */
+    state->filter = talloc_asprintf(state,
+                                    "(&(objectclass=%s)(%s=*)",
+                                    ctx->opts->user_map[SDAP_OC_USER].name,
+                                    ctx->opts->user_map[SDAP_AT_USER_NAME].name);
+    if (!state->filter) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to build base filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (use_mapping) {
+        /* If we're ID-mapping, check for the objectSID as well */
+        state->filter = talloc_asprintf_append_buffer(
+                state->filter, "(%s=*)",
+                ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name);
+    } else {
+        /* We're not ID-mapping, so make sure to only get entries
+         * that have UID and GID
+         */
+        state->filter = talloc_asprintf_append_buffer(
+                state->filter, "(%s=*)(%s=*)",
                 ctx->opts->user_map[SDAP_AT_USER_UID].name,
-                ctx->opts->user_map[SDAP_AT_USER_GID].name,
+                ctx->opts->user_map[SDAP_AT_USER_GID].name);
+    }
+    if (!state->filter) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to build base filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (ctx->srv_opts && ctx->srv_opts->max_user_value && !purge) {
+        /* If we have lastUSN available and we're not doing a full
+         * refresh, limit to changes with a higher entryUSN value.
+         */
+        state->filter = talloc_asprintf_append_buffer(
+                state->filter,
+                "(%s>=%s)(!(%s=%s))",
                 ctx->opts->user_map[SDAP_AT_USER_USN].name,
                 ctx->srv_opts->max_user_value,
                 ctx->opts->user_map[SDAP_AT_USER_USN].name,
                 ctx->srv_opts->max_user_value);
-    } else {
-        state->filter = talloc_asprintf(
-                state,
-                "(&(objectclass=%s)(%s=*)(%s=*)(%s=*))",
-                ctx->opts->user_map[SDAP_OC_USER].name,
-                ctx->opts->user_map[SDAP_AT_USER_NAME].name,
-                ctx->opts->user_map[SDAP_AT_USER_UID].name,
-                ctx->opts->user_map[SDAP_AT_USER_GID].name);
+
+        if (!state->filter) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Failed to build base filter\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
     }
+
+    /* Terminate the search filter */
+    state->filter = talloc_asprintf_append_buffer(state->filter, ")");
     if (!state->filter) {
         DEBUG(2, ("Failed to build base filter\n"));
         ret = ENOMEM;
@@ -609,6 +646,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     struct tevent_req *req, *subreq;
     struct enum_groups_state *state;
     int ret;
+    bool use_mapping;
 
     req = tevent_req_create(memctx, &state, struct enum_groups_state);
     if (!req) return NULL;
@@ -617,29 +655,62 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->op = op;
 
-    if (ctx->srv_opts && ctx->srv_opts->max_group_value && !purge) {
-        state->filter = talloc_asprintf(
-                state,
-                "(&(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0)))(%s>=%s)(!(%s=%s)))",
-                ctx->opts->group_map[SDAP_OC_GROUP].name,
-                ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
-                ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
-                ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
-                ctx->srv_opts->max_group_value,
-                ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
-                ctx->srv_opts->max_group_value);
+    use_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
+
+    /* We always want to filter on objectclass and an available name */
+    state->filter = talloc_asprintf(state,
+                                    "(&(objectclass=%s)(%s=*)",
+                                    ctx->opts->group_map[SDAP_OC_GROUP].name,
+                                    ctx->opts->group_map[SDAP_AT_GROUP_NAME].name);
+    if (!state->filter) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to build base filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (use_mapping) {
+        /* If we're ID-mapping, check for the objectSID as well */
+        state->filter = talloc_asprintf_append_buffer(
+                state->filter, "(%s=*)",
+                ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name);
     } else {
-        state->filter = talloc_asprintf(
-                state,
-                "(&(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
-                ctx->opts->group_map[SDAP_OC_GROUP].name,
-                ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+        /* We're not ID-mapping, so make sure to only get entries
+         * that have a non-zero GID.
+         */
+        state->filter = talloc_asprintf_append_buffer(
+                state->filter, "(&(%s=*)(!(%s=0)))",
                 ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                 ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     }
     if (!state->filter) {
-        DEBUG(2, ("Failed to build filter\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to build base filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (ctx->srv_opts && ctx->srv_opts->max_group_value && !purge) {
+        state->filter = talloc_asprintf_append_buffer(
+                state->filter,
+                "(%s>=%s)(!(%s=%s))",
+                ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
+                ctx->srv_opts->max_group_value,
+                ctx->opts->group_map[SDAP_AT_GROUP_USN].name,
+                ctx->srv_opts->max_group_value);
+        if (!state->filter) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Failed to build base filter\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    /* Terminate the search filter */
+    state->filter = talloc_asprintf_append_buffer(state->filter, ")");
+    if (!state->filter) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to build base filter\n"));
         ret = ENOMEM;
         goto fail;
     }
