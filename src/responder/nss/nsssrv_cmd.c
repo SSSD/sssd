@@ -2252,7 +2252,7 @@ static void nss_cmd_getgrnam_cb(struct tevent_req *req)
     ret = nss_cmd_getgrnam_search(dctx);
     if (ret == EOK) {
         /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, false);
+        ret = nss_cmd_getgr_send_reply(dctx, false);
     }
 
 done:
