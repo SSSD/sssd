@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-09 13:53-0400\n"
-"PO-Revision-Date: 2012-03-08 11:41+0000\n"
+"POT-Creation-Date: 2012-04-20 11:22-0400\n"
+"PO-Revision-Date: 2012-04-20 16:09+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -886,7 +886,13 @@ msgstr "Базова адреса домашніх каталогів"
 msgid "The name of the NSS library to use"
 msgstr "Назва бібліотеки NSS, яку слід використовувати"
 
-#: src/config/SSSDConfig.py:304
+#: src/config/SSSDConfig.py:302
+msgid "Whether to look up canonical group name from cache if possible"
+msgstr ""
+"Визначає, чи слід виконувати пошук канонічної назви групи у кеші, якщо це "
+"можливо"
+
+#: src/config/SSSDConfig.py:305
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
@@ -995,23 +1001,23 @@ msgstr "Спроба зміни пароля зазнала невдачі. "
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
-#: src/sss_client/pam_sss.c:1286
+#: src/sss_client/pam_sss.c:1288
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: src/sss_client/pam_sss.c:1287
+#: src/sss_client/pam_sss.c:1289
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: src/sss_client/pam_sss.c:1373
+#: src/sss_client/pam_sss.c:1375
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:1405
+#: src/sss_client/pam_sss.c:1407
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: src/sss_client/pam_sss.c:1552
+#: src/sss_client/pam_sss.c:1554
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
@@ -1081,11 +1087,11 @@ msgstr "Має бути вказано абсолютний шлях до ком
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
 msgid "Host name cannot be resolved\n"
-msgstr ""
+msgstr "Не вдалося визначити назву вузла\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:274
 msgid "Reverse lookup failed\n"
-msgstr ""
+msgstr "Спроба зворотного пошуку зазнала невдачі\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"

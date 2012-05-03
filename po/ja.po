@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-09 13:53-0400\n"
-"PO-Revision-Date: 2012-03-08 11:41+0000\n"
+"POT-Creation-Date: 2012-04-20 11:22-0400\n"
+"PO-Revision-Date: 2012-04-23 00:36+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
@@ -846,7 +846,11 @@ msgstr "ホームディレクトリーのベース"
 msgid "The name of the NSS library to use"
 msgstr "使用する NSS ライブラリーの名前"
 
-#: src/config/SSSDConfig.py:304
+#: src/config/SSSDConfig.py:302
+msgid "Whether to look up canonical group name from cache if possible"
+msgstr "可能ならばキャッシュから正規化されたグループ名を検索するかどうか"
+
+#: src/config/SSSDConfig.py:305
 msgid "PAM stack to use"
 msgstr "使用する PAM スタック"
 
@@ -956,23 +960,23 @@ msgstr "パスワードの変更に失敗しました。 "
 msgid "Server message: "
 msgstr "サーバーのメッセージ: "
 
-#: src/sss_client/pam_sss.c:1286
+#: src/sss_client/pam_sss.c:1288
 msgid "New Password: "
 msgstr "新しいパスワード: "
 
-#: src/sss_client/pam_sss.c:1287
+#: src/sss_client/pam_sss.c:1289
 msgid "Reenter new Password: "
 msgstr "新しいパスワードの再入力: "
 
-#: src/sss_client/pam_sss.c:1373
+#: src/sss_client/pam_sss.c:1375
 msgid "Password: "
 msgstr "パスワード: "
 
-#: src/sss_client/pam_sss.c:1405
+#: src/sss_client/pam_sss.c:1407
 msgid "Current Password: "
 msgstr "現在のパスワード: "
 
-#: src/sss_client/pam_sss.c:1552
+#: src/sss_client/pam_sss.c:1554
 msgid "Password expired. Change your password now."
 msgstr "パスワードの期限が切れました。いますぐパスワードを変更してください。"
 
@@ -1042,11 +1046,11 @@ msgstr "プロキシーコマンドへのパスは絶対パスにする必要が
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
 msgid "Host name cannot be resolved\n"
-msgstr ""
+msgstr "ホスト名が解決できません\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:274
 msgid "Reverse lookup failed\n"
-msgstr ""
+msgstr "逆引きに失敗しました\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"

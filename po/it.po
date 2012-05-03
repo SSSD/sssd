@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-09 13:53-0400\n"
-"PO-Revision-Date: 2012-03-08 11:41+0000\n"
+"POT-Creation-Date: 2012-04-20 11:22-0400\n"
+"PO-Revision-Date: 2012-04-20 16:09+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Italian <trans-it@lists.fedoraproject.org>\n"
 "Language: it\n"
@@ -850,7 +850,11 @@ msgstr "Base delle home directory"
 msgid "The name of the NSS library to use"
 msgstr "Il nome della libreria NSS da usare"
 
-#: src/config/SSSDConfig.py:304
+#: src/config/SSSDConfig.py:302
+msgid "Whether to look up canonical group name from cache if possible"
+msgstr ""
+
+#: src/config/SSSDConfig.py:305
 msgid "PAM stack to use"
 msgstr "Stack PAM da usare"
 
@@ -959,23 +963,23 @@ msgstr "Cambio password fallito."
 msgid "Server message: "
 msgstr "Messaggio del server:"
 
-#: src/sss_client/pam_sss.c:1286
+#: src/sss_client/pam_sss.c:1288
 msgid "New Password: "
 msgstr "Nuova password: "
 
-#: src/sss_client/pam_sss.c:1287
+#: src/sss_client/pam_sss.c:1289
 msgid "Reenter new Password: "
 msgstr "Conferma nuova password: "
 
-#: src/sss_client/pam_sss.c:1373
+#: src/sss_client/pam_sss.c:1375
 msgid "Password: "
 msgstr "Password: "
 
-#: src/sss_client/pam_sss.c:1405
+#: src/sss_client/pam_sss.c:1407
 msgid "Current Password: "
 msgstr "Password corrente: "
 
-#: src/sss_client/pam_sss.c:1552
+#: src/sss_client/pam_sss.c:1554
 msgid "Password expired. Change your password now."
 msgstr "Password scaduta. Cambiare la password ora."
 
