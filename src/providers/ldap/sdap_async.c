@@ -2091,7 +2091,7 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
     if (!tmp_ctx) return ENOMEM;
 
     ret = sysdb_attrs_primary_name(sysdb, user_attrs,
-                                   opts->user_map[SDAP_AT_USER_NAME].name,
+                                   opts->user_map[SDAP_AT_USER_NAME].sys_name,
                                    &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Could not get the primary name\n"));
@@ -2099,7 +2099,7 @@ errno_t sdap_check_aliases(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_attrs_get_uint32_t(user_attrs,
-                                   opts->user_map[SDAP_AT_USER_UID].name,
+                                   opts->user_map[SDAP_AT_USER_UID].sys_name,
                                    &uid);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Could not get UID\n"));
