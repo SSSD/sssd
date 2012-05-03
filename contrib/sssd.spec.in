@@ -221,7 +221,7 @@ autoreconf -ivf
 
 %configure \
     --with-db-path=%{dbpath} \
-    --with-mcache-path=%(mcpath) \
+    --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
