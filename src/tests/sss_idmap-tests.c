@@ -349,7 +349,9 @@ START_TEST(idmap_test_bin_sid2sid)
                                    &sid);
     fail_unless(err == IDMAP_SUCCESS,
                 "Failed to convert binary SID to SID string.");
-    fail_unless(strcmp(sid, test_sid) == 0, "SID strings do not match");
+    fail_unless(strcmp(sid, test_sid) == 0, "SID strings do not match, "
+                                            "expected [%s], get [%s]",
+                                            test_sid, sid);
 
     talloc_free(sid);
 }

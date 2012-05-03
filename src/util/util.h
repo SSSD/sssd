@@ -546,8 +546,10 @@ struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
 /* Conversion interfaces.  */
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define le32toh(x) (x)
+#  define htole32(x) (x)
 # else
 #  define le32toh(x) __bswap_32 (x)
+#  define htole32(x) __bswap_32 (x)
 # endif
 #endif /* __USE_BSD */
 

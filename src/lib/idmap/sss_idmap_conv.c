@@ -35,9 +35,9 @@
 #define SID_SUB_AUTHS 15
 struct dom_sid {
         uint8_t sid_rev_num;
-        int8_t num_auths;/* [range(0,15)] */
-        uint8_t id_auth[SID_ID_AUTHS];
-        uint32_t sub_auths[SID_SUB_AUTHS];
+        int8_t num_auths;                  /* [range(0,15)] */
+        uint8_t id_auth[SID_ID_AUTHS];     /* highest order byte has index 0 */
+        uint32_t sub_auths[SID_SUB_AUTHS]; /* host byte-order */
 };
 
 enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
@@ -49,6 +49,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     struct dom_sid *dom_sid;
     size_t i = 0;
     size_t p = 0;
+    uint32_t val;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
@@ -83,7 +84,10 @@ enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
 
     /* Safely copy in the sub_auths values */
     for (i = 0; i < dom_sid->num_auths; i++) {
-        SAFEALIGN_COPY_UINT32(&dom_sid->sub_auths[i], bin_sid + p, &p);
+        /* SID sub auth values in Active Directory are stored little-endian,
+         * we store them in host order */
+        SAFEALIGN_COPY_UINT32(&val, bin_sid + p, &p);
+        dom_sid->sub_auths[i] = le32toh(val);
     }
 
     *_dom_sid = dom_sid;
@@ -106,6 +110,7 @@ enum idmap_error_code sss_idmap_dom_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
     size_t length;
     size_t i = 0;
     size_t p = 0;
+    uint32_t val;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
@@ -136,7 +141,8 @@ enum idmap_error_code sss_idmap_dom_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
             err = IDMAP_SID_INVALID;
             goto done;
         }
-        SAFEALIGN_COPY_UINT32(bin_sid + p, &dom_sid->sub_auths[i], &p);
+        val = htole32(dom_sid->sub_auths[i]);
+        SAFEALIGN_COPY_UINT32(bin_sid + p, &val, &p);
     }
 
     *_bin_sid = bin_sid;
@@ -161,7 +167,6 @@ enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
     int nc;
     int8_t i;
     uint32_t id_auth_val = 0;
-    uint32_t sub_auth_val;
 
     if (dom_sid->num_auths > SID_SUB_AUTHS) {
         return IDMAP_SID_INVALID;
@@ -195,10 +200,9 @@ enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
     for (i = 0; i < dom_sid->num_auths ; i++) {
         p += nc;
         sid_buf_len -= nc;
-        /* SID values in Active Directory are stored little-endian */
-        sub_auth_val = le32toh(dom_sid->sub_auths[i]);
 
-        nc = snprintf(p, sid_buf_len, "-%lu", (unsigned long) sub_auth_val);
+        nc = snprintf(p, sid_buf_len, "-%lu",
+                                      (unsigned long) dom_sid->sub_auths[i]);
         if (nc < 0 || nc >= sid_buf_len) {
             err = IDMAP_SID_INVALID;
             goto done;
