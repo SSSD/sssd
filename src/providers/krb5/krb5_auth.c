@@ -898,8 +898,9 @@ static void krb5_child_done(struct tevent_req *subreq)
         goto done;
     }
 
-    /* if using a dedicated kpasswd server.. */
-    if (kr->kpasswd_srv != NULL) {
+    /* if using a dedicated kpasswd server for a chpass operation... */
+    if (kr->kpasswd_srv != NULL &&
+        (pd->cmd == SSS_PAM_CHAUTHTOK || pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
         /* ..which is unreachable by now.. */
         if (msg_status == PAM_AUTHTOK_LOCK_BUSY) {
             be_fo_set_port_status(state->be_ctx,
