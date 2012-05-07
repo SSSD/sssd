@@ -378,6 +378,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         ret = cbfunc(cbdata, socktype, ai->ai_addr);
         if (ret != 0) {
             PLUGIN_DEBUG(("cbfunc failed\n"));
+            freeaddrinfo(ai);
             return ret;
         } else {
             PLUGIN_DEBUG(("[%s] used\n", addr));
@@ -385,6 +386,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     } else {
         PLUGIN_DEBUG(("[%s] NOT used\n", addr));
     }
+    freeaddrinfo(ai);
 
     return 0;
 }
