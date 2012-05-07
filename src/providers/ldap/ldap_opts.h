@@ -305,6 +305,7 @@ struct sdap_attr_map native_sudorule_map[] = {
     { "ldap_sudorule_notbefore", "sudoNotBefore", SYSDB_SUDO_CACHE_AT_NOTBEFORE, NULL },
     { "ldap_sudorule_notafter", "sudoNotAfter", SYSDB_SUDO_CACHE_AT_NOTAFTER, NULL },
     { "ldap_sudorule_order", "sudoOrder", SYSDB_SUDO_CACHE_AT_ORDER, NULL },
+    { "ldap_sudorule_entry_usn", NULL, SYSDB_USN, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 

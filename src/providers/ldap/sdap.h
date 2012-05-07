@@ -312,6 +312,7 @@ enum sdap_sudorule_attrs {
     SDAP_AT_SUDO_NOTBEFORE,
     SDAP_AT_SUDO_NOTAFTER,
     SDAP_AT_SUDO_ORDER,
+    SDAP_AT_SUDO_USN,
 
     SDAP_OPTS_SUDO  /* attrs counter */
 };
@@ -396,6 +397,7 @@ struct sdap_server_opts {
     char *max_user_value;
     char *max_group_value;
     char *max_service_value;
+    char *max_sudo_value;
 };
 
 struct sdap_id_ctx;

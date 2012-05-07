@@ -821,12 +821,14 @@ static void sdap_check_online_done(struct tevent_req *req)
             srv_opts->max_user_value = 0;
             srv_opts->max_group_value = 0;
             srv_opts->max_service_value = 0;
+            srv_opts->max_sudo_value = 0;
         } else if (strcmp(srv_opts->server_id, check_ctx->id_ctx->srv_opts->server_id) == 0
                    && srv_opts->supports_usn
                    && check_ctx->id_ctx->srv_opts->last_usn > srv_opts->last_usn) {
             check_ctx->id_ctx->srv_opts->max_user_value = 0;
             check_ctx->id_ctx->srv_opts->max_group_value = 0;
             check_ctx->id_ctx->srv_opts->max_service_value = 0;
+            check_ctx->id_ctx->srv_opts->max_sudo_value = 0;
             check_ctx->id_ctx->srv_opts->last_usn = srv_opts->last_usn;
         }
 
