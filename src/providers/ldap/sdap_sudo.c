@@ -31,6 +31,7 @@
 #include "db/sysdb_sudo.h"
 
 struct sdap_sudo_full_refresh_state {
+    struct sdap_id_ctx *id_ctx;
     struct sysdb_ctx *sysdb;
     int dp_error;
     int error;
@@ -279,6 +280,7 @@ static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    state->id_ctx = id_ctx;
     state->sysdb = id_ctx->be->sysdb;
 
     /* Download all rules from LDAP */
@@ -345,13 +347,14 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
     struct sdap_sudo_full_refresh_state *state = NULL;
+    char *highest_usn = NULL;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
 
     ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
-                                 &state->error, NULL);
+                                 &state->error, &highest_usn);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -369,6 +372,11 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Successful full refresh of sudo rules\n"));
+
+    /* set highest usn */
+    if (highest_usn != NULL) {
+        sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
+    }
 
     tevent_req_done(req);
 }
