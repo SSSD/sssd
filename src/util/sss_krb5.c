@@ -497,7 +497,7 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
 
     if (!principal_found) {
         kerr = KRB5_KT_NOTFOUND;
-        DEBUG(SSSDBG_MINOR_FAILURE,
+        DEBUG(SSSDBG_TRACE_FUNC,
               ("No principal matching %s@%s found in keytab.\n",
                pattern_primary, pattern_realm));
         goto done;

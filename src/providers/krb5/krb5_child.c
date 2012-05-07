@@ -1288,7 +1288,9 @@ static krb5_error_code check_fast_ccache(krb5_context ctx, const char *primary,
 
     kerr = find_principal_in_keytab(ctx, keytab, primary, realm, &client_princ);
     if (kerr != 0) {
-        DEBUG(1, ("find_principal_in_keytab failed.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("find_principal_in_keytab failed for principal %s@%s.\n",
+               primary, realm));
         goto done;
     }
 
