@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+#include "util/sss_krb5.h"
 #include <krb5/locate_plugin.h>
 
 #include "providers/krb5/krb5_common.h"
