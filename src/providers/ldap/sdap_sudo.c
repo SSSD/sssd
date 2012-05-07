@@ -55,6 +55,8 @@ static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *dp_error,
                                         int *error);
 
+static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req);
+
 static void
 sdap_sudo_shutdown(struct be_req *req)
 {
@@ -65,6 +67,8 @@ struct bet_ops sdap_sudo_ops = {
     .handler = sdap_sudo_handler,
     .finalize = sdap_sudo_shutdown
 };
+
+int sdap_sudo_setup_periodical_full_refresh(struct sdap_id_ctx *id_ctx);
 
 int sdap_sudo_init(struct be_ctx *be_ctx,
                    struct sdap_id_ctx *id_ctx,
@@ -84,6 +88,76 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot get SUDO options [%d]: %s\n",
                                   ret, strerror(ret)));
         return ret;
+    }
+
+    ret = sdap_sudo_setup_periodical_full_refresh(id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unable to setup periodical full refresh"
+                                  "of sudo rules [%d]: %s\n", ret, strerror(ret)));
+    }
+
+    return EOK;
+}
+
+int sdap_sudo_setup_periodical_full_refresh(struct sdap_id_ctx *id_ctx)
+{
+    struct tevent_req *req;
+    time_t full_interval;
+    time_t last_full;
+    time_t now;
+    struct timeval tv;
+    int ret;
+
+    /* setup periodical full refresh */
+    full_interval = dp_opt_get_int(id_ctx->opts->basic,
+                                   SDAP_SUDO_FULL_REFRESH_INTERVAL);
+    if (full_interval != 0) {
+        ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->sysdb, &last_full);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        if (last_full == 0) {
+            /* If this is the first startup, we need to kick off
+             * an refresh immediately, to close a window where
+             * clients requesting sudo information won't get an
+             * immediate reply with no entries
+             */
+            tv = tevent_timeval_current();
+        } else {
+            /* At least one update has previously run,
+             * so clients will get cached data.
+             * We will delay the refresh so we don't slow
+             * down the startup process if this is happening
+             * during system boot.
+             */
+
+            now = time(NULL);
+            if (last_full + full_interval < now) {
+                /* delay at least by 10s */
+                tv = tevent_timeval_current_ofs(10, 0);
+            } else {
+                tv = tevent_timeval_set(last_full + full_interval, 0);
+            }
+        }
+
+        req = sdap_sudo_timer_send(id_ctx, id_ctx->be->ev, id_ctx,
+                                   tv, full_interval,
+                                   sdap_sudo_full_refresh_send);
+        if (req == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Unable to schedule full refresh of sudo "
+                  "rules! Full periodical refresh will not work.\n"));
+            return ENOMEM;
+        }
+
+        tevent_req_set_callback(req, sdap_sudo_periodical_full_refresh_done,
+                                id_ctx);
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Full refresh scheduled at: %lld\n",
+                                      (long long)tv.tv_sec));
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Periodical full refresh of sudo rules "
+                                     "is disabled\n"));
     }
 
     return EOK;
@@ -357,4 +431,59 @@ static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *error)
 {
     return sdap_sudo_refresh_recv(req, dp_error, error);
+}
+
+static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req)
+{
+    struct tevent_req *subreq = NULL; /* req from sdap_sudo_full_refresh_send() */
+    struct tevent_req *newreq = NULL;
+    struct sdap_id_ctx *id_ctx = NULL;
+    struct timeval tv;
+    time_t delay;
+    int dp_error;
+    int error;
+    int ret;
+
+    ret = sdap_sudo_timer_recv(req, req, &subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Sudo timer failed [%d]: %s\n", ret, strerror(ret)));
+        goto schedule;
+    }
+
+    ret = sdap_sudo_full_refresh_recv(subreq, &dp_error, &error);
+    if (dp_error != DP_ERR_OK || error != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Periodical full refresh of sudo rules "
+              "failed [dp_error: %d] ([%d]: %s)",
+              dp_error, error, strerror(error)));
+        goto schedule;
+    }
+
+schedule:
+    id_ctx = tevent_req_callback_data(req, struct sdap_id_ctx);
+    talloc_zfree(req);
+
+    delay = dp_opt_get_int(id_ctx->opts->basic, SDAP_SUDO_FULL_REFRESH_INTERVAL);
+    if (delay == 0) {
+        /* runtime configuration change? */
+        DEBUG(SSSDBG_TRACE_FUNC, ("Periodical full refresh of sudo rules "
+                                  "is disabled\n"));
+        return;
+    }
+
+    /* schedule new refresh */
+    tv = tevent_timeval_current_ofs(delay, 0);
+    newreq = sdap_sudo_timer_send(id_ctx, id_ctx->be->ev, id_ctx,
+                                  tv, delay, sdap_sudo_full_refresh_send);
+    if (newreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unable to schedule full refresh of sudo "
+              "rules! Full periodical refresh will not work.\n"));
+        return;
+    }
+
+    tevent_req_set_callback(newreq, sdap_sudo_periodical_full_refresh_done,
+                            id_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Full refresh scheduled at: %lld\n",
+                              (long long)tv.tv_sec));
 }
