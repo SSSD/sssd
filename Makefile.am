@@ -401,7 +401,6 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_async.h \
     src/providers/ldap/sdap_async_private.h \
     src/providers/ldap/sdap_sudo_cache.h \
-    src/providers/ldap/sdap_sudo_timer.h \
     src/providers/ldap/sdap_sudo.h \
     src/providers/ldap/sdap_autofs.h \
     src/providers/ldap/sdap_id_op.h \
@@ -1185,7 +1184,6 @@ libsss_ldap_common_la_SOURCES = \
 if BUILD_SUDO
 libsss_ldap_common_la_SOURCES += \
     src/providers/ldap/sdap_sudo_cache.c \
-    src/providers/ldap/sdap_sudo_timer.c \
     src/providers/ldap/sdap_async_sudo.c \
     src/providers/ldap/sdap_sudo.c
 endif
