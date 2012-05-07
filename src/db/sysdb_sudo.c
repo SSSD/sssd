@@ -383,6 +383,149 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
     return EOK;
 }
 
+static errno_t sysdb_sudo_set_refresh_time(struct sysdb_ctx *sysdb,
+                                           const char *attr_name,
+                                           time_t value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    struct ldb_message *msg = NULL;
+    struct ldb_result *res = NULL;
+    errno_t ret;
+    int lret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        SUDORULE_SUBDIR, sysdb->domain->name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      NULL, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = dn;
+
+    if (res->count == 0) {
+        lret = ldb_msg_add_string(msg, "cn", SUDORULE_SUBDIR);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Got more than one reply for base search!\n"));
+        ret = EIO;
+        goto done;
+    } else {
+        lret = ldb_msg_add_empty(msg, attr_name, LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    }
+
+    lret = ldb_msg_add_fmt(msg, attr_name, "%lld", (long long)value);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count) {
+        lret = ldb_modify(sysdb->ldb, msg);
+    } else {
+        lret = ldb_add(sysdb->ldb, msg);
+    }
+
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sysdb_sudo_get_refresh_time(struct sysdb_ctx *sysdb,
+                                           const char *attr_name,
+                                           time_t *value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    struct ldb_result *res;
+    errno_t ret;
+    int lret;
+    const char *attrs[2] = {attr_name, NULL};
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        SUDORULE_SUBDIR, sysdb->domain->name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* This entry has not been populated in LDB
+         * This is a common case, as unlike LDAP,
+         * LDB does not need to have all of its parent
+         * objects actually exist.
+         */
+        *value = 0;
+        ret = EOK;
+        goto done;
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Got more than one reply for base search!\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    *value = ldb_msg_find_attr_as_int(res->msgs[0], attr_name, 0);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb, time_t value)
+{
+    return sysdb_sudo_set_refresh_time(sysdb, SYSDB_SUDO_AT_LAST_FULL_REFRESH,
+                                       value);
+}
+
+errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb, time_t *value)
+{
+    return sysdb_sudo_get_refresh_time(sysdb, SYSDB_SUDO_AT_LAST_FULL_REFRESH,
+                                       value);
+}
+
 errno_t sysdb_sudo_set_refreshed(struct sysdb_ctx *sysdb,
                                  bool refreshed)
 {

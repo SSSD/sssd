@@ -30,6 +30,7 @@
 /* attribute of SUDORULE_SUBDIR
  * should be true if we have downloaded all rules atleast once */
 #define SYSDB_SUDO_AT_REFRESHED      "refreshed"
+#define SYSDB_SUDO_AT_LAST_FULL_REFRESH "sudoLastFullRefreshTime"
 
 /* sysdb attributes */
 #define SYSDB_SUDO_CACHE_AT_OC         "sudoRule"
@@ -80,6 +81,9 @@ errno_t
 sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
                    const char *rule_name,
                    struct sysdb_attrs *attrs);
+
+errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb, time_t value);
+errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb, time_t *value);
 
 errno_t sysdb_sudo_set_refreshed(struct sysdb_ctx *sysdb,
                                  bool refreshed);
