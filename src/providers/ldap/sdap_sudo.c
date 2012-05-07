@@ -163,6 +163,28 @@ int sdap_sudo_setup_periodical_full_refresh(struct sdap_id_ctx *id_ctx)
     return EOK;
 }
 
+static void sdap_sudo_set_usn(struct sdap_server_opts *srv_opts, char *usn)
+{
+    unsigned int usn_number;
+    char *endptr = NULL;
+
+    if (srv_opts != NULL && usn != NULL) {
+        talloc_zfree(srv_opts->max_sudo_value);
+        srv_opts->max_sudo_value = talloc_steal(srv_opts, usn);
+
+        usn_number = strtoul(usn, &endptr, 10);
+        if ((endptr == NULL || (*endptr == '\0' && endptr != usn))
+             && (usn_number > srv_opts->last_usn)) {
+             srv_opts->last_usn = usn_number;
+        }
+
+        DEBUG(SSSDBG_FUNC_DATA, ("SUDO higher USN value: [%s]\n",
+                                 srv_opts->max_sudo_value));
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, ("srv_opts is NULL\n"));
+    }
+}
+
 static void sdap_sudo_reply(struct tevent_req *req)
 {
     struct be_req *be_req = NULL;
