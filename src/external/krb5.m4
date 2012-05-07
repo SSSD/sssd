@@ -38,7 +38,12 @@ CFLAGS="$CFLAGS $KRB5_CFLAGS"
 LIBS="$LIBS $KRB5_LIBS"
 AC_CHECK_HEADERS([krb5.h krb5/krb5.h])
 AC_CHECK_TYPES([krb5_ticket_times, krb5_times], [], [],
-               [[#include <krb5.h>]])
+               [ #ifdef HAVE_KRB5_KRB5_H
+                 #include <krb5/krb5.h>
+                 #else
+                 #include <krb5.h>
+                 #endif
+               ])
 AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_free_unparsed_name \
                 krb5_get_init_creds_opt_set_expire_callback \
@@ -69,7 +74,13 @@ AC_ARG_ENABLE([krb5-locator-plugin],
 AC_CHECK_HEADER([krb5/locate_plugin.h],
                 [have_locate_plugin=yes],
                 [have_locate_plugin=no]
-                [AC_MSG_NOTICE([Kerberos locator plugin cannot be build])])
+                [AC_MSG_NOTICE([Kerberos locator plugin cannot be built])],
+                [ #ifdef HAVE_KRB5_KRB5_H
+                  #include <krb5/krb5.h>
+                  #else
+                  #include <krb5.h>
+                  #endif
+                ])
 AM_CONDITIONAL([BUILD_KRB5_LOCATOR_PLUGIN],
                [test x$have_locate_plugin = xyes -a x$build_locator = xyes])
 
