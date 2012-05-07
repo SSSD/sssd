@@ -25,11 +25,13 @@
 
 /* Cache functions specific for the native sudo LDAP schema */
 errno_t
-sdap_save_native_sudorule_list(struct sysdb_ctx *sysdb_ctx,
+sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
+                               struct sysdb_ctx *sysdb_ctx,
                                struct sdap_attr_map *map,
                                struct sysdb_attrs **replies,
                                size_t replies_count,
                                int cache_timeout,
-                               time_t now);
+                               time_t now,
+                               char **_usn);
 
 #endif /* _SDAP_SUDO_CACHE_H_ */

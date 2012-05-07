@@ -328,7 +328,8 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(subreq, &state->dp_error, &state->error);
+    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
+                                 &state->error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -430,7 +431,7 @@ static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *dp_error,
                                         int *error)
 {
-    return sdap_sudo_refresh_recv(req, dp_error, error);
+    return sdap_sudo_refresh_recv(req, req, dp_error, error, NULL);
 }
 
 static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req)

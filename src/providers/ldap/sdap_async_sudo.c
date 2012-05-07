@@ -47,6 +47,7 @@ struct sdap_sudo_refresh_state {
 
     int dp_error;
     int error;
+    char *highest_usn;
 };
 
 struct sdap_sudo_load_sudoers_state {
@@ -84,12 +85,14 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
 
 static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq);
 
-static int sdap_sudo_store_sudoers(struct sysdb_ctx *sysdb_ctx,
+static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
+                                   struct sysdb_ctx *sysdb_ctx,
                                    struct sdap_options *opts,
                                    size_t rules_count,
                                    struct sysdb_attrs **rules,
                                    int cache_timeout,
-                                   time_t now);
+                                   time_t now,
+                                   char **_usn);
 
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct be_ctx *be_ctx,
@@ -123,6 +126,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->sysdb_filter = talloc_strdup(state, sysdb_filter);
     state->dp_error = DP_ERR_OK;
     state->error = EOK;
+    state->highest_usn = NULL;
 
     if (state->ldap_filter == NULL) {
         ret = ENOMEM;
@@ -151,9 +155,11 @@ immediately:
     return req;
 }
 
-int sdap_sudo_refresh_recv(struct tevent_req *req,
+int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
                            int *dp_error,
-                           int *error)
+                           int *error,
+                           char **usn)
 {
     struct sdap_sudo_refresh_state *state = NULL;
 
@@ -163,6 +169,10 @@ int sdap_sudo_refresh_recv(struct tevent_req *req,
 
     *dp_error = state->dp_error;
     *error = state->error;
+
+    if (usn != NULL && state->highest_usn != NULL) {
+        *usn = talloc_steal(mem_ctx, state->highest_usn);
+    }
 
     return EOK;
 }
@@ -472,8 +482,9 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 
     /* store rules */
     now = time(NULL);
-    ret = sdap_sudo_store_sudoers(state->sysdb, state->opts, rules_count, rules,
-                                  state->domain->sudo_timeout, now);
+    ret = sdap_sudo_store_sudoers(state, state->sysdb, state->opts, rules_count,
+                                  rules, state->domain->sudo_timeout, now,
+                                  &state->highest_usn);
     if (ret != EOK) {
         goto done;
     }
@@ -506,12 +517,14 @@ done:
     }
 }
 
-static int sdap_sudo_store_sudoers(struct sysdb_ctx *sysdb_ctx,
+static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
+                                   struct sysdb_ctx *sysdb_ctx,
                                    struct sdap_options *opts,
                                    size_t rules_count,
                                    struct sysdb_attrs **rules,
                                    int cache_timeout,
-                                   time_t now)
+                                   time_t now,
+                                   char **_usn)
 {
     errno_t ret;
 
@@ -520,8 +533,9 @@ static int sdap_sudo_store_sudoers(struct sysdb_ctx *sysdb_ctx,
         return EOK;
     }
 
-    ret = sdap_save_native_sudorule_list(sysdb_ctx, opts->sudorule_map,
-                                         rules, rules_count, cache_timeout, now);
+    ret = sdap_save_native_sudorule_list(mem_ctx, sysdb_ctx, opts->sudorule_map,
+                                         rules, rules_count, cache_timeout, now,
+                                         _usn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("failed to save sudo rules [%d]: %s\n",
               ret, strerror(ret)));

@@ -36,9 +36,11 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           const char *ldap_filter,
                                           const char *sysdb_filter);
 
-int sdap_sudo_refresh_recv(struct tevent_req *req,
+int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
                            int *dp_error,
-                           int *error);
+                           int *error,
+                           char **usn);
 
 /* timer */
 
