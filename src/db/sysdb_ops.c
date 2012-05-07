@@ -1986,7 +1986,7 @@ int sysdb_store_custom(struct sysdb_ctx *sysdb,
         ret = ldb_modify(sysdb->ldb, msg);
     }
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to store custmo entry: %s(%d)[%s]\n",
+        DEBUG(1, ("Failed to store custom entry: %s(%d)[%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
         ret = sysdb_error_to_errno(ret);
     }
