@@ -2977,19 +2977,47 @@ sdap_nested_group_process_deref_result(struct tevent_req *req)
     errno_t ret;
     struct sdap_deref_ctx *dctx = state->derefctx;
     const char *tmp_name;
+    size_t i;
 
     while (dctx->result_index < dctx->num_results) {
+        /* Add to appropriate hash table */
+        ret = sysdb_attrs_get_string(
+                dctx->deref_result[dctx->result_index]->attrs,
+                SYSDB_ORIG_DN, &orig_dn);
+        if (ret != EOK) {
+            DEBUG(2, ("The entry has no originalDN\n"));
+            return ret;
+        }
+
+        /* Ensure that all members returned from the deref request are included
+         * in the member processing. Sometimes we will get more results back from
+         * deref/asq than we got from the initial lookup, as is the case with
+         * Active Directory and its range retrieval mechanism.
+         */
+        for (i = 0; i < state->members->num_values; i++) {
+            /* FIXME: This is inefficient for very large sets of groups */
+            if (strcasecmp((const char *)state->members->values[i].data,
+                           orig_dn) == 0) break;
+        }
+        if (i >= state->members->num_values) {
+            state->members->values = talloc_realloc(state,
+                                                    state->members->values,
+                                                    struct ldb_val,
+                                                    state->members->num_values + 1);
+            if (!state->members->values) {
+                return ENOMEM;
+            }
+            state->members->values[state->members->num_values].data =
+                    (uint8_t *)talloc_strdup(state->members->values, orig_dn);
+            if (!state->members->values[state->members->num_values].data) {
+                return ENOMEM;
+            }
+            state->members->values[state->members->num_values].length = strlen(orig_dn);
+            state->members->num_values++;
+        }
+
         if (dctx->deref_result[dctx->result_index]->map == \
             state->opts->user_map) {
-
-            /* Add to appropriate hash table */
-            ret = sysdb_attrs_get_string(
-                    dctx->deref_result[dctx->result_index]->attrs,
-                    SYSDB_ORIG_DN, &orig_dn);
-            if (ret != EOK) {
-                DEBUG(2, ("The entry has no originalDN\n"));
-                return ret;
-            }
 
             /* check if the user is in search base */
             if (!sss_ldap_dn_in_search_bases(state, orig_dn,
@@ -3022,14 +3050,6 @@ sdap_nested_group_process_deref_result(struct tevent_req *req)
                 DEBUG(7, ("Dereferenced a group without name, skipping ...\n"));
             } else if (ret) {
                 return EIO;
-            }
-
-            ret = sysdb_attrs_get_string(
-                    dctx->deref_result[dctx->result_index]->attrs,
-                    SYSDB_ORIG_DN, &orig_dn);
-            if (ret != EOK) {
-                DEBUG(2, ("The entry has no originalDN\n"));
-                return ret;
             }
 
             /* check if the group is in search base */

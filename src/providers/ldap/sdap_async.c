@@ -1826,6 +1826,8 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     struct sdap_attr_map *map;
     int num_attrs;
     struct sdap_deref_attrs **res;
+    char *tmp;
+    char *dn;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -1848,6 +1850,20 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
         res[mi]->attrs = NULL;
     }
 
+
+    tmp = ldap_get_dn(sh->ldap, msg->msg);
+    if (!tmp) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    dn = talloc_strdup(tmp_ctx, tmp);
+    ldap_memfree(tmp);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     /* Find all suitable maps in the list */
     vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
     for (mi =0; mi < state->num_maps; mi++) {
@@ -1857,12 +1873,20 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
             if (strncasecmp(state->maps[mi].map[0].name,
                             vals[i]->bv_val, vals[i]->bv_len) == 0) {
                 /* it's an entry of the right type */
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      ("Matched objectclass [%s] on DN [%s], will use associated map\n",
+                       state->maps[mi].map[0].name, dn));
                 map = state->maps[mi].map;
                 num_attrs = state->maps[mi].num_attrs;
                 break;
             }
         }
-        if (!map) continue;
+        if (!map) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("DN [%s] did not match the objectClass [%s]\n",
+                   dn, state->maps[mi].map[0].name));
+            continue;
+        }
 
         ret = sdap_parse_entry(res[mi], sh, msg,
                                map, num_attrs,
@@ -1871,7 +1895,6 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
             DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
             goto done;
         }
-
     }
     ldap_value_free_len(vals);
 

@@ -24,6 +24,7 @@
 #include "confdb/confdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
+#include "providers/ldap/sdap_range.h"
 
 /* =Retrieve-Options====================================================== */
 
@@ -108,6 +109,11 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     const char *name;
     bool store;
     bool base64;
+    char *base_attr;
+    char *dn = NULL;
+    uint32_t range_offset;
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
 
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
@@ -116,7 +122,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                   sss_ldap_err2string(ret)));
     }
 
-    attrs = sysdb_new_attrs(memctx);
+    attrs = sysdb_new_attrs(tmp_ctx);
     if (!attrs) return ENOMEM;
 
     str = ldap_get_dn(sh->ldap, sm->msg);
@@ -125,18 +131,18 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
                   lerrno, sss_ldap_err2string(lerrno)));
         ret = EIO;
-        goto fail;
+        goto done;
     }
 
     DEBUG(9, ("OriginalDN: [%s].\n", str));
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
-    if (ret) goto fail;
+    if (ret) goto done;
     if (_dn) {
-        *_dn = talloc_strdup(memctx, str);
-        if (!*_dn) {
+        dn = talloc_strdup(tmp_ctx, str);
+        if (!dn) {
             ret = ENOMEM;
             ldap_memfree(str);
-            goto fail;
+            goto done;
         }
     }
     ldap_memfree(str);
@@ -146,7 +152,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         if (!vals) {
             DEBUG(1, ("Unknown entry type, no objectClasses found!\n"));
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
 
         for (i = 0; vals[i]; i++) {
@@ -162,7 +168,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                       map[0].name));
             ldap_value_free_len(vals);
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
         ldap_value_free_len(vals);
     }
@@ -174,17 +180,35 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                   lerrno, sss_ldap_err2string(lerrno)));
         if (map) {
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
     }
     while (str) {
         base64 = false;
+
+        ret = sdap_parse_range(tmp_ctx, str, &base_attr, &range_offset);
+        if (ret == EAGAIN) {
+            /* This attribute contained range values and needs more to
+             * be retrieved
+             */
+            /* TODO: return the set of attributes that need additional retrieval
+             * For now, we'll continue below and treat it as regular values.
+             */
+
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not determine if attribute [%s] was ranged\n",
+                   str));
+            goto done;
+        }
+
+
         if (map) {
             for (a = 1; a < attrs_num; a++) {
                 /* check if this attr is valid with the chosen schema */
                 if (!map[a].name) continue;
                 /* check if it is an attr we are interested in */
-                if (strcasecmp(str, map[a].name) == 0) break;
+                if (strcasecmp(base_attr, map[a].name) == 0) break;
             }
             /* interesting attr */
             if (a < attrs_num) {
@@ -198,14 +222,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 name = NULL;
             }
         } else {
-            name = str;
+            name = base_attr;
             store = true;
-        }
-
-        if (strstr(str, ";range=") != NULL) {
-            DEBUG(1, ("Attribute [%s] has range sub-attribute "
-                      "which is currently not supported, skipping.\n", str));
-            store = false;
         }
 
         if (store) {
@@ -216,7 +234,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                     DEBUG(1, ("LDAP Library error: %d(%s)",
                               lerrno, sss_ldap_err2string(lerrno)));
                     ret = EIO;
-                    goto fail;
+                    goto done;
                 }
 
                 DEBUG(5, ("Attribute [%s] has no values, skipping.\n", str));
@@ -225,7 +243,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 if (!vals[0]) {
                     DEBUG(1, ("Missing value after ldap_get_values() ??\n"));
                     ret = EINVAL;
-                    goto fail;
+                    goto done;
                 }
                 for (i = 0; vals[i]; i++) {
                     if (base64) {
@@ -233,7 +251,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                                 (uint8_t *)vals[i]->bv_val, vals[i]->bv_len);
                         if (!v.data) {
                             ret = ENOMEM;
-                            goto fail;
+                            goto done;
                         }
                         v.length = strlen((const char *)v.data);
                     } else {
@@ -242,7 +260,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                     }
 
                     ret = sysdb_attrs_add_val(attrs, name, &v);
-                    if (ret) goto fail;
+                    if (ret) goto done;
                 }
                 ldap_value_free_len(vals);
             }
@@ -252,21 +270,23 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         str = ldap_next_attribute(sh->ldap, sm->msg, ber);
     }
     ber_free(ber, 0);
+    ber = NULL;
 
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
         DEBUG(1, ("LDAP Library error: %d(%s)",
                   lerrno, sss_ldap_err2string(lerrno)));
         ret = EIO;
-        goto fail;
+        goto done;
     }
 
-    *_attrs = attrs;
-    return EOK;
+    *_attrs = talloc_steal(memctx, attrs);
+    if (_dn) *_dn = talloc_steal(memctx, dn);
+    ret = EOK;
 
-fail:
+done:
     if (ber) ber_free(ber, 0);
-    talloc_free(attrs);
+    talloc_free(tmp_ctx);
     return ret;
 }
 

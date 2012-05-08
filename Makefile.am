@@ -386,6 +386,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_autofs.h \
     src/providers/ldap/sdap_id_op.h \
     src/providers/ldap/ldap_opts.h \
+    src/providers/ldap/sdap_range.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
@@ -1098,6 +1099,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_id_op.c \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
+    src/providers/ldap/sdap_range.c \
     src/providers/ldap/sdap.c
 
 if BUILD_SUDO
