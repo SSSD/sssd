@@ -89,11 +89,11 @@ struct tevent_req *ipa_get_subdomain_account_info_send(TALLOC_CTX *memctx,
     switch (state->entry_type) {
         case BE_REQ_USER:
             ret = build_attrs_from_map(state, ctx->opts->user_map,
-                                       SDAP_OPTS_USER, &state->attrs);
+                                       SDAP_OPTS_USER, &state->attrs, NULL);
             break;
         case BE_REQ_GROUP:
             ret = build_attrs_from_map(state, ctx->opts->group_map,
-                                       SDAP_OPTS_GROUP, &state->attrs);
+                                       SDAP_OPTS_GROUP, &state->attrs, NULL);
             break;
         default:
             ret = EINVAL;

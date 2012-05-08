@@ -354,7 +354,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     }
 
     ret = build_attrs_from_map(state, opts->group_map,
-                               SDAP_OPTS_GROUP, &state->attrs);
+                               SDAP_OPTS_GROUP, &state->attrs, NULL);
     if (ret != EOK) {
         talloc_free(req);
         return NULL;
@@ -844,7 +844,7 @@ static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req)
     maps[1].map = NULL;
 
     ret = build_attrs_from_map(state, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &sdap_attrs);
+                               SDAP_OPTS_GROUP, &sdap_attrs, NULL);
     if (ret != EOK) goto fail;
 
     timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
@@ -1496,7 +1496,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     }
 
     ret = build_attrs_from_map(state, opts->group_map,
-                               SDAP_OPTS_GROUP, &state->attrs);
+                               SDAP_OPTS_GROUP, &state->attrs, NULL);
     if (ret != EOK) goto done;
 
     ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
@@ -2169,7 +2169,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     }
 
     ret = build_attrs_from_map(state, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &state->attrs);
+                               SDAP_OPTS_GROUP, &state->attrs, NULL);
     if (ret != EOK) {
         goto done;
     }
@@ -2505,7 +2505,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     }
 
     ret = build_attrs_from_map(state, state->opts->user_map,
-                               SDAP_OPTS_USER, &state->user_attrs);
+                               SDAP_OPTS_USER, &state->user_attrs, NULL);
     if (ret) {
         talloc_zfree(req);
         return NULL;

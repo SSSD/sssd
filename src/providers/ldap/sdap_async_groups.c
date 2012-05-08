@@ -600,7 +600,8 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
                             struct sdap_process_group_state);
     if (!req) return NULL;
 
-    ret = build_attrs_from_map(grp_state, opts->user_map, SDAP_OPTS_USER, &attrs);
+    ret = build_attrs_from_map(grp_state, opts->user_map, SDAP_OPTS_USER,
+                               &attrs, NULL);
     if (ret) {
         goto done;
     }
@@ -2367,6 +2368,7 @@ sdap_nested_group_process_deref_call(struct tevent_req *req)
     const char **sdap_attrs;
     int ret;
     int timeout;
+    size_t attr_count;
     const int num_maps = 2;
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
@@ -2383,19 +2385,19 @@ sdap_nested_group_process_deref_call(struct tevent_req *req)
     /* Pull down the whole group map, but only pull down username
      * and originalDN for users. */
     ret = build_attrs_from_map(state, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &sdap_attrs);
+                               SDAP_OPTS_GROUP, &sdap_attrs, &attr_count);
     if (ret != EOK) goto fail;
 
     sdap_attrs = talloc_realloc(NULL, sdap_attrs, const char *,
-                                SDAP_OPTS_GROUP + 2);
+                                attr_count + 2);
     if (!sdap_attrs) {
         ret = ENOMEM;
         goto fail;
     }
 
-    sdap_attrs[SDAP_OPTS_GROUP] = \
+    sdap_attrs[attr_count] = \
                         state->opts->user_map[SDAP_AT_USER_NAME].name;
-    sdap_attrs[SDAP_OPTS_GROUP + 1] = NULL;
+    sdap_attrs[attr_count + 1] = NULL;
 
     timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
 
@@ -2588,7 +2590,7 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
     }
 
     ret = build_attrs_from_map(state, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &sdap_attrs);
+                               SDAP_OPTS_GROUP, &sdap_attrs, NULL);
     if (ret != EOK) {
         return ret;
     }

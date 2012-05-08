@@ -1303,13 +1303,10 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = build_attrs_from_map(tmp_ctx, map, map_size, &expected_attrs);
+    ret = build_attrs_from_map(tmp_ctx, map, map_size, &expected_attrs, &attr_count);
     if (ret != EOK) {
         goto done;
     }
-
-    /* Count the expected attrs */
-    while(expected_attrs[attr_count]) attr_count++;
 
     /* Allocate the maximum possible values for missing_attrs, to
      * be on the safe side

@@ -999,13 +999,22 @@ void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
 
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
-                         size_t size, const char ***_attrs)
+                         size_t size,
+                         const char ***_attrs,
+                         size_t *attr_count)
 {
+    errno_t ret;
     const char **attrs;
     int i, j;
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
 
-    attrs = talloc_array(memctx, const char *, size + 1);
-    if (!attrs) return ENOMEM;
+    /* Assume that all entries in the map have values */
+    attrs = talloc_zero_array(tmp_ctx, const char *, size + 1);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* first attribute is "objectclass" not the specifc one */
     attrs[0] = talloc_strdup(memctx, "objectClass");
@@ -1020,9 +1029,21 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
     }
     attrs[j] = NULL;
 
-    *_attrs = attrs;
+    /* Trim down the used memory if some attributes were NULL */
+    attrs = talloc_realloc(tmp_ctx, attrs, const char *, j + 1);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    return EOK;
+    *_attrs = talloc_steal(memctx, attrs);
+    if (attr_count) *attr_count = j;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,

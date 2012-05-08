@@ -558,7 +558,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->user_map,
-                               SDAP_OPTS_USER, &state->attrs);
+                               SDAP_OPTS_USER, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     /* TODO: restrict the enumerations to using a single
@@ -717,7 +717,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->group_map,
-                               SDAP_OPTS_GROUP, &state->attrs);
+                               SDAP_OPTS_GROUP, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     /* TODO: restrict the enumerations to using a single

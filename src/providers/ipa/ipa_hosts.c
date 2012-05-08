@@ -102,7 +102,8 @@ ipa_host_info_send(TALLOC_CTX *mem_ctx,
     state->host_map = host_map;
     state->hostgroup_map = hostgroup_map;
 
-    ret = build_attrs_from_map(state, host_map, IPA_OPTS_HOST, &state->attrs);
+    ret = build_attrs_from_map(state, host_map, IPA_OPTS_HOST,
+                               &state->attrs, NULL);
     if (ret != EOK) {
         goto immediate;
     }
@@ -213,7 +214,7 @@ ipa_host_info_done(struct tevent_req *subreq)
     if (state->hostgroup_map) {
         talloc_free(state->attrs);
         ret = build_attrs_from_map(state, state->hostgroup_map,
-                                   IPA_OPTS_HOSTGROUP, &state->attrs);
+                                   IPA_OPTS_HOSTGROUP, &state->attrs, NULL);
         if (ret != EOK) {
             tevent_req_error(req, ret);
             return;
