@@ -455,6 +455,7 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
 {
     struct ldb_message *msg;
     int i, ret;
+    int lret;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -488,8 +489,13 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
 
     msg->num_elements = attrs->num;
 
-    ret = ldb_modify(sysdb->ldb, msg);
-    ret = sysdb_error_to_errno(ret);
+    lret = ldb_modify(sysdb->ldb, msg);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("ldb_modify failed: [%s]\n", ldb_strerror(lret)));
+    }
+
+    ret = sysdb_error_to_errno(lret);
 
 done:
     if (ret == ENOENT) {
