@@ -505,7 +505,7 @@ errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb)
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    return EOK;
+    return ret;
 }
 
 errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
