@@ -353,7 +353,9 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     void *user_data;
     bool force;
     char *domain_hint;
-    dbus_uint32_t status;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    const char *err_msg;
     int ret;
 
     user_data = sbus_conn_get_private_data(conn);
@@ -373,8 +375,9 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
         return EIO;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
-              domain_hint == NULL ? "no hint": domain_hint ));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
+          domain_hint == NULL ? "no hint": domain_hint ));
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
@@ -383,15 +386,19 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
      */
     if (becli->bectx->offstat.offline) {
         DEBUG(SSSDBG_TRACE_FUNC, ("Cannot proceed, provider is offline.\n"));
-        status = EAGAIN;
-        goto done;
+        err_maj = DP_ERR_OFFLINE;
+        err_min = EAGAIN;
+        err_msg = "Provider is offline";
+        goto immediate;
     }
 
     /* process request */
     be_req = talloc_zero(becli, struct be_req);
     if (!be_req) {
-        status = ENOMEM;
-        goto done;
+        err_maj = DP_ERR_FATAL;
+        err_min = ENOMEM;
+        err_msg = "Out of memory";
+        goto immediate;
     }
     be_req->becli = becli;
     be_req->be_ctx = becli->bectx;
@@ -400,24 +407,30 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
 
     req = talloc(be_req, struct be_get_subdomains_req);
     if (!req) {
-        status = ENOMEM;
-        goto done;
+        err_maj = DP_ERR_FATAL;
+        err_min = ENOMEM;
+        err_msg = "Out of memory";
+        goto immediate;
     }
     req->force = force;
     req->domain_hint = talloc_strdup(req, domain_hint);
     req->domain_list = NULL;
     if (!req->domain_hint) {
-        status = ENOMEM;
-        goto done;
+        err_maj = DP_ERR_FATAL;
+        err_min = ENOMEM;
+        err_msg = "Out of memory";
+        goto immediate;
     }
 
     be_req->req_data = req;
 
     /* return an error if corresponding backend target is not configured */
     if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
-        status = ENODEV;
-        goto done;
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Undefined backend target.\n"));
+        err_maj = DP_ERR_FATAL;
+        err_min = ENODEV;
+        err_msg = "Subdomains back end target is not configured";
+        goto immediate;
     }
 
 
@@ -425,20 +438,24 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
                           be_req,
                           becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops->handler);
     if (ret != EOK) {
-        status = ret;
-        goto done;
+        err_maj = DP_ERR_FATAL;
+        err_min = ret;
+        err_msg = "Cannot file back end request";
+        goto immediate;
     }
 
     return EOK;
 
-done:
+immediate:
     if (be_req) {
         talloc_free(be_req);
     }
 
     if (reply) {
         dbret = dbus_message_append_args(reply,
-                                         DBUS_TYPE_UINT32, &status,
+                                         DBUS_TYPE_UINT16, &err_maj,
+                                         DBUS_TYPE_UINT32, &err_min,
+                                         DBUS_TYPE_STRING, &err_msg,
                                          DBUS_TYPE_INVALID);
         if (!dbret) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
@@ -446,7 +463,8 @@ done:
             return EIO;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Request processed. Returned [%d]\n", status));
+        DEBUG(SSSDBG_TRACE_LIBS, ("Request processed. Returned %d,%d,%s\n",
+              err_maj, err_min, err_msg));
 
         /* send reply back */
         sbus_conn_send_reply(conn, reply);
