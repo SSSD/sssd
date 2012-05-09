@@ -56,6 +56,21 @@ static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *dp_error,
                                         int *error);
 
+struct sdap_sudo_smart_refresh_state {
+    struct tevent_req *subreq;
+    struct sdap_id_ctx *id_ctx;
+    struct sysdb_ctx *sysdb;
+};
+
+static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
+                                                      struct sdap_id_ctx *id_ctx);
+
+static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq);
+
+static int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
+                                        int *dp_error,
+                                        int *error);
+
 static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req);
 
 static void
@@ -462,6 +477,119 @@ static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *error)
 {
     return sdap_sudo_refresh_recv(req, req, dp_error, error, NULL);
+}
+
+/* issue smart refresh of sudo rules */
+static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
+                                                       struct sdap_id_ctx *id_ctx)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_attr_map *map = id_ctx->opts->sudorule_map;
+    struct sdap_server_opts *srv_opts = id_ctx->srv_opts;
+    struct sdap_sudo_smart_refresh_state *state = NULL;
+    char *ldap_filter = NULL;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_smart_refresh_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
+    if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
+        /* Perform full refresh */
+        DEBUG(SSSDBG_TRACE_FUNC, ("USN value is unknown!\n"));
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    state->id_ctx = id_ctx;
+    state->sysdb = id_ctx->be->sysdb;
+
+    /* Download all rules from LDAP that are newer than usn */
+    ldap_filter = talloc_asprintf(state, "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
+                                  map[SDAP_OC_SUDORULE].name,
+                                  map[SDAP_AT_SUDO_USN].name,
+                                  srv_opts->max_sudo_value,
+                                  map[SDAP_AT_SUDO_USN].name,
+                                  srv_opts->max_sudo_value);
+    if (ldap_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    /* Do not remove any rules that are already in the sysdb
+     * sysdb_filter = NULL; */
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a smart refresh of sudo rules "
+                              "(USN >= %s)\n", srv_opts->max_sudo_value));
+
+    subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
+                                    id_ctx->conn_cache,
+                                    ldap_filter, NULL);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->subreq = subreq;
+    tevent_req_set_callback(subreq, sdap_sudo_smart_refresh_done, req);
+
+    /* free filters */
+    talloc_free(ldap_filter);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, id_ctx->be->ev);
+
+    return req;
+}
+
+static int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
+                                        int *dp_error,
+                                        int *error)
+{
+    struct sdap_sudo_smart_refresh_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return sdap_sudo_refresh_recv(state, state->subreq, dp_error, error, NULL);
+}
+
+static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_sudo_smart_refresh_state *state = NULL;
+    char *highest_usn = NULL;
+    int dp_error;
+    int error;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
+
+    ret = sdap_sudo_refresh_recv(state, subreq, &dp_error, &error, &highest_usn);
+    if (ret != EOK || dp_error != DP_ERR_OK || error != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Successful smart refresh of sudo rules\n"));
+
+    /* set highest usn */
+    if (highest_usn != NULL) {
+        sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
+    }
+
+    tevent_req_done(req);
 }
 
 static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req)
