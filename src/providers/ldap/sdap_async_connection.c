@@ -942,7 +942,19 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     ret = sdap_get_tgt_recv(subreq, state, &result,
                             &kerr, &ccname, &expire_time);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret == ETIMEDOUT) {
+        /* The child didn't even respond. Perhaps the KDC is too busy,
+         * retry with another KDC */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Communication with KDC timed out, trying the next one\n"));
+        be_fo_set_port_status(state->be, state->kdc_srv, PORT_NOT_WORKING);
+        nextreq = sdap_kinit_next_kdc(req);
+        if (!nextreq) {
+            tevent_req_error(req, ENOMEM);
+        }
+        return;
+    } else if (ret != EOK) {
+        /* A severe error while executing the child. Abort the operation. */
         state->result = SDAP_AUTH_FAILED;
         DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
@@ -1493,20 +1505,11 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
 
     ret = sdap_kinit_recv(subreq, &result, &expire_time);
     talloc_zfree(subreq);
-    if (ret) {
-        if (ret == ETIMEDOUT) { /* child timed out, retry another server */
-            be_fo_set_port_status(state->be, state->srv, PORT_NOT_WORKING);
-            ret = sdap_cli_resolve_next(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        }
-
-        tevent_req_error(req, ret);
-        return;
-    }
-    if (result != SDAP_AUTH_SUCCESS) {
+    if (ret != EOK || result != SDAP_AUTH_SUCCESS) {
+        /* We're not able to authenticate to the LDAP server.
+         * There's not much we can do except for going offline */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Cannot get a TGT: ret [%d] result [%d]\n", ret, result));
         tevent_req_error(req, EACCES);
         return;
     }
