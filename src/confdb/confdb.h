@@ -81,6 +81,7 @@
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
 #define CONFDB_NSS_PWFIELD  "pwfield"
 #define CONFDB_NSS_OVERRIDE_HOMEDIR "override_homedir"
+#define CONFDB_NSS_FALLBACK_HOMEDIR "fallback_homedir"
 #define CONFDB_NSS_VETOED_SHELL  "vetoed_shells"
 #define CONFDB_NSS_ALLOWED_SHELL "allowed_shells"
 #define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
@@ -192,6 +193,7 @@ struct sss_domain_info {
 
     gid_t override_gid;
     const char *override_homedir;
+    const char *fallback_homedir;
     const char *subdomain_homedir;
 
     uint32_t user_timeout;

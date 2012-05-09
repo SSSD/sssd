@@ -178,6 +178,11 @@ static int nss_get_config(struct nss_ctx *nctx,
                             &nctx->override_homedir);
     if (ret != EOK) goto done;
 
+    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_FALLBACK_HOMEDIR, NULL,
+                            &nctx->fallback_homedir);
+    if (ret != EOK) goto done;
+
     ret = confdb_get_string_as_list(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
                                     CONFDB_NSS_ALLOWED_SHELL,
                                     &nctx->allowed_shells);

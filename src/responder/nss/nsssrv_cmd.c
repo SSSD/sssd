@@ -122,6 +122,11 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
                                         const char *name,
                                         uint32_t uid)
 {
+    const char *homedir;
+
+    /* Check whether we are unconditionally overriding the server
+     * for home directory locations.
+     */
     if (dom->override_homedir) {
         return expand_homedir_template(mem_ctx, dom->override_homedir,
                                        name, uid, dom->name);
@@ -130,8 +135,22 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
                                        name, uid, dom->name);
     }
 
-    return talloc_strdup(mem_ctx,
-            ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL));
+    homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+    if (!homedir || *homedir == '\0') {
+        /* In the case of a NULL or empty homedir, check to see if
+         * we have a fallback homedir to use.
+         */
+        if (dom->fallback_homedir) {
+            return expand_homedir_template(mem_ctx, dom->fallback_homedir,
+                                           name, uid, dom->name);
+        } else if (nctx->fallback_homedir) {
+            return expand_homedir_template(mem_ctx, nctx->fallback_homedir,
+                                           name, uid, dom->name);
+        }
+    }
+
+    /* Return the value we got from the provider */
+    return talloc_strdup(mem_ctx, homedir);
 }
 
 static const char *get_shell_override(TALLOC_CTX *mem_ctx,

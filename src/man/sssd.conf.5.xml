@@ -447,6 +447,24 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>fallback_homedir (string)</term>
+                    <listitem>
+                        <para>
+                            Set a default template for a user's home directory
+                            if one is not specified explicitly by the domain's
+                            data provider.
+                        </para>
+                        <para>
+                            The available values for this option are the same
+                            as for override_homedir.
+                        </para>
+                        <para>
+                            Default: not set (no substitution for unset home
+                            directories)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>allowed_shells (string)</term>
                     <listitem>
                         <para>

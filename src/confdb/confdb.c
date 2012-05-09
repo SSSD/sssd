@@ -949,10 +949,22 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_NSS_OVERRIDE_HOMEDIR, NULL);
-    domain->override_homedir = talloc_strdup(domain, tmp);
-    if (!domain->name) {
-        ret = ENOMEM;
-        goto done;
+    if (tmp != NULL) {
+        domain->override_homedir = talloc_strdup(domain, tmp);
+        if (!domain->override_homedir) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_NSS_FALLBACK_HOMEDIR, NULL);
+    if (tmp != NULL) {
+        domain->fallback_homedir = talloc_strdup(domain, tmp);
+        if (!domain->fallback_homedir) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
