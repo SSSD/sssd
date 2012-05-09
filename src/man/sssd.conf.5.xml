@@ -982,6 +982,11 @@
                     <term>use_fully_qualified_names (bool)</term>
                     <listitem>
                         <para>
+                            Use the full name and domain (as formatted by
+                            the domain's full_name_format) as the user's login
+                            name reported to NSS.
+                        </para>
+                        <para>
                             If set to TRUE, all requests to this domain
                             must use fully qualified names. For example,
                             if used in LOCAL domain that contains a "test"
