@@ -85,6 +85,12 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
 
 static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq);
 
+static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
+                                   const char *filter,
+                                   struct sdap_attr_map *map,
+                                   size_t rules_count,
+                                   struct sysdb_attrs **rules);
+
 static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
                                    struct sysdb_ctx *sysdb_ctx,
                                    struct sdap_options *opts,
@@ -473,11 +479,10 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     in_transaction = true;
 
     /* purge cache */
-    if (state->sysdb_filter != NULL) {
-        ret = sysdb_sudo_purge_byfilter(state->sysdb, state->sysdb_filter);
-        if (ret != EOK) {
-            goto done;
-        }
+    ret = sdap_sudo_purge_sudoers(state->sysdb, state->sysdb_filter,
+                                  state->opts->sudorule_map, rules_count, rules);
+    if (ret != EOK) {
+        goto done;
     }
 
     /* store rules */
@@ -515,6 +520,57 @@ done:
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     }
+}
+
+static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
+                                   const char *filter,
+                                   struct sdap_attr_map *map,
+                                   size_t rules_count,
+                                   struct sysdb_attrs **rules)
+{
+    const char *name;
+    int i;
+    errno_t ret;
+
+    if (filter == NULL) {
+        /* removes downloaded rules from the cache */
+        if (rules_count == 0 || rules == NULL) {
+            return EOK;
+        }
+
+        for (i = 0; i < rules_count; i++) {
+            ret = sysdb_attrs_get_string(rules[i],
+                                         map[SDAP_AT_SUDO_NAME].sys_name,
+                                         &name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to retrieve rule name: [%s]\n", strerror(ret)));
+                continue;
+            }
+
+            ret = sysdb_sudo_purge_byname(sysdb_ctx, name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to delete rule %s: [%s]\n",
+                       name, strerror(ret)));
+                continue;
+            }
+        }
+    } else {
+        /* purge cache by provided filter */
+        ret = sysdb_sudo_purge_byfilter(sysdb_ctx, filter);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("failed to purge sudo rules [%d]: %s\n",
+                                  ret, strerror(ret)));
+    }
+
+    return ret;
 }
 
 static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
