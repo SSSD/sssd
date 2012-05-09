@@ -68,6 +68,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_service_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_full_refresh_interval", DP_OPT_NUMBER, { .number = 21600 }, NULL_NUMBER },
+    { "ldap_sudo_smart_refresh_interval", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER }, /* 15 mins */
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ipa_v1" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
