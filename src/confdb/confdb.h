@@ -85,6 +85,7 @@
 #define CONFDB_NSS_VETOED_SHELL  "vetoed_shells"
 #define CONFDB_NSS_ALLOWED_SHELL "allowed_shells"
 #define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
+#define CONFDB_NSS_DEFAULT_SHELL "default_shell"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"

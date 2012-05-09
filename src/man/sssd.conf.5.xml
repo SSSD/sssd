@@ -517,6 +517,21 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>default_shell</term>
+                    <listitem>
+                        <para>
+                            The default shell to use if the provider does not
+                            return one during lookup. This option supercedes
+                            any other shell options if it takes effect.
+                        </para>
+                        <para>
+                            Default: not set (Return NULL if no shell is
+                            specified and rely on libc to substitute something
+                            sensible when necessary, usually /bin/sh)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>get_domains_timeout (int)</term>
                     <listitem>
                         <para>

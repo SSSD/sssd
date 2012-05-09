@@ -67,6 +67,7 @@ option_strings = {
     'allowed_shells' : _('The list of shells users are allowed to log in with'),
     'vetoed_shells' : _('The list of shells that will be vetoed, and replaced with the fallback shell'),
     'shell_fallback' : _('If a shell stored in central directory is allowed but not available, use this fallback'),
+    'default_shell': _('Shell to use if the provider does not list one'),
 
     # [pam]
     'offline_credentials_expiration' : _('How long to allow cached logins between online logins (days)'),

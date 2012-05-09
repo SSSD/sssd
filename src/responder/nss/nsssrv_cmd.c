@@ -161,7 +161,13 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     int i;
 
     user_shell = ldb_msg_find_attr_as_string(msg, SYSDB_SHELL, NULL);
-    if (!user_shell) return NULL;
+    if (!user_shell) {
+        /* Check whether there is a default shell specified */
+        if (nctx->default_shell) {
+            return talloc_strdup(mem_ctx, nctx->default_shell);
+        }
+        return NULL;
+    }
     if (!nctx->allowed_shells && !nctx->vetoed_shells) return talloc_strdup(mem_ctx, user_shell);
 
     if (nctx->vetoed_shells) {

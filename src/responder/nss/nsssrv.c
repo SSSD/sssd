@@ -192,6 +192,7 @@ static int nss_get_config(struct nss_ctx *nctx,
                                     CONFDB_NSS_VETOED_SHELL,
                                     &nctx->vetoed_shells);
     if (ret != EOK && ret != ENOENT) goto done;
+
     ret = nss_get_etc_shells(nctx, &nctx->etc_shells);
     if (ret != EOK) goto done;
 
@@ -199,6 +200,12 @@ static int nss_get_config(struct nss_ctx *nctx,
                             CONFDB_NSS_SHELL_FALLBACK,
                             CONFDB_DEFAULT_SHELL_FALLBACK,
                             &nctx->shell_fallback);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_DEFAULT_SHELL,
+                            NULL,
+                            &nctx->default_shell);
     if (ret != EOK) goto done;
 
     ret = 0;
