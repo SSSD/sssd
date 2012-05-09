@@ -73,6 +73,8 @@ static int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
 
 static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req);
 
+static void sdap_sudo_periodical_smart_refresh_done(struct tevent_req *req);
+
 static void
 sdap_sudo_shutdown(struct be_req *req)
 {
@@ -644,5 +646,66 @@ schedule:
                             id_ctx);
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Full refresh scheduled at: %lld\n",
+                              (long long)tv.tv_sec));
+}
+
+static void sdap_sudo_periodical_smart_refresh_done(struct tevent_req *req)
+{
+    struct tevent_req *subreq = NULL; /* req from sdap_sudo_smart_refresh_send() */
+    struct tevent_req *newreq = NULL;
+    struct sdap_id_ctx *id_ctx = NULL;
+    struct timeval tv;
+    time_t delay;
+    int dp_error;
+    int error;
+    int ret;
+
+    ret = sdap_sudo_timer_recv(req, req, &subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Sudo timer failed [%d]: %s\n", ret, strerror(ret)));
+        goto schedule;
+    }
+
+    ret = sdap_sudo_smart_refresh_recv(subreq, &dp_error, &error);
+    if (dp_error != DP_ERR_OK || error != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Periodical smart refresh of sudo rules "
+              "failed [dp_error: %d] ([%d]: %s)",
+              dp_error, error, strerror(error)));
+        goto schedule;
+    }
+
+schedule:
+    id_ctx = tevent_req_callback_data(req, struct sdap_id_ctx);
+    talloc_zfree(req);
+
+    if (id_ctx->srv_opts == NULL || id_ctx->srv_opts->supports_usn == false) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("USN values are not supported by the server. "
+              "Smart refresh of sudo rules will not work!\n"));
+        return;
+    }
+
+    delay = dp_opt_get_int(id_ctx->opts->basic, SDAP_SUDO_SMART_REFRESH_INTERVAL);
+    if (delay == 0) {
+        /* runtime configuration change? */
+        DEBUG(SSSDBG_TRACE_FUNC, ("Periodical smart refresh of sudo rules "
+                                  "is disabled\n"));
+        return;
+    }
+
+    /* schedule new refresh */
+    tv = tevent_timeval_current_ofs(delay, 0);
+    newreq = sdap_sudo_timer_send(id_ctx, id_ctx->be->ev, id_ctx,
+                                  tv, delay, sdap_sudo_smart_refresh_send);
+    if (newreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unable to schedule smart refresh of sudo "
+              "rules! Smart periodical refresh will not work.\n"));
+        return;
+    }
+
+    tevent_req_set_callback(newreq, sdap_sudo_periodical_smart_refresh_done,
+                            id_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Smart refresh scheduled at: %lld\n",
                               (long long)tv.tv_sec));
 }
