@@ -2632,7 +2632,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
             dctx->check_provider = false;
 
             dpreq = sss_dp_get_account_send(step_ctx, rctx, dctx->domain, true,
-                                          SSS_DP_USER, NULL, 0, NULL);
+                                            SSS_DP_GROUP, NULL, 0, NULL);
             if (!dpreq) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Enum Cache refresh for domain [%s] failed."
