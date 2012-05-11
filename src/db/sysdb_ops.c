@@ -1159,13 +1159,8 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
         ret = sysdb_search_group_by_gid(tmp_ctx, sysdb,
                                         gid, NULL, &msg);
         if (ret != ENOENT) {
-            if (ret == EOK) {
-                ret = sysdb_delete_group(sysdb, NULL, gid);
-            }
-
-            if (ret != EOK) {
-                goto done;
-            }
+            if (ret == EOK) ret = EEXIST;
+            goto done;
         }
     }
 
@@ -1507,6 +1502,25 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         /* users doesn't exist, turn into adding a user */
         ret = sysdb_add_user(sysdb, name, uid, gid,
                              gecos, homedir, shell, attrs, cache_timeout, now);
+        if (ret == EEXIST) {
+            /* This may be a user rename. If there is a user with the
+             * same UID, remove it and try to add the basic user again
+             */
+            ret = sysdb_delete_user(sysdb, NULL, uid);
+            if (ret == ENOENT) {
+                /* Not found by UID, return the original EEXIST,
+                 * this may be a conflict in MPG domain or something
+                 * else */
+                return EEXIST;
+            } else if (ret != EOK) {
+                goto done;
+            }
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("A user with the same UID [%llu] was removed from the "
+                   "cache\n", uid));
+            ret = sysdb_add_user(sysdb, name, uid, gid, gecos,
+                                 homedir, shell, attrs, cache_timeout, now);
+        }
         goto done;
     }
 
@@ -1635,6 +1649,24 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
     if (new_group) {
         /* group doesn't exist, turn into adding a group */
         ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout, now);
+        if (ret == EEXIST) {
+            /* This may be a group rename. If there is a group with the
+             * same GID, remove it and try to add the basic group again
+             */
+            ret = sysdb_delete_group(sysdb, NULL, gid);
+            if (ret == ENOENT) {
+                /* Not found by GID, return the original EEXIST,
+                 * this may be a conflict in MPG domain or something
+                 * else */
+                return EEXIST;
+            } else if (ret != EOK) {
+                goto done;
+            }
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("A group with the same GID [%llu] was removed from the "
+                   "cache\n", gid));
+            ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout, now);
+        }
         goto done;
     }
 

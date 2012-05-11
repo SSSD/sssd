@@ -2174,6 +2174,145 @@ START_TEST (test_sysdb_attrs_to_list)
 }
 END_TEST
 
+START_TEST(test_group_rename)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    gid_t gid;
+    const gid_t grgid = 38001;
+    const char *name;
+    const char *fromname = "fromgroup";
+    const char *toname = "togroup";
+    struct ldb_result *res;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    /* Store and verify the first group */
+    ret = sysdb_store_group(test_ctx->sysdb, fromname, grgid, NULL, 0, 0);
+    fail_unless(ret == EOK, "Could not add first group");
+
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    fail_unless(ret == EOK, "Could not retrieve the group from cache\n");
+    if (res->count != 1) {
+        fail("Invalid number of replies. Expected 1, got %d", res->count);
+        goto done;
+    }
+
+    gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(gid == grgid,
+                "Did not find the expected GID (found %llu expected %llu)",
+                gid, grgid);
+    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    fail_unless(strcmp(fromname, name) == 0,
+                "Did not find the expected name (found %s expected %s)",
+                name, fromname);
+
+    /* Perform rename and check that GID is the same, but name changed */
+    ret = sysdb_add_group(test_ctx->sysdb, toname, grgid, NULL, 0, 0);
+    fail_unless(ret == EEXIST, "Group renamed with a low level call?");
+
+    ret = sysdb_store_group(test_ctx->sysdb, toname, grgid, NULL, 0, 0);
+    fail_unless(ret == EOK, "Could not add first group");
+
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, toname, &res);
+    fail_unless(ret == EOK, "Could not retrieve the group from cache\n");
+    if (res->count != 1) {
+        fail("Invalid number of replies. Expected 1, got %d", res->count);
+        goto done;
+    }
+
+    gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(gid == grgid,
+                "Did not find the expected GID (found %llu expected %llu)",
+                gid, grgid);
+    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    fail_unless(strcmp(toname, name) == 0,
+                "Did not find the expected GID (found %s expected %s)",
+                name, toname);
+
+    /* Verify the first name is gone */
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    fail_unless(ret == EOK, "Could not retrieve the group from cache\n");
+    fail_unless(res->count == 0, "Unexpectedly found the original user\n");
+
+done:
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_user_rename)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    uid_t uid;
+    const uid_t userid = 38002;
+    const char *name;
+    const char *fromname = "fromuser";
+    const char *toname = "touser";
+    struct ldb_result *res;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    /* Store and verify the first user */
+    ret = sysdb_store_user(test_ctx->sysdb, fromname, NULL, userid, 0,
+                           fromname, "/", "/bin/sh", NULL, NULL, 0, 0);
+    fail_unless(ret == EOK, "Could not add first user");
+
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    fail_unless(ret == EOK, "Could not retrieve the user from cache\n");
+    if (res->count != 1) {
+        fail("Invalid number of replies. Expected 1, got %d", res->count);
+        goto done;
+    }
+
+    uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
+    fail_unless(uid == userid,
+                "Did not find the expected UID (found %llu expected %llu)",
+                uid, userid);
+    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    fail_unless(strcmp(fromname, name) == 0,
+                "Did not find the expected name (found %s expected %s)",
+                name, fromname);
+
+    /* Perform rename and check that GID is the same, but name changed */
+    ret = sysdb_add_user(test_ctx->sysdb, toname, userid, 0,
+                         fromname, "/", "/bin/sh", NULL, 0, 0);
+    fail_unless(ret == EEXIST, "A second user added with low level call?");
+
+    ret = sysdb_store_user(test_ctx->sysdb, toname, NULL, userid, 0,
+                           fromname, "/", "/bin/sh", NULL, NULL, 0, 0);
+    fail_unless(ret == EOK, "Could not add second user");
+
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, toname, &res);
+    fail_unless(ret == EOK, "Could not retrieve the user from cache\n");
+    if (res->count != 1) {
+        fail("Invalid number of replies. Expected 1, got %d", res->count);
+        goto done;
+    }
+
+    uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
+    fail_unless(uid == userid,
+                "Did not find the expected UID (found %llu expected %llu)",
+                uid, userid);
+    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    fail_unless(strcmp(toname, name) == 0,
+                "Did not find the expected name (found %s expected %s)",
+                name, fromname);
+
+    /* Verify the first name is gone */
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    fail_unless(ret == EOK, "Could not retrieve the user from cache\n");
+    fail_unless(res->count == 0, "Unexpectedly found the original user\n");
+
+done:
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_update_members)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -3384,6 +3523,10 @@ Suite *create_sysdb_suite(void)
 
     /* Test originalDN searches */
     tcase_add_test(tc_sysdb, test_sysdb_original_dn_case_insensitive);
+
+    /* Test user and group renames */
+    tcase_add_test(tc_sysdb, test_group_rename);
+    tcase_add_test(tc_sysdb, test_user_rename);
 
 /* ===== NETGROUP TESTS ===== */
 
