@@ -770,7 +770,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                           CONFDB_DOMAIN_ACCESS_PROVIDER,
                                           NULL);
-        if (tmp && strcasecmp(tmp, "local") != 0) {
+        if (tmp && strcasecmp(tmp, "permit") != 0) {
             DEBUG(0, ("Local ID provider does not support [%s] as an ACCESS provider.\n", tmp));
             ret = EINVAL;
             goto done;

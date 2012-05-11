@@ -1075,7 +1075,7 @@
                             Internal special providers are:
                         </para>
                         <para>
-                            <quote>permit</quote> always allow access.
+                            <quote>permit</quote> always allow access. It's the only permitted access provider for a local domain.
                         </para>
                         <para>
                             <quote>deny</quote> always deny access.
