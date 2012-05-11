@@ -547,6 +547,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_callbacks.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
+    -ldl \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     libsss_util.la
