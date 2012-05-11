@@ -83,7 +83,7 @@ ldap_schema = ad
                         </para>
                         <para>
                             NOTE: This option is different from
-                            <quote>id_mn</quote> in that <quote>id_min</quote>
+                            <quote>id_min</quote> in that <quote>id_min</quote>
                             acts to filter the output of requests to this domain,
                             whereas this option controls the range of ID
                             assignment. This is a subtle distinction, but the

@@ -521,7 +521,7 @@
                     <listitem>
                         <para>
                             The default shell to use if the provider does not
-                            return one during lookup. This option supercedes
+                            return one during lookup. This option supersedes
                             any other shell options if it takes effect.
                         </para>
                         <para>
@@ -786,7 +786,7 @@
                     <term>ssh_hash_known_hosts (bool)</term>
                     <listitem>
                         <para>
-                            Whether or not to hash host names and adresses in
+                            Whether or not to hash host names and addresses in
                             the managed known_hosts file.
                         </para>
                         <para>
