@@ -64,6 +64,8 @@ struct sudo_cmd_ctx {
     struct sss_domain_info *domain;
     bool check_next;
 
+    size_t expired_rules_num;
+
     /* output data */
     struct sysdb_attrs **rules;
     size_t num_rules;

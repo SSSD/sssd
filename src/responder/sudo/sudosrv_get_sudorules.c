@@ -301,7 +301,8 @@ done:
     sudosrv_cmd_done(dctx->cmd_ctx, ret);
 }
 
-static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx);
+static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
+                                                size_t *_num_rules);
 static void
 sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
@@ -384,6 +385,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
         goto done;
     }
 
+    cmd_ctx->expired_rules_num = expired_rules_num;
     if (expired_rules_num > 0) {
         /* refresh expired rules then continue */
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Refreshing expired rules\n"));
@@ -417,7 +419,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     } else {
         /* nothing is expired return what we have in the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, ("About to get sudo rules from cache\n"));
-        ret = sudosrv_get_sudorules_from_cache(cmd_ctx);
+        ret = sudosrv_get_sudorules_from_cache(cmd_ctx, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Failed to make a request to our cache [%d]: %s\n",
@@ -451,6 +453,12 @@ sudosrv_dp_req_done(struct tevent_req *req)
     dbus_uint32_t err_min;
     char *err_msg;
 
+    if (cb_ctx == NULL) {
+        /* we are not interested in returned values */
+        talloc_free(req);
+        return;
+    }
+
     ret = sss_dp_get_sudoers_recv(cb_ctx->mem_ctx, req,
                                   &err_maj, &err_min,
                                   &err_msg);
@@ -469,7 +477,9 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr)
 {
     struct sudo_cmd_ctx *cmd_ctx = talloc_get_type(ptr, struct sudo_cmd_ctx);
+    struct tevent_req *dpreq = NULL;
     errno_t ret;
+    size_t num_rules;
 
     if (err_maj) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -480,7 +490,7 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL, ("About to get sudo rules from cache\n"));
-    ret = sudosrv_get_sudorules_from_cache(cmd_ctx);
+    ret = sudosrv_get_sudorules_from_cache(cmd_ctx, &num_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Failed to make a request to our cache [%d]: %s\n",
@@ -489,10 +499,30 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
+    if (cmd_ctx->expired_rules_num > 0
+        && err_min == ENOENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Some expired rules were removed from the server, "
+               "scheduling full refresh out of band\n"));
+        dpreq = sss_dp_get_sudoers_send(cmd_ctx->cli_ctx->rctx,
+                                        cmd_ctx->cli_ctx->rctx,
+                                        cmd_ctx->domain, false,
+                                        SSS_DP_SUDO_FULL_REFRESH,
+                                        cmd_ctx->orig_username,
+                                        0, NULL);
+        if (dpreq == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot issue DP request.\n"));
+        } else {
+            tevent_req_set_callback(dpreq, sudosrv_dp_req_done, NULL);
+        }
+    }
+
     sudosrv_cmd_done(cmd_ctx, ret);
 }
 
-static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
+static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
+                                                size_t *_num_rules)
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
@@ -563,6 +593,10 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Returning rules for [%s@%s]\n",
           debug_name, cmd_ctx->domain->name));
+
+    if (_num_rules != NULL) {
+        *_num_rules = cmd_ctx->num_rules;
+    }
 
     ret = EOK;
 done:
