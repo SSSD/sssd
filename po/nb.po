@@ -3,16 +3,16 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+# Kjartan Maraas <kmaraas@gnome.org>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-05-11 14:59-0400\n"
-"PO-Revision-Date: 2012-04-20 16:09+0000\n"
-"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
-"Language-Team: Tajik (http://www.transifex.net/projects/p/fedora/language/"
-"tg/)\n"
-"Language: tg\n"
+"PO-Revision-Date: 2012-04-25 18:21+0000\n"
+"Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
+"Language-Team: Norwegian Bokmål <i18n-nb@lister.ping.uio.no>\n"
+"Language: nb\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -57,15 +57,15 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:50
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "SSSD-tjenester som skal startes"
 
 #: src/config/SSSDConfig.py:51
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "SSSD-domener som skal startes"
 
 #: src/config/SSSDConfig.py:52
 msgid "Timeout for messages sent over the SBUS"
-msgstr ""
+msgstr "Tidsavbrudd for meldinger som sendes over SBUS"
 
 #: src/config/SSSDConfig.py:53
 msgid "Regex to parse username and domain"
@@ -178,19 +178,19 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:91
 msgid "Identity provider"
-msgstr ""
+msgstr "Identitetstilbyder"
 
 #: src/config/SSSDConfig.py:92
 msgid "Authentication provider"
-msgstr ""
+msgstr "Autentiseringstilbyder"
 
 #: src/config/SSSDConfig.py:93
 msgid "Access control provider"
-msgstr ""
+msgstr "Tilgangskontrolltilbyder"
 
 #: src/config/SSSDConfig.py:94
 msgid "Password change provider"
-msgstr ""
+msgstr "Passordbyttetilbyder"
 
 #: src/config/SSSDConfig.py:95
 msgid "SUDO provider"
@@ -210,11 +210,11 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:101
 msgid "Minimum user ID"
-msgstr ""
+msgstr "Minste bruker-ID"
 
 #: src/config/SSSDConfig.py:102
 msgid "Maximum user ID"
-msgstr ""
+msgstr "Største bruker-ID"
 
 #: src/config/SSSDConfig.py:103
 msgid "Enable enumerating all users/groups"
@@ -265,15 +265,15 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:121
 msgid "IPA domain"
-msgstr ""
+msgstr "IPA-domene"
 
 #: src/config/SSSDConfig.py:122
 msgid "IPA server address"
-msgstr ""
+msgstr "IPA-tjeneradresse"
 
 #: src/config/SSSDConfig.py:123
 msgid "IPA client hostname"
-msgstr ""
+msgstr "Vertsnavn for IPA-klient"
 
 #: src/config/SSSDConfig.py:124
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
@@ -306,15 +306,15 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:133 src/config/SSSDConfig.py:134
 msgid "Kerberos server address"
-msgstr ""
+msgstr "Tjeneradresse for Kerberos"
 
 #: src/config/SSSDConfig.py:135
 msgid "Kerberos realm"
-msgstr ""
+msgstr "Kerberos-område"
 
 #: src/config/SSSDConfig.py:136
 msgid "Authentication timeout"
-msgstr ""
+msgstr "Tidsavbrudd for autentisering"
 
 #: src/config/SSSDConfig.py:139
 msgid "Directory to store credential caches"
@@ -567,9 +567,8 @@ msgid "UUID attribute"
 msgstr ""
 
 #: src/config/SSSDConfig.py:211 src/config/SSSDConfig.py:247
-#, fuzzy
 msgid "objectSID attribute"
-msgstr "Аттрибути GID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:212
 msgid "Active Directory primary group attribute for ID-mapping"
@@ -677,15 +676,15 @@ msgstr ""
 
 #: src/config/SSSDConfig.py:242
 msgid "Group name"
-msgstr "Номи гурӯҳ"
+msgstr ""
 
 #: src/config/SSSDConfig.py:243
 msgid "Group password"
-msgstr "Пароли гурӯҳ"
+msgstr ""
 
 #: src/config/SSSDConfig.py:244
 msgid "GID attribute"
-msgstr "Аттрибути GID"
+msgstr ""
 
 #: src/config/SSSDConfig.py:245
 msgid "Group member attribute"
@@ -972,7 +971,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:379
 msgid "Passwords do not match"
-msgstr "Паролҳо номувофиқанд"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:567
 msgid "Password reset by root is not supported."
@@ -1014,7 +1013,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:1288
 msgid "New Password: "
-msgstr "Пароли нав:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1289
 msgid "Reenter new Password: "
@@ -1022,7 +1021,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:1375
 msgid "Password: "
-msgstr "Парол:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1407
 msgid "Current Password: "
@@ -1122,7 +1121,7 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:53
 msgid "Groups"
-msgstr "Гуруҳҳо"
+msgstr ""
 
 #: src/tools/sss_useradd.c:54
 msgid "Create user's directory if it does not exist"
@@ -1447,11 +1446,11 @@ msgstr ""
 
 #: src/tools/sss_usermod.c:55
 msgid "Lock the account"
-msgstr "Ҳисобро қулф кунед"
+msgstr ""
 
 #: src/tools/sss_usermod.c:56
 msgid "Unlock the account"
-msgstr "Ҳисобро кушоед"
+msgstr ""
 
 #: src/tools/sss_usermod.c:117
 msgid "Specify user to modify\n"
@@ -1566,7 +1565,7 @@ msgstr ""
 
 #: src/tools/tools_util.c:280
 msgid "Out of memory\n"
-msgstr "Берун аз хотира\n"
+msgstr ""
 
 #: src/tools/tools_util.h:40
 #, c-format
