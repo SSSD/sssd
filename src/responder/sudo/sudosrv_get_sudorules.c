@@ -522,7 +522,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_get_sudo_filter(tmp_ctx, username, uid, groupnames,
-                                flags, &filter);
+                                flags, 0, &filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not construct the search filter [%d]: %s\n",

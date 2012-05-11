@@ -201,6 +201,7 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
     TALLOC_CTX *tmp_ctx = NULL;
     char *filter = NULL;
     char *specific_filter = NULL;
+    time_t now;
     errno_t ret;
     int i;
 
@@ -261,6 +262,13 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
 
     if (specific_filter[0] != '\0') {
         filter = talloc_asprintf_append(filter, "(|%s)", specific_filter);
+        NULL_CHECK(filter, ret, done);
+    }
+
+    if (flags & SYSDB_SUDO_FILTER_ONLY_EXPIRED) {
+        now = time(NULL);
+        filter = talloc_asprintf_append(filter, "(&(%s<=%lld))",
+                                        SYSDB_CACHE_EXPIRE, (long long)now);
         NULL_CHECK(filter, ret, done);
     }
 

@@ -53,6 +53,7 @@
 #define SYSDB_SUDO_FILTER_UID            0x02       /* uid                  */
 #define SYSDB_SUDO_FILTER_GROUPS         0x04       /* groups               */
 #define SYSDB_SUDO_FILTER_NGRS           0x08       /* netgroups            */
+#define SYSDB_SUDO_FILTER_ONLY_EXPIRED   0x10       /* only expired         */
 #define SYSDB_SUDO_FILTER_INCLUDE_ALL    0x20       /* ALL                  */
 #define SYSDB_SUDO_FILTER_INCLUDE_DFL    0x40       /* include cn=default   */
 #define SYSDB_SUDO_FILTER_USERINFO       SYSDB_SUDO_FILTER_USERNAME \
