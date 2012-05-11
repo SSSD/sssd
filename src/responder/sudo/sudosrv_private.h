@@ -33,8 +33,8 @@
 #define SSS_SUDO_SBUS_SERVICE_NAME "sudo"
 
 enum sss_dp_sudo_type {
-    SSS_DP_SUDO_DEFAULTS,
-    SSS_DP_SUDO_USER
+    SSS_DP_SUDO_REFRESH_RULES,
+    SSS_DP_SUDO_FULL_REFRESH
 };
 
 enum sss_sudo_type {
@@ -110,7 +110,9 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *dom,
                         bool fast_reply,
                         enum sss_dp_sudo_type type,
-                        const char *name);
+                        const char *name,
+                        size_t num_rules,
+                        struct sysdb_attrs **rules);
 
 errno_t
 sss_dp_get_sudoers_recv(TALLOC_CTX *mem_ctx,

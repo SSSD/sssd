@@ -330,7 +330,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
                                     cmd_ctx->cli_ctx->rctx,
                                     cmd_ctx->domain, false,
                                     cmd_ctx->type,
-                                    cmd_ctx->orig_username);
+                                    cmd_ctx->orig_username,
+                                    0, NULL);
     if (dpreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Cannot issue DP request.\n"));

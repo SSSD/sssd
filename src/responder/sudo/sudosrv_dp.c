@@ -29,6 +29,7 @@
 #include "providers/data_provider.h"
 #include "responder/common/responder.h"
 #include "responder/sudo/sudosrv_private.h"
+#include "db/sysdb.h"
 
 struct sss_dp_get_sudoers_info {
     struct sss_domain_info *dom;
@@ -36,6 +37,8 @@ struct sss_dp_get_sudoers_info {
     bool fast_reply;
     enum sss_dp_sudo_type type;
     const char *name;
+    size_t num_rules;
+    struct sysdb_attrs **rules;
 };
 
 static DBusMessage *
@@ -47,7 +50,9 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *dom,
                         bool fast_reply,
                         enum sss_dp_sudo_type type,
-                        const char *name)
+                        const char *name,
+                        size_t num_rules,
+                        struct sysdb_attrs **rules)
 {
     struct tevent_req *req;
     struct sss_dp_req_state *state;
@@ -71,8 +76,19 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
     info->type = type;
     info->name = name;
     info->dom = dom;
+    info->num_rules = num_rules;
+    info->rules = rules;
 
-    key = talloc_asprintf(state, "%d:%s@%s", type, name, dom->name);
+    switch (info->type) {
+        case SSS_DP_SUDO_REFRESH_RULES:
+            key = talloc_asprintf(state, "%d:%u:%s@%s", type,
+                                  (unsigned int)num_rules, name, dom->name);
+            break;
+        case SSS_DP_SUDO_FULL_REFRESH:
+            key = talloc_asprintf(state, "%d:%s", type, dom->name);
+            break;
+    }
+
     if (!key) {
         ret = ENOMEM;
         goto error;
@@ -100,34 +116,27 @@ static DBusMessage *
 sss_dp_get_sudoers_msg(void *pvt)
 {
     DBusMessage *msg;
+    DBusMessageIter iter;
     dbus_bool_t dbret;
+    errno_t ret;
     struct sss_dp_get_sudoers_info *info;
-    uint32_t be_type = BE_REQ_SUDO_USER;
-    char *filter;
+    uint32_t be_type = 0;
+    const char *rule_name = NULL;
+    int i;
 
     info = talloc_get_type(pvt, struct sss_dp_get_sudoers_info);
 
     switch (info->type) {
-        case SSS_DP_SUDO_DEFAULTS:
-            be_type = BE_REQ_SUDO_DEFAULTS;
+        case SSS_DP_SUDO_REFRESH_RULES:
+            be_type = BE_REQ_SUDO_RULES;
             break;
-        case SSS_DP_SUDO_USER:
-            be_type = BE_REQ_SUDO_USER;
+        case SSS_DP_SUDO_FULL_REFRESH:
+            be_type = BE_REQ_SUDO_FULL;
             break;
     }
 
     if (info->fast_reply) {
         be_type |= BE_REQ_FAST;
-    }
-
-    if (info->name != NULL) {
-        filter = talloc_asprintf(info, "name=%s", info->name);
-    } else {
-        filter = talloc_strdup(info, "");
-    }
-    if (!filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
-        return NULL;
     }
 
     msg = dbus_message_new_method_call(NULL,
@@ -141,21 +150,47 @@ sss_dp_get_sudoers_msg(void *pvt)
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Creating SUDOers request for [%s][%u][%s]\n",
-           info->dom->name, be_type, filter));
+          ("Creating SUDOers request for [%s][%u][%s][%u]\n",
+           info->dom->name, be_type, info->name, (unsigned int)info->num_rules));
 
-    dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_UINT32, &be_type,
-                                     DBUS_TYPE_STRING, &filter,
-                                     DBUS_TYPE_INVALID);
-    talloc_free(filter);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build message\n"));
-        dbus_message_unref(msg);
-        return NULL;
+    dbus_message_iter_init_append(msg, &iter);
+
+    /* BE TYPE */
+    dbret = dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT32, &be_type);
+    if (dbret == FALSE) {
+        goto fail;
+    }
+
+    /* BE TYPE SPECIFIC */
+    if (be_type & BE_REQ_SUDO_RULES) {
+        dbret = dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT32,
+                                               &info->num_rules);
+        if (dbret == FALSE) {
+            goto fail;
+        }
+
+        for (i = 0; i < info->num_rules; i++) {
+            ret = sysdb_attrs_get_string(info->rules[i], SYSDB_NAME, &rule_name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not get rule name [%d]: %s\n",
+                      ret, strerror(ret)));
+                goto fail;
+            }
+
+            dbret = dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING,
+                                                   &rule_name);
+            if (dbret == FALSE) {
+                goto fail;
+            }
+        }
     }
 
     return msg;
+
+fail:
+    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build message\n"));
+    dbus_message_unref(msg);
+    return NULL;
 }
 
 errno_t
