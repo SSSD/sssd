@@ -314,12 +314,12 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     struct dp_callback_ctx *cb_ctx = NULL;
 
     switch (cmd_ctx->type) {
-        case SSS_DP_SUDO_DEFAULTS:
+        case SSS_SUDO_DEFAULTS:
             DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving default options "
                   "for [%s] from [%s]\n", cmd_ctx->orig_username,
                   cmd_ctx->domain->name));
             break;
-        case SSS_DP_SUDO_USER:
+        case SSS_SUDO_USER:
             DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving rules "
                   "for [%s] from [%s]\n", cmd_ctx->orig_username,
                   cmd_ctx->domain->name));
@@ -442,7 +442,7 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
     }
 
     switch (cmd_ctx->type) {
-    case SSS_DP_SUDO_USER:
+    case SSS_SUDO_USER:
         debug_name = cmd_ctx->cased_username;
         ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->orig_username, sysdb,
                                        NULL, &groupnames);
@@ -452,7 +452,7 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx)
             goto done;
         }
         break;
-    case SSS_DP_SUDO_DEFAULTS:
+    case SSS_SUDO_DEFAULTS:
         debug_name = "<default options>";
         break;
     }
@@ -513,13 +513,14 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     if (tmp_ctx == NULL) return ENOMEM;
 
     switch (type) {
-    case SSS_DP_SUDO_DEFAULTS:
+    case SSS_SUDO_DEFAULTS:
         flags = SYSDB_SUDO_FILTER_INCLUDE_DFL;
         break;
-    case SSS_DP_SUDO_USER:
-        flags =   SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
+    case SSS_SUDO_USER:
+        flags = SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
         break;
     }
+
     ret = sysdb_get_sudo_filter(tmp_ctx, username, uid, groupnames,
                                 flags, &filter);
     if (ret != EOK) {

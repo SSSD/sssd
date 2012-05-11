@@ -155,7 +155,7 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
     return EOK;
 }
 
-static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
+static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
 {
     struct sudo_cmd_ctx *cmd_ctx = NULL;
     struct sudo_dom_ctx *dom_ctx = NULL;
@@ -209,12 +209,12 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
     cmd_ctx->check_next = cmd_ctx->domain == NULL;
 
     switch (cmd_ctx->type) {
-        case SSS_DP_SUDO_DEFAULTS:
+        case SSS_SUDO_DEFAULTS:
             DEBUG(SSSDBG_FUNC_DATA, ("Requesting default options "
                   "for [%s] from [%s]\n", cmd_ctx->username,
                   cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>"));
             break;
-        case SSS_DP_SUDO_USER:
+        case SSS_SUDO_USER:
             DEBUG(SSSDBG_FUNC_DATA, ("Requesting rules "
                   "for [%s] from [%s]\n", cmd_ctx->username,
                   cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>"));
@@ -241,12 +241,12 @@ done:
 
 static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
 {
-    return sudosrv_cmd(SSS_DP_SUDO_USER, cli_ctx);
+    return sudosrv_cmd(SSS_SUDO_USER, cli_ctx);
 }
 
 static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
 {
-    return sudosrv_cmd(SSS_DP_SUDO_DEFAULTS, cli_ctx);
+    return sudosrv_cmd(SSS_SUDO_DEFAULTS, cli_ctx);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)

@@ -37,6 +37,11 @@ enum sss_dp_sudo_type {
     SSS_DP_SUDO_USER
 };
 
+enum sss_sudo_type {
+    SSS_SUDO_DEFAULTS,
+    SSS_SUDO_USER
+};
+
 struct sudo_ctx {
     struct resp_ctx *rctx;
 
@@ -49,7 +54,7 @@ struct sudo_ctx {
 struct sudo_cmd_ctx {
     struct cli_ctx *cli_ctx;
     struct sudo_ctx *sudo_ctx;
-    enum sss_dp_sudo_type type;
+    enum sss_sudo_type type;
 
     /* input data */
     uid_t uid;
