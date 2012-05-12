@@ -215,7 +215,7 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
         shell = NULL;
     }
 
-    if (!lowercase || alias) {
+    if (lowercase || alias) {
         attrs = sysdb_new_attrs(NULL);
         if (!attrs) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
