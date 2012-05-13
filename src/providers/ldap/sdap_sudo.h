@@ -40,7 +40,8 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
                            int *dp_error,
                            int *error,
-                           char **usn);
+                           char **usn,
+                           size_t *num_rules);
 
 /* timer */
 

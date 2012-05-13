@@ -48,6 +48,7 @@ struct sdap_sudo_refresh_state {
     int dp_error;
     int error;
     char *highest_usn;
+    size_t num_rules;
 };
 
 struct sdap_sudo_load_sudoers_state {
@@ -165,7 +166,8 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
                            int *dp_error,
                            int *error,
-                           char **usn)
+                           char **usn,
+                           size_t *num_rules)
 {
     struct sdap_sudo_refresh_state *state = NULL;
 
@@ -178,6 +180,10 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
 
     if (usn != NULL && state->highest_usn != NULL) {
         *usn = talloc_steal(mem_ctx, state->highest_usn);
+    }
+
+    if (num_rules != NULL) {
+        *num_rules = state->num_rules;
     }
 
     return EOK;
@@ -503,6 +509,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, ("Sudoers is successfuly stored in cache\n"));
 
     ret = EOK;
+    state->num_rules = rules_count;
 
 done:
     if (in_transaction) {
