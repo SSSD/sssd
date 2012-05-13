@@ -46,6 +46,12 @@ static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
                                        int *dp_error,
                                        int *error);
 
+struct sdap_sudo_rules_refresh_state {
+    size_t num_rules;
+    int dp_error;
+    int error;
+};
+
 static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                        struct be_ctx *be_ctx,
                                                        struct sdap_options *opts,
@@ -55,6 +61,8 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
 static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *dp_error,
                                         int *error);
+
+static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq);
 
 struct sdap_sudo_smart_refresh_state {
     struct tevent_req *subreq;
@@ -435,6 +443,8 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                        char **rules)
 {
     struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_sudo_rules_refresh_state *state = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     char *ldap_filter = NULL;
     char *sysdb_filter = NULL;
@@ -452,6 +462,12 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_rules_refresh_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
     ldap_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
     sysdb_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
 
@@ -460,46 +476,62 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     for (i = 0; rules[i] != NULL; i++) {
         ret = sss_filter_sanitize(tmp_ctx, rules[i], &safe_rule);
         if (ret != EOK) {
-            goto done;
+            ret = ENOMEM;
+            goto immediately;
         }
 
         ldap_filter = talloc_asprintf_append_buffer(ldap_filter, "(%s=%s)",
                                      opts->sudorule_map[SDAP_AT_SUDO_NAME].name,
                                      safe_rule);
         if (ldap_filter == NULL) {
-            goto done;
+            ret = ENOMEM;
+            goto immediately;
         }
 
         sysdb_filter = talloc_asprintf_append_buffer(sysdb_filter, "(%s=%s)",
                                                      SYSDB_SUDO_CACHE_AT_CN,
                                                      safe_rule);
         if (sysdb_filter == NULL) {
-            goto done;
+            ret = ENOMEM;
+            goto immediately;
         }
     }
+
+    state->num_rules = i;
 
     ldap_filter = talloc_asprintf(tmp_ctx, "(&"SDAP_SUDO_FILTER_CLASS"(|%s))",
                                   opts->sudorule_map[SDAP_OC_SUDORULE].name,
                                   ldap_filter);
     if (ldap_filter == NULL) {
-        goto done;
+        ret = ENOMEM;
+        goto immediately;
     }
 
     sysdb_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|%s))",
                                    SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC,
                                    sysdb_filter);
     if (sysdb_filter == NULL) {
-        goto done;
+        ret = ENOMEM;
+        goto immediately;
     }
 
-    req = sdap_sudo_refresh_send(mem_ctx, be_ctx, opts, conn_cache,
-                                 ldap_filter, sysdb_filter);
-    if (req == NULL) {
-        goto done;
+    subreq = sdap_sudo_refresh_send(req, be_ctx, opts, conn_cache,
+                                    ldap_filter, sysdb_filter);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
     }
 
-done:
+    tevent_req_set_callback(subreq, sdap_sudo_rules_refresh_done, req);
+
+immediately:
     talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, be_ctx->ev);
+    }
+
     return req;
 }
 
@@ -507,7 +539,40 @@ static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *dp_error,
                                         int *error)
 {
-    return sdap_sudo_refresh_recv(req, req, dp_error, error, NULL, NULL);
+    struct sdap_sudo_rules_refresh_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *dp_error = state->dp_error;
+    *error = state->error;
+
+    return EOK;
+}
+
+static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_sudo_rules_refresh_state *state = NULL;
+    size_t downloaded_rules_num;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
+
+    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error, &state->error,
+                                 NULL, &downloaded_rules_num);
+    talloc_zfree(subreq);
+    if (ret != EOK || state->dp_error != DP_ERR_OK || state->error != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (downloaded_rules_num != state->num_rules) {
+        state->error = ENOENT;
+    }
+
+    tevent_req_done(req);
 }
 
 /* issue smart refresh of sudo rules */
