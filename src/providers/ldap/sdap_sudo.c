@@ -46,6 +46,16 @@ static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
                                        int *dp_error,
                                        int *error);
 
+static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                                                       struct be_ctx *be_ctx,
+                                                       struct sdap_options *opts,
+                                                       struct sdap_id_conn_cache *conn_cache,
+                                                       char **rules);
+
+static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
+                                        int *dp_error,
+                                        int *error);
+
 static void
 sdap_sudo_shutdown(struct be_req *req)
 {
@@ -323,4 +333,87 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, ("Successful full refresh of sudo rules\n"));
 
     tevent_req_done(req);
+}
+
+/* issue refresh of specific sudo rules */
+static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                                                       struct be_ctx *be_ctx,
+                                                       struct sdap_options *opts,
+                                                       struct sdap_id_conn_cache *conn_cache,
+                                                       char **rules)
+{
+    struct tevent_req *req = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *ldap_filter = NULL;
+    char *sysdb_filter = NULL;
+    char *safe_rule = NULL;
+    int ret;
+    int i;
+
+    if (rules == NULL) {
+        return NULL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return NULL;
+    }
+
+    ldap_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
+    sysdb_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
+
+    /* Download only selected rules from LDAP */
+    /* Remove all selected rules from cache */
+    for (i = 0; rules[i] != NULL; i++) {
+        ret = sss_filter_sanitize(tmp_ctx, rules[i], &safe_rule);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ldap_filter = talloc_asprintf_append_buffer(ldap_filter, "(%s=%s)",
+                                     opts->sudorule_map[SDAP_AT_SUDO_NAME].name,
+                                     safe_rule);
+        if (ldap_filter == NULL) {
+            goto done;
+        }
+
+        sysdb_filter = talloc_asprintf_append_buffer(sysdb_filter, "(%s=%s)",
+                                                     SYSDB_SUDO_CACHE_AT_CN,
+                                                     safe_rule);
+        if (sysdb_filter == NULL) {
+            goto done;
+        }
+    }
+
+    ldap_filter = talloc_asprintf(tmp_ctx, "(&"SDAP_SUDO_FILTER_CLASS"(|%s))",
+                                  opts->sudorule_map[SDAP_OC_SUDORULE].name,
+                                  ldap_filter);
+    if (ldap_filter == NULL) {
+        goto done;
+    }
+
+    sysdb_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|%s))",
+                                   SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC,
+                                   sysdb_filter);
+    if (sysdb_filter == NULL) {
+        goto done;
+    }
+
+    req = sdap_sudo_refresh_send(mem_ctx, be_ctx, opts, conn_cache,
+                                 ldap_filter, sysdb_filter);
+    if (req == NULL) {
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return req;
+}
+
+static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
+                                        int *dp_error,
+                                        int *error)
+{
+    return sdap_sudo_refresh_recv(req, dp_error, error);
 }
