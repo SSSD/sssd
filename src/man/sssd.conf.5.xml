@@ -721,31 +721,6 @@
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>sudo_cache_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            For any sudo request that comes while SSSD is
-                            online, the SSSD will attempt to update the cached
-                            rules in order to ensure that sudo has the latest
-                            ruleset.
-                        </para>
-                        <para>
-                            The user may, however, run a couple of sudo commands
-                            successively, which would trigger multiple LDAP requests.
-                            In order to speed up this use-case, the sudo service
-                            maintains an in-memory cache that would be used for
-                            performing fast replies.
-                        </para>
-                        <para>
-                            This option controls how long (in seconds) can the sudo
-                            service cache rules for a user.
-                        </para>
-                        <para>
-                            Default: 180
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
                     <term>sudo_timed (bool)</term>
                     <listitem>
                         <para>
@@ -985,7 +960,20 @@
                         </para>
                     </listitem>
                 </varlistentry>
-                
+
+                <varlistentry condition="with_sudo">
+                    <term>entry_cache_sudo_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should sudo consider
+                            rules valid before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>cache_credentials (bool)</term>
                     <listitem>
