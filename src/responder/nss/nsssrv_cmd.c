@@ -1919,6 +1919,9 @@ static int fill_grent(struct sss_packet *packet,
         num++;
 
         if (gr_mmap_cache) {
+            /* body was reallocated, so fullname might be pointing to
+             * where body used to be, not where it is */
+            to_sized_string(&fullname, (const char *)&body[rzero+STRS_ROFFSET]);
             ret = sss_mmap_cache_gr_store(nctx->grp_mc_ctx,
                                           &fullname, &pwfield, gid, memnum,
                                           (char *)&body[rzero] + STRS_ROFFSET +
