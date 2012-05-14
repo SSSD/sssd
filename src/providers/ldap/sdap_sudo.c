@@ -31,6 +31,21 @@
 #include "providers/ldap/sdap_sudo_timer.h"
 #include "db/sysdb_sudo.h"
 
+struct sdap_sudo_full_refresh_state {
+    struct sysdb_ctx *sysdb;
+    int dp_error;
+    int error;
+};
+
+static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
+                                                      struct sdap_id_ctx *id_ctx);
+
+static void sdap_sudo_full_refresh_done(struct tevent_req *subreq);
+
+static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
+                                       int *dp_error,
+                                       int *error);
+
 static void
 sdap_sudo_shutdown(struct be_req *req)
 {
@@ -189,4 +204,114 @@ void sdap_sudo_handler(struct be_req *be_req)
 
 fail:
     sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
+}
+
+/* issue full refresh of sudo rules */
+static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
+                                                      struct sdap_id_ctx *id_ctx)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_sudo_full_refresh_state *state = NULL;
+    char *ldap_filter = NULL;
+    char *sysdb_filter = NULL;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_full_refresh_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
+    state->sysdb = id_ctx->be->sysdb;
+
+    /* Download all rules from LDAP */
+    ldap_filter = talloc_asprintf(state, SDAP_SUDO_FILTER_CLASS,
+                                  id_ctx->opts->sudorule_map[SDAP_OC_SUDORULE].name);
+    if (ldap_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    /* Remove all rules from cache */
+    sysdb_filter = talloc_asprintf(state, "(%s=%s)",
+                                   SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC);
+    if (sysdb_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a full refresh of sudo rules\n"));
+
+    subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
+                                    id_ctx->conn_cache,
+                                    ldap_filter, sysdb_filter);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_sudo_full_refresh_done, req);
+
+    /* free filters */
+    talloc_free(ldap_filter);
+    talloc_free(sysdb_filter);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, id_ctx->be->ev);
+
+    return req;
+}
+
+static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
+                                       int *dp_error,
+                                       int *error)
+{
+    struct sdap_sudo_full_refresh_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *dp_error = state->dp_error;
+    *error = state->error;
+
+    return EOK;
+}
+
+static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_sudo_full_refresh_state *state = NULL;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
+
+    ret = sdap_sudo_refresh_recv(subreq, &state->dp_error, &state->error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* save the time in the sysdb */
+    ret = sysdb_sudo_set_last_full_refresh(state->sysdb, time(NULL));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to save time of "
+                                     "a successful full refresh\n"));
+        /* this is only a minor error that does not affect the functionality,
+         * therefore there is no need to report it with tevent_req_error()
+         * which would cause problems in the consumers */
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Successful full refresh of sudo rules\n"));
+
+    tevent_req_done(req);
 }

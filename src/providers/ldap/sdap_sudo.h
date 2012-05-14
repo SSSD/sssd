@@ -42,7 +42,7 @@ int sdap_sudo_refresh_recv(struct tevent_req *req,
 
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
-#define SDAP_SUDO_FILTER_ALL  "(objectClass=%s)"
+#define SDAP_SUDO_FILTER_CLASS "(objectClass=%s)"
 #define SDAP_SUDO_FILTER_DEFAULTS  "(&(objectClass=%s)(%s=%s))"
 #define SDAP_SUDO_DEFAULTS    "defaults"
 
