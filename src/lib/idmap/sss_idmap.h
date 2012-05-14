@@ -90,7 +90,7 @@ struct sss_idmap_range {
 /**
  * Opaque type for SIDs
  */
-struct dom_sid;
+struct sss_dom_sid;
 
 /**
  * Opaque type for the idmap context
@@ -167,7 +167,7 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
  *                          idmap context
  */
 enum idmap_error_code sss_idmap_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
-                                                struct dom_sid *dom_sid,
+                                                struct sss_dom_sid *dom_sid,
                                                 uint32_t *id);
 
 /**
@@ -220,7 +220,7 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
  */
 enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                 uint32_t id,
-                                                struct dom_sid **dom_sid);
+                                                struct sss_dom_sid **dom_sid);
 
 /**
  * @brief Translate unix UID or GID to a binary SID
@@ -288,7 +288,7 @@ bool is_domain_sid(const char *str);
 enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                    const uint8_t *bin_sid,
                                                    size_t length,
-                                                   struct dom_sid **dom_sid);
+                                                   struct sss_dom_sid **dom_sid);
 
 /**
  * @brief Convert binary SID to SID string
@@ -322,7 +322,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_sid(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
  */
 enum idmap_error_code sss_idmap_dom_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
-                                                   struct dom_sid *dom_sid,
+                                                   struct sss_dom_sid *dom_sid,
                                                    uint8_t **bin_sid,
                                                    size_t *length);
 
@@ -357,7 +357,7 @@ enum idmap_error_code sss_idmap_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
  */
 enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
-                                               struct dom_sid *dom_sid,
+                                               struct sss_dom_sid *dom_sid,
                                                char **sid);
 
 /**
@@ -374,7 +374,7 @@ enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
  */
 enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                const char *sid,
-                                               struct dom_sid **dom_sid);
+                                               struct sss_dom_sid **dom_sid);
 /**
  * @}
  */

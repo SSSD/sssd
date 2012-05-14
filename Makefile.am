@@ -500,7 +500,7 @@ libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap.c \
     src/lib/idmap/sss_idmap_conv.c
 libsss_idmap_la_LDFLAGS = \
-    -version 1:0:1
+    -version-info 0:1:0
 
 
 include_HEADERS = \

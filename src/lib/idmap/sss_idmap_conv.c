@@ -33,7 +33,7 @@
 
 #define SID_ID_AUTHS 6
 #define SID_SUB_AUTHS 15
-struct dom_sid {
+struct sss_dom_sid {
         uint8_t sid_rev_num;
         int8_t num_auths;                  /* [range(0,15)] */
         uint8_t id_auth[SID_ID_AUTHS];     /* highest order byte has index 0 */
@@ -43,19 +43,19 @@ struct dom_sid {
 enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                    const uint8_t *bin_sid,
                                                    size_t length,
-                                                   struct dom_sid **_dom_sid)
+                                                   struct sss_dom_sid **_dom_sid)
 {
     enum idmap_error_code err;
-    struct dom_sid *dom_sid;
+    struct sss_dom_sid *dom_sid;
     size_t i = 0;
     size_t p = 0;
     uint32_t val;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
-    if (length > sizeof(struct dom_sid)) return IDMAP_SID_INVALID;
+    if (length > sizeof(struct sss_dom_sid)) return IDMAP_SID_INVALID;
 
-    dom_sid = ctx->alloc_func(sizeof(struct dom_sid), ctx->alloc_pvt);
+    dom_sid = ctx->alloc_func(sizeof(struct sss_dom_sid), ctx->alloc_pvt);
     if (dom_sid == NULL) {
         return IDMAP_OUT_OF_MEMORY;
     }
@@ -101,7 +101,7 @@ done:
 }
 
 enum idmap_error_code sss_idmap_dom_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
-                                                   struct dom_sid *dom_sid,
+                                                   struct sss_dom_sid *dom_sid,
                                                    uint8_t **_bin_sid,
                                                    size_t *_length)
 {
@@ -157,7 +157,7 @@ done:
 }
 
 enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
-                                               struct dom_sid *dom_sid,
+                                               struct sss_dom_sid *dom_sid,
                                                char **_sid)
 {
     enum idmap_error_code err;
@@ -222,13 +222,13 @@ done:
 
 enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                const char *sid,
-                                               struct dom_sid **_dom_sid)
+                                               struct sss_dom_sid **_dom_sid)
 {
     enum idmap_error_code err;
     unsigned long ul;
     char *r;
     char *end;
-    struct dom_sid *dom_sid;
+    struct sss_dom_sid *dom_sid;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
@@ -236,11 +236,11 @@ enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
             return IDMAP_SID_INVALID;
     }
 
-    dom_sid = ctx->alloc_func(sizeof(struct dom_sid), ctx->alloc_pvt);
+    dom_sid = ctx->alloc_func(sizeof(struct sss_dom_sid), ctx->alloc_pvt);
     if (dom_sid == NULL) {
         return IDMAP_OUT_OF_MEMORY;
     }
-    memset(dom_sid, 0, sizeof(struct dom_sid));
+    memset(dom_sid, 0, sizeof(struct sss_dom_sid));
 
 
     if (!isdigit(sid[2])) {
@@ -330,7 +330,7 @@ enum idmap_error_code sss_idmap_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
                                                size_t *_length)
 {
     enum idmap_error_code err;
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
     size_t length;
     uint8_t *bin_sid = NULL;
 
@@ -363,7 +363,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_sid(struct sss_idmap_ctx *ctx,
                                                char **_sid)
 {
     enum idmap_error_code err;
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
     char *sid = NULL;
 
     err = sss_idmap_bin_sid_to_dom_sid(ctx, bin_sid, length, &dom_sid);

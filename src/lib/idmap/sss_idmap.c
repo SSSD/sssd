@@ -361,7 +361,7 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
 }
 
 enum idmap_error_code sss_idmap_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
-                                                struct dom_sid *dom_sid,
+                                                struct sss_dom_sid *dom_sid,
                                                 uint32_t *id)
 {
     enum idmap_error_code err;
@@ -407,11 +407,11 @@ done:
 
 enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                 uint32_t id,
-                                                struct dom_sid **_dom_sid)
+                                                struct sss_dom_sid **_dom_sid)
 {
     enum idmap_error_code err;
     char *sid = NULL;
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 

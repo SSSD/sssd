@@ -182,7 +182,7 @@ START_TEST(idmap_test_dom_sid2uid)
 {
     enum idmap_error_code err;
     uint32_t id;
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
 
     err = sss_idmap_sid_to_dom_sid(idmap_ctx, "S-1-5-21-1-2-3-1000", &dom_sid);
     fail_unless(err == IDMAP_SUCCESS, "Failed to convert SID to SID structure");
@@ -219,7 +219,7 @@ END_TEST
 START_TEST(idmap_test_uid2dom_sid)
 {
     enum idmap_error_code err;
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
     char *sid = NULL;
 
     err = sss_idmap_unix_to_dom_sid(idmap_ctx, 10000, &dom_sid);
@@ -269,7 +269,7 @@ END_TEST
 
 START_TEST(idmap_test_sid_bin2dom_sid)
 {
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
     enum idmap_error_code err;
     uint8_t *new_bin_sid = NULL;
     size_t new_bin_sid_length;
@@ -278,12 +278,12 @@ START_TEST(idmap_test_sid_bin2dom_sid)
                                        test_bin_sid_length, &dom_sid);
 
     fail_unless(err == IDMAP_SUCCESS,
-                "Failed to convert binary SID to struct dom_sid.");
+                "Failed to convert binary SID to struct sss_dom_sid.");
 
     err = sss_idmap_dom_sid_to_bin_sid(idmap_ctx, dom_sid, &new_bin_sid,
                                        &new_bin_sid_length);
     fail_unless(err == IDMAP_SUCCESS,
-                "Failed to convert struct dom_sid to binary SID.");
+                "Failed to convert struct sss_dom_sid to binary SID.");
 
     fail_unless(new_bin_sid_length == test_bin_sid_length,
                 "Length of binary SIDs do not match.");
@@ -297,18 +297,18 @@ END_TEST
 
 START_TEST(idmap_test_sid2dom_sid)
 {
-    struct dom_sid *dom_sid = NULL;
+    struct sss_dom_sid *dom_sid = NULL;
     enum idmap_error_code err;
     char *new_sid = NULL;
 
     err = sss_idmap_sid_to_dom_sid(idmap_ctx, "S-1-5-21-1-2-3-1000", &dom_sid);
 
     fail_unless(err == IDMAP_SUCCESS,
-                "Failed to convert SID string to struct dom_sid.");
+                "Failed to convert SID string to struct sss_dom_sid.");
 
     err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &new_sid);
     fail_unless(err == IDMAP_SUCCESS,
-                "Failed to convert struct dom_sid to SID string.");
+                "Failed to convert struct sss_dom_sid to SID string.");
 
     fail_unless(new_sid != NULL, "SID string not set");
     fail_unless(strlen("S-1-5-21-1-2-3-1000") == strlen(new_sid),
