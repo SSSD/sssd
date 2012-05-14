@@ -40,6 +40,22 @@ int sdap_sudo_refresh_recv(struct tevent_req *req,
                            int *dp_error,
                            int *error);
 
+/* timer */
+
+typedef struct tevent_req * (*sdap_sudo_timer_fn_t)(TALLOC_CTX *mem_ctx,
+                                                    struct sdap_id_ctx *id_ctx);
+
+struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_id_ctx *id_ctx,
+                                         struct timeval when,
+                                         time_t timeout,
+                                         sdap_sudo_timer_fn_t fn);
+
+int sdap_sudo_timer_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct tevent_req **_subreq);
+
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
 #define SDAP_SUDO_FILTER_CLASS "(objectClass=%s)"
