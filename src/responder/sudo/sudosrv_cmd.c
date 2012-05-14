@@ -181,6 +181,14 @@ static int sudosrv_cmd(enum sss_dp_sudo_type type, struct cli_ctx *cli_ctx)
         return EFAULT;
     }
 
+    /* if protocol is invalid return */
+    if (cli_ctx->cli_protocol_version->version != 1) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Invalid protocol! [%d]\n",
+              cli_ctx->cli_protocol_version->version));
+        ret = EFAULT;
+        goto done;
+    }
+
     /* parse query */
 
     sss_packet_get_body(cli_ctx->creq->in, &query_body, &query_len);
@@ -244,6 +252,7 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version sudo_cli_protocol_version[] = {
+		{1, "2012-05-14", "require uid and domain"},
         {0, NULL, NULL}
     };
 
