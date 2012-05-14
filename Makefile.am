@@ -492,7 +492,7 @@ libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c \
     src/util/sss_utf8.c
 libipa_hbac_la_LDFLAGS = \
-    -version 1:0:1 \
+    -version-info 0:1:0 \
     $(UNICODE_LIBS)
 
 dist_pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
