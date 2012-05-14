@@ -1863,7 +1863,7 @@ static int fill_grent(struct sss_packet *packet,
                 if (add_domain) {
                     ret = snprintf((char *)&body[rzero + rsize],
                                     name.len + delim + dom_len,
-                                    namefmt, name, domain);
+                                    namefmt, name.str, domain);
                     if (ret >= (name.len + delim + dom_len)) {
                         /* need more space,
                          * got creative with the print format ? */
@@ -1879,7 +1879,7 @@ static int fill_grent(struct sss_packet *packet,
                         /* retry */
                         ret = snprintf((char *)&body[rzero + rsize],
                                         name.len + delim + dom_len,
-                                        namefmt, name, domain);
+                                        namefmt, name.str, domain);
                     }
 
                     if (ret != name.len + delim + dom_len - 1) {
