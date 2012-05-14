@@ -159,10 +159,6 @@ struct be_acct_req {
 struct be_sudo_req {
     uint32_t type;
     char **rules;
-
-    char *username;
-    uid_t uid;
-    char **groups;
 };
 
 struct be_autofs_req {

@@ -86,9 +86,6 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
 errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb, time_t value);
 errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb, time_t *value);
 
-char **sysdb_sudo_build_sudouser(TALLOC_CTX *mem_ctx, const char *username,
-                                 uid_t uid, char **groupnames, bool include_all);
-
 errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb);
 
 errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
@@ -96,8 +93,5 @@ errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
 
 errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
                                   const char *filter);
-
-errno_t sysdb_sudo_purge_bysudouser(struct sysdb_ctx *sysdb,
-                                    char **sudoUser);
 
 #endif /* _SYSDB_SUDO_H_ */
