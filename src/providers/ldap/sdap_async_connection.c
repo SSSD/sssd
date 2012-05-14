@@ -26,6 +26,7 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "util/sss_ldap.h"
+#include "util/strtonum.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
@@ -541,7 +542,9 @@ static void simple_bind_done(struct sdap_op *op,
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
     char *errmsg = NULL;
-    int ret;
+    char *nval;
+    errno_t ret;
+    int lret;
     LDAPControl **response_controls;
     int c;
     ber_int_t pp_grace;
@@ -555,30 +558,33 @@ static void simple_bind_done(struct sdap_op *op,
 
     state->reply = talloc_steal(state, reply);
 
-    ret = ldap_parse_result(state->sh->ldap, state->reply->msg,
+    lret = ldap_parse_result(state->sh->ldap, state->reply->msg,
                             &state->result, NULL, &errmsg, NULL,
                             &response_controls, 0);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("ldap_parse_result failed (%d)\n", state->op->msgid));
         ret = EIO;
         goto done;
     }
 
     if (response_controls == NULL) {
-        DEBUG(5, ("Server returned no controls.\n"));
+        DEBUG(SSSDBG_TRACE_LIBS, ("Server returned no controls.\n"));
         state->ppolicy = NULL;
     } else {
         for (c = 0; response_controls[c] != NULL; c++) {
-            DEBUG(9, ("Server returned control [%s].\n",
-                      response_controls[c]->ldctl_oid));
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("Server returned control [%s].\n",
+                   response_controls[c]->ldctl_oid));
             if (strcmp(response_controls[c]->ldctl_oid,
                        LDAP_CONTROL_PASSWORDPOLICYRESPONSE) == 0) {
-                ret = ldap_parse_passwordpolicy_control(state->sh->ldap,
+                lret = ldap_parse_passwordpolicy_control(state->sh->ldap,
                                                         response_controls[c],
                                                         &pp_expire, &pp_grace,
                                                         &pp_error);
-                if (ret != LDAP_SUCCESS) {
-                    DEBUG(1, ("ldap_parse_passwordpolicy_control failed.\n"));
+                if (lret != LDAP_SUCCESS) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          ("ldap_parse_passwordpolicy_control failed.\n"));
                     ret = EIO;
                     goto done;
                 }
@@ -586,9 +592,10 @@ static void simple_bind_done(struct sdap_op *op,
                 DEBUG(7, ("Password Policy Response: expire [%d] grace [%d] "
                           "error [%s].\n", pp_expire, pp_grace,
                           ldap_passwordpolicy_err2txt(pp_error)));
-                state->ppolicy = talloc(state, struct sdap_ppolicy_data);
+                if (!state->ppolicy)
+                    state->ppolicy = talloc_zero(state,
+                                                 struct sdap_ppolicy_data);
                 if (state->ppolicy == NULL) {
-                    DEBUG(1, ("talloc failed.\n"));
                     ret = ENOMEM;
                     goto done;
                 }
@@ -596,36 +603,81 @@ static void simple_bind_done(struct sdap_op *op,
                 state->ppolicy->expire = pp_expire;
                 if (state->result == LDAP_SUCCESS) {
                     if (pp_error == PP_changeAfterReset) {
-                        DEBUG(4, ("Password was reset. "
-                                  "User must set a new password.\n"));
+                        DEBUG(SSSDBG_TRACE_LIBS,
+                              ("Password was reset. "
+                               "User must set a new password.\n"));
                         state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
                     } else if (pp_grace > 0) {
-                        DEBUG(4, ("Password expired. "
-                                  "[%d] grace logins remaining.\n", pp_grace));
+                        DEBUG(SSSDBG_TRACE_LIBS,
+                              ("Password expired. "
+                               "[%d] grace logins remaining.\n",
+                               pp_grace));
                     } else if (pp_expire > 0) {
-                        DEBUG(4, ("Password will expire in [%d] seconds.\n",
-                                  pp_expire));
+                        DEBUG(SSSDBG_TRACE_LIBS,
+                              ("Password will expire in [%d] seconds.\n",
+                               pp_expire));
                     }
                 } else if (state->result == LDAP_INVALID_CREDENTIALS &&
                            pp_error == PP_passwordExpired) {
-                    DEBUG(4,
+                    DEBUG(SSSDBG_TRACE_LIBS,
                           ("Password expired user must set a new password.\n"));
                     state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
                 }
+            } else if (strcmp(response_controls[c]->ldctl_oid,
+                              LDAP_CONTROL_PWEXPIRED) == 0) {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      ("Password expired user must set a new password.\n"));
+                state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
+            } else if (strcmp(response_controls[c]->ldctl_oid,
+                              LDAP_CONTROL_PWEXPIRING) == 0) {
+                /* ignore controls with suspiciously long values */
+                if (response_controls[c]->ldctl_value.bv_len > 32) {
+                    continue;
+                }
+
+                if (!state->ppolicy) {
+                    state->ppolicy = talloc(state, struct sdap_ppolicy_data);
+                }
+
+                if (state->ppolicy == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                /* ensure that bv_val is a null-terminated string */
+                nval = talloc_strndup(NULL,
+                                      response_controls[c]->ldctl_value.bv_val,
+                                      response_controls[c]->ldctl_value.bv_len);
+                if (nval == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                state->ppolicy->expire = strtouint32(nval, NULL, 10);
+                ret = errno;
+                talloc_zfree(nval);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          ("Could not convert control response to an integer. ",
+                           "[%s]\n", strerror(ret)));
+                    goto done;
+                }
+
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      ("Password will expire in [%d] seconds.\n",
+                       state->ppolicy->expire));
             }
         }
     }
 
-    DEBUG(3, ("Bind result: %s(%d), %s\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("Bind result: %s(%d), %s\n",
               sss_ldap_err2string(state->result), state->result,
               errmsg ? errmsg : "no errmsg set"));
 
-    ret = LDAP_SUCCESS;
+    ret = EOK;
 done:
     ldap_controls_free(response_controls);
     ldap_memfree(errmsg);
 
-    if (ret == LDAP_SUCCESS) {
+    if (ret == EOK) {
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
