@@ -123,7 +123,10 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
-    if (!attrs) return ENOMEM;
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     str = ldap_get_dn(sh->ldap, sm->msg);
     if (!str) {

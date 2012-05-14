@@ -104,7 +104,8 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_LIBS,
               ("[%s] contained the last set of values for this attribute\n",
                attr_desc));
-        return EOK;
+        ret = EOK;
+        goto done;
     }
 
     *range_offset = strtouint32(end_range, &endptr, 10);
