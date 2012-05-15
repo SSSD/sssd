@@ -110,6 +110,7 @@ static void ipa_session_handler_done(struct tevent_req *req)
     struct sysdb_attrs **maps;
     bool in_transaction = false;
     char *default_user;
+    struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
     char *map_order;
 
     ret = ipa_get_selinux_recv(req, breq, &map_count, &maps,
@@ -146,6 +147,7 @@ static void ipa_session_handler_done(struct tevent_req *req)
     in_transaction = false;
 
 
+    pd->pam_status = PAM_SUCCESS;
     breq->fn(breq, DP_ERR_OK, EOK, "Success");
     return;
 
