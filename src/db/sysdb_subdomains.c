@@ -112,6 +112,172 @@ done:
     return ret;
 }
 
+errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     struct subdomain_info **_info)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    const char *tmp_str;
+    struct ldb_dn *basedn;
+    struct subdomain_info *info;
+    struct ldb_result *res;
+    const char *attrs[] = {"cn",
+                           SYSDB_SUBDOMAIN_FLAT,
+                           SYSDB_SUBDOMAIN_ID,
+                           NULL};
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    info = talloc_zero(tmp_ctx, struct subdomain_info);
+    if (info == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE,
+                            sysdb->domain->name);
+    if (basedn == NULL) {
+        ret = EIO;
+        goto done;
+    }
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, basedn, LDB_SCOPE_BASE, attrs,
+                     NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Base search returned [%d] results, "
+                                 "expected 1.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_FLAT,
+                                          NULL);
+    if (tmp_str != NULL) {
+        info->flat_name = talloc_strdup(info, tmp_str);
+        if (info->flat_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_ID,
+                                          NULL);
+    if (tmp_str != NULL) {
+        info->flat_name = talloc_strdup(info, tmp_str);
+        if (info->flat_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    *_info = talloc_steal(mem_ctx, info);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
+                                     struct subdomain_info *domain_info)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    int ret;
+    bool do_update = false;
+    struct subdomain_info *current_info;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_master_domain_get_info(tmp_ctx, sysdb, &current_info);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE,
+                             sysdb->domain->name);
+    if (msg->dn == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    if (domain_info->flat_name != NULL &&
+        (current_info->flat_name == NULL ||
+         strcmp(current_info->flat_name, domain_info->flat_name) != 0) ) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FLAT, LDB_FLAG_MOD_REPLACE,
+                                NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_FLAT, "%s",
+                              domain_info->flat_name);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);;
+            goto done;
+        }
+
+        do_update = true;
+    }
+
+    if (domain_info->id != NULL &&
+        (current_info->flat_name == NULL ||
+         strcmp(current_info->flat_name, domain_info->id) != 0) ) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_ID, LDB_FLAG_MOD_REPLACE,
+                                NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_ID, "%s",
+                              domain_info->id);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);;
+            goto done;
+        }
+
+        do_update = true;
+    }
+
+    if (do_update == false) {
+        ret = EOK;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add subdomain attributes to "
+                                     "[%s]: [%d][%s]!\n",
+                                     domain_info->name, ret,
+                                     ldb_errstring(sysdb->ldb)));
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
 static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
                                              struct subdomain_info *domain_info)
 {

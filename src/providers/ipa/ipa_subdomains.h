@@ -31,6 +31,7 @@
 struct ipa_subdomains_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_search_base **search_bases;
+    struct sdap_search_base **master_search_bases;
 };
 
 

@@ -340,6 +340,13 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info *subdomain,
                                     struct sysdb_ctx **subdomain_ctx);
 
+errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     struct subdomain_info **info);
+
+errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
+                                     struct subdomain_info *domain_info);
+
 
 errno_t sysdb_search_domuser_by_name(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,

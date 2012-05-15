@@ -27,9 +27,23 @@
 #include "providers/ipa/ipa_common.h"
 
 #define SUBDOMAINS_FILTER "objectclass=ipaNTTrustedDomain"
+#define MASTER_DOMAIN_FILTER "objectclass=ipaNTDomainAttrs"
+
 #define IPA_CN "cn"
 #define IPA_FLATNAME "ipaNTFlatName"
 #define IPA_SID "ipaNTTrustedDomainSID"
+
+enum ipa_subdomains_req_type {
+    IPA_SUBDOMAINS_MASTER,
+    IPA_SUBDOMAINS_SLAVE,
+
+    IPA_SUBDOMAINS_MAX /* Counter */
+};
+
+struct ipa_subdomains_req_params {
+    const char *filter;
+    tevent_req_fn cb;
+};
 
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
 {
@@ -131,8 +145,16 @@ struct ipa_subdomains_req_ctx {
 };
 
 static void ipa_subdomains_get_conn_done(struct tevent_req *req);
-static errno_t ipa_subdomains_handler_next(struct ipa_subdomains_req_ctx *ctx);
+static errno_t
+ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
+                           enum ipa_subdomains_req_type type);
 static void ipa_subdomains_handler_done(struct tevent_req *req);
+static void ipa_subdomains_handler_master_done(struct tevent_req *req);
+
+static struct ipa_subdomains_req_params subdomain_requests[] = {
+    { MASTER_DOMAIN_FILTER, ipa_subdomains_handler_master_done },
+    { SUBDOMAINS_FILTER, ipa_subdomains_handler_done }
+};
 
 void ipa_subdomains_handler(struct be_req *be_req)
 {
@@ -208,7 +230,7 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = ipa_subdomains_handler_next(ctx);
+    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_SLAVE);
     if (ret != EOK && ret != EAGAIN) {
         goto fail;
     }
@@ -221,14 +243,23 @@ fail:
     ipa_subdomains_reply(be_req, dp_error, ret);
 }
 
-static errno_t ipa_subdomains_handler_next(struct ipa_subdomains_req_ctx *ctx)
+static errno_t
+ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
+                           enum ipa_subdomains_req_type type)
 {
     struct tevent_req *req;
     struct sdap_search_base *base;
-    const char *attrs[] = {"cn",
-                           "ipaNTFlatName",
-                           "ipaNTTrustedDomainSID",
+    struct ipa_subdomains_req_params *params;
+    const char *attrs[] = {IPA_CN,
+                           IPA_FLATNAME,
+                           IPA_SID,
                            NULL};
+
+    if (type >= IPA_SUBDOMAINS_MAX) {
+        return EINVAL;
+    }
+
+    params = &subdomain_requests[type];
 
     base = ctx->search_bases[ctx->search_base_iter];
     if (base == NULL) {
@@ -236,8 +267,7 @@ static errno_t ipa_subdomains_handler_next(struct ipa_subdomains_req_ctx *ctx)
     }
 
     talloc_free(ctx->current_filter);
-    ctx->current_filter = sdap_get_id_specific_filter(ctx, SUBDOMAINS_FILTER,
-                                                      base->filter);
+    ctx->current_filter = sdap_get_id_specific_filter(ctx, params->filter, base->filter);
     if (ctx->current_filter == NULL) {
         return ENOMEM;
     }
@@ -255,7 +285,7 @@ static errno_t ipa_subdomains_handler_next(struct ipa_subdomains_req_ctx *ctx)
         return ENOMEM;
     }
 
-    tevent_req_set_callback(req, ipa_subdomains_handler_done, ctx);
+    tevent_req_set_callback(req, params->cb, ctx);
 
     return EAGAIN;
 }
@@ -263,13 +293,15 @@ static errno_t ipa_subdomains_handler_next(struct ipa_subdomains_req_ctx *ctx)
 static void ipa_subdomains_handler_done(struct tevent_req *req)
 {
     int ret;
-    struct be_req *be_req;
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx = tevent_req_callback_data(req,
                                                        struct ipa_subdomains_req_ctx);
+    struct be_req *be_req = ctx->be_req;
+    struct sysdb_ctx *sysdb;
+    struct subdomain_info *domain_info;
 
-    be_req = ctx->be_req;
+    sysdb = (be_req->sysdb)?be_req->sysdb:be_req->be_ctx->sysdb;
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
@@ -291,7 +323,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     }
 
     ctx->search_base_iter++;
-    ret = ipa_subdomains_handler_next(ctx);
+    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_SLAVE);
     if (ret == EAGAIN) {
         return;
     } else if (ret != EOK) {
@@ -304,14 +336,99 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = sysdb_update_subdomains(ctx->sd_ctx->sdap_id_ctx->be->sysdb,
-                                  ctx->sd_data->domain_list);
+    ret = sysdb_update_subdomains(sysdb, ctx->sd_data->domain_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
         goto done;
     }
 
-    ret = EOK;
+    ret = sysdb_master_domain_get_info(ctx, sysdb, &domain_info);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (domain_info->flat_name == NULL ||
+        domain_info->id == NULL ||
+        domain_info->name == NULL) {
+
+        ctx->search_base_iter = 0;
+        ctx->search_bases = ctx->sd_ctx->master_search_bases;
+        ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            goto done;
+        }
+    } else {
+        ret = EOK;
+    }
+
+done:
+    talloc_free(ctx);
+    ipa_subdomains_reply(be_req, (ret == EOK ? DP_ERR_OK : DP_ERR_FATAL), ret);
+}
+
+static void ipa_subdomains_handler_master_done(struct tevent_req *req)
+{
+    errno_t ret;
+    size_t reply_count;
+    struct sysdb_attrs **reply = NULL;
+    struct ipa_subdomains_req_ctx *ctx = tevent_req_callback_data(req,
+                                                       struct ipa_subdomains_req_ctx);
+    struct be_req *be_req = ctx->be_req;
+    struct subdomain_info *domain_info;
+    const char *tmp_str;
+
+    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        goto done;
+    }
+
+    if (reply_count) {
+        domain_info = talloc_zero(ctx, struct subdomain_info);
+        if (domain_info == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[0], IPA_FLATNAME, &tmp_str);
+        if (ret != EOK) goto done;
+        domain_info->flat_name = talloc_strdup(domain_info, tmp_str);
+        if (domain_info->flat_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[0], IPA_SID, &tmp_str);
+        if (ret != EOK) {
+            goto done;
+        }
+        domain_info->id = talloc_strdup(domain_info, tmp_str);
+        if (domain_info->flat_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_master_domain_add_info(be_req->be_ctx->sysdb, domain_info);
+        goto done;
+    } else {
+        ctx->search_base_iter++;
+        ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            goto done;
+        }
+
+        /* Right now we know there has been an error
+         * and we don't have the master domain record
+         */
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Master domain record not found!\n"));
+        ret = EIO;
+        goto done;
+    }
 
 done:
     talloc_free(ctx);

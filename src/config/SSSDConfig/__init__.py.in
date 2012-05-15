@@ -128,6 +128,7 @@ option_strings = {
     'ipa_hbac_treat_deny_as' : _("If DENY rules are present, either DENY_ALL or IGNORE"),
     'ipa_hbac_support_srchost' : _("If set to false, host argument given by PAM will be ignored"),
     'ipa_automount_location' : _("The automounter location this IPA client is using"),
+    'ipa_master_domain_search_base': _("Search base for object containing info about IPA domain"),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
