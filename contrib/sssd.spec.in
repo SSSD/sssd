@@ -3,8 +3,10 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
-%if (0%{?rhel} == 5)
-%{!?is_rhel57: %global is_rhel57 %(%{__grep} -c "5\.[^0-6]" /etc/redhat-release)}
+%global is_rhel5 %(%{__grep} -c "release 5" /etc/redhat-release)
+%global rhel5_minor %(%{__grep} -o "5.[0-9]*" /etc/redhat-release |%{__sed} -s 's/5.//')
+
+%if 0%{?is_rhel5} > 0
 %global with_unicode_lib --with-unicode-lib=glib2
 # we don't want to provide private python extension libs
 %{?filter_setup:
@@ -63,7 +65,7 @@ BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: m4
 %{?fedora:BuildRequires: popt-devel}
-%if 0%{?rhel} <= 5
+%if 0%{?is_rhel5} > 0
 BuildRequires: popt
 %endif
 %if 0%{?rhel} >= 6
@@ -78,7 +80,7 @@ BuildRequires: libcollection-devel
 BuildRequires: libini_config-devel
 BuildRequires: dbus-devel
 BuildRequires: dbus-libs
-%if 0%{?is_rhel57} > 0
+%if 0%{?rhel5_minor} >= 7
 BuildRequires: openldap24-libs-devel
 %else
 BuildRequires: openldap-devel
@@ -104,7 +106,7 @@ BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
 
-%if 0%{?rhel} == 5
+%if 0%{?is_rhel5} > 0
 BuildRequires: glib2-devel
 %else
 BuildRequires: libunistring-devel
