@@ -3021,7 +3021,7 @@ sdap_nested_group_process_deref_result(struct tevent_req *req)
         } else if (dctx->deref_result[dctx->result_index]->map == \
                    state->opts->group_map) {
             ret = sysdb_attrs_get_string(dctx->deref_result[dctx->result_index]->attrs,
-                                       state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       state->opts->group_map[SDAP_AT_GROUP_NAME].sys_name,
                                        &tmp_name);
             if (ret == ENOENT) {
                 DEBUG(7, ("Dereferenced a group without name, skipping ...\n"));

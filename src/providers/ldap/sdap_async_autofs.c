@@ -770,7 +770,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         ret = sysdb_attrs_to_list(
                 tmp_ctx, state->entries,
                 state->entries_count,
-                state->opts->autofs_entry_map[SDAP_AT_AUTOFS_ENTRY_KEY].name,
+                state->opts->autofs_entry_map[SDAP_AT_AUTOFS_ENTRY_KEY].sys_name,
                 &ldap_entrylist);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
