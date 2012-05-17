@@ -1118,7 +1118,7 @@ libsss_sudo_la_SOURCES = \
     src/sss_client/sudo/sss_sudo_private.h
 libsss_sudo_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_sudo.exports \
-    -version 1:0:0
+    -version-info 2:0:1
 
 sudolib_LTLIBRARIES = libsss_sudo.la
 dist_pkgconfig_DATA += src/sss_client/sudo/libsss_sudo.pc
