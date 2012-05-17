@@ -637,7 +637,7 @@ static int user_info_grace_login(pam_handle_t *pamh,
     memcpy(&grace, buf + sizeof(uint32_t), sizeof(uint32_t));
     ret = snprintf(user_msg, sizeof(user_msg),
                    _("Your password has expired. "
-                     "You have %d grace login(s) remaining."),
+                     "You have %1$d grace login(s) remaining."),
                    grace);
     if (ret < 0 || ret >= sizeof(user_msg)) {
         D(("snprintf failed."));
@@ -682,7 +682,7 @@ static int user_info_expire_warn(pam_handle_t *pamh,
     }
 
     ret = snprintf(user_msg, sizeof(user_msg),
-                   _("Your password will expire in %d %s."), expire, unit);
+                   _("Your password will expire in %1$d %2$s."), expire, unit);
     if (ret < 0 || ret >= sizeof(user_msg)) {
         D(("snprintf failed."));
         return PAM_SYSTEM_ERR;

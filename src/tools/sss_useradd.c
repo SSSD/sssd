@@ -150,7 +150,7 @@ int main(int argc, const char **argv)
         /* Check group names in the LOCAL domain */
         ret = check_group_names(tctx, tctx->octx->addgroups, &badgroup);
         if (ret != EOK) {
-            ERROR("Cannot find group %s in local domain\n", badgroup);
+            ERROR("Cannot find group %1$s in local domain\n", badgroup);
             ret = EXIT_FAILURE;
             goto fini;
         }
@@ -229,7 +229,7 @@ int main(int argc, const char **argv)
             ERROR("User's home directory already exists, not copying "
                   "data from skeldir\n");
         } else if (ret != EOK) {
-            ERROR("Cannot create user's home directory: %s\n", strerror(ret));
+            ERROR("Cannot create user's home directory: %1$s\n", strerror(ret));
             ret = EXIT_FAILURE;
             goto fini;
         }
@@ -240,7 +240,7 @@ int main(int argc, const char **argv)
                                 tctx->octx->uid,
                                 tctx->octx->gid);
         if (ret != EOK) {
-            ERROR("Cannot create user's mail spool: %s\n", strerror(ret));
+            ERROR("Cannot create user's mail spool: %1$s\n", strerror(ret));
             DEBUG(1, ("Cannot create user's mail spool: [%d][%s].\n",
                         ret, strerror(ret)));
             ret = EXIT_FAILURE;

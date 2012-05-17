@@ -227,7 +227,7 @@ int main(int argc, const char **argv)
 
     if ((tctx->octx->uid < tctx->local->id_min) ||
         (tctx->local->id_max && tctx->octx->uid > tctx->local->id_max)) {
-        ERROR("User %s is outside the defined ID range for domain\n",
+        ERROR("User %1$s is outside the defined ID range for domain\n",
               tctx->octx->name);
         ret = EXIT_FAILURE;
         goto fini;
@@ -264,7 +264,7 @@ int main(int argc, const char **argv)
                 break;
 
             case EOK:
-                ERROR("WARNING: The user (uid %lu) was still logged in when "
+                ERROR("WARNING: The user (uid %1$lu) was still logged in when "
                       "deleted.\n", (unsigned long) tctx->octx->uid);
                 break;
 
@@ -281,7 +281,7 @@ int main(int argc, const char **argv)
 
     ret = run_userdel_cmd(tctx);
     if (ret != EOK) {
-        ERROR("The post-delete command failed: %s\n", strerror(ret));
+        ERROR("The post-delete command failed: %1$s\n", strerror(ret));
         goto fini;
     }
 
@@ -295,7 +295,7 @@ int main(int argc, const char **argv)
         if (ret == EPERM) {
             ERROR("Not removing home dir - not owned by user\n");
         } else if (ret != EOK) {
-            ERROR("Cannot remove homedir: %s\n", strerror(ret));
+            ERROR("Cannot remove homedir: %1$s\n", strerror(ret));
             ret = EXIT_FAILURE;
             goto fini;
         }

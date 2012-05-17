@@ -169,10 +169,10 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
               ("Searching for %s with filter %s failed\n",
                type_rec.type_string, filter));
         if (name) {
-            ERROR("No such %s named %s, skipping\n",
+            ERROR("No such %1$s named %2$s, skipping\n",
                     type_rec.type_string, name);
         } else {
-            ERROR("No objects of type %s in the cache, skipping\n",
+            ERROR("No objects of type %1$s in the cache, skipping\n",
                     type_rec.type_string);
         }
         return false;
@@ -184,14 +184,14 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (c_name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Something bad happened, can't find attribute %s", SYSDB_NAME));
-            ERROR("Couldn't invalidate %s", type_rec.type_string);
+            ERROR("Couldn't invalidate %1$s", type_rec.type_string);
             iret = false;
         } else {
             ret = invalidate_entry(ctx, sysdb, c_name, entry_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Couldn't invalidate %s %s", type_rec.type_string, c_name));
-                ERROR("Couldn't invalidate %s %s", type_rec.type_string, c_name);
+                ERROR("Couldn't invalidate %1$s %2$s", type_rec.type_string, c_name);
                 iret = false;
             }
         }
@@ -452,7 +452,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     ret = init_domains(ctx, domain);
     if (ret != EOK) {
         if (domain) {
-            ERROR("Could not open domain %s\n", domain);
+            ERROR("Could not open domain %1$s\n", domain);
         } else {
             ERROR("Could not open available domains\n");
         }

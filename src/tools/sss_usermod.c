@@ -173,7 +173,7 @@ int main(int argc, const char **argv)
         /* Check group names in the LOCAL domain */
         ret = check_group_names(tctx, tctx->octx->addgroups, &badgroup);
         if (ret != EOK) {
-            ERROR("Cannot find group %s in local domain, "
+            ERROR("Cannot find group %1$s in local domain, "
                   "only groups in local domain are allowed\n", badgroup);
             ret = EXIT_FAILURE;
             goto fini;
@@ -200,7 +200,7 @@ int main(int argc, const char **argv)
         /* Check group names in the LOCAL domain */
         ret = check_group_names(tctx, tctx->octx->rmgroups, &badgroup);
         if (ret != EOK) {
-            ERROR("Cannot find group %s in local domain, "
+            ERROR("Cannot find group %1$s in local domain, "
                   "only groups in local domain are allowed\n", badgroup);
             ret = EXIT_FAILURE;
             goto fini;

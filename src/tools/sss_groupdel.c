@@ -98,7 +98,7 @@ int main(int argc, const char **argv)
 
     if ((tctx->octx->gid < tctx->local->id_min) ||
         (tctx->local->id_max && tctx->octx->gid > tctx->local->id_max)) {
-        ERROR("Group %s is outside the defined ID range for domain\n",
+        ERROR("Group %1$s is outside the defined ID range for domain\n",
               tctx->octx->name);
         ret = EXIT_FAILURE;
         goto fini;

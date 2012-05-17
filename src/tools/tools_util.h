@@ -37,7 +37,7 @@
     val = getuid(); \
     if (val != 0) { \
         DEBUG(1, ("Running under %d, must be root\n", val)); \
-        ERROR("%s must be run as root\n", prg_name); \
+        ERROR("%1$s must be run as root\n", prg_name); \
         val = EXIT_FAILURE; \
         goto fini; \
     } \
