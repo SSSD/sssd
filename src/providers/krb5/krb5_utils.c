@@ -26,6 +26,7 @@
 
 #include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_auth.h"
+#include "src/util/find_uid.h"
 #include "util/util.h"
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
@@ -307,36 +308,44 @@ done:
     return ret;
 }
 
-errno_t create_ccache_dir(TALLOC_CTX *mem_ctx, const char *filename,
-                          pcre *illegal_re, uid_t uid, gid_t gid,
-                          bool private_path)
+static errno_t
+check_ccache_re(const char *filename, pcre *illegal_re)
+{
+    errno_t ret;
+
+    ret = pcre_exec(illegal_re, NULL, filename, strlen(filename),
+                    0, 0, NULL, 0);
+    if (ret == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Illegal pattern in ccache directory name [%s].\n", filename));
+        return EINVAL;
+    } else if (ret == PCRE_ERROR_NOMATCH) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("Ccache directory name [%s] does not contain "
+               "illegal patterns.\n", filename));
+        return EOK;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, ("pcre_exec failed [%d].\n", ret));
+    return EFAULT;
+}
+
+static errno_t
+create_ccache_dir(const char *dirname, pcre *illegal_re,
+                  uid_t uid, gid_t gid, bool private_path)
 {
     int ret = EFAULT;
-    char *dirname;
-    char *end;
     struct stat parent_stat;
     struct string_list *missing_parents = NULL;
     struct string_list *li = NULL;
     mode_t old_umask;
     mode_t new_dir_mode;
-    size_t offset = 0;
     TALLOC_CTX *tmp_ctx = NULL;
 
-    tmp_ctx = talloc_new(mem_ctx);
+    tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(1, ("talloc_new failed.\n"));
         return ENOMEM;
-    }
-
-    if (strncmp(filename, "FILE:", 5) == 0) {
-        offset = 5;
-    }
-
-    dirname = talloc_strdup(tmp_ctx, filename + offset);
-    if (dirname == NULL) {
-        DEBUG(1, ("talloc_strndup failed.\n"));
-        ret = ENOMEM;
-        goto done;
     }
 
     if (*dirname != '/') {
@@ -346,30 +355,11 @@ errno_t create_ccache_dir(TALLOC_CTX *mem_ctx, const char *filename,
     }
 
     if (illegal_re != NULL) {
-        ret = pcre_exec(illegal_re, NULL, dirname, strlen(dirname),
-                        0, 0, NULL, 0);
-        if (ret == 0) {
-            DEBUG(1, ("Illegal pattern in ccache directory name [%s].\n",
-                      dirname));
-            ret = EINVAL;
-            goto done;
-        } else if ( ret == PCRE_ERROR_NOMATCH) {
-            DEBUG(9, ("Ccache directory name [%s] does not contain "
-                      "illegal patterns.\n", dirname));
-        } else {
-            DEBUG(1, ("pcre_exec failed [%d].\n", ret));
-            ret = EFAULT;
+        ret = check_ccache_re(dirname, illegal_re);
+        if (ret != EOK) {
             goto done;
         }
     }
-
-    end = strrchr(dirname, '/');
-    if (end == NULL || end == dirname) {
-        DEBUG(1, ("Missing filename in [%s].\n", dirname));
-        ret = EINVAL;
-        goto done;
-    }
-    *end = '\0';
 
     ret = find_ccdir_parent_data(tmp_ctx, dirname, &parent_stat,
                                  &missing_parents);
@@ -527,3 +517,221 @@ done:
 
     return EOK;
 }
+
+/*======== ccache back end utilities ========*/
+struct sss_krb5_cc_be *
+get_cc_be_ops(enum sss_krb5_cc_type type)
+{
+    struct sss_krb5_cc_be *be;
+
+    switch (type) {
+        case SSS_KRB5_TYPE_FILE:
+            be = &file_cc;
+            break;
+        case SSS_KRB5_TYPE_UNKNOWN:
+            be = NULL;
+            break;
+    }
+
+    return be;
+}
+
+struct sss_krb5_cc_be *
+get_cc_be_ops_ccache(const char *ccache)
+{
+    enum sss_krb5_cc_type type;
+
+    type = sss_krb5_get_type(ccache);
+    return get_cc_be_ops(type);
+}
+
+/*======== Operations on the FILE: back end ========*/
+errno_t
+cc_file_create(const char *location, pcre *illegal_re,
+               uid_t uid, gid_t gid, bool private_path)
+{
+    const char *filename;
+    char *dirname;
+    char *end;
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+
+    filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
+    if (filename == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Bad ccache type %s\n", location));
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    dirname = talloc_strdup(tmp_ctx, filename);
+    if (dirname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    end = strrchr(dirname, '/');
+    if (end == NULL || end == dirname) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing filename in [%s].\n", dirname));
+        ret = EINVAL;
+        goto done;
+    }
+    *end = '\0';
+
+    ret = create_ccache_dir(dirname, illegal_re, uid, gid, private_path);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+cc_residual_is_used(uid_t uid, const char *ccname,
+                    enum sss_krb5_cc_type type, bool *result)
+{
+    int ret;
+    struct stat stat_buf;
+    bool active;
+
+    *result = false;
+
+    if (ccname == NULL || *ccname == '\0') {
+        return EINVAL;
+    }
+
+    ret = lstat(ccname, &stat_buf);
+
+    if (ret == -1 && errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("stat failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
+    } else if (ret == EOK) {
+        if (stat_buf.st_uid != uid) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Cache file [%s] exists, but is owned by [%d] instead of "
+                   "[%d].\n", ccname, stat_buf.st_uid, uid));
+            return EINVAL;
+        }
+
+        switch (type) {
+            case SSS_KRB5_TYPE_FILE:
+                ret = S_ISREG(stat_buf.st_mode);
+                break;
+            default:
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported ccache type\n"));
+                return EINVAL;
+        }
+
+        if (ret == 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Cache file [%s] exists, but is not the expected type\n",
+                   ccname));
+            return EINVAL;
+        }
+    }
+
+    ret = check_if_uid_is_active(uid, &active);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("check_if_uid_is_active failed.\n"));
+        return ret;
+    }
+
+    if (!active) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("User [%d] is not active\n", uid));
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("User [%d] is still active, reusing ccache [%s].\n",
+              uid, ccname));
+        *result = true;
+    }
+    return EOK;
+}
+
+errno_t
+cc_file_check_existing(const char *location, uid_t uid,
+                       const char *realm, const char *princ,
+                       bool *_active, bool *_valid)
+{
+    errno_t ret;
+    bool active;
+    bool valid;
+    const char *filename;
+
+    filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
+    if (!filename) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n"));
+        return EINVAL;
+    }
+
+    if (filename[0] != '/') {
+        DEBUG(SSSDBG_OP_FAILURE, ("Only absolute path names are allowed.\n"));
+        return EINVAL;
+    }
+
+    ret = cc_residual_is_used(uid, filename, SSS_KRB5_TYPE_FILE, &active);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active\n"));
+        return ret;
+    }
+
+    ret = check_for_valid_tgt(location, realm, princ, &valid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not check if ccache contains a valid principal\n"));
+        return ret;
+    }
+
+    *_active = active;
+    *_valid = valid;
+    return EOK;
+}
+
+const char *
+cc_file_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
+                        const char *princ)
+{
+    return talloc_strdup(mem_ctx, location);
+}
+
+errno_t
+cc_file_remove(const char *location)
+{
+    errno_t ret;
+    const char *filename;
+
+    filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
+    if (!filename) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n"));
+        return EINVAL;
+    }
+
+    if (filename[0] != '/') {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Ccache file name [%s] is not an absolute path.\n", filename));
+        return EINVAL;
+    }
+
+    errno = 0;
+    ret = unlink(filename);
+    if (ret == -1 && errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("unlink [%s] failed [%d][%s].\n", filename, ret,
+                                                 strerror(ret)));
+        return ret;
+    }
+    return EOK;
+}
+
+struct sss_krb5_cc_be file_cc = {
+    .type               = SSS_KRB5_TYPE_FILE,
+    .create             = cc_file_create,
+    .check_existing     = cc_file_check_existing,
+    .ccache_for_princ   = cc_file_cache_for_princ,
+    .remove             = cc_file_remove,
+};

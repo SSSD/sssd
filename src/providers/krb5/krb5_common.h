@@ -84,6 +84,7 @@ struct krb5_service {
 struct fo_service;
 struct deferred_auth_ctx;
 struct renew_tgt_ctx;
+struct sss_krb5_cc_be;
 
 struct krb5_ctx {
     /* opts taken from kinit */
@@ -115,6 +116,7 @@ struct krb5_ctx {
     struct krb5_service *kpasswd_service;
     int child_debug_fd;
 
+    struct sss_krb5_cc_be *cc_be;
     pcre *illegal_path_re;
 
     struct deferred_auth_ctx *deferred_auth_ctx;
@@ -171,4 +173,5 @@ errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm);
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                             const char *username, const char **_upn);
+
 #endif /* __KRB5_COMMON_H__ */

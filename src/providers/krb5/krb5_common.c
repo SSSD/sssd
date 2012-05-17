@@ -31,6 +31,7 @@
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_opts.h"
+#include "providers/krb5/krb5_utils.h"
 
 errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
                                   const char *env_name)
@@ -95,6 +96,7 @@ errno_t check_and_export_options(struct dp_option *opts,
     const char *dummy;
     char *use_fast_str;
     char *fast_principal;
+    enum sss_krb5_cc_type cc_be;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -178,11 +180,15 @@ errno_t check_and_export_options(struct dp_option *opts,
         DEBUG(1, ("Missing credential cache name template.\n"));
         return EINVAL;
     }
-    if (dummy[0] != '/' && strncmp(dummy, "FILE:", 5) != 0) {
-        DEBUG(1, ("Currently only file based credential caches are supported "
-                  "and krb5ccname_template must start with '/' or 'FILE:'\n"));
+
+    cc_be = sss_krb5_get_type(dummy);
+    if (cc_be != SSS_KRB5_TYPE_FILE || dummy[0] != '/') {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Currently only file based credential caches are supported "
+               "and krb5ccname_template must start with '/' or 'FILE:'\n"));
         return EINVAL;
     }
+    krb5_ctx->cc_be = &file_cc;
 
     return EOK;
 }

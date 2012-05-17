@@ -39,6 +39,7 @@
 #include "providers/krb5/krb5_utils.h"
 
 extern struct dp_option default_krb5_opts[];
+extern struct sss_krb5_cc_be file_cc;
 
 static krb5_context krb5_error_ctx;
 #define KRB5_DEBUG(level, krb5_error) do { \
@@ -117,6 +118,8 @@ create_dummy_krb5_ctx(TALLOC_CTX *mem_ctx, const char *realm)
 
     krb5_ctx = talloc_zero(mem_ctx, struct krb5_ctx);
     if (!krb5_ctx) return NULL;
+
+    krb5_ctx->cc_be = &file_cc;
 
     krb5_ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
                                         &errval, &errstr, &errpos, NULL);
@@ -250,14 +253,16 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
         DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
               kr->ccname, kr->uid, kr->gid));
 
-        ret = create_ccache_dir(kr, kr->ccname,
-                                kr->krb5_ctx->illegal_path_re,
-                                kr->uid, kr->gid, private);
+        ret = kr->krb5_ctx->cc_be->create(kr->ccname,
+                                          kr->krb5_ctx->illegal_path_re,
+                                          kr->uid, kr->gid, private);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("create_ccache_dir failed.\n"));
-            goto fail;
         }
+    } else {
+        kr->ccname = talloc_strdup(kr, ccname);
     }
+    if (!kr->ccname) goto fail;
 
     return kr;
 
@@ -373,29 +378,6 @@ done:
     krb5_free_principal(kcontext, princ);
     krb5_free_context(kcontext);
     return ret;
-}
-
-static void
-remove_ccache(const char *cc)
-{
-    size_t offset = 0;
-    errno_t ret;
-
-    if (strncmp(cc, "FILE:", 5) == 0) {
-        offset = 5;
-    }
-    if (cc[offset] != '/') {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("ccname [%s] does not contain absolute path?\n", cc));
-    }
-
-    errno = 0;
-    ret = unlink(cc+offset);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("unlink [%s] failed [%d]: %s\n", cc, ret, strerror(ret)));
-    }
 }
 
 int
@@ -542,7 +524,7 @@ main(int argc, const char *argv[])
     ret = 0;
 done:
     if (rm_ccache && ctx->res && ctx->res->ccname) {
-        remove_ccache(ctx->res->ccname);
+        ctx->kr->krb5_ctx->cc_be->remove(ctx->res->ccname);
     }
     free(password);
     talloc_free(ctx);

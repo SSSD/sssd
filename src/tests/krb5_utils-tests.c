@@ -117,14 +117,14 @@ START_TEST(test_pub_ccache_dir)
 
     ret = chmod(testpath, 0754);
     fail_unless(ret == EOK, "chmod failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, 12345, 12345, false);
-    fail_unless(ret == EINVAL, "create_ccache_dir does not return EINVAL "
+    ret = cc_file_create(filename, NULL, 12345, 12345, false);
+    fail_unless(ret == EINVAL, "cc_file_create does not return EINVAL "
                                "while x-bit is missing.");
 
     ret = chmod(testpath, 0755);
     fail_unless(ret == EOK, "chmod failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, 12345, 12345, false);
-    fail_unless(ret == EOK, "create_ccache_dir failed.");
+    ret = cc_file_create(filename, NULL, 12345, 12345, false);
+    fail_unless(ret == EOK, "cc_file_create failed.");
 
     check_dir(subdirname, 0, 0, 01777);
     RMDIR(subdirname);
@@ -158,7 +158,7 @@ START_TEST(test_pub_ccache_dir_in_user_dir)
     filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
 
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, 12345, 12345, false);
+    ret = cc_file_create(filename, NULL, 12345, 12345, false);
     fail_unless(ret == EINVAL, "Creating public ccache dir in user dir "
                                "does not failed with EINVAL.");
 
@@ -193,14 +193,14 @@ START_TEST(test_priv_ccache_dir)
 
     ret = chmod(testpath, 0754);
     fail_unless(ret == EOK, "chmod failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, uid, gid, true);
-    fail_unless(ret == EINVAL, "create_ccache_dir does not return EINVAL "
+    ret = cc_file_create(filename, NULL, uid, gid, true);
+    fail_unless(ret == EINVAL, "cc_file_create does not return EINVAL "
                                "while x-bit is missing.");
 
     ret = chmod(testpath, 0755);
     fail_unless(ret == EOK, "chmod failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, uid, gid, true);
-    fail_unless(ret == EOK, "create_ccache_dir failed.");
+    ret = cc_file_create(filename, NULL, uid, gid, true);
+    fail_unless(ret == EOK, "cc_file_create failed.");
 
     check_dir(subdir, uid, gid, 0700);
     RMDIR(subdir);
@@ -248,14 +248,14 @@ START_TEST(test_private_ccache_dir_in_user_dir)
 
     ret = chmod(user_dir, 0600);
     fail_unless(ret == EOK, "chmod failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, uid, gid, true);
-    fail_unless(ret == EINVAL, "create_ccache_dir does not return EINVAL "
+    ret = cc_file_create(filename, NULL, uid, gid, true);
+    fail_unless(ret == EINVAL, "cc_file_create does not return EINVAL "
                                "while x-bit is missing.");
 
     ret = chmod(user_dir, 0700);
     fail_unless(ret == EOK, "chmod failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, uid, gid, true);
-    fail_unless(ret == EOK, "create_ccache_dir failed.");
+    ret = cc_file_create(filename, NULL, uid, gid, true);
+    fail_unless(ret == EOK, "cc_file_create failed.");
 
     check_dir(dn3, uid, gid, 0700);
     RMDIR(dn3);
@@ -292,7 +292,7 @@ START_TEST(test_private_ccache_dir_in_wrong_user_dir)
     filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
 
-    ret = create_ccache_dir(tmp_ctx, filename, NULL, 12345, 12345, true);
+    ret = cc_file_create(filename, NULL, 12345, 12345, true);
     fail_unless(ret == EINVAL, "Creating private ccache dir in wrong user "
                                "dir does not failed with EINVAL.");
 
@@ -329,28 +329,28 @@ START_TEST(test_illegal_patterns)
 
     filename = talloc_asprintf(tmp_ctx, "abc/./ccfile");
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "create_ccache_dir allowed relative path [%s].",
+    ret = cc_file_create(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "cc_file_create allowed relative path [%s].",
                                filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc/./ccfile", dirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "create_ccache_dir allowed "
+    ret = cc_file_create(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "cc_file_create allowed "
                                "illegal pattern '/./' in filename [%s].",
                                filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc/../ccfile", dirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "create_ccache_dir allowed "
+    ret = cc_file_create(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "cc_file_create allowed "
                                "illegal pattern '/../' in filename [%s].",
                                filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc//ccfile", dirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = create_ccache_dir(tmp_ctx, filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "create_ccache_dir allowed "
+    ret = cc_file_create(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "cc_file_create allowed "
                                "illegal pattern '//' in filename [%s].",
                                filename);
 

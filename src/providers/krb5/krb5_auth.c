@@ -39,107 +39,76 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
-static errno_t safe_remove_old_ccache_file(const char *old_ccache_file,
-                                           const char *new_ccache_file)
+static errno_t safe_remove_old_ccache_file(struct sss_krb5_cc_be *cc_be,
+                                           const char *princ,
+                                           const char *old_ccache,
+                                           const char *new_ccache)
 {
     int ret;
-    size_t old_offset = 0;
-    size_t new_offset = 0;
+    enum sss_krb5_cc_type old_type;
+    struct sss_krb5_cc_be *old_cc_ops;
 
-    if (new_ccache_file == NULL) {
-        DEBUG(1, ("Missing new ccache file, "
-                  "old ccache file is not deleted.\n"));
+    if (old_ccache == NULL) {
+        DEBUG(SSSDBG_FUNC_DATA, ("No old ccache, nothing to do\n"));
+        return EOK;
+    }
+
+    if (new_ccache == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Missing new ccache file, old ccache file is not deleted.\n"));
         return EINVAL;
     }
 
-    if (old_ccache_file != NULL) {
-        if (strncmp(old_ccache_file, "FILE:", 5) == 0) {
-            old_offset = 5;
-        }
-        if (strncmp(new_ccache_file, "FILE:", 5) == 0) {
-            new_offset = 5;
-        }
-        if (strcmp(old_ccache_file + old_offset,
-                   new_ccache_file + new_offset) == 0) {
-            DEBUG(7, ("New and old ccache file are the same, "
-                      "no one will be deleted.\n"));
-            return EOK;
-        }
-        if (old_ccache_file[old_offset] != '/') {
-            DEBUG(1, ("Ccache file name [%s] is not an absolute path.\n",
-                      old_ccache_file + old_offset));
-            return EINVAL;
-        }
-        ret = unlink(old_ccache_file + old_offset);
-        if (ret == -1 && errno != ENOENT) {
-            ret = errno;
-            DEBUG(1, ("unlink [%s] failed [%d][%s].\n", old_ccache_file, ret,
-                                                        strerror(ret)));
-            return ret;
-        }
+    old_type = sss_krb5_get_type(old_ccache);
+    old_cc_ops = get_cc_be_ops(old_type);
+    if (!old_cc_ops) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get ccache operations\n"));
+        return EINVAL;
+    }
+
+    if (cc_be->type == old_type &&
+        strcmp(old_ccache, new_ccache) == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("New and old ccache file are the same, "
+                                  "no one will be deleted.\n"));
+        return EOK;
+    }
+
+    ret = old_cc_ops->remove(old_ccache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                ("Cannot remove ccache [%s]\n", old_ccache));
+        return EIO;
     }
 
     return EOK;
 }
 
-static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
-                                            bool *result)
+static errno_t
+check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
+                 const char *realm, bool *active, bool *valid)
 {
-    int ret;
-    size_t offset = 0;
-    struct stat stat_buf;
-    const char *filename;
-    bool active;
+    struct sss_krb5_cc_be *old_cc_ops;
+    errno_t ret;
 
-    *result = false;
-
-    if (ccname == NULL || *ccname == '\0') {
+    /* ccache file might be of a different type if the user changed
+     * configuration
+     */
+    old_cc_ops = get_cc_be_ops_ccache(old_ccache);
+    if (old_cc_ops == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Cannot get operations on saved ccache %s\n", old_ccache));
         return EINVAL;
     }
 
-    if (strncmp(ccname, "FILE:", 5) == 0) {
-        offset = 5;
-    }
-
-    filename = ccname + offset;
-
-    if (filename[0] != '/') {
-        DEBUG(1, ("Only absolute path names are allowed.\n"));
-        return EINVAL;
-    }
-
-    ret = lstat(filename, &stat_buf);
-
-    if (ret == -1 && errno != ENOENT) {
-        DEBUG(1, ("stat failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
-    } else if (ret == EOK) {
-        if (stat_buf.st_uid != uid) {
-            DEBUG(1, ("Cache file [%s] exists, but is owned by [%d] instead of "
-                      "[%d].\n", filename, stat_buf.st_uid, uid));
-            return EINVAL;
-        }
-
-        if (!S_ISREG(stat_buf.st_mode)) {
-            DEBUG(1, ("Cache file [%s] exists, but is not a regular file.\n",
-                      filename));
-            return EINVAL;
-        }
-    }
-
-    ret = check_if_uid_is_active(uid, &active);
+    ret = old_cc_ops->check_existing(old_ccache, kr->uid, realm,
+                                     kr->upn, active, valid);
     if (ret != EOK) {
-        DEBUG(1, ("check_if_uid_is_active failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot check if saved ccache %s is active and valid\n",
+               old_ccache));
         return ret;
     }
 
-    if (!active) {
-        DEBUG(5, ("User [%d] is not active\n", uid));
-    } else {
-        DEBUG(9, ("User [%d] is still active, reusing ccache file [%s].\n",
-                  uid, filename));
-        *result = true;
-    }
     return EOK;
 }
 
@@ -332,7 +301,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     struct krb5child_req *kr = NULL;
     const char *ccache_file = NULL;
     const char *realm;
-    krb5_error_code kerr;
     struct tevent_req *req;
     struct tevent_req *subreq;
     int ret;
@@ -457,22 +425,20 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        /* The type of the ccache might change during the request if we
+         * end up reusing an old ccache */
+        kr->cc_be = krb5_ctx->cc_be;
+
         ccache_file = ldb_msg_find_attr_as_string(res->msgs[0],
                                                   SYSDB_CCACHE_FILE,
                                                   NULL);
         if (ccache_file != NULL) {
-            ret = check_if_ccache_file_is_used(kr->uid, ccache_file,
-                                               &kr->active_ccache_present);
+            ret = check_old_ccache(ccache_file, kr, realm,
+                                   &kr->active_ccache_present,
+                                   &kr->valid_tgt_present);
             if (ret != EOK) {
-                DEBUG(1, ("check_if_ccache_file_is_used failed.\n"));
-                goto done;
-            }
-
-            kerr = check_for_valid_tgt(ccache_file, realm, kr->upn,
-                                       &kr->valid_tgt_present);
-            if (kerr != 0) {
-                DEBUG(1, ("check_for_valid_tgt failed.\n"));
-                ret = kerr;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("check_if_ccache_file_is_used failed.\n"));
                 goto done;
             }
         } else {
@@ -639,13 +605,27 @@ static void krb5_find_ccache_step(struct tevent_req *req)
                 goto done;
             }
 
-            ret = create_ccache_dir(kr, kr->ccname,
+            ret = kr->cc_be->create(kr->ccname,
                                     kr->krb5_ctx->illegal_path_re,
                                     kr->uid, kr->gid, private_path);
             if (ret != EOK) {
-                DEBUG(1, ("create_ccache_dir failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, ("ccache creation failed.\n"));
                 goto done;
             }
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Saved ccache %s if of different type than ccache in "
+               "configuration file, reusing the old ccache\n"));
+
+        kr->cc_be = get_cc_be_ops_ccache(kr->old_ccname);
+        if (kr->cc_be == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot get operations on saved ccache %s\n",
+                   kr->old_ccname));
+            ret = EINVAL;
+            goto done;
+        }
+
     }
 
     if (kr->is_offline) {
@@ -725,6 +705,7 @@ static void krb5_child_done(struct tevent_req *subreq)
     uint8_t *buf = NULL;
     ssize_t len = -1;
     struct krb5_child_response *res;
+    const char *store_ccname;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -777,7 +758,8 @@ static void krb5_child_done(struct tevent_req *subreq)
     if (res->msg_status == PAM_NEW_AUTHTOK_REQD) {
         if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache_present) {
             if (kr->old_ccname != NULL) {
-                ret = safe_remove_old_ccache_file(kr->old_ccname, "dummy");
+                ret = safe_remove_old_ccache_file(kr->cc_be, kr->upn,
+                                                  kr->old_ccname, "dummy");
                 if (ret != EOK) {
                     DEBUG(1, ("Failed to remove old ccache file [%s], "
                               "please remove it manually.\n", kr->old_ccname));
@@ -851,16 +833,25 @@ static void krb5_child_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (kr->old_ccname != NULL) {
-        ret = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to remove old ccache file [%s], "
-                      "please remove it manually.\n", kr->old_ccname));
-        }
+    store_ccname = kr->cc_be->ccache_for_princ(kr, kr->ccname,
+                                               kr->upn);
+    if (store_ccname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                ("No ccache for %s in %s?\n", kr->upn, kr->ccname));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = safe_remove_old_ccache_file(kr->cc_be, kr->upn,
+                                      kr->old_ccname, store_ccname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to remove old ccache file [%s], "
+               "please remove it manually.\n", kr->old_ccname));
     }
 
     ret = krb5_save_ccname(state, state->be_ctx->sysdb,
-                           pd->user, kr->ccname);
+                           pd->user, store_ccname);
     if (ret) {
         DEBUG(1, ("krb5_save_ccname failed.\n"));
         goto done;

@@ -31,7 +31,7 @@ errno_t become_user(uid_t uid, gid_t gid)
 {
     int ret;
 
-    DEBUG(9, ("Trying to become user [%d][%d].\n", uid, gid));
+    DEBUG(SSSDBG_FUNC_DATA, ("Trying to become user [%d][%d].\n", uid, gid));
     ret = setgid(gid);
     if (ret == -1) {
         DEBUG(1, ("setgid failed [%d][%s].\n", errno, strerror(errno)));

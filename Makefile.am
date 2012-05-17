@@ -758,6 +758,7 @@ krb5_utils_tests_SOURCES = \
     src/providers/krb5/krb5_utils.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
+    src/util/find_uid.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -980,6 +981,7 @@ krb5_child_test_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
+    src/util/find_uid.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -1159,6 +1161,7 @@ libsss_ldap_la_SOURCES = \
     src/util/find_uid.c \
     src/providers/ldap/ldap_init.c \
     src/providers/krb5/krb5_common.c \
+    src/providers/krb5/krb5_utils.c \
     src/util/user_info_msg.c \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c
