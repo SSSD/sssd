@@ -1124,3 +1124,89 @@ sss_krb5_read_etypes_for_keytab(TALLOC_CTX *mem_ctx,
     talloc_free(tmp_ctx);
     return ret;
 }
+
+#define SSS_KRB5_FILE   "FILE:"
+#define SSS_KRB5_DIR    "DIR:"
+
+enum sss_krb5_cc_type
+sss_krb5_get_type(const char *full_location)
+{
+    if (!full_location) {
+        return SSS_KRB5_TYPE_UNKNOWN;
+    }
+
+    if (strncmp(full_location, SSS_KRB5_FILE,
+                sizeof(SSS_KRB5_FILE)-1) == 0) {
+        return SSS_KRB5_TYPE_FILE;
+    } else if (strncmp(full_location, SSS_KRB5_DIR,
+               sizeof(SSS_KRB5_DIR)-1) == 0) {
+        return SSS_KRB5_TYPE_DIR;
+    } else if (full_location[0] == '/') {
+        return SSS_KRB5_TYPE_FILE;
+    }
+
+    return SSS_KRB5_TYPE_UNKNOWN;
+}
+
+const char *
+sss_krb5_residual_by_type(const char *full_location,
+                          enum sss_krb5_cc_type type)
+{
+    size_t offset;
+
+    if (full_location == NULL) return NULL;
+
+    switch (type) {
+        case SSS_KRB5_TYPE_FILE:
+            if (full_location[0] == '/') {
+                offset = 0;
+            } else {
+                offset = sizeof(SSS_KRB5_FILE)-1;
+            }
+            break;
+        case SSS_KRB5_TYPE_DIR:
+            offset = sizeof(SSS_KRB5_DIR)-1;
+            break;
+        default:
+            return NULL;
+    }
+
+    return full_location + offset;
+}
+
+const char *
+sss_krb5_cc_file_path(const char *full_location)
+{
+    enum sss_krb5_cc_type cc_type;
+    const char *residual;
+
+    cc_type = sss_krb5_get_type(full_location);
+    residual = sss_krb5_residual_by_type(full_location, cc_type);
+
+    switch(cc_type) {
+        case SSS_KRB5_TYPE_FILE:
+            return residual;
+        case SSS_KRB5_TYPE_DIR:
+            /* DIR::/run/user/tkt_foo */
+            if (residual[0] == ':') return residual+1;
+        case SSS_KRB5_TYPE_UNKNOWN:
+            break;
+    }
+
+    return NULL;
+}
+
+const char *
+sss_krb5_residual_check_type(const char *full_location,
+                             enum sss_krb5_cc_type expected_type)
+{
+    enum sss_krb5_cc_type type;
+
+    type = sss_krb5_get_type(full_location);
+    if (type != expected_type) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unexpected ccache type\n"));
+        return NULL;
+    }
+
+    return sss_krb5_residual_by_type(full_location, type);
+}

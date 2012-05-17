@@ -122,6 +122,22 @@ sss_krb5_unparse_name_flags(krb5_context context, krb5_const_principal principal
 void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
                                                   int canonicalize);
 
+enum sss_krb5_cc_type {
+    SSS_KRB5_TYPE_FILE,
+    SSS_KRB5_TYPE_DIR,
+    SSS_KRB5_TYPE_UNKNOWN
+};
+
+enum sss_krb5_cc_type
+sss_krb5_get_type(const char *full_location);
+const char *
+sss_krb5_residual_by_type(const char *full_location, enum sss_krb5_cc_type type);
+const char *
+sss_krb5_cc_file_path(const char *full_location);
+const char *
+sss_krb5_residual_check_type(const char *full_location,
+                             enum sss_krb5_cc_type expected_type);
+
 /* === Compatibility routines for the Heimdal Kerberos implementation === */
 
 void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
