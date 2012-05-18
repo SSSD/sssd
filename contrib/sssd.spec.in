@@ -359,7 +359,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %endif
 %{python_sitearch}/pysss.so
-%{python_sitelib}/*.py*
+%{python_sitelib}/SSSDConfig/*.py*
 
 %files client
 %defattr(-,root,root,-)

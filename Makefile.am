@@ -185,10 +185,10 @@ endif
 dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
     src/config/setup.py \
-    src/config/ipachangeconf.py \
-    src/config/SSSDConfig.py \
+    src/config/SSSDConfig/ipachangeconf.py \
+    src/config/SSSDConfig/__init__.py \
     src/config/SSSDConfigTest.py \
-    src/config/sssd_upgrade_config.py \
+    src/config/SSSDConfig/sssd_upgrade_config.py \
     contrib/rhel/update_debug_levels.py \
     src/tests/pyhbac-test.py
 

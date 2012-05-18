@@ -28,9 +28,5 @@ setup(
     version='1',
     license='GPLv3+',
     url='http://fedorahosted.org/sssd',
-    py_modules=[
-    'SSSDConfig',
-    'ipachangeconf',
-    'sssd_upgrade_config',
-    ],
+    packages=['SSSDConfig'],
 )
