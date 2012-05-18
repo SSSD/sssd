@@ -250,5 +250,7 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy
                  src/lib/idmap/sss_idmap.pc src/lib/idmap/sss_idmap.doxy
                  src/sss_client/sudo/libsss_sudo.pc
-                 src/sss_client/sudo/sss_sudo.doxy])
+                 src/sss_client/sudo/sss_sudo.doxy
+                 src/config/setup.py
+                 src/config/SSSDConfig/__init__.py])
 AC_OUTPUT

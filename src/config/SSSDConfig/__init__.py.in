@@ -338,9 +338,9 @@ class SSSDConfigSchema(SSSDChangeConf):
         SSSDChangeConf.__init__(self)
         #TODO: get these from a global setting
         if not schemafile:
-            schemafile = '/usr/share/sssd/sssd.api.conf'
+            schemafile = '@datadir@/sssd/sssd.api.conf'
         if not schemaplugindir:
-            schemaplugindir = '/usr/share/sssd/sssd.api.d'
+            schemaplugindir = '@datadir@/sssd/sssd.api.d'
 
         try:
             #Read the primary config file
@@ -1242,10 +1242,10 @@ class SSSDConfig(SSSDChangeConf):
 
         schemafile:
           The path to the api schema config file. Usually
-          /usr/share/sssd/sssd.api.conf
+          @datadir@/sssd/sssd.api.conf
         schemaplugindir:
           The path the directory containing the provider schema config files.
-          Usually /usr/share/sssd/sssd.api.d
+          Usually @datadir@/sssd/sssd.api.d
 
         === Returns ===
         The newly-created SSSDConfig object.
@@ -1271,7 +1271,7 @@ class SSSDConfig(SSSDChangeConf):
 
         configfile:
           The path to the SSSD config file. If not specified, use the system
-          default, usually /etc/sssd/sssd.conf
+          default, usually @sysconfdir@/sssd.conf
 
         === Returns ===
         No return value
@@ -1290,7 +1290,7 @@ class SSSDConfig(SSSDChangeConf):
 
         if not configfile:
             #TODO: get this from a global setting
-            configfile = '/etc/sssd/sssd.conf'
+            configfile = '@sysconfdir@/sssd.conf'
         # open will raise an IOError if it fails
         fd = open(configfile, 'r')
 

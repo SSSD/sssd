@@ -1438,17 +1438,31 @@ docs:
 	@exit 1
 endif !HAVE_DOXYGEN
 
-all-local: ldb_mod_test_dir
 if BUILD_PYTHON_BINDINGS
-	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config
+$(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py:
+	-cp $(srcdir)/src/config/SSSDConfig/ipachangeconf.py $(builddir)/src/config/SSSDConfig/
+
+$(abs_builddir)/src/config/SSSDConfig/sssd_upgrade_config.py:
+	-cp $(srcdir)/src/config/SSSDConfig/sssd_upgrade_config.py $(builddir)/src/config/SSSDConfig/
+
+SSSDCONFIG_MODULES = \
+    $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py \
+    $(abs_builddir)/src/config/SSSDConfig/sssd_upgrade_config.py
+else
+SSSSCONFIG_MODULES =
+endif
+
+all-local: ldb_mod_test_dir $(SSSDCONFIG_MODULES)
+if BUILD_PYTHON_BINDINGS
+	cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config
 endif
 
 install-exec-hook: installsssddirs
 if BUILD_PYTHON_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/src/config/.files; \
+		cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/src/config/.files; \
 	else \
-		cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/src/config/.files; \
+		cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/src/config/.files; \
 	fi
 endif
 	for doc in $(SSSD_DOCS); do \
@@ -1481,7 +1495,15 @@ uninstall-hook:
 
 clean-local:
 if BUILD_PYTHON_BINDINGS
-	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
+	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
+		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
+	fi
+
+	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
+		rm -f $(builddir)/src/config/SSSDConfig/sssd_upgrade_config.py ; \
+	fi
+
+	cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
 endif
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $$doc; \
