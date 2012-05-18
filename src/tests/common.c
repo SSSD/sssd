@@ -59,7 +59,11 @@ compare_dp_options(struct dp_option *map1, size_t size1,
         if (map2[i].opt_name == NULL) return ERANGE;
 
         /* Ensure that the option names are the same */
-        if(strcmp(map1[i].opt_name, map2[i].opt_name) != 0) return EINVAL;
+        if(strcmp(map1[i].opt_name, map2[i].opt_name) != 0) {
+            fprintf(stderr, "Expected [%s], got [%s]\n",
+                    map1[i].opt_name, map2[i].opt_name);
+            return EINVAL;
+        }
     }
 
     /* Leftover options in map2 */
@@ -85,7 +89,11 @@ compare_sdap_attr_maps(struct sdap_attr_map *map1, size_t size1,
         if (map2[i].opt_name == NULL) return ERANGE;
 
         /* Ensure that the option names are the same */
-        if(strcmp(map1[i].opt_name, map2[i].opt_name) != 0) return EINVAL;
+        if(strcmp(map1[i].opt_name, map2[i].opt_name) != 0) {
+            fprintf(stderr, "Expected [%s], got [%s]\n",
+                    map1[i].opt_name, map2[i].opt_name);
+            return EINVAL;
+        }
     }
 
     /* Leftover options in map2 */
