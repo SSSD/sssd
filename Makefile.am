@@ -120,6 +120,7 @@ endif
 
 check_PROGRAMS = \
     stress-tests \
+    krb5-child-test \
     $(non_interactive_check_based_tests)
 
 PYTHON_TESTS =
@@ -969,6 +970,29 @@ stress_tests_SOURCES = \
     src/tests/stress-tests.c
 stress_tests_LDADD = \
     $(SSSD_LIBS) \
+    libsss_util.la \
+    libsss_test_common.la
+
+krb5_child_test_SOURCES = \
+    src/tests/krb5_child-test.c \
+    src/providers/krb5/krb5_utils.c \
+    src/providers/krb5/krb5_child_handler.c \
+    src/providers/krb5/krb5_become_user.c \
+    src/providers/krb5/krb5_common.c \
+    src/util/sss_krb5.c \
+    src/providers/data_provider_fo.c \
+    src/providers/data_provider_opts.c \
+    src/providers/data_provider_callbacks.c \
+    $(SSSD_FAILOVER_OBJ)
+krb5_child_test_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DKRB5_CHILD_DIR=\"$(builddir)\" \
+    $(CHECK_CFLAGS)
+krb5_child_test_LDADD = \
+    $(SSSD_LIBS)\
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(CHECK_LIBS) \
     libsss_util.la \
     libsss_test_common.la
 
