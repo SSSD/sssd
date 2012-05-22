@@ -1104,14 +1104,20 @@ sss_krb5_read_etypes_for_keytab(TALLOC_CTX *mem_ctx,
     }
 
     if (ret == 0) {
-        /* Sort the preferred enctypes first */
-        qsort(etypes, count, sizeof(*etypes), compare_etypes);
-        etypes = talloc_realloc(tmp_ctx, etypes, krb5_enctype, count);
-        if (etypes == NULL) {
-            ret = ENOMEM;
+        if (etypes) {
+            /* Sort the preferred enctypes first */
+            qsort(etypes, count, sizeof(*etypes), compare_etypes);
+            etypes = talloc_realloc(tmp_ctx, etypes, krb5_enctype, count);
+            if (etypes == NULL) {
+                ret = ENOMEM;
+            } else {
+                *etype_list = talloc_steal(mem_ctx, etypes);
+                *n_etype_list = count;
+            }
         } else {
-            *etype_list = talloc_steal(mem_ctx, etypes);
-            *n_etype_list = count;
+            /* The key table was empty. There are no enctypes to match */
+            *etype_list = NULL;
+            *n_etype_list = 0;
         }
     }
 
