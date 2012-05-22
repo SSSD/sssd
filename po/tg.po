@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-05-11 14:59-0400\n"
+"POT-Creation-Date: 2012-05-22 09:33-0400\n"
 "PO-Revision-Date: 2012-04-20 16:09+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Tajik (http://www.transifex.net/projects/p/fedora/language/"
@@ -173,7 +173,7 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:88
-msgid "Whether to hash host names and adresses in the known_hosts file"
+msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr ""
 
 #: src/config/SSSDConfig.py:91
@@ -988,12 +988,12 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:639
 #, c-format
-msgid "Your password has expired. You have %d grace login(s) remaining."
+msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:685
 #, c-format
-msgid "Your password will expire in %d %s."
+msgid "Your password will expire in %1$d %2$s."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:734
@@ -1183,7 +1183,7 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:153
 #, c-format
-msgid "Cannot find group %s in local domain\n"
+msgid "Cannot find group %1$s in local domain\n"
 msgstr ""
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
@@ -1208,12 +1208,12 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:232
 #, c-format
-msgid "Cannot create user's home directory: %s\n"
+msgid "Cannot create user's home directory: %1$s\n"
 msgstr ""
 
 #: src/tools/sss_useradd.c:243
 #, c-format
-msgid "Cannot create user's mail spool: %s\n"
+msgid "Cannot create user's mail spool: %1$s\n"
 msgstr ""
 
 #: src/tools/sss_useradd.c:255
@@ -1258,7 +1258,7 @@ msgstr ""
 
 #: src/tools/sss_groupdel.c:101
 #, c-format
-msgid "Group %s is outside the defined ID range for domain\n"
+msgid "Group %1$s is outside the defined ID range for domain\n"
 msgstr ""
 
 #: src/tools/sss_groupdel.c:115
@@ -1301,7 +1301,7 @@ msgstr ""
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
 #, c-format
 msgid ""
-"Cannot find group %s in local domain, only groups in local domain are "
+"Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
 
@@ -1319,7 +1319,7 @@ msgstr ""
 
 #: src/tools/sss_groupshow.c:562
 #, c-format
-msgid "%s%sGroup: %s\n"
+msgid "%1$s%2$sGroup: %3$s\n"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:563
@@ -1328,26 +1328,26 @@ msgstr ""
 
 #: src/tools/sss_groupshow.c:565
 #, c-format
-msgid "%sGID number: %d\n"
+msgid "%1$sGID number: %2$d\n"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
-msgid "%sMember users: "
+msgid "%1$sMember users: "
 msgstr ""
 
 #: src/tools/sss_groupshow.c:574
 #, c-format
 msgid ""
 "\n"
-"%sIs a member of: "
+"%1$sIs a member of: "
 msgstr ""
 
 #: src/tools/sss_groupshow.c:581
 #, c-format
 msgid ""
 "\n"
-"%sMember groups: "
+"%1$sMember groups: "
 msgstr ""
 
 #: src/tools/sss_groupshow.c:617
@@ -1390,7 +1390,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:230
 #, c-format
-msgid "User %s is outside the defined ID range for domain\n"
+msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
 
 #: src/tools/sss_userdel.c:255
@@ -1399,7 +1399,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:267
 #, c-format
-msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
+msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
 
 #: src/tools/sss_userdel.c:272
@@ -1412,7 +1412,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:284
 #, c-format
-msgid "The post-delete command failed: %s\n"
+msgid "The post-delete command failed: %1$s\n"
 msgstr ""
 
 #: src/tools/sss_userdel.c:296
@@ -1421,7 +1421,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:298
 #, c-format
-msgid "Cannot remove homedir: %s\n"
+msgid "Cannot remove homedir: %1$s\n"
 msgstr ""
 
 #: src/tools/sss_userdel.c:309
@@ -1481,22 +1481,22 @@ msgstr ""
 
 #: src/tools/sss_cache.c:172
 #, c-format
-msgid "No such %s named %s, skipping\n"
+msgid "No such %1$s named %2$s, skipping\n"
 msgstr ""
 
 #: src/tools/sss_cache.c:175
 #, c-format
-msgid "No objects of type %s in the cache, skipping\n"
+msgid "No objects of type %1$s in the cache, skipping\n"
 msgstr ""
 
 #: src/tools/sss_cache.c:187
 #, c-format
-msgid "Couldn't invalidate %s"
+msgid "Couldn't invalidate %1$s"
 msgstr ""
 
 #: src/tools/sss_cache.c:194
 #, c-format
-msgid "Couldn't invalidate %s %s"
+msgid "Couldn't invalidate %1$s %2$s"
 msgstr ""
 
 #: src/tools/sss_cache.c:323
@@ -1549,7 +1549,7 @@ msgstr ""
 
 #: src/tools/sss_cache.c:455
 #, c-format
-msgid "Could not open domain %s\n"
+msgid "Could not open domain %1$s\n"
 msgstr ""
 
 #: src/tools/sss_cache.c:457
@@ -1570,7 +1570,7 @@ msgstr "Берун аз хотира\n"
 
 #: src/tools/tools_util.h:40
 #, c-format
-msgid "%s must be run as root\n"
+msgid "%1$s must be run as root\n"
 msgstr ""
 
 #: src/util/util.h:93

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-05-11 14:59-0400\n"
+"POT-Creation-Date: 2012-05-22 09:33-0400\n"
 "PO-Revision-Date: 2012-04-20 16:09+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Indonesian <trans-id@lists.fedoraproject.org>\n"
@@ -172,7 +172,7 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig.py:88
-msgid "Whether to hash host names and adresses in the known_hosts file"
+msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr ""
 
 #: src/config/SSSDConfig.py:91
@@ -987,12 +987,12 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:639
 #, c-format
-msgid "Your password has expired. You have %d grace login(s) remaining."
+msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:685
 #, c-format
-msgid "Your password will expire in %d %s."
+msgid "Your password will expire in %1$d %2$s."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:734
@@ -1181,8 +1181,8 @@ msgid "Groups must be in the same domain as user\n"
 msgstr "Grup harus berada dalam domain yang sama dengan pengguna\n"
 
 #: src/tools/sss_useradd.c:153
-#, c-format
-msgid "Cannot find group %s in local domain\n"
+#, fuzzy, c-format
+msgid "Cannot find group %1$s in local domain\n"
 msgstr "Tidak dapat menemukan grup %s dalam domain lokal\n"
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
@@ -1207,13 +1207,13 @@ msgstr ""
 "Direktori home milik pengguna sudah ada, tidak menyalin data dari skeldir\n"
 
 #: src/tools/sss_useradd.c:232
-#, c-format
-msgid "Cannot create user's home directory: %s\n"
+#, fuzzy, c-format
+msgid "Cannot create user's home directory: %1$s\n"
 msgstr "Tidak dapat membuat direktori home milik pengguna: %s\n"
 
 #: src/tools/sss_useradd.c:243
-#, c-format
-msgid "Cannot create user's mail spool: %s\n"
+#, fuzzy, c-format
+msgid "Cannot create user's mail spool: %1$s\n"
 msgstr "Tidak dapat membuat spool mail milik pengguna: %s\n"
 
 #: src/tools/sss_useradd.c:255
@@ -1257,8 +1257,8 @@ msgid "Specify group to delete\n"
 msgstr ""
 
 #: src/tools/sss_groupdel.c:101
-#, c-format
-msgid "Group %s is outside the defined ID range for domain\n"
+#, fuzzy, c-format
+msgid "Group %1$s is outside the defined ID range for domain\n"
 msgstr ""
 "Grup %s berada di luar rentang ID yang telah didefinisikan untuk domain\n"
 
@@ -1306,9 +1306,9 @@ msgstr ""
 
 #: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"Cannot find group %s in local domain, only groups in local domain are "
+"Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
 "Tidak dapat menemukan grup %s di domain lokal, hanya grup dalam domain lokal "
@@ -1329,7 +1329,7 @@ msgstr "Kesalahan transaksi. Tidak bisa memodifikasi grup.\n"
 
 #: src/tools/sss_groupshow.c:562
 #, c-format
-msgid "%s%sGroup: %s\n"
+msgid "%1$s%2$sGroup: %3$s\n"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:563
@@ -1338,26 +1338,26 @@ msgstr ""
 
 #: src/tools/sss_groupshow.c:565
 #, c-format
-msgid "%sGID number: %d\n"
+msgid "%1$sGID number: %2$d\n"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
-msgid "%sMember users: "
+msgid "%1$sMember users: "
 msgstr ""
 
 #: src/tools/sss_groupshow.c:574
 #, c-format
 msgid ""
 "\n"
-"%sIs a member of: "
+"%1$sIs a member of: "
 msgstr ""
 
 #: src/tools/sss_groupshow.c:581
 #, c-format
 msgid ""
 "\n"
-"%sMember groups: "
+"%1$sMember groups: "
 msgstr ""
 
 #: src/tools/sss_groupshow.c:617
@@ -1399,8 +1399,8 @@ msgid "Specify user to delete\n"
 msgstr "Tentukan pengguna yang akan dihapus\n"
 
 #: src/tools/sss_userdel.c:230
-#, c-format
-msgid "User %s is outside the defined ID range for domain\n"
+#, fuzzy, c-format
+msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
 "Pengguna %s berada di luar rentang ID yang telah didefinisikan untuk domain\n"
 
@@ -1410,7 +1410,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:267
 #, c-format
-msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
+msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
 
 #: src/tools/sss_userdel.c:272
@@ -1423,7 +1423,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:284
 #, c-format
-msgid "The post-delete command failed: %s\n"
+msgid "The post-delete command failed: %1$s\n"
 msgstr ""
 
 #: src/tools/sss_userdel.c:296
@@ -1431,8 +1431,8 @@ msgid "Not removing home dir - not owned by user\n"
 msgstr "Tidak menghapus home dir - tidak dimiliki oleh pengguna\n"
 
 #: src/tools/sss_userdel.c:298
-#, c-format
-msgid "Cannot remove homedir: %s\n"
+#, fuzzy, c-format
+msgid "Cannot remove homedir: %1$s\n"
 msgstr "Tidak dapat menghapus homedir: %s\n"
 
 #: src/tools/sss_userdel.c:309
@@ -1498,22 +1498,22 @@ msgstr ""
 
 #: src/tools/sss_cache.c:172
 #, c-format
-msgid "No such %s named %s, skipping\n"
+msgid "No such %1$s named %2$s, skipping\n"
 msgstr ""
 
 #: src/tools/sss_cache.c:175
 #, c-format
-msgid "No objects of type %s in the cache, skipping\n"
+msgid "No objects of type %1$s in the cache, skipping\n"
 msgstr ""
 
 #: src/tools/sss_cache.c:187
 #, c-format
-msgid "Couldn't invalidate %s"
+msgid "Couldn't invalidate %1$s"
 msgstr ""
 
 #: src/tools/sss_cache.c:194
 #, c-format
-msgid "Couldn't invalidate %s %s"
+msgid "Couldn't invalidate %1$s %2$s"
 msgstr ""
 
 #: src/tools/sss_cache.c:323
@@ -1566,7 +1566,7 @@ msgstr ""
 
 #: src/tools/sss_cache.c:455
 #, c-format
-msgid "Could not open domain %s\n"
+msgid "Could not open domain %1$s\n"
 msgstr ""
 
 #: src/tools/sss_cache.c:457
@@ -1586,8 +1586,8 @@ msgid "Out of memory\n"
 msgstr "Kehabisan memori\n"
 
 #: src/tools/tools_util.h:40
-#, c-format
-msgid "%s must be run as root\n"
+#, fuzzy, c-format
+msgid "%1$s must be run as root\n"
 msgstr "%s harus dijalankan sebagai root\n"
 
 #: src/util/util.h:93

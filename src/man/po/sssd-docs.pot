@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: sssd-docs 1.8.90\n"
+"Project-Id-Version: sssd-docs 1.8.92\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-05-11 14:59-0300\n"
+"POT-Creation-Date: 2012-05-22 09:33-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -792,7 +792,7 @@ msgstr ""
 #: sssd.conf.5.xml:523
 msgid ""
 "The default shell to use if the provider does not return one during "
-"lookup. This option supercedes any other shell options if it takes effect."
+"lookup. This option supersedes any other shell options if it takes effect."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -1080,7 +1080,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:789
 msgid ""
-"Whether or not to hash host names and adresses in the managed known_hosts "
+"Whether or not to hash host names and addresses in the managed known_hosts "
 "file."
 msgstr ""
 
@@ -7144,7 +7144,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:85
 msgid ""
-"NOTE: This option is different from <quote>id_mn</quote> in that "
+"NOTE: This option is different from <quote>id_min</quote> in that "
 "<quote>id_min</quote> acts to filter the output of requests to this domain, "
 "whereas this option controls the range of ID assignment. This is a subtle "
 "distinction, but the good general advice would be to have "
