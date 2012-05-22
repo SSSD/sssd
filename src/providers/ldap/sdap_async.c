@@ -2026,8 +2026,8 @@ static void sdap_deref_search_done(struct tevent_req *subreq)
 
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(2, ("dereference processing failed [%d]: %s\n",
-                  ret, strerror(ret)));
+        DEBUG(2, ("dereference processing failed [%d]: %s\n", ret, strerror(ret)));
+        sss_log(SSS_LOG_WARNING, "dereference processing failed : %s", strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
