@@ -610,7 +610,8 @@ static void pam_reply(struct pam_auth_req *preq)
     pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
 
-    DEBUG(4, ("pam_reply get called.\n"));
+    DEBUG(SSSDBG_FUNC_DATA,
+          ("pam_reply called with result [%d].\n", pd->pam_status));
 
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
         switch(pd->cmd) {
