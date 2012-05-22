@@ -2498,14 +2498,13 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                 ret = sdap_nested_group_process_step(req);
             }
 
-            if (ret == EOK) {
-                /* EOK means it's complete */
-                tevent_req_done(req);
-                tevent_req_post(req, state->ev);
-            } else if (ret != EAGAIN) {
+            if (ret != EOK && ret != EAGAIN) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Nested group processing failed\n"));
                 return ret;
+            } else if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_FUNC, ("All done.\n"));
+                tevent_req_done(req);
             }
-
             return EOK;
         }
         /*
@@ -2583,14 +2582,13 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
             ret = sdap_nested_group_process_step(req);
         }
 
-        if (ret == EOK) {
-            /* EOK means it's complete */
-            tevent_req_done(req);
-            tevent_req_post(req, state->ev);
-        } else if (ret != EAGAIN) {
+        if (ret != EOK && ret != EAGAIN) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Nested group processing failed\n"));
             return ret;
+        } else if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("All done.\n"));
+            tevent_req_done(req);
         }
-
         return EOK;
     }
 
