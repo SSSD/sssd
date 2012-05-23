@@ -28,11 +28,15 @@
 #include "providers/krb5/krb5_auth.h"
 #include "src/providers/krb5/krb5_utils.h"
 
+#ifndef KRB5_CHILD_DIR
 #ifndef SSSD_LIBEXEC_PATH
 #error "SSSD_LIBEXEC_PATH not defined"
-#else
-#define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
-#endif
+#endif  /* SSSD_LIBEXEC_PATH */
+
+#define KRB5_CHILD_DIR SSSD_LIBEXEC_PATH
+#endif /* KRB5_CHILD_DIR */
+
+#define KRB5_CHILD KRB5_CHILD_DIR"/krb5_child"
 
 struct io {
     int read_from_child_fd;
