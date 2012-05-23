@@ -1303,7 +1303,8 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = build_attrs_from_map(tmp_ctx, map, map_size, &expected_attrs, &attr_count);
+    ret = build_attrs_from_map(tmp_ctx, map, map_size, NULL,
+                               &expected_attrs, &attr_count);
     if (ret != EOK) {
         goto done;
     }

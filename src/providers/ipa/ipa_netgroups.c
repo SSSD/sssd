@@ -528,7 +528,7 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
         return ENOMEM;
 
     ret = build_attrs_from_map(state, state->ipa_opts->host_map,
-                               IPA_OPTS_HOST, &attrs, NULL);
+                               IPA_OPTS_HOST, NULL, &attrs, NULL);
     if (ret != EOK) {
         talloc_free(filter);
         return ret;

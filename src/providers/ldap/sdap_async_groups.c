@@ -728,7 +728,7 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     ret = build_attrs_from_map(grp_state, opts->user_map, SDAP_OPTS_USER,
-                               &attrs, NULL);
+                               NULL, &attrs, NULL);
     if (ret) {
         goto done;
     }
@@ -2484,8 +2484,8 @@ sdap_nested_group_process_deref_call(struct tevent_req *req)
 
     /* Pull down the whole group map, but only pull down username
      * and originalDN for users. */
-    ret = build_attrs_from_map(state, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &sdap_attrs, &attr_count);
+    ret = build_attrs_from_map(state, state->opts->group_map, SDAP_OPTS_GROUP,
+                               NULL, &sdap_attrs, &attr_count);
     if (ret != EOK) goto fail;
 
     sdap_attrs = talloc_realloc(NULL, sdap_attrs, const char *,
@@ -2687,8 +2687,8 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
         return EOK;
     }
 
-    ret = build_attrs_from_map(state, state->opts->group_map,
-                               SDAP_OPTS_GROUP, &sdap_attrs, NULL);
+    ret = build_attrs_from_map(state, state->opts->group_map, SDAP_OPTS_GROUP,
+                               NULL, &sdap_attrs, NULL);
     if (ret != EOK) {
         return ret;
     }

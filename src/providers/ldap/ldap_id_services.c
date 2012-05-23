@@ -135,7 +135,8 @@ services_get_send(TALLOC_CTX *mem_ctx,
            state->filter));
 
     ret = build_attrs_from_map(state, id_ctx->opts->service_map,
-                               SDAP_OPTS_SERVICES, &state->attrs, NULL);
+                               SDAP_OPTS_SERVICES, NULL,
+                               &state->attrs, NULL);
     if (ret != EOK) goto error;
 
     ret = services_get_retry(req);

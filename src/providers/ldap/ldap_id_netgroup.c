@@ -98,8 +98,8 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
     }
     talloc_zfree(clean_name);
 
-    ret = build_attrs_from_map(state, ctx->opts->netgroup_map,
-                               SDAP_OPTS_NETGROUP, &state->attrs, NULL);
+    ret = build_attrs_from_map(state, ctx->opts->netgroup_map, SDAP_OPTS_NETGROUP,
+                               NULL, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     ret = ldap_netgroup_get_retry(req);

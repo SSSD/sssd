@@ -77,7 +77,8 @@ struct tevent_req *ipa_selinux_get_maps_send(TALLOC_CTX *mem_ctx,
     state->maps = NULL;
 
     ret = build_attrs_from_map(state, ipa_opts->selinuxuser_map,
-                               IPA_OPTS_SELINUX_USERMAP, &state->attrs, NULL);
+                               IPA_OPTS_SELINUX_USERMAP, NULL,
+                               &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     state->cur_filter = NULL;

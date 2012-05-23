@@ -151,8 +151,8 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     }
 
     /* TODO: handle attrs_type */
-    ret = build_attrs_from_map(state, ctx->opts->user_map,
-                               SDAP_OPTS_USER, &state->attrs, NULL);
+    ret = build_attrs_from_map(state, ctx->opts->user_map, SDAP_OPTS_USER,
+                               NULL, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     ret = users_get_retry(req);
@@ -439,8 +439,8 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     }
 
     /* TODO: handle attrs_type */
-    ret = build_attrs_from_map(state, ctx->opts->group_map,
-                               SDAP_OPTS_GROUP, &state->attrs, NULL);
+    ret = build_attrs_from_map(state, ctx->opts->group_map, SDAP_OPTS_GROUP,
+                               NULL, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     ret = groups_get_retry(req);
@@ -631,8 +631,8 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
     state->name = name;
 
-    ret = build_attrs_from_map(state, ctx->opts->group_map,
-                               SDAP_OPTS_GROUP, &state->attrs, NULL);
+    ret = build_attrs_from_map(state, ctx->opts->group_map, SDAP_OPTS_GROUP,
+                               NULL, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
     ret = groups_by_user_retry(req);

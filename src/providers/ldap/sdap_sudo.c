@@ -456,7 +456,7 @@ struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
 
     /* create attrs from map */
     ret = build_attrs_from_map(state, opts->sudorule_map, SDAP_OPTS_SUDO,
-                               &state->attrs, NULL);
+                               NULL, &state->attrs, NULL);
     if (ret != EOK) {
         goto fail;
     }

@@ -242,7 +242,8 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = build_attrs_from_map(state, opts->autofs_entry_map,
-                               SDAP_OPTS_AUTOFS_ENTRY, &state->attrs, NULL);
+                               SDAP_OPTS_AUTOFS_ENTRY, NULL,
+                               &state->attrs, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build attributes from map\n"));
         ret = ENOMEM;
@@ -674,7 +675,8 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
     talloc_free(clean_mapname);
 
     ret = build_attrs_from_map(state, state->opts->autofs_mobject_map,
-                               SDAP_OPTS_AUTOFS_MAP, &state->attrs, NULL);
+                               SDAP_OPTS_AUTOFS_MAP, NULL,
+                               &state->attrs, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build attributes from map\n"));
         ret = ENOMEM;
