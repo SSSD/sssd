@@ -74,6 +74,17 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
 int handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                       uint8_t **buf, ssize_t *len);
 
+struct krb5_child_response {
+    int32_t msg_status;
+    struct tgt_times tgtt;
+    char *ccname;
+};
+
+errno_t
+parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
+                          struct pam_data *pd, int pwd_exp_warning,
+                          struct krb5_child_response **_res);
+
 errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                                                   struct pam_data *pd,
                                                   uid_t uid);

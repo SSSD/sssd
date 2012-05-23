@@ -39,9 +39,6 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
-#define TIME_T_MAX LONG_MAX
-#define int64_to_time_t(val) ((time_t)((val) < TIME_T_MAX ? val : TIME_T_MAX))
-
 static errno_t safe_remove_old_ccache_file(const char *old_ccache_file,
                                            const char *new_ccache_file)
 {
@@ -727,23 +724,7 @@ static void krb5_child_done(struct tevent_req *subreq)
     int ret;
     uint8_t *buf = NULL;
     ssize_t len = -1;
-    ssize_t pref_len;
-    size_t p;
-    int32_t msg_status;
-    int32_t msg_type;
-    int32_t msg_len;
-    int64_t time_data;
-    struct tgt_times tgtt;
-    int pwd_exp_warning;
-    uint32_t *expiration;
-    uint32_t *msg_subtype;
-    bool skip;
-
-    memset(&tgtt, 0, sizeof(tgtt));
-    pwd_exp_warning = state->be_ctx->domain->pwd_expiration_warning;
-    if (pwd_exp_warning < 0) {
-        pwd_exp_warning = KERBEROS_PWEXPIRE_WARNING_TIME;
-    }
+    struct krb5_child_response *res;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -759,114 +740,41 @@ static void krb5_child_done(struct tevent_req *subreq)
         return;
     }
 
-    /* A buffer with the following structure is expected.
-     * int32_t status of the request (required)
-     * message (zero or more)
-     *
-     * A message consists of:
-     * int32_t type of the message
-     * int32_t length of the following data
-     * uint8_t[len] data
-     */
-
-    if ((size_t) len < sizeof(int32_t)) {
-        DEBUG(1, ("message too short.\n"));
-        ret = EINVAL;
+    ret = parse_krb5_child_response(state, buf, len, pd,
+                        state->be_ctx->domain->pwd_expiration_warning,
+                        &res);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse child response [%d]: %s\n",
+              ret, strerror(ret)));
         goto done;
     }
 
-    p=0;
-    SAFEALIGN_COPY_INT32(&msg_status, buf+p, &p);
-
-    while (p < len) {
-        skip = false;
-        SAFEALIGN_COPY_INT32(&msg_type, buf+p, &p);
-        SAFEALIGN_COPY_INT32(&msg_len, buf+p, &p);
-
-        DEBUG(9, ("child response [%d][%d][%d].\n", msg_status, msg_type,
-                                                    msg_len));
-
-        if ((p + msg_len) > len) {
-            DEBUG(1, ("message format error [%d] > [%d].\n", p+msg_len, len));
-            ret = EINVAL;
-            goto done;
-        }
-
-        /* We need to save the name of the credential cache file. To find it
-         * we check if the data part of a message starts with
-         * CCACHE_ENV_NAME"=". pref_len also counts the trailing '=' because
-         * sizeof() counts the trailing '\0' of a string. */
-        pref_len = sizeof(CCACHE_ENV_NAME);
-        if (msg_len > pref_len &&
-            strncmp((const char *) &buf[p], CCACHE_ENV_NAME"=", pref_len) == 0) {
-            kr->ccname = talloc_strndup(kr, (char *) &buf[p+pref_len],
-                                        msg_len-pref_len);
-            if (kr->ccname == NULL) {
-                DEBUG(1, ("talloc_strndup failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        if (msg_type == SSS_KRB5_INFO_TGT_LIFETIME &&
-            msg_len == 4*sizeof(int64_t)) {
-            SAFEALIGN_COPY_INT64(&time_data, buf+p, NULL);
-            tgtt.authtime = int64_to_time_t(time_data);
-            SAFEALIGN_COPY_INT64(&time_data, buf+p+sizeof(int64_t), NULL);
-            tgtt.starttime = int64_to_time_t(time_data);
-            SAFEALIGN_COPY_INT64(&time_data, buf+p+2*sizeof(int64_t), NULL);
-            tgtt.endtime = int64_to_time_t(time_data);
-            SAFEALIGN_COPY_INT64(&time_data, buf+p+3*sizeof(int64_t), NULL);
-            tgtt.renew_till = int64_to_time_t(time_data);
-            DEBUG(7, ("TGT times are [%d][%d][%d][%d].\n", tgtt.authtime,
-                      tgtt.starttime, tgtt.endtime, tgtt.renew_till));
-        }
-
-        if (msg_type == SSS_PAM_USER_INFO) {
-            msg_subtype = (uint32_t *)&buf[p];
-            if (*msg_subtype == SSS_PAM_USER_INFO_EXPIRE_WARN)
-            {
-                expiration = (uint32_t *)&buf[p+sizeof(uint32_t)];
-                if (pwd_exp_warning > 0 &&
-                    difftime(pwd_exp_warning, *expiration) < 0.0) {
-                    skip = true;
-                }
-            }
-        }
-
-        if (!skip) {
-            ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);
-            if (ret != EOK) {
-                /* This is not a fatal error */
-                DEBUG(1, ("pam_add_response failed.\n"));
-            }
-        }
-        p += msg_len;
-
-        if ((p < len) && (p + 2*sizeof(int32_t) >= len)) {
-            DEBUG(1, ("The remainder of the message is too short.\n"));
-            ret = EINVAL;
+    if (res->ccname) {
+        kr->ccname = talloc_strdup(kr, res->ccname);
+        if (!kr->ccname) {
+            ret = ENOMEM;
             goto done;
         }
     }
 
     /* If the child request failed, but did not return an offline error code,
      * return with the status */
-    if (msg_status != PAM_SUCCESS && msg_status != PAM_AUTHINFO_UNAVAIL &&
-        msg_status != PAM_AUTHTOK_LOCK_BUSY &&
-        msg_status != PAM_NEW_AUTHTOK_REQD) {
-        state->pam_status = msg_status;
+    if (res->msg_status != PAM_SUCCESS &&
+        res->msg_status != PAM_AUTHINFO_UNAVAIL &&
+        res->msg_status != PAM_AUTHTOK_LOCK_BUSY &&
+        res->msg_status != PAM_NEW_AUTHTOK_REQD) {
+        state->pam_status = res->msg_status;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     } else {
-        state->pam_status = msg_status;
+        state->pam_status = res->msg_status;
     }
 
     /* If the password is expired we can safely remove the ccache from the
      * cache and disk if it is not actively used anymore. This will allow to
      * create a new random ccache if sshd with privilege separation is used. */
-    if (msg_status == PAM_NEW_AUTHTOK_REQD) {
+    if (res->msg_status == PAM_NEW_AUTHTOK_REQD) {
         if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache_present) {
             if (kr->old_ccname != NULL) {
                 ret = safe_remove_old_ccache_file(kr->old_ccname, "dummy");
@@ -883,7 +791,7 @@ static void krb5_child_done(struct tevent_req *subreq)
             }
         }
 
-        state->pam_status = msg_status;
+        state->pam_status = res->msg_status;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
@@ -891,7 +799,7 @@ static void krb5_child_done(struct tevent_req *subreq)
 
     /* If the child request was successful and we run the first pass of the
      * change password request just return success. */
-    if (msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+    if (res->msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         state->pam_status = PAM_SUCCESS;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
@@ -902,7 +810,7 @@ static void krb5_child_done(struct tevent_req *subreq)
     if (kr->kpasswd_srv != NULL &&
         (pd->cmd == SSS_PAM_CHAUTHTOK || pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
         /* ..which is unreachable by now.. */
-        if (msg_status == PAM_AUTHTOK_LOCK_BUSY) {
+        if (res->msg_status == PAM_AUTHTOK_LOCK_BUSY) {
             be_fo_set_port_status(state->be_ctx,
                                   kr->kpasswd_srv, PORT_NOT_WORKING);
             /* ..try to resolve next kpasswd server */
@@ -919,8 +827,8 @@ static void krb5_child_done(struct tevent_req *subreq)
     /* if the KDC for auth (PAM_AUTHINFO_UNAVAIL) or
      * chpass (PAM_AUTHTOK_LOCK_BUSY) was not available while using KDC
      * also for chpass operation... */
-    if (msg_status == PAM_AUTHINFO_UNAVAIL ||
-        (kr->kpasswd_srv == NULL && msg_status == PAM_AUTHTOK_LOCK_BUSY)) {
+    if (res->msg_status == PAM_AUTHINFO_UNAVAIL ||
+        (kr->kpasswd_srv == NULL && res->msg_status == PAM_AUTHTOK_LOCK_BUSY)) {
         if (kr->srv != NULL) {
             be_fo_set_port_status(state->be_ctx, kr->srv, PORT_NOT_WORKING);
             /* ..try to resolve next KDC */
@@ -958,14 +866,14 @@ static void krb5_child_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (msg_status == PAM_SUCCESS &&
+    if (res->msg_status == PAM_SUCCESS &&
         dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0 &&
         (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_CMD_RENEW ||
          pd->cmd == SSS_PAM_CHAUTHTOK) &&
-        tgtt.renew_till > tgtt.endtime && kr->ccname != NULL) {
+        res->tgtt.renew_till > res->tgtt.endtime && kr->ccname != NULL) {
         DEBUG(7, ("Adding [%s] for automatic renewal.\n", kr->ccname));
-        ret = add_tgt_to_renew_table(kr->krb5_ctx, kr->ccname, &tgtt, pd,
-                                     kr->upn);
+        ret = add_tgt_to_renew_table(kr->krb5_ctx, kr->ccname, &(res->tgtt),
+                                     pd, kr->upn);
         if (ret != EOK) {
             DEBUG(1, ("add_tgt_to_renew_table failed, "
                       "automatic renewal not possible.\n"));

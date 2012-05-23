@@ -38,6 +38,9 @@
 
 #define KRB5_CHILD KRB5_CHILD_DIR"/krb5_child"
 
+#define TIME_T_MAX LONG_MAX
+#define int64_to_time_t(val) ((time_t)((val) < TIME_T_MAX ? val : TIME_T_MAX))
+
 struct io {
     int read_from_child_fd;
     int write_to_child_fd;
@@ -413,5 +416,134 @@ int handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     *buf = talloc_move(mem_ctx, &state->buf);
     *len = state->len;
 
+    return EOK;
+}
+
+errno_t
+parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
+                          struct pam_data *pd, int pwd_exp_warning,
+                          struct krb5_child_response **_res)
+{
+    ssize_t pref_len;
+    size_t p;
+    errno_t ret;
+    bool skip;
+    char *ccname = NULL;
+    size_t ccname_len;
+    int32_t msg_status;
+    int32_t msg_type;
+    int32_t msg_len;
+    int64_t time_data;
+    struct tgt_times tgtt;
+    uint32_t *expiration;
+    uint32_t *msg_subtype;
+    struct krb5_child_response *res;
+
+    if ((size_t) len < sizeof(int32_t)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("message too short.\n"));
+        return EINVAL;
+    }
+
+    if (pwd_exp_warning < 0) {
+        pwd_exp_warning = KERBEROS_PWEXPIRE_WARNING_TIME;
+    }
+
+    /* A buffer with the following structure is expected.
+     * int32_t status of the request (required)
+     * message (zero or more)
+     *
+     * A message consists of:
+     * int32_t type of the message
+     * int32_t length of the following data
+     * uint8_t[len] data
+     */
+
+    p=0;
+    SAFEALIGN_COPY_INT32(&msg_status, buf+p, &p);
+
+    while (p < len) {
+        skip = false;
+        SAFEALIGN_COPY_INT32(&msg_type, buf+p, &p);
+        SAFEALIGN_COPY_INT32(&msg_len, buf+p, &p);
+
+        DEBUG(SSSDBG_TRACE_LIBS, ("child response [%d][%d][%d].\n",
+              msg_status, msg_type, msg_len));
+
+        if ((p + msg_len) > len) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("message format error [%d] > [%d].\n",
+                  p+msg_len, len));
+            return EINVAL;
+        }
+
+        /* We need to save the name of the credential cache file. To find it
+         * we check if the data part of a message starts with
+         * CCACHE_ENV_NAME"=". pref_len also counts the trailing '=' because
+         * sizeof() counts the trailing '\0' of a string. */
+        pref_len = sizeof(CCACHE_ENV_NAME);
+        if (msg_len > pref_len &&
+            strncmp((const char *) &buf[p], CCACHE_ENV_NAME"=", pref_len) == 0) {
+            ccname = (char *) &buf[p+pref_len];
+            ccname_len = msg_len-pref_len;
+        }
+
+        if (msg_type == SSS_KRB5_INFO_TGT_LIFETIME &&
+            msg_len == 4*sizeof(int64_t)) {
+            SAFEALIGN_COPY_INT64(&time_data, buf+p, NULL);
+            tgtt.authtime = int64_to_time_t(time_data);
+            SAFEALIGN_COPY_INT64(&time_data, buf+p+sizeof(int64_t), NULL);
+            tgtt.starttime = int64_to_time_t(time_data);
+            SAFEALIGN_COPY_INT64(&time_data, buf+p+2*sizeof(int64_t), NULL);
+            tgtt.endtime = int64_to_time_t(time_data);
+            SAFEALIGN_COPY_INT64(&time_data, buf+p+3*sizeof(int64_t), NULL);
+            tgtt.renew_till = int64_to_time_t(time_data);
+            DEBUG(SSSDBG_TRACE_LIBS, ("TGT times are [%d][%d][%d][%d].\n",
+                  tgtt.authtime, tgtt.starttime, tgtt.endtime, tgtt.renew_till));
+        }
+
+        if (msg_type == SSS_PAM_USER_INFO) {
+            msg_subtype = (uint32_t *)&buf[p];
+            if (*msg_subtype == SSS_PAM_USER_INFO_EXPIRE_WARN)
+            {
+                expiration = (uint32_t *)&buf[p+sizeof(uint32_t)];
+                if (pwd_exp_warning > 0 &&
+                    difftime(pwd_exp_warning, *expiration) < 0.0) {
+                    skip = true;
+                }
+            }
+        }
+
+        if (!skip) {
+            ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);
+            if (ret != EOK) {
+                /* This is not a fatal error */
+                DEBUG(SSSDBG_CRIT_FAILURE, ("pam_add_response failed.\n"));
+            }
+        }
+
+        p += msg_len;
+
+        if ((p < len) && (p + 2*sizeof(int32_t) >= len)) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("The remainder of the message is too short.\n"));
+            return EINVAL;
+        }
+    }
+
+    res = talloc_zero(mem_ctx, struct krb5_child_response);
+    if (!res) return ENOMEM;
+
+    res->msg_status = msg_status;
+    memcpy(&res->tgtt, &tgtt, sizeof(tgtt));
+
+    if (ccname) {
+        res->ccname = talloc_strndup(res, ccname, ccname_len);
+        if (res->ccname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strndup failed.\n"));
+            talloc_free(res);
+            return ENOMEM;
+        }
+    }
+
+    *_res = res;
     return EOK;
 }
