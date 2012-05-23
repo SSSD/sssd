@@ -365,7 +365,7 @@ static int fill_pwent(struct sss_packet *packet,
 
         num++;
 
-        if (pw_mmap_cache) {
+        if (pw_mmap_cache && nctx->pwd_mc_ctx) {
             ret = sss_mmap_cache_pw_store(nctx->pwd_mc_ctx,
                                           &fullname, &pwfield,
                                           uid, gid,
@@ -1918,7 +1918,7 @@ static int fill_grent(struct sss_packet *packet,
 
         num++;
 
-        if (gr_mmap_cache) {
+        if (gr_mmap_cache && nctx->grp_mc_ctx) {
             /* body was reallocated, so fullname might be pointing to
              * where body used to be, not where it is */
             to_sized_string(&fullname, (const char *)&body[rzero+STRS_ROFFSET]);
