@@ -356,7 +356,7 @@ static int cleanup_users_logged_in(hash_table_t *table,
     uid = ldb_msg_find_attr_as_uint64(msg,
                                       SYSDB_UIDNUM, 0);
     if (!uid) {
-        DEBUG(2, ("Entry %s has no UID Attribute, fake user perhaps?\n",
+        DEBUG(SSSDBG_OP_FAILURE, ("Entry %s has no UID Attribute!\n",
                   ldb_dn_get_linearized(msg->dn)));
         return ENOENT;
     }

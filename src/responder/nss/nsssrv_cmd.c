@@ -258,7 +258,7 @@ static int fill_pwent(struct sss_packet *packet,
         gid = get_gid_override(msg, dom);
 
         if (!orig_name || !uid || !gid) {
-            DEBUG(2, ("Incomplete or fake user object for %s[%llu]! Skipping\n",
+            DEBUG(SSSDBG_OP_FAILURE, ("Incomplete user object for %s[%llu]! Skipping\n",
                       orig_name?orig_name:"<NULL>", (unsigned long long int)uid));
             continue;
         }

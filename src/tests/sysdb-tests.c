@@ -2865,7 +2865,7 @@ START_TEST(test_odd_characters)
                                odd_username,
                                10000, 10000,
                                "","","");
-    fail_unless(ret == EOK, "sysdb_add_fake_user error [%d][%s]",
+    fail_unless(ret == EOK, "sysdb_add_basic_user error [%d][%s]",
                             ret, strerror(ret));
 
     /* Retrieve */
