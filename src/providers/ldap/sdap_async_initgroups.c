@@ -323,6 +323,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct sdap_initgr_rfc2307_state *state;
+    const char **attr_filter;
     char *clean_name;
     errno_t ret;
 
@@ -353,8 +354,17 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    attr_filter = talloc_array(state, const char *, 2);
+    if (!attr_filter) {
+        talloc_free(req);
+        return NULL;
+    }
+
+    attr_filter[0] = opts->group_map[SDAP_AT_GROUP_MEMBER].name;
+    attr_filter[1] = NULL;
+
     ret = build_attrs_from_map(state, opts->group_map, SDAP_OPTS_GROUP,
-                               NULL, &state->attrs, NULL);
+                               attr_filter, &state->attrs, NULL);
     if (ret != EOK) {
         talloc_free(req);
         return NULL;
@@ -1463,6 +1473,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     errno_t ret;
     struct tevent_req *req;
     struct sdap_initgr_rfc2307bis_state *state;
+    const char **attr_filter;
     char *clean_orig_dn;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307bis_state);
@@ -1495,8 +1506,17 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         return NULL;
     }
 
+    attr_filter = talloc_array(state, const char *, 2);
+    if (!attr_filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attr_filter[0] = opts->group_map[SDAP_AT_GROUP_MEMBER].name;
+    attr_filter[1] = NULL;
+
     ret = build_attrs_from_map(state, opts->group_map, SDAP_OPTS_GROUP,
-                               NULL, &state->attrs, NULL);
+                               attr_filter, &state->attrs, NULL);
     if (ret != EOK) goto done;
 
     ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
@@ -2105,6 +2125,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx = NULL;
+    const char **attr_filter;
     char *clean_orig_dn;
     hash_key_t key;
     hash_value_t value;
@@ -2168,8 +2189,17 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
+    attr_filter = talloc_array(state, const char *, 2);
+    if (!attr_filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attr_filter[0] = state->opts->group_map[SDAP_AT_GROUP_MEMBER].name;
+    attr_filter[1] = NULL;
+
     ret = build_attrs_from_map(state, state->opts->group_map, SDAP_OPTS_GROUP,
-                               NULL, &state->attrs, NULL);
+                               attr_filter, &state->attrs, NULL);
     if (ret != EOK) {
         goto done;
     }
