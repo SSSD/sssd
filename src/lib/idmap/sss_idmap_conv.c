@@ -59,6 +59,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     if (dom_sid == NULL) {
         return IDMAP_OUT_OF_MEMORY;
     }
+    memset(dom_sid, 0, sizeof(struct sss_dom_sid));
 
     /* Safely copy in the SID revision number */
     dom_sid->sid_rev_num = (uint8_t) *(bin_sid + p);
@@ -383,6 +384,184 @@ done:
     ctx->free_func(dom_sid, ctx->alloc_pvt);
     if (err != IDMAP_SUCCESS) {
         ctx->free_func(sid, ctx->alloc_pvt);
+    }
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_sid_to_smb_sid(struct sss_idmap_ctx *ctx,
+                                               const char *sid,
+                                               struct dom_sid **_smb_sid)
+{
+    enum idmap_error_code err;
+    struct sss_dom_sid *dom_sid = NULL;
+    struct dom_sid *smb_sid = NULL;
+
+    err = sss_idmap_sid_to_dom_sid(ctx, sid, &dom_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_dom_sid_to_smb_sid(ctx, dom_sid, &smb_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    *_smb_sid = smb_sid;
+    err = IDMAP_SUCCESS;
+
+done:
+    ctx->free_func(dom_sid, ctx->alloc_pvt);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(smb_sid, ctx->alloc_pvt);
+    }
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_smb_sid_to_sid(struct sss_idmap_ctx *ctx,
+                                               struct dom_sid *smb_sid,
+                                               char **_sid)
+{
+    enum idmap_error_code err;
+    struct sss_dom_sid *dom_sid = NULL;
+    char *sid = NULL;
+
+    err = sss_idmap_smb_sid_to_dom_sid(ctx, smb_sid, &dom_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_dom_sid_to_sid(ctx, dom_sid, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    *_sid = sid;
+    err = IDMAP_SUCCESS;
+
+done:
+    ctx->free_func(dom_sid, ctx->alloc_pvt);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(sid, ctx->alloc_pvt);
+    }
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_dom_sid_to_smb_sid(struct sss_idmap_ctx *ctx,
+                                                   struct sss_dom_sid *dom_sid,
+                                                   struct dom_sid **_smb_sid)
+{
+    struct dom_sid *smb_sid;
+    size_t c;
+
+    smb_sid = ctx->alloc_func(sizeof(struct dom_sid), ctx->alloc_pvt);
+    if (smb_sid == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+    memset(smb_sid, 0, sizeof(struct dom_sid));
+
+    smb_sid->sid_rev_num = dom_sid->sid_rev_num;
+    smb_sid->num_auths = dom_sid->num_auths;
+    for (c = 0; c < SID_ID_AUTHS; c++) {
+        smb_sid->id_auth[c] = dom_sid->id_auth[c];
+    }
+    for (c = 0; c < SID_SUB_AUTHS; c++) {
+        smb_sid->sub_auths[c] = dom_sid->sub_auths[c];
+    }
+
+    *_smb_sid = smb_sid;
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_smb_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *smb_sid,
+                                                   struct sss_dom_sid **_dom_sid)
+{
+    struct sss_dom_sid *dom_sid;
+    size_t c;
+
+    dom_sid = ctx->alloc_func(sizeof(struct sss_dom_sid), ctx->alloc_pvt);
+    if (dom_sid == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+    memset(dom_sid, 0, sizeof(struct sss_dom_sid));
+
+    dom_sid->sid_rev_num = smb_sid->sid_rev_num;
+    dom_sid->num_auths = smb_sid->num_auths;
+    for (c = 0; c < SID_ID_AUTHS; c++) {
+        dom_sid->id_auth[c] = smb_sid->id_auth[c];
+    }
+    for (c = 0; c < SID_SUB_AUTHS; c++) {
+        dom_sid->sub_auths[c] = smb_sid->sub_auths[c];
+    }
+
+    *_dom_sid = dom_sid;
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_bin_sid_to_smb_sid(struct sss_idmap_ctx *ctx,
+                                                   const uint8_t *bin_sid,
+                                                   size_t length,
+                                                   struct dom_sid **_smb_sid)
+{
+    enum idmap_error_code err;
+    struct sss_dom_sid *dom_sid = NULL;
+    struct dom_sid *smb_sid = NULL;
+
+    err = sss_idmap_bin_sid_to_dom_sid(ctx, bin_sid, length, &dom_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_dom_sid_to_smb_sid(ctx, dom_sid, &smb_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    *_smb_sid = smb_sid;
+    err = IDMAP_SUCCESS;
+
+done:
+    ctx->free_func(dom_sid, ctx->alloc_pvt);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(smb_sid, ctx->alloc_pvt);
+    }
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_smb_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *smb_sid,
+                                                   uint8_t **_bin_sid,
+                                                   size_t *_length)
+{
+    enum idmap_error_code err;
+    struct sss_dom_sid *dom_sid = NULL;
+    uint8_t *bin_sid = NULL;
+    size_t length;
+
+    err = sss_idmap_smb_sid_to_dom_sid(ctx, smb_sid, &dom_sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_dom_sid_to_bin_sid(ctx, dom_sid, &bin_sid, &length);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    *_bin_sid = bin_sid;
+    *_length = length;
+    err = IDMAP_SUCCESS;
+
+done:
+    ctx->free_func(dom_sid, ctx->alloc_pvt);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(bin_sid, ctx->alloc_pvt);
     }
 
     return err;

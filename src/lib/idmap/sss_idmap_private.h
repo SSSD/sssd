@@ -38,4 +38,23 @@ struct sss_idmap_ctx {
     struct idmap_domain_info *idmap_domain_info;
 };
 
+/* This is a copy of the definition in the samba gen_ndr/security.h header
+ * file. We use it here to be able to offer conversions form struct dom_sid to
+ * string or binary representation since those are not made available by
+ * public samba libraries.
+ *
+ * If the definition ever changes on the samba side we have to adopt the
+ * change. But chances are very low that this will ever happen since e.g. this
+ * struct is also defined in public documentation from Microsoft. See e.g.
+ * section 2.4.2.3 of "[MS-DTYP]: Windows Data Types"
+ * http://msdn.microsoft.com/en-us/library/cc230364(v=prot.10)
+ */
+
+struct dom_sid {
+        uint8_t sid_rev_num;
+        int8_t num_auths;
+        uint8_t id_auth[6];
+        uint32_t sub_auths[15];
+};
+
 #endif /* SSS_IDMAP_PRIVATE_H_ */

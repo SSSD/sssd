@@ -23,6 +23,7 @@
 #include <check.h>
 
 #include "lib/idmap/sss_idmap.h"
+#include "lib/idmap/sss_idmap_private.h"
 #include "tests/common.h"
 
 #define IDMAP_RANGE_MIN 1234
@@ -34,6 +35,8 @@ uint8_t test_bin_sid[] = {0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15,
                           0x9B, 0x5F, 0xE7, 0x7C, 0x87, 0x70, 0x09, 0x1C, 0x01,
                           0x00};
 size_t test_bin_sid_length = sizeof(test_bin_sid);
+
+struct dom_sid test_smb_sid = {1, 5, {0, 0, 0, 0, 0, 5}, {21, 2127521184, 1604012920, 1887927527, 72713, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
 struct sss_idmap_ctx *idmap_ctx;
 
@@ -267,7 +270,7 @@ START_TEST(idmap_test_uid2bin_sid)
 }
 END_TEST
 
-START_TEST(idmap_test_sid_bin2dom_sid)
+START_TEST(idmap_test_bin_sid2dom_sid)
 {
     struct sss_dom_sid *dom_sid = NULL;
     enum idmap_error_code err;
@@ -357,6 +360,96 @@ START_TEST(idmap_test_bin_sid2sid)
 }
 END_TEST
 
+START_TEST(idmap_test_smb_sid2dom_sid)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    struct dom_sid *new_smb_sid = NULL;
+
+    err = sss_idmap_smb_sid_to_dom_sid(idmap_ctx, &test_smb_sid, &dom_sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert samba dom_sid to struct sss_dom_sid.");
+
+    err = sss_idmap_dom_sid_to_smb_sid(idmap_ctx, dom_sid, &new_smb_sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert struct sss_dom_sid to samba dom_sid.");
+
+    fail_unless(memcmp(&test_smb_sid, new_smb_sid, sizeof(struct dom_sid)) == 0,
+                "Samba dom_sid-s do not match.");
+
+    talloc_free(dom_sid);
+    talloc_free(new_smb_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_smb_sid2bin_sid)
+{
+    enum idmap_error_code err;
+    size_t length;
+    uint8_t *bin_sid = NULL;
+
+    err = sss_idmap_smb_sid_to_bin_sid(idmap_ctx, &test_smb_sid,
+                                       &bin_sid, &length);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert samba dom_sid to binary sid.");
+    fail_unless(length == test_bin_sid_length,
+                "Size of binary SIDs do not match, got [%d], expected [%d]",
+                length, test_bin_sid_length);
+    fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
+                "Binary SIDs do not match.");
+
+    talloc_free(bin_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_bin_sid2smb_sid)
+{
+    enum idmap_error_code err;
+    struct dom_sid *smb_sid = NULL;
+
+    err = sss_idmap_bin_sid_to_smb_sid(idmap_ctx, test_bin_sid,
+                                       test_bin_sid_length, &smb_sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert binary sid to samba dom_sid.");
+    fail_unless(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
+                 "Samba dom_sid structs do not match.");
+
+    talloc_free(smb_sid);
+}
+END_TEST
+
+START_TEST(idmap_test_smb_sid2sid)
+{
+    enum idmap_error_code err;
+    char *sid = NULL;
+
+    err = sss_idmap_smb_sid_to_sid(idmap_ctx, &test_smb_sid, &sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert samba dom_sid to sid string.");
+    fail_unless(strcmp(sid, test_sid) == 0, "SID strings do not match, "
+                                            "expected [%s], get [%s]",
+                                            test_sid, sid);
+
+    talloc_free(sid);
+}
+END_TEST
+
+START_TEST(idmap_test_sid2smb_sid)
+{
+    enum idmap_error_code err;
+    struct dom_sid *smb_sid = NULL;
+
+    err = sss_idmap_sid_to_smb_sid(idmap_ctx, test_sid, &smb_sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert binary sid to samba dom_sid.");
+    fail_unless(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
+                 "Samba dom_sid structs do not match.");
+
+    talloc_free(smb_sid);
+}
+END_TEST
+
+
 Suite *idmap_test_suite (void)
 {
     Suite *s = suite_create ("IDMAP");
@@ -392,10 +485,15 @@ Suite *idmap_test_suite (void)
                               idmap_ctx_setup,
                               idmap_ctx_teardown);
 
-    tcase_add_test(tc_conv, idmap_test_sid_bin2dom_sid);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid);
     tcase_add_test(tc_conv, idmap_test_sid2dom_sid);
     tcase_add_test(tc_conv, idmap_test_sid2bin_sid);
     tcase_add_test(tc_conv, idmap_test_bin_sid2sid);
+    tcase_add_test(tc_conv, idmap_test_smb_sid2dom_sid);
+    tcase_add_test(tc_conv, idmap_test_smb_sid2bin_sid);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2smb_sid);
+    tcase_add_test(tc_conv, idmap_test_smb_sid2sid);
+    tcase_add_test(tc_conv, idmap_test_sid2smb_sid);
 
     suite_add_tcase(s, tc_conv);
 

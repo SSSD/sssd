@@ -98,6 +98,13 @@ struct sss_dom_sid;
 struct sss_idmap_ctx;
 
 /**
+ * Placeholder for Samba's struct dom_sid. Consumers of libsss_idmap should
+ * include an appropriate Samba header file to define struct dom_sid. We use
+ * it here to avoid a hard dependency on Samba devel packages.
+ */
+struct dom_sid;
+
+/**
  * @brief Initialize idmap context
  *
  * @param[in] alloc_func Function to allocate memory for the context, if
@@ -375,6 +382,106 @@ enum idmap_error_code sss_idmap_dom_sid_to_sid(struct sss_idmap_ctx *ctx,
 enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                const char *sid,
                                                struct sss_dom_sid **dom_sid);
+
+/**
+ * @brief Convert SID string to Samba dom_sid structure
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] sid       Zero-terminated string representation of the SID
+ * @param[out] smb_sid  Samba dom_sid structure,
+ *                      must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_sid_to_smb_sid(struct sss_idmap_ctx *ctx,
+                                               const char *sid,
+                                               struct dom_sid **smb_sid);
+
+/**
+ * @brief Convert Samba dom_sid structure to SID string
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] smb_sid   Samba dom_sid structure
+ * @param[out] sid      Zero-terminated string representation of the SID,
+ *                      must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_smb_sid_to_sid(struct sss_idmap_ctx *ctx,
+                                               struct dom_sid *smb_sid,
+                                               char **sid);
+
+/**
+ * @brief Convert SID stucture to Samba dom_sid structure
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] dom_sid   SID structure
+ * @param[out] smb_sid  Samba dom_sid structure,
+ *                      must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_dom_sid_to_smb_sid(struct sss_idmap_ctx *ctx,
+                                                   struct sss_dom_sid *dom_sid,
+                                                   struct dom_sid **smb_sid);
+
+/**
+ * @brief Convert Samba dom_sid structure to SID structure
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] smb_sid   Samba dom_sid structure
+ * @param[out] dom_sid  SID structure,
+ *                      must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_smb_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *smb_sid,
+                                                   struct sss_dom_sid **dom_sid);
+
+/**
+ * @brief Convert binary SID to Samba dom_sid structure
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] bin_sid   Array with the binary SID
+ * @param[in] length    Size of the array containing the binary SID
+ * @param[out] smb_sid  Samba dom_sid structure,
+ *                      must be freed if not needed anymore
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_bin_sid_to_smb_sid(struct sss_idmap_ctx *ctx,
+                                                   const uint8_t *bin_sid,
+                                                   size_t length,
+                                                   struct dom_sid **smb_sid);
+
+/**
+ * @brief Convert Samba dom_sid structure to binary SID
+ *
+ * @param[in] ctx       Idmap context
+ * @param[in] smb_sid   Samba dom_sid structure
+ * @param[out] bin_sid  Array with the binary SID,
+ *                      must be freed if not needed anymore
+ * @param[out] length   Size of the array containing the binary SID
+ *
+ * @return
+ *  - #IDMAP_SID_INVALID: Given SID is invalid
+ *  - #IDMAP_OUT_OF_MEMORY: Failed to allocate memory for the result
+ */
+enum idmap_error_code sss_idmap_smb_sid_to_bin_sid(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *smb_sid,
+                                                   uint8_t **bin_sid,
+                                                   size_t *length);
 /**
  * @}
  */
