@@ -1050,7 +1050,7 @@ errno_t parse_getservbyport(TALLOC_CTX *mem_ctx,
     SAFEALIGN_COPY_UINT16(&c, body, NULL);
     port = ntohs(c);
 
-    port_and_padding_len = 2 * sizeof(uint16_t) + sizeof(uint32_t);
+    port_and_padding_len = 2 * sizeof(uint16_t);
     i = port_and_padding_len;
     j = 0;
 
