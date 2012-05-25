@@ -54,8 +54,8 @@ static void sss_nss_getservent_data_clean(void) {
  *
  * GETSERVBYPORT Request:
  * 0-3: 16-bit port number in network byte order
- * 4-7: Reserved/padding
- * 8-X: Zero-terminated string (protocol)
+ * 4-15: Reserved/padding
+ * 16-X: Zero-terminated string (protocol)
  * Protocol may be zero-length to imply "any"
  *
  * Replies:
@@ -297,6 +297,7 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
 
     /* Padding */
     SAFEALIGN_SET_UINT16(data + p, 0, &p);
+    SAFEALIGN_SET_UINT32(data + p, 0, &p);
 
     if (protocol) {
         memcpy(data + p, protocol, proto_len + 1);
