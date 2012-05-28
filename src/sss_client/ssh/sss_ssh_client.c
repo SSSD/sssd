@@ -146,12 +146,12 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     rd.len = req_len;
 
     req_ret = sss_ssh_make_request(command, &rd, &rep, &rep_len, &req_errno);
-    if (req_ret != SSS_STATUS_SUCCESS) {
-        ret = EFAULT;
-        goto done;
-    }
     if (req_errno != EOK) {
         ret = req_errno;
+        goto done;
+    }
+    if (req_ret != SSS_STATUS_SUCCESS) {
+        ret = EFAULT;
         goto done;
     }
 

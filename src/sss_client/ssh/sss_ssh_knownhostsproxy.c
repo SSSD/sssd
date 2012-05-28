@@ -73,7 +73,6 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, ("socket() failed (%d): %s\n",
                 ret, strerror(ret)));
-        ERROR("Failed to open a socket\n");
         goto done;
     }
 
@@ -83,7 +82,6 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, ("connect() failed (%d): %s\n",
                 ret, strerror(ret)));
-        ERROR("Failed to connect to the server\n");
         goto done;
     }
 
@@ -176,7 +174,6 @@ connect_proxy_command(char **args)
     ret = errno;
     DEBUG(SSSDBG_OP_FAILURE, ("execv() failed (%d): %s\n",
             ret, strerror(ret)));
-    ERROR("Failed to execute proxy command\n");
 
     return ret;
 }
@@ -213,14 +210,13 @@ int main(int argc, const char **argv)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("set_locale() failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     mem_ctx = talloc_new(NULL);
     if (!mem_ctx) {
-        ERROR("Not enough memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Not enough memory\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -260,7 +256,6 @@ int main(int argc, const char **argv)
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
-        ERROR("Host name cannot be resolved\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -270,8 +265,7 @@ int main(int argc, const char **argv)
                       canonhost, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
-        ERROR("Reverse lookup failed\n");
+              ("getnameinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -280,7 +274,7 @@ int main(int argc, const char **argv)
     if (pc_domain) {
         host = talloc_asprintf(mem_ctx, "%s@%s", canonhost, pc_domain);
         if (!host) {
-            ERROR("Not enough memory\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Not enough memory\n"));
             ret = EXIT_FAILURE;
             goto fini;
         }
@@ -292,9 +286,8 @@ int main(int argc, const char **argv)
     ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
                           host, pc_host, &ent);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_OP_FAILURE,
               ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error looking up public keys\n");
     }
 
     /* connect to server */
