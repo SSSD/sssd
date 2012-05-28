@@ -262,13 +262,18 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
         goto done;
     }
     tmp_ccname = talloc_asprintf_append(tmp_ccname, "/.krb5cc_dummy_XXXXXX");
+    if (tmp_ccname == NULL) {
+        kerr = ENOMEM;
+        goto done;
+    }
 
     old_umask = umask(077);
     fd = mkstemp(tmp_ccname);
     umask(old_umask);
     if (fd == -1) {
-        DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
         kerr = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("mkstemp failed [%d][%s].\n", kerr, strerror(kerr)));
         goto done;
     }
 
@@ -315,15 +320,17 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
     if (ccname_len >= 6 && strcmp(cc_file_name + (ccname_len-6), "XXXXXX")==0 ) {
         fd = mkstemp(cc_file_name);
         if (fd == -1) {
-            DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
             kerr = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("mkstemp failed [%d][%s].\n", kerr, strerror(kerr)));
             goto done;
         }
     }
 
     kerr = rename(tmp_ccname, cc_file_name);
     if (kerr == -1) {
-        DEBUG(1, ("rename failed [%d][%s].\n", errno, strerror(errno)));
+        kerr = errno;
+        DEBUG(1, ("rename failed [%d][%s].\n", kerr, strerror(kerr)));
     }
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Created ccache file: [%s]\n", cc_file_name));
