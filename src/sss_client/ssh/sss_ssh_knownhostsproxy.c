@@ -182,7 +182,7 @@ int main(int argc, const char **argv)
 {
     TALLOC_CTX *mem_ctx = NULL;
     int pc_debug = SSSDBG_DEFAULT;
-    const char *pc_port = "22";
+    int pc_port = 22;
     const char *pc_domain = NULL;
     const char *pc_host = NULL;
     const char **pc_args = NULL;
@@ -190,17 +190,18 @@ int main(int argc, const char **argv)
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0,
           _("The debug level to run with"), NULL },
-        { "port", 'p', POPT_ARG_STRING, &pc_port, 0,
+        { "port", 'p', POPT_ARG_INT, &pc_port, 0,
           _("The port to use to connect to the host"), NULL },
         { "domain", 'd', POPT_ARG_STRING, &pc_domain, 0,
           _("The SSSD domain to use"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
+    char strport[6];
     struct addrinfo ai_hint;
     struct addrinfo *ai = NULL;
     char canonhost[NI_MAXHOST];
-    const char *host;
+    const char *host = NULL;
     struct sss_ssh_ent *ent;
     int ret;
 
@@ -233,6 +234,10 @@ int main(int argc, const char **argv)
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
+    if (pc_port < 1 || pc_port > 65535) {
+        BAD_POPT_PARAMS(pc, _("Invalid port\n"), ret, fini);
+    }
+
     pc_host = poptGetArg(pc);
     if (pc_host == NULL) {
         BAD_POPT_PARAMS(pc, _("Host not specified\n"), ret, fini);
@@ -245,56 +250,64 @@ int main(int argc, const char **argv)
                 ret, fini);
     }
 
-    /* get IP addresses of the host */
+    /* canonicalize hostname */
+    snprintf(strport, 6, "%d", pc_port);
+
     memset(&ai_hint, 0, sizeof(struct addrinfo));
     ai_hint.ai_family = AF_UNSPEC;
     ai_hint.ai_socktype = SOCK_STREAM;
     ai_hint.ai_protocol = IPPROTO_TCP;
-    ai_hint.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
+    ai_hint.ai_flags = AI_ADDRCONFIG | AI_NUMERICHOST | AI_NUMERICSERV;
 
-    ret = getaddrinfo(pc_host, pc_port, &ai_hint, &ai);
+    ret = getaddrinfo(pc_host, strport, &ai_hint, &ai);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
+        ai_hint.ai_flags = AI_ADDRCONFIG | AI_CANONNAME | AI_NUMERICSERV;
 
-    /* canonicalize hostname */
-    ret = getnameinfo(ai[0].ai_addr, ai[0].ai_addrlen,
-                      canonhost, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("getnameinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    /* append domain to hostname if domain is specified */
-    if (pc_domain) {
-        host = talloc_asprintf(mem_ctx, "%s@%s", canonhost, pc_domain);
-        if (!host) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Not enough memory\n"));
-            ret = EXIT_FAILURE;
-            goto fini;
+        ret = getaddrinfo(pc_host, strport, &ai_hint, &ai);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+        } else {
+            host = ai[0].ai_canonname;
         }
     } else {
-        host = canonhost;
+        ret = getnameinfo(ai[0].ai_addr, ai[0].ai_addrlen,
+                          canonhost, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("getnameinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+        } else {
+            host = canonhost;
+        }
     }
 
-    /* look up public keys */
-    ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
-                          host, pc_host, &ent);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
+    if (host) {
+        /* append domain to hostname if domain is specified */
+        if (pc_domain) {
+            host = talloc_asprintf(mem_ctx, "%s@%s", host, pc_domain);
+            if (!host) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Not enough memory\n"));
+                ret = EXIT_FAILURE;
+                goto fini;
+            }
+        }
+
+        /* look up public keys */
+        ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
+                              host, pc_host, &ent);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
+        }
     }
 
     /* connect to server */
     if (pc_args) {
         ret = connect_proxy_command(discard_const(pc_args));
-    } else {
+    } else if (ai) {
         ret = connect_socket(ai[0].ai_family, ai[0].ai_addr, ai[0].ai_addrlen);
+    } else {
+        ret = EFAULT;
     }
     ret = (ret == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
