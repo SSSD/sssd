@@ -286,7 +286,7 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
         }
     }
 
-    rd.len = sizeof(uint16_t)*2 + proto_len + 1;
+    rd.len = sizeof(uint32_t)*2 + proto_len + 1;
     data = malloc(sizeof(uint8_t)*rd.len);
     if (data == NULL) {
         nret = NSS_STATUS_TRYAGAIN;
