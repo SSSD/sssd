@@ -111,6 +111,8 @@ static int pack_buffer(struct response *r, int result, krb5_error_code krberr,
     r->size = 2 * sizeof(uint32_t) + sizeof(krb5_error_code) +
               len + sizeof(time_t);
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("response size: %d\n",r->size));
+
     r->buf = talloc_array(r, uint8_t, r->size);
     if(!r->buf) {
         return ENOMEM;
@@ -190,6 +192,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("got realm_name: [%s]\n", realm_name));
+
     if (princ_str) {
         if (!strchr(princ_str, '@')) {
             full_princ = talloc_asprintf(memctx, "%s@%s",
@@ -206,6 +210,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
             goto done;
         }
         hostname[511] = '\0';
+
+        DEBUG(SSSDBG_TRACE_LIBS, ("got hostname: [%s]\n", hostname));
 
         ret = select_principal_from_keytab(memctx, hostname, realm_name,
                                            keytab_name, &full_princ, NULL, NULL);
@@ -250,6 +256,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("keytab ccname: [%s]\n"));
 
     krberr = krb5_cc_resolve(context, ccname, &ccache);
     if (krberr) {

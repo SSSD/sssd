@@ -126,6 +126,7 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
         DEBUG(1, ("Time to expire out of range.\n"));
         return;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("exp_time: [%d]\n", exp_time));
 
     blob = talloc_array(kr->pd, uint32_t, 2);
     if (blob == NULL) {
@@ -203,6 +204,8 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
         DEBUG(1, ("krb5_build_principal_ext failed.\n"));
         goto done;
     }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Created empty krb5_creds.\n"));
 
 done:
     if (kerr != 0) {
@@ -323,6 +326,8 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
         DEBUG(1, ("rename failed [%d][%s].\n", errno, strerror(errno)));
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS, ("Created ccache file: [%s]\n", cc_file_name));
+
 done:
     if (fd != -1) {
         close(fd);
@@ -361,7 +366,6 @@ static errno_t pack_response_packet(struct response *resp, int status,
         pdr = pdr->next;
     }
 
-
     resp->buf = talloc_array(resp, uint8_t, size);
     if (!resp->buf) {
         DEBUG(1, ("Insufficient memory to create message.\n"));
@@ -379,8 +383,9 @@ static errno_t pack_response_packet(struct response *resp, int status,
         pdr = pdr->next;
     }
 
-
     resp->size = p;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("response packet size: [%d]\n", p));
 
     return EOK;
 }
@@ -476,6 +481,8 @@ static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
                written, resp->size));
         return EOK;
     }
+
+    DEBUG(SSSDBG_TRACE_ALL, ("Response sent.\n"));
 
     return EOK;
 }
@@ -1034,6 +1041,7 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
         KRB5_DEBUG(1, kerr);
         if (kerr == KRB5_KDC_UNREACH) {
             status = PAM_AUTHINFO_UNAVAIL;
+            DEBUG(SSSDBG_TRACE_ALL, ("kdc unreachable for renewed creds.\n"));
         }
         goto done;
     }
@@ -1121,6 +1129,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     size_t p = 0;
     uint32_t len;
     uint32_t validate;
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: [%d]\n", size));
 
     SAFEALIGN_COPY_UINT32_CHECK(&pd->cmd, buf + p, size, &p);
     SAFEALIGN_COPY_UINT32_CHECK(&kr->uid, buf + p, size, &p);
@@ -1342,7 +1352,6 @@ static krb5_error_code check_fast_ccache(krb5_context ctx, const char *primary,
         DEBUG(1, ("get_and_save_tgt_with_keytab failed.\n"));
         goto done;
     }
-
 
     kerr = 0;
 
