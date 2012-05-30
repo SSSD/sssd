@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-20 11:22-0400\n"
-"PO-Revision-Date: 2012-04-20 16:09+0000\n"
+"POT-Creation-Date: 2012-05-30 12:29-0400\n"
+"PO-Revision-Date: 2012-05-22 15:07+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -912,22 +912,22 @@ msgstr "Вказати нетиповий файл налаштувань"
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
+#: src/providers/krb5/krb5_child.c:1604 src/providers/ldap/ldap_child.c:402
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
+#: src/providers/krb5/krb5_child.c:1606 src/providers/ldap/ldap_child.c:404
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
+#: src/providers/krb5/krb5_child.c:1608 src/providers/ldap/ldap_child.c:406
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
-#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
+#: src/providers/krb5/krb5_child.c:1610 src/providers/ldap/ldap_child.c:408
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
@@ -976,14 +976,14 @@ msgid ", your cached password will expire at: "
 msgstr ", строк дії вашого кешованого пароля завершиться: "
 
 #: src/sss_client/pam_sss.c:643
-#, c-format
+#, fuzzy, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr "Строк дії вашого пароля вичерпано. Залишилося %d резервних входи."
+msgstr "Строк дії вашого пароля вичерпано. Залишилося %1$d резервних входи."
 
 #: src/sss_client/pam_sss.c:689
-#, c-format
+#, fuzzy, c-format
 msgid "Your password will expire in %d %s."
-msgstr "Строк дії вашого пароля завершиться за %d %s."
+msgstr "Строк дії вашого пароля завершиться за %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
@@ -1171,9 +1171,9 @@ msgid "Groups must be in the same domain as user\n"
 msgstr "Групи мають належати до того самого домену, що і користувач\n"
 
 #: src/tools/sss_useradd.c:153
-#, c-format
+#, fuzzy, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr "Не вдалося знайти групу %s у локальному домені\n"
+msgstr "Не вдалося знайти групу %1$s у локальному домені\n"
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1199,14 +1199,14 @@ msgstr ""
 "виконуватиметься\n"
 
 #: src/tools/sss_useradd.c:232
-#, c-format
+#, fuzzy, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr "Не вдалося створити домашній каталог користувача: %s\n"
+msgstr "Не вдалося створити домашній каталог користувача: %1$s\n"
 
 #: src/tools/sss_useradd.c:243
-#, c-format
+#, fuzzy, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr "Не вдалося створити поштовий буфер користувача: %s\n"
+msgstr "Не вдалося створити поштовий буфер користувача: %1$s\n"
 
 #: src/tools/sss_useradd.c:255
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1252,9 +1252,9 @@ msgid "Specify group to delete\n"
 msgstr "Вкажіть групу, яку слід вилучити\n"
 
 #: src/tools/sss_groupdel.c:101
-#, c-format
+#, fuzzy, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
-msgstr "Група %s не належить визначеному діапазону ідентифікаторів домену\n"
+msgstr "Група %1$s не належить визначеному діапазону ідентифікаторів домену\n"
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1299,12 +1299,12 @@ msgstr ""
 
 #: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
-"Не вдалося знайти групу %s у локальному домені, можна використовувати лише "
+"Не вдалося знайти групу %1$s у локальному домені, можна використовувати лише "
 "групи з локального домену\n"
 
 #: src/tools/sss_groupmod.c:216
@@ -1323,41 +1323,41 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Помилка під час виконання операції Не вдалося змінити групу.\n"
 
 #: src/tools/sss_groupshow.c:562
-#, c-format
+#, fuzzy, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "%s%sГрупа: %s\n"
+msgstr "%1$s%2$sГрупа: %3$s\n"
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
 msgstr "Магічна приватна "
 
 #: src/tools/sss_groupshow.c:565
-#, c-format
+#, fuzzy, c-format
 msgid "%sGID number: %d\n"
-msgstr "%sНомер GID: %d\n"
+msgstr "%1$sНомер GID: %2$d\n"
 
 #: src/tools/sss_groupshow.c:567
-#, c-format
+#, fuzzy, c-format
 msgid "%sMember users: "
-msgstr "%sКористувачі-учасники: "
+msgstr "%1$sКористувачі-учасники: "
 
 #: src/tools/sss_groupshow.c:574
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
 "\n"
-"%sє учасником: "
+"%1$sє учасником: "
 
 #: src/tools/sss_groupshow.c:581
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
 "\n"
-"%sГрупи-учасники: "
+"%1$sГрупи-учасники: "
 
 #: src/tools/sss_groupshow.c:617
 msgid "Print indirect group members recursively"
@@ -1400,20 +1400,20 @@ msgid "Specify user to delete\n"
 msgstr "Вкажіть користувача, запис якого слід вилучити\n"
 
 #: src/tools/sss_userdel.c:230
-#, c-format
+#, fuzzy, c-format
 msgid "User %s is outside the defined ID range for domain\n"
 msgstr ""
-"Користувач %s не належить визначеному діапазону ідентифікаторів домену\n"
+"Користувач %1$s не належить визначеному діапазону ідентифікаторів домену\n"
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
 msgstr "Не вдалося відновити початковий контекст входу SELinux\n"
 
 #: src/tools/sss_userdel.c:267
-#, c-format
+#, fuzzy, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
-"ПОПЕРЕДЖЕННЯ: користувач (uid %lu) все ще працював у системі на час "
+"ПОПЕРЕДЖЕННЯ: користувач (uid %1$lu) все ще працював у системі на час "
 "вилучення його запису.\n"
 
 #: src/tools/sss_userdel.c:272
@@ -1426,18 +1426,18 @@ msgid "Error while checking if the user was logged in\n"
 msgstr "Помилка під час перевірки входу користувача до системи\n"
 
 #: src/tools/sss_userdel.c:284
-#, c-format
+#, fuzzy, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr "Помилка команди, яку слід було виконати після вилучення запису: %s\n"
+msgstr "Помилка команди, яку слід було виконати після вилучення запису: %1$s\n"
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
 msgstr "Домашній каталог не буде вилучено. Він не належить користувачеві.\n"
 
 #: src/tools/sss_userdel.c:298
-#, c-format
+#, fuzzy, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr "Не вдалося вилучити домашній каталог: %s\n"
+msgstr "Не вдалося вилучити домашній каталог: %1$s\n"
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1499,14 +1499,14 @@ msgstr ""
 "Помилка під час виконання операції. Не вдалося змінити запис користувача.\n"
 
 #: src/tools/sss_cache.c:132
-#, c-format
+#, fuzzy, c-format
 msgid "Couldn't invalidate %s"
-msgstr "Не вдалося скасувати визначення %s"
+msgstr "Не вдалося скасувати визначення %1$s"
 
 #: src/tools/sss_cache.c:138
-#, c-format
+#, fuzzy, c-format
 msgid "Couldn't invalidate %s %s"
-msgstr "Не вдалося скасувати визначення %s %s"
+msgstr "Не вдалося скасувати визначення %1$s %2$s"
 
 #: src/tools/sss_cache.c:262
 msgid "Invalidate particular user"
@@ -1549,10 +1549,100 @@ msgid "Out of memory\n"
 msgstr "Не вистачає пам'яті\n"
 
 #: src/tools/tools_util.h:40
-#, c-format
+#, fuzzy, c-format
 msgid "%s must be run as root\n"
-msgstr "%s слід виконувати від імені користувача root\n"
+msgstr "%1$s слід запускати від імені користувача root\n"
 
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
+
+#~ msgid ""
+#~ "Timeout between three failed ping checks and forcibly killing the service"
+#~ msgstr ""
+#~ "Час очікуванням між трьома послідовними невдалими спробами перевірки луна-"
+#~ "імпульсом і примусовим завершенням роботи служби"
+
+#~ msgid "The number of file descriptors that may be opened by this responder"
+#~ msgstr ""
+#~ "Кількість дескрипторів файлів, які може бути відкрито цим відповідачем"
+
+#~ msgid ""
+#~ "Substitute empty homedir value from the identity provider with this value"
+#~ msgstr ""
+#~ "Замінювати порожні значення домашніх каталогів у засобі надання даних "
+#~ "профілів цим значенням"
+
+#~ msgid "Shell to use if the provider does not list one"
+#~ msgstr "Оболонка, яку слід використовувати, якщо засіб не надає жодної"
+
+#~ msgid "Whether to hash host names and addresses in the known_hosts file"
+#~ msgstr "Чи слід хешувати назви та адреси вузлів у файлі known_hosts"
+
+#~ msgid "Use ID-mapping of objectSID instead of pre-set IDs"
+#~ msgstr ""
+#~ "Використовувати відповідності ідентифікаторів objectSID замість "
+#~ "попередньо встановлених ідентифікаторів"
+
+#~ msgid "objectSID attribute"
+#~ msgstr "Атрибут objectSID"
+
+#~ msgid "Active Directory primary group attribute for ID-mapping"
+#~ msgstr ""
+#~ "Атрибут основної групи Active Directory для встановлення відповідності "
+#~ "ідентифікатора"
+
+#~ msgid "Lower bound for ID-mapping"
+#~ msgstr "Нижня межа встановлення відповідності ідентифікатора"
+
+#~ msgid "Upper bound for ID-mapping"
+#~ msgstr "Верхня межа встановлення відповідності ідентифікатора"
+
+#~ msgid "Number of IDs for each slice when ID-mapping"
+#~ msgstr ""
+#~ "Кількість ідентифікаторів для кожного зрізу під час встановлення "
+#~ "відповідності ідентифікаторів"
+
+#~ msgid "Use autorid-compatible algorithm for ID-mapping"
+#~ msgstr ""
+#~ "Використовувати для встановлення відповідності ідентифікаторів алгоритм, "
+#~ "сумісний з autorid"
+
+#~ msgid "Name of the default domain for ID-mapping"
+#~ msgstr ""
+#~ "Назва типового домену для встановлення відповідності ідентифікаторів"
+
+#~ msgid "SID of the default domain for ID-mapping"
+#~ msgstr "SID типового домену для встановлення відповідності ідентифікаторів"
+
+#~ msgid "No cache object matched the specified search\n"
+#~ msgstr "Вказаному критерію пошуку не відповідає жоден об’єкт у кеші\n"
+
+#~ msgid "No such %1$s named %2$s, skipping\n"
+#~ msgstr "Немає %1$s з назвою %2$s, пропускаємо\n"
+
+#~ msgid "No objects of type %1$s in the cache, skipping\n"
+#~ msgstr "У кеші немає об’єктів типу %1$s, пропускаємо\n"
+
+#~ msgid "Invalidate particular service"
+#~ msgstr "Скасувати визначення певної служби"
+
+#~ msgid "Invalidate all services"
+#~ msgstr "Скасувати визначення всіх служб"
+
+#~ msgid "Invalidate particular autofs map"
+#~ msgstr "Скасувати визначення певну карту autofs"
+
+#~ msgid "Invalidate all autofs maps"
+#~ msgstr "Скасувати визначення всіх карт autofs"
+
+#~ msgid "Please select at least one object to invalidate\n"
+#~ msgstr ""
+#~ "Будь ласка, виберіть принаймні один об’єкт для скасовування "
+#~ "відповідності\n"
+
+#~ msgid "Could not open domain %1$s\n"
+#~ msgstr "Не вдалося відкрити домен %1$s\n"
+
+#~ msgid "Could not open available domains\n"
+#~ msgstr "Не вдалося відкрити доступні домени\n"

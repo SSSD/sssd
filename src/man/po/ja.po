@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-04-20 13:21-0300\n"
-"PO-Revision-Date: 2012-04-23 00:55+0000\n"
-"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
+"POT-Creation-Date: 2012-05-30 12:29-0300\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -1045,8 +1045,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:590
+#, fuzzy
+#| msgid "Default: 077"
 msgid "Default: 7"
-msgstr "初期値: 7"
+msgstr "初期値: 077"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:598
@@ -1485,8 +1487,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:925
+#, fuzzy
+#| msgid "<quote>deny</quote> always deny access."
 msgid "<quote>permit</quote> always allow access."
-msgstr "<quote>permit</quote> は常にアクセスを許可します。"
+msgstr "<quote>deny</quote> は常にアクセスを拒否します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:928
@@ -2382,14 +2386,6 @@ msgid ""
 "members are listed by DN and stored in the <emphasis>member</emphasis> "
 "attribute."
 msgstr ""
-"ターゲット LDAP サーバーにおいて使用中のスキーマ形式を指定します。選択された"
-"スキーマに応じて、サーバーから取得される属性名の初期変わります。処理されるい"
-"くつかの属性も変わります。現在 3 つのスキーマ形式がサポートされます: "
-"rfc2307, rfc2307bis, IPA 。これらのスキーマ形式のおもな違いは、グループのメン"
-"バーがサーバーにおいてどのように記録されるかです。rfc2307 を使用すると、グ"
-"ループのメンバーは <emphasis>memberUid</emphasis> 属性に名前により一覧化され"
-"ます。rfc2307bis および IPA を使用すると、グループのメンバーは DN により一覧"
-"化され、<emphasis>member</emphasis> 属性に保存されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:180
@@ -8047,3 +8043,115 @@ msgid ""
 "<command>sss_user*</command> and <command>sss_group*</command> tools use a "
 "local LDB storage to store users and groups."
 msgstr ""
+
+#~ msgid "fallback_homedir (string)"
+#~ msgstr "fallback_homedir (文字列)"
+
+#~ msgid ""
+#~ "Set a default template for a user's home directory if one is not "
+#~ "specified explicitly by the domain's data provider."
+#~ msgstr ""
+#~ "ドメインのデータプロバイダーにより明示的に指定されていない場合に、ユーザー"
+#~ "のホームディレクトリーの標準テンプレートを設定します。"
+
+#~ msgid ""
+#~ "The available values for this option are the same as for override_homedir."
+#~ msgstr ""
+#~ "このオプションに対して利用可能なオプションは override_homedir に対するもの"
+#~ "と同じです。"
+
+#~ msgid "Default: not set (no substitution for unset home directories)"
+#~ msgstr "初期値: 設定なし (ホームディレクトリーの設定がない場合は代替なし)"
+
+#~ msgid "default_shell"
+#~ msgstr "default_shell"
+
+#~ msgid "Default: 7 (Kerberos), 0 (LDAP)"
+#~ msgstr "初期値: 7 (Kerberos), 0 (LDAP)"
+
+#~ msgid ""
+#~ "Use the full name and domain (as formatted by the domain's "
+#~ "full_name_format) as the user's login name reported to NSS."
+#~ msgstr ""
+#~ "NSS に報告するユーザーのログイン名としてフルネームとドメイン (ドメインの完"
+#~ "全名形式により整形されたように) を使用します。"
+
+#~ msgid ""
+#~ "<quote>permit</quote> always allow access. It's the only permitted access "
+#~ "provider for a local domain."
+#~ msgstr ""
+#~ "<quote>permit</quote> は常にアクセスを許可します。ローカルドメインに対する"
+#~ "プロバイダーのみアクセスが許可されます。"
+
+#~ msgid "Advanced Configuration"
+#~ msgstr "高度な設定"
+
+#~ msgid "ldap_idmap_range_min (integer)"
+#~ msgstr "ldap_idmap_range_min (整数)"
+
+#~ msgid ""
+#~ "Specifies the lower bound of the range of POSIX IDs to use for mapping "
+#~ "Active Directory user and group SIDs."
+#~ msgstr ""
+#~ "Active Directory ユーザーとグループの SID をマッピングするために使用する "
+#~ "POSIX ID の範囲の下限を指定します。"
+
+#~ msgid "Default: 10001"
+#~ msgstr "初期値: 10001"
+
+#~ msgid "Default: 2000100000"
+#~ msgstr "初期値: 2000100000"
+
+#~ msgid "ldap_idmap_range_size (integer)"
+#~ msgstr "ldap_idmap_range_size (整数)"
+
+#~ msgid ""
+#~ "Specifies the number of IDs available for each slice.  If the range size "
+#~ "does not divide evenly into the min and max values, it will create as "
+#~ "many complete slices as it can."
+#~ msgstr ""
+#~ "各スライスに利用可能な ID 番号を指定します。範囲の大きさが最小値、最大値の"
+#~ "中にうまく分けられなければ、できる限り多くの完全なスライスとして作成されま"
+#~ "す。"
+
+#~ msgid "Default: 200000"
+#~ msgstr "初期値: 200000"
+
+#~ msgid "ldap_idmap_default_domain_sid (string)"
+#~ msgstr "ldap_idmap_default_domain_sid (文字列)"
+
+#~ msgid "ldap_idmap_default_domain (string)"
+#~ msgstr "ldap_idmap_default_domain (文字列)"
+
+#~ msgid "Specify the name of the default domain."
+#~ msgstr "初期ドメインの名前を指定します。"
+
+#~ msgid "ldap_idmap_autorid_compat (boolean)"
+#~ msgstr "ldap_idmap_autorid_compat (論理値)"
+
+#~ msgid ""
+#~ "Changes the behavior of the ID-mapping algorithm to behave more similarly "
+#~ "to winbind's <quote>idmap_autorid</quote> algorithm."
+#~ msgstr ""
+#~ "winbind の <quote>idmap_autorid</quote> アルゴリズムとより同じように振る舞"
+#~ "うために ID マッピングのアルゴリズムの振る舞いを変更します。"
+
+#~ msgid ""
+#~ "When this option is configured, domains will be allocated starting with "
+#~ "slice zero and increasing monatomically with each additional domain."
+#~ msgstr ""
+#~ "このオプションが設定されるとき、ドメインはスライス 0 から始まり、各追加ド"
+#~ "メインに単原子的に増加するよう割り当てられます。"
+
+#~ msgid ""
+#~ "NOTE: This algorithm is non-deterministic (it depends on the order that "
+#~ "users and groups are requested). If this mode is required for "
+#~ "compatibility with machines running winbind, it is recommended to also "
+#~ "use the <quote>ldap_idmap_default_domain_sid</quote> option to guarantee "
+#~ "that at least one domain is consistently allocated to slice zero."
+#~ msgstr ""
+#~ "注記: このアルゴリズムは非決定的です (ユーザーとグループが要求された順番に"
+#~ "依存します)。このモードはマシンが実行中の winbind と互換性が必要ならば、少"
+#~ "なくとも一つのドメインが一貫してスライス 0 に割り当てられることを保証する"
+#~ "ために、<quote>ldap_idmap_default_domain_sid</quote> オプションも使用する"
+#~ "ことが推奨されます。"

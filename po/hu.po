@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-20 11:22-0400\n"
-"PO-Revision-Date: 2012-04-20 16:09+0000\n"
+"POT-Creation-Date: 2012-05-30 12:29-0400\n"
+"PO-Revision-Date: 2012-05-22 13:42+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Hungarian <trans-hu@lists.fedoraproject.org>\n"
 "Language: hu\n"
@@ -864,22 +864,22 @@ msgstr ""
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
+#: src/providers/krb5/krb5_child.c:1604 src/providers/ldap/ldap_child.c:402
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
+#: src/providers/krb5/krb5_child.c:1606 src/providers/ldap/ldap_child.c:404
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
+#: src/providers/krb5/krb5_child.c:1608 src/providers/ldap/ldap_child.c:406
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr "Mikroszekundum pontosságú időbélyegek"
 
-#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
+#: src/providers/krb5/krb5_child.c:1610 src/providers/ldap/ldap_child.c:408
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
@@ -930,12 +930,12 @@ msgstr ", a gyorsítótárazott jelszó lejár ekkor: "
 #: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr "A jelszava lejárt. Még %d bejelentkezés engedélyezett."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:689
-#, c-format
+#, fuzzy, c-format
 msgid "Your password will expire in %d %s."
-msgstr "A jelszava le fog járni %d %s múlva."
+msgstr ", a gyorsítótárazott jelszó lejár ekkor: "
 
 #: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
@@ -1152,7 +1152,7 @@ msgstr ""
 #: src/tools/sss_useradd.c:232
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr "Nem sikerült létrehozni a felhasználó könyvtárát: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:243
 #, c-format
@@ -1261,9 +1261,9 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr ""
 
 #: src/tools/sss_groupshow.c:562
-#, c-format
+#, fuzzy, c-format
 msgid "%s%sGroup: %s\n"
-msgstr ""
+msgstr "Csoportok"
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
@@ -1272,7 +1272,7 @@ msgstr ""
 #: src/tools/sss_groupshow.c:565
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr "%s GID-je: %d\n"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
@@ -1365,7 +1365,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr "Nem lehet eltávolítani a(z) %s könyvtárat\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1471,7 +1471,7 @@ msgstr "Elfogyott a memória\n"
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%s must be run as root\n"
-msgstr "%s csak rendszergazdaként futtatható\n"
+msgstr ""
 
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"

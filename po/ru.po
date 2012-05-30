@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-20 11:22-0400\n"
-"PO-Revision-Date: 2012-04-20 16:09+0000\n"
+"POT-Creation-Date: 2012-05-30 12:29-0400\n"
+"PO-Revision-Date: 2012-05-22 13:42+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Russian <trans-ru@lists.fedoraproject.org>\n"
 "Language: ru\n"
@@ -874,22 +874,22 @@ msgstr "Указать файл конфигурации"
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
+#: src/providers/krb5/krb5_child.c:1604 src/providers/ldap/ldap_child.c:402
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Уровень отладки"
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
+#: src/providers/krb5/krb5_child.c:1606 src/providers/ldap/ldap_child.c:404
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Добавить отладочные отметки времени"
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
+#: src/providers/krb5/krb5_child.c:1608 src/providers/ldap/ldap_child.c:406
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
+#: src/providers/krb5/krb5_child.c:1610 src/providers/ldap/ldap_child.c:408
 msgid "An open file descriptor for the debug logs"
 msgstr "Открытый дескриптор файла для журналов отладки"
 
@@ -943,9 +943,9 @@ msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:689
-#, c-format
+#, fuzzy, c-format
 msgid "Your password will expire in %d %s."
-msgstr ""
+msgstr ", срок действия вашего кэшированного пароль истечёт:"
 
 #: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
@@ -1135,7 +1135,7 @@ msgstr "Группы должны быть в том же домене, что �
 #: src/tools/sss_useradd.c:153
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr "Не удалось найти группу %s в локальном домене\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1162,12 +1162,12 @@ msgstr ""
 #: src/tools/sss_useradd.c:232
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr "Не удалось создать домашний каталог пользователя: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:243
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr "Не удалось создать пользовательскую почтовую очередь: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:255
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1212,7 +1212,7 @@ msgstr "Укажите группу для удаления\n"
 #: src/tools/sss_groupdel.c:101
 #, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
-msgstr "Группа %s находится вне назначенного для домена диапазона ID\n"
+msgstr ""
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1257,13 +1257,13 @@ msgstr ""
 
 #: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
-"Не удалось найти группу %s в локальном домене, разрешены только группы "
-"локального домена\n"
+"Не удалось найти группу в локальном домене, изменение групп разрешено только "
+"в локальном домене\n"
 
 #: src/tools/sss_groupmod.c:216
 msgid "Could not modify group - check if member group names are correct\n"
@@ -1279,9 +1279,9 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Ошибка в транзакции. Не удалось изменить группу.\n"
 
 #: src/tools/sss_groupshow.c:562
-#, c-format
+#, fuzzy, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "%s%sГруппа: %s\n"
+msgstr "Группы"
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
@@ -1290,12 +1290,12 @@ msgstr "Magic Private"
 #: src/tools/sss_groupshow.c:565
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr "%sНомер GID: %d\n"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
 msgid "%sMember users: "
-msgstr "%sПользователи: "
+msgstr ""
 
 #: src/tools/sss_groupshow.c:574
 #, c-format
@@ -1310,8 +1310,6 @@ msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
-"\n"
-"%sГруппы-участники: "
 
 #: src/tools/sss_groupshow.c:617
 msgid "Print indirect group members recursively"
@@ -1356,7 +1354,7 @@ msgstr "Укажите пользователя для удаления\n"
 #: src/tools/sss_userdel.c:230
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
-msgstr "Пользователь %s находится вне определённого диапазона ID для домена\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
@@ -1388,7 +1386,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr "Не удалось удалить домашнюю директорию: %s\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1498,7 +1496,7 @@ msgstr "Недостаточно памяти\n"
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%s must be run as root\n"
-msgstr "%s должно выполняться от имени root\n"
+msgstr ""
 
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"

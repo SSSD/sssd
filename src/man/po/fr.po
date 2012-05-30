@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-04-20 13:21-0300\n"
-"PO-Revision-Date: 2012-04-20 17:34+0000\n"
+"POT-Creation-Date: 2012-05-30 12:29-0300\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
@@ -1061,8 +1061,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:590
+#, fuzzy
+#| msgid "Default: 077"
 msgid "Default: 7"
-msgstr "Par défaut : 7"
+msgstr "Par défaut : 077"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:598
@@ -1490,8 +1492,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:925
+#, fuzzy
+#| msgid "<quote>deny</quote> always deny access."
 msgid "<quote>permit</quote> always allow access."
-msgstr "<quote>permit</quote> autoriser l'accès de manière permanente."
+msgstr "<quote>deny</quote> refuser l'accès de manière permanente.."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:928
@@ -2381,15 +2385,6 @@ msgid ""
 "members are listed by DN and stored in the <emphasis>member</emphasis> "
 "attribute."
 msgstr ""
-"Spécifie le schéma type à utiliser pour le serveur LDAP cible. Selon le "
-"schéma choisi, l'attribut nom par défaut recherché sur les serveurs peut "
-"varier. La façon de gérer les attributs peut aussi varier. Trois schémas "
-"sont actuellement pris en charge : rfc2307, rfc2307bis et IPA. La différence "
-"principale entre ces types de schéma est comment l'appartenance au groupe "
-"est enregistrée sur le serveur. Avec rfc2307 les membres du groupe sont "
-"listés par nom dans l'attribut <emphasis>memberUid</emphasis>. Avec "
-"rfc2307bis et IPA les membres du groupe sont listés par DN et stockés dans "
-"l'attribut <emphasis>membre</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:180

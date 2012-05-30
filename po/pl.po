@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-20 11:22-0400\n"
-"PO-Revision-Date: 2012-04-20 16:09+0000\n"
+"POT-Creation-Date: 2012-05-30 12:29-0400\n"
+"PO-Revision-Date: 2012-05-23 15:45+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish (http://www.transifex.net/projects/p/fedora/language/"
 "pl/)\n"
@@ -900,22 +900,22 @@ msgstr "Podaje niedomyślny plik konfiguracji"
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
+#: src/providers/krb5/krb5_child.c:1604 src/providers/ldap/ldap_child.c:402
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "Poziom debugowania"
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
+#: src/providers/krb5/krb5_child.c:1606 src/providers/ldap/ldap_child.c:404
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "Dodaje czasy debugowania"
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
+#: src/providers/krb5/krb5_child.c:1608 src/providers/ldap/ldap_child.c:406
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr "Wyświetlanie dat z mikrosekundami"
 
-#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
+#: src/providers/krb5/krb5_child.c:1610 src/providers/ldap/ldap_child.c:408
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
@@ -966,12 +966,12 @@ msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 #: src/sss_client/pam_sss.c:643
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr "Hasło wygasło. Pozostało %d możliwych logowań."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:689
-#, c-format
+#, fuzzy, c-format
 msgid "Your password will expire in %d %s."
-msgstr "Hasło wygaśnie za %d %s."
+msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 
 #: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
@@ -1161,7 +1161,7 @@ msgstr "Grupy muszą być w tej samej domenie co użytkownik\n"
 #: src/tools/sss_useradd.c:153
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr "Nie można odnaleźć grupy %s w lokalnej domenie\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1188,12 +1188,12 @@ msgstr ""
 #: src/tools/sss_useradd.c:232
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr "Nie można utworzyć katalogu domowego użytkownika: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:243
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr "Nie można utworzyć buforu poczty użytkownika: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:255
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1240,7 +1240,7 @@ msgstr "Proszę podać grupę do usunięcia\n"
 #: src/tools/sss_groupdel.c:101
 #, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
-msgstr "Grupa %s jest poza określonym zakresem identyfikatorów dla domeny\n"
+msgstr ""
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1284,13 +1284,13 @@ msgstr "Członkowie grupy muszą być w tej samej domenie co grupa nadrzędna\n"
 
 #: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
-"Nie można odnaleźć grupy %s w lokalnej domenie, tylko grupy w lokalnej "
-"domenie są dozwolone\n"
+"Nie można odnaleźć grupy w lokalnej domenie, modyfikowanie grup jest "
+"dozwolone tylko w lokalnej domenie\n"
 
 #: src/tools/sss_groupmod.c:216
 msgid "Could not modify group - check if member group names are correct\n"
@@ -1309,41 +1309,41 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Błąd transakcji. Nie można zmodyfikować grupy.\n"
 
 #: src/tools/sss_groupshow.c:562
-#, c-format
+#, fuzzy, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "%s%sGrupa: %s\n"
+msgstr "%1$s%2$sGrupa: %3$s\n"
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
 msgstr "Prywatne magic "
 
 #: src/tools/sss_groupshow.c:565
-#, c-format
+#, fuzzy, c-format
 msgid "%sGID number: %d\n"
-msgstr "%sNumer GID: %d\n"
+msgstr "%1$sNumer GID: %2$d\n"
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
 msgid "%sMember users: "
-msgstr "%sUżytkownicy będący członkami: "
+msgstr ""
 
 #: src/tools/sss_groupshow.c:574
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
 "\n"
-"%sJest członkiem: "
+"%1$sJest członkiem: "
 
 #: src/tools/sss_groupshow.c:581
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
 "\n"
-"%sGrupy będące członkami: "
+"%1$sJest członkiem: "
 
 #: src/tools/sss_groupshow.c:617
 msgid "Print indirect group members recursively"
@@ -1389,7 +1389,6 @@ msgstr "Proszę podać użytkownika do usunięcia\n"
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
 msgstr ""
-"Użytkownik %s jest poza określonym zakresem identyfikatorów dla domeny\n"
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
@@ -1399,7 +1398,6 @@ msgstr "Nie można przywrócić kontekstu loginu SELinuksa\n"
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
-"OSTRZEŻENIE: użytkownik (UID %lu) był zalogowany podczas jego usunięcia.\n"
 
 #: src/tools/sss_userdel.c:272
 msgid "Cannot determine if the user was logged in on this platform"
@@ -1412,7 +1410,7 @@ msgstr "Błąd podczas sprawdzania, czy użytkownik był zalogowany\n"
 #: src/tools/sss_userdel.c:284
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr "Polecenie po usunięciu nie powiodło się: %s\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
@@ -1422,7 +1420,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr "Nie można usunąć katalogu domowego: %s\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1486,12 +1484,12 @@ msgstr "Błąd transakcji. Nie można zmodyfikować użytkownika.\n"
 #: src/tools/sss_cache.c:132
 #, c-format
 msgid "Couldn't invalidate %s"
-msgstr "Nie można unieważnić %s"
+msgstr ""
 
 #: src/tools/sss_cache.c:138
 #, c-format
 msgid "Couldn't invalidate %s %s"
-msgstr "Nie można unieważnić %s %s"
+msgstr ""
 
 #: src/tools/sss_cache.c:262
 msgid "Invalidate particular user"
@@ -1536,9 +1534,83 @@ msgstr "Brak pamięci\n"
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%s must be run as root\n"
-msgstr "%s musi zostać uruchomione jako root\n"
+msgstr ""
 
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
+
+#~ msgid ""
+#~ "Timeout between three failed ping checks and forcibly killing the service"
+#~ msgstr ""
+#~ "Czas oczekiwania między trzema sprawdzeniami ping i wymuszeniem "
+#~ "zakończenia usługi"
+
+#~ msgid "The number of file descriptors that may be opened by this responder"
+#~ msgstr ""
+#~ "Liczba deskryptorów plików, które mogą być otwarte przez ten program "
+#~ "odpowiadający"
+
+#~ msgid ""
+#~ "Substitute empty homedir value from the identity provider with this value"
+#~ msgstr ""
+#~ "Zastępuje pustą wartość katalogu domowego z dostawcy tożsamości tą "
+#~ "wartością"
+
+#~ msgid "Shell to use if the provider does not list one"
+#~ msgstr "Powłoka do użycia, jeśli dostawca nie dostarcza żadnej"
+
+#~ msgid "Use ID-mapping of objectSID instead of pre-set IDs"
+#~ msgstr ""
+#~ "Używa mapowania identyfikatorów objectSID zamiast uprzednio ustawionych "
+#~ "identyfikatorów"
+
+#~ msgid "objectSID attribute"
+#~ msgstr "Atrybut objectSID"
+
+#~ msgid "Active Directory primary group attribute for ID-mapping"
+#~ msgstr ""
+#~ "Atrybut głównej grupy Active Directory dla mapowania identyfikatorów"
+
+#~ msgid "Lower bound for ID-mapping"
+#~ msgstr "Niższa granica dla mapowania identyfikatorów"
+
+#~ msgid "Upper bound for ID-mapping"
+#~ msgstr "Wyższa granica dla mapowania identyfikatorów"
+
+#~ msgid "Number of IDs for each slice when ID-mapping"
+#~ msgstr ""
+#~ "Liczba identyfikatorów dla każdego kawałka podczas mapowania "
+#~ "identyfikatorów"
+
+#~ msgid "Use autorid-compatible algorithm for ID-mapping"
+#~ msgstr "Używa algorytmu zgodnego z autorid do mapowania identyfikatorów"
+
+#~ msgid "Name of the default domain for ID-mapping"
+#~ msgstr "Nazwa domyślnej domeny dla mapowania identyfikatorów"
+
+#~ msgid "SID of the default domain for ID-mapping"
+#~ msgstr "SID domyślnej domeny dla mapowania identyfikatorów"
+
+#~ msgid "No cache object matched the specified search\n"
+#~ msgstr ""
+#~ "Żaden obiekt pamięci podręcznej nie pasuje do podanego wyszukiwania\n"
+
+#~ msgid "Invalidate particular service"
+#~ msgstr "Unieważnia podaną usługę"
+
+#~ msgid "Invalidate all services"
+#~ msgstr "Unieważnia wszystkie usługi"
+
+#~ msgid "Invalidate particular autofs map"
+#~ msgstr "Unieważnia podaną mapę autofs"
+
+#~ msgid "Invalidate all autofs maps"
+#~ msgstr "Unieważnia wszystkie mapy autofs"
+
+#~ msgid "Please select at least one object to invalidate\n"
+#~ msgstr "Proszę wybrać co najmniej jeden obiekt do unieważnienia\n"
+
+#~ msgid "Could not open available domains\n"
+#~ msgstr "Nie można otworzyć dostępnych domen\n"

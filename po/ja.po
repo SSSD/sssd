@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-04-20 11:22-0400\n"
-"PO-Revision-Date: 2012-04-23 00:36+0000\n"
-"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
+"POT-Creation-Date: 2012-05-30 12:29-0400\n"
+"PO-Revision-Date: 2012-05-22 13:42+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -870,22 +870,22 @@ msgstr "非標準の設定ファイルの指定"
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
-#: src/providers/krb5/krb5_child.c:1577 src/providers/ldap/ldap_child.c:386
+#: src/providers/krb5/krb5_child.c:1604 src/providers/ldap/ldap_child.c:402
 #: src/util/util.h:89
 msgid "Debug level"
 msgstr "デバッグレベル"
 
-#: src/providers/krb5/krb5_child.c:1579 src/providers/ldap/ldap_child.c:388
+#: src/providers/krb5/krb5_child.c:1606 src/providers/ldap/ldap_child.c:404
 #: src/util/util.h:93
 msgid "Add debug timestamps"
 msgstr "デバッグのタイムスタンプを追加する"
 
-#: src/providers/krb5/krb5_child.c:1581 src/providers/ldap/ldap_child.c:390
+#: src/providers/krb5/krb5_child.c:1608 src/providers/ldap/ldap_child.c:406
 #: src/util/util.h:95
 msgid "Show timestamps with microseconds"
 msgstr "タイムスタンプをミリ秒単位で表示する"
 
-#: src/providers/krb5/krb5_child.c:1583 src/providers/ldap/ldap_child.c:392
+#: src/providers/krb5/krb5_child.c:1610 src/providers/ldap/ldap_child.c:408
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
@@ -937,12 +937,11 @@ msgstr "、キャッシュされたパスワードが失効します: "
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
-"パスワードの期限が切れました。%d 回の穏やかなログインが残されています。"
 
 #: src/sss_client/pam_sss.c:689
-#, c-format
+#, fuzzy, c-format
 msgid "Your password will expire in %d %s."
-msgstr "あなたのパスワードは %d %s に期限が切れます。"
+msgstr "、キャッシュされたパスワードが失効します: "
 
 #: src/sss_client/pam_sss.c:738
 msgid "Authentication is denied until: "
@@ -1133,7 +1132,7 @@ msgstr "グループがユーザーと同じドメインになければいけま
 #: src/tools/sss_useradd.c:153
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr "グループ %s をローカルドメインに見つけられませんでした\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1160,12 +1159,12 @@ msgstr ""
 #: src/tools/sss_useradd.c:232
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr "ユーザーのホームディレクトリーを作成できません: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:243
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr "ユーザーのメールスプールを作成できません: %s\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:255
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1210,7 +1209,7 @@ msgstr "削除するグループを指定してください\n"
 #: src/tools/sss_groupdel.c:101
 #, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
-msgstr "グループ %s はドメインに対して定義された ID の範囲を越えています\n"
+msgstr ""
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1254,13 +1253,13 @@ msgstr "メンバーグループが親グループと同じドメインにある
 
 #: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
-"ローカルドメインにグループ %s が見つかりませんでした。ローカルドメインにある"
-"グループのみが許可されます\n"
+"ローカルドメインにグループが見つかりませんでした。グループの変更はローカルド"
+"メインにおいてのみ許可されます\n"
 
 #: src/tools/sss_groupmod.c:216
 msgid "Could not modify group - check if member group names are correct\n"
@@ -1278,9 +1277,9 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "トランザクションエラー。グループを変更できませんでした。\n"
 
 #: src/tools/sss_groupshow.c:562
-#, c-format
+#, fuzzy, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "%s%s グループ: %s\n"
+msgstr "グループ"
 
 #: src/tools/sss_groupshow.c:563
 msgid "Magic Private "
@@ -1289,12 +1288,12 @@ msgstr "マジックプライベート "
 #: src/tools/sss_groupshow.c:565
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr "%s GID 番号: %d\n"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:567
 #, c-format
 msgid "%sMember users: "
-msgstr "%s メンバーユーザー: "
+msgstr ""
 
 #: src/tools/sss_groupshow.c:574
 #, c-format
@@ -1302,8 +1301,6 @@ msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
-"\n"
-"%s は次のメンバーです: "
 
 #: src/tools/sss_groupshow.c:581
 #, c-format
@@ -1311,8 +1308,6 @@ msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
-"\n"
-"%s メンバーグループ: "
 
 #: src/tools/sss_groupshow.c:617
 msgid "Print indirect group members recursively"
@@ -1357,7 +1352,7 @@ msgstr "削除するユーザーを指定する\n"
 #: src/tools/sss_userdel.c:230
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
-msgstr "ユーザー %s はドメインに対して定義された ID の範囲を越えています\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
@@ -1367,7 +1362,6 @@ msgstr "SELinux ログインコンテキストをリセットできません\n"
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
-"警告: ユーザー (uid %lu) が削除されたときにまだログインしていました。\n"
 
 #: src/tools/sss_userdel.c:272
 msgid "Cannot determine if the user was logged in on this platform"
@@ -1381,7 +1375,7 @@ msgstr "ユーザーがログインしていたかを確認中にエラーが発
 #: src/tools/sss_userdel.c:284
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr "post-delete コマンドに失敗しました: %s\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
@@ -1391,7 +1385,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr "ホームディレクトリーを削除できません: %s\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1453,12 +1447,12 @@ msgstr "トランザクションエラー。ユーザーを変更できません
 #: src/tools/sss_cache.c:132
 #, c-format
 msgid "Couldn't invalidate %s"
-msgstr "%s を無効化できませんでした"
+msgstr ""
 
 #: src/tools/sss_cache.c:138
 #, c-format
 msgid "Couldn't invalidate %s %s"
-msgstr "%s %s を無効化できませんでした"
+msgstr ""
 
 #: src/tools/sss_cache.c:262
 msgid "Invalidate particular user"
@@ -1503,8 +1497,23 @@ msgstr "メモリー不足\n"
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%s must be run as root\n"
-msgstr "%s は root として実行する必要があります\n"
+msgstr ""
 
 #: src/util/util.h:91
 msgid "Send the debug output to files instead of stderr"
 msgstr "デバッグ出力を標準エラーの代わりにファイルに送信する"
+
+#~ msgid "objectSID attribute"
+#~ msgstr "objectSID 属性"
+
+#~ msgid "Active Directory primary group attribute for ID-mapping"
+#~ msgstr "ID マッピングの Active Directory プライマリーグループ属性"
+
+#~ msgid "Lower bound for ID-mapping"
+#~ msgstr "ID マッピングの下限"
+
+#~ msgid "Upper bound for ID-mapping"
+#~ msgstr "ID マッピングの上限"
+
+#~ msgid "Could not open available domains\n"
+#~ msgstr "利用可能なドメインを開けませんでした\n"

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-04-20 13:21-0300\n"
-"PO-Revision-Date: 2012-04-20 17:34+0000\n"
+"POT-Creation-Date: 2012-05-30 12:29-0300\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Russian <trans-ru@lists.fedoraproject.org>\n"
 "Language: ru\n"
@@ -900,8 +900,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:590
+#, fuzzy
+#| msgid "Default: 077"
 msgid "Default: 7"
-msgstr ""
+msgstr "По умолчанию: 077"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:598
