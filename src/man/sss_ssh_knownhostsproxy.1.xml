@@ -53,7 +53,7 @@
             <manvolnum>1</manvolnum></citerefentry> configuration:
 <programlisting>
 ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h
-GlobalKnownHostsFile2 /var/lib/sss/pubconf/known_hosts
+GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
 </programlisting>
         </para>
         <para>
