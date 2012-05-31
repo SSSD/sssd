@@ -285,14 +285,20 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
         DEBUG(1, ("talloc_strdup failed.\n"));
         return ENOMEM;
     }
-    end = strrchr(parent, '/');
-    if (end == NULL || end == parent) {
-        DEBUG(1, ("Cannot find parent directory of [%s], / is not allowed.\n",
-                   dirname));
-        ret = EINVAL;
-        goto done;
-    }
-    *end = '\0';
+
+    /* We'll remove all trailing slashes from the back so that
+     * we only pass /some/path to find_ccdir_parent_data, not
+     * /some/path */
+    do {
+        end = strrchr(parent, '/');
+        if (end == NULL || end == parent) {
+            DEBUG(1, ("Cannot find parent directory of [%s], / is not allowed.\n",
+                    dirname));
+            ret = EINVAL;
+            goto done;
+        }
+        *end = '\0';
+    } while (*(end+1) == '\0');
 
     ret = find_ccdir_parent_data(mem_ctx, parent, parent_stat, missing_parents);
 
