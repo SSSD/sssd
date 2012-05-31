@@ -262,6 +262,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct sss_cmd_table *nss_cmds;
     struct be_conn *iter;
     struct nss_ctx *nctx;
+    int memcache_timeout;
     int ret, max_retries;
     int hret;
     int fd_limit;
@@ -323,16 +324,25 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* create mmap caches */
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_MEMCACHE_TIMEOUT,
+                         300, &memcache_timeout);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        return ret;
+    }
+
     /* TODO: read cache sizes from configuration */
     ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
-                              50000,
+                              50000, (time_t)memcache_timeout,
                               &nctx->pwd_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("passwd mmap cache is DISABLED"));
     }
 
     ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
-                              50000,
+                              50000, (time_t)memcache_timeout,
                               &nctx->grp_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("group mmap cache is DISABLED"));

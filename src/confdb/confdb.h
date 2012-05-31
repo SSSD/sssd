@@ -86,6 +86,7 @@
 #define CONFDB_NSS_ALLOWED_SHELL "allowed_shells"
 #define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
 #define CONFDB_NSS_DEFAULT_SHELL "default_shell"
+#define CONFDB_MEMCACHE_TIMEOUT "memcache_timeout"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"

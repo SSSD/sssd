@@ -32,7 +32,7 @@ enum sss_mc_type {
 
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             enum sss_mc_type type, size_t n_elem,
-                            struct sss_mc_ctx **mcc);
+                            time_t valid_time, struct sss_mc_ctx **mcc);
 
 errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
                                 struct sized_string *name,

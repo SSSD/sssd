@@ -543,6 +543,18 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>memcache_timeout (int)</term>
+                    <listitem>
+                        <para>
+                            Specifies time in seconds for which records
+                            in the in-memory cache will be valid
+                        </para>
+                        <para>
+                            Default: 300
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>

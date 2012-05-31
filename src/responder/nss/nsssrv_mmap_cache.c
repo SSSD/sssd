@@ -602,7 +602,7 @@ static void sss_mc_header_update(struct sss_mc_ctx *mc_ctx, int status)
 
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             enum sss_mc_type type, size_t n_elem,
-                            struct sss_mc_ctx **mcc)
+                            time_t timeout, struct sss_mc_ctx **mcc)
 {
     struct sss_mc_ctx *mc_ctx = NULL;
     unsigned int rseed;
@@ -634,7 +634,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     mc_ctx->type = type;
 
-    mc_ctx->valid_time_slot = 300; /* 5 min. FIXME: parametrize */
+    mc_ctx->valid_time_slot = timeout;
 
     mc_ctx->file = talloc_asprintf(mc_ctx, "%s/%s",
                                    SSS_NSS_MCACHE_DIR, name);
