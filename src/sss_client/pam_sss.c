@@ -57,6 +57,8 @@
 #define FLAGS_USE_AUTHTOK    (1 << 2)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
+#define ALL_SERVICES "*:"
+#define ALL_SERVICES_LEN 2
 
 #define PW_RESET_MSG_FILENAME_TEMPLATE SSSD_CONF_DIR"/customize/%s/pam_sss_pw_reset_message.%s"
 #define PW_RESET_MSG_MAX_SIZE 4096
@@ -1084,6 +1086,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 #ifdef HAVE_SELINUX
     char *path = NULL;
     char *tmp_path = NULL;
+    char *services;
     ssize_t written;
     int len;
     int fd;
@@ -1203,6 +1206,22 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                 goto done;
             }
 
+            /* First write filter for all services */
+            services = strdup(ALL_SERVICES);
+            if (services == NULL) {
+                pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+
+            errno = 0;
+            written = sss_atomic_write_s(fd, (void *)services, ALL_SERVICES_LEN);
+            if (written == -1) {
+                ret = errno;
+                logger(pamh, LOG_ERR, "writing to SELinux data file %s"
+                        "failed [%d]: %s", tmp_path, ret, strerror(ret));
+                pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
             len = strlen(pi->selinux_user);
 
             errno = 0;
@@ -1243,6 +1262,7 @@ done:
 #ifdef HAVE_SELINUX
     free(path);
     free(tmp_path);
+    free(services);
 #endif /* HAVE_SELINUX */
 
     return pam_status;
