@@ -38,6 +38,9 @@ size_t test_bin_sid_length = sizeof(test_bin_sid);
 
 struct dom_sid test_smb_sid = {1, 5, {0, 0, 0, 0, 0, 5}, {21, 2127521184, 1604012920, 1887927527, 72713, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
+const char large_sid[] = "S-1-5-21-1-2-4294967295-1000";
+const char too_large_sid[] = "S-1-5-21-1-2-4294967296-1000";
+
 struct sss_idmap_ctx *idmap_ctx;
 
 static void *idmap_talloc(size_t size, void *pvt)
@@ -324,6 +327,39 @@ START_TEST(idmap_test_sid2dom_sid)
 }
 END_TEST
 
+START_TEST(idmap_test_large_and_too_large_sid)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    char *new_sid = NULL;
+
+    err = sss_idmap_sid_to_dom_sid(idmap_ctx, large_sid, &dom_sid);
+
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert SID string with a UINT32_MAX component "
+                "to struct sss_dom_sid.");
+
+    err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &new_sid);
+    fail_unless(err == IDMAP_SUCCESS,
+                "Failed to convert struct sss_dom_sid to SID string.");
+
+    fail_unless(new_sid != NULL, "SID string not set");
+    fail_unless(strlen(large_sid) == strlen(new_sid),
+                "Length of SID strings do not match.");
+    fail_unless(strcmp(large_sid, new_sid) == 0,
+                "SID strings do not match, expected [%s], got [%s]",
+                large_sid, new_sid);
+
+    err = sss_idmap_sid_to_dom_sid(idmap_ctx, too_large_sid, &dom_sid);
+    fail_unless(err == IDMAP_SID_INVALID,
+                "Trying to convert  a SID with a too large component "
+                "did not return IDMAP_SID_INVALID");
+
+    talloc_free(dom_sid);
+    talloc_free(new_sid);
+}
+END_TEST
+
 START_TEST(idmap_test_sid2bin_sid)
 {
     enum idmap_error_code err;
@@ -494,6 +530,7 @@ Suite *idmap_test_suite (void)
     tcase_add_test(tc_conv, idmap_test_bin_sid2smb_sid);
     tcase_add_test(tc_conv, idmap_test_smb_sid2sid);
     tcase_add_test(tc_conv, idmap_test_sid2smb_sid);
+    tcase_add_test(tc_conv, idmap_test_large_and_too_large_sid);
 
     suite_add_tcase(s, tc_conv);
 

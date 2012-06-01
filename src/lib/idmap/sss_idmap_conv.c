@@ -263,7 +263,7 @@ enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     }
     errno = 0;
     ul = strtoul(r, &r, 10);
-    if (errno != 0 || r == NULL) {
+    if (errno != 0 || r == NULL || ul > UINT32_MAX) {
         err = IDMAP_SID_INVALID;
         goto done;
     }
@@ -301,8 +301,8 @@ enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
         }
 
         errno = 0;
-        ul = strtol(r, &end, 10);
-        if (errno != 0 || end == NULL ||
+        ul = strtoul(r, &end, 10);
+        if (errno != 0 || ul > UINT32_MAX || end == NULL ||
             (*end != '\0' && *end != '-')) {
             err = IDMAP_SID_INVALID;
             goto done;
