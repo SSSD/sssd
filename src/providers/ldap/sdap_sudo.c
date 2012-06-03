@@ -60,11 +60,11 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                        struct sdap_id_conn_cache *conn_cache,
                                                        char **rules);
 
+static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq);
+
 static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                         int *dp_error,
                                         int *error);
-
-static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq);
 
 struct sdap_sudo_smart_refresh_state {
     struct tevent_req *subreq;
@@ -385,21 +385,6 @@ immediately:
     return req;
 }
 
-static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
-                                       int *dp_error,
-                                       int *error)
-{
-    struct sdap_sudo_full_refresh_state *state = NULL;
-    state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
-    *error = state->error;
-
-    return EOK;
-}
-
 static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
@@ -436,6 +421,21 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     }
 
     tevent_req_done(req);
+}
+
+static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
+                                       int *dp_error,
+                                       int *error)
+{
+    struct sdap_sudo_full_refresh_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *dp_error = state->dp_error;
+    *error = state->error;
+
+    return EOK;
 }
 
 /* issue refresh of specific sudo rules */
@@ -540,21 +540,6 @@ immediately:
     return req;
 }
 
-static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
-                                        int *dp_error,
-                                        int *error)
-{
-    struct sdap_sudo_rules_refresh_state *state = NULL;
-    state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
-    *error = state->error;
-
-    return EOK;
-}
-
 static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
@@ -584,6 +569,21 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
     }
 
     tevent_req_done(req);
+}
+
+static int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
+                                        int *dp_error,
+                                        int *error)
+{
+    struct sdap_sudo_rules_refresh_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *dp_error = state->dp_error;
+    *error = state->error;
+
+    return EOK;
 }
 
 /* issue smart refresh of sudo rules */
@@ -659,19 +659,6 @@ immediately:
     return req;
 }
 
-static int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
-                                        int *dp_error,
-                                        int *error)
-{
-    struct sdap_sudo_smart_refresh_state *state = NULL;
-    state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return sdap_sudo_refresh_recv(state, state->subreq, dp_error, error,
-                                  NULL, NULL);
-}
-
 static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
@@ -699,6 +686,19 @@ static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
     }
 
     tevent_req_done(req);
+}
+
+static int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
+                                        int *dp_error,
+                                        int *error)
+{
+    struct sdap_sudo_smart_refresh_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return sdap_sudo_refresh_recv(state, state->subreq, dp_error, error,
+                                  NULL, NULL);
 }
 
 static void sdap_sudo_periodical_first_refresh_done(struct tevent_req *req)
