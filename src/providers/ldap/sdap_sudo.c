@@ -47,12 +47,14 @@ static int sdap_sudo_full_refresh_recv(struct tevent_req *req,
                                        int *error);
 
 struct sdap_sudo_rules_refresh_state {
+    struct sdap_id_ctx *id_ctx;
     size_t num_rules;
     int dp_error;
     int error;
 };
 
 static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                                                       struct sdap_id_ctx *id_ctx,
                                                        struct be_ctx *be_ctx,
                                                        struct sdap_options *opts,
                                                        struct sdap_id_conn_cache *conn_cache,
@@ -292,8 +294,9 @@ void sdap_sudo_handler(struct be_req *be_req)
         break;
     case BE_REQ_SUDO_RULES:
         DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a refresh of specific sudo rules\n"));
-        req = sdap_sudo_rules_refresh_send(be_req, id_ctx->be, id_ctx->opts,
-                                           id_ctx->conn_cache, sudo_req->rules);
+        req = sdap_sudo_rules_refresh_send(be_req, id_ctx, id_ctx->be,
+                                           id_ctx->opts, id_ctx->conn_cache,
+                                           sudo_req->rules);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type: %d\n",
@@ -437,6 +440,7 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
 
 /* issue refresh of specific sudo rules */
 static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                                                       struct sdap_id_ctx *id_ctx,
                                                        struct be_ctx *be_ctx,
                                                        struct sdap_options *opts,
                                                        struct sdap_id_conn_cache *conn_cache,
@@ -497,6 +501,7 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
         }
     }
 
+    state->id_ctx = id_ctx;
     state->num_rules = i;
 
     ldap_filter = talloc_asprintf(tmp_ctx, "(&"SDAP_SUDO_FILTER_CLASS"(|%s))",
@@ -554,6 +559,7 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
     struct sdap_sudo_rules_refresh_state *state = NULL;
+    char *highest_usn = NULL;
     size_t downloaded_rules_num;
     int ret;
 
@@ -561,11 +567,16 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
 
     ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error, &state->error,
-                                 NULL, &downloaded_rules_num);
+                                 &highest_usn, &downloaded_rules_num);
     talloc_zfree(subreq);
     if (ret != EOK || state->dp_error != DP_ERR_OK || state->error != EOK) {
         tevent_req_error(req, ret);
         return;
+    }
+
+    /* set highest usn */
+    if (highest_usn != NULL) {
+        sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
     }
 
     if (downloaded_rules_num != state->num_rules) {
