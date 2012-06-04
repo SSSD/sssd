@@ -380,7 +380,7 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
         DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
-                  fo_get_server_name(server)));
+                  fo_get_server_str_name(server)));
         return;
     }
 

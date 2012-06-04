@@ -167,7 +167,7 @@ void *fo_get_server_user_data(struct fo_server *server);
 
 int fo_get_server_port(struct fo_server *server);
 
-const char *fo_get_server_name(struct fo_server *server);
+const char *fo_get_server_str_name(struct fo_server *server);
 
 struct resolv_hostent *fo_get_server_hostent(struct fo_server *server);
 
