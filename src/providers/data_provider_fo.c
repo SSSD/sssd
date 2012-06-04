@@ -54,6 +54,7 @@ struct be_failover_ctx {
     struct resolv_ctx *resolv;
 
     struct be_svc_data *svcs;
+    struct tevent_timer *primary_server_handler;
 };
 
 static const char *proto_table[] = { FO_PROTO_TCP, FO_PROTO_UDP, NULL };
@@ -315,7 +316,8 @@ int be_fo_get_server_count(struct be_ctx *ctx, const char *service_name)
 }
 
 int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
-                     const char *server, int port, void *user_data)
+                     const char *server, int port, void *user_data,
+                     bool primary)
 {
     struct be_svc_data *svc;
     int ret;
@@ -325,7 +327,8 @@ int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
         return ENOENT;
     }
 
-    ret = fo_add_server(svc->fo_service, server, port, user_data);
+    ret = fo_add_server(svc->fo_service, server, port,
+                        user_data, primary);
     if (ret && ret != EEXIST) {
         DEBUG(1, ("Failed to add server to failover service\n"));
         return ret;
@@ -344,6 +347,138 @@ struct be_resolve_server_state {
     struct fo_server *srv;
     bool first_try;
 };
+
+struct be_primary_server_ctx {
+    struct be_ctx *bctx;
+    struct tevent_context *ev;
+
+    struct be_svc_data *svc;
+    unsigned long timeout;
+
+    int attempts;
+};
+
+errno_t be_resolve_server_process(struct tevent_req *subreq,
+                                  struct be_resolve_server_state *state,
+                                  struct tevent_req **new_subreq);
+static void be_primary_server_done(struct tevent_req *subreq);
+static errno_t
+be_primary_server_timeout_activate(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct be_ctx *bctx,
+                                   struct be_svc_data *svc,
+                                   const unsigned long timeout_seconds);
+
+static void
+be_primary_server_timeout(struct tevent_context *ev,
+                          struct tevent_timer *te,
+                          struct timeval tv, void *pvt)
+{
+    struct be_primary_server_ctx *ctx = talloc_get_type(pvt, struct be_primary_server_ctx);
+    struct tevent_req *subreq;
+
+    ctx->bctx->be_fo->primary_server_handler = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Looking for primary server!\n"));
+    subreq = fo_resolve_service_send(ctx->bctx, ctx->ev,
+                                     ctx->bctx->be_fo->resolv,
+                                     ctx->bctx->be_fo->fo_ctx,
+                                     ctx->svc->fo_service);
+    if (subreq == NULL) {
+        return;
+    }
+    tevent_req_set_callback(subreq, be_primary_server_done, ctx);
+}
+
+static void be_primary_server_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct be_primary_server_ctx *ctx;
+    struct be_resolve_server_state *resolve_state;
+    struct tevent_req *new_subreq;
+
+    ctx = tevent_req_callback_data(subreq, struct be_primary_server_ctx);
+
+    resolve_state = talloc_zero(ctx->bctx, struct be_resolve_server_state);
+    if (resolve_state == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero() failed\n"));
+        return;
+    }
+
+    resolve_state->attempts = ctx->attempts;
+    resolve_state->ctx = ctx->bctx;
+    resolve_state->ev = ctx->ev;
+    resolve_state->first_try = true;
+    resolve_state->srv = NULL;
+    resolve_state->svc = ctx->svc;
+
+    ret = be_resolve_server_process(subreq, resolve_state, &new_subreq);
+    talloc_free(subreq);
+    if (ret == EAGAIN) {
+        ctx->attempts++;
+        tevent_req_set_callback(new_subreq, be_primary_server_done, ctx);
+        return;
+    } else if (ret == EIO || (ret == EOK &&
+        !fo_is_server_primary(resolve_state->srv))) {
+
+        /* Schedule another lookup
+         * (either no server could be found or it was not primary)
+         */
+        ret = be_primary_server_timeout_activate(ctx->bctx, ctx->ev, ctx->bctx,
+                                                 ctx->svc, ctx->timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not schedule primary server lookup\n"));
+        }
+    } else if (ret == EOK) {
+        be_run_reconnect_cb(ctx->bctx);
+    }
+    talloc_zfree(ctx);
+
+    /* If an error occurred just end the routine */
+}
+
+static errno_t
+be_primary_server_timeout_activate(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct be_ctx *bctx,
+                                   struct be_svc_data *svc,
+                                   const unsigned long timeout_seconds)
+{
+    struct timeval tv;
+    struct be_primary_server_ctx *ctx;
+    struct be_failover_ctx *fo_ctx = bctx->be_fo;
+
+    if (fo_ctx->primary_server_handler != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("The primary server reconnection "
+                                  "is already scheduled\n"));
+        return EOK;
+    }
+
+    ctx = talloc_zero(mem_ctx, struct be_primary_server_ctx);
+    if (ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ctx->bctx = bctx;
+    ctx->ev = ev;
+    ctx->svc = svc;
+    ctx->timeout = timeout_seconds;
+
+    tv = tevent_timeval_current();
+    tv = tevent_timeval_add(&tv, timeout_seconds, 0);
+    fo_ctx->primary_server_handler = tevent_add_timer(ev, bctx, tv,
+                                          be_primary_server_timeout, ctx);
+    if (fo_ctx->primary_server_handler == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_add_timer failed.\n"));
+        talloc_free(ctx);
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Primary server reactivation timeout set "
+                                  "to %lu seconds\n", timeout_seconds));
+    return EOK;
+}
+
 
 static void be_resolve_server_done(struct tevent_req *subreq);
 
@@ -389,35 +524,66 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
 
 static void be_resolve_server_done(struct tevent_req *subreq)
 {
+    struct tevent_req *new_subreq;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct be_resolve_server_state *state = tevent_req_data(req,
                                              struct be_resolve_server_state);
-    struct be_svc_callback *callback;
     int ret;
+
+    ret = be_resolve_server_process(subreq, state, &new_subreq);
+    talloc_zfree(subreq);
+    if (ret == EAGAIN) {
+        tevent_req_set_callback(new_subreq, be_resolve_server_done, req);
+        return;
+    } else if (ret != EOK) {
+        goto fail;
+    }
+
+    if (!fo_is_server_primary(state->srv)) {
+        /* FIXME: make the timeout configurable */
+        ret = be_primary_server_timeout_activate(state->ctx, state->ev,
+                                                 state->ctx, state->svc,
+                                                 30);
+        if (ret != EOK) {
+            goto fail;
+        }
+    }
+
+    tevent_req_done(req);
+    return;
+
+fail:
+    DEBUG(SSSDBG_TRACE_LIBS, ("Server resolution failed: %d\n", ret));
+    state->svc->first_resolved = NULL;
+    tevent_req_error(req, ret);
+}
+
+errno_t be_resolve_server_process(struct tevent_req *subreq,
+                                  struct be_resolve_server_state *state,
+                                  struct tevent_req **new_subreq)
+{
+    errno_t ret;
     time_t srv_status_change;
+    struct be_svc_callback *callback;
 
     ret = fo_resolve_service_recv(subreq, &state->srv);
-    talloc_zfree(subreq);
     switch (ret) {
     case EOK:
         if (!state->srv) {
-            ret = EFAULT;
-            goto fail;
+            return EFAULT;
         }
         break;
 
     case ENOENT:
         /* all servers have been tried and none
          * was found good, go offline */
-        ret = EIO;
-        goto fail;
+        return EIO;
 
     default:
         /* mark server as bad and retry */
         if (!state->srv) {
-            ret = EFAULT;
-            goto fail;
+            return EFAULT;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Couldn't resolve server (%s), resolver returned (%d)\n",
@@ -425,9 +591,8 @@ static void be_resolve_server_done(struct tevent_req *subreq)
 
         state->attempts++;
         if (state->attempts >= 10) {
-            DEBUG(2, ("Failed to find a server after 10 attempts\n"));
-            ret = EIO;
-            goto fail;
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to find a server after 10 attempts\n"));
+            return EIO;
         }
 
         /* now try next one */
@@ -437,12 +602,14 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                                          state->ctx->be_fo->fo_ctx,
                                          state->svc->fo_service);
         if (!subreq) {
-            ret = ENOMEM;
-            goto fail;
+            return ENOMEM;
         }
-        tevent_req_set_callback(subreq, be_resolve_server_done, req);
 
-        return;
+        if (new_subreq) {
+            *new_subreq = subreq;
+        }
+
+        return EAGAIN;
     }
 
     /* all fine we got the server */
@@ -452,8 +619,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     } else if (state->svc->first_resolved == state->srv) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("The fail over cycled through all available servers\n"));
-        ret = ENOENT;
-        goto fail;
+        return ENOENT;
     }
 
     if (DEBUG_IS_SET(SSSDBG_FUNC_DATA) && fo_get_server_name(state->srv)) {
@@ -464,8 +630,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("FATAL: No hostent available for server (%s)\n",
                   fo_get_server_str_name(state->srv)));
-            ret = EFAULT;
-            goto fail;
+            return EFAULT;
         }
 
         inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
@@ -492,13 +657,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
         }
     }
 
-    tevent_req_done(req);
-    return;
-
-fail:
-    DEBUG(SSSDBG_TRACE_LIBS, ("Server resolution failed: %d\n", ret));
-    state->svc->first_resolved = NULL;
-    tevent_req_error(req, ret);
+    return EOK;
 }
 
 int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv)

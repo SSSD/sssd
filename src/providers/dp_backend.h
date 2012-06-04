@@ -231,7 +231,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                          enum be_fo_protocol proto,
                          bool proto_fallback, void *user_data);
 int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
-                     const char *server, int port, void *user_data);
+                     const char *server, int port, void *user_data,
+                     bool primary);
 
 struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,

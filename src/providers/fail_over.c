@@ -72,6 +72,7 @@ struct fo_server {
     struct fo_server *prev;
     struct fo_server *next;
 
+    bool primary;
     void *user_data;
     int port;
     int port_status;
@@ -577,7 +578,7 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
 
 static struct fo_server *
 create_fo_server(struct fo_service *service, const char *name,
-                 int port, void *user_data)
+                 int port, void *user_data, bool primary)
 {
     struct fo_server *server;
     int ret;
@@ -590,6 +591,7 @@ create_fo_server(struct fo_service *service, const char *name,
     server->user_data = user_data;
     server->service = service;
     server->port_status = DEFAULT_PORT_STATUS;
+    server->primary = primary;
 
     if (name != NULL) {
         ret = get_server_common(server, service->ctx, name, &server->common);
@@ -621,26 +623,42 @@ fo_get_server_count(struct fo_service *service)
     return count;
 }
 
+static bool fo_server_match(struct fo_server *server,
+                           const char *name,
+                           int port,
+                           void *user_data)
+{
+    if (server->port != port || server->user_data != user_data) {
+        return false;
+    }
+
+    if (name == NULL && server->common == NULL) {
+        return true;
+    }
+
+    if (name != NULL && server->common != NULL) {
+        if (!strcasecmp(name, server->common->name))
+            return true;
+    }
+
+    return false;
+}
+
 int
 fo_add_server(struct fo_service *service, const char *name, int port,
-              void *user_data)
+              void *user_data, bool primary)
 {
     struct fo_server *server;
 
     DEBUG(3, ("Adding new server '%s', to service '%s'\n",
               name ? name : "(no name)", service->name));
     DLIST_FOR_EACH(server, service->server_list) {
-        if (server->port != port || server->user_data != user_data)
-            continue;
-        if (name == NULL && server->common == NULL) {
+        if (fo_server_match(server, name, port, user_data)) {
             return EEXIST;
-        } else if (name != NULL && server->common != NULL) {
-            if (!strcasecmp(name, server->common->name))
-                return EEXIST;
         }
     }
 
-    server = create_fo_server(service, name, port, user_data);
+    server = create_fo_server(service, name, port, user_data, primary);
     if (!server) {
         return ENOMEM;
     }
@@ -658,7 +676,7 @@ get_first_server_entity(struct fo_service *service, struct fo_server **_server)
     /* If we already have a working server, use that one. */
     server = service->active_server;
     if (server != NULL) {
-        if (service_works(server)) {
+        if (service_works(server) && fo_is_server_primary(server)) {
             goto done;
         }
         service->active_server = NULL;
@@ -668,22 +686,41 @@ get_first_server_entity(struct fo_service *service, struct fo_server **_server)
      * Otherwise iterate through the server list.
      */
 
-    /* First, try servers after the last one we tried. */
-    if (service->last_tried_server != NULL) {
+
+    /* First, try primary servers after the last one we tried.
+     * (only if the last one was primary as well)
+     */
+    if (service->last_tried_server != NULL &&
+        service->last_tried_server->primary) {
         DLIST_FOR_EACH(server, service->last_tried_server->next) {
+            /* Go only through primary servers */
+            if (!server->primary) continue;
+
             if (service_works(server)) {
                 goto done;
             }
         }
     }
 
-    /* If none were found, try at the start. */
+    /* If none were found, try at the start, primary first */
     DLIST_FOR_EACH(server, service->server_list) {
+        /* First iterate only over primary servers */
+        if (!server->primary) continue;
+
         if (service_works(server)) {
             goto done;
         }
         if (server == service->last_tried_server) {
             break;
+        }
+    }
+
+    DLIST_FOR_EACH(server, service->server_list) {
+        /* Now iterate only over backup servers */
+        if (server->primary) continue;
+
+        if (service_works(server)) {
+            goto done;
         }
     }
 
@@ -727,6 +764,8 @@ set_lookup_hook(struct fo_server *server, struct tevent_req *req)
     return EOK;
 }
 
+
+
 /*******************************************************************
  * Get server to connect to.                                       *
  *******************************************************************/
@@ -739,7 +778,6 @@ struct resolve_service_state {
     struct tevent_timer *timeout_handler;
     struct fo_ctx *fo_ctx;
 };
-
 
 static errno_t fo_resolve_service_activate_timeout(struct tevent_req *req,
             struct tevent_context *ev, const unsigned long timeout_seconds);
@@ -1171,7 +1209,8 @@ resolve_srv_done(struct tevent_req *subreq)
 
     for (reply = reply_list; reply; reply = reply->next) {
         server = create_fo_server(state->service, reply->host,
-                                  reply->port, state->meta->user_data);
+                                  reply->port, state->meta->user_data,
+                                  true);
         if (!server) {
             ret = ENOMEM;
             goto fail;
@@ -1449,6 +1488,12 @@ fo_get_server_hostent(struct fo_server *server)
     }
 
     return server->common->rhostent;
+}
+
+bool
+fo_is_server_primary(struct fo_server *server)
+{
+    return server->primary;
 }
 
 time_t

@@ -1197,8 +1197,8 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
         talloc_steal(service, list[i]);
 
-        ret = be_fo_add_server(ctx, service->name,
-                               lud->lud_host, lud->lud_port, list[i]);
+        ret = be_fo_add_server(ctx, service->name, lud->lud_host,
+                               lud->lud_port, list[i], true);
         ldap_free_urldesc(lud);
         if (ret) {
             goto done;

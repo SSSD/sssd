@@ -230,14 +230,15 @@ START_TEST(test_fo_resolve_service)
     fail_if(fo_new_service(ctx->fo_ctx, "ntp", &service[2]) != EOK);
 
     /* Add servers. */
-    fail_if(fo_add_server(service[0], "localhost", 20, NULL) != EOK);
-    fail_if(fo_add_server(service[0], "127.0.0.1", 80, NULL) != EOK);
+    fail_if(fo_add_server(service[0], "localhost", 20, NULL, true) != EOK);
+    fail_if(fo_add_server(service[0], "127.0.0.1", 80, NULL, false) != EOK);
 
-    fail_if(fo_add_server(service[1], "localhost", 30, NULL) != EOK);
-    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL) != EOK);
-    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL) != EEXIST);
+    fail_if(fo_add_server(service[1], "localhost", 30, NULL, false) != EOK);
+    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL, true) != EOK);
+    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL, true) != EEXIST);
+    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL, false) != EEXIST);
 
-    fail_if(fo_add_server(service[2], NULL, 123, NULL) != EOK);
+    fail_if(fo_add_server(service[2], NULL, 123, NULL, true) != EOK);
 
     /* Make requests. */
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, -1);

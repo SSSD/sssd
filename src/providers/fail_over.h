@@ -116,9 +116,8 @@ int fo_get_server_count(struct fo_service *service);
  * connection. If 'name' is NULL, no server resolution will be done.
  */
 int fo_add_server(struct fo_service *service,
-                  const char *name,
-                  int port,
-                  void *user_data);
+                  const char *name, int port,
+                  void *user_data, bool primary);
 
 
 int fo_add_srv_server(struct fo_service *service,
@@ -179,6 +178,8 @@ const char *fo_get_server_name(struct fo_server *server);
 const char *fo_get_server_str_name(struct fo_server *server);
 
 struct resolv_hostent *fo_get_server_hostent(struct fo_server *server);
+
+bool fo_is_server_primary(struct fo_server *server);
 
 time_t fo_get_server_hostname_last_change(struct fo_server *server);
 

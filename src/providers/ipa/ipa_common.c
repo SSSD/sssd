@@ -892,7 +892,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
             continue;
         }
 
-        ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL);
+        ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL, true);
         if (ret && ret != EEXIST) {
             DEBUG(0, ("Failed to add server\n"));
             goto done;

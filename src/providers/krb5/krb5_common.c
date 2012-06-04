@@ -586,7 +586,7 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         }
 
         ret = be_fo_add_server(ctx, service_name, server_spec, (int) port,
-                               list[i]);
+                               list[i], true);
         if (ret && ret != EEXIST) {
             DEBUG(0, ("Failed to add server\n"));
             goto done;
