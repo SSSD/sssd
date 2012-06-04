@@ -150,11 +150,10 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int number_failed;
-    int debug = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug-level", 'd', POPT_ARG_INT, &debug, 0, "Set debug level", NULL },
+        { "debug-level", 'd', POPT_ARG_INT, &debug_level, 0, "Set debug level", NULL },
         POPT_TABLEEND
     };
 

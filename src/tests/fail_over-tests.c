@@ -283,11 +283,10 @@ main(int argc, const char *argv[])
     int failure_count;
     Suite *suite;
     SRunner *sr;
-    int debug = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug-level", 'd', POPT_ARG_INT, &debug, 0, "Set debug level", NULL },
+        { "debug-level", 'd', POPT_ARG_INT, &debug_level, 0, "Set debug level", NULL },
         { "use-net-test", 'n', POPT_ARG_NONE, 0, 'n', "Run tests that need an active internet connection", NULL },
         POPT_TABLEEND
     };
