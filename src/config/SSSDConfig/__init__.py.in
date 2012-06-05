@@ -1290,7 +1290,7 @@ class SSSDConfig(SSSDChangeConf):
 
         if not configfile:
             #TODO: get this from a global setting
-            configfile = '@sysconfdir@/sssd.conf'
+            configfile = '@sysconfdir@/sssd/sssd.conf'
         # open will raise an IOError if it fails
         fd = open(configfile, 'r')
 
