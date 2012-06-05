@@ -166,6 +166,7 @@ option_strings = {
 
     # [provider/ldap]
     'ldap_uri' : _('ldap_uri, The URI of the LDAP server'),
+    'ldap_backup_uri' : _('ldap_backup_uri, The URI of the LDAP server'),
     'ldap_search_base' : _('The default base DN'),
     'ldap_schema' : _('The Schema Type in use on the LDAP server, rfc2307'),
     'ldap_default_bind_dn' : _('The default bind DN'),
@@ -297,6 +298,7 @@ option_strings = {
 
     # [provider/ldap/chpass]
     'ldap_chpass_uri' : _('URI of an LDAP server where password changes are allowed'),
+    'ldap_chpass_backup_uri' : _('URI of a backup LDAP server where password changes are allowed'),
     'ldap_chpass_dns_service_name' : _('DNS service name for LDAP password change server'),
 
     # [provider/ldap/sudo]

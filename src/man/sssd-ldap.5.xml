@@ -57,14 +57,14 @@
 
             <variablelist>
                 <varlistentry>
-                    <term>ldap_uri (string)</term>
+                    <term>ldap_uri, ldap_backup_uri (string)</term>
                     <listitem>
                         <para>
                             Specifies the comma-separated list of URIs of the LDAP servers to which
                             SSSD should connect in the order of preference. Refer to the
                             <quote>FAILOVER</quote> section for more information on failover and server redundancy.
-                            If not specified, service discovery is enabled. For more information, refer
-                            to the <quote>SERVICE DISCOVERY</quote> section.
+                            If neither option is specified, service discovery is enabled. For more information,
+                            refer to the <quote>SERVICE DISCOVERY</quote> section.
                         </para>
                         <para>
                             The format of the URI must match the format defined in RFC 2732:
@@ -82,7 +82,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_chpass_uri (string)</term>
+                    <term>ldap_chpass_uri, ldap_chpass_backup_uri (string)</term>
                     <listitem>
                         <para>
                             Specifies the comma-separated list of URIs of the LDAP servers to

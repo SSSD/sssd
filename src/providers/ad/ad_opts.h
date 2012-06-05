@@ -38,6 +38,7 @@ struct dp_option ad_basic_opts[] = {
 
 struct dp_option ad_def_ldap_opts[] = {
     { "ldap_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_backup_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, { "password" }, NULL_STRING},
@@ -96,6 +97,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_account_expire_policy", DP_OPT_STRING, { "ad" }, NULL_STRING },
     { "ldap_access_order", DP_OPT_STRING, { "filter" }, NULL_STRING },
     { "ldap_chpass_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_chpass_backup_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_dns_service_name", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_chpass_update_last_change", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_enumeration_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },

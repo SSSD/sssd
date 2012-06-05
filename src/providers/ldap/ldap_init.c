@@ -88,6 +88,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 {
     struct sdap_id_ctx *ctx;
     const char *urls;
+    const char *backup_urls;
     const char *dns_service_name;
     const char *sasl_mech;
     int ret;
@@ -117,12 +118,10 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     DEBUG(7, ("Service name for discovery set to %s\n", dns_service_name));
 
     urls = dp_opt_get_string(ctx->opts->basic, SDAP_URI);
-    if (!urls) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Missing ldap_uri, will use service discovery\n"));
-    }
+    backup_urls = dp_opt_get_string(ctx->opts->basic, SDAP_BACKUP_URI);
 
     ret = sdap_service_init(ctx, ctx->be, "LDAP",
-                            dns_service_name, urls, NULL,
+                            dns_service_name, urls, backup_urls,
                             &ctx->service);
     if (ret != EOK) {
         DEBUG(1, ("Failed to initialize failover service!\n"));
