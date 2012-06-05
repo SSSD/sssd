@@ -53,9 +53,16 @@ struct sss_krb5_cc_be {
 };
 
 struct sss_krb5_cc_be file_cc;
+struct sss_krb5_cc_be dir_cc;
+
+errno_t create_ccache_dir(const char *dirname, pcre *illegal_re,
+                          uid_t uid, gid_t gid, bool private_path);
 
 errno_t cc_file_create(const char *filename, pcre *illegal_re,
                        uid_t uid, gid_t gid, bool private_path);
+
+errno_t cc_dir_create(const char *location, pcre *illegal_re,
+                      uid_t uid, gid_t gid, bool private_path);
 
 struct sss_krb5_cc_be *get_cc_be_ops(enum sss_krb5_cc_type type);
 struct sss_krb5_cc_be *get_cc_be_ops_ccache(const char *ccache);

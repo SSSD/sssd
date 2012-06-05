@@ -329,31 +329,80 @@ START_TEST(test_illegal_patterns)
 
     filename = talloc_asprintf(tmp_ctx, "abc/./ccfile");
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = cc_file_create(filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "cc_file_create allowed relative path [%s].",
+    ret = create_ccache_dir(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "create_ccache_dir allowed relative path [%s].",
                                filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc/./ccfile", dirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = cc_file_create(filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "cc_file_create allowed "
+    ret = create_ccache_dir(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "create_ccache_dir allowed "
                                "illegal pattern '/./' in filename [%s].",
                                filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc/../ccfile", dirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = cc_file_create(filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "cc_file_create allowed "
+    ret = create_ccache_dir(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "create_ccache_dir allowed "
                                "illegal pattern '/../' in filename [%s].",
                                filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc//ccfile", dirname);
     fail_unless(filename != NULL, "talloc_asprintf failed.");
-    ret = cc_file_create(filename, illegal_re, uid, gid, true);
-    fail_unless(ret == EINVAL, "cc_file_create allowed "
+    ret = create_ccache_dir(filename, illegal_re, uid, gid, true);
+    fail_unless(ret == EINVAL, "create_ccache_dir allowed "
                                "illegal pattern '//' in filename [%s].",
                                filename);
 
+}
+END_TEST
+
+START_TEST(test_cc_dir_create)
+{
+    char *residual;
+    char *dirname;
+    char *cwd;
+    uid_t uid = getuid();
+    gid_t gid = getgid();
+    pcre *illegal_re;
+    errno_t ret;
+    const char *errstr;
+    int errval;
+    int errpos;
+
+    illegal_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
+                               &errval, &errstr, &errpos, NULL);
+    fail_unless(illegal_re != NULL, "Invalid Regular Expression pattern at "
+                                    " position %d. (Error: %d [%s])\n",
+                                    errpos, errval, errstr);
+
+    cwd = getcwd(NULL, 0);
+    fail_unless(cwd != NULL, "getcwd failed.");
+
+    dirname = talloc_asprintf(tmp_ctx, "%s/%s/user_dir",
+                              cwd, TESTS_PATH);
+    fail_unless(dirname != NULL, "talloc_asprintf failed.");
+    residual = talloc_asprintf(tmp_ctx, "DIR:%s/%s", dirname, "ccdir");
+    fail_unless(residual != NULL, "talloc_asprintf failed.");
+
+    ret = cc_dir_create(residual, illegal_re, uid, gid, true);
+    fail_unless(ret == EOK, "cc_dir_create failed\n");
+    ret = rmdir(dirname);
+    fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
+    talloc_free(residual);
+
+    dirname = talloc_asprintf(tmp_ctx, "%s/%s/user_dir2",
+                              cwd, TESTS_PATH);
+    fail_unless(dirname != NULL, "talloc_asprintf failed.");
+    residual = talloc_asprintf(tmp_ctx, "DIR:%s/%s", dirname, "ccdir/");
+    fail_unless(residual != NULL, "talloc_asprintf failed.");
+
+    ret = cc_dir_create(residual, illegal_re, uid, gid, true);
+    fail_unless(ret == EOK, "cc_dir_create failed\n");
+    ret = rmdir(dirname);
+    fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
+    talloc_free(residual);
+    free(cwd);
 }
 END_TEST
 
@@ -645,6 +694,7 @@ Suite *krb5_utils_suite (void)
     tcase_add_checked_fixture (tc_create_dir, setup_create_dir,
                                teardown_create_dir);
     tcase_add_test (tc_create_dir, test_illegal_patterns);
+    tcase_add_test (tc_create_dir, test_cc_dir_create);
     if (getuid() == 0) {
         tcase_add_test (tc_create_dir, test_priv_ccache_dir);
         tcase_add_test (tc_create_dir, test_private_ccache_dir_in_user_dir);

@@ -157,10 +157,12 @@
                     <term>krb5_ccname_template (string)</term>
                     <listitem>
                         <para>
-                            Location of the user's credential cache. Currently
-                            only file based credential caches are supported. In
-                            the template the following sequences are
-                            substituted:
+                            Location of the user's credential cache. Two credential
+                            cache types are currently supported - <quote>FILE</quote>
+                            and <quote>DIR</quote>. The cache can either be specified
+                            as <replaceable>TYPE:RESIDUAL</replaceable>, or an absolute
+                            path, which implies the <quote>FILE</quote> type. In the
+                            template the following sequences are substituted:
                             <variablelist>
                                 <varlistentry>
                                     <term>%u</term>

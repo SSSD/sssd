@@ -182,13 +182,37 @@ errno_t check_and_export_options(struct dp_option *opts,
     }
 
     cc_be = sss_krb5_get_type(dummy);
-    if (cc_be != SSS_KRB5_TYPE_FILE || dummy[0] != '/') {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Currently only file based credential caches are supported "
-               "and krb5ccname_template must start with '/' or 'FILE:'\n"));
+    switch (cc_be) {
+    case SSS_KRB5_TYPE_FILE:
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type FILE\n"));
+        krb5_ctx->cc_be = &file_cc;
+        if (dummy[0] != '/') {
+            /* FILE:/path/to/cc */
+            break;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, ("The ccname template was "
+              "missing an explicit type, but is an absolute "
+              "path specifier. Assuming FILE:\n"));
+
+        dummy = talloc_asprintf(opts, "FILE:%s", dummy);
+        if (!dummy) return ENOMEM;
+
+        ret = dp_opt_set_string(opts, KRB5_CCNAME_TMPL, dummy);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("dp_opt_set_string failed.\n"));
+            return ret;
+        }
+        break;
+    case SSS_KRB5_TYPE_DIR:
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type DIR\n"));
+        krb5_ctx->cc_be = &dir_cc;
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, ("Unkown ccname database\n"));
         return EINVAL;
+        break;
     }
-    krb5_ctx->cc_be = &file_cc;
 
     return EOK;
 }

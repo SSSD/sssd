@@ -604,11 +604,10 @@ void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name)
 }
 
 
-krb5_error_code check_for_valid_tgt(const char *ccname, const char *realm,
+krb5_error_code check_for_valid_tgt(krb5_context context,
+                                    krb5_ccache ccache, const char *realm,
                                     const char *client_princ_str, bool *result)
 {
-    krb5_context context = NULL;
-    krb5_ccache ccache = NULL;
     krb5_error_code krberr;
     TALLOC_CTX *tmp_ctx = NULL;
     krb5_creds mcred;
@@ -623,18 +622,6 @@ krb5_error_code check_for_valid_tgt(const char *ccname, const char *realm,
     if (tmp_ctx == NULL) {
         DEBUG(1, ("talloc_new failed.\n"));
         return ENOMEM;
-    }
-
-    krberr = krb5_init_context(&context);
-    if (krberr) {
-        DEBUG(1, ("Failed to init kerberos context\n"));
-        goto done;
-    }
-
-    krberr = krb5_cc_resolve(context, ccname, &ccache);
-    if (krberr != 0) {
-        DEBUG(1, ("krb5_cc_resolve failed.\n"));
-        goto done;
     }
 
     server_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
@@ -685,10 +672,6 @@ done:
     if (server_principal != NULL) {
         krb5_free_principal(context, server_principal);
     }
-    if (ccache != NULL) {
-        krb5_cc_close(context, ccache);
-    }
-    if (context != NULL) krb5_free_context(context);
     talloc_free(tmp_ctx);
     return krberr;
 }

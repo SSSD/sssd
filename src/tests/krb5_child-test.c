@@ -40,6 +40,7 @@
 
 extern struct dp_option default_krb5_opts[];
 extern struct sss_krb5_cc_be file_cc;
+extern struct sss_krb5_cc_be dir_cc;
 
 static krb5_context krb5_error_ctx;
 #define KRB5_DEBUG(level, krb5_error) do { \
@@ -118,8 +119,6 @@ create_dummy_krb5_ctx(TALLOC_CTX *mem_ctx, const char *realm)
 
     krb5_ctx = talloc_zero(mem_ctx, struct krb5_ctx);
     if (!krb5_ctx) return NULL;
-
-    krb5_ctx->cc_be = &file_cc;
 
     krb5_ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
                                         &errval, &errstr, &errpos, NULL);
@@ -202,10 +201,12 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
                  const char *ccname, const char *ccname_template,
                  int timeout)
 {
+    enum sss_krb5_cc_type cc_be;
     struct krb5child_req *kr;
     struct passwd *pwd;
     bool private;
     errno_t ret;
+    const char *tmpl;
 
     /* The top level child request */
     kr = talloc_zero(mem_ctx, struct krb5child_req);
@@ -237,6 +238,9 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
         ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL,
                                 ccname_template);
         if (ret != EOK) goto fail;
+        tmpl = ccname_template;
+    } else {
+        tmpl = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL);
     }
 
     if (timeout) {
@@ -252,17 +256,41 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
 
         DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
               kr->ccname, kr->uid, kr->gid));
-
-        ret = kr->krb5_ctx->cc_be->create(kr->ccname,
-                                          kr->krb5_ctx->illegal_path_re,
-                                          kr->uid, kr->gid, private);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("create_ccache_dir failed.\n"));
-        }
     } else {
         kr->ccname = talloc_strdup(kr, ccname);
     }
     if (!kr->ccname) goto fail;
+
+    cc_be = sss_krb5_get_type(kr->ccname);
+    switch (cc_be) {
+    case SSS_KRB5_TYPE_FILE:
+        kr->krb5_ctx->cc_be = &file_cc;
+        break;
+    case SSS_KRB5_TYPE_DIR:
+        kr->krb5_ctx->cc_be = &dir_cc;
+        break;
+    default:
+        if (tmpl[0] != '/') {
+            DEBUG(SSSDBG_OP_FAILURE, ("Unkown ccname database\n"));
+            ret = EINVAL;
+            goto fail;
+        }
+        DEBUG(SSSDBG_CONF_SETTINGS, ("The ccname template was "
+              "missing an explicit type, but looks like an absolute "
+              "path specifier. Assuming FILE:\n"));
+        kr->krb5_ctx->cc_be = &file_cc;
+        break;
+    }
+    DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
+            kr->ccname, kr->uid, kr->gid));
+
+    ret = kr->krb5_ctx->cc_be->create(kr->ccname,
+                                      kr->krb5_ctx->illegal_path_re,
+                                      kr->uid, kr->gid, private);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("create_ccache_dir failed.\n"));
+        goto fail;
+    }
 
     return kr;
 
