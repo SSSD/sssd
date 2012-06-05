@@ -2,7 +2,7 @@
     <title>FAILOVER</title>
     <para>
         The failover feature allows back ends to automatically switch to
-        a different server if the primary server fails.
+        a different server if the current server fails.
     </para>
     <refsect2 id='failover_syntax'>
         <title>Failover Syntax</title>
@@ -11,6 +11,16 @@
             number of spaces is allowed around the comma. The servers are
             listed in order of preference. The list can contain any number
             of servers.
+        </para>
+        <para>
+            For each failover-enabled config option, two variants exist:
+            <emphasis>primary</emphasis> and <emphasis>backup</emphasis>.
+            The idea is that servers in the primary list are preferred and
+            backup servers are only searched if no primary servers can be
+            reached. If a backup server is selected, a timeout of 30 seconds
+            is set. After this timeout SSSD will periodically try to reconnect
+            to one of the primary servers. If it succeeds, it will replace
+            the current active (backup) server.
         </para>
     </refsect2>
     <refsect2 id='failover_mechanism'>
