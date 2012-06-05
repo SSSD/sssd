@@ -122,7 +122,8 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     }
 
     ret = sdap_service_init(ctx, ctx->be, "LDAP",
-                            dns_service_name, urls, &ctx->service);
+                            dns_service_name, urls, NULL,
+                            &ctx->service);
     if (ret != EOK) {
         DEBUG(1, ("Failed to initialize failover service!\n"));
         goto done;
@@ -243,7 +244,7 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
         ctx->chpass_service = NULL;
     } else {
         ret = sdap_service_init(ctx, ctx->be, "LDAP_CHPASS", dns_service_name,
-                                urls, &ctx->chpass_service);
+                                urls, NULL, &ctx->chpass_service);
         if (ret != EOK) {
             DEBUG(1, ("Failed to initialize failover service!\n"));
             goto done;

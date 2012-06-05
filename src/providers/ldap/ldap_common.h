@@ -98,7 +98,8 @@ void sdap_handler_done(struct be_req *req, int dp_err,
 
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,
-                      const char *urls, struct sdap_service **_service);
+                      const char *urls, const char *backup_urls,
+                      struct sdap_service **_service);
 
 int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
                      struct dp_option *opts,

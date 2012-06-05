@@ -1072,7 +1072,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = krb5_service_init(mem_ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
-                            krb5_realm, &service);
+                            NULL, krb5_realm, &service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init KRB5 failover service!\n"));
         goto done;
@@ -1106,44 +1106,25 @@ done:
     return ret;
 }
 
-int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                      const char *service_name, const char *dns_service_name,
-                      const char *urls, struct sdap_service **_service)
+errno_t sdap_urls_init(struct be_ctx *ctx,
+                       struct sdap_service *service,
+                       const char *service_name,
+                       const char *dns_service_name,
+                       const char *urls,
+                       bool primary)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sdap_service *service;
-    LDAPURLDesc *lud;
-    char **list = NULL;
     char *srv_user_data;
-    int ret;
+    char **list = NULL;
+    LDAPURLDesc *lud;
+    errno_t ret;
     int i;
 
-    tmp_ctx = talloc_new(memctx);
+    tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    service = talloc_zero(tmp_ctx, struct sdap_service);
-    if (!service) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = be_fo_add_service(ctx, service_name);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to create failover service!\n"));
-        goto done;
-    }
-
-    service->name = talloc_strdup(service, service_name);
-    if (!service->name) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (!urls) {
-        urls = BE_SRV_IDENTIFIER;
-    }
 
     /* split server parm into a list */
     ret = split_on_separator(tmp_ctx, urls, ',', true, &list, NULL);
@@ -1198,9 +1179,75 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         talloc_steal(service, list[i]);
 
         ret = be_fo_add_server(ctx, service->name, lud->lud_host,
-                               lud->lud_port, list[i], true);
+                               lud->lud_port, list[i], primary);
         ldap_free_urldesc(lud);
         if (ret) {
+            goto done;
+        }
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                      const char *service_name, const char *dns_service_name,
+                      const char *urls, const char *backup_urls,
+                      struct sdap_service **_service)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sdap_service *service;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    service = talloc_zero(tmp_ctx, struct sdap_service);
+    if (!service) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_fo_add_service(ctx, service_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
+        goto done;
+    }
+
+    service->name = talloc_strdup(service, service_name);
+    if (!service->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (!urls) {
+        if (backup_urls) {
+            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary LDAP URL but "
+                                         "backup URL given - using it "
+                                         "as primary!\n"));
+            urls = backup_urls;
+            backup_urls = NULL;
+        }
+        else {
+            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary and backup LDAP "
+                                         "URLs - using service discovery!\n"));
+            urls = BE_SRV_IDENTIFIER;
+        }
+    }
+
+    ret = sdap_urls_init(ctx, service, service_name, dns_service_name,
+                         urls, true);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (backup_urls) {
+        ret = sdap_urls_init(ctx, service, service_name, dns_service_name,
+                             backup_urls, false);
+        if (ret != EOK) {
             goto done;
         }
     }
@@ -1208,7 +1255,7 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     ret = be_fo_service_add_callback(memctx, ctx, service->name,
                                      sdap_uri_callback, service);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to add failover callback!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to add failover callback!\n"));
         goto done;
     }
 
