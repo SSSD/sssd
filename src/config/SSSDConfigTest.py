@@ -581,8 +581,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         backup_list = control_list[:]
         control_list.extend(
             ['krb5_server',
+             'krb5_backup_server',
              'krb5_realm',
              'krb5_kpasswd',
+             'krb5_backup_kpasswd',
              'krb5_ccachedir',
              'krb5_ccname_template',
              'krb5_keytab',
@@ -736,9 +738,11 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_provider_options('krb5', 'auth')
         control_list = [
             'krb5_server',
+            'krb5_backup_server',
             'krb5_kdcip',
             'krb5_realm',
             'krb5_kpasswd',
+            'krb5_backup_kpasswd',
             'krb5_ccachedir',
             'krb5_ccname_template',
             'krb5_keytab',
@@ -915,9 +919,11 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         backup_list = control_list[:]
         control_list.extend(
             ['krb5_server',
+             'krb5_backup_server',
              'krb5_kdcip',
              'krb5_realm',
              'krb5_kpasswd',
+             'krb5_backup_kpasswd',
              'krb5_ccachedir',
              'krb5_ccname_template',
              'krb5_keytab',

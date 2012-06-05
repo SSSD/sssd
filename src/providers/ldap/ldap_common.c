@@ -1041,6 +1041,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
 {
     int ret;
     const char *krb5_servers;
+    const char *krb5_backup_servers;
     const char *krb5_realm;
     const char *krb5_opt_realm;
     struct krb5_service *service = NULL;
@@ -1050,9 +1051,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     if (tmp_ctx == NULL) return ENOMEM;
 
     krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDC);
-    if (krb5_servers == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Missing krb5_server option, using service discovery!\n"));
-    }
+    krb5_backup_servers = dp_opt_get_string(opts, SDAP_KRB5_BACKUP_KDC);
 
     krb5_opt_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
     if (krb5_opt_realm == NULL) {
@@ -1072,7 +1071,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = krb5_service_init(mem_ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
-                            NULL, krb5_realm, &service);
+                            krb5_backup_servers, krb5_realm, &service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init KRB5 failover service!\n"));
         goto done;

@@ -96,6 +96,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
     { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_backup_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING },
@@ -241,6 +242,7 @@ struct sdap_attr_map ipa_selinux_user_map[] = {
 
 struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_backup_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_ccachedir", DP_OPT_STRING, { DEFAULT_CCACHE_DIR }, NULL_STRING },
     { "krb5_ccname_template", DP_OPT_STRING, { DEFAULT_CCNAME_TEMPLATE }, NULL_STRING},
@@ -248,6 +250,7 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
     { "krb5_validate", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_backup_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_renewable_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_lifetime", DP_OPT_STRING, NULL_STRING, NULL_STRING },

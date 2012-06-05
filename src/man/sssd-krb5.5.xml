@@ -71,7 +71,7 @@
             for details on the configuration of a SSSD domain.
             <variablelist>
                 <varlistentry>
-                    <term>krb5_server (string)</term>
+                    <term>krb5_server, krb5_backup_server (string)</term>
                     <listitem>
                         <para>
                             Specifies the comma-separated list of IP addresses or hostnames
@@ -110,7 +110,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_kpasswd (string)</term>
+                    <term>krb5_kpasswd, krb5_backup_kpasswd (string)</term>
                     <listitem>
                         <para>
                             If the change password service is not running on the

@@ -61,7 +61,9 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     struct krb5_ctx *ctx = NULL;
     int ret;
     const char *krb5_servers;
+    const char *krb5_backup_servers;
     const char *krb5_kpasswd_servers;
+    const char *krb5_backup_kpasswd_servers;
     const char *krb5_realm;
     const char *errstr;
     int errval;
@@ -98,9 +100,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     ctx->opts = krb5_options->opts;
 
     krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
-    if (krb5_servers == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Missing krb5_server option, using service discovery!\n"));
-    }
+    krb5_backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);
 
     krb5_realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
     if (krb5_realm == NULL) {
@@ -109,13 +109,22 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     }
 
     ret = krb5_service_init(ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
-                            NULL, krb5_realm, &ctx->service);
+                            krb5_backup_servers, krb5_realm, &ctx->service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init KRB5 failover service!\n"));
         return ret;
     }
 
     krb5_kpasswd_servers = dp_opt_get_string(ctx->opts, KRB5_KPASSWD);
+    krb5_backup_kpasswd_servers = dp_opt_get_string(ctx->opts,
+                                                       KRB5_BACKUP_KPASSWD);
+    if (krb5_kpasswd_servers == NULL && krb5_backup_kpasswd_servers != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("kpasswd server wasn't specified but "
+                                     "backup kpasswd given. Using it as primary\n"));
+        krb5_kpasswd_servers = krb5_backup_kpasswd_servers;
+        krb5_backup_kpasswd_servers = NULL;
+    }
+
     if (krb5_kpasswd_servers == NULL && krb5_servers != NULL) {
         DEBUG(0, ("Missing krb5_kpasswd option and KDC set explicitly, "
                   "will use KDC for pasword change operations!\n"));

@@ -76,6 +76,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
     { "krb5_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_backup_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" }, NULL_STRING },

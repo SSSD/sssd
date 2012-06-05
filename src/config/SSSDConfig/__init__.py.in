@@ -145,6 +145,7 @@ option_strings = {
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
     'krb5_server' : _('Kerberos server address'),
+    'krb5_backup_server' : _('Kerberos backup server address'),
     'krb5_realm' : _('Kerberos realm'),
     'krb5_auth_timeout' : _('Authentication timeout'),
 
@@ -163,6 +164,7 @@ option_strings = {
 
     # [provider/krb5/chpass]
     'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),
+    'krb5_backup_kpasswd' : _('Server where the change password service is running if not on the KDC'),
 
     # [provider/ldap]
     'ldap_uri' : _('ldap_uri, The URI of the LDAP server'),
