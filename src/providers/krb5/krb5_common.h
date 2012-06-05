@@ -147,7 +147,9 @@ errno_t write_krb5info_file(const char *realm, const char *kdc,
                             const char *service);
 
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                      const char *service_name, const char *servers,
+                      const char *service_name,
+                      const char *primary_servers,
+                      const char *backup_servers,
                       const char *realm, struct krb5_service **_service);
 
 void remove_krb5_info_files_callback(void *pvt);

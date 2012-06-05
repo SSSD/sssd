@@ -465,21 +465,122 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     return;
 }
 
-
-int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                      const char *service_name, const char *servers,
-                      const char *realm, struct krb5_service **_service)
+errno_t krb5_servers_init(struct be_ctx *ctx,
+                          struct krb5_service *service,
+                          const char *service_name,
+                          const char *servers,
+                          bool primary)
 {
     TALLOC_CTX *tmp_ctx;
-    struct krb5_service *service;
     char **list = NULL;
-    int ret;
+    errno_t ret;
     int i;
     char *port_str;
     long port;
     char *server_spec;
     char *endptr;
     struct servent *servent;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    for (i = 0; list[i]; i++) {
+
+        talloc_steal(service, list[i]);
+        server_spec = talloc_strdup(service, list[i]);
+        if (!server_spec) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (be_fo_is_srv_identifier(server_spec)) {
+            ret = be_fo_add_srv_server(ctx, service_name, service_name, NULL,
+                                       BE_FO_PROTO_UDP, true, NULL);
+            if (ret) {
+                DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Added service lookup\n"));
+            continue;
+        }
+
+        port_str = strrchr(server_spec, ':');
+        if (port_str == NULL) {
+            port = 0;
+        } else {
+            *port_str = '\0';
+            ++port_str;
+            if (isdigit(*port_str)) {
+                errno = 0;
+                port = strtol(port_str, &endptr, 10);
+                if (errno != 0) {
+                    ret = errno;
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("strtol failed on [%s]: [%d][%s].\n", port_str,
+                              ret, strerror(ret)));
+                    goto done;
+                }
+                if (*endptr != '\0') {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Found additional characters [%s] in port number "
+                              "[%s].\n", endptr, port_str));
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                if (port < 1 || port > 65535) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Illegal port number [%d].\n", port));
+                    ret = EINVAL;
+                    goto done;
+                }
+            } else if (isalpha(*port_str)) {
+                servent = getservbyname(port_str, NULL);
+                if (servent == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("getservbyname cannot find service [%s].\n",
+                              port_str));
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                port = servent->s_port;
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported port specifier in [%s].\n", list[i]));
+                ret = EINVAL;
+                goto done;
+            }
+        }
+
+        ret = be_fo_add_server(ctx, service_name, server_spec, (int) port,
+                               list[i], primary);
+        if (ret && ret != EEXIST) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Added Server %s\n", list[i]));
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                      const char *service_name,
+                      const char *primary_servers,
+                      const char *backup_servers,
+                      const char *realm, struct krb5_service **_service)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct krb5_service *service;
+    int ret;
 
     tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
@@ -510,89 +611,31 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    if (!servers) {
-        servers = BE_SRV_IDENTIFIER;
+    if (!primary_servers) {
+        if (backup_servers) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("No primary servers defined but backup are present, "
+                   "setting backup servers as primary\n"));
+            primary_servers = backup_servers;
+            backup_servers = NULL;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("No primary or backup servers defined, "
+                   "using service discovery\n"));
+            primary_servers = BE_SRV_IDENTIFIER;
+        }
     }
 
-    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    ret = krb5_servers_init(ctx, service, service_name, primary_servers, true);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to parse server list!\n"));
         goto done;
     }
 
-    for (i = 0; list[i]; i++) {
-
-        talloc_steal(service, list[i]);
-        server_spec = talloc_strdup(service, list[i]);
-        if (!server_spec) {
-            ret = ENOMEM;
+    if (backup_servers) {
+        ret = krb5_servers_init(ctx, service, service_name, backup_servers, false);
+        if (ret != EOK) {
             goto done;
         }
-
-        if (be_fo_is_srv_identifier(server_spec)) {
-            ret = be_fo_add_srv_server(ctx, service_name, service_name, NULL,
-                                       BE_FO_PROTO_UDP, true, NULL);
-            if (ret) {
-                DEBUG(0, ("Failed to add server\n"));
-                goto done;
-            }
-
-            DEBUG(6, ("Added service lookup\n"));
-            continue;
-        }
-
-        port_str = strrchr(server_spec, ':');
-        if (port_str == NULL) {
-            port = 0;
-        } else {
-            *port_str = '\0';
-            ++port_str;
-            if (isdigit(*port_str)) {
-                errno = 0;
-                port = strtol(port_str, &endptr, 10);
-                if (errno != 0) {
-                    ret = errno;
-                    DEBUG(1, ("strtol failed on [%s]: [%d][%s].\n", port_str,
-                              ret, strerror(ret)));
-                    goto done;
-                }
-                if (*endptr != '\0') {
-                    DEBUG(1, ("Found additional characters [%s] in port number "
-                              "[%s].\n", endptr, port_str));
-                    ret = EINVAL;
-                    goto done;
-                }
-
-                if (port < 1 || port > 65535) {
-                    DEBUG(1, ("Illegal port number [%d].\n", port));
-                    ret = EINVAL;
-                    goto done;
-                }
-            } else if (isalpha(*port_str)) {
-                servent = getservbyname(port_str, NULL);
-                if (servent == NULL) {
-                    DEBUG(1, ("getservbyname cannot find service [%s].\n",
-                              port_str));
-                    ret = EINVAL;
-                    goto done;
-                }
-
-                port = servent->s_port;
-            } else {
-                DEBUG(1, ("Unsupported port specifier in [%s].\n", list[i]));
-                ret = EINVAL;
-                goto done;
-            }
-        }
-
-        ret = be_fo_add_server(ctx, service_name, server_spec, (int) port,
-                               list[i], true);
-        if (ret && ret != EEXIST) {
-            DEBUG(0, ("Failed to add server\n"));
-            goto done;
-        }
-
-        DEBUG(6, ("Added Server %s\n", list[i]));
     }
 
     ret = be_fo_service_add_callback(memctx, ctx, service_name,
