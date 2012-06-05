@@ -1277,36 +1277,36 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
+    }
 
-        /* conversion done, upgrade version number */
-        msg = ldb_msg_new(tmp_ctx);
-        if (!msg) {
-            ret = ENOMEM;
-            goto done;
-        }
-        msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
-        if (!msg->dn) {
-            ret = ENOMEM;
-            goto done;
-        }
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-        ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
-        if (ret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-        ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_11);
-        if (ret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
+    ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_11);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-        ret = ldb_modify(sysdb->ldb, msg);
-        if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);
-            goto done;
-        }
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
     }
 
     ret = EOK;
