@@ -171,7 +171,8 @@ int ipa_autofs_init(struct be_ctx *be_ctx,
                     void **pvt_data);
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                     const char *servers,
+                     const char *primary_servers,
+                     const char *backup_servers,
                      struct ipa_options *options,
                      struct ipa_service **_service);
 

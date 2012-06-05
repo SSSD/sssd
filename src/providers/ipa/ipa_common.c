@@ -797,20 +797,74 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     talloc_free(tmp_ctx);
 }
 
+errno_t ipa_servers_init(struct be_ctx *ctx,
+                         struct ipa_service *service,
+                         struct ipa_options *options,
+                         const char *servers,
+                         bool primary)
+{
+    TALLOC_CTX *tmp_ctx;
+    char **list = NULL;
+    char *ipa_domain;
+    int ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* split server parm into a list */
+    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    /* now for each one add a new server to the failover service */
+    for (i = 0; list[i]; i++) {
+
+        talloc_steal(service, list[i]);
+
+        if (be_fo_is_srv_identifier(list[i])) {
+            ipa_domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
+            ret = be_fo_add_srv_server(ctx, "IPA", "ldap", ipa_domain,
+                                       BE_FO_PROTO_TCP, false, NULL);
+            if (ret) {
+                DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Added service lookup for service IPA\n"));
+            continue;
+        }
+
+        ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL, primary);
+        if (ret && ret != EEXIST) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Added Server %s\n", list[i]));
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                     const char *servers,
+                     const char *primary_servers,
+                     const char *backup_servers,
                      struct ipa_options *options,
                      struct ipa_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
     struct ipa_service *service;
-    char **list = NULL;
     char *realm;
-    char *ipa_domain;
     int ret;
-    int i;
 
-    tmp_ctx = talloc_new(memctx);
+    tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
@@ -863,42 +917,29 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    if (!servers) {
-        servers = BE_SRV_IDENTIFIER;
+    if (!primary_servers) {
+        if (backup_servers) {
+            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary IPA server but "
+                                         "backup server given - using it as primary!\n"));
+            primary_servers = backup_servers;
+            backup_servers = NULL;
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary and backup IPA "
+                                         "servers - using service discovery!\n"));
+            primary_servers = BE_SRV_IDENTIFIER;
+        }
     }
 
-    /* split server parm into a list */
-    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    ret = ipa_servers_init(ctx, service, options, primary_servers, true);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to parse server list!\n"));
         goto done;
     }
 
-    /* now for each one add a new server to the failover service */
-    for (i = 0; list[i]; i++) {
-
-        talloc_steal(service, list[i]);
-
-        if (be_fo_is_srv_identifier(list[i])) {
-            ipa_domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
-            ret = be_fo_add_srv_server(ctx, "IPA", "ldap", ipa_domain,
-                                       BE_FO_PROTO_TCP, false, NULL);
-            if (ret) {
-                DEBUG(0, ("Failed to add server\n"));
-                goto done;
-            }
-
-            DEBUG(6, ("Added service lookup for service IPA\n"));
-            continue;
-        }
-
-        ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL, true);
-        if (ret && ret != EEXIST) {
-            DEBUG(0, ("Failed to add server\n"));
+    if (backup_servers) {
+        ret = ipa_servers_init(ctx, service, options, backup_servers, false);
+        if (ret != EOK) {
             goto done;
         }
-
-        DEBUG(6, ("Added Server %s\n", list[i]));
     }
 
     ret = be_fo_service_add_callback(memctx, ctx, "IPA",

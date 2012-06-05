@@ -98,7 +98,7 @@ int common_ipa_init(struct be_ctx *bectx)
         DEBUG(1, ("Missing ipa_server option - using service discovery!\n"));
     }
 
-    ret = ipa_service_init(ipa_options, bectx, ipa_servers, ipa_options,
+    ret = ipa_service_init(ipa_options, bectx, ipa_servers, NULL, ipa_options,
                            &ipa_options->service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init IPA failover service!\n"));
