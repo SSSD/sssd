@@ -121,28 +121,112 @@ static void be_async_req_handler(struct tevent_context *ev,
     async_req->fn(async_req->req);
 }
 
-static int be_file_request(struct be_ctx *ctx,
-                           be_req_fn_t fn,
-                           struct be_req *req)
+struct be_spy {
+    TALLOC_CTX *freectx;
+    struct be_spy *double_agent;
+};
+
+static int be_spy_destructor(struct be_spy *spy)
 {
+    /* If there's a double_agent, set its
+     * freectx to NULL so that we don't
+     * try to loop. When that spy fires,
+     * it will just be a no-op.
+     */
+    spy->double_agent->freectx = NULL;
+    talloc_zfree(spy->freectx);
+    return 0;
+}
+
+static errno_t be_spy_create(TALLOC_CTX *mem_ctx, struct be_req *be_req)
+{
+    errno_t ret;
+    struct be_spy *cli_spy = NULL;
+    struct be_spy *req_spy = NULL;
+
+    /* Attach a spy for the be_client so that if it dies,
+     * we can free the be_req automatically.
+     */
+    cli_spy = talloc_zero(be_req->becli, struct be_spy);
+    if (!cli_spy) {
+        ret = ENOMEM;
+        goto done;
+    }
+    cli_spy->freectx = mem_ctx;
+
+    /* Also create a spy on the be_req so that we
+     * can free the other spy when the be_req
+     * completes successfully.
+     */
+    req_spy = talloc_zero(be_req, struct be_spy);
+    if (!req_spy) {
+        ret = ENOMEM;
+        goto done;
+    }
+    req_spy->freectx = cli_spy;
+
+    /* Create paired spy links to prevent loops */
+    cli_spy->double_agent = req_spy;
+    req_spy->double_agent = cli_spy;
+
+    /* Now create the destructors that will actually free
+     * the opposing spies.
+     */
+    talloc_set_destructor(cli_spy, be_spy_destructor);
+    talloc_set_destructor(req_spy, be_spy_destructor);
+
+
+    /* Now steal the be_req onto the mem_ctx so that it
+     * will be guaranteed that this data will be
+     * available for the full duration of execution.
+     */
+    talloc_steal(mem_ctx, be_req);
+
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        talloc_free(cli_spy);
+        talloc_free(req_spy);
+    }
+    return ret;
+}
+
+/* This function alters the memory hierarchy of the be_req
+ * to ensure memory safety during shutdown. It creates a
+ * spy on the be_cli object so that it will free the be_req
+ * if the client is freed.
+ *
+ * It is generally allocated atop the private data context
+ * for the appropriate back-end against which it is being
+ * filed.
+ */
+static errno_t be_file_request(TALLOC_CTX *mem_ctx,
+                               struct be_req *be_req,
+                               be_req_fn_t fn)
+{
+    errno_t ret;
     struct be_async_req *areq;
     struct tevent_timer *te;
     struct timeval tv;
 
-    if (!fn || !req) return EINVAL;
+    if (!fn || !be_req) return EINVAL;
 
-    areq = talloc(req, struct be_async_req);
+    ret = be_spy_create(mem_ctx, be_req);
+    if (ret != EOK) return ret;
+
+    areq = talloc(be_req, struct be_async_req);
     if (!areq) {
         return ENOMEM;
     }
     areq->fn = fn;
-    areq->req = req;
+    areq->req = be_req;
 
     /* fire immediately */
     tv.tv_sec = 0;
     tv.tv_usec = 0;
 
-    te = tevent_add_timer(ctx->ev, req, tv, be_async_req_handler, areq);
+    te = tevent_add_timer(be_req->be_ctx->ev, be_req,
+                          tv, be_async_req_handler, areq);
     if (te == NULL) {
         return EIO;
     }
@@ -446,9 +530,9 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 
     be_req->req_data = req;
 
-    ret = be_file_request(becli->bectx,
-                          becli->bectx->bet_info[BET_ID].bet_ops->handler,
-                          be_req);
+    ret = be_file_request(becli->bectx->bet_info[BET_ID].pvt_bet_data,
+                          be_req,
+                          becli->bectx->bet_info[BET_ID].bet_ops->handler);
     if (ret != EOK) {
         err_maj = DP_ERR_FATAL;
         err_min = ret;
@@ -608,9 +692,9 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     be_req->req_data = pd;
 
-    ret = be_file_request(becli->bectx,
-                          becli->bectx->bet_info[target].bet_ops->handler,
-                          be_req);
+    ret = be_file_request(becli->bectx->bet_info[target].pvt_bet_data,
+                          be_req,
+                          becli->bectx->bet_info[target].bet_ops->handler);
     if (ret != EOK) {
         DEBUG(7, ("be_file_request failed.\n"));
         goto done;
@@ -737,8 +821,9 @@ static errno_t be_file_check_online_request(struct be_req *req)
     req->be_ctx->offstat.went_offline = time(NULL);
     reset_fo(req->be_ctx);
 
-    ret = be_file_request(req->be_ctx,
-              req->be_ctx->bet_info[BET_ID].bet_ops->check_online, req);
+    ret = be_file_request(req->be_ctx, req,
+                          req->be_ctx->bet_info[BET_ID].bet_ops->check_online);
+
     if (ret != EOK) {
         DEBUG(1, ("be_file_request failed.\n"));
     }
