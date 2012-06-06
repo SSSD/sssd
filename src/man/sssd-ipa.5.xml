@@ -80,7 +80,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_server (string)</term>
+                    <term>ipa_server, ipa_backup_server (string)</term>
                     <listitem>
                         <para>
                             The comma-separated list of IP addresses or hostnames of the
