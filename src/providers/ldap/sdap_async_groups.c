@@ -1409,17 +1409,6 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         state->groups[state->count] = NULL;
     }
 
-    if (!state->enumeration && count > 1) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Individual group search returned multiple results\n"));
-        tevent_req_error(req, EINVAL);
-        return;
-    }
-
-    if (state->enumeration || count == 0) {
-        next_base = true;
-    }
-
     if (next_base) {
         state->base_iter++;
         if (state->search_bases[state->base_iter]) {
