@@ -2252,7 +2252,8 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    DEBUG(6, ("Search users with filter: %s\n", filter));
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Search users with filter: %s\n", filter));
 
     ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter, attrs,
@@ -2266,10 +2267,10 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
 
 fail:
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2410,7 +2411,8 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    DEBUG(6, ("Search groups with filter: %s\n", filter));
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Search groups with filter: %s\n", filter));
 
     ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter, attrs,
@@ -2424,10 +2426,10 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
 
 fail:
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
