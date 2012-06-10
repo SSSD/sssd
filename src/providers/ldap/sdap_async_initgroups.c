@@ -2760,11 +2760,11 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
+    case SDAP_SCHEMA_AD:
         ret = sdap_initgr_rfc2307bis_recv(subreq);
         break;
 
     case SDAP_SCHEMA_IPA_V1:
-    case SDAP_SCHEMA_AD:
         ret = sdap_initgr_nested_recv(subreq);
         break;
 
