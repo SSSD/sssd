@@ -262,4 +262,17 @@ sdap_get_ad_match_rule_members_recv(struct tevent_req *req,
                                     size_t *num_users,
                                     struct sysdb_attrs ***users);
 
+struct tevent_req *
+sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sdap_options *opts,
+                                       struct sysdb_ctx *sysdb,
+                                       struct sdap_handle *sh,
+                                       const char *name,
+                                       const char *orig_dn,
+                                       int timeout);
+
+errno_t
+sdap_get_ad_match_rule_initgroups_recv(struct tevent_req *req);
+
 #endif /* _SDAP_ASYNC_H_ */

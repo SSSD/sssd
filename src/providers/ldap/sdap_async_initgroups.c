@@ -2657,10 +2657,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_AD:
-        /* TODO: AD uses a different member/memberof schema
-         *       We need an AD specific call that is able to unroll
-         *       nested groups by doing extensive recursive searches */
-
         ret = sysdb_attrs_get_string(state->orig_user,
                                      SYSDB_ORIG_DN,
                                      &orig_dn);
@@ -2669,17 +2665,28 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
 
-        subreq = sdap_initgr_rfc2307bis_send(
-                state, state->ev, state->opts, state->sysdb,
-                state->dom, state->sh,
-                cname, orig_dn);
+        if (dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_INITGROUPS)) {
+            /* Take advantage of AD's extensibleMatch filter to look up
+             * all parent groups in a single request.
+             */
+            subreq = sdap_get_ad_match_rule_initgroups_send(
+                    state, state->ev, state->opts, state->sysdb,
+                    state->sh, cname, orig_dn, state->timeout);
+        } else {
+            subreq = sdap_initgr_rfc2307bis_send(
+                    state, state->ev, state->opts, state->sysdb,
+                    state->dom, state->sh,
+                    cname, orig_dn);
+        }
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
         }
+
         talloc_steal(subreq, orig_dn);
         tevent_req_set_callback(subreq, sdap_get_initgr_done, req);
         break;
+
     case SDAP_SCHEMA_IPA_V1:
         subreq = sdap_initgr_nested_send(state, state->ev, state->opts,
                                          state->sysdb, state->dom, state->sh,
@@ -2730,7 +2737,11 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_AD:
-        ret = sdap_initgr_rfc2307bis_recv(subreq);
+        if (dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_INITGROUPS)) {
+            ret = sdap_get_ad_match_rule_initgroups_recv(subreq);
+        } else {
+            ret = sdap_initgr_rfc2307bis_recv(subreq);
+        }
         break;
 
     case SDAP_SCHEMA_IPA_V1:
