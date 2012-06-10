@@ -243,4 +243,9 @@ enum_services_send(TALLOC_CTX *memctx,
 errno_t
 enum_services_recv(struct tevent_req *req);
 
+/* OID documented in
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
+ */
+#define SDAP_MATCHING_RULE_IN_CHAIN "1.2.840.113556.1.4.1941"
+
 #endif /* _SDAP_ASYNC_H_ */

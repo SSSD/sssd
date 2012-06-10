@@ -273,6 +273,9 @@ option_strings = {
     'ldap_idmap_default_domain' : _('Name of the default domain for ID-mapping'),
     'ldap_idmap_default_domain_sid' : _('SID of the default domain for ID-mapping'),
 
+    'ldap_groups_use_matching_rule_in_chain' : _('Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups'),
+    'ldap_initgroups_use_matching_rule_in_chain' : _('Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups'),
+
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
 
