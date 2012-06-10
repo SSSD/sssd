@@ -196,13 +196,13 @@ fail:
     return ret;
 }
 
-static int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
-                                    struct sdap_options *opts,
-                                    const char *name,
-                                    enum sysdb_member_type type,
-                                    char **sysdb_grouplist,
-                                    struct sysdb_attrs **ldap_groups,
-                                    int ldap_groups_count)
+int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
+                             struct sdap_options *opts,
+                             const char *name,
+                             enum sysdb_member_type type,
+                             char **sysdb_grouplist,
+                             struct sysdb_attrs **ldap_groups,
+                             int ldap_groups_count)
 {
     TALLOC_CTX *tmp_ctx;
     char **ldap_grouplist = NULL;
