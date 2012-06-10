@@ -444,10 +444,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     struct sdap_initgr_rfc2307_state *state;
     struct sysdb_attrs **ldap_groups;
     char **sysdb_grouplist = NULL;
-    struct ldb_message *msg;
-    struct ldb_message_element *groups;
     size_t count;
-    const char *attrs[2];
     int ret;
     int i;
 
@@ -499,39 +496,11 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     }
 
     /* Search for all groups for which this user is a member */
-    attrs[0] = SYSDB_MEMBEROF;
-    attrs[1] = NULL;
-
-    ret = sysdb_search_user_by_name(state, state->sysdb, state->name,
-                                    attrs, &msg);
+    ret = get_sysdb_grouplist(state, state->sysdb, state->name,
+                              &sysdb_grouplist);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
-    }
-
-    groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-    if (!groups || groups->num_values == 0) {
-        /* No groups for this user in sysdb currently */
-        sysdb_grouplist = NULL;
-    } else {
-        sysdb_grouplist = talloc_array(state, char *, groups->num_values+1);
-        if (!sysdb_grouplist) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        /* Get a list of the groups by groupname only */
-        for (i=0; i < groups->num_values; i++) {
-            ret = sysdb_group_dn_name(state->sysdb,
-                                      sysdb_grouplist,
-                                      (const char *)groups->values[i].data,
-                                      &sysdb_grouplist[i]);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-                return;
-            }
-        }
-        sysdb_grouplist[groups->num_values] = NULL;
     }
 
     /* There are no nested groups here so we can just update the
@@ -2889,5 +2858,67 @@ int sdap_get_initgr_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
+}
+
+errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
+                            struct sysdb_ctx *sysdb,
+                            const char *name,
+                            char ***grouplist)
+{
+    errno_t ret;
+    const char *attrs[2];
+    struct ldb_message *msg;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message_element *groups;
+    char **sysdb_grouplist = NULL;
+    unsigned int i;
+
+    attrs[0] = SYSDB_MEMBEROF;
+    attrs[1] = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, name,
+                                    attrs, &msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error searching user [%s] by name: [%s]\n",
+               name, strerror(ret)));
+        goto done;
+    }
+
+    groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    if (!groups || groups->num_values == 0) {
+        /* No groups for this user in sysdb currently */
+        sysdb_grouplist = NULL;
+    } else {
+        sysdb_grouplist = talloc_array(tmp_ctx, char *, groups->num_values+1);
+        if (!sysdb_grouplist) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Get a list of the groups by groupname only */
+        for (i=0; i < groups->num_values; i++) {
+            ret = sysdb_group_dn_name(sysdb,
+                                      sysdb_grouplist,
+                                      (const char *)groups->values[i].data,
+                                      &sysdb_grouplist[i]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Could not determine group name from [%s]: [%s]\n",
+                       (const char *)groups->values[i].data, strerror(ret)));
+                goto done;
+            }
+        }
+        sysdb_grouplist[groups->num_values] = NULL;
+    }
+
+    *grouplist = talloc_steal(mem_ctx, sysdb_grouplist);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
