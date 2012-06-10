@@ -1352,6 +1352,8 @@ static struct tevent_req *sdap_nested_group_process_send(
         bool enable_deref, uint32_t nesting);
 static void sdap_nested_done(struct tevent_req *req);
 static errno_t sdap_nested_group_process_recv(struct tevent_req *req);
+static void sdap_ad_match_rule_members_process(struct tevent_req *subreq);
+
 static void sdap_get_groups_process(struct tevent_req *subreq)
 {
     struct tevent_req *req =
@@ -1433,10 +1435,15 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
      * for RFC2307bis/FreeIPA/ActiveDirectory
      * We don't need to do this for enumeration,
      * because all groups will be picked up anyway.
+     *
+     * We can also skip this if we're using the
+     * LDAP_MATCHING_RULE_IN_CHAIN available in
+     * AD 2008 and later
      */
     if (!state->enumeration) {
-        if ((state->opts->schema_type != SDAP_SCHEMA_RFC2307) &&
-            (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)) {
+        if ((state->opts->schema_type != SDAP_SCHEMA_RFC2307)
+                && (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)
+                && !dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_GROUPS)) {
 
             /* Prepare hashes for nested user processing */
             ret = sss_hash_create(state, 32, &state->user_hash);
@@ -1500,6 +1507,25 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     /* We have all of the groups. Save them to the sysdb */
     state->check_count = state->count;
+
+    /* If we're using LDAP_MATCHING_RULE_IN_CHAIN, start a subreq to
+     * retrieve the members so we can save them in a single step.
+     */
+    if (!state->enumeration
+            && (state->opts->schema_type != SDAP_SCHEMA_RFC2307)
+            && dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_GROUPS)) {
+        subreq = sdap_get_ad_match_rule_members_send(
+                state, state->ev, state->opts, state->sh,
+                state->groups[0], state->timeout);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq,
+                                sdap_ad_match_rule_members_process,
+                                req);
+        return;
+    }
 
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
@@ -1584,6 +1610,131 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
     }
 }
 
+static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
+                                                struct sysdb_ctx *sysdb,
+                                                struct sdap_options *opts,
+                                                struct sysdb_attrs **users,
+                                                int num_users,
+                                                hash_table_t **_ghosts);
+
+static void sdap_ad_match_rule_members_process(struct tevent_req *subreq)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+    struct sysdb_attrs **users;
+    struct sysdb_attrs *group = state->groups[0];
+    struct ldb_message_element *member_el;
+    struct ldb_message_element *orig_dn_el;
+    size_t count;
+    size_t i;
+    hash_table_t *ghosts;
+
+    ret = sdap_get_ad_match_rule_members_recv(subreq, state,
+                                              &count, &users);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not retrieve members using AD match rule. [%s]\n",
+               strerror(ret)));
+
+        goto done;
+    }
+
+    /* Save the group and users to the cache */
+
+    /* Truncate the member attribute of the group.
+     * It will be repopulated below, and it may currently
+     * be incomplete anyway, thanks to the range extension.
+     */
+
+    ret = sysdb_attrs_get_el(group, SYSDB_MEMBER, &member_el);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    member_el->num_values = 0;
+    talloc_zfree(member_el->values);
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Figure out which users are already cached in the sysdb and
+     * which ones need to be added as ghost users.
+     */
+    ret = sdap_nested_group_populate_users(tmp_ctx, state->sysdb,
+                                           state->opts, users, count,
+                                           &ghosts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not determine which users are ghosts: [%s]\n",
+               strerror(ret)));
+        goto done;
+    }
+
+    /* Add any entries that aren't in the ghost hash table to the
+     * member element of the group. This will get converted to a
+     * native sysdb representation later in sdap_save_groups().
+     */
+
+    /* Add all of the users as members
+     */
+    member_el->values = talloc_zero_array(tmp_ctx, struct ldb_val, count);
+    if (!member_el->values) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Copy the origDN values of the users into the member element */
+    for (i = 0; i < count; i++) {
+        ret = sysdb_attrs_get_el(users[i], SYSDB_ORIG_DN,
+                                 &orig_dn_el);
+        if (ret != EOK) {
+            /* This should never happen. Every entry should have
+             * an originalDN.
+             */
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("BUG: Missing originalDN for user?\n"));
+            goto done;
+        }
+
+        /* These values will have the same lifespan, so instead
+         * of copying them, just point at the data.
+         */
+        member_el->values[i].data = orig_dn_el->values[0].data;
+        member_el->values[i].length = orig_dn_el->values[0].length;
+    }
+    member_el->num_values = count;
+
+    /* Now save the group, users and ghosts to the cache */
+    ret = sdap_save_groups(tmp_ctx, state->sysdb, state->dom,
+                           state->opts, state->groups, 1,
+                           false, ghosts, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not save group to the cache: [%s]\n",
+               strerror(ret)));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+}
+
 int sdap_get_groups_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, char **usn_value)
 {
@@ -1598,13 +1749,6 @@ int sdap_get_groups_recv(struct tevent_req *req,
 
     return EOK;
 }
-
-static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
-                                                struct sysdb_ctx *sysdb,
-                                                struct sdap_options *opts,
-                                                struct sysdb_attrs **users,
-                                                int num_users,
-                                                hash_table_t **_ghosts);
 
 static void sdap_nested_done(struct tevent_req *subreq)
 {
