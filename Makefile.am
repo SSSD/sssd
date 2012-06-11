@@ -119,7 +119,8 @@ if HAVE_CHECK
         util-tests \
         debug-tests \
         ipa_hbac-tests \
-        sss_idmap-tests
+        sss_idmap-tests \
+        pac_responder-tests
 endif
 
 check_PROGRAMS = \
@@ -987,6 +988,22 @@ sss_idmap_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la
 
+pac_responder_tests_SOURCES = \
+    src/tests/pac_responder-tests.c \
+    src/responder/pac/pacsrv_utils.c
+pac_responder_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
+    $(CHECK_CFLAGS)
+pac_responder_tests_LDADD = \
+    $(CHECK_LIBS) \
+    $(TALLOC_LIBS) \
+    $(NDR_KRB5PAC_LIBS) \
+    $(SSSD_LIBS) \
+    libsss_idmap.la \
+    libsss_debug.la \
+    libsss_util.la \
+    libsss_test_common.la
 endif
 
 stress_tests_SOURCES = \
