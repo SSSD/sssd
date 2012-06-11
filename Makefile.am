@@ -590,6 +590,7 @@ endif
 sssd_pac_SOURCES = \
     src/responder/pac/pacsrv.c \
     src/responder/pac/pacsrv_cmd.c \
+    src/responder/pac/pacsrv_utils.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_pac_CFLAGS = \
