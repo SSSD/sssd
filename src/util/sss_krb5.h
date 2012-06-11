@@ -46,6 +46,14 @@ const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,
 
 void KRB5_CALLCONV sss_krb5_free_error_message(krb5_context, const char *);
 
+#define KRB5_DEBUG(level, errctx, krb5_error) do { \
+    const char *__krb5_error_msg; \
+    __krb5_error_msg = sss_krb5_get_error_message(errctx, krb5_error); \
+    DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
+    sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
+    sss_krb5_free_error_message(errctx, __krb5_error_msg); \
+} while(0)
+
 krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_alloc(
                                                  krb5_context context,
                                                  krb5_get_init_creds_opt **opt);

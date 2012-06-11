@@ -439,7 +439,8 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
 
     kerr = krb5_parse_name(ctx, client_name, &client_princ);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_parse_name failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
         goto done;
     }
 
@@ -457,13 +458,15 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     kerr = krb5_parse_name(ctx, server_name, &server_princ);
     talloc_free(server_name);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_parse_name failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
         goto done;
     }
 
     kerr = krb5_cc_resolve(ctx, ccache_file, &cc);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_cc_resolve failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
         goto done;
     }
 
@@ -475,7 +478,8 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
 
     kerr = krb5_cc_retrieve_cred(ctx, cc, 0, &mcred, &cred);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_cc_retrieve_cred failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_retrieve_cred failed.\n"));
         goto done;
     }
 
@@ -488,7 +492,8 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
 
     kerr = krb5_cc_close(ctx, cc);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_cc_close failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_close failed.\n"));
         goto done;
     }
     cc = NULL;
@@ -705,6 +710,7 @@ cc_file_check_existing(const char *location, uid_t uid,
 
     kerr = krb5_cc_resolve(context, location, &ccache);
     if (kerr != 0) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, kerr);
         krb5_free_context(context);
         DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
         return EIO;
@@ -714,7 +720,8 @@ cc_file_check_existing(const char *location, uid_t uid,
     krb5_free_context(context);
     krb5_cc_close(context, ccache);
     if (kerr != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not check if ccache contains a valid principal\n"));
         return EIO;
     }
@@ -794,13 +801,15 @@ get_ccache_for_princ(krb5_context context, const char *location,
 
     krberr = krb5_cc_set_default_name(context, location);
     if (krberr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_cc_resolve failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
         return krberr;
     }
 
     krberr = krb5_parse_name(context, princ, &client_principal);
     if (krberr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_parse_name failed.\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
         return krberr;
     }
 
@@ -857,7 +866,7 @@ cc_dir_check_existing(const char *location, uid_t uid,
     ret = cc_residual_is_used(uid, dir, SSS_KRB5_TYPE_DIR, &active);
     talloc_free(tmp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not check if ccache is active\n"));
         return ret;
     }
 
@@ -887,6 +896,7 @@ cc_dir_check_existing(const char *location, uid_t uid,
 
     krberr = check_for_valid_tgt(context, ccache, realm, princ, &valid);
     if (krberr != EOK) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not check if ccache contains a valid principal\n"));
         ret = EIO;
@@ -942,7 +952,8 @@ cc_dir_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
     if (ccache) krb5_cc_close(context, ccache);
     krb5_free_context(context);
     if (krberr) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Could not get full name of ccache\n"));
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get full name of ccache\n"));
         return NULL;
     }
 

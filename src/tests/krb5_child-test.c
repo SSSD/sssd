@@ -43,24 +43,18 @@ extern struct sss_krb5_cc_be file_cc;
 extern struct sss_krb5_cc_be dir_cc;
 
 static krb5_context krb5_error_ctx;
-#define KRB5_DEBUG(level, krb5_error) do { \
-    const char * __krb5_error_msg; \
-    __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
-    DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
-    sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
-    sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
-} while(0)
+#define KRB5_CHILD_TEST_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
 #define CHECK_KRET(kret, err) do {              \
     if (kret) {                                 \
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kret);    \
+        KRB5_CHILD_TEST_DEBUG(SSSDBG_OP_FAILURE, kret);    \
         return err;                             \
     }                                           \
 } while(0)                                      \
 
 #define CHECK_KRET_L(kret, err, label) do {     \
     if (kret) {                                 \
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kret);    \
+        KRB5_CHILD_TEST_DEBUG(SSSDBG_OP_FAILURE, kret);    \
         goto label;                             \
     }                                           \
 } while(0)                                      \
@@ -321,7 +315,7 @@ printtime(krb5_timestamp ts)
 
     kret = krb5_timestamp_to_sfstring(ts, timestring, BUFSIZ, &fill);
     if (kret) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kret);
+        KRB5_CHILD_TEST_DEBUG(SSSDBG_OP_FAILURE, kret);
     }
     printf("%s", timestring);
 }

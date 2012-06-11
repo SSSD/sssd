@@ -99,13 +99,7 @@ struct krb5_req {
 };
 
 static krb5_context krb5_error_ctx;
-static const char *__krb5_error_msg;
-#define KRB5_DEBUG(level, krb5_error) do { \
-    __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
-    DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
-    sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
-    sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
-} while(0)
+#define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
 static void sss_krb5_expire_callback_func(krb5_context context, void *data,
                                           krb5_timestamp password_expiration,
@@ -230,14 +224,14 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
 
     kerr = krb5_cc_initialize(ctx, cc, princ);
     if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
         goto done;
     }
 
     if (creds == NULL) {
         kerr = create_empty_cred(ctx, princ, &l_cred);
         if (kerr != 0) {
-            KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
             goto done;
         }
     } else {
@@ -246,19 +240,19 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
 
     kerr = krb5_cc_store_cred(ctx, cc, l_cred);
     if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
         goto done;
     }
 
     kerr = krb5_cc_switch(ctx, cc);
     if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
         goto done;
     }
 
     kerr = krb5_cc_close(ctx, cc);
     if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
         goto done;
     }
 
@@ -325,7 +319,7 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
 
     kerr = krb5_cc_resolve(ctx, tmp_ccname, &tmp_cc);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
@@ -335,7 +329,7 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
         fd = -1;
     }
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
@@ -451,7 +445,7 @@ create_ccache_in_dir(uid_t uid, gid_t gid,
          */
         kerr = krb5_cc_resolve(ctx, ccname, &tmp_cc);
         if (kerr != 0) {
-            KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
             goto done;
         }
     } else if (dirname[0] == '/') {
@@ -469,13 +463,13 @@ create_ccache_in_dir(uid_t uid, gid_t gid,
 
         kerr = krb5_cc_set_default_name(ctx, ccname);
         if (kerr != 0) {
-            KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
             goto done;
         }
 
         kerr = krb5_cc_new_unique(ctx, "DIR", NULL, &tmp_cc);
         if (kerr != 0) {
-            KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
             goto done;
         }
     } else {
@@ -486,7 +480,7 @@ create_ccache_in_dir(uid_t uid, gid_t gid,
 
     kerr = store_creds_in_ccache(ctx, princ, tmp_cc, creds);
     if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
         goto done;
     }
 
@@ -832,14 +826,14 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     kerr = krb5_get_init_creds_keytab(ctx, &creds, princ, keytab, 0, NULL,
                                       &options);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
 
     /* Use the updated principal in the creds in case canonicalized */
     kerr = create_ccache_file(ctx, creds.client, ccname, &creds);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
     kerr = 0;
@@ -862,21 +856,21 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                                   sss_krb5_expire_callback_func,
                                                   kr);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         DEBUG(1, ("Failed to set expire callback, continue without.\n"));
     }
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         password, sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
 
     if (kr->validate) {
         kerr = validate_tgt(kr);
         if (kerr != 0) {
-            KRB5_DEBUG(1, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             return kerr;
         }
 
@@ -900,7 +894,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                          kr->creds ? kr->creds->client : kr->princ,
                          kr->ccname, kr->creds);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
@@ -970,7 +964,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
                                         changepw_princ,
                                         kr->options);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         if (kerr == KRB5_KDC_UNREACH) {
             pam_status = PAM_AUTHINFO_UNAVAIL;
         }
@@ -1010,7 +1004,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 
     if (kerr != 0 || result_code != 0) {
         if (kerr != 0) {
-            KRB5_DEBUG(1, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         } else {
             kerr = KRB5KRB_ERR_GENERIC;
         }
@@ -1062,7 +1056,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     memset(kr->pd->newauthtok, 0, kr->pd->newauthtok_size);
 
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         if (kerr == KRB5_KDC_UNREACH) {
             pam_status = PAM_AUTHINFO_UNAVAIL;
         }
@@ -1124,7 +1118,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
                                                                kr->options,
                                                                NULL, NULL);
         if (kerr != 0) {
-            KRB5_DEBUG(1, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             DEBUG(1, ("Failed to unset expire callback, continue ...\n"));
         }
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
@@ -1142,7 +1136,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     memset(kr->pd->authtok, 0, kr->pd->authtok_size);
 
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         switch (kerr) {
             case KRB5_KDC_UNREACH:
                     pam_status = PAM_AUTHINFO_UNAVAIL;
@@ -1230,13 +1224,13 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
 
     kerr = krb5_cc_resolve(kr->ctx, ccname, &ccache);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
     kerr = krb5_get_renewed_creds(kr->ctx, kr->creds, kr->princ, ccache, NULL);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         if (kerr == KRB5_KDC_UNREACH) {
             status = PAM_AUTHINFO_UNAVAIL;
             DEBUG(SSSDBG_TRACE_ALL, ("kdc unreachable for renewed creds.\n"));
@@ -1247,7 +1241,7 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
     if (kr->validate) {
         kerr = validate_tgt(kr);
         if (kerr != 0) {
-            KRB5_DEBUG(1, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             goto done;
         }
 
@@ -1269,13 +1263,13 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
 
     kerr = krb5_cc_initialize(kr->ctx, ccache, kr->princ);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
     kerr = krb5_cc_store_cred(kr->ctx, ccache, kr->creds);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
@@ -1312,7 +1306,7 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
     ret = create_ccache(kr->uid, kr->gid, kr->ctx,
                         kr->princ, kr->ccname, NULL);
     if (ret != 0) {
-        KRB5_DEBUG(1, ret);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, ret);
         pam_status = PAM_SYSTEM_ERR;
     }
 
@@ -1649,19 +1643,20 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 
     kerr = krb5_init_context(&kr->ctx);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto failed;
     }
+    krb5_error_ctx = kr->ctx;
 
     kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto failed;
     }
 
     kerr = krb5_unparse_name(kr->ctx, kr->princ, &kr->name);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto failed;
     }
 
@@ -1674,7 +1669,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 
     kerr = sss_krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto failed;
     }
 
@@ -1684,7 +1679,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
      * but shall return KRB5KDC_ERR_KEY_EXP. */
     krb5_get_init_creds_opt_set_change_password_prompt(kr->options, 0);
     if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto failed;
     }
 #endif
@@ -1698,7 +1693,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         if (kerr != 0) {
             DEBUG(1, ("krb5_string_to_deltat failed for [%s].\n",
                       lifetime_str));
-            KRB5_DEBUG(1, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             goto failed;
         }
         DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
@@ -1715,7 +1710,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         if (kerr != 0) {
             DEBUG(1, ("krb5_string_to_deltat failed for [%s].\n",
                       lifetime_str));
-            KRB5_DEBUG(1, kerr);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             goto failed;
         }
         DEBUG(SSSDBG_CONF_SETTINGS,
@@ -1772,7 +1767,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
                                      kr, &kr->fast_ccname);
             if (kerr != 0) {
                 DEBUG(1, ("check_fast_ccache failed.\n"));
-                KRB5_DEBUG(1, kerr);
+                KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
                 goto failed;
             }
 
@@ -1782,7 +1777,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
             if (kerr != 0) {
                 DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_ccache_name "
                           "failed.\n"));
-                KRB5_DEBUG(1, kerr);
+                KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
                 goto failed;
             }
 
@@ -1793,7 +1788,7 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
                 if (kerr != 0) {
                     DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_flags "
                               "failed.\n"));
-                    KRB5_DEBUG(1, kerr);
+                    KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
                     goto failed;
                 }
             }
