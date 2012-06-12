@@ -39,7 +39,8 @@
 
         <para>
             A line comment starts with a hash sign (<quote>#</quote>) or a
-            semicolon (<quote>;</quote>)
+            semicolon (<quote>;</quote>).
+            Inline comments are not supported.
         </para>
 
         <para>
