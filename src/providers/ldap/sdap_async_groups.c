@@ -101,8 +101,7 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
                                  int num_values)
 {
     struct ldb_message_element *el;
-    struct ldb_message_element *ghostel;
-    int i, j, k;
+    int i, j;
     int ret;
     errno_t hret;
     hash_key_t key;
@@ -121,30 +120,8 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
         goto done;
     }
 
-    ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &ghostel);
-    if (ret) {
-        goto done;
-    }
-
-    if (ghostel->num_values == 0) {
-        /* Element was probably newly created, look for "member" again */
-        ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-
     /* Just allocate both big enough to contain all members for now */
-    ghostel->values = talloc_realloc(group_attrs, ghostel->values, struct ldb_val,
-                                     ghostel->num_values + num_values);
-    if (!ghostel->values) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     j = el->num_values;
-    k = ghostel->num_values;
     for (i = 0; i < num_values; i++) {
         if (ghosts == NULL) {
             hret = HASH_ERROR_KEY_NOT_FOUND;
@@ -175,21 +152,12 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
         } else if (hret != HASH_SUCCESS) {
             ret = EFAULT;
             goto done;
-        } else {
-            DEBUG(SSSDBG_TRACE_FUNC, ("    member #%d (%s): ghost!\n",
-                                      i, (char *)values[i].data));
-            ghostel->values[k].data = (uint8_t *)talloc_strdup(ghostel->values,
-                                                               value.ptr);
-            if (ghostel->values[k].data == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ghostel->values[k].length = strlen((char *)ghostel->values[k].data);
-            k++;
         }
+
+        /* If the member is in ghost table, it has
+         * already been processed - just skip it */
     }
     el->num_values = j;
-    ghostel->num_values = k;
 
     ret = EOK;
 
@@ -243,6 +211,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            time_t now)
 {
     struct ldb_message_element *el;
+    struct ldb_message_element *el1;
+    struct ldb_message_element *gh;
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
     gid_t gid;
@@ -374,14 +344,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
     }
 
-    if (populate_members) {
-        struct ldb_message_element *el1;
-        struct ldb_message_element *gh;
-        ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el1);
-        if (ret != EOK) {
-            goto fail;
-        }
+    ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el1);
+    if (ret != EOK) {
+        goto fail;
+    }
 
+    if (populate_members) {
         ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
         if (ret != EOK) {
             goto fail;
@@ -389,44 +357,48 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         el->values = el1->values;
         el->num_values = el1->num_values;
 
-        ret = sysdb_attrs_get_el(attrs, SYSDB_GHOST, &gh);
-        if (ret != EOK) {
-            goto fail;
-        }
-        ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &el);
-        if (ret != EOK) {
-            goto fail;
-        }
-        el->values = gh->values;
-        el->num_values = gh->num_values;
+    }
 
-        /* Now process RFC2307bis ghost hash table */
-        if (ghosts != NULL) {
-            cnt = el->num_values + el1->num_values;
-            el->values = talloc_realloc(attrs, el->values, struct ldb_val,
-                                        cnt);
-            if (el->values == NULL) {
+    ret = sysdb_attrs_get_el(attrs, SYSDB_GHOST, &gh);
+    if (ret != EOK) {
+        goto fail;
+    }
+    ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &el);
+    if (ret != EOK) {
+        goto fail;
+    }
+    el->values = gh->values;
+    el->num_values = gh->num_values;
+
+    /* Now process RFC2307bis ghost hash table */
+    if (ghosts != NULL) {
+        cnt = el->num_values + el1->num_values;
+        el->values = talloc_realloc(attrs, el->values, struct ldb_val,
+                                    cnt);
+        if (el->values == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        for (i = 0; i < el1->num_values; i++) {
+            key.type = HASH_KEY_STRING;
+            key.str = (char *)el1->values[i].data;
+            ret = hash_lookup(ghosts, &key, &value);
+            if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+                continue;
+            } else if (ret != HASH_SUCCESS) {
+                ret = EFAULT;
+                goto fail;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Adding ghost member [%s] for group [%]s\n",
+                                      (char *)value.ptr, name));
+            el->values[el->num_values].data = (uint8_t *)talloc_strdup(el->values, value.ptr);
+            if (el->values[el->num_values].data == NULL) {
                 ret = ENOMEM;
                 goto fail;
             }
-            for (i = 0; i < el1->num_values; i++) {
-                key.type = HASH_KEY_STRING;
-                key.str = (char *)el1->values[i].data;
-                ret = hash_lookup(ghosts, &key, &value);
-                if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-                    continue;
-                } else if (ret != HASH_SUCCESS) {
-                    ret = EFAULT;
-                    goto fail;
-                }
-                el->values[el->num_values].data = (uint8_t *)talloc_strdup(el->values, value.ptr);
-                if (el->values[el->num_values].data == NULL) {
-                    ret = ENOMEM;
-                    goto fail;
-                }
-                el->values[el->num_values].length = strlen(value.ptr)+1;
-                el->num_values++;
-            }
+            el->values[el->num_values].length = strlen(value.ptr)+1;
+            el->num_values++;
         }
     }
 
