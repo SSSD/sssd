@@ -70,7 +70,10 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     talloc_set_destructor(ctx, sss_names_ctx_destructor);
 
     tmpctx = talloc_new(NULL);
-    if (tmpctx == NULL) goto done;
+    if (tmpctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, domain);
     if (conf_path == NULL) {
