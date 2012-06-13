@@ -179,8 +179,11 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     str = ldap_first_attribute(sh->ldap, sm->msg, &ber);
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(1, ("Entry has no attributes [%d(%s)]!?\n",
-                  lerrno, sss_ldap_err2string(lerrno)));
+        DEBUG(lerrno == LDAP_SUCCESS
+              ? SSSDBG_TRACE_INTERNAL
+              : SSSDBG_MINOR_FAILURE,
+              ("Entry has no attributes [%d(%s)]!?\n",
+               lerrno, sss_ldap_err2string(lerrno)));
         if (map) {
             ret = EINVAL;
             goto done;

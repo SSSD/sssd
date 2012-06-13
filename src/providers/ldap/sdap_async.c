@@ -836,6 +836,7 @@ struct sdap_get_rootdse_state {
 };
 
 static void sdap_get_rootdse_done(struct tevent_req *subreq);
+static void sdap_get_matching_rule_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
@@ -883,6 +884,11 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
     return req;
 }
 
+/* This is not a real attribute, it's just there to avoid
+ * actually pulling real data down, to save bandwidth
+ */
+#define SDAP_MATCHING_RULE_TEST_ATTR "sssmatchingruletest"
+
 static void sdap_get_rootdse_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -892,6 +898,8 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
     struct sysdb_attrs **results;
     size_t num_results;
     int ret;
+    const char *filter;
+    const char *attrs[] = { SDAP_MATCHING_RULE_TEST_ATTR, NULL };
 
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
     talloc_zfree(subreq);
@@ -917,7 +925,81 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
     state->rootdse = talloc_steal(state, results[0]);
     talloc_zfree(results);
 
-    DEBUG(9, ("Got rootdse\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Got rootdse\n"));
+
+    /* Auto-detect the ldap matching rule if requested */
+    if ((!dp_opt_get_bool(state->opts->basic,
+                          SDAP_AD_MATCHING_RULE_INITGROUPS))
+            && !dp_opt_get_bool(state->opts->basic,
+                                SDAP_AD_MATCHING_RULE_GROUPS)) {
+        /* This feature is disabled for both groups
+         * and initgroups. Skip the auto-detection
+         * lookup.
+         */
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Skipping auto-detection of match rule\n"));
+        tevent_req_done(req);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Auto-detecting support for match rule\n"));
+
+    /* Create a filter using the matching rule. It need not point
+     * at any valid data. We're only going to be looking for the
+     * error code.
+     */
+    filter = "("SDAP_MATCHING_RULE_TEST_ATTR":"
+             SDAP_MATCHING_RULE_IN_CHAIN":=)";
+
+    /* Perform a trivial query with the matching rule in play.
+     * If it returns success, we know it is available. If it
+     * returns EIO, we know it isn't.
+     */
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   "", LDAP_SCOPE_BASE, filter, attrs, NULL,
+                                   0, dp_opt_get_int(state->opts->basic,
+                                                     SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_get_matching_rule_done, req);
+}
+
+static void sdap_get_matching_rule_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_rootdse_state *state = tevent_req_data(req,
+                                             struct sdap_get_rootdse_state);
+    size_t num_results;
+    struct sysdb_attrs **results;
+
+    ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
+    talloc_zfree(subreq);
+    if (ret == EOK) {
+        /* The search succeeded */
+        state->opts->support_matching_rule = true;
+    } else if (ret == EIO) {
+        /* The search failed. Disable support for
+         * matching rule lookups.
+         */
+        state->opts->support_matching_rule = false;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Unexpected error while testing for matching rule support\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("LDAP server %s the matching rule extension\n",
+          state->opts->support_matching_rule
+              ? "supports"
+              : "does not support"));
 
     tevent_req_done(req);
 }
@@ -1292,6 +1374,18 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
             /* Try to return what we've got */
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("LDAP sizelimit was exceeded, returning incomplete data\n"));
+        } else if (result == LDAP_INAPPROPRIATE_MATCHING) {
+            /* This error should only occur when we're testing for
+             * specialized functionality like the ldap matching rule
+             * filter for Active Directory. Warn at a higher log
+             * level and return EIO.
+             */
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("LDAP_INAPPROPRIATE_MATCHING:  %s\n",
+                   errmsg ? errmsg : "no errmsg set"));
+            ldap_memfree(errmsg);
+            tevent_req_error(req, EIO);
+            return;
         } else if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Unexpected result from ldap: %s(%d), %s\n",

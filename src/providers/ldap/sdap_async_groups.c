@@ -1513,6 +1513,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
      */
     if (!state->enumeration
             && (state->opts->schema_type != SDAP_SCHEMA_RFC2307)
+            && state->opts->support_matching_rule
             && dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_GROUPS)) {
         subreq = sdap_get_ad_match_rule_members_send(
                 state, state->ev, state->opts, state->sh,

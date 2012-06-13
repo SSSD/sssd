@@ -2665,7 +2665,9 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
 
-        if (dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_INITGROUPS)) {
+        if (state->opts->support_matching_rule
+                && dp_opt_get_bool(state->opts->basic,
+                                   SDAP_AD_MATCHING_RULE_INITGROUPS)) {
             /* Take advantage of AD's extensibleMatch filter to look up
              * all parent groups in a single request.
              */

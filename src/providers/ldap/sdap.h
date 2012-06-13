@@ -386,6 +386,8 @@ struct sdap_options {
     struct sdap_search_base **sudo_search_bases;
     struct sdap_search_base **service_search_bases;
     struct sdap_search_base **autofs_search_bases;
+
+    bool support_matching_rule;
 };
 
 struct sdap_server_opts {
