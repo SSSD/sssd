@@ -45,6 +45,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_hbac_treat_deny_as", DP_OPT_STRING, { "DENY_ALL" }, NULL_STRING },
     { "ipa_hbac_support_srchost", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ipa_automount_location", DP_OPT_STRING, { "default" }, NULL_STRING },
+    { "ipa_ranges_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 

@@ -36,12 +36,15 @@
 #define SYSDB_GROUPS_CONTAINER "cn=groups"
 #define SYSDB_CUSTOM_CONTAINER "cn=custom"
 #define SYSDB_NETGROUP_CONTAINER "cn=Netgroups"
+#define SYSDB_RANGE_CONTAINER "cn=ranges"
 #define SYSDB_TMPL_USER_BASE SYSDB_USERS_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_GROUP_BASE SYSDB_GROUPS_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_CUSTOM_BASE SYSDB_CUSTOM_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_NETGROUP_BASE SYSDB_NETGROUP_CONTAINER",cn=%s,"SYSDB_BASE
+#define SYSDB_TMPL_RANGE_BASE SYSDB_RANGE_CONTAINER",cn=%s,"SYSDB_BASE
 
 #define SYSDB_SUBDOMAIN_CLASS "subdomain"
+#define SYSDB_RANGE_CLASS "idrange"
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
 #define SYSDB_NETGROUP_CLASS "netgroup"
@@ -49,6 +52,19 @@
 #define SYSDB_HOSTGROUP_CLASS "hostgroup"
 #define SYSDB_SELINUX_USERMAP_CLASS "selinuxusermap"
 #define SYSDB_SELINUX_CLASS "selinux"
+#define SYSDB_ID_RANGE_CLASS "idRange"
+#define SYSDB_DOMAIN_ID_RANGE_CLASS "domainIDRange"
+#define SYSDB_TRUSTED_AD_DOMAIN_RANGE_CLASS "TrustedADDomainRange"
+
+#define SYSDB_NAME "name"
+#define SYSDB_NAME_ALIAS "nameAlias"
+#define SYSDB_OBJECTCLASS "objectClass"
+
+#define SYSDB_NEXTID "nextID"
+#define SYSDB_UIDNUM "uidNumber"
+#define SYSDB_GIDNUM "gidNumber"
+#define SYSDB_CREATE_TIME "createTimestamp"
+
 
 #define SYSDB_NAME "name"
 #define SYSDB_NAME_ALIAS "nameAlias"
@@ -128,6 +144,12 @@
 #define SYSDB_SUBDOMAIN_FLAT "flatName"
 #define SYSDB_SUBDOMAIN_ID "domainID"
 
+#define SYSDB_BASE_ID "baseID"
+#define SYSDB_ID_RANGE_SIZE "idRangeSize"
+#define SYSDB_BASE_RID "baseRID"
+#define SYSDB_SECONDARY_BASE_RID "secondaryBaseRID"
+#define SYSDB_DOMAIN_ID "domainID"
+
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
 #define SYSDB_UC "objectclass="SYSDB_USER_CLASS
@@ -193,6 +215,7 @@
 #define SYSDB_TMPL_NETGROUP SYSDB_NAME"=%s,"SYSDB_TMPL_NETGROUP_BASE
 #define SYSDB_TMPL_CUSTOM_SUBTREE "cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_CUSTOM SYSDB_NAME"=%s,cn=%s,"SYSDB_TMPL_CUSTOM_BASE
+#define SYSDB_TMPL_RANGE SYSDB_NAME"=%s,"SYSDB_TMPL_RANGE_BASE
 
 #define SYSDB_MOD_ADD LDB_FLAG_MOD_ADD
 #define SYSDB_MOD_DEL LDB_FLAG_MOD_DELETE
@@ -220,6 +243,15 @@ struct subdomain_info {
     char *name;
     char *flat_name;
     char *id;
+};
+
+struct range_info {
+    char *name;
+    uint32_t base_id;
+    uint32_t id_range_size;
+    uint32_t base_rid;
+    uint32_t secondary_base_rid;
+    char *trusted_dom_sid;
 };
 
 
@@ -391,6 +423,13 @@ errno_t sysdb_store_domgroup(struct sss_domain_info *domain,
                              time_t now);
 errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
                               const char *name, gid_t gid);
+
+errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                             size_t *range_count,
+                             struct range_info ***range_list);
+errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range);
+errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
+                            struct range_info **ranges);
 
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get

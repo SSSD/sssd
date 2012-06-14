@@ -48,6 +48,7 @@ enum ipa_basic_opt {
     IPA_HBAC_DENY_METHOD,
     IPA_HBAC_SUPPORT_SRCHOST,
     IPA_AUTOMOUNT_LOCATION,
+    IPA_RANGES_SEARCH_BASE,
 
     IPA_OPTS_BASIC /* opts counter */
 };
@@ -127,6 +128,7 @@ struct ipa_options {
     struct sdap_search_base **selinux_search_bases;
     struct sdap_search_base **subdomains_search_bases;
     struct sdap_search_base **master_domain_search_bases;
+    struct sdap_search_base **ranges_search_bases;
     struct ipa_service *service;
 
     /* id provider */

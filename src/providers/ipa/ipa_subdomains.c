@@ -28,14 +28,23 @@
 
 #define SUBDOMAINS_FILTER "objectclass=ipaNTTrustedDomain"
 #define MASTER_DOMAIN_FILTER "objectclass=ipaNTDomainAttrs"
+#define RANGE_FILTER "objectclass=ipaIDRange"
 
 #define IPA_CN "cn"
 #define IPA_FLATNAME "ipaNTFlatName"
-#define IPA_SID "ipaNTTrustedDomainSID"
+#define IPA_SID "ipaNTSecurityIdentifier"
+#define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
+
+#define IPA_BASE_ID "ipaBaseID"
+#define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
+#define IPA_BASE_RID "ipaBaseRID"
+#define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
+#define OBJECTCLASS "objectClass"
 
 enum ipa_subdomains_req_type {
     IPA_SUBDOMAINS_MASTER,
     IPA_SUBDOMAINS_SLAVE,
+    IPA_SUBDOMAINS_RANGES,
 
     IPA_SUBDOMAINS_MAX /* Counter */
 };
@@ -43,11 +52,103 @@ enum ipa_subdomains_req_type {
 struct ipa_subdomains_req_params {
     const char *filter;
     tevent_req_fn cb;
+    const char *attrs[8];
 };
 
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
 {
     be_req->fn(be_req, dp_err, result, NULL);
+}
+
+static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
+                                        size_t count,
+                                        struct sysdb_attrs **reply,
+                                        struct range_info ***_range_list)
+{
+    struct range_info **range_list = NULL;
+    const char *value;
+    size_t c;
+    int ret;
+
+    range_list = talloc_array(mem_ctx, struct range_info *, count + 1);
+    if (range_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+        return ENOMEM;
+    }
+
+    for (c = 0; c < count; c++) {
+        range_list[c] = talloc_zero(range_list, struct range_info);
+        if (range_list[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+        range_list[c]->name = talloc_strdup(range_list[c], value);
+        if (range_list[c]->name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_TRUSTED_DOMAIN_SID, &value);
+        if (ret == EOK) {
+            range_list[c]->trusted_dom_sid = talloc_strdup(range_list[c],
+                                                           value);
+            if (range_list[c]->trusted_dom_sid == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_ID,
+                                       &range_list[c]->base_id);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_ID_RANGE_SIZE,
+                                       &range_list[c]->id_range_size);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_RID,
+                                       &range_list[c]->base_rid);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_SECONDARY_BASE_RID,
+                                       &range_list[c]->secondary_base_rid);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+    }
+    range_list[c] = NULL;
+
+    *_range_list = range_list;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(range_list);
+    }
+
+    return ret;
 }
 
 static errno_t ipa_subdomains_parse_results(
@@ -101,7 +202,7 @@ static errno_t ipa_subdomains_parse_results(
             goto done;
         }
 
-        ret = sysdb_attrs_get_string(reply[c], IPA_SID, &value);
+        ret = sysdb_attrs_get_string(reply[c], IPA_TRUSTED_DOMAIN_SID, &value);
         if (ret == EOK) {
             new_domain_list[c]->id = talloc_strdup(new_domain_list[c], value);
             if (new_domain_list[c]->id == NULL) {
@@ -150,10 +251,16 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
                            enum ipa_subdomains_req_type type);
 static void ipa_subdomains_handler_done(struct tevent_req *req);
 static void ipa_subdomains_handler_master_done(struct tevent_req *req);
+static void ipa_subdomains_handler_ranges_done(struct tevent_req *req);
 
 static struct ipa_subdomains_req_params subdomain_requests[] = {
-    { MASTER_DOMAIN_FILTER, ipa_subdomains_handler_master_done },
-    { SUBDOMAINS_FILTER, ipa_subdomains_handler_done }
+    { MASTER_DOMAIN_FILTER, ipa_subdomains_handler_master_done,
+        {IPA_CN, IPA_FLATNAME, IPA_SID, NULL }},
+    { SUBDOMAINS_FILTER, ipa_subdomains_handler_done,
+        {IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID, NULL }},
+    { RANGE_FILTER, ipa_subdomains_handler_ranges_done,
+        {OBJECTCLASS, IPA_CN, IPA_BASE_ID, IPA_ID_RANGE_SIZE, IPA_BASE_RID,
+         IPA_SECONDARY_BASE_RID, IPA_TRUSTED_DOMAIN_SID, NULL }}
 };
 
 void ipa_subdomains_handler(struct be_req *be_req)
@@ -250,10 +357,6 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
     struct tevent_req *req;
     struct sdap_search_base *base;
     struct ipa_subdomains_req_params *params;
-    const char *attrs[] = {IPA_CN,
-                           IPA_FLATNAME,
-                           IPA_SID,
-                           NULL};
 
     if (type >= IPA_SUBDOMAINS_MAX) {
         return EINVAL;
@@ -276,7 +379,7 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
                         ctx->sd_ctx->sdap_id_ctx->opts,
                         sdap_id_op_handle(ctx->sdap_op),
                         base->basedn, base->scope,
-                        ctx->current_filter, attrs, NULL, 0,
+                        ctx->current_filter, params->attrs, NULL, 0,
                         dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
                                        SDAP_SEARCH_TIMEOUT), false);
 
@@ -299,7 +402,6 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
                                                        struct ipa_subdomains_req_ctx);
     struct be_req *be_req = ctx->be_req;
     struct sysdb_ctx *sysdb;
-    struct subdomain_info *domain_info;
 
     sysdb = (be_req->sysdb)?be_req->sysdb:be_req->be_ctx->sysdb;
 
@@ -341,6 +443,60 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
         goto done;
     }
+
+
+    ctx->search_base_iter = 0;
+    ctx->search_bases = ctx->sd_ctx->ranges_search_bases;
+    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_RANGES);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE, ("No search base for ranges available.\n"));
+    ret = EINVAL;
+
+done:
+    talloc_free(ctx);
+    ipa_subdomains_reply(be_req, (ret == EOK ? DP_ERR_OK : DP_ERR_FATAL), ret);
+}
+
+
+static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
+{
+    errno_t ret;
+    size_t reply_count;
+    struct sysdb_attrs **reply = NULL;
+    struct ipa_subdomains_req_ctx *ctx = tevent_req_callback_data(req,
+                                                       struct ipa_subdomains_req_ctx);
+    struct be_req *be_req = ctx->be_req;
+    struct subdomain_info *domain_info;
+    struct range_info **range_list = NULL;
+    struct sysdb_ctx *sysdb;
+
+    sysdb = (be_req->sysdb)?be_req->sysdb:be_req->be_ctx->sysdb;
+
+    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        goto done;
+    }
+
+    ret = ipa_ranges_parse_results(ctx, reply_count, reply, &range_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ipa_ranges_parse_results request failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_update_ranges(sysdb, range_list);
+    talloc_free(range_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_ranges failed.\n"));
+        goto done;
+    }
+
 
     ret = sysdb_master_domain_get_info(ctx, sysdb, &domain_info);
     if (ret != EOK) {

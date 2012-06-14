@@ -542,6 +542,7 @@ int sssm_ipa_subdomains_init(struct be_ctx *bectx,
     subdomains_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
     subdomains_ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
     subdomains_ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
+    subdomains_ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
     *ops = &ipa_subdomains_ops;
     *pvt_data = subdomains_ctx;
 
