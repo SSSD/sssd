@@ -19,6 +19,10 @@
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
 %endif
 
+%if (0%{?fedora} >= 17)
+    %global with_ccache --with-default-ccache-dir='/run/user/%U' --with-default-ccname-template="DIR:%d/ccdir"
+%endif
+
 %global enable_experimental 1
 
 %if (0%{?enable_experimental} == 1)
@@ -233,6 +237,7 @@ autoreconf -ivf
     --disable-static \
     --disable-rpath \
     %{with_unicode_lib} \
+    %{with_ccache} \
     %{experimental}
 
 make %{?_smp_mflags} all

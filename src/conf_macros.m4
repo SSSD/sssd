@@ -247,6 +247,36 @@ AC_DEFUN([WITH_KRB5_RCACHE_DIR],
     AC_DEFINE_UNQUOTED(KRB5_RCACHE_DIR, "$krb5rcachedir", [Directory used for storing Kerberos replay caches])
   ])
 
+AC_DEFUN([WITH_DEFAULT_CCACHE_DIR],
+  [ AC_ARG_WITH([default-ccache-dir],
+                [AC_HELP_STRING([--with-default-ccache-dir=CCACHEDIR],
+                                [The default value of krb5_ccachedir [/tmp]]
+                               )
+                ]
+               )
+    config_def_ccache_dir="/tmp"
+    if test x"$with_default_ccache_dir" != x; then
+        config_def_ccache_dir=$with_default_ccache_dir
+    fi
+    AC_SUBST(config_def_ccache_dir)
+    AC_DEFINE_UNQUOTED(DEFAULT_CCACHE_DIR, "$config_def_ccache_dir", [The default value of krb5_ccachedir])
+  ])
+
+AC_DEFUN([WITH_DEFAULT_CCNAME_TEMPLATE],
+  [ AC_ARG_WITH([default-ccname-template],
+                [AC_HELP_STRING([--with-default-ccname-template=CCACHE],
+                                [The default value of krb5_ccname_template [FILE:%d/krb5cc_%U_XXXXXX]]
+                               )
+                ]
+               )
+    config_def_ccname_template="FILE:%d/krb5cc_%U_XXXXXX"
+    if test x"$with_default_ccname_template" != x; then
+        config_def_ccname_template=$with_default_ccname_template
+    fi
+    AC_SUBST(config_def_ccname_template)
+    AC_DEFINE_UNQUOTED(DEFAULT_CCNAME_TEMPLATE, "$config_def_ccname_template", [The default value of krb5_ccname_template])
+  ])
+
 AC_DEFUN([WITH_PYTHON_BINDINGS],
   [ AC_ARG_WITH([python-bindings],
                 [AC_HELP_STRING([--with-python-bindings],
