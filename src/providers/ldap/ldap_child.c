@@ -260,7 +260,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("keytab ccname: [%s]\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("keytab ccname: [%s]\n", ccname));
 
     krberr = krb5_cc_resolve(context, ccname, &ccache);
     if (krberr) {
