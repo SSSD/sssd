@@ -27,6 +27,7 @@
 #define __KRB5_UTILS_H__
 
 #include <talloc.h>
+#include "config.h"
 
 #include "providers/krb5/krb5_auth.h"
 #include "providers/data_provider.h"
@@ -53,16 +54,12 @@ struct sss_krb5_cc_be {
 };
 
 struct sss_krb5_cc_be file_cc;
-struct sss_krb5_cc_be dir_cc;
 
 errno_t create_ccache_dir(const char *dirname, pcre *illegal_re,
                           uid_t uid, gid_t gid, bool private_path);
 
 errno_t cc_file_create(const char *filename, pcre *illegal_re,
                        uid_t uid, gid_t gid, bool private_path);
-
-errno_t cc_dir_create(const char *location, pcre *illegal_re,
-                      uid_t uid, gid_t gid, bool private_path);
 
 struct sss_krb5_cc_be *get_cc_be_ops(enum sss_krb5_cc_type type);
 struct sss_krb5_cc_be *get_cc_be_ops_ccache(const char *ccache);
@@ -75,4 +72,14 @@ errno_t become_user(uid_t uid, gid_t gid);
 
 errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                              struct tgt_times *tgtt);
+
+#ifdef HAVE_KRB5_DIRCACHE
+
+struct sss_krb5_cc_be dir_cc;
+
+errno_t cc_dir_create(const char *location, pcre *illegal_re,
+                      uid_t uid, gid_t gid, bool private_path);
+
+#endif /* HAVE_KRB5_DIRCACHE */
+
 #endif /* __KRB5_UTILS_H__ */

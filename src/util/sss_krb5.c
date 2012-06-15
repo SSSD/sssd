@@ -1121,10 +1121,14 @@ sss_krb5_get_type(const char *full_location)
     if (strncmp(full_location, SSS_KRB5_FILE,
                 sizeof(SSS_KRB5_FILE)-1) == 0) {
         return SSS_KRB5_TYPE_FILE;
-    } else if (strncmp(full_location, SSS_KRB5_DIR,
+    }
+#ifdef HAVE_KRB5_DIRCACHE
+    else if (strncmp(full_location, SSS_KRB5_DIR,
                sizeof(SSS_KRB5_DIR)-1) == 0) {
         return SSS_KRB5_TYPE_DIR;
-    } else if (full_location[0] == '/') {
+    }
+#endif /* HAVE_KRB5_DIRCACHE */
+    else if (full_location[0] == '/') {
         return SSS_KRB5_TYPE_FILE;
     }
 
@@ -1147,9 +1151,11 @@ sss_krb5_residual_by_type(const char *full_location,
                 offset = sizeof(SSS_KRB5_FILE)-1;
             }
             break;
+#ifdef HAVE_KRB5_DIRCACHE
         case SSS_KRB5_TYPE_DIR:
             offset = sizeof(SSS_KRB5_DIR)-1;
             break;
+#endif /* HAVE_KRB5_DIRCACHE */
         default:
             return NULL;
     }
@@ -1169,9 +1175,11 @@ sss_krb5_cc_file_path(const char *full_location)
     switch(cc_type) {
         case SSS_KRB5_TYPE_FILE:
             return residual;
+#ifdef HAVE_KRB5_DIRCACHE
         case SSS_KRB5_TYPE_DIR:
             /* DIR::/run/user/tkt_foo */
             if (residual[0] == ':') return residual+1;
+#endif
         case SSS_KRB5_TYPE_UNKNOWN:
             break;
     }

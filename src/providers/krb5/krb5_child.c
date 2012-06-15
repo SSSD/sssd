@@ -244,11 +244,13 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
         goto done;
     }
 
+#ifdef HAVE_KRB5_DIRCACHE
     kerr = krb5_cc_switch(ctx, cc);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
         goto done;
     }
+#endif /* HAVE_KRB5_DIRCACHE */
 
     kerr = krb5_cc_close(ctx, cc);
     if (kerr != 0) {
@@ -365,6 +367,8 @@ done:
     talloc_free(tmp_ctx);
     return kerr;
 }
+
+#ifdef HAVE_KRB5_DIRCACHE
 
 static errno_t
 create_ccdir(const char *dirname, uid_t uid, gid_t gid)
@@ -491,6 +495,8 @@ done:
     return kerr;
 }
 
+#endif /* HAVE_KRB5_DIRCACHE */
+
 static krb5_error_code
 create_ccache(uid_t uid, gid_t gid, krb5_context ctx,
               krb5_principal princ, char *ccname, krb5_creds *creds)
@@ -501,8 +507,10 @@ create_ccache(uid_t uid, gid_t gid, krb5_context ctx,
     switch (cctype) {
         case SSS_KRB5_TYPE_FILE:
             return create_ccache_file(ctx, princ, ccname, creds);
+#ifdef HAVE_KRB5_DIRCACHE
         case SSS_KRB5_TYPE_DIR:
             return create_ccache_in_dir(uid, gid, ctx, princ, ccname, creds);
+#endif /* HAVE_KRB5_DIRCACHE */
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown cache type\n"));
             return EINVAL;

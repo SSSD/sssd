@@ -41,6 +41,12 @@
 #define KERBEROS_PWEXPIRE_WARNING_TIME (7 * 24 * 60 * 60)
 #define KEYTAB_CLEAN_NAME keytab_name ? keytab_name : "default"
 
+#if 0
+#if defined HAVE_KRB5_CC_CACHE_MATCH && defined HAVE_KRB5_CC_GET_FULL_NAME
+#define HAVE_KRB5_DIRCACHE 1
+#endif
+#endif
+
 const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,
                                                    krb5_error_code);
 
@@ -133,7 +139,9 @@ void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
 
 enum sss_krb5_cc_type {
     SSS_KRB5_TYPE_FILE,
+#ifdef HAVE_KRB5_DIRCACHE
     SSS_KRB5_TYPE_DIR,
+#endif /* HAVE_KRB5_DIRCACHE */
     SSS_KRB5_TYPE_UNKNOWN
 };
 

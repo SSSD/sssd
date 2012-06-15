@@ -357,6 +357,7 @@ START_TEST(test_illegal_patterns)
 }
 END_TEST
 
+#ifdef HAVE_KRB5_DIRCACHE
 START_TEST(test_cc_dir_create)
 {
     char *residual;
@@ -405,6 +406,8 @@ START_TEST(test_cc_dir_create)
     free(cwd);
 }
 END_TEST
+#endif /* HAVE_KRB5_DIRCACHE */
+
 
 void setup_talloc_context(void)
 {
@@ -694,7 +697,9 @@ Suite *krb5_utils_suite (void)
     tcase_add_checked_fixture (tc_create_dir, setup_create_dir,
                                teardown_create_dir);
     tcase_add_test (tc_create_dir, test_illegal_patterns);
+#ifdef HAVE_KRB5_DIRCACHE
     tcase_add_test (tc_create_dir, test_cc_dir_create);
+#endif /* HAVE_KRB5_DIRCACHE */
     if (getuid() == 0) {
         tcase_add_test (tc_create_dir, test_priv_ccache_dir);
         tcase_add_test (tc_create_dir, test_private_ccache_dir_in_user_dir);

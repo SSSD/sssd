@@ -204,12 +204,16 @@ errno_t check_and_export_options(struct dp_option *opts,
             return ret;
         }
         break;
+
+#ifdef HAVE_KRB5_DIRCACHE
     case SSS_KRB5_TYPE_DIR:
         DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type DIR\n"));
         krb5_ctx->cc_be = &dir_cc;
         break;
+#endif
+
     default:
-        DEBUG(SSSDBG_OP_FAILURE, ("Unkown ccname database\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown ccname database\n"));
         return EINVAL;
         break;
     }

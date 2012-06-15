@@ -56,7 +56,9 @@ AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_kt_free_entry \
                 krb5_princ_realm \
                 krb5_get_time_offsets \
-                krb5_principal_get_realm])
+                krb5_principal_get_realm \
+                krb5_cc_cache_match \
+                krb5_cc_get_full_name])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 
