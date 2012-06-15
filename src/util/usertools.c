@@ -230,9 +230,9 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
     struct sss_domain_info *dom, *match;
     char *rdomain, *rname;
     char *dmatch, *nmatch;
-    char *only_name = NULL;
-    bool only_name_seen = false;
-    bool only_name_mismatch = false;
+    char *candidate_name = NULL;
+    char *candidate_domain = NULL;
+    bool name_mismatch = false;
     TALLOC_CTX *tmp_ctx;
     int code;
 
@@ -252,13 +252,11 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
              * name.
              */
             if (dmatch == NULL) {
-                if (!only_name_seen) {
-                    only_name = nmatch;
-                } else if (nmatch == NULL || only_name == NULL ||
-                           strcasecmp(only_name, nmatch) != 0) {
-                    only_name_mismatch = true;
+                if (candidate_name == NULL) {
+                    candidate_name = nmatch;
+                } else if (strcasecmp(candidate_name, nmatch) != 0) {
+                    name_mismatch = true;
                 }
-                only_name_seen = true;
 
             /*
              * If a domain was returned, then it must match the name of the
@@ -274,6 +272,8 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                     rdomain = dmatch;
                     rname = nmatch;
                     break;
+                } else if (candidate_name == NULL) {
+                    candidate_domain = dmatch;
                 }
             }
 
@@ -284,12 +284,16 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
         }
     }
 
-    if (rdomain == NULL && rname == NULL &&
-        only_name_seen && !only_name_mismatch && only_name != NULL) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              ("name '%s' matched without domain, user is %s\n", orig, nmatch));
-        rdomain = NULL;
-        rname = only_name;
+    if (rdomain == NULL && rname == NULL) {
+        if (candidate_name && !name_mismatch) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  ("name '%s' matched without domain, user is %s\n", orig, nmatch));
+            rdomain = NULL;
+            rname = candidate_name;
+        } else if (candidate_domain) {
+            *domain = talloc_steal(memctx, candidate_domain);
+            return EAGAIN;
+        }
     }
 
     if (rdomain == NULL && rname == NULL) {

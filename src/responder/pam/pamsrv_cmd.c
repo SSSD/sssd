@@ -851,32 +851,12 @@ static void pam_dom_forwarder(struct pam_auth_req *preq);
  * PAM_ENVIRONMENT, so that we can save performing some calls and cache
  * data. */
 
-static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
+errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
 {
-    struct sss_domain_info *dom;
-    struct pam_auth_req *preq;
-    struct pam_data *pd;
     uint8_t *body;
     size_t blen;
-    int ret;
-    errno_t ncret;
-    struct pam_ctx *pctx =
-            talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
+    errno_t ret;
     uint32_t terminator = SSS_END_OF_PAM_REQUEST;
-    struct tevent_req *req;
-
-    preq = talloc_zero(cctx, struct pam_auth_req);
-    if (!preq) {
-        return ENOMEM;
-    }
-    preq->cctx = cctx;
-
-    preq->pd = talloc_zero(preq, struct pam_data);
-    if (!preq->pd) {
-        talloc_free(preq);
-        return ENOMEM;
-    }
-    pd = preq->pd;
 
     sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t) &&
@@ -885,9 +865,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         ret = EINVAL;
         goto done;
     }
-
-    pd->cmd = pam_cmd;
-    pd->priv = cctx->priv;
 
     switch (cctx->cli_protocol_version->version) {
         case 1:
@@ -904,7 +881,49 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                       cctx->cli_protocol_version->version));
             ret = EINVAL;
     }
-    if (ret != EOK) {
+
+done:
+    return ret;
+}
+
+static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
+{
+    struct sss_domain_info *dom;
+    struct pam_auth_req *preq;
+    struct pam_data *pd;
+    int ret;
+    errno_t ncret;
+    struct pam_ctx *pctx =
+            talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
+    struct tevent_req *req;
+
+    preq = talloc_zero(cctx, struct pam_auth_req);
+    if (!preq) {
+        return ENOMEM;
+    }
+    preq->cctx = cctx;
+
+    preq->pd = talloc_zero(preq, struct pam_data);
+    if (!preq->pd) {
+        talloc_free(preq);
+        return ENOMEM;
+    }
+    pd = preq->pd;
+
+    pd->cmd = pam_cmd;
+    pd->priv = cctx->priv;
+
+    ret = pam_forwarder_parse_data(cctx, pd);
+    if (ret == EAGAIN) {
+        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, pd->domain);
+        if (req == NULL) {
+            ret = ENOMEM;
+        } else {
+            tevent_req_set_callback(req, pam_forwarder_cb, preq);
+            ret = EAGAIN;
+        }
+        goto done;
+    } else if (ret != EOK) {
         ret = EINVAL;
         goto done;
     }
@@ -913,13 +932,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (pd->domain) {
         preq->domain = responder_get_domain(preq, cctx->rctx, pd->domain);
         if (!preq->domain) {
-            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, pd->domain);
-            if (req == NULL) {
-                ret = ENOMEM;
-            } else {
-                tevent_req_set_callback(req, pam_forwarder_cb, preq);
-                ret = EAGAIN;
-            }
+            ret = ENOENT;
             goto done;
         }
     } else {
@@ -969,11 +982,20 @@ static void pam_forwarder_cb(struct tevent_req *req)
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
     struct cli_ctx *cctx = preq->cctx;
+    struct pam_data *pd;
     errno_t ret = EOK;
 
     ret = sss_dp_get_domains_recv(req);
     talloc_free(req);
     if (ret != EOK) {
+        goto done;
+    }
+
+    pd = preq->pd;
+
+    ret = pam_forwarder_parse_data(cctx, pd);
+    if (ret != EOK) {
+        ret = EINVAL;
         goto done;
     }
 

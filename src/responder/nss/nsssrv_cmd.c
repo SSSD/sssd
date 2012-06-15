@@ -798,8 +798,18 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     domname = NULL;
     ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
                                      &domname, &cmdctx->name);
-    if (ret != EOK) {
-        DEBUG(2, ("Invalid name received [%s]\n", rawname));
+    if (ret == EAGAIN) {
+        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
+        if (req == NULL) {
+            ret = ENOMEM;
+        } else {
+            dctx->rawname = rawname;
+            tevent_req_set_callback(req, nss_cmd_getpwnam_cb, dctx);
+            ret = EAGAIN;
+        }
+        goto done;
+    } if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;
         goto done;
     }
@@ -810,18 +820,12 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     if (domname) {
         dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
-            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
-            if (req == NULL) {
-                ret = ENOMEM;
-            } else {
-                dctx->domname = domname;
-                tevent_req_set_callback(req, nss_cmd_getpwnam_cb, dctx);
-                ret = EAGAIN;
-            }
+            ret = ENOENT;
             goto done;
         }
     } else {
         /* this is a multidomain search */
+        dctx->rawname = rawname;
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
         if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
@@ -854,6 +858,8 @@ static void nss_cmd_getpwnam_cb(struct tevent_req *req)
     struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    char *domname = NULL;
+    const char *rawname = dctx->rawname;
     errno_t ret;
 
     ret = sss_dp_get_domains_recv(req);
@@ -862,12 +868,27 @@ static void nss_cmd_getpwnam_cb(struct tevent_req *req)
         goto done;
     }
 
-    if (dctx->domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, dctx->domname);
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+                                     &domname, &cmdctx->name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
+        ret = ENOENT;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s] from [%s]\n",
+              cmdctx->name, domname?domname:"<ALL>"));
+
+    if (domname) {
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (dctx->domain == NULL) {
             ret = ENOENT;
             goto done;
         }
+    } else {
+        /* this is a multidomain search */
+        dctx->domain = cctx->rctx->domains;
+        cmdctx->check_next = true;
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
@@ -2264,7 +2285,17 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     domname = NULL;
     ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
                                      &domname, &cmdctx->name);
-    if (ret != EOK) {
+    if (ret == EAGAIN) {
+        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
+        if (req == NULL) {
+            ret = ENOMEM;
+        } else {
+            dctx->rawname = rawname;
+            tevent_req_set_callback(req, nss_cmd_getgrnam_cb, dctx);
+            ret = EAGAIN;
+        }
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;
         goto done;
@@ -2276,18 +2307,12 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     if (domname) {
         dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
-            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
-            if (req == NULL) {
-                ret = ENOMEM;
-            } else {
-                dctx->domname = domname;
-                tevent_req_set_callback(req, nss_cmd_getgrnam_cb, dctx);
-                ret = EAGAIN;
-            }
+            ret = ENOENT;
             goto done;
         }
     } else {
         /* this is a multidomain search */
+        dctx->rawname = rawname;
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
         if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
@@ -2320,6 +2345,8 @@ static void nss_cmd_getgrnam_cb(struct tevent_req *req)
     struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    char *domname = NULL;
+    const char *rawname = dctx->rawname;
     errno_t ret;
 
     ret = sss_dp_get_domains_recv(req);
@@ -2328,12 +2355,26 @@ static void nss_cmd_getgrnam_cb(struct tevent_req *req)
         goto done;
     }
 
-    if (dctx->domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, dctx->domname);
-        if (dctx->domain == NULL) {
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+                                     &domname, &cmdctx->name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
+        ret = ENOENT;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s] from [%s]\n",
+                              cmdctx->name, domname?domname:"<ALL>"));
+    if (domname) {
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
+        if (!dctx->domain) {
             ret = ENOENT;
             goto done;
         }
+    } else {
+        /* this is a multidomain search */
+        dctx->domain = cctx->rctx->domains;
+        cmdctx->check_next = true;
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
@@ -3374,7 +3415,17 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     domname = NULL;
     ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
                                      &domname, &cmdctx->name);
-    if (ret != EOK) {
+    if (ret == EAGAIN) {
+        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
+        if (req == NULL) {
+            ret = ENOMEM;
+        } else {
+            dctx->rawname = rawname;
+            tevent_req_set_callback(req, nss_cmd_initgroups_cb, dctx);
+            ret = EAGAIN;
+        }
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;
         goto done;
@@ -3386,18 +3437,12 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     if (domname) {
         dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
         if (!dctx->domain) {
-            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
-            if (req == NULL) {
-                ret = ENOMEM;
-            } else {
-                dctx->domname = domname;
-                tevent_req_set_callback(req, nss_cmd_initgroups_cb, dctx);
-                ret = EAGAIN;
-            }
+            ret = ENOENT;
             goto done;
         }
     } else {
         /* this is a multidomain search */
+        dctx->rawname = rawname;
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
         if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
@@ -3430,6 +3475,8 @@ static void nss_cmd_initgroups_cb(struct tevent_req *req)
     struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    char *domname = NULL;
+    const char *rawname = dctx->rawname;
     errno_t ret;
 
     ret = sss_dp_get_domains_recv(req);
@@ -3438,12 +3485,27 @@ static void nss_cmd_initgroups_cb(struct tevent_req *req)
         goto done;
     }
 
-    if (dctx->domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, dctx->domname);
-        if (dctx->domain == NULL) {
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+                                     &domname, &cmdctx->name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
+        ret = ENOENT;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s] from [%s]\n",
+                              cmdctx->name, domname?domname:"<ALL>"));
+
+    if (domname) {
+        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
+        if (!dctx->domain) {
             ret = ENOENT;
             goto done;
         }
+    } else {
+        /* this is a multidomain search */
+        dctx->domain = cctx->rctx->domains;
+        cmdctx->check_next = true;
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);

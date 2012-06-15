@@ -64,7 +64,7 @@ struct nss_dom_ctx {
     struct sss_domain_info *domain;
 
     /* For a case when we are discovering subdomains */
-    const char *domname;
+    const char *rawname;
 
     bool check_provider;
 
