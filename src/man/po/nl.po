@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-05-22 09:33-0300\n"
-"PO-Revision-Date: 2012-04-20 17:34+0000\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Dutch (http://www.transifex.net/projects/p/fedora/language/"
 "nl/)\n"
@@ -480,10 +480,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:212
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "force_timeout (integer)"
-msgstr "enum_cache_timeout (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:215
@@ -801,10 +799,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:450
-#, fuzzy
-#| msgid "full_name_format (string)"
 msgid "fallback_homedir (string)"
-msgstr "full_name_format (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:453
@@ -918,10 +914,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:535 sssd.conf.5.xml:683
-#, fuzzy
-#| msgid "entry_negative_timeout (integer)"
 msgid "get_domains_timeout (int)"
-msgstr "entry_negative_timeout (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:538 sssd.conf.5.xml:686
@@ -1178,17 +1172,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:776
-#, fuzzy
-#| msgid "NSS configuration options"
 msgid "SSH configuration options"
-msgstr "NSS configuratie-opties"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:778
-#, fuzzy
-#| msgid "These options can be used to configure any service."
 msgid "These options can be used to configure the SSH service."
-msgstr "Deze opties kunnen gebruikt worden om services te configureren."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:786
@@ -2504,10 +2494,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:334
-#, fuzzy
-#| msgid "re_expression (string)"
 msgid "ldap_user_objectsid (string)"
-msgstr "re_expression (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:337
@@ -6714,16 +6702,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
-#, fuzzy
-#| msgid ""
-#| "<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid ""
 "<option>-s</option>,<option>--service</option> <replaceable>service</"
 "replaceable>"
 msgstr ""
-"<option>-r</option>,<option>--remove-group</option> <replaceable>GROEPEN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:113
@@ -6732,14 +6714,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:119
-#, fuzzy
-#| msgid ""
-#| "<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid "<option>-S</option>,<option>--services</option>"
 msgstr ""
-"<option>-r</option>,<option>--remove-group</option> <replaceable>GROEPEN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:123
@@ -6750,16 +6726,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:130
-#, fuzzy
-#| msgid ""
-#| "<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid ""
 "<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-map</"
 "replaceable>"
 msgstr ""
-"<option>-a</option>,<option>--append-group</option> <replaceable>GROEPEN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:135
@@ -6768,14 +6738,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:141
-#, fuzzy
-#| msgid ""
-#| "<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
-#| "replaceable>"
 msgid "<option>-A</option>,<option>--autofs-maps</option>"
 msgstr ""
-"<option>-a</option>,<option>--append-group</option> <replaceable>GROEPEN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:145
@@ -7258,10 +7222,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:95
-#, fuzzy
-#| msgid "Default: 120"
 msgid "Default: 10001"
-msgstr "Standaard: 120"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:100
@@ -7287,10 +7249,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:117
-#, fuzzy
-#| msgid "Default: 120"
 msgid "Default: 2000100000"
-msgstr "Standaard: 120"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:122
@@ -7307,10 +7267,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:131
-#, fuzzy
-#| msgid "Default: 120"
 msgid "Default: 200000"
-msgstr "Standaard: 120"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:136

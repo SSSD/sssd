@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-05-22 09:33-0300\n"
-"PO-Revision-Date: 2012-04-20 17:34+0000\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Tajik (http://www.transifex.net/projects/p/fedora/language/"
 "tg/)\n"
@@ -1094,10 +1094,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:776
-#, fuzzy
-#| msgid "Configuration"
 msgid "SSH configuration options"
-msgstr "Ҷӯрсозӣ"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:778
@@ -7119,10 +7117,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><title>
 #: include/ldap_id_mapping.xml:75
-#, fuzzy
-#| msgid "Configuration"
 msgid "Advanced Configuration"
-msgstr "Ҷӯрсозӣ"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:78
@@ -7148,10 +7144,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:95
-#, fuzzy
-#| msgid "Default: 10"
 msgid "Default: 10001"
-msgstr "Пешфарз: 10"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:100
@@ -7177,10 +7171,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:117
-#, fuzzy
-#| msgid "Default: 10"
 msgid "Default: 2000100000"
-msgstr "Пешфарз: 10"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:122
@@ -7197,10 +7189,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:131
-#, fuzzy
-#| msgid "Default: 120"
 msgid "Default: 200000"
-msgstr "Пешфарз: 120"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:136
@@ -7397,6 +7387,3 @@ msgid ""
 "<command>sss_user*</command> and <command>sss_group*</command> tools use a "
 "local LDB storage to store users and groups."
 msgstr ""
-
-#~ msgid "Default: 7"
-#~ msgstr "Пешфарз: 7"

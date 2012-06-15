@@ -11,8 +11,8 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-05-22 09:33-0300\n"
-"PO-Revision-Date: 2012-04-23 00:55+0000\n"
-"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
+"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -484,10 +484,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:212
-#, fuzzy
-#| msgid "timeout (integer)"
 msgid "force_timeout (integer)"
-msgstr "timeout (整数)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:215
@@ -837,10 +835,8 @@ msgstr "このオプションはドメインごとに設定できます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:450
-#, fuzzy
-#| msgid "mail_dir (string)"
 msgid "fallback_homedir (string)"
-msgstr "mail_dir (文字列)"
+msgstr "fallback_homedir (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:453
@@ -848,17 +844,21 @@ msgid ""
 "Set a default template for a user's home directory if one is not specified "
 "explicitly by the domain's data provider."
 msgstr ""
+"ドメインのデータプロバイダーにより明示的に指定されていない場合に、ユーザーの"
+"ホームディレクトリーの標準テンプレートを設定します。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:458
 msgid ""
 "The available values for this option are the same as for override_homedir."
 msgstr ""
+"このオプションに対して利用可能なオプションは override_homedir に対するものと"
+"同じです。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:462
 msgid "Default: not set (no substitution for unset home directories)"
-msgstr ""
+msgstr "初期値: 設定なし (ホームディレクトリーの設定がない場合は代替なし)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:468
@@ -947,10 +947,8 @@ msgstr "初期値: /bin/sh"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:520
-#, fuzzy
-#| msgid "default_shell (string)"
 msgid "default_shell"
-msgstr "default_shell (文字列)"
+msgstr "default_shell"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:523
@@ -968,10 +966,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:535 sssd.conf.5.xml:683
-#, fuzzy
-#| msgid "entry_negative_timeout (integer)"
 msgid "get_domains_timeout (int)"
-msgstr "entry_negative_timeout (整数)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:538 sssd.conf.5.xml:686
@@ -1260,24 +1256,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:776
-#, fuzzy
-#| msgid "NSS configuration options"
 msgid "SSH configuration options"
-msgstr "NSS 設定オプション"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:778
-#, fuzzy
-#| msgid "These options can be used to configure the sudo service."
 msgid "These options can be used to configure the SSH service."
-msgstr "これらのオプションは sudo サービスを設定するために使用されます。"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:786
-#, fuzzy
-#| msgid "sss_ssh_knownhostsproxy"
 msgid "ssh_hash_known_hosts (bool)"
-msgstr "sss_ssh_knownhostsproxy"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:789
@@ -1510,33 +1500,22 @@ msgstr "初期値: 0 (無制限)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:969
-#, fuzzy
-#| msgid "pam_pwd_expiration_warning (integer)"
 msgid "pwd_expiration_warning (integer)"
-msgstr "pam_pwd_expiration_warning (整数)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:980
-#, fuzzy
-#| msgid ""
-#| "Please note that the backend server has to provide information about the "
-#| "expiration time of the password.  If this information is missing, sssd "
-#| "cannot display a warning."
 msgid ""
 "Please note that the backend server has to provide information about the "
 "expiration time of the password.  If this information is missing, sssd "
 "cannot display a warning. Also an auth provider has to be configured for the "
 "backend."
 msgstr ""
-"バックエンドのサーバーがパスワードの有効期間に関する情報を提供する必要がある"
-"ことに注意してください。この情報がなければ、sssd は警告を表示します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:987
-#, fuzzy
-#| msgid "Default: memberHost"
 msgid "Default: 7 (Kerberos), 0 (LDAP)"
-msgstr "初期値: memberHost"
+msgstr "初期値: 7 (Kerberos), 0 (LDAP)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:993
@@ -1580,6 +1559,8 @@ msgid ""
 "Use the full name and domain (as formatted by the domain's full_name_format) "
 "as the user's login name reported to NSS."
 msgstr ""
+"NSS に報告するユーザーのログイン名としてフルネームとドメイン (ドメインの完全"
+"名形式により整形されたように) を使用します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1023
@@ -1673,6 +1654,8 @@ msgid ""
 "<quote>permit</quote> always allow access. It's the only permitted access "
 "provider for a local domain."
 msgstr ""
+"<quote>permit</quote> は常にアクセスを許可します。ローカルドメインに対するプ"
+"ロバイダーのみアクセスが許可されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1081
@@ -1842,47 +1825,28 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1193
-#, fuzzy
-#| msgid "sudo_provider (string)"
 msgid "subdomains_provider (string)"
-msgstr "sudo_provider (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1196
-#, fuzzy
-#| msgid ""
-#| "The provider which should handle loading of session settings.  Supported "
-#| "session providers are:"
 msgid ""
 "The provider which should handle fetching of subdomains.  This value should "
 "be always the same as id_provider.  Supported subdomain providers are:"
 msgstr ""
-"セッションの設定の読み込みを処理するプロバイダーです。サポートされるセッショ"
-"ンプロバイダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1201
-#, fuzzy
-#| msgid ""
-#| "<quote>ipa</quote> to load session settings from an IPA server. See "
-#| "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry> for more information on configuring IPA."
 msgid ""
 "<quote>ipa</quote> to load a list of subdomains from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
-"<quote>ipa</quote> は IPA サーバーからセッションの設定を読み込みます。IPA の"
-"設定に関する詳細は <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1209
-#, fuzzy
-#| msgid "<quote>none</quote> disallows fetching session settings explicitly."
 msgid "<quote>none</quote> disallows fetching subdomains explicitly."
 msgstr ""
-"<quote>none</quote> はセッションの設定の取り出しを明示的に無効化します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1212 sssd-ldap.5.xml:1499
@@ -2078,10 +2042,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1374
-#, fuzzy
-#| msgid "override_homedir (string)"
 msgid "subdomain_homedir (string)"
-msgstr "override_homedir (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1377
@@ -2626,17 +2588,6 @@ msgstr "ldap_schema (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:161
-#, fuzzy
-#| msgid ""
-#| "Specifies the Schema Type in use on the target LDAP server.  Depending on "
-#| "the selected schema, the default attribute names retrieved from the "
-#| "servers may vary.  The way that some attributes are handled may also "
-#| "differ.  Three schema types are currently supported: rfc2307 rfc2307bis "
-#| "IPA The main difference between these schema types is how group "
-#| "memberships are recorded in the server.  With rfc2307, group members are "
-#| "listed by name in the <emphasis>memberUid</emphasis> attribute.  With "
-#| "rfc2307bis and IPA, group members are listed by DN and stored in the "
-#| "<emphasis>member</emphasis> attribute."
 msgid ""
 "Specifies the Schema Type in use on the target LDAP server.  Depending on "
 "the selected schema, the default attribute names retrieved from the servers "
@@ -2649,14 +2600,6 @@ msgid ""
 "attribute.  The AD schema type sets the attributes to correspond with Active "
 "Directory 2008r2 values."
 msgstr ""
-"ターゲット LDAP サーバーにおいて使用中のスキーマ形式を指定します。選択された"
-"スキーマに応じて、サーバーから取得される属性名の初期変わります。処理されるい"
-"くつかの属性も変わります。現在 3 つのスキーマ形式がサポートされます: "
-"rfc2307, rfc2307bis, IPA 。これらのスキーマ形式のおもな違いは、グループのメン"
-"バーがサーバーにおいてどのように記録されるかです。rfc2307 を使用すると、グ"
-"ループのメンバーは <emphasis>memberUid</emphasis> 属性に名前により一覧化され"
-"ます。rfc2307bis および IPA を使用すると、グループのメンバーは DN により一覧"
-"化され、<emphasis>member</emphasis> 属性に保存されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:183
@@ -2839,20 +2782,15 @@ msgstr "初期値: nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:334
-#, fuzzy
-#| msgid "ldap_user_object_class (string)"
 msgid "ldap_user_objectsid (string)"
-msgstr "ldap_user_object_class (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:337
-#, fuzzy
-#| msgid ""
-#| "The LDAP attribute that contains the UUID/GUID of an LDAP user object."
 msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP user object. This "
 "is usually only necessary for ActiveDirectory servers."
-msgstr "LDAP ユーザーオブジェクトの UUID/GUID を含む LDAP 属性です。"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:342 sssd-ldap.5.xml:798
@@ -3404,20 +3342,15 @@ msgstr "LDAP グループオブジェクトの UUID/GUID を含む LDAP の属�
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:790
-#, fuzzy
-#| msgid "ldap_group_object_class (string)"
 msgid "ldap_group_objectsid (string)"
-msgstr "ldap_group_object_class (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:793
-#, fuzzy
-#| msgid ""
-#| "The LDAP attribute that contains the UUID/GUID of an LDAP group object."
 msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP group object. This "
 "is usually only necessary for ActiveDirectory servers."
-msgstr "LDAP グループオブジェクトの UUID/GUID を含む LDAP の属性です。"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:805
@@ -4012,10 +3945,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1318
-#, fuzzy
-#| msgid "ldap_disable_paging (boolean)"
 msgid "ldap_id_mapping (boolean)"
-msgstr "ldap_disable_paging (論理値)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1321
@@ -5715,26 +5646,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:199
-#, fuzzy
-#| msgid "ipa_hbac_search_base (string)"
 msgid "ipa_subdomains_search_base (string)"
-msgstr "ipa_hbac_search_base (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:202
-#, fuzzy
-#| msgid "Optional. Use the given string as search base for host objects."
 msgid "Optional. Use the given string as search base for trusted domains."
 msgstr ""
-"オプションです。ホストオブジェクトの検索ベースとして与えられた文字列を使用し"
-"ます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:211
-#, fuzzy
-#| msgid "Default: the value of <emphasis>ldap_search_base</emphasis>"
 msgid "Default: the value of <emphasis>cn=trusts,%basedn</emphasis>"
-msgstr "初期値: <emphasis>ldap_search_base</emphasis> の値"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:218 sssd-krb5.5.xml:229
@@ -7787,82 +7710,51 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
-#, fuzzy
-#| msgid ""
-#| "<option>-u</option>,<option>--user</option> <replaceable>login</"
-#| "replaceable>"
 msgid ""
 "<option>-s</option>,<option>--service</option> <replaceable>service</"
 "replaceable>"
 msgstr ""
-"<option>-u</option>,<option>--user</option> <replaceable>login</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:113
-#, fuzzy
-#| msgid "Invalidate specific user."
 msgid "Invalidate specific service."
-msgstr "特定のユーザーを無効にします。"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:119
-#, fuzzy
-#| msgid "<option>-U</option>,<option>--users</option>"
 msgid "<option>-S</option>,<option>--services</option>"
-msgstr "<option>-U</option>,<option>--users</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:123
-#, fuzzy
-#| msgid ""
-#| "Invalidate all user records. This option overrides invalidation of "
-#| "specific user if it was also set."
 msgid ""
 "Invalidate all service records. This option overrides invalidation of "
 "specific service if it was also set."
 msgstr ""
-"すべてのユーザーレコードを無効にします。このオプションも設定されていると、こ"
-"れが特定のユーザーの無効化を上書きします。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:130
-#, fuzzy
-#| msgid ""
-#| "<option>-d</option>,<option>--domain</option> <replaceable>domain</"
-#| "replaceable>"
 msgid ""
 "<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-map</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--domain</option> <replaceable>domain</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:135
-#, fuzzy
-#| msgid "Invalidate specific user."
 msgid "Invalidate specific autofs maps."
-msgstr "特定のユーザーを無効にします。"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:141
-#, fuzzy
-#| msgid "<option>-U</option>,<option>--users</option>"
 msgid "<option>-A</option>,<option>--autofs-maps</option>"
-msgstr "<option>-U</option>,<option>--users</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:145
-#, fuzzy
-#| msgid ""
-#| "Invalidate all user records. This option overrides invalidation of "
-#| "specific user if it was also set."
 msgid ""
 "Invalidate all autofs maps. This option overrides invalidation of specific "
 "map if it was also set."
 msgstr ""
-"すべてのユーザーレコードを無効にします。このオプションも設定されていると、こ"
-"れが特定のユーザーの無効化を上書きします。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:152
@@ -8394,17 +8286,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><title>
 #: include/ldap_id_mapping.xml:75
-#, fuzzy
-#| msgid "Configuration"
 msgid "Advanced Configuration"
-msgstr "設定"
+msgstr "高度な設定"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:78
-#, fuzzy
-#| msgid "ldap_page_size (integer)"
 msgid "ldap_idmap_range_min (integer)"
-msgstr "ldap_page_size (整数)"
+msgstr "ldap_idmap_range_min (整数)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:81
@@ -8412,6 +8300,8 @@ msgid ""
 "Specifies the lower bound of the range of POSIX IDs to use for mapping "
 "Active Directory user and group SIDs."
 msgstr ""
+"Active Directory ユーザーとグループの SID をマッピングするために使用する "
+"POSIX ID の範囲の下限を指定します。"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:85
@@ -8425,17 +8315,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:95
-#, fuzzy
-#| msgid "Default: 1000"
 msgid "Default: 10001"
-msgstr "初期値: 1000"
+msgstr "初期値: 10001"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:100
-#, fuzzy
-#| msgid "ldap_page_size (integer)"
 msgid "ldap_idmap_range_max (integer)"
-msgstr "ldap_page_size (整数)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:103
@@ -8456,17 +8342,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:117
-#, fuzzy
-#| msgid "Default: 1000"
 msgid "Default: 2000100000"
-msgstr "初期値: 1000"
+msgstr "初期値: 2000100000"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:122
-#, fuzzy
-#| msgid "ldap_page_size (integer)"
 msgid "ldap_idmap_range_size (integer)"
-msgstr "ldap_page_size (整数)"
+msgstr "ldap_idmap_range_size (整数)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:125
@@ -8475,20 +8357,18 @@ msgid ""
 "does not divide evenly into the min and max values, it will create as many "
 "complete slices as it can."
 msgstr ""
+"各スライスに利用可能な ID 番号を指定します。範囲の大きさが最小値、最大値の中"
+"にうまく分けられなければ、できる限り多くの完全なスライスとして作成されます。"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:131
-#, fuzzy
-#| msgid "Default: 1000"
 msgid "Default: 200000"
-msgstr "初期値: 1000"
+msgstr "初期値: 200000"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:136
-#, fuzzy
-#| msgid "ldap_default_bind_dn (string)"
 msgid "ldap_idmap_default_domain_sid (string)"
-msgstr "ldap_default_bind_dn (文字列)"
+msgstr "ldap_idmap_default_domain_sid (文字列)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:139
@@ -8500,24 +8380,18 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:150
-#, fuzzy
-#| msgid "ldap_default_bind_dn (string)"
 msgid "ldap_idmap_default_domain (string)"
-msgstr "ldap_default_bind_dn (文字列)"
+msgstr "ldap_idmap_default_domain (文字列)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:153
-#, fuzzy
-#| msgid "The type of the authentication token of the default bind DN."
 msgid "Specify the name of the default domain."
-msgstr "初期バインド DN の認証トークンの形式です。"
+msgstr "初期ドメインの名前を指定します。"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:161
-#, fuzzy
-#| msgid "ldap_id_use_start_tls (boolean)"
 msgid "ldap_idmap_autorid_compat (boolean)"
-msgstr "ldap_id_use_start_tls (論理値)"
+msgstr "ldap_idmap_autorid_compat (論理値)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:164
@@ -8525,6 +8399,8 @@ msgid ""
 "Changes the behavior of the ID-mapping algorithm to behave more similarly to "
 "winbind's <quote>idmap_autorid</quote> algorithm."
 msgstr ""
+"winbind の <quote>idmap_autorid</quote> アルゴリズムとより同じように振る舞う"
+"ために ID マッピングのアルゴリズムの振る舞いを変更します。"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:169
@@ -8532,6 +8408,8 @@ msgid ""
 "When this option is configured, domains will be allocated starting with "
 "slice zero and increasing monatomically with each additional domain."
 msgstr ""
+"このオプションが設定されるとき、ドメインはスライス 0 から始まり、各追加ドメイ"
+"ンに単原子的に増加するよう割り当てられます。"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:174
@@ -8542,6 +8420,11 @@ msgid ""
 "<quote>ldap_idmap_default_domain_sid</quote> option to guarantee that at "
 "least one domain is consistently allocated to slice zero."
 msgstr ""
+"注記: このアルゴリズムは非決定的です (ユーザーとグループが要求された順番に依"
+"存します)。このモードはマシンが実行中の winbind と互換性が必要ならば、少なく"
+"とも一つのドメインが一貫してスライス 0 に割り当てられることを保証するために、"
+"<quote>ldap_idmap_default_domain_sid</quote> オプションも使用することが推奨さ"
+"れます。"
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help.xml:3
@@ -8708,9 +8591,3 @@ msgid ""
 "<command>sss_user*</command> and <command>sss_group*</command> tools use a "
 "local LDB storage to store users and groups."
 msgstr ""
-
-#~ msgid "Default: 7"
-#~ msgstr "初期値: 7"
-
-#~ msgid "<quote>permit</quote> always allow access."
-#~ msgstr "<quote>permit</quote> は常にアクセスを許可します。"

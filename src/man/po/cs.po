@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-05-22 09:33-0300\n"
-"PO-Revision-Date: 2012-04-20 17:34+0000\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: Czech (http://www.transifex.net/projects/p/fedora/language/"
 "cs/)\n"
@@ -6641,12 +6641,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-s</option>,<option>--service</option> <replaceable>service</"
 "replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:113
@@ -6655,10 +6653,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:119
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-S</option>,<option>--services</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:123
@@ -6669,12 +6665,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:130
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid ""
 "<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-map</"
 "replaceable>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:135
@@ -6683,10 +6677,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:141
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-A</option>,<option>--autofs-maps</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:145

@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2012-05-22 09:33-0300\n"
-"PO-Revision-Date: 2012-04-20 17:34+0000\n"
+"PO-Revision-Date: 2012-05-22 13:44+0000\n"
 "Last-Translator: sgallagh <sgallagh@redhat.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
@@ -483,10 +483,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:212
-#, fuzzy
-#| msgid "timeout (integer)"
 msgid "force_timeout (integer)"
-msgstr "timeout (entier)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:215
@@ -840,10 +838,8 @@ msgstr "Cette option peut aussi être définie pour chaque domaine."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:450
-#, fuzzy
-#| msgid "mail_dir (string)"
 msgid "fallback_homedir (string)"
-msgstr "mail_dir (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:453
@@ -958,10 +954,8 @@ msgstr "Par défaut : /bin/sh"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:520
-#, fuzzy
-#| msgid "default_shell (string)"
 msgid "default_shell"
-msgstr "default_shell (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:523
@@ -979,10 +973,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:535 sssd.conf.5.xml:683
-#, fuzzy
-#| msgid "entry_negative_timeout (integer)"
 msgid "get_domains_timeout (int)"
-msgstr "entry_negative_timeout (entier)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:538 sssd.conf.5.xml:686
@@ -1264,17 +1256,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:776
-#, fuzzy
-#| msgid "NSS configuration options"
 msgid "SSH configuration options"
-msgstr "Options de configuration NSS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:778
-#, fuzzy
-#| msgid "These options can be used to configure any service."
 msgid "These options can be used to configure the SSH service."
-msgstr "Ces options peuvent être utilisées pour configurer les services."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:786
@@ -1509,27 +1497,17 @@ msgstr "Défault: 0 (illimité)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:969
-#, fuzzy
-#| msgid "pam_pwd_expiration_warning (integer)"
 msgid "pwd_expiration_warning (integer)"
-msgstr "pam_pwd_expiration_warning (entier)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:980
-#, fuzzy
-#| msgid ""
-#| "Please note that the backend server has to provide information about the "
-#| "expiration time of the password.  If this information is missing, sssd "
-#| "cannot display a warning."
 msgid ""
 "Please note that the backend server has to provide information about the "
 "expiration time of the password.  If this information is missing, sssd "
 "cannot display a warning. Also an auth provider has to be configured for the "
 "backend."
 msgstr ""
-"Veuillez noter que le serveur en arrière-plan doit fournir des informations "
-"à propos du temps d'expiration du mot de passe. Si cette information est "
-"manquante, sssd ne peut afficher de message d'alerte."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:987
@@ -1834,48 +1812,28 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1193
-#, fuzzy
-#| msgid "id_provider (string)"
 msgid "subdomains_provider (string)"
-msgstr "id_provider (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1196
-#, fuzzy
-#| msgid ""
-#| "The provider which should handle change password operations for the "
-#| "domain.  Supported change password providers are:"
 msgid ""
 "The provider which should handle fetching of subdomains.  This value should "
 "be always the same as id_provider.  Supported subdomain providers are:"
 msgstr ""
-"Le fournisseur qui devrait gérer le changement des mots de passe pour le "
-"domaine. Les fournisseurs acceptés sont :"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1201
-#, fuzzy
-#| msgid ""
-#| "<quote>ipa</quote> to change a password stored in an IPA server.  See "
-#| "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry> for more information on configuring IPA."
 msgid ""
 "<quote>ipa</quote> to load a list of subdomains from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
-"<quote>ipa</quote> pour changer le mot de passe stocké sur un serveur IPA. "
-"Voir <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> pour plus d'informations sur la configuration de "
-"l'IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1209
-#, fuzzy
-#| msgid "<quote>none</quote> disallows password changes explicitly."
 msgid "<quote>none</quote> disallows fetching subdomains explicitly."
 msgstr ""
-"<quote>none</quote> désactiver le changement de mot de passe explicitement."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1212 sssd-ldap.5.xml:1499
@@ -2068,10 +2026,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1374
-#, fuzzy
-#| msgid "override_homedir (string)"
 msgid "subdomain_homedir (string)"
-msgstr "override_homedir (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1377
@@ -2623,17 +2579,6 @@ msgstr "ldap_schema (chaîne)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:161
-#, fuzzy
-#| msgid ""
-#| "Specifies the Schema Type in use on the target LDAP server.  Depending on "
-#| "the selected schema, the default attribute names retrieved from the "
-#| "servers may vary.  The way that some attributes are handled may also "
-#| "differ.  Three schema types are currently supported: rfc2307 rfc2307bis "
-#| "IPA The main difference between these schema types is how group "
-#| "memberships are recorded in the server.  With rfc2307, group members are "
-#| "listed by name in the <emphasis>memberUid</emphasis> attribute.  With "
-#| "rfc2307bis and IPA, group members are listed by DN and stored in the "
-#| "<emphasis>member</emphasis> attribute."
 msgid ""
 "Specifies the Schema Type in use on the target LDAP server.  Depending on "
 "the selected schema, the default attribute names retrieved from the servers "
@@ -2646,15 +2591,6 @@ msgid ""
 "attribute.  The AD schema type sets the attributes to correspond with Active "
 "Directory 2008r2 values."
 msgstr ""
-"Spécifie le schéma type à utiliser pour le serveur LDAP cible. Selon le "
-"schéma choisi, l'attribut nom par défaut recherché sur les serveurs peut "
-"varier. La façon de gérer les attributs peut aussi varier. Trois schémas "
-"sont actuellement pris en charge : rfc2307, rfc2307bis et IPA. La différence "
-"principale entre ces types de schéma est comment l'appartenance au groupe "
-"est enregistrée sur le serveur. Avec rfc2307 les membres du groupe sont "
-"listés par nom dans l'attribut <emphasis>memberUid</emphasis>. Avec "
-"rfc2307bis et IPA les membres du groupe sont listés par DN et stockés dans "
-"l'attribut <emphasis>membre</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:183
@@ -2843,21 +2779,15 @@ msgstr "Par défaut : nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:334
-#, fuzzy
-#| msgid "ldap_user_object_class (string)"
 msgid "ldap_user_objectsid (string)"
-msgstr "ldap_user_object_class (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:337
-#, fuzzy
-#| msgid ""
-#| "The LDAP attribute that contains the UUID/GUID of an LDAP user object."
 msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP user object. This "
 "is usually only necessary for ActiveDirectory servers."
 msgstr ""
-"L'attribut LDAP qui contient les UUID/GUID d'un objet utilisateur LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:342 sssd-ldap.5.xml:798
@@ -3416,20 +3346,15 @@ msgstr "L'attribut LDAP qui contient les UUID/GUID d'un groupe objet LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:790
-#, fuzzy
-#| msgid "ldap_group_object_class (string)"
 msgid "ldap_group_objectsid (string)"
-msgstr "ldap_group_object_class (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:793
-#, fuzzy
-#| msgid ""
-#| "The LDAP attribute that contains the UUID/GUID of an LDAP group object."
 msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP group object. This "
 "is usually only necessary for ActiveDirectory servers."
-msgstr "L'attribut LDAP qui contient les UUID/GUID d'un groupe objet LDAP."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:805
@@ -4028,10 +3953,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1318
-#, fuzzy
-#| msgid "ldap_id_use_start_tls (boolean)"
 msgid "ldap_id_mapping (boolean)"
-msgstr "ldap_id_use_start_tls (booléen)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1321
@@ -5696,10 +5619,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:199
-#, fuzzy
-#| msgid "ipa_hbac_search_base (string)"
 msgid "ipa_subdomains_search_base (string)"
-msgstr "ipa_hbac_search_base (chaîne)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:202
@@ -5708,10 +5629,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:211
-#, fuzzy
-#| msgid "Default: the value of <emphasis>ldap_search_base</emphasis>"
 msgid "Default: the value of <emphasis>cn=trusts,%basedn</emphasis>"
-msgstr "Par défaut : la valeur de <emphasis>ldap_search_base</emphasis>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:218 sssd-krb5.5.xml:229
@@ -7703,16 +7622,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
-#, fuzzy
-#| msgid ""
-#| "<option>-s</option>,<option>--shell</option> <replaceable>SHELL</"
-#| "replaceable>"
 msgid ""
 "<option>-s</option>,<option>--service</option> <replaceable>service</"
 "replaceable>"
 msgstr ""
-"<option>-s</option>,<option>--shell</option> "
-"<replaceable>INTERPRÉTEUR_DE_COMMANDE</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:113
@@ -7721,10 +7634,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:119
-#, fuzzy
-#| msgid "<option>-f</option>,<option>--force</option>"
 msgid "<option>-S</option>,<option>--services</option>"
-msgstr "<option>-f</option>,<option>--force</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:123
@@ -7735,14 +7646,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:130
-#, fuzzy
-#| msgid ""
-#| "<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
 msgid ""
 "<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-map</"
 "replaceable>"
 msgstr ""
-"<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:135
@@ -7751,10 +7658,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:141
-#, fuzzy
-#| msgid "<option>-D</option>,<option>--daemon</option>"
 msgid "<option>-A</option>,<option>--autofs-maps</option>"
-msgstr "<option>-D</option>,<option>--daemon</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:145
@@ -8210,17 +8115,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><title>
 #: include/ldap_id_mapping.xml:75
-#, fuzzy
-#| msgid "Configuration"
 msgid "Advanced Configuration"
-msgstr "Configuration"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:78
-#, fuzzy
-#| msgid "ldap_page_size (integer)"
 msgid "ldap_idmap_range_min (integer)"
-msgstr "ldap_page_size (entier)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:81
@@ -8241,17 +8142,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:95
-#, fuzzy
-#| msgid "Default: 1000"
 msgid "Default: 10001"
-msgstr "Par défaut : 1000"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:100
-#, fuzzy
-#| msgid "ldap_page_size (integer)"
 msgid "ldap_idmap_range_max (integer)"
-msgstr "ldap_page_size (entier)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:103
@@ -8272,17 +8169,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:117
-#, fuzzy
-#| msgid "Default: 1000"
 msgid "Default: 2000100000"
-msgstr "Par défaut : 1000"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:122
-#, fuzzy
-#| msgid "ldap_page_size (integer)"
 msgid "ldap_idmap_range_size (integer)"
-msgstr "ldap_page_size (entier)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:125
@@ -8294,17 +8187,13 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:131
-#, fuzzy
-#| msgid "Default: 1000"
 msgid "Default: 200000"
-msgstr "Par défaut : 1000"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:136
-#, fuzzy
-#| msgid "ldap_default_bind_dn (string)"
 msgid "ldap_idmap_default_domain_sid (string)"
-msgstr "ldap_default_bind_dn (chaîne)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:139
@@ -8316,24 +8205,18 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:150
-#, fuzzy
-#| msgid "ldap_default_bind_dn (string)"
 msgid "ldap_idmap_default_domain (string)"
-msgstr "ldap_default_bind_dn (chaîne)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:153
-#, fuzzy
-#| msgid "The type of the authentication token of the default bind DN."
 msgid "Specify the name of the default domain."
-msgstr "Le type de jeton d'authentification pour le lien DN par défaut."
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:161
-#, fuzzy
-#| msgid "ldap_id_use_start_tls (boolean)"
 msgid "ldap_idmap_autorid_compat (boolean)"
-msgstr "ldap_id_use_start_tls (booléen)"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:164
@@ -8502,9 +8385,3 @@ msgid ""
 "<command>sss_user*</command> and <command>sss_group*</command> tools use a "
 "local LDB storage to store users and groups."
 msgstr ""
-
-#~ msgid "Default: 7"
-#~ msgstr "Par défaut : 7"
-
-#~ msgid "<quote>permit</quote> always allow access."
-#~ msgstr "<quote>permit</quote> autoriser l'accès de manière permanente."
