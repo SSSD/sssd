@@ -255,28 +255,32 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
     ret = stat(dirname, parent_stat);
     if (ret == EOK) {
         if ( !S_ISDIR(parent_stat->st_mode) ) {
-            DEBUG(1, ("[%s] is not a directory.\n", dirname));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("[%s] is not a directory.\n", dirname));
             return EINVAL;
         }
         return EOK;
     } else {
         if (errno != ENOENT) {
             ret = errno;
-            DEBUG(1, ("stat for [%s] failed: [%d][%s].\n", dirname, ret,
-                      strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("stat for [%s] failed: [%d][%s].\n", dirname, ret,
+                   strerror(ret)));
             return ret;
         }
     }
 
     li = talloc_zero(mem_ctx, struct string_list);
     if (li == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("talloc_zero failed.\n"));
         return ENOMEM;
     }
 
     li->s = talloc_strdup(li, dirname);
     if (li->s == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("talloc_strdup failed.\n"));
         return ENOMEM;
     }
 
@@ -284,7 +288,8 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
 
     parent = talloc_strdup(mem_ctx, dirname);
     if (parent == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("talloc_strdup failed.\n"));
         return ENOMEM;
     }
 
@@ -294,8 +299,9 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
     do {
         end = strrchr(parent, '/');
         if (end == NULL || end == parent) {
-            DEBUG(1, ("Cannot find parent directory of [%s], / is not allowed.\n",
-                    dirname));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Cannot find parent directory of [%s], / is not allowed.\n",
+                   dirname));
             ret = EINVAL;
             goto done;
         }
@@ -345,12 +351,14 @@ create_ccache_dir(const char *dirname, pcre *illegal_re,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("talloc_new failed.\n"));
         return ENOMEM;
     }
 
     if (*dirname != '/') {
-        DEBUG(1, ("Only absolute paths are allowed, not [%s] .\n", dirname));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Only absolute paths are allowed, not [%s] .\n", dirname));
         ret = EINVAL;
         goto done;
     }
@@ -365,19 +373,22 @@ create_ccache_dir(const char *dirname, pcre *illegal_re,
     ret = find_ccdir_parent_data(tmp_ctx, dirname, &parent_stat,
                                  &missing_parents);
     if (ret != EOK) {
-        DEBUG(1, ("find_ccdir_parent_data failed.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("find_ccdir_parent_data failed.\n"));
         goto done;
     }
 
     ret = check_parent_stat(private_path, &parent_stat, uid, gid);
     if (ret != EOK) {
-        DEBUG(1, ("check_parent_stat failed for %s directory [%s].\n",
-                  private_path ? "private" : "public", dirname));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("check_parent_stat failed for %s directory [%s].\n",
+               private_path ? "private" : "public", dirname));
         goto done;
     }
 
     DLIST_FOR_EACH(li, missing_parents) {
-        DEBUG(9, ("Creating directory [%s].\n", li->s));
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("Creating directory [%s].\n", li->s));
         if (li->next == NULL) {
             new_dir_mode = private_path ? 0700 : 01777;
         } else {
@@ -394,8 +405,9 @@ create_ccache_dir(const char *dirname, pcre *illegal_re,
         umask(old_umask);
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, ("mkdir [%s] failed: [%d][%s].\n", li->s, ret,
-                      strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("mkdir [%s] failed: [%d][%s].\n", li->s, ret,
+                   strerror(ret)));
             goto done;
         }
         if (private_path &&
@@ -404,7 +416,8 @@ create_ccache_dir(const char *dirname, pcre *illegal_re,
             ret = chown(li->s, uid, gid);
             if (ret != EOK) {
                 ret = errno;
-                DEBUG(1, ("chown failed [%d][%s].\n", ret, strerror(ret)));
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("chown failed [%d][%s].\n", ret, strerror(ret)));
                 goto done;
             }
         }
