@@ -1086,7 +1086,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 #ifdef HAVE_SELINUX
     char *path = NULL;
     char *tmp_path = NULL;
-    char *services;
+    char *services = NULL;
     ssize_t written;
     int len;
     int fd;
