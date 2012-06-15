@@ -390,7 +390,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                 goto fail;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, ("Adding ghost member [%s] for group [%]s\n",
+            DEBUG(SSSDBG_TRACE_FUNC, ("Adding ghost member [%s] for group [%s]\n",
                                       (char *)value.ptr, name));
             el->values[el->num_values].data = (uint8_t *)talloc_strdup(el->values, value.ptr);
             if (el->values[el->num_values].data == NULL) {
