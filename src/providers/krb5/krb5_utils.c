@@ -243,7 +243,8 @@ struct string_list {
     char *s;
 };
 
-static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
+static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
+                                      const char *ccdirname,
                                       struct stat *parent_stat,
                                       struct string_list **missing_parents)
 {
@@ -252,11 +253,11 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
     char *end;
     struct string_list *li;
 
-    ret = stat(dirname, parent_stat);
+    ret = stat(ccdirname, parent_stat);
     if (ret == EOK) {
         if ( !S_ISDIR(parent_stat->st_mode) ) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("[%s] is not a directory.\n", dirname));
+                  ("[%s] is not a directory.\n", ccdirname));
             return EINVAL;
         }
         return EOK;
@@ -264,7 +265,7 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
         if (errno != ENOENT) {
             ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("stat for [%s] failed: [%d][%s].\n", dirname, ret,
+                  ("stat for [%s] failed: [%d][%s].\n", ccdirname, ret,
                    strerror(ret)));
             return ret;
         }
@@ -277,7 +278,7 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
         return ENOMEM;
     }
 
-    li->s = talloc_strdup(li, dirname);
+    li->s = talloc_strdup(li, ccdirname);
     if (li->s == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("talloc_strdup failed.\n"));
@@ -286,7 +287,7 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
 
     DLIST_ADD(*missing_parents, li);
 
-    parent = talloc_strdup(mem_ctx, dirname);
+    parent = talloc_strdup(mem_ctx, ccdirname);
     if (parent == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("talloc_strdup failed.\n"));
@@ -301,7 +302,7 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx, const char *dirname,
         if (end == NULL || end == parent) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Cannot find parent directory of [%s], / is not allowed.\n",
-                   dirname));
+                   ccdirname));
             ret = EINVAL;
             goto done;
         }
@@ -338,7 +339,7 @@ check_ccache_re(const char *filename, pcre *illegal_re)
 }
 
 errno_t
-create_ccache_dir(const char *dirname, pcre *illegal_re,
+create_ccache_dir(const char *ccdirname, pcre *illegal_re,
                   uid_t uid, gid_t gid, bool private_path)
 {
     int ret = EFAULT;
@@ -356,21 +357,21 @@ create_ccache_dir(const char *dirname, pcre *illegal_re,
         return ENOMEM;
     }
 
-    if (*dirname != '/') {
+    if (*ccdirname != '/') {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Only absolute paths are allowed, not [%s] .\n", dirname));
+              ("Only absolute paths are allowed, not [%s] .\n", ccdirname));
         ret = EINVAL;
         goto done;
     }
 
     if (illegal_re != NULL) {
-        ret = check_ccache_re(dirname, illegal_re);
+        ret = check_ccache_re(ccdirname, illegal_re);
         if (ret != EOK) {
             goto done;
         }
     }
 
-    ret = find_ccdir_parent_data(tmp_ctx, dirname, &parent_stat,
+    ret = find_ccdir_parent_data(tmp_ctx, ccdirname, &parent_stat,
                                  &missing_parents);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -382,7 +383,7 @@ create_ccache_dir(const char *dirname, pcre *illegal_re,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("check_parent_stat failed for %s directory [%s].\n",
-               private_path ? "private" : "public", dirname));
+               private_path ? "private" : "public", ccdirname));
         goto done;
     }
 
@@ -541,13 +542,13 @@ static errno_t
 create_ccache_dir_head(const char *parent, pcre *illegal_re,
                        uid_t uid, gid_t gid, bool private_path)
 {
-    char *dirname;
+    char *ccdirname;
     TALLOC_CTX *tmp_ctx = NULL;
     char *end;
     errno_t ret;
 
-    dirname = talloc_strdup(tmp_ctx, parent);
-    if (dirname == NULL) {
+    ccdirname = talloc_strdup(tmp_ctx, parent);
+    if (ccdirname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
         ret = ENOMEM;
         goto done;
@@ -557,17 +558,17 @@ create_ccache_dir_head(const char *parent, pcre *illegal_re,
      * we only pass /some/path to find_ccdir_parent_data, not
      * /some/path/ */
     do {
-        end = strrchr(dirname, '/');
-        if (end == NULL || end == dirname) {
+        end = strrchr(ccdirname, '/');
+        if (end == NULL || end == ccdirname) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot find parent directory of [%s], "
-                  "/ is not allowed.\n", dirname));
+                  "/ is not allowed.\n", ccdirname));
             ret = EINVAL;
             goto done;
         }
         *end = '\0';
     } while (*(end+1) == '\0');
 
-    ret = create_ccache_dir(dirname, illegal_re, uid, gid, private_path);
+    ret = create_ccache_dir(ccdirname, illegal_re, uid, gid, private_path);
 done:
     talloc_free(tmp_ctx);
     return ret;
