@@ -344,7 +344,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el1);
+    ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                             &el1);
     if (ret != EOK) {
         goto fail;
     }
@@ -356,13 +357,21 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
         el->values = el1->values;
         el->num_values = el1->num_values;
-
     }
 
     ret = sysdb_attrs_get_el(attrs, SYSDB_GHOST, &gh);
     if (ret != EOK) {
         goto fail;
     }
+    if (gh->num_values == 0) {
+        ret = sysdb_attrs_get_el(attrs,
+                                 opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                                 &el1);
+        if (ret != EOK) {
+            goto fail;
+        }
+    }
+
     ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &el);
     if (ret != EOK) {
         goto fail;
