@@ -106,7 +106,7 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
         goto done;
     }
 
-    ctx->fd = open(file, O_RDONLY);
+    ctx->fd = open(file, O_RDONLY|O_CLOEXEC);
     if (ctx->fd == -1) {
         ret = EIO;
         goto done;
