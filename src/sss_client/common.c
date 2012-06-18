@@ -154,7 +154,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
 
             /* Write failed */
             sss_cli_close_socket();
-            *errnop = errno;
+            *errnop = error;
             return SSS_STATUS_UNAVAIL;
         }
 
@@ -264,7 +264,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
              * through. */
 
             sss_cli_close_socket();
-            *errnop = errno;
+            *errnop = error;
             ret = SSS_STATUS_UNAVAIL;
             goto failed;
         }
