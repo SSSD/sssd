@@ -440,10 +440,8 @@ static int sss_monitor_init(struct resp_ctx *rctx,
 
 static errno_t reset_idle_timer(struct cli_ctx *cctx)
 {
-    struct timeval tv;
-
-    /* TODO: make this configurable */
-    tv = tevent_timeval_current_ofs(60, 0);
+    struct timeval tv =
+            tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout, 0);
 
     talloc_zfree(cctx->idle);
 
@@ -692,6 +690,23 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->sock_name = sss_pipe_name;
     rctx->priv_sock_name = sss_priv_pipe_name;
     rctx->confdb_service_path = confdb_service_path;
+
+    ret = confdb_get_int(rctx->cdb, NULL,
+                         rctx->confdb_service_path,
+                         CONFDB_RESPONDER_CLI_IDLE_TIMEOUT,
+                         CONFDB_RESPONDER_CLI_IDLE_DEFAULT_TIMEOUT,
+                         &rctx->client_idle_timeout);
+    if (ret != EOK) {
+        DEBUG(2,
+              ("Cannot get the client idle timeout [%d]: %s\n",
+               ret, strerror(ret)));
+        return ret;
+    }
+
+    /* Ensure that the client timeout is at least ten seconds */
+    if (rctx->client_idle_timeout < 10) {
+        rctx->client_idle_timeout = 10;
+    }
 
     ret = confdb_get_domains(rctx->cdb, &rctx->domains);
     if (ret != EOK) {
