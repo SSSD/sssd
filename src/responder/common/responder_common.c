@@ -94,12 +94,12 @@ static int client_destructor(struct cli_ctx *ctx)
 
     if ((ctx->cfd > 0) && close(ctx->cfd) < 0) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(1,
               ("Failed to close fd [%d]: [%s]\n",
                ctx->cfd, strerror(ret)));
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
+    DEBUG(9,
           ("Terminated client [%p][%d]\n",
            ctx, ctx->cfd));
     return 0;
@@ -222,11 +222,23 @@ static void client_recv(struct cli_ctx *cctx)
     return;
 }
 
+static errno_t reset_idle_timer(struct cli_ctx *cctx);
+
 static void client_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
+    errno_t ret;
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
+
+    /* Always reset the idle timer on any activity */
+    ret = reset_idle_timer(cctx);
+    if (ret != EOK) {
+        DEBUG(1,
+              ("Could not create idle timer for client. "
+               "This connection may not auto-terminate\n"));
+        /* Non-fatal, continue */
+    }
 
     if (flags & TEVENT_FD_READ) {
         client_recv(cctx);
@@ -238,11 +250,21 @@ static void client_fd_handler(struct tevent_context *ev,
     }
 }
 
+struct accept_fd_ctx {
+    struct resp_ctx *rctx;
+    bool is_private;
+};
+
+static void idle_handler(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval current_time,
+                         void *data);
+
 /* TODO: this is a copy of accept_fd_handler, maybe both can be put into on
  * handler.  */
 static void accept_priv_fd_handler(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *ptr)
+                                   struct tevent_fd *fde,
+                                   uint16_t flags, void *ptr)
 {
     /* accept and attach new event handler */
     struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
@@ -371,6 +393,15 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     DEBUG(4, ("Client connected!\n"));
 
+    /* Set up the idle timer */
+    ret = reset_idle_timer(cctx);
+    if (ret != EOK) {
+        DEBUG(1,
+              ("Could not create idle timer for client. "
+               "This connection may not auto-terminate\n"));
+        /* Non-fatal, continue */
+    }
+
     return;
 }
 
@@ -405,6 +436,42 @@ static int sss_monitor_init(struct resp_ctx *rctx,
     }
 
     return EOK;
+}
+
+static errno_t reset_idle_timer(struct cli_ctx *cctx)
+{
+    struct timeval tv;
+
+    /* TODO: make this configurable */
+    tv = tevent_timeval_current_ofs(60, 0);
+
+    talloc_zfree(cctx->idle);
+
+    cctx->idle = tevent_add_timer(cctx->ev, cctx, tv, idle_handler, cctx);
+    if (!cctx->idle) return ENOMEM;
+
+    DEBUG(9,
+          ("Idle timer re-set for client [%p][%d]\n",
+           cctx, cctx->cfd));
+
+    return EOK;
+}
+
+static void idle_handler(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval current_time,
+                         void *data)
+{
+    /* This connection is idle. Terminate it */
+    struct cli_ctx *cctx =
+            talloc_get_type(data, struct cli_ctx);
+
+    DEBUG(8,
+          ("Terminating idle client [%p][%d]\n",
+           cctx, cctx->cfd));
+
+    /* The cli_ctx destructor will handle the rest */
+    talloc_free(cctx);
 }
 
 static int sss_dp_init(struct resp_ctx *rctx,
