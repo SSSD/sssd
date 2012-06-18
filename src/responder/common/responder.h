@@ -126,6 +126,8 @@ struct cli_ctx {
     int netgrent_cur;
 
     char *automntmap_name;
+
+    struct tevent_timer *idle;
 };
 
 struct sss_cmd_table {
