@@ -87,7 +87,18 @@ static errno_t set_close_on_exec(int fd)
 
 static int client_destructor(struct cli_ctx *ctx)
 {
-    if (ctx->cfd > 0) close(ctx->cfd);
+    errno_t ret;
+
+    if ((ctx->cfd > 0) && close(ctx->cfd) < 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to close fd [%d]: [%s]\n",
+               ctx->cfd, strerror(ret)));
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Terminated client [%p][%d]\n",
+           ctx, ctx->cfd));
     return 0;
 }
 
