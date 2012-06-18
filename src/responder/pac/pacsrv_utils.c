@@ -81,13 +81,48 @@ errno_t add_idmap_domain(struct sss_idmap_ctx *idmap_ctx,
                          const char *domain_name,
                          const char *dom_sid_str)
 {
-    struct sss_idmap_range range;
+    struct sss_idmap_range range = {0, 0};
     enum idmap_error_code err;
+    TALLOC_CTX *tmp_ctx = NULL;
+    size_t range_count;
+    struct range_info **range_list;
+    size_t c;
+    int ret;
 
-    /* TODO: read range form sysdb if
-     * https://fedorahosted.org/freeipa/ticket/2185 is fixed */
-    range.min = 200000;
-    range.max = 400000;
+    if (domain_name == NULL || dom_sid_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing domain name or SID.\n"));
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sysdb_get_ranges(tmp_ctx, sysdb, &range_count, &range_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_ranges failed.\n"));
+        goto done;
+    }
+
+    for (c = 0; c < range_count; c++) {
+        if (range_list[c]->trusted_dom_sid != NULL &&
+            strcmp(range_list[c]->trusted_dom_sid, dom_sid_str) == 0) {
+                range.min = range_list[c]->base_id;
+                range.max = range_list[c]->base_id +
+                            range_list[c]->id_range_size - 1;
+                /* TODO: add support for multiple ranges. */
+            break;
+        }
+    }
+
+    if (range.min == 0 && range.max == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to find mapping range for domain "
+                                  "[%s][%s].\n", domain_name, dom_sid_str));
+        ret = ENOENT;
+        goto done;
+    }
 
     err = sss_idmap_add_domain(idmap_ctx, domain_name, dom_sid_str, &range);
     if (err != IDMAP_SUCCESS) {
@@ -95,7 +130,11 @@ errno_t add_idmap_domain(struct sss_idmap_ctx *idmap_ctx,
         return EFAULT;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 /**
@@ -171,9 +210,10 @@ done:
  * Return information about the local domain from the main PAC responder
  * context or try to read it from cache and store it in the context.
  */
-errno_t get_my_domain_sid(struct pac_ctx *pac_ctx,
-                          struct sss_domain_info *dom,
-                          struct dom_sid **_sid)
+errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
+                           struct sss_domain_info *dom,
+                           struct dom_sid **_sid,
+                           struct local_mapping_ranges **_range_map)
 {
     struct sysdb_ctx *sysdb;
     int ret;
@@ -187,8 +227,12 @@ errno_t get_my_domain_sid(struct pac_ctx *pac_ctx,
     struct dom_sid *sid = NULL;
     char *dom_name;
     enum idmap_error_code err;
+    size_t range_count;
+    struct range_info **range_list;
+    struct local_mapping_ranges *r_map = NULL;
+    size_t c;
 
-    if (pac_ctx->my_dom_sid == NULL) {
+    if (pac_ctx->my_dom_sid == NULL || pac_ctx->range_map == NULL) {
         if (dom->parent != NULL) {
             sysdb = dom->parent->sysdb;
             dom_name = dom->parent->name;
@@ -216,44 +260,92 @@ errno_t get_my_domain_sid(struct pac_ctx *pac_ctx,
             goto done;
         }
 
-        ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_BASE, NULL,
-                                 attrs, &msgs_count, &msgs);
-        if (ret != LDB_SUCCESS) {
-            ret = EIO;
-            goto done;
-        }
-
-        if (msgs_count != 1) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Base search returned [%d] results, "
-                                     "expected 1.\n", msgs_count));
-            ret = EINVAL;
-            goto done;
-        }
-
-        sid_str = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUBDOMAIN_ID, NULL);
-        if (sid_str == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("SID of my domain is not available.\n"));
-            ret = EINVAL;
-            goto done;
-        }
-
-        err = sss_idmap_sid_to_smb_sid(pac_ctx->idmap_ctx, sid_str, &sid);
-        if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_sid_to_smb_sid failed.\n"));
-            ret = EFAULT;
-            goto done;
-        }
-
-        pac_ctx->my_dom_sid = talloc_memdup(pac_ctx, sid,
-                                            sizeof(struct dom_sid));
         if (pac_ctx->my_dom_sid == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_memdup failed.\n"));
-            ret = ENOMEM;
-            goto done;
+            ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_BASE, NULL,
+                                     attrs, &msgs_count, &msgs);
+            if (ret != LDB_SUCCESS) {
+                ret = EIO;
+                goto done;
+            }
+
+            if (msgs_count != 1) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Base search returned [%d] results, "
+                                         "expected 1.\n", msgs_count));
+                ret = EINVAL;
+                goto done;
+            }
+
+            sid_str = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUBDOMAIN_ID, NULL);
+            if (sid_str == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("SID of my domain is not available.\n"));
+                ret = EINVAL;
+                goto done;
+            }
+
+            err = sss_idmap_sid_to_smb_sid(pac_ctx->idmap_ctx, sid_str, &sid);
+            if (err != IDMAP_SUCCESS) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_sid_to_smb_sid failed.\n"));
+                ret = EFAULT;
+                goto done;
+            }
+
+            pac_ctx->my_dom_sid = talloc_memdup(pac_ctx, sid,
+                                                sizeof(struct dom_sid));
+            if (pac_ctx->my_dom_sid == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_memdup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
         }
+
+        if (pac_ctx->range_map == NULL) {
+            ret = sysdb_get_ranges(tmp_ctx, sysdb, &range_count, &range_list);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_ranges failed.\n"));
+                goto done;
+            }
+
+            for (c = 0; c < range_count; c++) {
+                if (range_list[c]->trusted_dom_sid == NULL &&
+                    range_list[c]->secondary_base_rid != 0) {
+                        r_map = talloc_zero(pac_ctx,
+                                            struct local_mapping_ranges);
+                        if (r_map == NULL) {
+                            DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+                            ret = ENOMEM;
+                            goto done;
+                        }
+
+                        r_map->local_ids.min = range_list[c]->base_id;
+                        r_map->local_ids.max = range_list[c]->base_id +
+                                                   range_list[c]->id_range_size - 1;
+
+                        r_map->primary_rids.min = range_list[c]->base_rid;
+                        r_map->primary_rids.max = range_list[c]->base_rid +
+                                                  range_list[c]->id_range_size - 1;
+
+                        r_map->secondary_rids.min = range_list[c]->secondary_base_rid;
+                        r_map->secondary_rids.max = range_list[c]->secondary_base_rid +
+                                                    range_list[c]->id_range_size - 1;
+
+                        /* TODO: add support for multiple ranges. */
+                        break;
+                }
+            }
+
+            if (r_map == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Failed to find local id map.\n"));
+                ret = ENOENT;
+                goto done;
+            }
+
+            pac_ctx->range_map = r_map;
+         }
+
     }
 
     *_sid = pac_ctx->my_dom_sid;
+    *_range_map = pac_ctx->range_map;
 
     ret = EOK;
 

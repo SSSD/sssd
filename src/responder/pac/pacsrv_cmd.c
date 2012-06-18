@@ -178,6 +178,7 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
     int ret;
     struct tevent_req *req;
     struct dom_sid *my_dom_sid;
+    struct local_mapping_ranges *my_range_map;
 
     ret = save_pac_user(pr_ctx);
     if (ret != EOK) {
@@ -185,13 +186,14 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = get_my_domain_sid(pr_ctx->pac_ctx, pr_ctx->dom, &my_dom_sid);
+    ret = get_my_domain_data(pr_ctx->pac_ctx, pr_ctx->dom,
+                             &my_dom_sid, &my_range_map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("get_my_domain_sid failed.\n"));
         goto done;
     }
 
-    ret = get_gids_from_pac(pr_ctx, pr_ctx->pac_ctx->range_map, my_dom_sid,
+    ret = get_gids_from_pac(pr_ctx, my_range_map, my_dom_sid,
                             pr_ctx->logon_info, &pr_ctx->gid_count,
                             &pr_ctx->gids);
     if (ret != EOK) {
