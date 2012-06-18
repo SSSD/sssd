@@ -48,7 +48,7 @@
 struct sbus_method monitor_pac_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
-    { MON_CLI_METHOD_ROTATE, monitor_common_rotate_logs },
+    { MON_CLI_METHOD_ROTATE, responder_logrotate },
     { NULL, NULL }
 };
 

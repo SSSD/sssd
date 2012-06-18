@@ -217,6 +217,10 @@ enum sss_cli_command {
     SSS_CMD_RENEW            = 0x00F8, /**< Renew a credential with a limited
                                         * lifetime, e.g. a Kerberos Ticket
                                         * Granting Ticket (TGT) */
+
+/* PAC responder calls */
+    SSS_PAC_ADD_PAC_USER     = 0x0101,
+
 };
 
 /**
