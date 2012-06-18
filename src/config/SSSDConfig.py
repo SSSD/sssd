@@ -43,6 +43,7 @@ option_strings = {
     'timeout' : _('Ping timeout before restarting service'),
     'command' : _('Command to start service'),
     'reconnection_retries' : _('Number of times to attempt connection to Data Providers'),
+    'client_idle_timeout' : _('Idle time before automatic disconnection of a client'),
 
     # [sssd]
     'services' : _('SSSD Services to start'),

@@ -66,6 +66,10 @@
 #define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
 
+/* Responders */
+#define CONFDB_RESPONDER_CLI_IDLE_TIMEOUT "client_idle_timeout"
+#define CONFDB_RESPONDER_CLI_IDLE_DEFAULT_TIMEOUT 60
+
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"
 #define CONFDB_NSS_ENUM_CACHE_TIMEOUT "enum_cache_timeout"
