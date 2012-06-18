@@ -50,6 +50,19 @@
 #include <pthread.h>
 #endif
 
+/*
+* Note we set MSG_NOSIGNAL to avoid
+* having to fiddle with signal masks
+* but also do not want to die in case
+* SIGPIPE gets raised and the application
+* does not handle it.
+*/
+#ifdef MSG_NOSIGNAL
+#define SSS_DEFAULT_WRITE_FLAGS MSG_NOSIGNAL
+#else
+#define SSS_DEFAULT_WRITE_FLAGS 0
+#endif
+
 /* common functions */
 
 int sss_cli_sd = -1; /* the sss client socket descriptor */
@@ -134,14 +147,16 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
 
         errno = 0;
         if (datasent < SSS_NSS_HEADER_SIZE) {
-            res = write(sss_cli_sd,
-                        (char *)header + datasent,
-                        SSS_NSS_HEADER_SIZE - datasent);
+            res = send(sss_cli_sd,
+                       (char *)header + datasent,
+                       SSS_NSS_HEADER_SIZE - datasent,
+                       SSS_DEFAULT_WRITE_FLAGS);
         } else {
             rdsent = datasent - SSS_NSS_HEADER_SIZE;
-            res = write(sss_cli_sd,
-                        (const char *)rd->data + rdsent,
-                        rd->len - rdsent);
+            res = send(sss_cli_sd,
+                       (const char *)rd->data + rdsent,
+                       rd->len - rdsent,
+                       SSS_DEFAULT_WRITE_FLAGS);
         }
         error = errno;
 
