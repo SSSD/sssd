@@ -102,6 +102,7 @@ WITH_SUDO
 WITH_SUDO_LIB_PATH
 WITH_AUTOFS
 WITH_SSH
+WITH_CRYPTO
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -214,8 +215,12 @@ if test x$HAVE_SYSTEMD_UNIT != x; then
     AM_CHECK_SYSTEMD
 fi
 
-AM_CHECK_NSS
-AM_CONDITIONAL([HAVE_NSS], [test x"$NSS_CFLAGS" != x])
+if test x$cryptolib = xnss; then
+    AM_CHECK_NSS
+fi
+if test x$cryptolib = xlibcrypto; then
+    AM_CHECK_LIBCRYPTO
+fi
 
 AC_CHECK_HEADERS([sys/inotify.h])
 

@@ -60,10 +60,8 @@ START_TEST(test_encrypt_decrypt)
     int ret;
     int expected;
 
-#ifdef HAVE_NSS
+#if defined(HAVE_NSS) || defined(HAVE_LIBCRYPTO)
     expected = EOK;
-#elif HAVE_LIBCRYPTO
-    expected = ENOSYS;
 #else
 #error Unknown crypto back end
 #endif
@@ -108,10 +106,8 @@ START_TEST(test_hmac_sha1)
     int ret, expected;
     int i;
 
-#ifdef HAVE_NSS
+#if defined(HAVE_NSS) || defined(HAVE_LIBCRYPTO)
     expected = EOK;
-#elif HAVE_LIBCRYPTO
-    expected = ENOSYS;
 #else
 #error Unknown crypto back end
 #endif
@@ -123,6 +119,42 @@ START_TEST(test_hmac_sha1)
         fail_if(ret != expected);
         fail_if(ret == EOK && memcmp(out, results[i], SSS_SHA1_LENGTH) != 0);
     }
+}
+END_TEST
+
+START_TEST(test_base64_encode)
+{
+    const unsigned char obfbuf[] = "test";
+    const char expected[] = "dGVzdA==";
+    char *obfpwd = NULL;
+
+    test_ctx = talloc_new(NULL);
+    fail_if(test_ctx == NULL);
+    /* Base64 encode the buffer */
+    obfpwd = sss_base64_encode(test_ctx, obfbuf, strlen((const char*)obfbuf));
+    fail_if(obfpwd == NULL);
+    fail_if(strcmp(obfpwd,expected) != 0);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_base64_decode)
+{
+    unsigned char *obfbuf = NULL;
+    size_t obflen;
+    const char b64encoded[] = "dGVzdA==";
+    const unsigned char expected[] = "test";
+
+    test_ctx = talloc_new(NULL);
+    fail_if(test_ctx == NULL);
+    /* Base64 decode the buffer */
+    obfbuf = sss_base64_decode(test_ctx, b64encoded, &obflen);
+    fail_if(!obfbuf);
+    fail_if(obflen != strlen((const char*)expected));
+    fail_if(memcmp(obfbuf, expected, obflen) != 0);
+
+    talloc_free(test_ctx);
 }
 END_TEST
 
@@ -138,6 +170,8 @@ Suite *crypto_suite(void)
 #endif
     tcase_add_test(tc, test_encrypt_decrypt);
     tcase_add_test(tc, test_hmac_sha1);
+    tcase_add_test(tc, test_base64_encode);
+    tcase_add_test(tc, test_base64_decode);
     /* Add all test cases to the test suite */
     suite_add_tcase(s, tc);
 

@@ -1,6 +1,7 @@
 /*
     Authors:
         Jan Cholasta <jcholast@redhat.com>
+        George McCollister <george.mccollister@gmail.com>
 
     Copyright (C) 2012 Red Hat
 
@@ -19,6 +20,11 @@
 */
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
+
+#include <openssl/evp.h>
+
+#define HMAC_SHA1_BLOCKSIZE 64
 
 int sss_hmac_sha1(const unsigned char *key,
                   size_t key_len,
@@ -26,6 +32,56 @@ int sss_hmac_sha1(const unsigned char *key,
                   size_t in_len,
                   unsigned char *out)
 {
-    DEBUG(SSSDBG_CRIT_FAILURE, ("sss_hmac_sha1 not implemented.\n"));
-    return ENOSYS;
+    int ret;
+    EVP_MD_CTX ctx;
+    unsigned char ikey[HMAC_SHA1_BLOCKSIZE], okey[HMAC_SHA1_BLOCKSIZE];
+    size_t i;
+    unsigned char hash[SSS_SHA1_LENGTH];
+    unsigned int res_len;
+
+    EVP_MD_CTX_init(&ctx);
+
+    if (key_len > HMAC_SHA1_BLOCKSIZE) {
+        /* keys longer than blocksize are shortened */
+        if (!EVP_DigestInit_ex(&ctx, EVP_sha1(), NULL)) {
+            ret = EIO;
+            goto done;
+        }
+
+        EVP_DigestUpdate(&ctx, (const unsigned char *)key, key_len);
+        EVP_DigestFinal_ex(&ctx, ikey, &res_len);
+        memset(ikey + SSS_SHA1_LENGTH, 0, HMAC_SHA1_BLOCKSIZE - SSS_SHA1_LENGTH);
+    } else {
+        /* keys shorter than blocksize are zero-padded */
+        memcpy(ikey, key, key_len);
+        memset(ikey + key_len, 0, HMAC_SHA1_BLOCKSIZE - key_len);
+    }
+
+    /* HMAC(key, msg) = HASH(key XOR opad, HASH(key XOR ipad, msg)) */
+    for (i = 0; i < HMAC_SHA1_BLOCKSIZE; i++) {
+        okey[i] = ikey[i] ^ 0x5c;
+        ikey[i] ^= 0x36;
+    }
+
+    if (!EVP_DigestInit_ex(&ctx, EVP_sha1(), NULL)) {
+        ret = EIO;
+        goto done;
+    }
+
+    EVP_DigestUpdate(&ctx, (const unsigned char *)ikey, HMAC_SHA1_BLOCKSIZE);
+    EVP_DigestUpdate(&ctx, (const unsigned char *)in, in_len);
+    EVP_DigestFinal_ex(&ctx, hash, &res_len);
+
+    if (!EVP_DigestInit_ex(&ctx, EVP_sha1(), NULL)) {
+        ret = EIO;
+        goto done;
+    }
+
+    EVP_DigestUpdate(&ctx, (const unsigned char *)okey, HMAC_SHA1_BLOCKSIZE);
+    EVP_DigestUpdate(&ctx, (const unsigned char *)hash, SSS_SHA1_LENGTH);
+    EVP_DigestFinal_ex(&ctx, out, &res_len);
+    ret = EOK;
+done:
+    EVP_MD_CTX_cleanup(&ctx);
+    return ret;
 }

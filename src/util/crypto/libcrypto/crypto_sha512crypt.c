@@ -10,6 +10,8 @@
 /* SHA512-based Unix crypt implementation.
    Released into the Public Domain by Ulrich Drepper <drepper@redhat.com>.  */
 
+#include "config.h"
+
 #include <endian.h>
 #include <errno.h>
 #include <limits.h>
@@ -140,7 +142,6 @@ static int sha512_crypt_r(const char *key,
      * characters and it ends at the first `$' character (for
      * compatibility with existing implementations). */
     EVP_DigestUpdate(&ctx, (const unsigned char *)salt, salt_len);
-
 
     /* Compute alternate SHA512 sum with input KEY, SALT, and KEY.
      * The final result will be added to the first context. */
