@@ -292,18 +292,21 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
         rname = only_name;
     }
 
-    if (rdomain != NULL)
-        *domain = talloc_steal(memctx, rdomain);
-    if (rname != NULL)
-        *name = talloc_steal(memctx, rname);
-
-    talloc_free(tmp_ctx);
-
     if (rdomain == NULL && rname == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("name '%s' did not match any domain's expression\n", orig));
         return EINVAL;
     }
+
+    if (domain != NULL) {
+        *domain = talloc_steal(memctx, rdomain);
+    }
+
+    if (name != NULL) {
+        *name = talloc_steal(memctx, rname);
+    }
+
+    talloc_free(tmp_ctx);
 
     return EOK;
 }
