@@ -141,6 +141,41 @@ static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list) {
     return EOK;
 }
 
+int be_add_reconnect_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
+                        void *pvt, struct be_cb **reconnect_cb)
+{
+    int ret;
+
+    ret = be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->reconnect_cb_list, reconnect_cb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("be_add_cb failed.\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
+void be_run_reconnect_cb(struct be_ctx *be)
+{
+    struct be_cb *callback = be->reconnect_cb_list;
+
+    if (callback) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Reconnecting. Running callbacks.\n"));
+
+        /**
+         * Call the callback: we have to call this right away
+         * so the provider doesn't go into offline even for
+         * a little while
+         */
+        do {
+            callback->cb(callback->pvt);
+            callback = callback->next;
+        } while(callback != NULL);
+    } else {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Reconnect call back list is empty, nothing to do.\n"));
+    }
+}
+
 int be_add_online_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
                      void *pvt, struct be_cb **online_cb)
 {

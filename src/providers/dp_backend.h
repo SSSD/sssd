@@ -107,6 +107,7 @@ struct be_ctx {
     struct be_cb *online_cb_list;
     bool run_online_cb;
     struct be_cb *offline_cb_list;
+    struct be_cb *reconnect_cb_list;
 
     struct be_offline_status offstat;
 
@@ -185,6 +186,13 @@ struct be_host_req {
 
 bool be_is_offline(struct be_ctx *ctx);
 void be_mark_offline(struct be_ctx *ctx);
+
+int be_add_reconnect_cb(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *ctx,
+                        be_callback_t cb,
+                        void *pvt,
+                        struct be_cb **reconnect_cb);
+void be_run_reconnect_cb(struct be_ctx *be);
 
 int be_add_online_cb(TALLOC_CTX *mem_ctx,
                      struct be_ctx *ctx,
