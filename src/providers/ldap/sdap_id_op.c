@@ -72,9 +72,14 @@ struct sdap_id_conn_data {
     int notify_lock;
     /* list of operations using connect */
     struct sdap_id_op *ops;
+    /* A flag which is signalizing that this
+     * connection will be disconnected and should
+     * not be used any more */
+    bool disconnecting;
 };
 
 static void sdap_id_conn_cache_be_offline_cb(void *pvt);
+static void sdap_id_conn_cache_fo_reconnect_cb(void *pvt);
 
 static void sdap_id_release_conn_data(struct sdap_id_conn_data *conn_data);
 static int sdap_id_conn_data_destroy(struct sdap_id_conn_data *conn_data);
@@ -118,6 +123,14 @@ int sdap_id_conn_cache_create(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    ret = be_add_reconnect_cb(conn_cache, id_ctx->be,
+                              sdap_id_conn_cache_fo_reconnect_cb, conn_cache,
+                              NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("be_add_reconnect_cb failed.\n"));
+        goto fail;
+    }
+
     *conn_cache_out = conn_cache;
     return EOK;
 
@@ -136,6 +149,18 @@ static void sdap_id_conn_cache_be_offline_cb(void *pvt)
     if (cached_connection != NULL) {
         conn_cache->cached_connection = NULL;
         sdap_id_release_conn_data(cached_connection);
+    }
+}
+
+/* Callback for attempt to reconnect to primary server */
+static void sdap_id_conn_cache_fo_reconnect_cb(void *pvt)
+{
+    struct sdap_id_conn_cache *conn_cache = talloc_get_type(pvt, struct sdap_id_conn_cache);
+    struct sdap_id_conn_data *cached_connection = conn_cache->cached_connection;
+
+    /* Release any cached connection on going offline */
+    if (cached_connection != NULL) {
+        cached_connection->disconnecting = true;
     }
 }
 
@@ -194,7 +219,8 @@ static bool sdap_can_reuse_connection(struct sdap_id_conn_data *conn_data)
 {
     int timeout;
 
-    if (!conn_data || !conn_data->sh || !conn_data->sh->connected) {
+    if (!conn_data || !conn_data->sh ||
+        !conn_data->sh->connected || conn_data->disconnecting) {
         return false;
     }
 
@@ -721,6 +747,7 @@ int sdap_id_op_connect_recv(struct tevent_req *req, int *dp_error)
 int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
 {
     bool communication_error;
+    struct sdap_id_conn_data *current_conn = op->conn_data;
     switch (retval) {
         case EIO:
         case ETIMEDOUT:
@@ -733,8 +760,8 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
             break;
     }
 
-    if (communication_error && op->conn_data != 0
-            && op->conn_data == op->conn_cache->cached_connection) {
+    if (communication_error && current_conn != 0
+            && current_conn == op->conn_cache->cached_connection) {
         /* do not reuse failed connection */
         op->conn_cache->cached_connection = NULL;
 
@@ -774,9 +801,15 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
         op->reconnect_retry_count = 0;
     }
 
-    if (op->conn_data) {
+    if (current_conn) {
         DEBUG(9, ("releasing operation connection\n"));
         sdap_id_op_hook_conn_data(op, NULL);
+
+        if (current_conn->ops == NULL || current_conn->disconnecting) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Connection is marked for "
+                                      "disconnection, executing ...\n"));
+            sdap_id_release_conn_data(current_conn);
+        }
     }
 
     *dp_err_out = dp_err;
