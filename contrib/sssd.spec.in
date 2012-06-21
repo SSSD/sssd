@@ -112,7 +112,10 @@ BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
 %if (0%{?enable_experimental} == 1)
+# RHEL 5 is too old to support samba4 and the PAC responder
+%if !0%{?is_rhel5}
 BuildRequires: samba4-devel
+%endif
 %endif
 
 %if 0%{?is_rhel5} > 0
@@ -329,7 +332,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
+
+# RHEL 5 is too old to support the PAC responder
+%if !0%{?is_rhel5}
 %{_libexecdir}/%{servicename}/sssd_pac
+%endif
+
 %endif
 
 %{_libdir}/%{name}/libsss_ipa.so
@@ -377,7 +385,9 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/security/pam_sss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %if (0%{?enable_experimental} == 1)
+%if !0%{?is_rhel5}
 %{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
+%endif
 %endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
