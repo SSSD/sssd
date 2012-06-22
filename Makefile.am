@@ -122,8 +122,12 @@ if HAVE_CHECK
         util-tests \
         debug-tests \
         ipa_hbac-tests \
-        sss_idmap-tests \
-        pac_responder-tests
+        sss_idmap-tests
+
+if BUILD_PAC_RESPONDER
+        non_interactive_check_based_tests += pac_responder-tests
+endif
+
 endif
 
 check_PROGRAMS = \
