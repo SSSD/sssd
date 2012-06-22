@@ -335,6 +335,15 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
 
     DEBUG(4, ("Client connected to privileged pipe!\n"));
 
+    /* Set up the idle timer */
+    ret = reset_idle_timer(cctx);
+    if (ret != EOK) {
+        DEBUG(1,
+              ("Could not create idle timer for client. "
+               "This connection may not auto-terminate\n"));
+        /* Non-fatal, continue */
+    }
+
     return;
 }
 
