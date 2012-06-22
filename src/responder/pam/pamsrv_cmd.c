@@ -461,12 +461,6 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
             goto done;
         }
     } else {
-        file_content = talloc_strdup(tmp_ctx, "");
-        if (file_content == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
         /* Iterate through the order array and try to find SELinux users
          * in fetched maps. The order array contains all SELinux users
          * allowed in the domain in the same order they should appear
@@ -484,8 +478,11 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
                 tmp_str = sss_selinux_map_get_seuser(usermaps[j]);
 
                 if (tmp_str && !strcasecmp(tmp_str, order_array[i])) {
-                    file_content = talloc_asprintf_append(file_content, "%s\n",
-                                                          tmp_str);
+                    /* If file_content contained something, overwrite it.
+                     * This record has higher priority.
+                     */
+                    talloc_zfree(file_content);
+                    file_content = talloc_strdup(tmp_ctx, tmp_str);
                     if (file_content == NULL) {
                         ret = ENOMEM;
                         goto done;
@@ -496,10 +493,12 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
         }
     }
 
-    len = strlen(file_content);
-    if (len > 0) {
-        ret = pam_add_response(pd, SSS_PAM_SELINUX_MAP, len,
-                               (uint8_t *)file_content);
+    if (file_content) {
+        len = strlen(file_content);
+        if (len > 0) {
+            ret = pam_add_response(pd, SSS_PAM_SELINUX_MAP, len,
+                                   (uint8_t *)file_content);
+        }
     }
 
 done:
