@@ -18,7 +18,10 @@ endif
 if BUILD_SSH
 SSH_CONDS = ;with_ssh
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)
+if BUILD_PAC_RESPONDER
+PAC_RESPONDER_CONDS = ;with_pac_responder
+endif
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)
 
 
 #Special Rules:

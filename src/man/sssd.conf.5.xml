@@ -90,6 +90,7 @@
                                 <phrase condition="with_sudo">, sudo</phrase>
                                 <phrase condition="with_autofs">, autofs</phrase>
                                 <phrase condition="with_ssh">, ssh</phrase>
+                                <phrase condition="with_pac_responder">, pac</phrase>
                             </para>
                         </listitem>
                     </varlistentry>
@@ -811,6 +812,41 @@
                     </listitem>
                 </varlistentry>
             </variablelist>
+        </refsect2>
+
+        <refsect2 id='PAC_RESPONDER' condition="with_pac_responder">
+            <title>PAC responder configuration options</title>
+            <para>
+                Currently there are no PAC responder specific configuration
+                options.
+            </para>
+            <para>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
+                            href="include/experimental.xml" />
+            </para>
+            <para>
+                The PAC responder works together with the authorization data
+                plugin for MIT Kerberos sssd_pac_plugin.so and a sub-domain
+                provider. The plugin sends the PAC data during a GSSAPI
+                authentication to the PAC responder. The sub-domain provider
+                collects domain SID and ID ranges of the domain the client is
+                joined to and of remote trusted domains from the local domain
+                controller.  If the PAC is decoded and evaluated some of the
+                following operations are done:
+                <itemizedlist>
+                    <listitem><para>If the remote user does not exist in the
+                    cache, it is created. The uid is calculated based on the
+                    SID, trusted domains will have UPGs and the gid will have
+                    the same value as the uid. The home directory is set based
+                    on the subdomain_homedir parameter. The shell will be empty
+                    by default, i.e. the system defaults are used, but can be
+                    overwritten with the default_shell parameter.</para>
+                    </listitem>
+                    <listitem><para>If there are SIDs of groups from the domain
+                    the sssd client belongs to, the user will be added to those
+                    groups.</para></listitem>
+                </itemizedlist>
+            </para>
         </refsect2>
 
     </refsect1>
