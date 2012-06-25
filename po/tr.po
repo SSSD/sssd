@@ -3,15 +3,17 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
+# Necdet Yücel <necdetyucel@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-06-25 08:36-0400\n"
-"PO-Revision-Date: 2012-05-22 13:42+0000\n"
-"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
-"Language-Team: Indonesian <trans-id@lists.fedoraproject.org>\n"
-"Language: id\n"
+"PO-Revision-Date: 2012-06-13 12:34+0000\n"
+"Last-Translator: Necdet Yücel <necdetyucel@gmail.com>\n"
+"Language-Team: Turkish (http://www.transifex.net/projects/p/fedora/language/"
+"tr/)\n"
+"Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,11 +21,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:39
 msgid "Set the verbosity of the debug logging"
-msgstr "Mengatur verbosity dari pencatatan debug"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:40
 msgid "Include timestamps in debug logs"
-msgstr "Sertakan cap waktu di pencatatan debug"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:41
 msgid "Include microseconds in timestamps in debug logs"
@@ -31,7 +33,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:42
 msgid "Write debug messages to logfiles"
-msgstr "Menulis pesan debug ke berkas log"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:43
 msgid "Ping timeout before restarting service"
@@ -44,11 +46,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Command to start service"
-msgstr "Perintah untuk memulai layanan"
+msgstr "Servis başlatma komutu"
 
 #: src/config/SSSDConfig/__init__.py.in:46
 msgid "Number of times to attempt connection to Data Providers"
-msgstr "Jumlah usaha yang dilakukan untuk mencoba koneksi ke Penyedia Data"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "The number of file descriptors that may be opened by this responder"
@@ -60,11 +62,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
-msgstr "Layanan SSSD akan dijalankan"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:52
 msgid "SSSD Domains to start"
-msgstr "Domain SSSD akan dijalankan"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:53
 msgid "Timeout for messages sent over the SBUS"
@@ -99,19 +101,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:62
 msgid "Users that SSSD should explicitly ignore"
-msgstr "Pengguna yang diabaikan secara eksplisit oleh SSSD"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:63
 msgid "Groups that SSSD should explicitly ignore"
-msgstr "Grup yang diabaikan secara eksplisit oleh SSSD"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:64
 msgid "Should filtered users appear in groups"
-msgstr "Haruskah pengguna yang disaring muncul dalam grup"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:65
 msgid "The value of the password field the NSS provider should return"
-msgstr "Nilai kolom kata sandi yang harus dikembalikan oleh penyedia NSS"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:66
 msgid "Override homedir value from the identity provider with this value"
@@ -186,19 +188,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:93
 msgid "Identity provider"
-msgstr "Penyedia identitas"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:94
 msgid "Authentication provider"
-msgstr "Penyedia otentikasi"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:95
 msgid "Access control provider"
-msgstr "Penyedia kontrol akses"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "Password change provider"
-msgstr "Penyedia pengubah kata sandi"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:97
 msgid "SUDO provider"
@@ -218,11 +220,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:103
 msgid "Minimum user ID"
-msgstr "ID pengguna minimum"
+msgstr "En az kullanıcı ID'si"
 
 #: src/config/SSSDConfig/__init__.py.in:104
 msgid "Maximum user ID"
-msgstr "ID pengguna maksimum"
+msgstr "En fazla kullanıcı ID'si"
 
 #: src/config/SSSDConfig/__init__.py.in:105
 msgid "Enable enumerating all users/groups"
@@ -276,15 +278,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:123
 msgid "IPA domain"
-msgstr "Domain IPA"
+msgstr "IPA alanı"
 
 #: src/config/SSSDConfig/__init__.py.in:124
 msgid "IPA server address"
-msgstr "Alamat server IPA"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:125
 msgid "IPA client hostname"
-msgstr "Nama host klien IPA"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:126
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
@@ -326,11 +328,11 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:137
 #: src/config/SSSDConfig/__init__.py.in:138
 msgid "Kerberos server address"
-msgstr "Alamat server Kerberos"
+msgstr "Kerberos sunucu adresi"
 
 #: src/config/SSSDConfig/__init__.py.in:139
 msgid "Kerberos realm"
-msgstr "Realm Kerberos"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:140
 msgid "Authentication timeout"
@@ -386,7 +388,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:159
 msgid "ldap_uri, The URI of the LDAP server"
-msgstr "ldap_uri, URI server LDAP"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:160
 msgid "The default base DN"
@@ -394,7 +396,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:161
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr "Jenis Skema yang digunakan pada server LDAP, rfc2307"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:162
 msgid "The default bind DN"
@@ -410,15 +412,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:165
 msgid "Length of time to attempt connection"
-msgstr "Lamanya waktu untuk mencoba koneksi"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:166
 msgid "Length of time to attempt synchronous LDAP operations"
-msgstr "Lamanya waktu untuk mencoba operasi LDAP yang sinkron"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:167
 msgid "Length of time between attempts to reconnect while offline"
-msgstr "Lamanya waktu antara upaya untuk menyambung kembali saat luring"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:168
 msgid "Use only the upper case for realm names"
@@ -446,15 +448,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "Require TLS certificate verification"
-msgstr "Membutuhkan verifikasi sertifikat TLS"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "Specify the sasl mechanism to use"
-msgstr "Tentukan mekanisme sasl yang digunakan"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:176
 msgid "Specify the sasl authorization id to use"
-msgstr "Tentukan id otorisasi sasl yang digunakan"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:177
 msgid "Specify the sasl authorization realm to use"
@@ -466,11 +468,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:179
 msgid "Kerberos service keytab"
-msgstr "Keytab layanan Kerberos"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:180
 msgid "Use Kerberos auth for LDAP connection"
-msgstr "Gunakan otentikasi Kerberos untuk koneksi LDAP"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:181
 msgid "Follow LDAP referrals"
@@ -548,43 +550,43 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:204
 msgid "Scope of user lookups"
-msgstr "Lingkup pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:205
 msgid "Filter for user lookups"
-msgstr "Filter pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:206
 msgid "Objectclass for users"
-msgstr "Objectclass untuk pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:207
 msgid "Username attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:209
 msgid "UID attribute"
-msgstr "Atribut UID"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:210
 msgid "Primary GID attribute"
-msgstr "Atribut GID Primer"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:211
 msgid "GECOS attribute"
-msgstr "Atribut GECOS"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:212
 msgid "Home directory attribute"
-msgstr "Atribut direktori Home"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:213
 msgid "Shell attribute"
-msgstr "Atribut Shell"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:214
 msgid "UUID attribute"
-msgstr "Atribut UUID"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:215
 #: src/config/SSSDConfig/__init__.py.in:251
@@ -597,19 +599,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:217
 msgid "User principal attribute (for Kerberos)"
-msgstr "Atribut utama pengguna (untuk Kerberos)"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:218
 msgid "Full Name"
-msgstr "Nama Lengkap"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:219
 msgid "memberOf attribute"
-msgstr "Atribut memberOf"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:220
 msgid "Modification time attribute"
-msgstr "Atribut waktu modifikasi"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:222
 msgid "shadowLastChange attribute"
@@ -909,15 +911,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:318
 msgid "Comma separated list of allowed users"
-msgstr "Daftar pengguna yang diijinkan dalam format yang dipisahkan koma"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:319
 msgid "Comma separated list of prohibited users"
-msgstr "Daftar pengguna yang tidak diijinkan dalam format yang dipisahkan koma"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:322
 msgid "Default shell, /bin/bash"
-msgstr "Shell default, /bin/bash"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:323
 msgid "Base for home directories"
@@ -1000,7 +1002,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:381
 msgid "Passwords do not match"
-msgstr "Kata sandi tidak cocok"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:569
 msgid "Password reset by root is not supported."
@@ -1030,31 +1032,31 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:757
 msgid "System is offline, password change not possible"
-msgstr "Sistem sedang luring, perubahan kata sandi tidak dimungkinkan"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:787 src/sss_client/pam_sss.c:800
 msgid "Password change failed. "
-msgstr "Perubahan kata sandi gagal."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:790 src/sss_client/pam_sss.c:801
 msgid "Server message: "
-msgstr "Pesan server:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1308
 msgid "New Password: "
-msgstr "Kata Sandi Baru: "
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1309
 msgid "Reenter new Password: "
-msgstr "Masukkan lagi kata sandi baru:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1395
 msgid "Password: "
-msgstr "Kata sandi:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1427
 msgid "Current Password: "
-msgstr "Kata sandi saat ini:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1574
 msgid "Password expired. Change your password now."
@@ -1114,35 +1116,35 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
-msgstr "UID dari pengguna"
+msgstr ""
 
 #: src/tools/sss_useradd.c:50 src/tools/sss_usermod.c:50
 msgid "The comment string"
-msgstr "String komentar"
+msgstr ""
 
 #: src/tools/sss_useradd.c:51 src/tools/sss_usermod.c:51
 msgid "Home directory"
-msgstr "Direktori Home"
+msgstr ""
 
 #: src/tools/sss_useradd.c:52 src/tools/sss_usermod.c:52
 msgid "Login shell"
-msgstr "Shell login"
+msgstr ""
 
 #: src/tools/sss_useradd.c:53
 msgid "Groups"
-msgstr "Grup"
+msgstr ""
 
 #: src/tools/sss_useradd.c:54
 msgid "Create user's directory if it does not exist"
-msgstr "Buat direktori pengguna jika tidak ada"
+msgstr ""
 
 #: src/tools/sss_useradd.c:55
 msgid "Never create user's directory, overrides config"
-msgstr "Jangan pernah buat direktori pengguna, timpa konfigurasi"
+msgstr ""
 
 #: src/tools/sss_useradd.c:56
 msgid "Specify an alternative skeleton directory"
-msgstr "Tentukan direktori kerangka alternatif"
+msgstr ""
 
 #: src/tools/sss_useradd.c:57 src/tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
@@ -1155,7 +1157,7 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:108
 msgid "Specify user to add\n"
-msgstr "Tentukan pengguna untuk ditambahkan\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:117 src/tools/sss_groupadd.c:82
 #: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:109
@@ -1169,25 +1171,25 @@ msgstr ""
 #: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:195
 #: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools\n"
-msgstr "Gagal saat menginisialisasi perkakas\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:128 src/tools/sss_groupadd.c:93
 #: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:119
 #: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:204
 #: src/tools/sss_usermod.c:137
 msgid "Invalid domain specified in FQDN\n"
-msgstr "Domain yang ditentukan dalam FQDN tidak valid\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:137 src/tools/sss_groupmod.c:139
 #: src/tools/sss_groupmod.c:166 src/tools/sss_usermod.c:160
 #: src/tools/sss_usermod.c:187
 msgid "Internal error while parsing parameters\n"
-msgstr "Terjadi kesalahan internal ketika mengurai parameter\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:145 src/tools/sss_usermod.c:168
 #: src/tools/sss_usermod.c:195
 msgid "Groups must be in the same domain as user\n"
-msgstr "Grup harus berada dalam domain yang sama dengan pengguna\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:153
 #, c-format
@@ -1196,11 +1198,11 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
-msgstr "Tidak dapat menetapkan nilai default\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:175 src/tools/sss_usermod.c:151
 msgid "The selected UID is outside the allowed range\n"
-msgstr "UID yang dipilih berada di luar rentang yang diizinkan\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:202 src/tools/sss_usermod.c:236
 msgid "Cannot set SELinux login context\n"
@@ -1208,12 +1210,11 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:217
 msgid "Cannot get info about the user\n"
-msgstr "Tidak bisa mendapatkan info tentang pengguna\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:229
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
-"Direktori home milik pengguna sudah ada, tidak menyalin data dari skeldir\n"
 
 #: src/tools/sss_useradd.c:232
 #, c-format
@@ -1227,39 +1228,39 @@ msgstr ""
 
 #: src/tools/sss_useradd.c:255
 msgid "Could not allocate ID for the user - domain full?\n"
-msgstr "Tidak dapat mengalokasikan ID untuk pengguna - domain penuh?\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:259
 msgid "A user or group with the same name or ID already exists\n"
-msgstr "Pengguna atau grup dengan nama atau ID yang sama sudah ada\n"
+msgstr ""
 
 #: src/tools/sss_useradd.c:265
 msgid "Transaction error. Could not add user.\n"
-msgstr "Kesalahan transaksi. Tidak dapat menambahkan pengguna.\n"
+msgstr ""
 
 #: src/tools/sss_groupadd.c:43 src/tools/sss_groupmod.c:48
 msgid "The GID of the group"
-msgstr "GID grup"
+msgstr ""
 
 #: src/tools/sss_groupadd.c:73
 msgid "Specify group to add\n"
-msgstr "Tentukan grup untuk ditambahkan\n"
+msgstr ""
 
 #: src/tools/sss_groupadd.c:102 src/tools/sss_groupmod.c:190
 msgid "The selected GID is outside the allowed range\n"
-msgstr "GID yang dipilih berada di luar rentang yang diizinkan\n"
+msgstr ""
 
 #: src/tools/sss_groupadd.c:127
 msgid "Could not allocate ID for the group - domain full?\n"
-msgstr "Tidak dapat mengalokasikan ID untuk grup - domain penuh?\n"
+msgstr ""
 
 #: src/tools/sss_groupadd.c:131
 msgid "A group with the same name or GID already exists\n"
-msgstr "Grup dengan nama atau GID yang sama sudah ada\n"
+msgstr ""
 
 #: src/tools/sss_groupadd.c:136
 msgid "Transaction error. Could not add group.\n"
-msgstr "Kesalahan transaksi. Tidak dapat menambahkan grup.\n"
+msgstr ""
 
 #: src/tools/sss_groupdel.c:68
 msgid "Specify group to delete\n"
@@ -1275,12 +1276,10 @@ msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Tidak ada grup seperti itu di domain lokal. Menghapus grup hanya "
-"diperbolehkan dalam domain lokal.\n"
 
 #: src/tools/sss_groupdel.c:120
 msgid "Internal error. Could not remove group.\n"
-msgstr "Kesalahan internal. Tidak dapat menghapus grup.\n"
+msgstr ""
 
 #: src/tools/sss_groupmod.c:44
 msgid "Groups to add this group to"
@@ -1296,21 +1295,17 @@ msgstr ""
 
 #: src/tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
-msgstr "Tentukan grup untuk dimodifikasi\n"
+msgstr ""
 
 #: src/tools/sss_groupmod.c:126
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
 msgstr ""
-"Tidak dapat menemukan grup di domain lokal, memodifikasi grup hanya "
-"diperbolehkan dalam domain lokal\n"
 
 #: src/tools/sss_groupmod.c:147 src/tools/sss_groupmod.c:174
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr ""
-"Anggota kelompok harus berada dalam domain yang sama sebagaimana kelompok "
-"induknya\n"
 
 #: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
 #: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
@@ -1323,15 +1318,14 @@ msgstr ""
 #: src/tools/sss_groupmod.c:216
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
-"Tidak bisa memodifikasi grup - periksa apakah nama grup anggota sudah benar\n"
 
 #: src/tools/sss_groupmod.c:220
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr "Tidak bisa memodifikasi grup - periksa apakah groupname sudah benar\n"
+msgstr ""
 
 #: src/tools/sss_groupmod.c:224
 msgid "Transaction error. Could not modify group.\n"
-msgstr "Kesalahan transaksi. Tidak bisa memodifikasi grup.\n"
+msgstr ""
 
 #: src/tools/sss_groupshow.c:598
 #, c-format
@@ -1386,15 +1380,15 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:133
 msgid "Remove home directory and mail spool"
-msgstr "Hapus direktori home, dan spool mail"
+msgstr ""
 
 #: src/tools/sss_userdel.c:135
 msgid "Do not remove home directory and mail spool"
-msgstr "Jangan hapus direktori home dan spool mail"
+msgstr ""
 
 #: src/tools/sss_userdel.c:137
 msgid "Force removal of files not owned by the user"
-msgstr "Paksa penghapusan berkas yang tidak dimiliki oleh pengguna"
+msgstr ""
 
 #: src/tools/sss_userdel.c:139
 msgid "Kill users' processes before removing him"
@@ -1402,7 +1396,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:184
 msgid "Specify user to delete\n"
-msgstr "Tentukan pengguna yang akan dihapus\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:230
 #, c-format
@@ -1433,7 +1427,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
-msgstr "Tidak menghapus home dir - tidak dimiliki oleh pengguna\n"
+msgstr ""
 
 #: src/tools/sss_userdel.c:298
 #, c-format
@@ -1444,58 +1438,52 @@ msgstr ""
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
-"Tidak ada pengguna seperti itu di domain lokal. Menghapus pengguna hanya "
-"diperbolehkan dalam domain lokal.\n"
 
 #: src/tools/sss_userdel.c:314
 msgid "Internal error. Could not remove user.\n"
-msgstr "Kesalahan internal. Tidak dapat menghapus pengguna.\n"
+msgstr ""
 
 #: src/tools/sss_usermod.c:49
 msgid "The GID of the user"
-msgstr "GID pengguna"
+msgstr ""
 
 #: src/tools/sss_usermod.c:53
 msgid "Groups to add this user to"
-msgstr "Pengguna ini akan ditambahkan ke grup"
+msgstr ""
 
 #: src/tools/sss_usermod.c:54
 msgid "Groups to remove this user from"
-msgstr "Pengguna ini akan dihapus dari grup"
+msgstr ""
 
 #: src/tools/sss_usermod.c:55
 msgid "Lock the account"
-msgstr "Kunci akun"
+msgstr ""
 
 #: src/tools/sss_usermod.c:56
 msgid "Unlock the account"
-msgstr "Buka kunci akun"
+msgstr ""
 
 #: src/tools/sss_usermod.c:117
 msgid "Specify user to modify\n"
-msgstr "Tentukan pengguna untuk dimodifikasi\n"
+msgstr ""
 
 #: src/tools/sss_usermod.c:144
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
 msgstr ""
-"Tidak dapat menemukan pengguna dalam domain lokal, memodifikasi pengguna "
-"hanya diperbolehkan dalam domain lokal\n"
 
 #: src/tools/sss_usermod.c:246
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
-"Tidak bisa memodifikasi pengguna - periksa apakah nama grup sudah benar\n"
 
 #: src/tools/sss_usermod.c:250
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
-"Tidak bisa memodifikasi pengguna - pengguna sudah menjadi anggota kelompok?\n"
 
 #: src/tools/sss_usermod.c:254
 msgid "Transaction error. Could not modify user.\n"
-msgstr "Kesalahan transaksi. Pengguna tidak dapat dimodifikasi.\n"
+msgstr ""
 
 #: src/tools/sss_cache.c:138
 msgid "No cache object matched the specified search\n"
@@ -1588,7 +1576,7 @@ msgstr ""
 
 #: src/tools/tools_util.c:280
 msgid "Out of memory\n"
-msgstr "Kehabisan memori\n"
+msgstr ""
 
 #: src/tools/tools_util.h:40
 #, c-format
