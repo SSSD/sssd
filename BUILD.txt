@@ -25,9 +25,9 @@ yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
     dbus-devel libxslt docbook-style-xsl krb5-devel nspr-devel \
     libxml2 pam-devel nss-devel libtevent python-devel \
     libtevent-devel libtdb libtdb-devel libtalloc libtalloc-devel \
-    libldb libldb-devel cvs popt-devel c-ares-devel check-devel \
+    libldb libldb-devel popt-devel c-ares-devel check-devel \
     doxygen libselinux-devel libsemanage-devel bind-utils libnl-devel \
-    nscd gettext-devel
+    gettext-devel glib2-devel
 
 ding-libs are available in Fedora 14 and later version:
 yum install  libcollection-devel  libdhash-devel  libini_config-devel \

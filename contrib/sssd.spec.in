@@ -7,7 +7,6 @@
 %global rhel5_minor %(%{__grep} -o "5.[0-9]*" /etc/redhat-release |%{__sed} -s 's/5.//')
 
 %if 0%{?is_rhel5} > 0
-%global with_unicode_lib --with-unicode-lib=glib2
 # we don't want to provide private python extension libs
 %{?filter_setup:
 %filter_provides_in %{python_sitearch}/.*\.so$
@@ -111,17 +110,13 @@ BuildRequires: libnl-devel
 BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
+BuildRequires: glib2-devel
+
 %if (0%{?enable_experimental} == 1)
 # RHEL 5 is too old to support samba4 and the PAC responder
 %if !0%{?is_rhel5}
 BuildRequires: samba4-devel
 %endif
-%endif
-
-%if 0%{?is_rhel5} > 0
-BuildRequires: glib2-devel
-%else
-BuildRequires: libunistring-devel
 %endif
 
 %description
@@ -242,7 +237,6 @@ autoreconf -ivf
     --enable-pammoddir=/%{_lib}/security \
     --disable-static \
     --disable-rpath \
-    %{with_unicode_lib} \
     %{with_ccache} \
     %{experimental}
 

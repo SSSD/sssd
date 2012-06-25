@@ -430,11 +430,11 @@ AC_ARG_ENABLE([all-experimental-features],
 AC_DEFUN([WITH_UNICODE_LIB],
   [ AC_ARG_WITH([unicode-lib],
                 [AC_HELP_STRING([--with-unicode-lib=<library>],
-                                [Which library to use for unicode processing (libunistring, glib2) [libunistring]]
+                                [Which library to use for unicode processing (libunistring, glib2) [glib2]]
                                )
                 ]
                )
-    unicode_lib="libunistring"
+    unicode_lib="glib2"
     if test x"$with_unicode_lib" != x; then
         unicode_lib=$with_unicode_lib
     fi
