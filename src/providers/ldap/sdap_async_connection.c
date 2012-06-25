@@ -726,6 +726,8 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct sasl_bind_state *state;
     int ret = EOK;
+    int optret;
+    char *diag_msg = NULL;
 
     req = tevent_req_create(memctx, &state, struct sasl_bind_state);
     if (!req) return NULL;
@@ -748,8 +750,18 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
                                        (*sdap_sasl_interact), state);
     state->result = ret;
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_sasl_bind failed (%d)[%s]\n",
-                  ret, sss_ldap_err2string(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("ldap_sasl_bind failed (%d)[%s]\n",
+               ret, sss_ldap_err2string(ret)));
+
+        optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
+                                             &diag_msg);
+        if (optret == EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Extended failure message: [%s]\n", diag_msg));
+        }
+        talloc_zfree(diag_msg);
+
         goto fail;
     }
 
