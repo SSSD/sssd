@@ -156,6 +156,7 @@
 #define CONFDB_DOMAIN_OVERRIDE_GID "override_gid"
 #define CONFDB_DOMAIN_CASE_SENSITIVE "case_sensitive"
 #define CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR "subdomain_homedir"
+#define CONFDB_DOMAIN_DEFAULT_SUBDOMAIN_HOMEDIR "/home/%d/%u"
 
 #define CONFDB_DOMAIN_USER_CACHE_TIMEOUT "entry_cache_user_timeout"
 #define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"

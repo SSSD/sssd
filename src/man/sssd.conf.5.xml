@@ -1477,6 +1477,9 @@
                             The value can be overridden by
                             <emphasis>override_homedir</emphasis> option.
                         </para>
+                        <para>
+                            Default: <filename>/home/%d/%u</filename>
+                        </para>
                     </listitem>
                 </varlistentry>
             </variablelist>

@@ -968,7 +968,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                      CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR, NULL);
+                                      CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR,
+                                      CONFDB_DOMAIN_DEFAULT_SUBDOMAIN_HOMEDIR);
     if (tmp != NULL) {
         domain->subdomain_homedir = talloc_strdup(domain, tmp);
         if (!domain->subdomain_homedir) {
