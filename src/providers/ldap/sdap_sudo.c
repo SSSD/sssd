@@ -105,7 +105,7 @@ struct bet_ops sdap_sudo_ops = {
 };
 
 static void sdap_sudo_get_hostinfo_done(struct tevent_req *req);
-int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx);
+static int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx);
 
 int sdap_sudo_init(struct be_ctx *be_ctx,
                    struct sdap_id_ctx *id_ctx,
@@ -192,7 +192,7 @@ static void sdap_sudo_get_hostinfo_done(struct tevent_req *req)
     }
 }
 
-int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx)
+static int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx)
 {
     struct sdap_id_ctx *id_ctx = sudo_ctx->id_ctx;
     struct tevent_req *req;
