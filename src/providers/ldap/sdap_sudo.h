@@ -21,6 +21,16 @@
 #ifndef _SDAP_SUDO_H_
 #define _SDAP_SUDO_H_
 
+struct sdap_sudo_ctx {
+    struct sdap_id_ctx *id_ctx;
+
+    char **hostnames;
+    char **ip_addr;
+    bool include_netgroups;
+    bool include_regexp;
+    bool use_host_filter;
+};
+
 /* Common functions from ldap_sudo.c */
 void sdap_sudo_handler(struct be_req *breq);
 int sdap_sudo_init(struct be_ctx *be_ctx,
@@ -46,11 +56,11 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
 /* timer */
 
 typedef struct tevent_req * (*sdap_sudo_timer_fn_t)(TALLOC_CTX *mem_ctx,
-                                                    struct sdap_id_ctx *id_ctx);
+                                                    struct sdap_sudo_ctx *sudo_ctx);
 
 struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
-                                         struct sdap_id_ctx *id_ctx,
+                                         struct sdap_sudo_ctx *sudo_ctx,
                                          struct timeval when,
                                          time_t timeout,
                                          sdap_sudo_timer_fn_t fn);

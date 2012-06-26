@@ -29,7 +29,7 @@
 
 struct sdap_sudo_timer_state {
     struct tevent_context *ev;
-    struct sdap_id_ctx *id_ctx;
+    struct sdap_sudo_ctx *sudo_ctx;
     time_t timeout;          /* relative time how many seconds wait before
                                 canceling fn request */
     sdap_sudo_timer_fn_t fn; /* request executed on 'when' */
@@ -50,7 +50,7 @@ static void sdap_sudo_timer_timeout(struct tevent_context *ev,
 
 struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
-                                         struct sdap_id_ctx *id_ctx,
+                                         struct sdap_sudo_ctx *sudo_ctx,
                                          struct timeval when,
                                          time_t timeout,
                                          sdap_sudo_timer_fn_t fn)
@@ -68,7 +68,7 @@ struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->id_ctx = id_ctx;
+    state->sudo_ctx = sudo_ctx;
     state->timeout = timeout;
     state->fn = fn;
 
@@ -118,7 +118,7 @@ static void sdap_sudo_timer(struct tevent_context *ev,
     state = tevent_req_data(req, struct sdap_sudo_timer_state);
 
     /* issue request */
-    state->subreq = state->fn(state, state->id_ctx);
+    state->subreq = state->fn(state, state->sudo_ctx);
     if (state->subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to issue timed request!\n"));
         tevent_req_error(req, ENOMEM);
