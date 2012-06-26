@@ -69,6 +69,15 @@ int sdap_sudo_timer_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
                          struct tevent_req **_subreq);
 
+/* host info */
+struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
+                                                struct sdap_options *opts,
+                                                struct be_ctx *be_ctx);
+
+int sdap_sudo_get_hostinfo_recv(TALLOC_CTX *mem_ctx,
+                                struct tevent_req *req,
+                                char ***hostnames, char ***ip_addr);
+
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
 #define SDAP_SUDO_FILTER_CLASS "(objectClass=%s)"

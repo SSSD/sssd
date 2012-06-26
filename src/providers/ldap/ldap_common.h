@@ -126,7 +126,10 @@ int ldap_get_options(TALLOC_CTX *memctx,
 int ldap_get_sudo_options(TALLOC_CTX *memctx,
                           struct confdb_ctx *cdb,
                           const char *conf_path,
-                          struct sdap_options *opts);
+                          struct sdap_options *opts,
+                          bool *use_host_filter,
+                          bool *include_regexp,
+                          bool *include_netgroups);
 
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
                             struct confdb_ctx *cdb,

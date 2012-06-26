@@ -345,7 +345,10 @@ done:
 int ldap_get_sudo_options(TALLOC_CTX *memctx,
                           struct confdb_ctx *cdb,
                           const char *conf_path,
-                          struct sdap_options *opts)
+                          struct sdap_options *opts,
+                          bool *use_host_filter,
+                          bool *include_regexp,
+                          bool *include_netgroups)
 {
     const char *search_base;
     int ret;
@@ -389,6 +392,11 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_OP_FAILURE, ("Could not get SUDO attribute map\n"));
         return ret;
     }
+
+    /* host filter */
+    *use_host_filter = dp_opt_get_bool(opts->basic, SDAP_SUDO_USE_HOST_FILTER);
+    *include_netgroups = dp_opt_get_bool(opts->basic, SDAP_SUDO_INCLUDE_NETGROUPS);
+    *include_regexp = dp_opt_get_bool(opts->basic, SDAP_SUDO_INCLUDE_REGEXP);
 
     return EOK;
 }
