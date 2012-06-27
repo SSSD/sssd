@@ -751,6 +751,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     if (kerr != 0) {
         DEBUG(1, ("internal error parsing principal name, "
                   "not verifying TGT.\n"));
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
@@ -867,6 +868,10 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         DEBUG(1, ("Failed to set expire callback, continue without.\n"));
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Attempting kinit for realm [%s]\n",
+                  kr->princ->realm.data));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         password, sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
@@ -967,6 +972,9 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         prompter = NULL;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Attempting kinit for realm [%s]\n",
+                  kr->princ->realm.data));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         pass_str, prompter, kr, 0,
                                         changepw_princ,
@@ -1341,18 +1349,17 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     SAFEALIGN_COPY_UINT32_CHECK(&validate, buf + p, size, &p);
     kr->validate = (validate == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(offline, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+    if ((p + len ) > size) return EINVAL;
+    kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
+    if (kr->upn == NULL) return ENOMEM;
+    p += len;
 
     DEBUG(SSSDBG_CONF_SETTINGS,
           ("cmd [%d] uid [%llu] gid [%llu] validate [%s] offline [%s] "
            "UPN [%s]\n", pd->cmd, kr->uid, kr->gid,
            kr->validate ? "true" : "false", offline ? "true" : "false",
            kr->upn ? kr->upn : "none"));
-
-    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-    if ((p + len ) > size) return EINVAL;
-    kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
-    if (kr->upn == NULL) return ENOMEM;
-    p += len;
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE ||
         pd->cmd == SSS_CMD_RENEW ||
