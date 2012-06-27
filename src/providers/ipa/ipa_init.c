@@ -30,6 +30,7 @@
 #include "util/child_common.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_init_shared.h"
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
@@ -231,8 +232,6 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_auth_ctx *sdap_auth_ctx;
     struct bet_ops *id_ops;
-    FILE *debug_filep;
-    unsigned v;
     int ret;
 
     if (!ipa_options) {
@@ -305,51 +304,13 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
-    if (dp_opt_get_bool(krb5_auth_ctx->opts, KRB5_STORE_PASSWORD_IF_OFFLINE)) {
-        ret = init_delayed_online_authentication(krb5_auth_ctx, bectx,
-                                                 bectx->ev);
-        if (ret != EOK) {
-            DEBUG(1, ("init_delayed_online_authentication failed.\n"));
-            goto done;
-        }
-    }
-
-    ret = check_and_export_options(krb5_auth_ctx->opts, bectx->domain,
-                                   krb5_auth_ctx);
+    /* Initialize features needed by the krb5_child */
+    ret = krb5_child_init(krb5_auth_ctx, bectx);
     if (ret != EOK) {
-        DEBUG(1, ("check_and_export_opts failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not initialize krb5_child settings: [%s]\n",
+               strerror(ret)));
         goto done;
-    }
-
-    ret = krb5_install_offline_callback(bectx, krb5_auth_ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("krb5_install_offline_callback failed.\n"));
-        goto done;
-    }
-
-    ret = krb5_install_sigterm_handler(bectx->ev, krb5_auth_ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("krb5_install_sigterm_handler failed.\n"));
-        goto done;
-    }
-
-    if (debug_to_file != 0) {
-        ret = open_debug_file_ex("krb5_child", &debug_filep);
-        if (ret != EOK) {
-            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
-                    ret, strerror(ret)));
-            goto done;
-        }
-
-        krb5_auth_ctx->child_debug_fd = fileno(debug_filep);
-        if (krb5_auth_ctx->child_debug_fd == -1) {
-            DEBUG(0, ("fileno failed [%d][%s]\n", errno, strerror(errno)));
-            ret = errno;
-            goto done;
-        }
-
-        v = fcntl(krb5_auth_ctx->child_debug_fd, F_GETFD, 0);
-        fcntl(krb5_auth_ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
     }
 
     *ops = &ipa_auth_ops;

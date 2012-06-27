@@ -394,6 +394,7 @@ dist_noinst_HEADERS = \
     src/providers/krb5/krb5_auth.h \
     src/providers/krb5/krb5_common.h \
     src/providers/krb5/krb5_utils.h \
+    src/providers/krb5/krb5_init_shared.h \
     src/providers/krb5/krb5_opts.h \
     src/providers/ldap/ldap_common.h \
     src/providers/ldap/sdap.h \
@@ -1207,7 +1208,8 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_auth.c \
     src/providers/krb5/krb5_access.c \
-    src/providers/krb5/krb5_child_handler.c
+    src/providers/krb5/krb5_child_handler.c \
+    src/providers/krb5/krb5_init_shared.c
 
 libsss_ldap_la_SOURCES = \
     src/util/find_uid.c \

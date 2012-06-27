@@ -29,6 +29,7 @@
 #include "util/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
+#include "providers/krb5/krb5_init_shared.h"
 
 struct krb5_options {
     struct dp_option *opts;
@@ -59,15 +60,12 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
 {
     struct krb5_ctx *ctx = NULL;
     int ret;
-    unsigned v;
-    FILE *debug_filep;
     const char *krb5_servers;
     const char *krb5_kpasswd_servers;
     const char *krb5_realm;
     const char *errstr;
     int errval;
     int errpos;
-    time_t renew_intv;
 
     if (krb5_options == NULL) {
         krb5_options = talloc_zero(bectx, struct krb5_options);
@@ -132,58 +130,13 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         }
     }
 
-    if (dp_opt_get_bool(ctx->opts, KRB5_STORE_PASSWORD_IF_OFFLINE)) {
-        ret = init_delayed_online_authentication(ctx, bectx, bectx->ev);
-        if (ret != EOK) {
-            DEBUG(1, ("init_delayed_online_authentication failed.\n"));
-            goto fail;
-        }
-    }
-
-    renew_intv = dp_opt_get_int(ctx->opts, KRB5_RENEW_INTERVAL);
-    if (renew_intv > 0) {
-        ret = init_renew_tgt(ctx, bectx, bectx->ev, renew_intv);
-        if (ret != EOK) {
-            DEBUG(1, ("init_renew_tgt failed.\n"));
-            goto fail;
-        }
-    }
-
-    ret = check_and_export_options(ctx->opts, bectx->domain, ctx);
+    /* Initialize features needed by the krb5_child */
+    ret = krb5_child_init(ctx, bectx);
     if (ret != EOK) {
-        DEBUG(1, ("check_and_export_options failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not initialize krb5_child settings: [%s]\n",
+               strerror(ret)));
         goto fail;
-    }
-
-    ret = krb5_install_sigterm_handler(bectx->ev, ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("krb5_install_sigterm_handler failed.\n"));
-        goto fail;
-    }
-
-    ret = krb5_install_offline_callback(bectx, ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("krb5_install_offline_callback failed.\n"));
-        goto fail;
-    }
-
-    if (debug_to_file != 0) {
-        ret = open_debug_file_ex("krb5_child", &debug_filep);
-        if (ret != EOK) {
-            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
-                    ret, strerror(ret)));
-            goto fail;
-        }
-
-        ctx->child_debug_fd = fileno(debug_filep);
-        if (ctx->child_debug_fd == -1) {
-            DEBUG(0, ("fileno failed [%d][%s]\n", errno, strerror(errno)));
-            ret = errno;
-            goto fail;
-        }
-
-        v = fcntl(ctx->child_debug_fd, F_GETFD, 0);
-        fcntl(ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
     }
 
     ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
