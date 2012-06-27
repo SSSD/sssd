@@ -605,6 +605,17 @@ static void krb5_find_ccache_step(struct tevent_req *req)
                 goto done;
             }
 
+            if (!kr->cc_be) {
+                kr->cc_be = get_cc_be_ops_ccache(kr->ccname);
+                if (kr->cc_be == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("Cannot get operations on new ccache %s\n",
+                           kr->ccname));
+                    ret = EINVAL;
+                    goto done;
+                }
+            }
+
             ret = kr->cc_be->create(kr->ccname,
                                     kr->krb5_ctx->illegal_path_re,
                                     kr->uid, kr->gid, private_path);
