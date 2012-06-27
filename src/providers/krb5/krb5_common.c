@@ -221,9 +221,8 @@ errno_t check_and_export_options(struct dp_option *opts,
     return EOK;
 }
 
-errno_t krb5_try_kdcip(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
-                       const char *conf_path, struct dp_option *opts,
-                       int opt_id)
+errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
+                       struct dp_option *opts, int opt_id)
 {
     char *krb5_servers = NULL;
     errno_t ret;
@@ -231,7 +230,7 @@ errno_t krb5_try_kdcip(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
     krb5_servers = dp_opt_get_string(opts, opt_id);
     if (krb5_servers == NULL) {
         DEBUG(4, ("No KDC found in configuration, trying legacy option\n"));
-        ret = confdb_get_string(cdb, memctx, conf_path,
+        ret = confdb_get_string(cdb, NULL, conf_path,
                                 "krb5_kdcip", NULL, &krb5_servers);
         if (ret != EOK) {
             DEBUG(1, ("confdb_get_string failed.\n"));
@@ -247,11 +246,15 @@ errno_t krb5_try_kdcip(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                 return ret;
             }
 
-            DEBUG(9, ("Set krb5 server [%s] based on legacy krb5_kdcip option\n",
-                      krb5_servers));
-            DEBUG(0, ("Your configuration uses the deprecated option 'krb5_kdcip' "
-                      "to specify the KDC. Please change the configuration to use "
-                      "the 'krb5_server' option instead.\n"));
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  ("Set krb5 server [%s] based on legacy krb5_kdcip option\n",
+                   krb5_servers));
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Your configuration uses the deprecated option "
+                   "'krb5_kdcip' to specify the KDC. Please change the "
+                   "configuration to use the 'krb5_server' option "
+                   "instead.\n"));
+            talloc_free(krb5_servers);
         }
     }
 
@@ -279,7 +282,7 @@ errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
 
     /* If there is no KDC, try the deprecated krb5_kdcip option, too */
     /* FIXME - this can be removed in a future version */
-    ret = krb5_try_kdcip(memctx, cdb, conf_path, opts, KRB5_KDC);
+    ret = krb5_try_kdcip(cdb, conf_path, opts, KRB5_KDC);
     if (ret != EOK) {
         DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
         goto done;

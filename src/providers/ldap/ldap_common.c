@@ -289,7 +289,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
 
     /* If there is no KDC, try the deprecated krb5_kdcip option, too */
     /* FIXME - this can be removed in a future version */
-    ret = krb5_try_kdcip(memctx, cdb, conf_path, opts->basic, SDAP_KRB5_KDC);
+    ret = krb5_try_kdcip(cdb, conf_path, opts->basic, SDAP_KRB5_KDC);
     if (ret != EOK) {
         DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
         goto done;

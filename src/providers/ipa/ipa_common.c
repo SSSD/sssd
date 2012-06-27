@@ -672,7 +672,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
 
     /* If there is no KDC, try the deprecated krb5_kdcip option, too */
     /* FIXME - this can be removed in a future version */
-    ret = krb5_try_kdcip(ipa_opts, cdb, conf_path, ipa_opts->auth, KRB5_KDC);
+    ret = krb5_try_kdcip(cdb, conf_path, ipa_opts->auth, KRB5_KDC);
     if (ret != EOK) {
         DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
         goto done;
