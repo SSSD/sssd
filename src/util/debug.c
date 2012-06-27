@@ -50,6 +50,11 @@ errno_t set_debug_file_from_fd(const int fd)
     if (dummy == NULL) {
         ret = errno;
         DEBUG(1, ("fdopen failed [%d][%s].\n", ret, strerror(ret)));
+        sss_log(SSS_LOG_ERR,
+                "Could not open debug file descriptor [%d]. "
+                "Debug messages will not be written to the file "
+                "for this child process [%s][%s]\n",
+                fd, debug_prg_name, strerror(ret));
         return ret;
     }
 
