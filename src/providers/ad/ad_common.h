@@ -60,7 +60,7 @@ struct ad_options {
 
     /* Auth and chpass Provider */
     struct dp_option *auth;
-    struct ad_auth_ctx *auth_ctx;
+    struct krb5_ctx *auth_ctx;
 };
 
 errno_t
@@ -81,5 +81,10 @@ ad_get_id_options(struct ad_options *ad_opts,
                    struct confdb_ctx *cdb,
                    const char *conf_path,
                    struct sdap_options **_opts);
+errno_t
+ad_get_auth_options(TALLOC_CTX *mem_ctx,
+                    struct ad_options *ad_opts,
+                    struct be_ctx *bectx,
+                    struct dp_option **_opts);
 
 #endif /* AD_COMMON_H_ */

@@ -598,3 +598,67 @@ ad_set_search_bases(struct sdap_options *id_opts)
 done:
     return ret;
 }
+
+errno_t
+ad_get_auth_options(TALLOC_CTX *mem_ctx,
+                    struct ad_options *ad_opts,
+                    struct be_ctx *bectx,
+                    struct dp_option **_opts)
+{
+    errno_t ret;
+    struct dp_option *krb5_options;
+    const char *ad_servers;
+    const char *krb5_realm;
+
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    /* Get krb5 options */
+    ret = dp_get_options(tmp_ctx, bectx->cdb, bectx->conf_path,
+                         ad_def_krb5_opts, KRB5_OPTS,
+                         &krb5_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not read Kerberos options from the configuration\n"));
+        goto done;
+    }
+
+    ad_servers = dp_opt_get_string(ad_opts->basic, AD_SERVER);
+
+    /* Force the krb5_servers to match the ad_servers */
+    ret = dp_opt_set_string(krb5_options, KRB5_KDC, ad_servers);
+    if (ret != EOK) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Option %s set to %s\n",
+           krb5_options[KRB5_KDC].opt_name,
+           ad_servers));
+
+    /* Set krb5 realm */
+    /* Set the Kerberos Realm for GSSAPI */
+    krb5_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
+    if (!krb5_realm) {
+        /* Should be impossible, this is set in ad_get_common_options() */
+        DEBUG(SSSDBG_FATAL_FAILURE, ("No Kerberos realm\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Force the kerberos realm to match the AD_KRB5_REALM (which may have
+     * been upper-cased in ad_common_options()
+     */
+    ret = dp_opt_set_string(krb5_options, KRB5_REALM, krb5_realm);
+    if (ret != EOK) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Option %s set to %s\n",
+           krb5_options[KRB5_REALM].opt_name,
+           krb5_realm));
+
+
+    *_opts = talloc_steal(mem_ctx, krb5_options);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

@@ -31,6 +31,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_init_shared.h"
 #include "providers/ad/ad_id.h"
 
 struct ad_options *ad_options = NULL;
@@ -173,6 +174,90 @@ done:
     if (ret != EOK) {
         talloc_zfree(ad_options->id_ctx);
     }
+    return ret;
+}
+
+int
+sssm_ad_auth_init(struct be_ctx *bectx,
+                  struct bet_ops **ops,
+                  void **pvt_data)
+{
+    errno_t ret;
+    struct krb5_ctx *krb5_auth_ctx = NULL;
+
+    if (!ad_options) {
+        ret = common_ad_init(bectx);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    if (ad_options->auth_ctx) {
+        /* Already initialized */
+        *ops = &ad_auth_ops;
+        *pvt_data = ad_options->auth_ctx;
+        return EOK;
+    }
+
+    krb5_auth_ctx = talloc_zero(NULL, struct krb5_ctx);
+    if (!krb5_auth_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    krb5_auth_ctx->service = ad_options->service->krb5_service;
+
+    ret = ad_get_auth_options(krb5_auth_ctx, ad_options, bectx,
+                              &krb5_auth_ctx->opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not determine Kerberos options\n"));
+        goto done;
+    }
+
+    ret = krb5_child_init(krb5_auth_ctx, bectx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not initialize krb5_child settings: [%s]\n",
+               strerror(ret)));
+        goto done;
+    }
+
+    ad_options->auth_ctx = talloc_steal(ad_options, krb5_auth_ctx);
+    *ops = &ad_auth_ops;
+    *pvt_data = ad_options->auth_ctx;
+
+done:
+    if (ret != EOK) {
+        talloc_free(krb5_auth_ctx);
+    }
+    return ret;
+}
+
+int
+sssm_ad_chpass_init(struct be_ctx *bectx,
+                    struct bet_ops **ops,
+                    void **pvt_data)
+{
+    errno_t ret;
+
+    if (!ad_options) {
+        ret = common_ad_init(bectx);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    if (ad_options->auth_ctx) {
+        /* Already initialized */
+        *ops = &ad_chpass_ops;
+        *pvt_data = ad_options->auth_ctx;
+        return EOK;
+    }
+
+    ret = sssm_ad_auth_init(bectx, ops, pvt_data);
+    *ops = &ad_chpass_ops;
+    ad_options->auth_ctx = *pvt_data;
     return ret;
 }
 

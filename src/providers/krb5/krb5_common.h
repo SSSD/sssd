@@ -173,4 +173,8 @@ errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm);
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                             const char *username, const char **_upn);
 
+int sssm_krb5_auth_init(struct be_ctx *bectx,
+                        struct bet_ops **ops,
+                        void **pvt_auth_data);
+
 #endif /* __KRB5_COMMON_H__ */
