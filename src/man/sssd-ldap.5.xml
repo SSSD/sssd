@@ -1983,9 +1983,9 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             the rules.
                         </para>
                         <para>
-                            <emphasis>Note:</emphasis> autoconfiguration is not
-                            yet supported, therefore if this option is left
-                            empty then hostname matching will be disabled.
+                            If this option is empty, SSSD will try to discover
+                            the hostname and the fully qualified domain name
+                            automatically.
                         </para>
                         <para>
                             If <emphasis>ldap_sudo_use_host_filter</emphasis>
