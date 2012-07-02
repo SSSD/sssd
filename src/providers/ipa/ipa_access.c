@@ -126,6 +126,7 @@ static void ipa_hbac_check(struct tevent_req *req)
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
     ret = sdap_access_recv(req, &pam_status);
+    talloc_zfree(req);
     if (ret != EOK) goto fail;
 
     switch(pam_status) {
