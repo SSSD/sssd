@@ -1353,6 +1353,8 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_init.c \
     src/providers/ad/ad_id.c \
     src/providers/ad/ad_id.h \
+    src/providers/ad/ad_access.c \
+    src/providers/ad/ad_access.h \
     src/providers/ad/ad_opts.h \
     src/util/find_uid.c \
     src/util/user_info_msg.c \

@@ -28,7 +28,9 @@
 
 #include "util/util.h"
 #include "providers/ad/ad_common.h"
+#include "providers/ad/ad_access.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_access.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_init_shared.h"
@@ -52,6 +54,11 @@ struct bet_ops ad_auth_ops = {
 
 struct bet_ops ad_chpass_ops = {
     .handler = krb5_pam_handler,
+    .finalize = NULL
+};
+
+struct bet_ops ad_access_ops = {
+    .handler = ad_access_handler,
     .finalize = NULL
 };
 
@@ -258,6 +265,55 @@ sssm_ad_chpass_init(struct be_ctx *bectx,
     ret = sssm_ad_auth_init(bectx, ops, pvt_data);
     *ops = &ad_chpass_ops;
     ad_options->auth_ctx = *pvt_data;
+    return ret;
+}
+
+int
+sssm_ad_access_init(struct be_ctx *bectx,
+                    struct bet_ops **ops,
+                    void **pvt_data)
+{
+    errno_t ret;
+    struct ad_access_ctx *access_ctx;
+    struct ad_id_ctx *ad_id_ctx;
+
+    access_ctx = talloc_zero(bectx, struct ad_access_ctx);
+    if (!access_ctx) return ENOMEM;
+
+    ret = sssm_ad_id_init(bectx, ops, (void **)&ad_id_ctx);
+    if (ret != EOK) {
+        goto fail;
+    }
+    access_ctx->sdap_ctx = ad_id_ctx->sdap_id_ctx;
+
+    ret = dp_copy_options(access_ctx, ad_options->basic, AD_OPTS_BASIC,
+                          &access_ctx->ad_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not initialize access provider options: [%s]\n",
+               strerror(ret)));
+        goto fail;
+    }
+
+    /* Set up an sdap_access_ctx for checking expired/locked accounts */
+    access_ctx->sdap_access_ctx =
+            talloc_zero(access_ctx, struct sdap_access_ctx);
+    if (!access_ctx->sdap_access_ctx) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    access_ctx->sdap_access_ctx->id_ctx = access_ctx->sdap_ctx;
+    access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
+    access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+
+    *ops = &ad_access_ops;
+    *pvt_data = access_ctx;
+
+    return EOK;
+
+fail:
+    talloc_free(access_ctx);
     return ret;
 }
 
