@@ -44,6 +44,7 @@
 #include "sbus/sbus_client.h"
 
 #define SSS_PAC_PIPE_NAME "pac"
+#define DEFAULT_PAC_FD_LIMIT 8192
 
 struct sbus_method monitor_pac_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
@@ -122,6 +123,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     struct pac_ctx *pac_ctx;
     int ret, max_retries;
     enum idmap_error_code err;
+    int fd_limit;
 
     pac_ctx = talloc_zero(mem_ctx, struct pac_ctx);
     if (!pac_ctx) {
@@ -166,6 +168,19 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));
         return EFAULT;
     }
+
+    /* Set up file descriptor limits */
+    ret = confdb_get_int(pac_ctx->rctx->cdb,
+                         CONFDB_PAC_CONF_ENTRY,
+                         CONFDB_SERVICE_FD_LIMIT,
+                         DEFAULT_PAC_FD_LIMIT,
+                         &fd_limit);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to set up file descriptor limit\n"));
+        return ret;
+    }
+    responder_set_fd_limit(fd_limit);
 
     DEBUG(SSSDBG_TRACE_FUNC, ("PAC Initialization complete\n"));
 
