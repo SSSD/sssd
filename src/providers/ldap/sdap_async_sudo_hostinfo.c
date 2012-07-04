@@ -159,6 +159,9 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx, char ***_ip_addr_list
     }
 
     for (iface = ifaces; iface != NULL; iface = iface->ifa_next) {
+        /* Some interfaces don't have an ifa_addr */
+        if (!iface->ifa_addr) continue;
+
         netmask = 0;
         switch (iface->ifa_addr->sa_family) {
         case AF_INET:
