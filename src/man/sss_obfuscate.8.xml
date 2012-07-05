@@ -99,14 +99,7 @@
         </variablelist>
     </refsect1>
 
-    <refsect1 id='see_also'>
-        <title>SEE ALSO</title>
-        <para>
-            <citerefentry>
-                <refentrytitle>sssd-ldap</refentrytitle>
-                <manvolnum>5</manvolnum>
-            </citerefentry>
-        </para>
-    </refsect1>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
 </refentry>
 </reference>

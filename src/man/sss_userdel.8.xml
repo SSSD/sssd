@@ -91,28 +91,7 @@
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/local.xml" />
 
-    <refsect1 id='see_also'>
-        <title>SEE ALSO</title>
-        <para>
-            <citerefentry>
-                <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>.
-        </para>
-    </refsect1>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
 </refentry>
 </reference>

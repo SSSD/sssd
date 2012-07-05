@@ -62,5 +62,8 @@
             </varlistentry>
         </variablelist>
     </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
 </refentry>
 </reference>

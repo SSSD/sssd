@@ -1667,37 +1667,7 @@ enumerate = False
         </para>
     </refsect1>
 
-    <refsect1 id='see_also'>
-        <title>SEE ALSO</title>
-        <para>
-            <citerefentry>
-                <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>.
-        </para>
-    </refsect1>
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
 </refentry>
 </reference>

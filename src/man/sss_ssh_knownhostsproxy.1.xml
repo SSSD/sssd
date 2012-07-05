@@ -91,19 +91,7 @@ GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
         </variablelist>
     </refsect1>
 
-    <refsect1 id='see_also'>
-        <title>SEE ALSO</title>
-        <para>
-            <citerefentry>
-                <refentrytitle>ssh</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>ssh_config</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_ssh_authorizedkeys</refentrytitle><manvolnum>1</manvolnum>
-            </citerefentry>.
-        </para>
-    </refsect1>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
 </refentry>
 </reference>

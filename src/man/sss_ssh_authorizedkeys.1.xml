@@ -92,19 +92,7 @@ PubKeyAgent /usr/bin/sss_ssh_authorizedkeys %u
         </variablelist>
     </refsect1>
 
-    <refsect1 id='see_also'>
-        <title>SEE ALSO</title>
-        <para>
-            <citerefentry>
-                <refentrytitle>sshd</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sshd_config</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_ssh_knownhostsproxy</refentrytitle><manvolnum>1</manvolnum>
-            </citerefentry>.
-        </para>
-    </refsect1>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
 </refentry>
 </reference>
