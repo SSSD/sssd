@@ -45,6 +45,7 @@
 
 #define SSS_PAC_PIPE_NAME "pac"
 #define DEFAULT_PAC_FD_LIMIT 8192
+#define DEFAULT_ALLOWED_UIDS "0"
 
 struct sbus_method monitor_pac_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
@@ -124,6 +125,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     int ret, max_retries;
     enum idmap_error_code err;
     int fd_limit;
+    char *uid_str;
 
     pac_ctx = talloc_zero(mem_ctx, struct pac_ctx);
     if (!pac_ctx) {
@@ -146,6 +148,23 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
     pac_ctx->rctx->pvt_ctx = pac_ctx;
+
+
+    ret = confdb_get_string(pac_ctx->rctx->cdb, pac_ctx->rctx,
+                            CONFDB_PAC_CONF_ENTRY, CONFDB_SERVICE_ALLOWED_UIDS,
+                            DEFAULT_ALLOWED_UIDS, &uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
+        return ret;
+    }
+
+    ret = csv_string_to_uid_array(pac_ctx->rctx, uid_str, true,
+                                  &pac_ctx->rctx->allowed_uids_count,
+                                  &pac_ctx->rctx->allowed_uids);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set allowed UIDs.\n"));
+        return ret;
+    }
 
     /* Enable automatic reconnection to the Data Provider */
     ret = confdb_get_int(pac_ctx->rctx->cdb,

@@ -792,10 +792,6 @@
         <refsect2 id='PAC_RESPONDER' condition="with_pac_responder">
             <title>PAC responder configuration options</title>
             <para>
-                Currently there are no PAC responder specific configuration
-                options.
-            </para>
-            <para>
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
                             href="include/experimental.xml" />
             </para>
@@ -822,6 +818,33 @@
                     groups.</para></listitem>
                 </itemizedlist>
             </para>
+            <para>
+                These options can be used to configure the PAC responder.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>allowed_uids (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of UID values or
+                            user names that are allowed to access the PAC
+                            responder. User names are resolved to UIDs at
+                            startup.
+                        </para>
+                        <para>
+                            Default: 0 (only the root user is allowed to access
+                            the PAC responder)
+                        </para>
+                        <para>
+                            Please note that although the UID 0 is used as the
+                            default it will be overwritten with this option. If
+                            you still want to allow the root user to access the
+                            PAC responder, which would be the typical case, you
+                            have to add 0 to the list of allowed UIDs as well.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
         </refsect2>
 
     </refsect1>

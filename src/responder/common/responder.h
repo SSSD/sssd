@@ -98,6 +98,9 @@ struct resp_ctx {
 
     struct timeval get_domains_last_call;
 
+    size_t allowed_uids_count;
+    uid_t *allowed_uids;
+
     void *pvt_ctx;
 };
 
@@ -289,4 +292,11 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
                                            const char *hint);
 
 errno_t sss_dp_get_domains_recv(struct tevent_req *req);
+
+errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
+                                bool allow_sss_loop,
+                                size_t *_uid_count, uid_t **_uids);
+
+errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
+                           uid_t *allowed_uids);
 #endif /* __SSS_RESPONDER_H__ */

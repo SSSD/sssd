@@ -88,6 +88,9 @@ option_strings = {
     # [ssh]
     'ssh_hash_known_hosts': _('Whether to hash host names and addresses in the known_hosts file'),
 
+    # [pac]
+    'allowed_uids': _('List of UIDs or user names allowed to access the PAC responder'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),

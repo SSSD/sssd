@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <popt.h>
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
@@ -104,14 +105,14 @@ static int client_destructor(struct cli_ctx *ctx)
 
 static errno_t get_client_cred(struct cli_ctx *cctx)
 {
+    cctx->client_euid = -1;
+    cctx->client_egid = -1;
+    cctx->client_pid = -1;
+
 #ifdef HAVE_UCRED
     int ret;
     struct ucred client_cred;
     socklen_t client_cred_len = sizeof(client_cred);
-
-    cctx->client_euid = -1;
-    cctx->client_egid = -1;
-    cctx->client_pid = -1;
 
     ret = getsockopt(cctx->cfd, SOL_SOCKET, SO_PEERCRED, &client_cred,
                      &client_cred_len);
@@ -135,6 +136,107 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
 
     return EOK;
 }
+
+errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
+                           uid_t *allowed_uids)
+{
+    size_t c;
+
+    if (allowed_uids == NULL) {
+        return EINVAL;
+    }
+
+    for (c = 0; c < allowed_uids_count; c++) {
+        if (uid == allowed_uids[c]) {
+            return EOK;
+        }
+    }
+
+    return EACCES;
+}
+
+errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
+                                bool allow_sss_loop,
+                                size_t *_uid_count, uid_t **_uids)
+{
+    int ret;
+    size_t c;
+    char **list = NULL;
+    int list_size;
+    uid_t *uids = NULL;
+    char *endptr;
+    struct passwd *pwd;
+
+    ret = split_on_separator(mem_ctx, cvs_string, ',', true, &list, &list_size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("split_on_separator failed [%d][%s].\n",
+                                  ret, strerror(ret)));
+        goto done;
+    }
+
+    uids = talloc_array(mem_ctx, uint32_t, list_size);
+    if (uids == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (allow_sss_loop) {
+        ret = unsetenv("_SSS_LOOPS");
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to unset _SSS_LOOPS, getpwnam "
+                                      "might not find sssd users.\n"));
+        }
+    }
+
+    for (c = 0; c < list_size; c++) {
+        errno = 0;
+        if (*list[c] == '\0') {
+            DEBUG(SSSDBG_OP_FAILURE, ("Empty list item.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+
+        uids[c] = strtouint32(list[c], &endptr, 10);
+        if (errno != 0 || *endptr != '\0') {
+            ret = errno;
+            if (ret == ERANGE) {
+                DEBUG(SSSDBG_OP_FAILURE, ("List item [%s] is out of range.\n",
+                                          list[c]));
+                goto done;
+            }
+
+            errno = 0;
+            pwd = getpwnam(list[c]);
+            if (pwd == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("List item [%s] is neither a valid "
+                                          "UID nor a user name which cloud be "
+                                          "resolved by getpwnam().\n", list[c]));
+                ret = EINVAL;
+                goto done;
+            }
+
+            uids[c] = pwd->pw_uid;
+        }
+    }
+
+    *_uid_count = list_size;
+    *_uids = uids;
+
+    ret = EOK;
+
+done:
+    if(setenv("_SSS_LOOPS", "NO", 0) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to set _SSS_LOOPS.\n"));
+    }
+    talloc_free(list);
+    if (ret != EOK) {
+        talloc_free(uids);
+    }
+
+    return ret;
+}
+
 
 static void client_send(struct cli_ctx *cctx)
 {
@@ -318,6 +420,32 @@ static void accept_fd_handler(struct tevent_context *ev,
     if (ret != EOK) {
         DEBUG(2, ("get_client_cred failed, "
                   "client cred may not be available.\n"));
+    }
+
+    if (rctx->allowed_uids_count != 0) {
+        if (cctx->client_euid == -1) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("allowed_uids configured, " \
+                                        "but platform does not support " \
+                                        "reading peer credential from the " \
+                                        "socket. Access denied.\n"));
+            close(cctx->cfd);
+            talloc_free(cctx);
+            return;
+        }
+
+        ret = check_allowed_uids(cctx->client_euid, rctx->allowed_uids_count,
+                                 rctx->allowed_uids);
+        if (ret != EOK) {
+            if (ret == EACCES) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Access denied for uid [%d].\n",
+                                            cctx->client_euid));
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, ("check_allowed_uids failed.\n"));
+            }
+            close(cctx->cfd);
+            talloc_free(cctx);
+            return;
+        }
     }
 
     cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,

@@ -57,6 +57,7 @@
 #define CONFDB_SERVICE_FORCE_TIMEOUT "force_timeout"
 #define CONFDB_SERVICE_RECON_RETRIES "reconnection_retries"
 #define CONFDB_SERVICE_FD_LIMIT "fd_limit"
+#define CONFDB_SERVICE_ALLOWED_UIDS "allowed_uids"
 
 /* Monitor */
 #define CONFDB_MONITOR_CONF_ENTRY "config/sssd"

@@ -123,7 +123,8 @@ if HAVE_CHECK
         util-tests \
         debug-tests \
         ipa_hbac-tests \
-        sss_idmap-tests
+        sss_idmap-tests \
+        responder_socket_access-tests
 
 if BUILD_PAC_RESPONDER
         non_interactive_check_based_tests += pac_responder-tests
@@ -1028,6 +1029,20 @@ pac_responder_tests_LDADD = \
     libsss_debug.la \
     libsss_util.la \
     libsss_test_common.la
+
+responder_socket_access_tests_SOURCES = \
+    src/tests/responder_socket_access-tests.c \
+    src/responder/common/responder_common.c \
+    src/responder/common/responder_packet.c \
+    src/responder/common/responder_cmd.c
+responder_socket_access_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+responder_socket_access_tests_LDADD = \
+    $(CHECK_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    libsss_util.la
 endif
 
 stress_tests_SOURCES = \
