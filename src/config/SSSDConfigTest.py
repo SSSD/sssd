@@ -8,7 +8,16 @@ import unittest
 import os
 from stat import *
 
+import sys
+
+srcdir = os.getenv('srcdir')
+if srcdir:
+    sys.path.append("./src/config")
+    srcdir = srcdir + "/src/config"
+else:
+    srcdir = "."
 import SSSDConfig
+
 
 class SSSDConfigTestValid(unittest.TestCase):
     def setUp(self):
@@ -1779,14 +1788,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
 if __name__ == "__main__":
     error = 0
-
-    import os
-    import sys
-    srcdir = os.getenv('srcdir')
-    if srcdir:
-        srcdir = srcdir + "/src/config"
-    else:
-        srcdir = "."
 
     suite = unittest.TestLoader().loadTestsFromTestCase(SSSDConfigTestSSSDService)
     res = unittest.TextTestRunner().run(suite)
