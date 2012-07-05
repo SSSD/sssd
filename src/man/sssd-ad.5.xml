@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-ad</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-ad</refname>
+        <refpurpose>the configuration file for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the AD provider
+            for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The AD provider is a back end used to connect to an Active
+            Directory server. This provider requires that the machine be
+            joined to the AD domain and a keytab is available.
+        </para>
+        <para>
+            The AD provider supports connecting to Active Directory 2008 R2
+            or later. Earlier versions may work, but are unsupported.
+        </para>
+        <para>
+            The AD provider accepts the same options used by the
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> identity provider and the
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> authentication provider with some exceptions described
+            below.
+        </para>
+        <para>
+            However, it is neither necessary nor recommended to set these
+            options. The AD provider can also be used as an access and chpass
+            provider. No configuration of the access provider is required on
+            the client side.
+        </para>
+    </refsect1>
+
+    <refsect1 id='file-format'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for details on the configuration of an SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>ad_domain (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the name of the Active Directory domain.
+                            This is optional. If not provided, the
+                            configuration domain name is used.
+                        </para>
+                        <para>
+                            For proper operation, this option should be
+                            specified as the lower-case version of the long
+                            version of the Active Directory domain.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_server (string)</term>
+                    <listitem>
+                        <para>
+                            The comma-separated list of IP addresses or
+                            hostnames of the AD servers to which SSSD should
+                            connect in order of preference. For more
+                            information on failover and server redundancy, see
+                            the <quote>FAILOVER</quote> section.
+                            This is optional if autodiscovery is enabled.
+                            For more information on service discovery, refer
+                            to the the <quote>SERVICE DISCOVERY</quote> section.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_hostname (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. May be set on machines where the
+                            hostname(5) does not reflect the fully qualified
+                            name used in the Active Directory domain to
+                            identify this host.
+                        </para>
+                        <para>
+                            This field is used to determine the host principal
+                            in use in the keytab. It must match the hostname
+                            for which the keytab was issued.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and example.com is one of the domains in the
+            <replaceable>[sssd]</replaceable> section. This example shows only
+            the AD provider-specific options.
+        </para>
+        <para>
+<programlisting>
+[domain/EXAMPLE]
+id_provider = ad
+auth_provider = ad
+access_provider = ad
+chpass_provider = ad
+
+ad_server = dc1.example.com
+ad_hostname = client.example.com
+ad_domain = example.com
+</programlisting>
+        </para>
+    </refsect1>
+
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

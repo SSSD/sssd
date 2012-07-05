@@ -133,6 +133,11 @@ option_strings = {
     'ipa_master_domain_search_base': _("Search base for object containing info about IPA domain"),
     'ipa_ranges_search_base': _("Search base for objects containing info about ID ranges"),
 
+    # [provider/ad]
+    'ad_domain' : _('Active Directory domain'),
+    'ad_server' : _('Active Directory server address'),
+    'ad_hostname' : _('Active Directory client hostname'),
+
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
     'krb5_server' : _('Kerberos server address'),

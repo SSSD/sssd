@@ -1536,6 +1536,7 @@ dist_sssddata_DATA = \
     src/config/etc/sssd.api.conf
 dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-ipa.conf \
+    src/config/etc/sssd.api.d/sssd-ad.conf \
     src/config/etc/sssd.api.d/sssd-krb5.conf \
     src/config/etc/sssd.api.d/sssd-ldap.conf \
     src/config/etc/sssd.api.d/sssd-local.conf \
