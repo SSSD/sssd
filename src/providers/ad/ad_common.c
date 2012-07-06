@@ -426,8 +426,16 @@ ad_get_id_options(struct ad_options *ad_opts,
         desired_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
     }
 
-    keytab_path = dp_opt_get_string(id_opts->basic, SDAP_KRB5_KEYTAB);
-    /* It's okay if this is NULL here */
+    keytab_path = dp_opt_get_string(ad_opts->basic, AD_KEYTAB);
+    if (keytab_path) {
+        ret = dp_opt_set_string(id_opts->basic, SDAP_KRB5_KEYTAB,
+                                keytab_path);
+        if (ret != EOK) goto done;
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Option %s set to %s\n",
+               id_opts->basic[SDAP_KRB5_KEYTAB].opt_name,
+               keytab_path));
+    }
 
     ret = select_principal_from_keytab(tmp_ctx,
                                        desired_primary, desired_realm,
@@ -652,7 +660,6 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
           ("Option %s set to %s\n",
            krb5_options[KRB5_REALM].opt_name,
            krb5_realm));
-
 
     *_opts = talloc_steal(mem_ctx, krb5_options);
 
