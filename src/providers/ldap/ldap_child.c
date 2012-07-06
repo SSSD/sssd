@@ -161,8 +161,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_get_init_creds_opt options;
     krb5_error_code krberr;
     krb5_timestamp kdc_time_offset;
-    krb5_enctype *etype_list;
-    int n_etype_list;
     int canonicalize = 0;
     int kdc_time_offset_usec;
     int ret;
@@ -283,19 +281,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         canonicalize = 1;
     }
     sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
-
-    krberr = sss_krb5_read_etypes_for_keytab(memctx, context, keytab, kprinc,
-                                             &etype_list, &n_etype_list);
-    if (krberr) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to load etypes from keytab: %s\n",
-                                     sss_krb5_get_error_message(context,
-                                                                krberr)));
-    } else if (n_etype_list > 0) {
-        krb5_get_init_creds_opt_set_etype_list(&options, etype_list,
-                                               n_etype_list);
-        DEBUG(SSSDBG_FUNC_DATA, ("Loaded %d enctypes from keytab for %s\n",
-                                 n_etype_list, full_princ));
-    }
 
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                         keytab, 0, NULL, &options);
