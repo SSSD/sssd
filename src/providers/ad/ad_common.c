@@ -113,6 +113,24 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Active Directory is always case-insensitive */
+    dom->case_sensitive = false;
+
+    /* Set this in the confdb so that the responders pick it
+     * up when they start up.
+     */
+    ret = confdb_set_bool(cdb, conf_path, "case_sensitive",
+                          dom->case_sensitive);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not set domain case-sensitive: [%s]\n",
+               strerror(ret)));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Setting domain case-insensitive\n"));
+
     ret = EOK;
     *_opts = opts;
 
