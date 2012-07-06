@@ -414,6 +414,11 @@ int confdb_get_bool(struct confdb_ctx *cdb,
                     const char *section, const char *attribute,
                     bool defval, bool *result);
 
+int confdb_set_bool(struct confdb_ctx *cdb,
+                     const char *section,
+                     const char *attribute,
+                     bool val);
+
 /**
  * @brief Convenience function to retrieve a single-valued attribute as a
  * null-terminated array of strings
