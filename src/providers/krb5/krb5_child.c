@@ -839,6 +839,9 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
 {
     krb5_error_code kerr = 0;
     int ret;
+    const char *realm_name;
+    int realm_length;
+
 
     kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx, kr->options,
                                                   sss_krb5_expire_callback_func,
@@ -848,9 +851,10 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         DEBUG(1, ("Failed to set expire callback, continue without.\n"));
     }
 
+    sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
+
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Attempting kinit for realm [%s]\n",
-                  kr->princ->realm.data));
+          ("Attempting kinit for realm [%s]\n",realm_name));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         password, sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
@@ -919,6 +923,8 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     uint8_t *user_resp;
     char *changepw_princ = NULL;
     krb5_prompter_fct prompter = sss_krb5_prompter;
+    const char *realm_name;
+    int realm_length;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Password change operation\n"));
 
@@ -951,9 +957,10 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         prompter = NULL;
     }
 
+    sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
+
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Attempting kinit for realm [%s]\n",
-                  kr->princ->realm.data));
+          ("Attempting kinit for realm [%s]\n",realm_name));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         pass_str, prompter, kr, 0,
                                         changepw_princ,
