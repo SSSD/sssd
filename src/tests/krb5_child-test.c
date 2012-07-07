@@ -315,11 +315,15 @@ printtime(krb5_timestamp ts)
     char timestring[BUFSIZ];
     char fill = '\0';
 
+#ifdef HAVE_KRB5_TIMESTAMP_TO_SFSTRING
     kret = krb5_timestamp_to_sfstring(ts, timestring, BUFSIZ, &fill);
     if (kret) {
         KRB5_CHILD_TEST_DEBUG(SSSDBG_OP_FAILURE, kret);
     }
     printf("%s", timestring);
+#else
+    printf("%s", ctime(&ts));
+#endif /* HAVE_KRB5_TIMESTAMP_TO_SFSTRING */
 }
 
 static void
