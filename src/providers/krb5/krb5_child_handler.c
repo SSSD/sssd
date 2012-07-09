@@ -444,6 +444,8 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
         return EINVAL;
     }
 
+    memset(&tgtt, 0, sizeof(struct tgt_times));
+
     if (pwd_exp_warning < 0) {
         pwd_exp_warning = KERBEROS_PWEXPIRE_WARNING_TIME;
     }
