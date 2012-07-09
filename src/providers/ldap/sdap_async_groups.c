@@ -1007,7 +1007,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
             goto done;
         }
         user_dn = sysdb_user_strdn(tmp_ctx, state->dom->name, username);
-        if (username == NULL) {
+        if (user_dn == NULL) {
             return ENOMEM;
         }
 
