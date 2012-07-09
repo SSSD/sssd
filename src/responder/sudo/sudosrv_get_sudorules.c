@@ -448,7 +448,7 @@ sudosrv_dp_req_done(struct tevent_req *req)
 {
     struct dp_callback_ctx *cb_ctx =
         tevent_req_callback_data(req, struct dp_callback_ctx);
-    struct cli_ctx *cli_ctx = talloc_get_type(cb_ctx->cctx, struct cli_ctx);
+    struct cli_ctx *cli_ctx;
 
     errno_t ret;
     dbus_uint16_t err_maj;
@@ -460,6 +460,7 @@ sudosrv_dp_req_done(struct tevent_req *req)
         talloc_free(req);
         return;
     }
+    cli_ctx = talloc_get_type(cb_ctx->cctx, struct cli_ctx);
 
     ret = sss_dp_get_sudoers_recv(cb_ctx->mem_ctx, req,
                                   &err_maj, &err_min,
