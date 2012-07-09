@@ -389,6 +389,7 @@ START_TEST(test_cc_dir_create)
     ret = cc_dir_create(residual, illegal_re, uid, gid, true);
     fail_unless(ret == EOK, "cc_dir_create failed\n");
     ret = rmdir(dirname);
+    if (ret < 0) ret = errno;
     fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
     talloc_free(residual);
 
@@ -401,6 +402,7 @@ START_TEST(test_cc_dir_create)
     ret = cc_dir_create(residual, illegal_re, uid, gid, true);
     fail_unless(ret == EOK, "cc_dir_create failed\n");
     ret = rmdir(dirname);
+    if (ret < 0) ret = errno;
     fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
     talloc_free(residual);
     free(cwd);
