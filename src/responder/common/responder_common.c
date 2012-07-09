@@ -791,18 +791,17 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     for (dom = rctx->domains; dom; dom = dom->next) {
-
-        /* skip local domain, it doesn't have a backend */
-        if (strcasecmp(dom->provider, "local") == 0) {
-            continue;
-        }
-
         ret = sss_names_init(rctx->cdb, rctx->cdb, dom->name, &dom->names);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing regex data for domain: %s\n",
                    dom->name));
             return ret;
+        }
+
+        /* skip local domain, it doesn't have a backend */
+        if (strcasecmp(dom->provider, "local") == 0) {
+            continue;
         }
 
         ret = sss_dp_init(rctx, dp_intf, cli_name, dom);
