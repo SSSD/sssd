@@ -396,7 +396,7 @@ print_ccache(const char *cc)
         krb5_free_cred_contents(kcontext, &creds);
     }
 
-    krb5_cc_end_seq_get(kcontext, cache, &cur);
+    kret = krb5_cc_end_seq_get(kcontext, cache, &cur);
     CHECK_KRET_L(kret, EIO, done);
 
     ret = EOK;
