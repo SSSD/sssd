@@ -327,7 +327,14 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
 
     found = false;
     while((krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0){
-        krb5_unparse_name(context, entry.principal, &kt_principal);
+        krberr = krb5_unparse_name(context, entry.principal, &kt_principal);
+        if (krberr) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Could not parse keytab entry\n"));
+            sss_log(SSS_LOG_ERR, "Could not parse keytab entry\n");
+            return EIO;
+        }
+
         if (strcmp(principal, kt_principal) == 0) {
             found = true;
         }
