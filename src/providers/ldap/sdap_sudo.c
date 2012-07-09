@@ -841,6 +841,7 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
 
     ldap_full_filter = sdap_sudo_get_filter(state, map, sudo_ctx, ldap_filter);
     if (ldap_full_filter == NULL) {
+        ret = ENOMEM;
         goto immediately;
     }
 
