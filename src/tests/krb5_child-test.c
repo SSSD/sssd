@@ -369,7 +369,7 @@ print_ccache(const char *cc)
     krb5_creds creds;
     char *defname = NULL;
     int i = 1;
-    errno_t ret;
+    errno_t ret = EIO;
 
     kret = krb5_init_context(&kcontext);
     CHECK_KRET_L(kret, EIO, done);
