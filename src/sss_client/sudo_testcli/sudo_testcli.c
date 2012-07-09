@@ -86,6 +86,7 @@ int main(int argc, char **argv)
     }
 
     sss_sudo_free_result(result);
+    result = NULL;
 
     /* get rules */
 
