@@ -325,7 +325,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     TALLOC_CTX *tmp_ctx = NULL;
     struct tevent_req *dpreq = NULL;
     struct dp_callback_ctx *cb_ctx = NULL;
-    struct sysdb_ctx *sysdb = cmd_ctx->domain->sysdb;
+    struct sysdb_ctx *sysdb;
     char **groupnames = NULL;
     size_t expired_rules_num = 0;
     struct sysdb_attrs **expired_rules = NULL;
@@ -338,6 +338,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
         DEBUG(SSSDBG_CRIT_FAILURE, ("Domain is not set!\n"));
         return EFAULT;
     }
+
+    sysdb = cmd_ctx->domain->sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
