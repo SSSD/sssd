@@ -281,7 +281,9 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx, char ***_ip_addr_list
                ip_addr, network_addr, netmask));
     }
 
-    ip_addr_list[addr_count] = NULL;
+    if (ip_addr_list) {
+        ip_addr_list[addr_count] = NULL;
+    }
     *_ip_addr_list = talloc_steal(mem_ctx, ip_addr_list);
 
 done:
