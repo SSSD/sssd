@@ -83,8 +83,6 @@ sssdpac_import_authdata(krb5_context kcontext,
 {
     struct sss_cli_req_data sss_data;
     int ret;
-    uint8_t *repbuf;
-    size_t replen;
     int errnop;
     char *data = NULL;
     struct sssd_context *sssdctx = (struct sssd_context *)request_context;
@@ -97,7 +95,7 @@ sssdpac_import_authdata(krb5_context kcontext,
     sss_data.data = authdata[0]->contents;
 
     ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
-                               &repbuf, &replen, &errnop);
+                               NULL, NULL, &errnop);
     if (ret != 0) {
         /* Ignore the error */
     }
