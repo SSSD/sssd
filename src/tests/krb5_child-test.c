@@ -551,7 +551,9 @@ main(int argc, const char *argv[])
 
     ret = 0;
 done:
-    if (rm_ccache && ctx->res && ctx->res->ccname) {
+    if (rm_ccache && ctx->res
+            && ctx->res->ccname
+            && ctx->kr) {
         ctx->kr->krb5_ctx->cc_be->remove(ctx->res->ccname);
     }
     free(password);
