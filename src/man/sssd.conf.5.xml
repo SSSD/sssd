@@ -311,7 +311,7 @@
                             This option specifies the number of seconds that
                             a client of an SSSD process can hold onto a file
                             descriptor without communicating on it. This value
-                            is limited in order to avoid resource exhasution
+                            is limited in order to avoid resource exhaustion
                             on the system.
                         </para>
                         <para>
