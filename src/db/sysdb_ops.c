@@ -1559,7 +1559,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
             }
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A user with the same UID [%llu] was removed from the "
-                   "cache\n", uid));
+                   "cache\n", (unsigned long long) uid));
             ret = sysdb_add_user(sysdb, name, uid, gid, gecos,
                                  homedir, shell, attrs, cache_timeout, now);
         }
@@ -1706,7 +1706,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
             }
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A group with the same GID [%llu] was removed from the "
-                   "cache\n", gid));
+                   "cache\n", (unsigned long long) gid));
             ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout, now);
         }
         goto done;

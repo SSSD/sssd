@@ -2197,7 +2197,7 @@ START_TEST(test_group_rename)
     gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
     fail_unless(gid == grgid,
                 "Did not find the expected GID (found %llu expected %llu)",
-                gid, grgid);
+                (unsigned long long) gid, (unsigned long long) grgid);
     name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     fail_unless(strcmp(fromname, name) == 0,
                 "Did not find the expected name (found %s expected %s)",
@@ -2220,7 +2220,7 @@ START_TEST(test_group_rename)
     gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
     fail_unless(gid == grgid,
                 "Did not find the expected GID (found %llu expected %llu)",
-                gid, grgid);
+                (unsigned long long) gid, (unsigned long long) grgid);
     name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     fail_unless(strcmp(toname, name) == 0,
                 "Did not find the expected GID (found %s expected %s)",
@@ -2266,7 +2266,7 @@ START_TEST(test_user_rename)
     uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
     fail_unless(uid == userid,
                 "Did not find the expected UID (found %llu expected %llu)",
-                uid, userid);
+                (unsigned long long) uid, (unsigned long long) userid);
     name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     fail_unless(strcmp(fromname, name) == 0,
                 "Did not find the expected name (found %s expected %s)",
@@ -2291,7 +2291,7 @@ START_TEST(test_user_rename)
     uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
     fail_unless(uid == userid,
                 "Did not find the expected UID (found %llu expected %llu)",
-                uid, userid);
+                (unsigned long long) uid, (unsigned long long) userid);
     name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     fail_unless(strcmp(toname, name) == 0,
                 "Did not find the expected name (found %s expected %s)",

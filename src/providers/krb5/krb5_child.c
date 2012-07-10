@@ -1345,9 +1345,9 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
 
     DEBUG(SSSDBG_CONF_SETTINGS,
           ("cmd [%d] uid [%llu] gid [%llu] validate [%s] offline [%s] "
-           "UPN [%s]\n", pd->cmd, kr->uid, kr->gid,
-           kr->validate ? "true" : "false", *offline ? "true" : "false",
-           kr->upn ? kr->upn : "none"));
+           "UPN [%s]\n", pd->cmd, (unsigned long long) kr->uid,
+           (unsigned long long) kr->gid, kr->validate ? "true" : "false",
+           *offline ? "true" : "false", kr->upn ? kr->upn : "none"));
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE ||
         pd->cmd == SSS_CMD_RENEW ||

@@ -249,7 +249,8 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
         if (!kr->ccname) goto fail;
 
         DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
-              kr->ccname, kr->uid, kr->gid));
+              kr->ccname, (unsigned long long) kr->uid,
+              (unsigned long long) kr->gid));
     } else {
         kr->ccname = talloc_strdup(kr, ccname);
     }
