@@ -459,7 +459,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
 
 done:
     talloc_free(ctx);
-    ipa_subdomains_reply(be_req, (ret == EOK ? DP_ERR_OK : DP_ERR_FATAL), ret);
+    ipa_subdomains_reply(be_req, DP_ERR_FATAL, ret);
 }
 
 
