@@ -337,14 +337,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                               50000, (time_t)memcache_timeout,
                               &nctx->pwd_mc_ctx);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("passwd mmap cache is DISABLED"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("passwd mmap cache is DISABLED\n"));
     }
 
     ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
                               50000, (time_t)memcache_timeout,
                               &nctx->grp_mc_ctx);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("group mmap cache is DISABLED"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("group mmap cache is DISABLED\n"));
     }
 
     /* Set up file descriptor limits */
