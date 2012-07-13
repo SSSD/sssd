@@ -315,6 +315,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_initrddir}/%{name}
 %{_sbindir}/sssd
 
+%dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/krb5_child
 %{_libexecdir}/%{servicename}/ldap_child
 %{_libexecdir}/%{servicename}/proxy_child
@@ -334,6 +335,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %endif
 
+dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_ad.so
 %{_libdir}/%{name}/libsss_ipa.so
 %{_libdir}/%{name}/libsss_krb5.so
@@ -358,6 +360,7 @@ rm -rf $RPM_BUILD_ROOT
 %ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
+%dir %{_datadir}/sssd
 %{_datadir}/sssd/sssd.api.conf
 %{_datadir}/sssd/sssd.api.d
 %{_mandir}/man5/sssd.conf.5*
@@ -372,6 +375,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %endif
 %{python_sitearch}/pysss.so
+%dir %{python_sitelib}/SSSDConfig
 %{python_sitelib}/SSSDConfig/*.py*
 
 %files client
