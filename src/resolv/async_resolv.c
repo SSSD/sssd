@@ -1140,7 +1140,12 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     state->resolv_ctx = ctx;
     state->ev = ev;
-    state->name = name;
+    state->name = talloc_strdup(state, name);
+    if (state->name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        goto fail;
+    }
+
     state->rhostent = NULL;
     state->status = 0;
     state->timeouts = 0;
@@ -1156,8 +1161,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                                            &state->rhostent);
         if (ret != EOK) {
             DEBUG(1, ("Canot create a fake hostent structure\n"));
-            talloc_zfree(req);
-            return NULL;
+            goto fail;
         }
 
         tevent_req_done(req);
@@ -1168,11 +1172,14 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     ret = resolv_gethostbyname_step(req);
     if (ret != EOK) {
         DEBUG(1, ("Cannot start the resolving\n"));
-        talloc_zfree(req);
-        return NULL;
+        goto fail;
     }
 
     return req;
+
+fail:
+    talloc_zfree(req);
+    return NULL;
 }
 
 static bool
