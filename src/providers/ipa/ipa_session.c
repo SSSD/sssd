@@ -326,6 +326,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     const char *tmp_str;
     size_t conf_cnt = 0;
     size_t pos_cnt = 0;
+    uint32_t priority = 0;
     errno_t ret;
     int i;
 
@@ -358,7 +359,17 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     }
 
     for (i = 0; i < count; i++) {
-        if (sss_selinux_match(results[i], state->user, state->host)) {
+        if (sss_selinux_match(results[i], state->user, state->host, &priority)) {
+            priority &= ~(SELINUX_PRIORITY_USER_NAME |
+                          SELINUX_PRIORITY_USER_GROUP |
+                          SELINUX_PRIORITY_USER_CAT);
+            ret = sysdb_attrs_add_uint32(results[i],
+                                         SYSDB_SELINUX_HOST_PRIORITY,
+                                         priority);
+            if (ret != EOK) {
+                goto done;
+            }
+
             state->confirmed_match[conf_cnt] = talloc_steal(state->confirmed_match,
                                                             results[i]);
             conf_cnt++;
@@ -445,6 +456,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     size_t rule_count;
     size_t conf_cnt;
     size_t pos_cnt;
+    uint32_t priority = 0;
     errno_t ret;
     int i, j;
 
@@ -458,7 +470,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     for (pos_cnt = 0 ; state->possible_match[pos_cnt]; pos_cnt++) ;
 
     for (i = 0; i < rule_count; i++) {
-        if (!sss_selinux_match(rules[i], state->user, state->host)) {
+        if (!sss_selinux_match(rules[i], state->user, state->host, &priority)) {
             continue;
         }
 
@@ -480,6 +492,26 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
             }
 
             if (strcasecmp(hbac_dn, seealso_dn) == 0) {
+                priority &= ~(SELINUX_PRIORITY_USER_NAME |
+                              SELINUX_PRIORITY_USER_GROUP |
+                              SELINUX_PRIORITY_USER_CAT);
+                ret = sysdb_attrs_add_uint32(usermap,
+                                             SYSDB_SELINUX_HOST_PRIORITY,
+                                             priority);
+                if (ret != EOK) {
+                    goto done;
+                }
+
+                ret = sysdb_attrs_copy_values(rules[i], usermap, SYSDB_ORIG_MEMBER_USER);
+                if (ret != EOK) {
+                    goto done;
+                }
+
+                ret = sysdb_attrs_copy_values(rules[i], usermap, SYSDB_USER_CATEGORY);
+                if (ret != EOK) {
+                    goto done;
+                }
+
                 state->confirmed_match[conf_cnt++] = talloc_steal(
                                                         state->confirmed_match,
                                                         usermap);

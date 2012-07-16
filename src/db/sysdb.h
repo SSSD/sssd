@@ -120,6 +120,7 @@
 #define SYSDB_SELINUX_SEEALSO "seeAlso"
 #define SYSDB_SELINUX_USER "selinuxUser"
 #define SYSDB_SELINUX_ENABLED "enabled"
+#define SYSDB_SELINUX_HOST_PRIORITY "hostPriority"
 
 #define SYSDB_CACHEDPWD "cachedPassword"
 

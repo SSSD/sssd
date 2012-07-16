@@ -30,6 +30,14 @@
 
 #include <db/sysdb.h>
 
+#define SELINUX_PRIORITY_USER_CAT 1
+#define SELINUX_PRIORITY_USER_GROUP 2
+#define SELINUX_PRIORITY_USER_NAME 4
+/* According to specification, host has higher priority */
+#define SELINUX_PRIORITY_HOST_CAT 8
+#define SELINUX_PRIORITY_HOST_GROUP 16
+#define SELINUX_PRIORITY_HOST_NAME 32
+
 errno_t
 sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
@@ -38,7 +46,8 @@ sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
 
 bool sss_selinux_match(struct sysdb_attrs *usermap,
                        struct sysdb_attrs *user,
-                       struct sysdb_attrs *host);
+                       struct sysdb_attrs *host,
+                       uint32_t *_priority);
 
 const char *sss_selinux_map_get_seuser(struct ldb_message *usermap);
 

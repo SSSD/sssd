@@ -49,7 +49,8 @@ static bool match_entity(struct ldb_message_element *values,
 
 bool sss_selinux_match(struct sysdb_attrs *usermap,
                        struct sysdb_attrs *user,
-                       struct sysdb_attrs *host)
+                       struct sysdb_attrs *host,
+                       uint32_t *_priority)
 {
     struct ldb_message_element *users_el = NULL;
     struct ldb_message_element *usercat = NULL;
@@ -58,6 +59,9 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
     struct ldb_message_element *dn;
     struct ldb_message_element *memberof;
     int i;
+    uint32_t priority = 0;
+    bool matched_name;
+    bool matched_group;
     errno_t ret;
 
     if (usermap == NULL) {
@@ -90,10 +94,21 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
          */
         if (usercat == NULL || usercat->num_values == 0 ||
             strcasecmp((char *)usercat->values[0].data, "all") != 0) {
-            if (users_el == NULL || (!match_entity(users_el, dn) &&
-                !match_entity(users_el, memberof))) {
+            if (users_el == NULL) {
                 return false;
+            } else {
+                matched_name = match_entity(users_el, dn);
+                matched_group = match_entity(users_el, memberof);
+                if (matched_name) {
+                    priority |= SELINUX_PRIORITY_USER_NAME;
+                } else if (matched_group) {
+                    priority |= SELINUX_PRIORITY_USER_GROUP;
+                } else {
+                    return false;
+                }
             }
+        } else {
+            priority |= SELINUX_PRIORITY_USER_CAT;
         }
     }
 
@@ -109,11 +124,26 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
          */
         if (hostcat == NULL || hostcat->num_values == 0 ||
             strcasecmp((char *)hostcat->values[0].data, "all") != 0) {
-            if (hosts_el == NULL || (!match_entity(hosts_el, dn) &&
-                !match_entity(hosts_el, memberof))) {
+            if (hosts_el == NULL) {
                 return false;
+            } else {
+                matched_name = match_entity(hosts_el, dn);
+                matched_group = match_entity(hosts_el, memberof);
+                if (matched_name) {
+                    priority |= SELINUX_PRIORITY_HOST_NAME;
+                } else if (matched_group) {
+                    priority |= SELINUX_PRIORITY_HOST_GROUP;
+                } else {
+                    return false;
+                }
             }
         }
+    } else {
+        priority |= SELINUX_PRIORITY_HOST_CAT;
+    }
+
+    if (_priority != NULL) {
+        *_priority = priority;
     }
 
     return true;
