@@ -65,9 +65,10 @@ static errno_t ipa_get_selinux_recv(struct tevent_req *req,
 
 static void ipa_get_selinux_connect_done(struct tevent_req *subreq);
 static void ipa_get_selinux_hosts_done(struct tevent_req *subreq);
+static void ipa_get_config_step(struct tevent_req *req);
+static void ipa_get_selinux_config_done(struct tevent_req *subreq);
 static void ipa_get_selinux_maps_done(struct tevent_req *subreq);
 static void ipa_get_selinux_hbac_done(struct tevent_req *subreq);
-static void ipa_get_selinux_config_done(struct tevent_req *subreq);
 
 void ipa_session_handler(struct be_req *be_req)
 {
@@ -246,6 +247,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
 
     /* FIXME: detect if HBAC is configured
      * - if yes, we can skip host retrieval and get it directly from sysdb
+     *   and shortcut to ipa_get_config_step()
      */
     subreq = ipa_host_info_send(state, bctx->ev, bctx->sysdb,
                                 sdap_id_op_handle(state->op),
@@ -275,7 +277,6 @@ static void ipa_get_selinux_hosts_done(struct tevent_req *subreq)
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
     struct be_ctx *bctx = state->be_req->be_ctx;
-    struct sdap_id_ctx *id_ctx = state->session_ctx->id_ctx->sdap_id_ctx;
     size_t host_count, hostgroup_count;
     struct sysdb_attrs **hostgroups;
     struct sysdb_attrs **host;
@@ -294,21 +295,69 @@ static void ipa_get_selinux_hosts_done(struct tevent_req *subreq)
         goto done;
     }
 
-    subreq = ipa_selinux_get_maps_send(state, bctx->ev, bctx->sysdb,
-                                       sdap_id_op_handle(state->op),
-                                       id_ctx->opts,
-                                       state->session_ctx->id_ctx->ipa_options,
-                                       state->session_ctx->selinux_search_bases);
-    if (subreq == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ipa_get_selinux_maps_done, req);
+    return ipa_get_config_step(req);
 
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
+    }
+}
+
+static void ipa_get_config_step(struct tevent_req *req)
+{
+    const char *domain;
+    struct tevent_req *subreq;
+    struct ipa_get_selinux_state *state = tevent_req_data(req,
+                                                  struct ipa_get_selinux_state);
+    struct be_ctx *bctx = state->be_req->be_ctx;
+    struct ipa_id_ctx *id_ctx = state->session_ctx->id_ctx;
+
+    domain = dp_opt_get_string(state->session_ctx->id_ctx->ipa_options->basic,
+                               IPA_KRB5_REALM);
+    subreq = ipa_get_config_send(state, bctx->ev,
+                                 sdap_id_op_handle(state->op),
+                                 id_ctx->sdap_id_ctx->opts,
+                                 domain, NULL);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, ipa_get_selinux_config_done, req);
+}
+
+static void ipa_get_selinux_config_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct ipa_get_selinux_state *state = tevent_req_data(req,
+                                                  struct ipa_get_selinux_state);
+    struct be_ctx *bctx = state->be_req->be_ctx;
+    struct sdap_id_ctx *id_ctx = state->session_ctx->id_ctx->sdap_id_ctx;
+    errno_t ret;
+
+    ret = ipa_get_config_recv(subreq, state, &state->defaults);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not get IPA config\n"));
+        goto done;
+    }
+
+    subreq = ipa_selinux_get_maps_send(state, bctx->ev, bctx->sysdb,
+                                     sdap_id_op_handle(state->op),
+                                     id_ctx->opts,
+                                     state->session_ctx->id_ctx->ipa_options,
+                                     state->session_ctx->selinux_search_bases);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ipa_get_selinux_maps_done, req);
+    return;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
     }
 }
 
@@ -322,7 +371,6 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
 
     struct sysdb_attrs **results;
     size_t count;
-    const char *domain;
     const char *tmp_str;
     size_t conf_cnt = 0;
     size_t pos_cnt = 0;
@@ -417,21 +465,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         return;
     }
 
-    domain = dp_opt_get_string(state->session_ctx->id_ctx->ipa_options->basic,
-                               IPA_KRB5_REALM);
-    subreq = ipa_get_config_send(state, bctx->ev,
-                                 sdap_id_op_handle(state->op),
-                                 id_ctx->sdap_id_ctx->opts,
-                                 domain, NULL);
-    if (subreq == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ipa_get_selinux_config_done, req);
-
-    return;
-
+    ret = EOK;
 done:
     if (ret == EOK) {
         tevent_req_done(req);
@@ -446,13 +480,10 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
-    struct be_ctx *bctx = state->be_req->be_ctx;
-    struct ipa_id_ctx *id_ctx = state->session_ctx->id_ctx;
     struct sysdb_attrs **rules;
     struct sysdb_attrs *usermap;
     const char *hbac_dn;
     const char *seealso_dn;
-    const char *domain;
     size_t rule_count;
     size_t conf_cnt;
     size_t pos_cnt;
@@ -534,39 +565,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     /* Now we can dispose all possible rules, since they aren't possible any more */
     talloc_zfree(state->possible_match);
 
-    domain = dp_opt_get_string(state->session_ctx->id_ctx->ipa_options->basic,
-                               IPA_KRB5_REALM);
-    subreq = ipa_get_config_send(state, bctx->ev,
-                                 sdap_id_op_handle(state->op),
-                                 id_ctx->sdap_id_ctx->opts,
-                                 domain, NULL);
-    if (subreq == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ipa_get_selinux_config_done, req);
-
-done:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    }
-}
-
-static void ipa_get_selinux_config_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct ipa_get_selinux_state *state = tevent_req_data(req,
-                                                  struct ipa_get_selinux_state);
-    errno_t ret;
-
-    ret = ipa_get_config_recv(subreq, state, &state->defaults);
-    talloc_free(subreq);
-    if (ret != EOK) {
-        goto done;
-    }
-
+    ret = EOK;
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
