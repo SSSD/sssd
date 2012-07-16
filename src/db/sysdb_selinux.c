@@ -271,7 +271,24 @@ done:
     return ret;
 }
 
+errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb)
+{
+    struct ldb_dn *dn = NULL;
+    errno_t ret;
 
+    dn = ldb_dn_new_fmt(sysdb, sysdb->ldb,
+                        SYSDB_TMPL_SELINUX_BASE, sysdb->domain->name);
+    if (!dn) return ENOMEM;
+
+    ret = sysdb_delete_recursive(sysdb, dn, true);
+    talloc_free(dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_delete_recursive failed.\n"));
+        return ret;
+    }
+
+    return EOK;
+}
 
 /* --- SYSDB SELinux search routines --- */
 errno_t sysdb_search_selinux_usermap_by_mapname(TALLOC_CTX *mem_ctx,

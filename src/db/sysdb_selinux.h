@@ -63,4 +63,6 @@ errno_t sysdb_search_selinux_config(TALLOC_CTX *mem_ctx,
                                     const char **attrs,
                                     struct ldb_message **_config);
 
+errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb);
+
 #endif
