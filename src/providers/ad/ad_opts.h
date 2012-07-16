@@ -134,7 +134,8 @@ struct dp_option ad_def_krb5_opts[] = {
     { "krb5_renew_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE }
+    { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    DP_OPTION_TERMINATOR
 };
 
 struct sdap_attr_map ad_2008r2_attr_map[] = {
