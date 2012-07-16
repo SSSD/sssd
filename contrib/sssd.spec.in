@@ -335,7 +335,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %endif
 
-dir %{_libdir}/%{name}
+%dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_ad.so
 %{_libdir}/%{name}/libsss_ipa.so
 %{_libdir}/%{name}/libsss_krb5.so
