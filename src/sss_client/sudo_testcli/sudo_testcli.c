@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     uid_t uid = 0;
     uint32_t error = 0;
 
-    if (argc > 3) {
+    if (argc != 2 && argc != 3) {
         fprintf(stderr, "Usage: sss_sudo_cli username [uid]\n");
         goto fail;
     }
