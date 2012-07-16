@@ -604,6 +604,30 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
     return ret;
 }
 
+int sysdb_attrs_copy_values(struct sysdb_attrs *src,
+                            struct sysdb_attrs *dst,
+                            const char *name)
+{
+    int ret = EOK;
+    int i;
+    struct ldb_message_element *src_el;
+
+    ret = sysdb_attrs_get_el(src, name, &src_el);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (i = 0; i < src_el->num_values; i++) {
+        ret = sysdb_attrs_add_val(dst, name, &src_el->values[i]);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+done:
+    return ret;
+}
+
 int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,
