@@ -30,6 +30,7 @@
 struct dp_option ad_basic_opts[] = {
     { "ad_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ad_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ad_backup_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ad_hostname", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING},

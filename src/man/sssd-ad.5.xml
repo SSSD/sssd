@@ -96,7 +96,7 @@ ldap_id_mapping = False
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ad_server (string)</term>
+                    <term>ad_server, ad_backup_server (string)</term>
                     <listitem>
                         <para>
                             The comma-separated list of IP addresses or

@@ -33,6 +33,7 @@ struct ad_options;
 enum ad_basic_opt {
     AD_DOMAIN = 0,
     AD_SERVER,
+    AD_BACKUP_SERVER,
     AD_HOSTNAME,
     AD_KEYTAB,
     AD_KRB5_REALM,
