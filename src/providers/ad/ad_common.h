@@ -73,7 +73,8 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
 
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
-                 const char *servers,
+                 const char *primary_servers,
+                 const char *backup_servers,
                  struct ad_options *options,
                  struct ad_service **_service);
 

@@ -144,19 +144,72 @@ done:
 static void
 ad_resolve_callback(void *private_data, struct fo_server *server);
 
+static errno_t
+ad_servers_init(TALLOC_CTX *mem_ctx,
+                struct be_ctx *bectx,
+                const char *servers,
+                struct ad_options *options,
+                bool primary)
+{
+    size_t i;
+    errno_t ret;
+    char **list;
+    char *ad_domain;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    /* Split the server list */
+    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    ad_domain = dp_opt_get_string(options->basic, AD_DOMAIN);
+
+    /* Add each of these servers to the failover service */
+    for (i = 0; list[i]; i++) {
+        if (be_fo_is_srv_identifier(list[i])) {
+            ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "ldap",
+                                       ad_domain, BE_FO_PROTO_TCP,
+                                       false, NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Failed to add service discovery to failover: [%s]",
+                       strerror(ret)));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_CONF_SETTINGS, ("Added service discovery for AD\n"));
+            continue;
+        }
+
+        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, NULL, primary);
+        if (ret && ret != EEXIST) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            goto done;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Added failover server %s\n", list[i]));
+    }
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
-                 const char *servers,
+                 const char *primary_servers,
+                 const char *backup_servers,
                  struct ad_options *options,
                  struct ad_service **_service)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     struct ad_service *service;
-    char *ad_domain;
     char *realm;
-    char **list;
-    size_t i;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -211,43 +264,31 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    if (!servers) {
-        servers = BE_SRV_IDENTIFIER;
+    if (!primary_servers) {
+        if (backup_servers) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("No primary servers defined but backup are present, "
+                   "setting backup servers as primary\n"));
+            primary_servers = backup_servers;
+            backup_servers = NULL;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("No primary or backup servers defined but backup are present, "
+                   "setting backup servers as primary\n"));
+            primary_servers = BE_SRV_IDENTIFIER;
+        }
     }
 
-    /* Split the server list */
-    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    ret = ad_servers_init(mem_ctx, bectx, primary_servers, options, true);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
         goto done;
     }
 
-    ad_domain = dp_opt_get_string(options->basic, AD_DOMAIN);
-
-    /* Add each of these servers to the failover service */
-    for (i = 0; list[i]; i++) {
-        if (be_fo_is_srv_identifier(list[i])) {
-            ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "ldap",
-                                       ad_domain, BE_FO_PROTO_TCP,
-                                       false, NULL);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Failed to add service discovery to failover: [%s]",
-                       strerror(ret)));
-                goto done;
-            }
-
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Added service discovery for AD\n"));
-            continue;
-        }
-
-        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, NULL);
-        if (ret && ret != EEXIST) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+    if (backup_servers) {
+        ret = ad_servers_init(mem_ctx, bectx, backup_servers, options, false);
+        if (ret != EOK) {
             goto done;
         }
-
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Added failover server %s\n", list[i]));
     }
 
     ret = be_fo_service_add_callback(mem_ctx, bectx, AD_SERVICE_NAME,

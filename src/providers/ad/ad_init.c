@@ -83,7 +83,7 @@ common_ad_init(struct be_ctx *bectx)
     ad_servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
 
     /* Set up the failover service */
-    ret = ad_failover_init(ad_options, bectx, ad_servers, ad_options,
+    ret = ad_failover_init(ad_options, bectx, ad_servers, NULL, ad_options,
                            &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
