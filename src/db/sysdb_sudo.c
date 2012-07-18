@@ -294,7 +294,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
     struct ldb_message *msg;
     char **sysdb_groupnames = NULL;
     struct ldb_message_element *groups;
-    uid_t uid;
+    uid_t uid = 0;
     int i;
 
     tmp_ctx = talloc_new(NULL);

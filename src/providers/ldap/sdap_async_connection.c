@@ -1310,7 +1310,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     int ret;
-    bool use_tls;
+    bool use_tls = true;
 
     switch (state->force_tls) {
     case CON_TLS_DFL:

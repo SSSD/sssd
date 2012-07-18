@@ -379,7 +379,7 @@ static enum sss_status sss_cli_make_request_nochecks(
 
 static bool sss_cli_check_version(const char *socket_name)
 {
-    uint8_t *repbuf;
+    uint8_t *repbuf = NULL;
     size_t replen;
     enum sss_status nret;
     int errnop;

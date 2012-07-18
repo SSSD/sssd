@@ -368,7 +368,7 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
     errno_t ret;
     int i, j;
     size_t order_count;
-    size_t len;
+    size_t len = 0;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {

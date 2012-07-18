@@ -578,7 +578,7 @@ done:
 struct sss_krb5_cc_be *
 get_cc_be_ops(enum sss_krb5_cc_type type)
 {
-    struct sss_krb5_cc_be *be;
+    struct sss_krb5_cc_be *be = NULL;
 
     switch (type) {
         case SSS_KRB5_TYPE_FILE:

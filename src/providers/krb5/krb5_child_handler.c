@@ -92,7 +92,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     size_t rp;
     const char *keytab;
     uint32_t validate;
-    size_t username_len;
+    size_t username_len = 0;
 
     keytab = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_KEYTAB);
     if (keytab == NULL) {

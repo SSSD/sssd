@@ -58,7 +58,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
     struct sss_dp_req_state *state;
     struct sss_dp_get_sudoers_info *info;
     errno_t ret;
-    char *key;
+    char *key = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct sss_dp_req_state);
     if (!req) {

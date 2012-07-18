@@ -437,8 +437,8 @@ static void sdap_sudo_reply(struct tevent_req *req)
 {
     struct be_req *be_req = NULL;
     struct be_sudo_req *sudo_req = NULL;
-    int dp_error;
-    int error;
+    int dp_error = DP_ERR_OK;
+    int error = EOK;
     int ret;
 
     be_req = tevent_req_callback_data(req, struct be_req);
@@ -926,8 +926,8 @@ static void sdap_sudo_periodical_first_refresh_done(struct tevent_req *req)
     struct tevent_req *subreq = NULL; /* req from sdap_sudo_full_refresh_send() */
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     time_t delay;
-    int dp_error;
-    int error;
+    int dp_error = DP_ERR_OK;
+    int error = EOK;
     int ret;
 
     ret = sdap_sudo_timer_recv(req, req, &subreq);
@@ -985,8 +985,8 @@ static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req)
     struct tevent_req *subreq = NULL; /* req from sdap_sudo_full_refresh_send() */
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     time_t delay;
-    int dp_error;
-    int error;
+    int dp_error = DP_ERR_OK;
+    int error = EOK;
     int ret;
 
     ret = sdap_sudo_timer_recv(req, req, &subreq);

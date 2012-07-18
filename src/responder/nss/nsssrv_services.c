@@ -597,7 +597,8 @@ fill_service(struct sss_packet *packet,
     errno_t ret;
     unsigned int msg_count = *count;
     size_t rzero, rsize, aptr;
-    unsigned int num, i, j;
+    unsigned int num = 0;
+    unsigned int i, j;
     uint32_t num_aliases, written_aliases;
     struct ldb_message *msg;
     struct ldb_message_element *el;
@@ -623,7 +624,6 @@ fill_service(struct sss_packet *packet,
     rzero = 2 * sizeof(uint32_t);
     rsize = 0;
 
-    num = 0;
     for (i = 0; i < msg_count; i++) {
         talloc_zfree(tmp_ctx);
         tmp_ctx = talloc_new(NULL);
@@ -1472,7 +1472,7 @@ static void
 setservent_step_done(struct tevent_req *req)
 {
     errno_t ret;
-    struct ldb_result *res;
+    struct ldb_result *res = NULL;
     struct setent_step_ctx *step_ctx =
             tevent_req_callback_data(req, struct setent_step_ctx);
     struct nss_dom_ctx *dctx = step_ctx->dctx;

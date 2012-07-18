@@ -102,12 +102,12 @@ static void ipa_session_handler_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sysdb_ctx *sysdb = breq->be_ctx->sysdb;
     errno_t ret, sret;
-    size_t map_count;
-    struct sysdb_attrs **maps;
+    size_t map_count = 0;
+    struct sysdb_attrs **maps = NULL;
     bool in_transaction = false;
-    char *default_user;
+    char *default_user = NULL;
     struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
-    char *map_order;
+    char *map_order = NULL;
 
     ret = ipa_get_selinux_recv(req, breq, &map_count, &maps,
                                &default_user, &map_order);

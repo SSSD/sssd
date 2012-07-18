@@ -460,7 +460,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     struct tevent_req *req = NULL; /* req from sdap_sudo_refresh_send() */
     struct sdap_sudo_refresh_state *state = NULL;
     struct sysdb_attrs **rules = NULL;
-    size_t rules_count;
+    size_t rules_count = 0;
     int ret;
     errno_t sret;
     bool in_transaction = false;

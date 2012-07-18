@@ -126,10 +126,10 @@ static errno_t sysdb_store_selinux_entity(struct sysdb_ctx *sysdb,
     struct ldb_message *msg;
     struct ldb_message *rm_msg;
     bool in_transaction = false;
-    const char *objectclass;
+    const char *objectclass = NULL;
     const char *name;
     char *clean_name;
-    struct ldb_dn *dn;
+    struct ldb_dn *dn = NULL;
     errno_t sret = EOK;
     errno_t ret;
     time_t now;
