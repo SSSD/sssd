@@ -494,7 +494,7 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
     }
 
     if (file_content) {
-        len = strlen(file_content);
+        len = strlen(file_content)+1;
         if (len > 0) {
             ret = pam_add_response(pd, SSS_PAM_SELINUX_MAP, len,
                                    (uint8_t *)file_content);
