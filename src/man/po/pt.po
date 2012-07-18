@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-07-10 15:55+0300\n"
-"PO-Revision-Date: 2012-05-22 13:44+0000\n"
-"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"POT-Creation-Date: 2012-07-18 21:31+0300\n"
+"PO-Revision-Date: 2012-07-10 14:18+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Portuguese <trans-pt@lists.fedoraproject.org>\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
@@ -188,16 +188,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:41
-#, fuzzy
-#| msgid ""
-#| "A line comment starts with a hash sign (<quote>#</quote>) or a semicolon "
-#| "(<quote>;</quote>)"
 msgid ""
 "A line comment starts with a hash sign (<quote>#</quote>) or a semicolon "
 "(<quote>;</quote>).  Inline comments are not supported."
 msgstr ""
-"Um comentário de linha começa com um sinal de hash (<quote>#</quote>) ou um "
-"ponto e vírgula (<quote>;</quote>)"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:47
@@ -550,7 +544,7 @@ msgstr ""
 msgid ""
 "This option specifies the number of seconds that a client of an SSSD process "
 "can hold onto a file descriptor without communicating on it. This value is "
-"limited in order to avoid resource exhasution on the system."
+"limited in order to avoid resource exhaustion on the system."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
@@ -863,10 +857,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:552
-#, fuzzy
-#| msgid "entry_cache_timeout (integer)"
 msgid "memcache_timeout (int)"
-msgstr "entry_cache_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:555
@@ -1156,10 +1148,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:826
-#, fuzzy
-#| msgid "allowed_shells (string)"
 msgid "allowed_uids (string)"
-msgstr "allowed_shells (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:829
@@ -1340,10 +1330,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:988
-#, fuzzy
-#| msgid "entry_cache_timeout (integer)"
 msgid "entry_cache_sudo_timeout (integer)"
-msgstr "entry_cache_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:991
@@ -1918,10 +1906,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1492
-#, fuzzy
-#| msgid "Default: <filename>/home</filename>"
 msgid "Default: <filename>/home/%d/%u</filename>"
-msgstr "Padrão: <filename>/ home</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:855
@@ -4298,10 +4284,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1926
-#, fuzzy
-#| msgid "ldap_enumeration_refresh_timeout (integer)"
 msgid "ldap_sudo_full_refresh_interval (integer)"
-msgstr "ldap_enumeration_refresh_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1929
@@ -4319,17 +4303,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1939
-#, fuzzy
-#| msgid "Default: 10800 (12 hours)"
 msgid "Default: 21600 (6 hours)"
-msgstr "Padrão: 10800 (12 horas)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1945
-#, fuzzy
-#| msgid "ldap_enumeration_refresh_timeout (integer)"
 msgid "ldap_sudo_smart_refresh_interval (integer)"
-msgstr "ldap_enumeration_refresh_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1948
@@ -4348,10 +4328,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1964
-#, fuzzy
-#| msgid "ldap_id_use_start_tls (boolean)"
 msgid "ldap_sudo_use_host_filter (boolean)"
-msgstr "ldap_id_use_start_tls (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1967
@@ -4362,10 +4340,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1978
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ldap_sudo_hostnames (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1981
@@ -4391,17 +4367,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1996 sssd-ldap.5.xml:2019
-#, fuzzy
-#| msgid "Default: none"
 msgid "Default: not specified"
-msgstr "Padrão: none"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2002
-#, fuzzy
-#| msgid "ldap_uri (string)"
 msgid "ldap_sudo_ip (string)"
-msgstr "ldap_uri (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2005
@@ -4419,10 +4391,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2025
-#, fuzzy
-#| msgid "ldap_id_use_start_tls (boolean)"
 msgid "ldap_sudo_include_netgroups (boolean)"
-msgstr "ldap_id_use_start_tls (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2028
@@ -4433,10 +4403,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2043
-#, fuzzy
-#| msgid "ldap_krb5_init_creds (boolean)"
 msgid "ldap_sudo_include_regexp (boolean)"
-msgstr "ldap_krb5_init_creds (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2046
@@ -5218,10 +5186,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:218
-#, fuzzy
-#| msgid "ipa_hbac_search_base (string)"
 msgid "ipa_master_domain_search_base (string)"
-msgstr "ipa_hbac_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:221
@@ -5636,20 +5602,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ad.5.xml:10 sssd-ad.5.xml:16
-#, fuzzy
-#| msgid "sssd-ldap"
 msgid "sssd-ad"
-msgstr "sssd-ldap"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:23
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>"
 msgid ""
 "This manual page describes the configuration of the AD provider for "
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
@@ -5657,10 +5614,6 @@ msgid ""
 "FORMAT</quote> section of the <citerefentry> <refentrytitle>sssd.conf</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
-"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:36
@@ -5679,13 +5632,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:45
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>"
 msgid ""
 "The AD provider accepts the same options used by the <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -5693,10 +5639,6 @@ msgid ""
 "krb5</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> authentication "
 "provider with some exceptions described below."
 msgstr ""
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:57
@@ -5708,10 +5650,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:73
-#, fuzzy
-#| msgid "ipa_domain (string)"
 msgid "ad_domain (string)"
-msgstr "ipa_domain (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:76
@@ -5729,10 +5669,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:89
-#, fuzzy
-#| msgid "ipa_server (string)"
 msgid "ad_server (string)"
-msgstr "ipa_server (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:92
@@ -5746,10 +5684,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:105
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ad_hostname (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:108
@@ -7780,163 +7716,3 @@ msgid ""
 "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>."
 msgstr ""
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#~ "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#~ "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>."
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>"
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>"
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
-#~ "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sssd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ldap</"
-#~ "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sssd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>"
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>."
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>."
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."

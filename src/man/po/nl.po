@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-07-10 15:55+0300\n"
-"PO-Revision-Date: 2012-05-22 13:44+0000\n"
-"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"POT-Creation-Date: 2012-07-18 21:31+0300\n"
+"PO-Revision-Date: 2012-07-10 14:18+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/projects/p/fedora/language/"
 "nl/)\n"
 "Language: nl\n"
@@ -194,16 +194,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:41
-#, fuzzy
-#| msgid ""
-#| "A line comment starts with a hash sign (<quote>#</quote>) or a semicolon "
-#| "(<quote>;</quote>)"
 msgid ""
 "A line comment starts with a hash sign (<quote>#</quote>) or a semicolon "
 "(<quote>;</quote>).  Inline comments are not supported."
 msgstr ""
-"Een regel met kommentaar begint met een hekje (<quote>#</quote>) of een "
-"puntkomma (<quote>;</quote>)"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:47
@@ -317,16 +311,10 @@ msgstr "re_expression (tekst)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:127
-#, fuzzy
-#| msgid ""
-#| "Regular expression that describes how to parse the string containing user "
-#| "name and domain into these components."
 msgid ""
 "Default regular expression that describes how to parse the string containing "
 "user name and domain into these components."
 msgstr ""
-"Reguliere expressie die omschrijft hoe de tekst die de gebruikers- en "
-"domeinnaam verwerkt moeten worden."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:131
@@ -342,19 +330,11 @@ msgstr "full_name_format (tekst)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:140
-#, fuzzy
-#| msgid ""
-#| "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
-#| "manvolnum> </citerefentry>-compatible format that describes how to "
-#| "translate a (name, domain) tuple into a fully qualified name."
 msgid ""
 "The default <citerefentry> <refentrytitle>printf</refentrytitle> "
 "<manvolnum>3</manvolnum> </citerefentry>-compatible format that describes "
 "how to translate a (name, domain) tuple into a fully qualified name."
 msgstr ""
-"Een <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
-"manvolnum> </citerefentry>-compatibel formaat wat omschrijft hoe een tuple "
-"(met name, domain) vertaald wordt in een full qualified name."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:148
@@ -583,7 +563,7 @@ msgstr ""
 msgid ""
 "This option specifies the number of seconds that a client of an SSSD process "
 "can hold onto a file descriptor without communicating on it. This value is "
-"limited in order to avoid resource exhasution on the system."
+"limited in order to avoid resource exhaustion on the system."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
@@ -900,10 +880,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:552
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "memcache_timeout (int)"
-msgstr "enum_cache_timeout (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:555
@@ -1153,10 +1131,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:793
-#, fuzzy
-#| msgid "NSS configuration options"
 msgid "PAC responder configuration options"
-msgstr "NSS configuratie-opties"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:799
@@ -1190,10 +1166,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:822
-#, fuzzy
-#| msgid "These options can be used to configure any service."
 msgid "These options can be used to configure the PAC responder."
-msgstr "Deze opties kunnen gebruikt worden om services te configureren."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:826
@@ -1379,10 +1353,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:988
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "entry_cache_sudo_timeout (integer)"
-msgstr "enum_cache_timeout (numeriek)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:991
@@ -1783,16 +1755,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1344
-#, fuzzy
-#| msgid ""
-#| "Regular expression that describes how to parse the string containing user "
-#| "name and domain into these components."
 msgid ""
 "Regular expression for this domain that describes how to parse the string "
 "containing user name and domain into these components."
 msgstr ""
-"Reguliere expressie die omschrijft hoe de tekst die de gebruikers- en "
-"domeinnaam verwerkt moeten worden."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1348
@@ -1824,19 +1790,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1370
-#, fuzzy
-#| msgid ""
-#| "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
-#| "manvolnum> </citerefentry>-compatible format that describes how to "
-#| "translate a (name, domain) tuple into a fully qualified name."
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to translate "
 "a (name, domain) tuple for this domain into a fully qualified name."
 msgstr ""
-"Een <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
-"manvolnum> </citerefentry>-compatibel formaat wat omschrijft hoe een tuple "
-"(met name, domain) vertaald wordt in een full qualified name."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1378
@@ -4342,10 +4300,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1939
-#, fuzzy
-#| msgid "Default: 120"
 msgid "Default: 21600 (6 hours)"
-msgstr "Standaard: 120"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1945
@@ -4408,10 +4364,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1996 sssd-ldap.5.xml:2019
-#, fuzzy
-#| msgid "Default: true"
 msgid "Default: not specified"
-msgstr "Standaard: true"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2002
@@ -5675,10 +5629,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:73
-#, fuzzy
-#| msgid "full_name_format (string)"
 msgid "ad_domain (string)"
-msgstr "full_name_format (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:76
@@ -5696,10 +5648,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:89
-#, fuzzy
-#| msgid "re_expression (string)"
 msgid "ad_server (string)"
-msgstr "re_expression (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:92
@@ -5713,10 +5663,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:105
-#, fuzzy
-#| msgid "full_name_format (string)"
 msgid "ad_hostname (string)"
-msgstr "full_name_format (tekst)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:108
@@ -7727,24 +7675,3 @@ msgid ""
 "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>."
 msgstr ""
-
-#~ msgid ""
-#~ "<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
-#~ msgstr ""
-#~ "<citerefentry> <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</"
-#~ "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#~ "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#~ "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#~ "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."

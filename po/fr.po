@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-07-10 15:56+0200\n"
-"PO-Revision-Date: 2012-06-01 19:48+0000\n"
+"PO-Revision-Date: 2012-07-18 14:02+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
@@ -64,7 +64,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "durée d'inactivité avant la déconnexion automatique d'un client"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
@@ -163,7 +163,7 @@ msgstr "Shell à utiliser si le fournisseur n'en propose aucun"
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "Durée de maintien en cache des enregistrements valides"
 
 #: src/config/SSSDConfig/__init__.py.in:75
 msgid "How long to allow cached logins between online logins (days)"
@@ -213,6 +213,7 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:92
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr ""
+"Listes des UID ou nom d'utilisateurs autorisés à accéder le répondeur PAC"
 
 #: src/config/SSSDConfig/__init__.py.in:95
 msgid "Identity provider"
@@ -357,24 +358,26 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:136
 msgid "Search base for object containing info about IPA domain"
 msgstr ""
+"Base de recherche pour l'objet contenant les informations de base à propos "
+"du domaine IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:137
 msgid "Search base for objects containing info about ID ranges"
 msgstr ""
+"Base de recherche pour les objets contenant les informations à propos des "
+"plages d'ID"
 
 #: src/config/SSSDConfig/__init__.py.in:140
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Domaine Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:141
-#, fuzzy
 msgid "Active Directory server address"
-msgstr "Adresse du serveur Kerberos"
+msgstr "Adresse du serveur Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:142
-#, fuzzy
 msgid "Active Directory client hostname"
-msgstr "Nom de système du client IPA"
+msgstr "Nom de système du client Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 #: src/config/SSSDConfig/__init__.py.in:146
@@ -863,14 +866,14 @@ msgid "SID of the default domain for ID-mapping"
 msgstr "SID du domaine par défaut pour la correspondance d'ID"
 
 #: src/config/SSSDConfig/__init__.py.in:286
-#, fuzzy
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr "DN de base pour les recherches de groupes"
+msgstr "Utiliser LDAP_MATCHING_RULE_IN_CHAIN pour les recherches de groupes"
 
 #: src/config/SSSDConfig/__init__.py.in:287
-#, fuzzy
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr "DN de base pour les recherches de netgroup"
+msgstr ""
+"Utiliser LDAP_MATCHING_RULE_IN_CHAIN pour les recherches de groupes "
+"d'initialisation"
 
 #: src/config/SSSDConfig/__init__.py.in:290
 msgid "Policy to evaluate the password expiration"
@@ -902,36 +905,41 @@ msgstr "Nom de domaine (DN) de base pour les recherches de règles sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:303
 msgid "Automatic full refresh period"
-msgstr ""
+msgstr "Périodicité de rafraichissement total"
 
 #: src/config/SSSDConfig/__init__.py.in:304
 msgid "Automatic smart refresh period"
-msgstr ""
+msgstr "Périodicité de rafraichissement intelligent"
 
 #: src/config/SSSDConfig/__init__.py.in:305
-#, fuzzy
 msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
-"Condenser ou non les noms de systèmes et adresses du fichier known_hosts"
+msgstr "Filter ou non sur les noms de systèmes, adresses IP et réseaux"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
+"Noms de systèmes et/ou noms pleinement qualifiés de cette machine pour "
+"filtrer les règles sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:307
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
+"Adresses ou réseaux IPv4 ou IPv6 de cette machine pour filtrer les règles "
+"sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:308
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
+"Inclure ou non les règles qui contiennent un netgroup dans l'attribut host"
 
 #: src/config/SSSDConfig/__init__.py.in:309
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
+"Inclure ou non les règles qui contiennent une expression rationnelle dans "
+"l'attribut host"
 
 #: src/config/SSSDConfig/__init__.py.in:310
 msgid "Object class for sudo rules"
@@ -1201,7 +1209,7 @@ msgstr "Le port à utiliser pour se connecter à l'hôte"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:238
 msgid "Invalid port\n"
-msgstr ""
+msgstr "Port invalide\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:243
 msgid "Host not specified\n"
@@ -1725,30 +1733,3 @@ msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "
 "standard"
-
-#~ msgid ""
-#~ "How many seconds to keep sudorules cached before asking the provider again"
-#~ msgstr ""
-#~ "Durée, en secondes, pendant laquelle les règles sudo sont mises en cache "
-#~ "avant de demander au fournisseur à nouveau"
-
-#~ msgid "Enable periodical update of all sudo rules"
-#~ msgstr "Activer la mise à jour périodique de toutes les règles sudo"
-
-#~ msgid "Length of time between rules updates"
-#~ msgstr "Intervalle de temps entre deux mises à jour de règles"
-
-#~ msgid "Failed to open a socket\n"
-#~ msgstr "Échec lors de l'ouverture du socket\n"
-
-#~ msgid "Failed to connect to the server\n"
-#~ msgstr "Échec lors de la connexion au serveur\n"
-
-#~ msgid "Failed to execute proxy command\n"
-#~ msgstr "Échec lors de l'exécution de la commande proxy\n"
-
-#~ msgid "Host name cannot be resolved\n"
-#~ msgstr "Le nom du système ne peut être résolu\n"
-
-#~ msgid "Reverse lookup failed\n"
-#~ msgstr "Échec de la recherche inverse\n"

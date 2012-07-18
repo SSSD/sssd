@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-07-10 15:56+0200\n"
-"PO-Revision-Date: 2012-05-22 13:42+0000\n"
-"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"PO-Revision-Date: 2012-07-12 22:09+0000\n"
+"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -53,7 +53,7 @@ msgstr "データプロバイダーの接続を試行する回数"
 
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "The number of file descriptors that may be opened by this responder"
-msgstr ""
+msgstr "このレスポンダーににより開かれるファイル記述子の数"
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Idle time before automatic disconnection of a client"
@@ -333,14 +333,12 @@ msgid "Active Directory domain"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:141
-#, fuzzy
 msgid "Active Directory server address"
-msgstr "Kerberos サーバーのアドレス"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:142
-#, fuzzy
 msgid "Active Directory client hostname"
-msgstr "IPA クライアントのホスト名"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:145
 #: src/config/SSSDConfig/__init__.py.in:146
@@ -817,14 +815,12 @@ msgid "SID of the default domain for ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:286
-#, fuzzy
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr "グループ検索のベース DN"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:287
-#, fuzzy
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr "ネットグループ検索のベース DN"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:290
 msgid "Policy to evaluate the password expiration"
@@ -1068,7 +1064,7 @@ msgstr ""
 #: src/sss_client/pam_sss.c:687
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
-msgstr ""
+msgstr "あなたのパスワードは %1$d %2$s に危険が切れます。"
 
 #: src/sss_client/pam_sss.c:736
 msgid "Authentication is denied until: "
@@ -1148,7 +1144,7 @@ msgstr "ホストへの接続に使用するポート"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:238
 msgid "Invalid port\n"
-msgstr ""
+msgstr "無効なポート\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:243
 msgid "Host not specified\n"
@@ -1239,7 +1235,7 @@ msgstr "グループがユーザーと同じドメインになければいけま
 #: src/tools/sss_useradd.c:153
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
-msgstr ""
+msgstr "ローカルドメインにグループ %1$s を見つけられません\n"
 
 #: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1266,12 +1262,12 @@ msgstr ""
 #: src/tools/sss_useradd.c:232
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
-msgstr ""
+msgstr "ユーザーのホームディレクトリーを作成できません: %1$s\n"
 
 #: src/tools/sss_useradd.c:243
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
-msgstr ""
+msgstr "ユーザーのメールスプールを作成できません: %1$s\n"
 
 #: src/tools/sss_useradd.c:255
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1384,7 +1380,7 @@ msgstr "トランザクションエラー。グループを変更できません
 #: src/tools/sss_groupshow.c:598
 #, c-format
 msgid "%1$s%2$sGroup: %3$s\n"
-msgstr ""
+msgstr "%1$s%2$s グループ: %3$s\n"
 
 #: src/tools/sss_groupshow.c:599
 msgid "Magic Private "
@@ -1393,7 +1389,7 @@ msgstr "マジックプライベート "
 #: src/tools/sss_groupshow.c:601
 #, c-format
 msgid "%1$sGID number: %2$d\n"
-msgstr ""
+msgstr "%1$s GID 番号: %2$d\n"
 
 #: src/tools/sss_groupshow.c:603
 #, c-format
@@ -1406,6 +1402,8 @@ msgid ""
 "\n"
 "%1$sIs a member of: "
 msgstr ""
+"\n"
+"%1$s は次のメンバー: "
 
 #: src/tools/sss_groupshow.c:617
 #, c-format
@@ -1413,6 +1411,8 @@ msgid ""
 "\n"
 "%1$sMember groups: "
 msgstr ""
+"\n"
+"%1$s メンバーグループ: "
 
 #: src/tools/sss_groupshow.c:653
 msgid "Print indirect group members recursively"
@@ -1551,7 +1551,7 @@ msgstr "トランザクションエラー。ユーザーを変更できません
 
 #: src/tools/sss_cache.c:138
 msgid "No cache object matched the specified search\n"
-msgstr ""
+msgstr "指定された検索に一致するキャッシュオブジェクトがありません\n"
 
 #: src/tools/sss_cache.c:172
 #, c-format
@@ -1566,12 +1566,12 @@ msgstr ""
 #: src/tools/sss_cache.c:187
 #, c-format
 msgid "Couldn't invalidate %1$s"
-msgstr ""
+msgstr "%1$s を無効化できませんでした"
 
 #: src/tools/sss_cache.c:194
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
-msgstr ""
+msgstr "%1$s %2$s を無効化できませんでした"
 
 #: src/tools/sss_cache.c:323
 msgid "Invalidate particular user"
@@ -1599,19 +1599,19 @@ msgstr "すべてのネットワークグループを無効にする"
 
 #: src/tools/sss_cache.c:335
 msgid "Invalidate particular service"
-msgstr ""
+msgstr "特定のサービスの無効化"
 
 #: src/tools/sss_cache.c:337
 msgid "Invalidate all services"
-msgstr ""
+msgstr "すべてのサービスの無効化"
 
 #: src/tools/sss_cache.c:340
 msgid "Invalidate particular autofs map"
-msgstr ""
+msgstr "特定の autofs マップの無効化"
 
 #: src/tools/sss_cache.c:342
 msgid "Invalidate all autofs maps"
-msgstr ""
+msgstr "すべての autofs マップの無効化"
 
 #: src/tools/sss_cache.c:345
 msgid "Only invalidate entries from a particular domain"
@@ -1624,7 +1624,7 @@ msgstr ""
 #: src/tools/sss_cache.c:455
 #, c-format
 msgid "Could not open domain %1$s\n"
-msgstr ""
+msgstr "ドメイン %1$s を開けませんでした\n"
 
 #: src/tools/sss_cache.c:457
 msgid "Could not open available domains\n"
@@ -1645,33 +1645,8 @@ msgstr "メモリー不足\n"
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%1$s must be run as root\n"
-msgstr ""
+msgstr "%1$s は root として実行する必要があります\n"
 
 #: src/util/util.h:93
 msgid "Send the debug output to files instead of stderr"
 msgstr "デバッグ出力を標準エラーの代わりにファイルに送信する"
-
-#~ msgid ""
-#~ "How many seconds to keep sudorules cached before asking the provider again"
-#~ msgstr "再びプロバイダーに問い合わせる前に sudo ルールをキャッシュする秒数"
-
-#~ msgid "Enable periodical update of all sudo rules"
-#~ msgstr "すべての sudo ルールの定期更新を有効にする"
-
-#~ msgid "Length of time between rules updates"
-#~ msgstr "ルールの更新間隔"
-
-#~ msgid "Failed to open a socket\n"
-#~ msgstr "ソケットのオープンに失敗しました\n"
-
-#~ msgid "Failed to connect to the server\n"
-#~ msgstr "サーバーへの接続に失敗しました\n"
-
-#~ msgid "Failed to execute proxy command\n"
-#~ msgstr "プロキシーコマンドの実行に失敗しました\n"
-
-#~ msgid "Host name cannot be resolved\n"
-#~ msgstr "ホスト名が解決できません\n"
-
-#~ msgid "Reverse lookup failed\n"
-#~ msgstr "逆引きに失敗しました\n"

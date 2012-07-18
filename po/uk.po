@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-07-10 15:56+0200\n"
-"PO-Revision-Date: 2012-05-22 15:07+0000\n"
+"PO-Revision-Date: 2012-07-10 14:39+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -62,6 +62,7 @@ msgstr "Кількість дескрипторів файлів, які мож�
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Idle time before automatic disconnection of a client"
 msgstr ""
+"Проміжок бездіяльності до автоматичного від’єднання клієнтської частини"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
@@ -156,7 +157,7 @@ msgstr "Оболонка, яку слід використовувати, якщ
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "Строк дії записів кешу у пам’яті"
 
 #: src/config/SSSDConfig/__init__.py.in:75
 msgid "How long to allow cached logins between online logins (days)"
@@ -205,6 +206,8 @@ msgstr "Чи слід хешувати назви та адреси вузлів
 #: src/config/SSSDConfig/__init__.py.in:92
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr ""
+"Список унікальних ідентифікаторів (UID) або імен користувачів, яким надано "
+"доступ до відповідача PAC"
 
 #: src/config/SSSDConfig/__init__.py.in:95
 msgid "Identity provider"
@@ -353,25 +356,23 @@ msgstr "Адреса автоматичного монтування, яку в�
 
 #: src/config/SSSDConfig/__init__.py.in:136
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
+msgstr "Шукати у базі об’єкт, що містить дані щодо домену IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:137
 msgid "Search base for objects containing info about ID ranges"
-msgstr ""
+msgstr "Шукати у базі об’єкти, що містять дані щодо діапазонів ідентифікаторів"
 
 #: src/config/SSSDConfig/__init__.py.in:140
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Домен Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:141
-#, fuzzy
 msgid "Active Directory server address"
-msgstr "Адреса сервера Kerberos"
+msgstr "Адреса сервера Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:142
-#, fuzzy
 msgid "Active Directory client hostname"
-msgstr "Назва вузла клієнта IPA"
+msgstr "Назва клієнтського вузла Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 #: src/config/SSSDConfig/__init__.py.in:146
@@ -864,14 +865,14 @@ msgid "SID of the default domain for ID-mapping"
 msgstr "SID типового домену для встановлення відповідності ідентифікаторів"
 
 #: src/config/SSSDConfig/__init__.py.in:286
-#, fuzzy
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr "Базова назва домену для пошуків груп"
+msgstr "Використовувати LDAP_MATCHING_RULE_IN_CHAIN щодо пошуків груп (group)"
 
 #: src/config/SSSDConfig/__init__.py.in:287
-#, fuzzy
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr "Базова назва домену для пошуків груп у мережі"
+msgstr ""
+"Використовувати LDAP_MATCHING_RULE_IN_CHAIN щодо пошуків початкових груп "
+"(initgroup)"
 
 #: src/config/SSSDConfig/__init__.py.in:290
 msgid "Policy to evaluate the password expiration"
@@ -905,35 +906,44 @@ msgstr "Базова назва домену для пошуків правил 
 
 #: src/config/SSSDConfig/__init__.py.in:303
 msgid "Automatic full refresh period"
-msgstr ""
+msgstr "Період автоматичного повного оновлення даних"
 
 #: src/config/SSSDConfig/__init__.py.in:304
 msgid "Automatic smart refresh period"
-msgstr ""
+msgstr "Період автоматичного кмітливого оновлення даних"
 
 #: src/config/SSSDConfig/__init__.py.in:305
-#, fuzzy
 msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr "Чи слід хешувати назви та адреси вузлів у файлі known_hosts"
+msgstr ""
+"Визначає, чи слід фільтрувати правила за назвами вузлів, IP-адресами та "
+"мережами"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
+"Назви вузлів і/або повні назви у домені для цього комп’ютера для "
+"фільтрування списку правил sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:307
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
+"Адреси IPv4 або IPv6 чи мережа цього комп’ютера для фільтрування списку "
+"правил sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:308
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
+"Визначає, чи слід включати правила, що містять мережеву групу у атрибуті "
+"вузла"
 
 #: src/config/SSSDConfig/__init__.py.in:309
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
+"Визначає, чи слід включати правила, що містять формальний вираз у атрибуті "
+"вузла"
 
 #: src/config/SSSDConfig/__init__.py.in:310
 msgid "Object class for sudo rules"
@@ -1201,7 +1211,7 @@ msgstr "Порт, яким слід користуватися для встан
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:238
 msgid "Invalid port\n"
-msgstr ""
+msgstr "Некоректний порт.\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:243
 msgid "Host not specified\n"
@@ -1718,30 +1728,3 @@ msgstr "%1$s слід запускати від імені користувач�
 #: src/util/util.h:93
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
-
-#~ msgid ""
-#~ "How many seconds to keep sudorules cached before asking the provider again"
-#~ msgstr ""
-#~ "Тривалість зберігання правил sudo у кеші. Щойно сплине цей проміжок часу, "
-#~ "запит до служби буде надіслано знову."
-
-#~ msgid "Enable periodical update of all sudo rules"
-#~ msgstr "Увімкнути періодичні оновлення всіх правил sudo"
-
-#~ msgid "Length of time between rules updates"
-#~ msgstr "Проміжок часу між оновленнями правил"
-
-#~ msgid "Failed to open a socket\n"
-#~ msgstr "Не вдалося відкрити сокет\n"
-
-#~ msgid "Failed to connect to the server\n"
-#~ msgstr "Не вдалося встановити з’єднання з сервером\n"
-
-#~ msgid "Failed to execute proxy command\n"
-#~ msgstr "Не вдалося виконати команду проксі-сервера\n"
-
-#~ msgid "Host name cannot be resolved\n"
-#~ msgstr "Не вдалося визначити назву вузла\n"
-
-#~ msgid "Reverse lookup failed\n"
-#~ msgstr "Спроба зворотного пошуку зазнала невдачі\n"

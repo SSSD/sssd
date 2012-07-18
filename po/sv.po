@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-07-10 15:56+0200\n"
-"PO-Revision-Date: 2012-05-22 13:42+0000\n"
-"Last-Translator: sgallagh <sgallagh@redhat.com>\n"
+"PO-Revision-Date: 2012-07-10 14:15+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/fedora/language/"
 "sv/)\n"
 "Language: sv\n"
@@ -330,14 +330,12 @@ msgid "Active Directory domain"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:141
-#, fuzzy
 msgid "Active Directory server address"
-msgstr "Kerberosserveradress"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:142
-#, fuzzy
 msgid "Active Directory client hostname"
-msgstr "IPA-klienvärdnamn"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:145
 #: src/config/SSSDConfig/__init__.py.in:146

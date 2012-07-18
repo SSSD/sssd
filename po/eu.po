@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-07-10 15:56+0200\n"
-"PO-Revision-Date: 2012-07-03 22:14+0000\n"
-"Last-Translator: Asier Iturralde Sarasola <asier.iturralde@gmail.com>\n"
+"PO-Revision-Date: 2012-07-10 14:15+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Basque (http://www.transifex.com/projects/p/fedora/language/"
 "eu/)\n"
 "Language: eu\n"
@@ -330,14 +330,12 @@ msgid "Active Directory domain"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:141
-#, fuzzy
 msgid "Active Directory server address"
-msgstr "IPA zerbitzariaren helbidea"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:142
-#, fuzzy
 msgid "Active Directory client hostname"
-msgstr "IPA bezeroaren ostalari-izena"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:145
 #: src/config/SSSDConfig/__init__.py.in:146
@@ -1623,9 +1621,3 @@ msgstr ""
 #: src/util/util.h:93
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
-
-#~ msgid "Failed to connect to the server\n"
-#~ msgstr "Huts egin du zerbitzarira konektatzean\n"
-
-#~ msgid "Failed to execute proxy command\n"
-#~ msgstr "Huts egin du proxy komandoa exekutatzean\n"
