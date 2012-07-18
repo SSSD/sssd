@@ -46,9 +46,10 @@ struct ipa_get_selinux_state {
     struct sysdb_attrs *user;
 
     struct sysdb_attrs *defaults;
+    struct sysdb_attrs **selinuxmaps;
+    size_t nmaps;
 
     struct sysdb_attrs **possible_match;
-    struct sysdb_attrs **confirmed_match;
 };
 
 static struct
@@ -117,6 +118,13 @@ static void ipa_session_handler_done(struct tevent_req *req)
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) goto fail;
     in_transaction = true;
+
+    ret = sysdb_delete_usermaps(breq->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Cannot delete existing maps from sysdb\n"));
+        goto fail;
+    }
 
     if (default_user != NULL && map_order != NULL) {
         ret = sysdb_store_selinux_config(sysdb, default_user, map_order);
@@ -369,10 +377,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     struct be_ctx *bctx;
     struct ipa_id_ctx *id_ctx;
 
-    struct sysdb_attrs **results;
-    size_t count;
     const char *tmp_str;
-    size_t conf_cnt = 0;
     size_t pos_cnt = 0;
     uint32_t priority = 0;
     errno_t ret;
@@ -383,7 +388,8 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     bctx = state->be_req->be_ctx;
     id_ctx = state->session_ctx->id_ctx;
 
-    ret = ipa_selinux_get_maps_recv(subreq, state, &count, &results);
+    ret = ipa_selinux_get_maps_recv(subreq, state,
+                                    &state->nmaps, &state->selinuxmaps);
     talloc_free(subreq);
     if (ret != EOK) {
         if (ret == ENOENT) {
@@ -395,62 +401,46 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found %d SELinux user maps in total, "
-                              "filtering ...\n", count));
-    state->confirmed_match = talloc_zero_array(state, struct sysdb_attrs *,
-                                               count + 1);
+    DEBUG(SSSDBG_TRACE_FUNC,
+         ("Found %d SELinux user maps\n", state->nmaps));
     state->possible_match = talloc_zero_array(state, struct sysdb_attrs *,
-                                              count + 1);
-    if (state->confirmed_match == NULL || state->possible_match == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    for (i = 0; i < count; i++) {
-        if (sss_selinux_match(results[i], state->user, state->host, &priority)) {
-            priority &= ~(SELINUX_PRIORITY_USER_NAME |
-                          SELINUX_PRIORITY_USER_GROUP |
-                          SELINUX_PRIORITY_USER_CAT);
-            ret = sysdb_attrs_add_uint32(results[i],
-                                         SYSDB_SELINUX_HOST_PRIORITY,
-                                         priority);
-            if (ret != EOK) {
-                goto done;
-            }
-
-            state->confirmed_match[conf_cnt] = talloc_steal(state->confirmed_match,
-                                                            results[i]);
-            conf_cnt++;
-            continue;
-        }
-
-        ret = sysdb_attrs_get_string(results[i], SYSDB_SELINUX_SEEALSO, &tmp_str);
-        if (ret == ENOENT) {
-            continue;
-        }
-
-        state->possible_match[pos_cnt] = talloc_steal(state->possible_match,
-                                                      results[i]);
-        pos_cnt++;
-    }
-    DEBUG(SSSDBG_TRACE_FUNC, ("Filtering done. Results: %d confirmed and %d "
-                              "possible maps remained.\n", conf_cnt, pos_cnt));
-
-    /* Don't shrink the confirmed list, it could be later filled by HBAC rules */
-    state->possible_match = talloc_realloc(state, state->possible_match,
-                                           struct sysdb_attrs *, pos_cnt + 1);
+                                              state->nmaps + 1);
     if (state->possible_match == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* This will free all rules that are neither confirmed nor possible */
-    talloc_free(results);
+    for (i = 0; i < state->nmaps; i++) {
+        if (sss_selinux_match(state->selinuxmaps[i], state->user,
+                              state->host, &priority)) {
+            priority &= ~(SELINUX_PRIORITY_USER_NAME |
+                          SELINUX_PRIORITY_USER_GROUP |
+                          SELINUX_PRIORITY_USER_CAT);
+            ret = sysdb_attrs_add_uint32(state->selinuxmaps[i],
+                                         SYSDB_SELINUX_HOST_PRIORITY,
+                                         priority);
+            if (ret != EOK) {
+                goto done;
+            }
+            continue;
+        }
+
+        ret = sysdb_attrs_get_string(state->selinuxmaps[i],
+                                     SYSDB_SELINUX_SEEALSO, &tmp_str);
+        if (ret == ENOENT) {
+            continue;
+        }
+
+        state->possible_match[pos_cnt] = state->selinuxmaps[i];
+        pos_cnt++;
+    }
 
     if (pos_cnt) {
         /* FIXME: detect if HBAC is configured
          * - if yes, we can skip HBAC retrieval and get it directly from sysdb
          */
+        DEBUG(SSSDBG_TRACE_FUNC, ("%d SELinux maps referenced an HBAC rule. "
+              "Need to refresh HBAC rules\n", pos_cnt));
         subreq = ipa_hbac_rule_info_send(state, false, bctx->ev,
                                          sdap_id_op_handle(state->op),
                                          id_ctx->sdap_id_ctx->opts,
@@ -485,8 +475,6 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     const char *hbac_dn;
     const char *seealso_dn;
     size_t rule_count;
-    size_t conf_cnt;
-    size_t pos_cnt;
     uint32_t priority = 0;
     errno_t ret;
     int i, j;
@@ -497,8 +485,6 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     if (ret != EOK) {
         goto done;
     }
-    for (conf_cnt = 0 ; state->confirmed_match[conf_cnt]; conf_cnt++) ;
-    for (pos_cnt = 0 ; state->possible_match[pos_cnt]; pos_cnt++) ;
 
     for (i = 0; i < rule_count; i++) {
         if (!sss_selinux_match(rules[i], state->user, state->host, &priority)) {
@@ -543,9 +529,6 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
                     goto done;
                 }
 
-                state->confirmed_match[conf_cnt++] = talloc_steal(
-                                                        state->confirmed_match,
-                                                        usermap);
                 /* Just to boost the following lookup */
                 state->possible_match[j] = NULL;
 
@@ -586,7 +569,6 @@ ipa_get_selinux_recv(struct tevent_req *req,
             tevent_req_data(req, struct ipa_get_selinux_state);
     const char *tmp_str;
     errno_t ret;
-    int i;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -618,11 +600,9 @@ ipa_get_selinux_recv(struct tevent_req *req,
         *default_user = NULL;
     }
 
-    if (state->confirmed_match != NULL) {
-        for (i = 0; state->confirmed_match[i]; i++) ;
-
-        *count = i;
-        *maps = talloc_steal(mem_ctx, state->confirmed_match);
+    if (state->selinuxmaps != NULL) {
+        *count = state->nmaps;
+        *maps = talloc_steal(mem_ctx, state->selinuxmaps);
     } else {
         *count = 0;
         *maps = NULL;
