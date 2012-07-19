@@ -469,6 +469,7 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
 
     *_usermaps = talloc_steal(mem_ctx, usermaps);
 
+    ret = EOK;
 done:
     talloc_zfree(tmp_ctx);
     return ret;
