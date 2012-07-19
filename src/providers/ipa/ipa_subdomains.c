@@ -254,13 +254,21 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req);
 static void ipa_subdomains_handler_ranges_done(struct tevent_req *req);
 
 static struct ipa_subdomains_req_params subdomain_requests[] = {
-    { MASTER_DOMAIN_FILTER, ipa_subdomains_handler_master_done,
-        {IPA_CN, IPA_FLATNAME, IPA_SID, NULL }},
-    { SUBDOMAINS_FILTER, ipa_subdomains_handler_done,
-        {IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID, NULL }},
-    { RANGE_FILTER, ipa_subdomains_handler_ranges_done,
-        {OBJECTCLASS, IPA_CN, IPA_BASE_ID, IPA_ID_RANGE_SIZE, IPA_BASE_RID,
-         IPA_SECONDARY_BASE_RID, IPA_TRUSTED_DOMAIN_SID, NULL }}
+    { MASTER_DOMAIN_FILTER,
+      ipa_subdomains_handler_master_done,
+      { IPA_CN, IPA_FLATNAME, IPA_SID, NULL }
+    },
+    { SUBDOMAINS_FILTER,
+      ipa_subdomains_handler_done,
+      { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID, NULL }
+    },
+    { RANGE_FILTER,
+      ipa_subdomains_handler_ranges_done,
+      { OBJECTCLASS, IPA_CN,
+        IPA_BASE_ID, IPA_BASE_RID, IPA_SECONDARY_BASE_RID,
+        IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID, NULL
+      }
+    }
 };
 
 void ipa_subdomains_handler(struct be_req *be_req)
