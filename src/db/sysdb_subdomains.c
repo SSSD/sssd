@@ -72,8 +72,9 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         }
         tmp_str = ldb_msg_find_attr_as_string(res->msgs[i], "cn", NULL);
         if (tmp_str == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("The object [%s] doesn't have a name\n",
-                                         ldb_dn_get_linearized(res->msgs[i]->dn)));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn)));
             ret = EINVAL;
             goto done;
         }
@@ -84,7 +85,8 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_SUBDOMAIN_FLAT, NULL);
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
+                                              SYSDB_SUBDOMAIN_FLAT, NULL);
         if (tmp_str != NULL) {
             list[i]->flat_name = talloc_strdup(list, tmp_str);
             if (list[i]->flat_name == NULL) {
@@ -93,7 +95,8 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
             }
         }
 
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_SUBDOMAIN_ID, NULL);
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
+                                              SYSDB_SUBDOMAIN_ID, NULL);
         if (tmp_str != NULL) {
             list[i]->id = talloc_strdup(list, tmp_str);
             if (list[i]->id == NULL) {
@@ -219,8 +222,8 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
     if (domain_info->flat_name != NULL &&
         (current_info->flat_name == NULL ||
          strcmp(current_info->flat_name, domain_info->flat_name) != 0) ) {
-        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FLAT, LDB_FLAG_MOD_REPLACE,
-                                NULL);
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FLAT,
+                                LDB_FLAG_MOD_REPLACE, NULL);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
@@ -413,7 +416,8 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
      */
     for (c = 0; subdomains[c] != NULL; c++) {
         for (d = 0; d < cur_subdomains_count; d++) {
-            if (strcasecmp(subdomains[c]->name, cur_subdomains[d]->name) == 0) {
+            if (strcasecmp(subdomains[c]->name,
+                           cur_subdomains[d]->name) == 0) {
                 keep_subdomain[d] = true;
                 /* sub-domain already in cache, nothing to do */
                 break;
@@ -565,7 +569,8 @@ errno_t sysdb_search_domgroup_by_name(TALLOC_CTX *mem_ctx,
 {
     CHECK_DOMAIN_INFO(domain);
 
-    return sysdb_search_group_by_name(mem_ctx, domain->sysdb, name, attrs, msg);
+    return sysdb_search_group_by_name(mem_ctx, domain->sysdb,
+                                      name, attrs, msg);
 }
 
 errno_t sysdb_search_domgroup_by_gid(TALLOC_CTX *mem_ctx,
