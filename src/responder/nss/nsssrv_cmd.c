@@ -155,10 +155,20 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
 
 static const char *get_shell_override(TALLOC_CTX *mem_ctx,
                                       struct ldb_message *msg,
-                                      struct nss_ctx *nctx)
+                                      struct nss_ctx *nctx,
+                                      struct sss_domain_info *dom)
 {
     const char *user_shell;
     int i;
+
+    /* Check whether we are unconditionally overriding the server
+     * for the login shell.
+     */
+    if (dom->override_shell) {
+        return dom->override_shell;
+    } else if (nctx->override_shell) {
+        return nctx->override_shell;
+    }
 
     user_shell = ldb_msg_find_attr_as_string(msg, SYSDB_SHELL, NULL);
     if (!user_shell) {
@@ -303,7 +313,7 @@ static int fill_pwent(struct sss_packet *packet,
         } else {
             to_sized_string(&homedir, tmpstr);
         }
-        tmpstr = get_shell_override(tmp_ctx, msg, nctx);
+        tmpstr = get_shell_override(tmp_ctx, msg, nctx, dom);
         if (!tmpstr) {
             to_sized_string(&shell, "");
         } else {

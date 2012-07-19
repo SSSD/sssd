@@ -486,6 +486,20 @@ override_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>override_shell (string)</term>
+                    <listitem>
+                        <para>
+                            Override the login shell for all users. This
+                            option can be specified globally in the [nss]
+                            section or per-domain.
+                        </para>
+                        <para>
+                            Default: not set (SSSD will use the value
+                            retrieved from LDAP)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>allowed_shells (string)</term>
                     <listitem>
                         <para>

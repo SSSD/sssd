@@ -1064,6 +1064,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_NSS_OVERRIDE_SHELL, NULL);
+    if (tmp != NULL) {
+        domain->override_shell = talloc_strdup(domain, tmp);
+        if (!domain->override_shell) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     ret = get_entry_as_bool(res->msgs[0], &domain->case_sensitive,
                             CONFDB_DOMAIN_CASE_SENSITIVE, true);
     if(ret != EOK) {
