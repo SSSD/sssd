@@ -562,7 +562,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
             goto done;
         }
         domain_info->id = talloc_strdup(domain_info, tmp_str);
-        if (domain_info->flat_name == NULL) {
+        if (domain_info->id == NULL) {
             ret = ENOMEM;
             goto done;
         }

@@ -240,8 +240,8 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
     }
 
     if (domain_info->id != NULL &&
-        (current_info->flat_name == NULL ||
-         strcmp(current_info->flat_name, domain_info->id) != 0) ) {
+        (current_info->id == NULL ||
+         strcmp(current_info->id, domain_info->id) != 0) ) {
         ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_ID, LDB_FLAG_MOD_REPLACE,
                                 NULL);
         if (ret != LDB_SUCCESS) {
