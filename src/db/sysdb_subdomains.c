@@ -25,7 +25,7 @@
 
 errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                              size_t *subdomain_count,
-                             struct subdomain_info ***subdomain_list)
+                             struct sysdb_subdom ***subdomain_list)
 {
     int i;
     errno_t ret;
@@ -35,7 +35,7 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            NULL};
-    struct subdomain_info **list;
+    struct sysdb_subdom **list;
     struct ldb_dn *basedn;
     const char *tmp_str;
 
@@ -58,14 +58,14 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    list = talloc_zero_array(tmp_ctx, struct subdomain_info *, res->count);
+    list = talloc_zero_array(tmp_ctx, struct sysdb_subdom *, res->count);
     if (list == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
     for (i = 0; i < res->count; i++) {
-        list[i] = talloc_zero(list, struct subdomain_info);
+        list[i] = talloc_zero(list, struct sysdb_subdom);
         if (list[i] == NULL) {
             ret = ENOMEM;
             goto done;
@@ -114,13 +114,13 @@ done:
 
 errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
                                      struct sysdb_ctx *sysdb,
-                                     struct subdomain_info **_info)
+                                     struct sysdb_subdom **_info)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     const char *tmp_str;
     struct ldb_dn *basedn;
-    struct subdomain_info *info;
+    struct sysdb_subdom *info;
     struct ldb_result *res;
     const char *attrs[] = {"cn",
                            SYSDB_SUBDOMAIN_FLAT,
@@ -132,7 +132,7 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    info = talloc_zero(tmp_ctx, struct subdomain_info);
+    info = talloc_zero(tmp_ctx, struct sysdb_subdom);
     if (info == NULL) {
         ret = ENOMEM;
         goto done;
@@ -185,13 +185,13 @@ done:
 }
 
 errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
-                                     struct subdomain_info *domain_info)
+                                     struct sysdb_subdom *domain_info)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     int ret;
     bool do_update = false;
-    struct subdomain_info *current_info;
+    struct sysdb_subdom *current_info;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -279,7 +279,7 @@ done:
     return ret;
 }
 static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
-                                             struct subdomain_info *domain_info)
+                                             struct sysdb_subdom *domain_info)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -366,7 +366,7 @@ done:
 }
 
 errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
-                                struct subdomain_info **subdomains)
+                                struct sysdb_subdom **subdomains)
 {
     int ret;
     int sret;
@@ -374,7 +374,7 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
     size_t d;
     TALLOC_CTX *tmp_ctx = NULL;
     size_t cur_subdomains_count;
-    struct subdomain_info **cur_subdomains;
+    struct sysdb_subdom **cur_subdomains;
     struct ldb_dn *dn;
     bool in_transaction = false;
     bool *keep_subdomain;

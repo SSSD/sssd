@@ -229,7 +229,7 @@ static errno_t get_domains_done(struct tevent_req *req)
     struct sss_domain_info *domain;
     struct sss_domain_info **new_sd_list = NULL;
     size_t subdomain_count;
-    struct subdomain_info **subdomains;
+    struct sysdb_subdom **subdomains;
 
     state = tevent_req_data(req, struct sss_dp_domains_info);
     domain = state->dom;

@@ -3388,13 +3388,13 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
 }
 END_TEST
 
-const struct subdomain_info dom1 =  {discard_const("dom1.sub"),
+const struct sysdb_subdom dom1 =  {discard_const("dom1.sub"),
                                      discard_const("dom1"),
                                      discard_const("S-1")};
-const struct subdomain_info dom2 =  {discard_const("dom2.sub"),
+const struct sysdb_subdom dom2 =  {discard_const("dom2.sub"),
                                      discard_const("dom2"),
                                      discard_const("S-2")};
-const struct subdomain_info dom_t = {discard_const("test.sub"),
+const struct sysdb_subdom dom_t = {discard_const("test.sub"),
                                      discard_const("test"),
                                      discard_const("S-3")};
 
@@ -3402,11 +3402,11 @@ START_TEST(test_sysdb_subdomain_create)
 {
     struct sysdb_test_ctx *test_ctx;
     errno_t ret;
-    struct subdomain_info **cur_subdomains = NULL;
+    struct sysdb_subdom **cur_subdomains = NULL;
     size_t cur_subdomains_count;
-    const struct subdomain_info *new_subdom1[] = { &dom1, NULL};
-    const struct subdomain_info *new_subdom2[] = { &dom2, NULL};
-    const struct subdomain_info *empty[] = { NULL};
+    const struct sysdb_subdom *new_subdom1[] = { &dom1, NULL};
+    const struct sysdb_subdom *new_subdom2[] = { &dom2, NULL};
+    const struct sysdb_subdom *empty[] = { NULL};
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -3418,7 +3418,8 @@ START_TEST(test_sysdb_subdomain_create)
     fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
     fail_unless(cur_subdomains[0] == NULL, "No empyt sub-domain list returned.");
 
-    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, new_subdom1));
+    ret = sysdb_update_subdomains(test_ctx->sysdb,
+                        discard_const_p(struct sysdb_subdom *, new_subdom1));
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
@@ -3432,7 +3433,8 @@ START_TEST(test_sysdb_subdomain_create)
                 "Unexpected sub-domain found, expected [%s], got [%s]",
                 new_subdom1[0]->name, cur_subdomains[0]->name);
 
-    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, new_subdom2));
+    ret = sysdb_update_subdomains(test_ctx->sysdb,
+                        discard_const_p(struct sysdb_subdom *, new_subdom2));
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
@@ -3446,7 +3448,8 @@ START_TEST(test_sysdb_subdomain_create)
                 "Unexpected sub-domain found, expected [%s], got [%s]",
                 new_subdom2[0]->name, cur_subdomains[0]->name);
 
-    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, empty));
+    ret = sysdb_update_subdomains(test_ctx->sysdb,
+                                discard_const_p(struct sysdb_subdom *, empty));
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
@@ -3463,7 +3466,7 @@ START_TEST(test_sysdb_subdomain_store_user)
 {
     struct sysdb_test_ctx *test_ctx;
     errno_t ret;
-    const struct subdomain_info *test_subdom[] = { &dom_t, NULL};
+    const struct sysdb_subdom *test_subdom[] = { &dom_t, NULL};
     struct sss_domain_info *subdomain = NULL;
     struct ldb_result *results = NULL;
     struct ldb_dn *base_dn = NULL;
@@ -3472,7 +3475,8 @@ START_TEST(test_sysdb_subdomain_store_user)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, test_subdom));
+    ret = sysdb_update_subdomains(test_ctx->sysdb,
+                        discard_const_p(struct sysdb_subdom *, test_subdom));
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
@@ -3518,7 +3522,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
 {
     struct sysdb_test_ctx *test_ctx;
     errno_t ret;
-    const struct subdomain_info *test_subdom[] = { &dom_t, NULL};
+    const struct sysdb_subdom *test_subdom[] = { &dom_t, NULL};
     struct sss_domain_info *subdomain = NULL;
     struct ldb_message *msg = NULL;
     struct ldb_dn *check_dn = NULL;
@@ -3526,7 +3530,8 @@ START_TEST(test_sysdb_subdomain_user_ops)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, test_subdom));
+    ret = sysdb_update_subdomains(test_ctx->sysdb,
+                        discard_const_p(struct sysdb_subdom *, test_subdom));
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
@@ -3567,7 +3572,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
 {
     struct sysdb_test_ctx *test_ctx;
     errno_t ret;
-    const struct subdomain_info *test_subdom[] = { &dom_t, NULL};
+    const struct sysdb_subdom *test_subdom[] = { &dom_t, NULL};
     struct sss_domain_info *subdomain = NULL;
     struct ldb_message *msg = NULL;
     struct ldb_dn *check_dn = NULL;
@@ -3575,7 +3580,8 @@ START_TEST(test_sysdb_subdomain_group_ops)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_update_subdomains(test_ctx->sysdb, discard_const_p(struct subdomain_info *, test_subdom));
+    ret = sysdb_update_subdomains(test_ctx->sysdb,
+                        discard_const_p(struct sysdb_subdom *, test_subdom));
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 

@@ -240,7 +240,7 @@ struct sysdb_attrs {
 /* sysdb_attrs helper functions */
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx);
 
-struct subdomain_info {
+struct sysdb_subdom {
     char *name;
     char *flat_name;
     char *id;
@@ -364,12 +364,12 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb);
 errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
                              struct sysdb_ctx *sysdb,
                              size_t *subdomain_count,
-                             struct subdomain_info ***subdomain_list);
+                             struct sysdb_subdom ***subdomain_list);
 
 errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 
 errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
-                                struct subdomain_info **subdomains);
+                                struct sysdb_subdom **subdomains);
 
 errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
                                     struct sysdb_ctx *sysdb,
@@ -378,10 +378,10 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
                                      struct sysdb_ctx *sysdb,
-                                     struct subdomain_info **info);
+                                     struct sysdb_subdom **info);
 
 errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
-                                     struct subdomain_info *domain_info);
+                                     struct sysdb_subdom *domain_info);
 
 
 errno_t sysdb_search_domuser_by_name(TALLOC_CTX *mem_ctx,

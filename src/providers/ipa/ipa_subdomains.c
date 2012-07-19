@@ -156,12 +156,12 @@ static errno_t ipa_subdomains_parse_results(
                                         size_t count,
                                         struct sysdb_attrs **reply)
 {
-    struct subdomain_info **new_domain_list = NULL;
+    struct sysdb_subdom **new_domain_list = NULL;
     const char *value;
     size_t c;
     int ret;
 
-    new_domain_list = talloc_array(sd_data, struct subdomain_info *, count + 1);
+    new_domain_list = talloc_array(sd_data, struct sysdb_subdom *, count + 1);
     if (new_domain_list == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
         return ENOMEM;
@@ -169,7 +169,7 @@ static errno_t ipa_subdomains_parse_results(
 
     for (c = 0; c < count; c++) {
         new_domain_list[c] = talloc_zero(new_domain_list,
-                                         struct subdomain_info);
+                                         struct sysdb_subdom);
         if (new_domain_list[c] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
             ret = ENOMEM;
@@ -471,7 +471,7 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     struct ipa_subdomains_req_ctx *ctx = tevent_req_callback_data(req,
                                                        struct ipa_subdomains_req_ctx);
     struct be_req *be_req = ctx->be_req;
-    struct subdomain_info *domain_info;
+    struct sysdb_subdom *domain_info;
     struct range_info **range_list = NULL;
     struct sysdb_ctx *sysdb;
 
@@ -532,7 +532,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     struct ipa_subdomains_req_ctx *ctx = tevent_req_callback_data(req,
                                                        struct ipa_subdomains_req_ctx);
     struct be_req *be_req = ctx->be_req;
-    struct subdomain_info *domain_info;
+    struct sysdb_subdom *domain_info;
     const char *tmp_str;
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
@@ -543,7 +543,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     }
 
     if (reply_count) {
-        domain_info = talloc_zero(ctx, struct subdomain_info);
+        domain_info = talloc_zero(ctx, struct sysdb_subdom);
         if (domain_info == NULL) {
             ret = ENOMEM;
             goto done;

@@ -174,7 +174,7 @@ struct be_autofs_req {
 struct be_get_subdomains_req {
     bool force;
     char *domain_hint;
-    struct subdomain_info **domain_list;
+    struct sysdb_subdom **domain_list;
 };
 
 struct be_host_req {
