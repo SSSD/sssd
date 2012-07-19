@@ -154,9 +154,14 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (res->count != 1) {
+    if (res->count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (res->count > 1) {
         DEBUG(SSSDBG_OP_FAILURE, ("Base search returned [%d] results, "
-                                 "expected 1.\n"));
+                                 "expected 1.\n", res->count));
         ret = EINVAL;
         goto done;
     }
