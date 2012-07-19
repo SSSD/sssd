@@ -1056,20 +1056,40 @@
                     <term>id_provider (string)</term>
                     <listitem>
                         <para>
-                            The Data Provider identity backend to use for this
-                            domain.
-                        </para>
-                        <para>
-                            Supported backends:
+                            The identification provider used for the domain.
+                            Supported ID providers are:
                         </para>
                         <para>
                             proxy: Support a legacy NSS provider
                         </para>
                         <para>
-                            local: SSSD internal local provider
+                            <quote>local</quote>: SSSD internal provider for
+                            local users
                         </para>
                         <para>
-                            ldap:  LDAP provider
+                            <quote>ldap</quote>:  LDAP provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            Identity Management provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring FreeIPA.
+                        </para>
+                        <para>
+                            <quote>ad</quote>: Active Directory provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring Active Directory.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1117,6 +1137,23 @@
                             </citerefentry> for more information on configuring Kerberos.
                         </para>
                         <para>
+                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            Identity Management provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring FreeIPA.
+                        </para>
+                        <para>
+                            <quote>ad</quote>: Active Directory provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring Active Directory.
+                        </para>
+                        <para>
                             <quote>proxy</quote> for relaying authentication to some other PAM target.
                         </para>
                         <para>
@@ -1144,6 +1181,30 @@
                             <quote>deny</quote> always deny access.
                         </para>
                         <para>
+                            <quote>ldap</quote> for native LDAP authentication. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            Identity Management provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring FreeIPA.
+                        </para>
+                        <para>
+                            <quote>ad</quote>: Active Directory provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring Active Directory.
+                        </para>
+                        <para>
                             <quote>simple</quote> access control based on access
                             or deny lists. See <citerefentry>
                             <refentrytitle>sssd-simple</refentrytitle>
@@ -1164,14 +1225,6 @@
                             Supported change password providers are:
                         </para>
                         <para>
-                            <quote>ipa</quote> to change a password stored
-                            in an IPA server.  See
-                            <citerefentry>
-                                <refentrytitle>sssd-ipa</refentrytitle>
-                                <manvolnum>5</manvolnum>
-                            </citerefentry> for more information on configuring IPA.
-                        </para>
-                        <para>
                             <quote>ldap</quote> to change a password stored
                             in a LDAP server.  See
                             <citerefentry>
@@ -1186,6 +1239,23 @@
                                 <refentrytitle>sssd-krb5</refentrytitle>
                                 <manvolnum>5</manvolnum>
                             </citerefentry> for more information on configuring Kerberos.
+                        </para>
+                        <para>
+                            <quote>ipa</quote>: FreeIPA and Red Hat Enterprise
+                            Identity Management provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring FreeIPA.
+                        </para>
+                        <para>
+                            <quote>ad</quote>: Active Directory provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            configuring Active Directory.
                         </para>
                         <para>
                             <quote>proxy</quote> for relaying password changes
