@@ -238,7 +238,11 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     }
 
     if (timeout) {
-        dp_opt_set_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT, timeout);
+        ret = dp_opt_set_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT, timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set value for krb5_auth_timeout\n"));
+            goto fail;
+        }
     }
 
     if (!ccname) {
