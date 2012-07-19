@@ -198,7 +198,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     enum sss_krb5_cc_type cc_be;
     struct krb5child_req *kr;
     struct passwd *pwd;
-    bool private;
+    bool private = false;
     errno_t ret;
     const char *tmpl;
 
