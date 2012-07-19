@@ -142,6 +142,7 @@
 
 #define SYSDB_SSH_PUBKEY "sshPublicKey"
 
+#define SYSDB_SUBDOMAIN_REALM "realmName"
 #define SYSDB_SUBDOMAIN_FLAT "flatName"
 #define SYSDB_SUBDOMAIN_ID "domainID"
 
@@ -241,9 +242,10 @@ struct sysdb_attrs {
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx);
 
 struct sysdb_subdom {
-    char *name;
-    char *flat_name;
-    char *id;
+    const char *realm;
+    const char *name;
+    const char *flat_name;
+    const char *id;
 };
 
 struct range_info {

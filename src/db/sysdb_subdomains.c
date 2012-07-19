@@ -32,6 +32,7 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     const char *attrs[] = {"cn",
+                           SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            NULL};
@@ -86,6 +87,16 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         }
 
         tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
+                                              SYSDB_SUBDOMAIN_REALM, NULL);
+        if (tmp_str != NULL) {
+            list[i]->realm = talloc_strdup(list, tmp_str);
+            if (list[i]->realm == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
                                               SYSDB_SUBDOMAIN_FLAT, NULL);
         if (tmp_str != NULL) {
             list[i]->flat_name = talloc_strdup(list, tmp_str);
@@ -126,6 +137,7 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
     struct sysdb_subdom *info;
     struct ldb_result *res;
     const char *attrs[] = {"cn",
+                           SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            NULL};
@@ -164,6 +176,16 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
                                  "expected 1.\n", res->count));
         ret = EINVAL;
         goto done;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_REALM,
+                                          NULL);
+    if (tmp_str != NULL) {
+        info->realm = talloc_strdup(info, tmp_str);
+        if (info->realm == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_FLAT,
@@ -222,6 +244,26 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
     if (msg->dn == NULL) {
         ret = EIO;
         goto done;
+    }
+
+    if (domain_info->realm != NULL &&
+        (current_info->realm == NULL ||
+         strcmp(current_info->realm, domain_info->realm) != 0) ) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_REALM,
+                                LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_REALM,
+                                 domain_info->realm);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        do_update = true;
     }
 
     if (domain_info->flat_name != NULL &&
@@ -320,6 +362,22 @@ static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto done;
+    }
+
+    if (domain_info->realm != NULL) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_REALM, LDB_FLAG_MOD_ADD,
+                                NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_REALM,
+                                 domain_info->realm);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
     }
 
     if (domain_info->flat_name != NULL) {

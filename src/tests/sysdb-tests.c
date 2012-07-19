@@ -3388,9 +3388,9 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
 }
 END_TEST
 
-struct sysdb_subdom dom1 =  { "dom1.sub", "dom1", "S-1" };
-struct sysdb_subdom dom2 =  { "dom2.sub", "dom2", "S-2" };
-struct sysdb_subdom dom_t = { "test.sub", "test", "S-3" };
+struct sysdb_subdom dom1 =  { "DOM1.SUB", "dom1.sub", "dom1", "S-1" };
+struct sysdb_subdom dom2 =  { "DOM2.SUB", "dom2.sub", "dom2", "S-2" };
+struct sysdb_subdom dom_t = { "TEST.SUB", "test.sub", "test", "S-3" };
 
 START_TEST(test_sysdb_subdomain_create)
 {

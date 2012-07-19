@@ -25,6 +25,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_common.h"
+#include <ctype.h>
 
 #define SUBDOMAINS_FILTER "objectclass=ipaNTTrustedDomain"
 #define MASTER_DOMAIN_FILTER "objectclass=ipaNTDomainAttrs"
@@ -151,6 +152,22 @@ done:
     return ret;
 }
 
+static char *name_to_realm(TALLOC_CTX *memctx, const char *name)
+{
+    char *realm;
+    char *p;
+
+    realm = talloc_strdup(memctx, name);
+    if (!realm) {
+        return NULL;
+    }
+    for (p = realm; *p; p++) {
+        *p = toupper(*p);
+    }
+
+    return realm;
+}
+
 static errno_t ipa_subdomains_parse_results(struct be_subdom_req *sd_data,
                                             size_t count,
                                             struct sysdb_attrs **reply)
@@ -182,6 +199,16 @@ static errno_t ipa_subdomains_parse_results(struct be_subdom_req *sd_data,
         }
         new_domain_list[c]->name = talloc_strdup(new_domain_list[c], value);
         if (new_domain_list[c]->name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Add Realm as upper(domain name), this is generally always correct
+         * with AD domains */
+        new_domain_list[c]->realm = name_to_realm(new_domain_list[c],
+                                                  new_domain_list[c]->name);
+        if (!new_domain_list[c]->realm) {
             DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
             ret = ENOMEM;
             goto done;
