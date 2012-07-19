@@ -449,6 +449,16 @@
                         <para>
                             This option can also be set per-domain.
                         </para>
+                        <para>
+                            example:
+                            <programlisting>
+override_homedir = /home/%u
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: Not set (SSSD will use the value
+                            retrieved from LDAP)
+                        </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
@@ -462,6 +472,12 @@
                         <para>
                             The available values for this option are the same
                             as for override_homedir.
+                        </para>
+                        <para>
+                            example:
+                            <programlisting>
+override_homedir = /home/%u
+                            </programlisting>
                         </para>
                         <para>
                             Default: not set (no substitution for unset home
