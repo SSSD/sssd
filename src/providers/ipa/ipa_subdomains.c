@@ -151,10 +151,9 @@ done:
     return ret;
 }
 
-static errno_t ipa_subdomains_parse_results(
-                                        struct be_get_subdomains_req *sd_data,
-                                        size_t count,
-                                        struct sysdb_attrs **reply)
+static errno_t ipa_subdomains_parse_results(struct be_subdom_req *sd_data,
+                                            size_t count,
+                                            struct sysdb_attrs **reply)
 {
     struct sysdb_subdom **new_domain_list = NULL;
     const char *value;
@@ -234,7 +233,7 @@ struct ipa_subdomains_req_ctx {
     struct be_req *be_req;
     struct ipa_subdomains_ctx *sd_ctx;
     struct sdap_id_op *sdap_op;
-    struct be_get_subdomains_req *sd_data;
+    struct be_subdom_req *sd_data;
 
     char *current_filter;
 
@@ -287,8 +286,7 @@ void ipa_subdomains_handler(struct be_req *be_req)
     ctx->sd_ctx = talloc_get_type(
                         be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
                         struct ipa_subdomains_ctx);
-    ctx->sd_data = talloc_get_type(be_req->req_data,
-                                     struct be_get_subdomains_req);
+    ctx->sd_data = talloc_get_type(be_req->req_data, struct be_subdom_req);
 
     ctx->search_base_iter = 0;
     ctx->search_bases = ctx->sd_ctx->search_bases;

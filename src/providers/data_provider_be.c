@@ -344,7 +344,7 @@ static void get_subdomains_callback(struct be_req *req,
 
 static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
 {
-    struct be_get_subdomains_req *req;
+    struct be_subdom_req *req;
     struct be_req *be_req = NULL;
     struct be_client *becli;
     DBusMessage *reply;
@@ -405,7 +405,7 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     be_req->fn = get_subdomains_callback;
     be_req->pvt = reply;
 
-    req = talloc(be_req, struct be_get_subdomains_req);
+    req = talloc(be_req, struct be_subdom_req);
     if (!req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;

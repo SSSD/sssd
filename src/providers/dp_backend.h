@@ -171,7 +171,7 @@ struct be_autofs_req {
     char *mapname;
 };
 
-struct be_get_subdomains_req {
+struct be_subdom_req {
     bool force;
     char *domain_hint;
     struct sysdb_subdom **domain_list;
