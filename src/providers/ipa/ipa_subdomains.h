@@ -26,16 +26,11 @@
 #define _IPA_SUBDOMAINS_H_
 
 #include "providers/dp_backend.h"
-#include "providers/ldap/ldap_common.h"
+#include "providers/ipa/ipa_common.h"
 
-struct ipa_subdomains_ctx {
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_search_base **search_bases;
-    struct sdap_search_base **master_search_bases;
-    struct sdap_search_base **ranges_search_bases;
-};
-
-
-void ipa_subdomains_handler(struct be_req *be_req);
+int ipa_subdom_init(struct be_ctx *be_ctx,
+                    struct ipa_id_ctx *id_ctx,
+                    struct bet_ops **ops,
+                    void **pvt_data);
 
 #endif /* _IPA_SUBDOMAINS_H_ */

@@ -76,11 +76,6 @@ struct bet_ops ipa_hostid_ops = {
 };
 #endif
 
-struct bet_ops ipa_subdomains_ops = {
-    .handler = ipa_subdomains_handler,
-    .finalize = NULL
-};
-
 int common_ipa_init(struct be_ctx *bectx)
 {
     const char *ipa_servers;
@@ -486,30 +481,19 @@ int sssm_ipa_subdomains_init(struct be_ctx *bectx,
                              void **pvt_data)
 {
     int ret;
-    struct ipa_subdomains_ctx *subdomains_ctx;
     struct ipa_id_ctx *id_ctx;
-
-    subdomains_ctx = talloc_zero(bectx, struct ipa_subdomains_ctx);
-    if (subdomains_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
-        return ENOMEM;
-    }
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
-        goto done;
+        return ret;
     }
-    subdomains_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
-    subdomains_ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
-    subdomains_ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
-    subdomains_ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
-    *ops = &ipa_subdomains_ops;
-    *pvt_data = subdomains_ctx;
 
-done:
+    ret = ipa_subdom_init(bectx, id_ctx, ops, pvt_data);
     if (ret != EOK) {
-        talloc_free(subdomains_ctx);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("ipa_subdom_init failed.\n"));
+        return ret;
     }
-    return ret;
+
+    return EOK;
 }

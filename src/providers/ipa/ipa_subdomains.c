@@ -56,6 +56,13 @@ struct ipa_subdomains_req_params {
     const char *attrs[8];
 };
 
+struct ipa_subdomains_ctx {
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct sdap_search_base **search_bases;
+    struct sdap_search_base **master_search_bases;
+    struct sdap_search_base **ranges_search_bases;
+};
+
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
 {
     be_req->fn(be_req, dp_err, result, NULL);
@@ -650,4 +657,32 @@ done:
         dp_error = DP_ERR_OK;
     }
     ipa_subdomains_reply(be_req, dp_error, ret);
+}
+
+struct bet_ops ipa_subdomains_ops = {
+    .handler = ipa_subdomains_handler,
+    .finalize = NULL
+};
+
+int ipa_subdom_init(struct be_ctx *be_ctx,
+                    struct ipa_id_ctx *id_ctx,
+                    struct bet_ops **ops,
+                    void **pvt_data)
+{
+    struct ipa_subdomains_ctx *ctx;
+
+    ctx = talloc_zero(id_ctx, struct ipa_subdomains_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        return ENOMEM;
+    }
+
+    ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
+    ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
+    ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
+    ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
+    *ops = &ipa_subdomains_ops;
+    *pvt_data = ctx;
+
+    return EOK;
 }
