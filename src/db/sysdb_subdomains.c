@@ -232,7 +232,7 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_FLAT, "%s",
                               domain_info->flat_name);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);;
+            ret = sysdb_error_to_errno(ret);
             goto done;
         }
 
@@ -252,7 +252,7 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_ID, "%s",
                               domain_info->id);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);;
+            ret = sysdb_error_to_errno(ret);
             goto done;
         }
 
@@ -314,7 +314,7 @@ static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
 
     ret = ldb_msg_add_fmt(msg, SYSDB_OBJECTCLASS, "%s", SYSDB_SUBDOMAIN_CLASS);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);;
+        ret = sysdb_error_to_errno(ret);
         goto done;
     }
 
@@ -329,7 +329,7 @@ static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
         ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_FLAT, "%s",
                               domain_info->flat_name);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);;
+            ret = sysdb_error_to_errno(ret);
             goto done;
         }
     }
@@ -345,7 +345,7 @@ static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
         ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_ID, "%s",
                               domain_info->id);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);;
+            ret = sysdb_error_to_errno(ret);
             goto done;
         }
     }
