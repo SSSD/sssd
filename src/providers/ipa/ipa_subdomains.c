@@ -60,6 +60,7 @@ struct ipa_subdomains_req_params {
 };
 
 struct ipa_subdomains_ctx {
+    struct be_ctx *be_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_search_base **search_bases;
     struct sdap_search_base **master_search_bases;
@@ -73,7 +74,9 @@ struct ipa_subdomains_ctx {
 
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
 {
-    be_req->fn(be_req, dp_err, result, NULL);
+    if (be_req) {
+        be_req->fn(be_req, dp_err, result, NULL);
+    }
 }
 
 static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
@@ -361,7 +364,6 @@ struct ipa_subdomains_req_ctx {
     struct be_req *be_req;
     struct ipa_subdomains_ctx *sd_ctx;
     struct sdap_id_op *sdap_op;
-    struct be_subdom_req *sd_data;
 
     char *current_filter;
 
@@ -398,25 +400,14 @@ static struct ipa_subdomains_req_params subdomain_requests[] = {
     }
 };
 
-void ipa_subdomains_handler(struct be_req *be_req)
+/* NOTE: be_req can be NULL, this is used by the online callback to refresh
+ * subdomains without any request coming from a frontend */
+static void ipa_subdomains_retrieve(struct ipa_subdomains_ctx *ctx, struct be_req *be_req)
 {
-    struct tevent_req *req;
     struct ipa_subdomains_req_ctx *req_ctx = NULL;
-    struct ipa_subdomains_ctx *ctx;
+    struct tevent_req *req;
     int dp_error = DP_ERR_FATAL;
     int ret;
-
-    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
-                          struct ipa_subdomains_ctx);
-    if (!ctx) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    if (ctx->last_refreshed > time(NULL) - IPA_SUBDOMAIN_REFRESH_LIMIT) {
-        ret = EOK;
-        goto done;
-    }
 
     req_ctx = talloc(be_req, struct ipa_subdomains_req_ctx);
     if (req_ctx == NULL) {
@@ -426,7 +417,6 @@ void ipa_subdomains_handler(struct be_req *be_req)
 
     req_ctx->be_req = be_req;
     req_ctx->sd_ctx = ctx;
-    req_ctx->sd_data = talloc_get_type(be_req->req_data, struct be_subdom_req);
     req_ctx->search_base_iter = 0;
     req_ctx->search_bases = ctx->search_bases;
     req_ctx->current_filter = NULL;
@@ -526,7 +516,7 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
         return ENOMEM;
     }
 
-    req = sdap_get_generic_send(ctx, ctx->be_req->be_ctx->ev,
+    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
                         ctx->sd_ctx->sdap_id_ctx->opts,
                         sdap_id_op_handle(ctx->sdap_op),
                         base->basedn, base->scope,
@@ -556,10 +546,10 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     be_req = ctx->be_req;
-    if (be_req->sysdb) {
+    if (be_req && be_req->sysdb) {
         sysdb = be_req->sysdb;
     } else {
-        sysdb = be_req->be_ctx->sysdb;
+        sysdb = ctx->sd_ctx->be_ctx->sysdb;
     }
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
@@ -638,10 +628,10 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     be_req = ctx->be_req;
-    if (be_req->sysdb) {
+    if (be_req && be_req->sysdb) {
         sysdb = be_req->sysdb;
     } else {
-        sysdb = be_req->be_ctx->sysdb;
+        sysdb = ctx->sd_ctx->be_ctx->sysdb;
     }
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
@@ -743,7 +733,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sysdb_master_domain_add_info(be_req->be_ctx->sysdb, domain_info);
+        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->sysdb, domain_info);
         goto done;
     } else {
         ctx->search_base_iter++;
@@ -770,6 +760,34 @@ done:
     ipa_subdomains_reply(be_req, dp_error, ret);
 }
 
+static void ipa_subdom_online_cb(void *pvt)
+{
+    struct ipa_subdomains_ctx *ctx;
+
+    ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
+
+    ipa_subdomains_retrieve(ctx, NULL);
+}
+
+void ipa_subdomains_handler(struct be_req *be_req)
+{
+    struct ipa_subdomains_ctx *ctx;
+
+    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
+                          struct ipa_subdomains_ctx);
+    if (!ctx) {
+        ipa_subdomains_reply(be_req, DP_ERR_FATAL, EINVAL);
+        return;
+    }
+
+    if (ctx->last_refreshed > time(NULL) - IPA_SUBDOMAIN_REFRESH_LIMIT) {
+        ipa_subdomains_reply(be_req, DP_ERR_OK, EOK);
+        return;
+    }
+
+    ipa_subdomains_retrieve(ctx, be_req);
+}
+
 struct bet_ops ipa_subdomains_ops = {
     .handler = ipa_subdomains_handler,
     .finalize = NULL
@@ -781,6 +799,7 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
                     void **pvt_data)
 {
     struct ipa_subdomains_ctx *ctx;
+    int ret;
 
     ctx = talloc_zero(id_ctx, struct ipa_subdomains_ctx);
     if (ctx == NULL) {
@@ -788,12 +807,18 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
+    ctx->be_ctx = be_ctx;
     ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
     ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
     ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
     ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
     *ops = &ipa_subdomains_ops;
     *pvt_data = ctx;
+
+    ret = be_add_online_cb(ctx, be_ctx, ipa_subdom_online_cb, ctx, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom online callback"));
+    }
 
     return EOK;
 }
