@@ -27,47 +27,6 @@
 #include "providers/ipa/ipa_selinux_common.h"
 
 
-errno_t ipa_selinux_map_merge(struct sysdb_attrs *map,
-                              struct sysdb_attrs *rule,
-                              const char *attr)
-{
-    struct ldb_message_element *map_el;
-    struct ldb_message_element *rule_el;
-    size_t total_cnt;
-    errno_t ret;
-    int i = 0;
-
-    ret = sysdb_attrs_get_el(map, attr, &map_el);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sysdb_attrs_get_el(rule, attr, &rule_el);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    total_cnt = map_el->num_values + rule_el->num_values;
-    map_el->values = talloc_realloc(map->a, map_el->values,
-                                    struct ldb_val, total_cnt);
-    if (map_el->values == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    while (map_el->num_values < total_cnt)
-    {
-        map_el->values[map_el->num_values] = ldb_val_dup(map_el->values,
-                                                         &rule_el->values[i]);
-        map_el->num_values++;
-        i++;
-    }
-
-    ret = EOK;
-done:
-    return ret;
-}
-
 errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
                            size_t map_count,
                            struct sysdb_attrs **maps)

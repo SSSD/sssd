@@ -541,16 +541,6 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
 
                 /* Just to boost the following lookup */
                 state->possible_match[j] = NULL;
-
-                ret = ipa_selinux_map_merge(usermap, rules[i], SYSDB_ORIG_MEMBER_USER);
-                if (ret != EOK) {
-                    goto done;
-                }
-
-                ret = ipa_selinux_map_merge(usermap, rules[i], SYSDB_ORIG_MEMBER_HOST);
-                if (ret != EOK) {
-                    goto done;
-                }
             }
         }
     }

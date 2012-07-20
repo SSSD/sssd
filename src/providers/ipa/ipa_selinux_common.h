@@ -25,10 +25,6 @@
 #ifndef IPA_SELINUX_COMMON_H_
 #define IPA_SELINUX_COMMON_H_
 
-errno_t ipa_selinux_map_merge(struct sysdb_attrs *map,
-                              struct sysdb_attrs *rule,
-                              const char *attr);
-
 errno_t ipa_save_host(struct sysdb_ctx *sysdb,
                       struct sysdb_attrs *host);
 
