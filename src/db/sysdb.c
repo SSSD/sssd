@@ -737,6 +737,9 @@ int sysdb_error_to_errno(int ldberr)
     case LDB_ERR_ENTRY_ALREADY_EXISTS:
         return EEXIST;
     default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("LDB returned unexpected error: [%s]\n",
+               ldb_strerror(ldberr)));
         return EFAULT;
     }
 }
