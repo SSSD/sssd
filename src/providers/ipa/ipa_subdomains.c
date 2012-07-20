@@ -45,6 +45,9 @@
 /* do not refresh more often than every 5 seconds for now */
 #define IPA_SUBDOMAIN_REFRESH_LIMIT 5
 
+/* refresh automatically every 4 hours */
+#define IPA_SUBDOMAIN_REFRESH_PERIOD (3600 * 4)
+
 enum ipa_subdomains_req_type {
     IPA_SUBDOMAINS_MASTER,
     IPA_SUBDOMAINS_SLAVE,
@@ -66,8 +69,10 @@ struct ipa_subdomains_ctx {
     struct sdap_search_base **master_search_bases;
     struct sdap_search_base **ranges_search_bases;
 
-    /* subdomain map cache */
     time_t last_refreshed;
+    struct tevent_timer *timer_event;
+
+    /* subdomain map cache */
     int num_subdoms;
     struct sysdb_subdom *subdoms;
 };
@@ -760,13 +765,46 @@ done:
     ipa_subdomains_reply(be_req, dp_error, ret);
 }
 
+static void ipa_subdom_online_cb(void *pvt);
+
+static void ipa_subdom_timer_refresh(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval current_time,
+                                     void *pvt)
+{
+    ipa_subdom_online_cb(pvt);
+}
+
 static void ipa_subdom_online_cb(void *pvt)
+{
+    struct ipa_subdomains_ctx *ctx;
+    struct timeval tv;
+
+    ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
+    if (!ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Bad private pointer\n"));
+        return;
+    }
+
+    ipa_subdomains_retrieve(ctx, NULL);
+
+    tv = tevent_timeval_current_ofs(IPA_SUBDOMAIN_REFRESH_PERIOD, 0);
+    ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
+                                        ipa_subdom_timer_refresh, ctx);
+    if (!ctx->timer_event) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom timer event\n"));
+    }
+}
+
+static void ipa_subdom_offline_cb(void *pvt)
 {
     struct ipa_subdomains_ctx *ctx;
 
     ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
 
-    ipa_subdomains_retrieve(ctx, NULL);
+    if (ctx) {
+        talloc_zfree(ctx->timer_event);
+    }
 }
 
 void ipa_subdomains_handler(struct be_req *be_req)
@@ -818,6 +856,11 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
     ret = be_add_online_cb(ctx, be_ctx, ipa_subdom_online_cb, ctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom online callback"));
+    }
+
+    ret = be_add_offline_cb(ctx, be_ctx, ipa_subdom_offline_cb, ctx, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom offline callback"));
     }
 
     return EOK;
