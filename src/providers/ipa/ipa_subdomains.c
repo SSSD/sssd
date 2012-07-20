@@ -61,6 +61,11 @@ struct ipa_subdomains_ctx {
     struct sdap_search_base **search_bases;
     struct sdap_search_base **master_search_bases;
     struct sdap_search_base **ranges_search_bases;
+
+    /* subdomain map cache */
+    time_t last_retrieved;
+    int num_subdoms;
+    struct sysdb_subdom *subdoms;
 };
 
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
@@ -175,89 +180,172 @@ static char *name_to_realm(TALLOC_CTX *memctx, const char *name)
     return realm;
 }
 
-static errno_t ipa_subdomains_parse_results(struct be_subdom_req *sd_data,
-                                            size_t count,
-                                            struct sysdb_attrs **reply)
+static errno_t ipa_subdom_parse(TALLOC_CTX *memctx,
+                                struct sysdb_attrs *attrs,
+                                struct sysdb_subdom *subdom)
 {
-    struct sysdb_subdom **new_domain_list = NULL;
     const char *value;
-    size_t c;
     int ret;
 
-    new_domain_list = talloc_array(sd_data, struct sysdb_subdom *, count + 1);
-    if (new_domain_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
-        return ENOMEM;
+    ret = sysdb_attrs_get_string(attrs, IPA_CN, &value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        return ret;
+    }
+    if (subdom->name == NULL) {
+        subdom->name = talloc_strdup(memctx, value);
+        if (subdom->name == NULL) {
+            return ENOMEM;
+        }
+    } else if (strcmp(subdom->name, value) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("subdomain name mismatch!\n"));
+        return EINVAL;
+    }
+
+    if (subdom->realm == NULL) {
+        /* Add Realm as upper(domain name), this is generally always correct
+         * with AD domains */
+        subdom->realm = name_to_realm(memctx, subdom->name);
+        if (!subdom->realm) {
+            return ENOMEM;
+        }
+    }
+
+    ret = sysdb_attrs_get_string(attrs, IPA_FLATNAME, &value);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        return ret;
+    }
+
+    /* in theory this may change, it should never happen, so we will log a
+     * warning if it does, but we will allow it for now */
+    if (subdom->flat_name != NULL) {
+        if (strcmp(subdom->flat_name, value) != 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("Flat name for subdomain changed!\n"));
+            talloc_free(discard_const(subdom->flat_name));
+            subdom->flat_name = (const char *)NULL;
+        }
+    }
+    if (subdom->flat_name == NULL) {
+        subdom->flat_name = talloc_strdup(memctx, value);
+        if (subdom->flat_name == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    ret = sysdb_attrs_get_string(attrs, IPA_TRUSTED_DOMAIN_SID, &value);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        return ret;
+    }
+
+    /* in theory this may change, it should never happen, so we will log a
+     * warning if it does, but we will allow it for now */
+    if (subdom->id != NULL) {
+        if (strcmp(subdom->id, value) != 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("ID for subdomain changed!\n"));
+            talloc_free(discard_const(subdom->id));
+            subdom->flat_name = (const char *)NULL;
+        }
+    }
+    if (subdom->id == NULL) {
+        subdom->id = talloc_strdup(memctx, value);
+        if (subdom->id == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
+                                      int count, struct sysdb_attrs **reply,
+                                      bool *changes)
+{
+    bool handled[count];
+    const char *value;
+    int c, h;
+    int ret;
+    int i, j;
+
+    memset(handled, 0, sizeof(bool) * count);
+
+    /* check existing subdoms in cache */
+    for (i = 0, h = 0; i < ctx->num_subdoms; i++) {
+        for (c = 0; c < count; c++) {
+            if (handled[c]) {
+                continue;
+            }
+            ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+                goto done;
+            }
+            if (strcmp(value, ctx->subdoms[i].name) == 0) {
+                break;
+            }
+        }
+
+        if (c >= count) {
+            /* ok this subdomain does not exist anymore, let's clean up */
+            for (j = i; j < ctx->num_subdoms - 1; j++) {
+                ctx->subdoms[j] = ctx->subdoms[j + 1];
+            }
+            ctx->num_subdoms--;
+            i--;
+        } else {
+            /* ok let's try to update it */
+            ret = ipa_subdom_parse(ctx->subdoms, reply[c], &ctx->subdoms[i]);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Failed to parse subdom data\n"));
+                goto done;
+            }
+            handled[c] = true;
+            h++;
+        }
+    }
+
+    if (count == h) {
+        /* all domains were already accounted for and have been updated */
+        ret = EOK;
+        goto done;
+    }
+
+    /* if we get here it means we have changes to the subdomains list */
+    *changes = true;
+
+    /* add space for unhandled domains */
+    c = count - h;
+    ctx->subdoms = talloc_realloc(ctx, ctx->subdoms,
+                                  struct sysdb_subdom,
+                                  ctx->num_subdoms + c);
+    if (ctx->subdoms == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
     for (c = 0; c < count; c++) {
-        new_domain_list[c] = talloc_zero(new_domain_list,
-                                         struct sysdb_subdom);
-        if (new_domain_list[c] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
-            ret = ENOMEM;
+        if (handled[c]) {
+            continue;
+        }
+        i = ctx->num_subdoms;
+        memset(&ctx->subdoms[i], 0, sizeof(struct sysdb_subdom));
+        ret = ipa_subdom_parse(ctx->subdoms, reply[c], &ctx->subdoms[i]);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to parse subdom data\n"));
             goto done;
         }
-
-        ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
-            goto done;
-        }
-        new_domain_list[c]->name = talloc_strdup(new_domain_list[c], value);
-        if (new_domain_list[c]->name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* Add Realm as upper(domain name), this is generally always correct
-         * with AD domains */
-        new_domain_list[c]->realm = name_to_realm(new_domain_list[c],
-                                                  new_domain_list[c]->name);
-        if (!new_domain_list[c]->realm) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_string(reply[c], IPA_FLATNAME, &value);
-        if (ret == EOK) {
-            new_domain_list[c]->flat_name = talloc_strdup(new_domain_list[c],
-                                                          value);
-            if (new_domain_list[c]->flat_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-        } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
-            goto done;
-        }
-
-        ret = sysdb_attrs_get_string(reply[c], IPA_TRUSTED_DOMAIN_SID, &value);
-        if (ret == EOK) {
-            new_domain_list[c]->id = talloc_strdup(new_domain_list[c], value);
-            if (new_domain_list[c]->id == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-        } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
-            goto done;
-        }
+        ctx->num_subdoms++;
     }
-    new_domain_list[c] = NULL;
 
     ret = EOK;
 
 done:
-    if (ret == EOK) {
-        talloc_free(sd_data->domain_list);
-        sd_data->domain_list = new_domain_list;
-    } else {
-        talloc_free(new_domain_list);
+    if (ret != EOK) {
+        ctx->num_subdoms = 0;
+        talloc_zfree(ctx->subdoms);
     }
 
     return ret;
@@ -444,6 +532,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     struct ipa_subdomains_req_ctx *ctx;
     struct be_req *be_req;
     struct sysdb_ctx *sysdb;
+    bool refresh_has_changes = false;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     be_req = ctx->be_req;
@@ -480,18 +569,20 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = ipa_subdomains_parse_results(ctx->sd_data, ctx->reply_count,
-                                       ctx->reply);
+    ret = ipa_subdomains_refresh(ctx->sd_ctx, ctx->reply_count, ctx->reply,
+                                 &refresh_has_changes);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("ipa_subdomains_parse_results request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to refresh subdomains.\n"));
         goto done;
     }
 
-    ret = sysdb_update_subdomains(sysdb, ctx->sd_data->domain_list);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
-        goto done;
+    if (refresh_has_changes) {
+        ret = sysdb_update_subdomains(sysdb, ctx->sd_ctx->num_subdoms,
+                                      ctx->sd_ctx->subdoms);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+            goto done;
+        }
     }
 
 

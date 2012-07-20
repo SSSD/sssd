@@ -430,7 +430,8 @@ done:
 }
 
 errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
-                                struct sysdb_subdom **subdomains)
+                                int num_subdoms,
+                                struct sysdb_subdom *subdoms)
 {
     int ret;
     int sret;
@@ -475,9 +476,9 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
      * - if a subdomain already exists in sysdb, mark it for preservation
      * - if the subdomain doesn't exist in sysdb, create its bare structure
      */
-    for (c = 0; subdomains[c] != NULL; c++) {
+    for (c = 0; c < num_subdoms; c++) {
         for (d = 0; d < cur_subdomains_count; d++) {
-            if (strcasecmp(subdomains[c]->name,
+            if (strcasecmp(subdoms[c].name,
                            cur_subdomains[d]->name) == 0) {
                 keep_subdomain[d] = true;
                 /* sub-domain already in cache, nothing to do */
@@ -487,14 +488,14 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
 
         if (d == cur_subdomains_count) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Adding sub-domain [%s].\n",
-                                      subdomains[c]->name));
-            ret = sysdb_domain_create(sysdb, subdomains[c]->name);
+                                      subdoms[c].name));
+            ret = sysdb_domain_create(sysdb, subdoms[c].name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_domain_create failed.\n"));
                 goto done;
             }
 
-            ret = sysdb_add_subdomain_attributes(sysdb, subdomains[c]);
+            ret = sysdb_add_subdomain_attributes(sysdb, &subdoms[c]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       ("sysdb_add_subdomain_attributes failed.\n"));

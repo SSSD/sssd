@@ -414,7 +414,6 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     }
     req->force = force;
     req->domain_hint = talloc_strdup(req, domain_hint);
-    req->domain_list = NULL;
     if (!req->domain_hint) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
