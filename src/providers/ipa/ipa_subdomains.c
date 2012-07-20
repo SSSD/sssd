@@ -42,6 +42,9 @@
 #define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
 #define OBJECTCLASS "objectClass"
 
+/* do not refresh more often than every 5 seconds for now */
+#define IPA_SUBDOMAIN_REFRESH_LIMIT 5
+
 enum ipa_subdomains_req_type {
     IPA_SUBDOMAINS_MASTER,
     IPA_SUBDOMAINS_SLAVE,
@@ -63,7 +66,7 @@ struct ipa_subdomains_ctx {
     struct sdap_search_base **ranges_search_bases;
 
     /* subdomain map cache */
-    time_t last_retrieved;
+    time_t last_refreshed;
     int num_subdoms;
     struct sysdb_subdom *subdoms;
 };
@@ -344,8 +347,11 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
 
 done:
     if (ret != EOK) {
+        ctx->last_refreshed = 0;
         ctx->num_subdoms = 0;
         talloc_zfree(ctx->subdoms);
+    } else {
+        ctx->last_refreshed = time(NULL);
     }
 
     return ret;
@@ -395,49 +401,63 @@ static struct ipa_subdomains_req_params subdomain_requests[] = {
 void ipa_subdomains_handler(struct be_req *be_req)
 {
     struct tevent_req *req;
-    struct ipa_subdomains_req_ctx *ctx = NULL;
+    struct ipa_subdomains_req_ctx *req_ctx = NULL;
+    struct ipa_subdomains_ctx *ctx;
+    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ctx = talloc(be_req, struct ipa_subdomains_req_ctx);
-    if (ctx == NULL) {
-        ret = ENOMEM;
-        goto fail;
+    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
+                          struct ipa_subdomains_ctx);
+    if (!ctx) {
+        ret = EINVAL;
+        goto done;
     }
 
-    ctx->be_req = be_req;
-    ctx->sd_ctx = talloc_get_type(
-                        be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
-                        struct ipa_subdomains_ctx);
-    ctx->sd_data = talloc_get_type(be_req->req_data, struct be_subdom_req);
+    if (ctx->last_refreshed > time(NULL) - IPA_SUBDOMAIN_REFRESH_LIMIT) {
+        ret = EOK;
+        goto done;
+    }
 
-    ctx->search_base_iter = 0;
-    ctx->search_bases = ctx->sd_ctx->search_bases;
-    ctx->current_filter = NULL;
-    ctx->reply_count = 0;
-    ctx->reply = NULL;
+    req_ctx = talloc(be_req, struct ipa_subdomains_req_ctx);
+    if (req_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    ctx->sdap_op = sdap_id_op_create(ctx,
-                                     ctx->sd_ctx->sdap_id_ctx->conn_cache);
-    if (ctx->sdap_op == NULL) {
+    req_ctx->be_req = be_req;
+    req_ctx->sd_ctx = ctx;
+    req_ctx->sd_data = talloc_get_type(be_req->req_data, struct be_subdom_req);
+    req_ctx->search_base_iter = 0;
+    req_ctx->search_bases = ctx->search_bases;
+    req_ctx->current_filter = NULL;
+    req_ctx->reply_count = 0;
+    req_ctx->reply = NULL;
+
+    req_ctx->sdap_op = sdap_id_op_create(req_ctx,
+                                         ctx->sdap_id_ctx->conn_cache);
+    if (req_ctx->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
-    req = sdap_id_op_connect_send(ctx->sdap_op, ctx, &ret);
+    req = sdap_id_op_connect_send(req_ctx->sdap_op, req_ctx, &ret);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
                                   ret, strerror(ret)));
-        goto fail;
+        goto done;
     }
 
-    tevent_req_set_callback(req, ipa_subdomains_get_conn_done, ctx);
+    tevent_req_set_callback(req, ipa_subdomains_get_conn_done, req_ctx);
 
     return;
 
-fail:
-    talloc_free(ctx);
-    ipa_subdomains_reply(be_req, DP_ERR_FATAL, ret);
+done:
+    talloc_free(req_ctx);
+    if (ret == EOK) {
+        dp_error = DP_ERR_OK;
+    }
+    ipa_subdomains_reply(be_req, dp_error, ret);
 }
 
 static void ipa_subdomains_get_conn_done(struct tevent_req *req)
