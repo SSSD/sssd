@@ -481,20 +481,27 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
 
     ret = ipa_hbac_rule_info_recv(subreq, state, &rule_count,
                                   &rules);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Received %d HBAC rules\n", rule_count));
     talloc_free(subreq);
     if (ret != EOK) {
         goto done;
     }
 
     for (i = 0; i < rule_count; i++) {
-        if (!sss_selinux_match(rules[i], state->user, state->host, &priority)) {
-            continue;
-        }
-
         ret = sysdb_attrs_get_string(rules[i], SYSDB_ORIG_DN, &hbac_dn);
         if (ret != EOK) {
             goto done;
         }
+
+        DEBUG(SSSDBG_TRACE_ALL,
+              ("Matching HBAC rule %s with SELinux mappings\n", hbac_dn));
+
+        if (!sss_selinux_match(rules[i], state->user, state->host, &priority)) {
+            DEBUG(SSSDBG_TRACE_ALL, ("Rule did not match\n"));
+            continue;
+        }
+
 
         /* HBAC rule matched, find if it is in the "possible" list */
         for (j = 0; state->possible_match[j]; j++) {
@@ -509,6 +516,9 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
             }
 
             if (strcasecmp(hbac_dn, seealso_dn) == 0) {
+                DEBUG(SSSDBG_TRACE_FUNC, ("HBAC rule [%s] matched, copying its"
+                                          "attributes to SELinux user map [%s]\n",
+                                          hbac_dn, seealso_dn));
                 priority &= ~(SELINUX_PRIORITY_USER_NAME |
                               SELINUX_PRIORITY_USER_GROUP |
                               SELINUX_PRIORITY_USER_CAT);
