@@ -32,6 +32,7 @@
 #include "providers/ipa/ipa_session.h"
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_rules.h"
+#include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
 
@@ -472,6 +473,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
                                                   struct ipa_get_selinux_state);
     struct sysdb_attrs **rules;
     struct sysdb_attrs *usermap;
+    struct ldb_message_element *el;
     const char *hbac_dn;
     const char *seealso_dn;
     size_t rule_count;
@@ -493,6 +495,17 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
         if (ret != EOK) {
             goto done;
         }
+
+        /* We need to do this translation for further processing. We have to
+         * do it manually because no map was used to retrieve HBAC rules.
+         */
+        ret = sysdb_attrs_get_el(rules[i], IPA_MEMBER_HOST, &el);
+        if (ret != EOK) goto done;
+        el->name = SYSDB_ORIG_MEMBER_HOST;
+
+        ret = sysdb_attrs_get_el(rules[i], IPA_MEMBER_USER, &el);
+        if (ret != EOK) goto done;
+        el->name = SYSDB_ORIG_MEMBER_USER;
 
         DEBUG(SSSDBG_TRACE_ALL,
               ("Matching HBAC rule %s with SELinux mappings\n", hbac_dn));
