@@ -62,6 +62,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
     uint32_t priority = 0;
     bool matched_name;
     bool matched_group;
+    bool matched_category;
     errno_t ret;
 
     if (usermap == NULL) {
@@ -100,8 +101,17 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
          * The rule won't match if user category != "all" and user map doesn't
          * contain neither user nor any of his groups in memberUser attribute
          */
-        if (usercat == NULL || usercat->num_values == 0 ||
-            strcasecmp((char *)usercat->values[0].data, "all") != 0) {
+        matched_category = false;
+        if (usercat != NULL) {
+            for (i = 0; i < usercat->num_values; i++) {
+                if (strcasecmp((char *)usercat->values[i].data, "all") == 0) {
+                    matched_category = true;
+                    break;
+                }
+            }
+        }
+
+        if (!matched_category) {
             if (users_el == NULL) {
                 DEBUG(SSSDBG_TRACE_ALL, ("No users specified in the rule!\n"));
                 return false;
@@ -140,8 +150,16 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
          * The rule won't match if host category != "all" and user map doesn't
          * contain neither host nor any of its groups in memberHost attribute
          */
-        if (hostcat == NULL || hostcat->num_values == 0 ||
-            strcasecmp((char *)hostcat->values[0].data, "all") != 0) {
+        matched_category = false;
+        if (hostcat != NULL) {
+            for (i = 0; i < hostcat->num_values; i++) {
+                if (strcasecmp((char *)hostcat->values[i].data, "all") == 0) {
+                    matched_category = true;
+                    break;
+                }
+            }
+        }
+        if (!matched_category) {
             if (hosts_el == NULL) {
                 DEBUG(SSSDBG_TRACE_ALL, ("No users specified in the rule!\n"));
                 return false;
@@ -157,9 +175,9 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
                     return false;
                 }
             }
+        } else {
+            priority |= SELINUX_PRIORITY_HOST_CAT;
         }
-    } else {
-        priority |= SELINUX_PRIORITY_HOST_CAT;
     }
 
     if (_priority != NULL) {
