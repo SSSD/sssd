@@ -51,6 +51,7 @@ struct ipa_get_selinux_state {
     size_t nmaps;
 
     struct sysdb_attrs **possible_match;
+    size_t possible_matches;
 };
 
 static struct
@@ -379,7 +380,6 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     struct ipa_id_ctx *id_ctx;
 
     const char *tmp_str;
-    size_t pos_cnt = 0;
     uint32_t priority = 0;
     errno_t ret;
     int i;
@@ -432,16 +432,16 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
             continue;
         }
 
-        state->possible_match[pos_cnt] = state->selinuxmaps[i];
-        pos_cnt++;
+        state->possible_match[state->possible_matches] = state->selinuxmaps[i];
+        state->possible_matches++;
     }
 
-    if (pos_cnt) {
+    if (state->possible_matches) {
         /* FIXME: detect if HBAC is configured
          * - if yes, we can skip HBAC retrieval and get it directly from sysdb
          */
         DEBUG(SSSDBG_TRACE_FUNC, ("%d SELinux maps referenced an HBAC rule. "
-              "Need to refresh HBAC rules\n", pos_cnt));
+              "Need to refresh HBAC rules\n", state->possible_matches));
         subreq = ipa_hbac_rule_info_send(state, false, bctx->ev,
                                          sdap_id_op_handle(state->op),
                                          id_ctx->sdap_id_ctx->opts,
@@ -517,7 +517,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
 
 
         /* HBAC rule matched, find if it is in the "possible" list */
-        for (j = 0; state->possible_match[j]; j++) {
+        for (j = 0; j < state->possible_matches; j++) {
             usermap = state->possible_match[j];
             if (usermap == NULL) {
                 continue;
