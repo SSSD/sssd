@@ -369,6 +369,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-krb5.5*
 %{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man5/sssd-simple.5*
+%{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man8/sssd.8*
 %if (0%{?enable_experimental} == 1)
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*

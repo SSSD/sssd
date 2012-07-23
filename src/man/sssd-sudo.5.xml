@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-sudo</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-sudo</refname>
+        <refpurpose>the configuration file for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes how to configure
+            <citerefentry>
+                <refentrytitle>sudo</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry> to work with
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry> and how SSSD caches sudo rules.
+        </para>
+    </refsect1>
+
+    <refsect1 id='sudo'>
+        <title>Configuring sudo to cooperate with SSSD</title>
+        <para>
+            To enable SSSD as a source for sudo rules, add
+            <emphasis>sss</emphasis> to the <emphasis>sudoers</emphasis> entry
+            in
+            <citerefentry>
+                <refentrytitle>nsswitch.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+        <para>
+            For example, to configure sudo to first lookup rules in the standard
+            <citerefentry>
+                <refentrytitle>sudoers</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> file (which should contain rules that apply to
+            local users) and then in SSSD, the nsswitch.conf file should contain
+            the following line:
+        </para>
+        <para>
+<programlisting>
+sudoers: files sss
+</programlisting>
+        </para>
+        <para>
+            More information about configuring the sudoers search order from the
+            nsswitch.conf file as well as information about the LDAP schema that
+            is used to store sudo rules in the directory can be found in
+            <citerefentry>
+                <refentrytitle>sudoers.ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+
+    <refsect1 id='sssd'>
+        <title>Configuring SSSD to fetch sudo rules</title>
+        <para>
+            The following example shows how to configure SSSD to download sudo
+            rules from an LDAP server.
+        </para>
+        <para>
+<programlisting>
+[sssd]
+config_file_version = 2
+services = nss, pam, sudo
+domains = EXAMPLE
+
+[domain/EXAMPLE]
+id_provider = ldap
+sudo_provider = ldap
+ldap_uri = ldap://example.com
+ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
+</programlisting>
+        </para>
+        <para>
+            The following example illustrates setting up SSSD to download
+            sudo rules from an IPA server. It is necessary to use the LDAP
+            provider and set appropriate connection parameters to authenticate
+            correctly against the IPA server, because SSSD does not have native
+            support of IPA provider for sudo yet.
+        </para>
+        <para>
+<programlisting>
+[sssd]
+config_file_version = 2
+services = nss, pam, sudo
+domains = EXAMPLE
+
+[domain/EXAMPLE]
+id_provider = ipa
+ipa_domain = example.com
+ipa_server = ipa.example.com
+ldap_tls_cacert = /etc/ipa/ca.crt
+
+sudo_provider = ldap
+ldap_uri = ldap://ipa.example.com
+ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
+ldap_sasl_mech = GSSAPI
+ldap_sasl_authid = host/hostname.example.com
+ldap_sasl_realm = EXAMPLE.COM
+krb5_server = ipa.example.com
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='cache'>
+        <title>The SUDO rule caching mechanism</title>
+        <para>
+            The biggest challenge, when developing sudo support in SSSD, was to
+            ensure that running sudo with SSSD as the data source provides the
+            same user experience and is as fast as sudo but keeps providing
+            the most current set of rules as possible. To satisfy these
+            requirements, SSSD uses three kinds of updates. They are referred to
+            as full refresh, smart refresh and rules refresh.
+        </para>
+        <para>
+            The <emphasis>smart refresh</emphasis> periodically downloads rules
+            that are new or were modified after the last update. Its primary
+            goal is to keep the database growing by fetching only small
+            increments that do not generate large amounts of network traffic.
+        </para>
+        <para>
+            The <emphasis>full refresh</emphasis> simply deletes all sudo rules
+            stored in the cache and replaces them with all rules that are stored
+            on the server. This is used to keep the cache consistent by removing
+            every rule which was deleted from the server. Hovewer, full refresh
+            may produce a lot of traffic and thus it should be run only
+            occasionally depending on the size and stability of the sudo rules.
+        </para>
+        <para>
+            The <emphasis>rules refresh</emphasis> ensures that we do not grant
+            the user more permission than defined. It is triggered each time the
+            user runs sudo. Rules refresh will find all rules that apply to this
+            user, check their expiration time and redownload them if expired.
+            In the case that any of these rules are missing on the server, the
+            SSSD will do an out of band full refresh because more rules
+            (that apply to other users) may have been deleted.
+        </para>
+        <para>
+            If enabled, SSSD will store only rules that can be applied to this
+            machine. This means rules that contain one of the following values
+            in <emphasis>sudoHost</emphasis> attribute:
+        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    keyword ALL
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    regular expression
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    netgroup (in the form "+netgroup")
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    hostname or fully qualified domain name of this machine
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    one of the IP addresses of this machine
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    one of the IP addresses of the network
+                    (in the form "address/mask")
+                </para>
+            </listitem>
+        </itemizedlist>
+        <para>
+            There are many configuration options that can be used to adjust
+            the behaviour. Please refer to "ldap_sudo_*" in
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> and "sudo_*" in
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>
