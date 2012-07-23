@@ -940,7 +940,7 @@ static void sdap_sudo_periodical_first_refresh_done(struct tevent_req *req)
     ret = sdap_sudo_full_refresh_recv(subreq, &dp_error, &error);
     if (dp_error != DP_ERR_OK || error != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Periodical full refresh of sudo rules "
-              "failed [dp_error: %d] ([%d]: %s)",
+              "failed [dp_error: %d] ([%d]: %s)\n",
               dp_error, error, strerror(error)));
         goto schedule;
     }
@@ -999,7 +999,7 @@ static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req)
     ret = sdap_sudo_full_refresh_recv(subreq, &dp_error, &error);
     if (dp_error != DP_ERR_OK || error != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Periodical full refresh of sudo rules "
-                      "failed [dp_error: %d] ([%d]: %s)",
+                      "failed [dp_error: %d] ([%d]: %s)\n",
                       dp_error, error, strerror(error)));
         goto schedule;
     }
@@ -1042,7 +1042,7 @@ static void sdap_sudo_periodical_smart_refresh_done(struct tevent_req *req)
     ret = sdap_sudo_smart_refresh_recv(subreq, &dp_error, &error);
     if (dp_error != DP_ERR_OK || error != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Periodical smart refresh of sudo rules "
-              "failed [dp_error: %d] ([%d]: %s)",
+              "failed [dp_error: %d] ([%d]: %s)\n",
               dp_error, error, strerror(error)));
         goto schedule;
     }
