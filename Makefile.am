@@ -107,6 +107,7 @@ endif
 if HAVE_CHECK
     non_interactive_check_based_tests = \
         sysdb-tests \
+        sysdb_ssh-tests\
         strtonum-tests \
         resolv-tests \
         krb5-utils-tests \
@@ -775,6 +776,19 @@ sysdb_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    libsss_util.la \
+    libsss_test_common.la
+
+sysdb_ssh_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES)
+sysdb_ssh_tests_SOURCES = \
+    src/tests/sysdb_ssh-tests.c
+sysdb_ssh_tests_CFLAGS = \
+    $(AM_CFLAGS)\
+    $(CHECK_CFLAGS)
+sysdb_ssh_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     libsss_util.la \
