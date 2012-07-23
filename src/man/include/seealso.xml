@@ -55,12 +55,16 @@
             <citerefentry>
                 <refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_ssh_authorizedkeys</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_ssh_knowhostsproxy</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
+            <phrase condition="with_ssh">
+                <citerefentry>
+                    <refentrytitle>sss_ssh_authorizedkeys</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry>,
+                <citerefentry>
+                    <refentrytitle>sss_ssh_knowhostsproxy</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry>,
+            </phrase>
             <citerefentry>
                 <refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
