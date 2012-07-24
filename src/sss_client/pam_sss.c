@@ -1180,71 +1180,71 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                           pi->pam_user, pam_status,
                           pam_strerror(pamh,pam_status));
                 }
+            } else {
+                if (pi->selinux_user == NULL) {
+                    pam_status = PAM_SUCCESS;
+                    break;
+                }
+
+#ifdef HAVE_SELINUX
+                if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
+                             pi->pam_user) <  0 ||
+                    asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
+                    pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+
+                oldmask = umask(022);
+                fd = mkstemp(tmp_path);
+                umask(oldmask);
+                if (fd < 0) {
+                    logger(pamh, LOG_ERR, "creating the temp file for SELinux "
+                           "data failed. %s", tmp_path);
+                    pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+
+                /* First write filter for all services */
+                services = strdup(ALL_SERVICES);
+                if (services == NULL) {
+                    pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+
+                errno = 0;
+                written = sss_atomic_write_s(fd, (void *)services, ALL_SERVICES_LEN);
+                if (written == -1) {
+                    ret = errno;
+                    logger(pamh, LOG_ERR, "writing to SELinux data file %s"
+                            "failed [%d]: %s", tmp_path, ret, strerror(ret));
+                    pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+                len = strlen(pi->selinux_user);
+
+                errno = 0;
+                written = sss_atomic_write_s(fd, pi->selinux_user, len);
+                if (written == -1) {
+                    ret = errno;
+                    logger(pamh, LOG_ERR, "writing to SELinux data file %s"
+                            "failed [%d]: %s", tmp_path, ret, strerror(ret));
+                    pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+
+                if (written != len) {
+                    logger(pamh, LOG_ERR, "Expected to write %d bytes, wrote %d",
+                           written, len);
+                    goto done;
+                }
+
+                close(fd);
+
+                rename(tmp_path, path);
+#endif /* HAVE_SELINUX */
             }
             break;
         case SSS_PAM_OPEN_SESSION:
-            if (pi->selinux_user == NULL) {
-                pam_status = PAM_SUCCESS;
-                break;
-            }
-
-#ifdef HAVE_SELINUX
-            if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
-                         pi->pam_user) <  0 ||
-                asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-
-            oldmask = umask(022);
-            fd = mkstemp(tmp_path);
-            umask(oldmask);
-            if (fd < 0) {
-                logger(pamh, LOG_ERR, "creating the temp file for SELinux "
-                       "data failed. %s", tmp_path);
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-
-            /* First write filter for all services */
-            services = strdup(ALL_SERVICES);
-            if (services == NULL) {
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-
-            errno = 0;
-            written = sss_atomic_write_s(fd, (void *)services, ALL_SERVICES_LEN);
-            if (written == -1) {
-                ret = errno;
-                logger(pamh, LOG_ERR, "writing to SELinux data file %s"
-                        "failed [%d]: %s", tmp_path, ret, strerror(ret));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            len = strlen(pi->selinux_user);
-
-            errno = 0;
-            written = sss_atomic_write_s(fd, pi->selinux_user, len);
-            if (written == -1) {
-                ret = errno;
-                logger(pamh, LOG_ERR, "writing to SELinux data file %s"
-                        "failed [%d]: %s", tmp_path, ret, strerror(ret));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-
-            if (written != len) {
-                logger(pamh, LOG_ERR, "Expected to write %d bytes, wrote %d",
-                       written, len);
-                goto done;
-            }
-
-            close(fd);
-
-            rename(tmp_path, path);
-#endif /* HAVE_SELINUX */
-            break;
         case SSS_PAM_SETCRED:
         case SSS_PAM_CLOSE_SESSION:
             break;

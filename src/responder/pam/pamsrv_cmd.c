@@ -582,6 +582,7 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
     pam_reply(preq);
 }
 
+static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd);
 static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
                                 time_t expire_date, time_t delayed_until);
 
@@ -700,7 +701,7 @@ static void pam_reply(struct pam_auth_req *preq)
         return;
     }
 
-    if (pd->cmd == SSS_PAM_OPEN_SESSION &&
+    if (pd->cmd == SSS_PAM_ACCT_MGMT &&
         pd->pam_status == PAM_SUCCESS) {
         /* Try to fetch data from sysdb
          * (auth already passed -> we should have them) */

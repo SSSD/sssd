@@ -132,6 +132,8 @@ struct bet_ops {
 };
 
 #define MAX_BE_REQ_RESTARTS 2
+#define REQ_PHASE_ACCESS 0
+#define REQ_PHASE_SELINUX 1
 
 struct be_req {
     struct be_client *becli;
@@ -142,6 +144,12 @@ struct be_req {
     void *pvt;
 
     int restarts;
+
+    /* This is utilized in access provider
+     * request handling to indicate if access or
+     * selinux provider is calling the callback.
+     */
+    int phase;
 
     struct sss_domain_info *domain;
     struct sysdb_ctx *sysdb;

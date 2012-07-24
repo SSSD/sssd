@@ -753,16 +753,40 @@ static void be_pam_handler_callback(struct be_req *req,
                                     int errnum,
                                     const char *errstr)
 {
+    struct be_client *becli = req->becli;
     struct pam_data *pd;
     DBusMessage *reply;
     DBusConnection *dbus_conn;
     dbus_bool_t dbret;
+    errno_t ret;
 
     DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
               dp_pam_err_to_string(req, dp_err_type, errnum)));
 
     pd = talloc_get_type(req->req_data, struct pam_data);
+
+    if (pd->cmd == SSS_PAM_ACCT_MGMT &&
+        req->phase == REQ_PHASE_ACCESS &&
+        dp_err_type == DP_ERR_OK) {
+        if (!becli->bectx->bet_info[BET_SELINUX].bet_ops) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("SELinux provider doesn't exist, "
+                   "not sending the request to it.\n"));
+        } else {
+            req->phase = REQ_PHASE_SELINUX;
+
+            /* Now is the time to call SELinux provider */
+            ret = be_file_request(becli->bectx->bet_info[BET_SELINUX].pvt_bet_data,
+                                  req,
+                                  becli->bectx->bet_info[BET_SELINUX].bet_ops->handler);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("be_file_request failed.\n"));
+                goto done;
+            }
+            return;
+        }
+    }
 
     DEBUG(4, ("Sending result [%d][%s]\n", pd->pam_status, pd->domain));
     reply = (DBusMessage *)req->pvt;
@@ -852,6 +876,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
             break;
         case SSS_PAM_ACCT_MGMT:
             target = BET_ACCESS;
+            be_req->phase = REQ_PHASE_ACCESS;
             break;
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
