@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    IPA Backend Module -- session loading
+    IPA Backend Module -- selinux loading
 
     Authors:
         Jan Zeleny <jzeleny@redhat.com>
@@ -22,12 +22,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _IPA_SESSION_H_
-#define _IPA_SESSION_H_
+#ifndef _IPA_SELINUX_H_
+#define _IPA_SELINUX_H_
 
 #include "providers/ldap/ldap_common.h"
 
-struct ipa_session_ctx {
+struct ipa_selinux_ctx {
     struct ipa_id_ctx *id_ctx;
 
     struct sdap_search_base **selinux_search_bases;
@@ -35,6 +35,6 @@ struct ipa_session_ctx {
     struct sdap_search_base **hbac_search_bases;
 };
 
-void ipa_session_handler(struct be_req *be_req);
+void ipa_selinux_handler(struct be_req *be_req);
 
 #endif

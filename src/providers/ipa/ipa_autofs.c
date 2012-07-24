@@ -29,7 +29,7 @@
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_dyndns.h"
-#include "providers/ipa/ipa_session.h"
+#include "providers/ipa/ipa_selinux.h"
 
 struct bet_ops ipa_autofs_ops = {
     .handler = sdap_autofs_handler,

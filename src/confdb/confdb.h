@@ -136,7 +136,7 @@
 #define CONFDB_DOMAIN_CHPASS_PROVIDER "chpass_provider"
 #define CONFDB_DOMAIN_SUDO_PROVIDER "sudo_provider"
 #define CONFDB_DOMAIN_AUTOFS_PROVIDER "autofs_provider"
-#define CONFDB_DOMAIN_SESSION_PROVIDER "session_provider"
+#define CONFDB_DOMAIN_SELINUX_PROVIDER "selinux_provider"
 #define CONFDB_DOMAIN_HOSTID_PROVIDER "hostid_provider"
 #define CONFDB_DOMAIN_SUBDOMAINS_PROVIDER "subdomains_provider"
 #define CONFDB_DOMAIN_COMMAND "command"

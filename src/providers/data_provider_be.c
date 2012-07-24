@@ -113,7 +113,7 @@ static struct bet_data bet_data[] = {
     {BET_CHPASS, CONFDB_DOMAIN_CHPASS_PROVIDER, "sssm_%s_chpass_init"},
     {BET_SUDO, CONFDB_DOMAIN_SUDO_PROVIDER, "sssm_%s_sudo_init"},
     {BET_AUTOFS, CONFDB_DOMAIN_AUTOFS_PROVIDER, "sssm_%s_autofs_init"},
-    {BET_SESSION, CONFDB_DOMAIN_SESSION_PROVIDER, "sssm_%s_session_init"},
+    {BET_SELINUX, CONFDB_DOMAIN_SELINUX_PROVIDER, "sssm_%s_selinux_init"},
     {BET_HOSTID, CONFDB_DOMAIN_HOSTID_PROVIDER, "sssm_%s_hostid_init"},
     {BET_SUBDOMAINS, CONFDB_DOMAIN_SUBDOMAINS_PROVIDER, "sssm_%s_subdomains_init"},
     {BET_MAX, NULL, NULL}
@@ -858,8 +858,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
             target = BET_CHPASS;
             break;
         case SSS_PAM_OPEN_SESSION:
-            target = BET_SESSION;
-            break;
         case SSS_PAM_SETCRED:
         case SSS_PAM_CLOSE_SESSION:
             pd->pam_status = PAM_SUCCESS;
@@ -2170,19 +2168,19 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                "from provider [%s].\n", ctx->bet_info[BET_AUTOFS].mod_name));
     }
 
-    ret = load_backend_module(ctx, BET_SESSION,
-                              &ctx->bet_info[BET_SESSION],
+    ret = load_backend_module(ctx, BET_SELINUX,
+                              &ctx->bet_info[BET_SELINUX],
                               ctx->bet_info[BET_ID].mod_name);
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing data providers\n"));
             return ret;
         }
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No Session module provided for [%s] !!\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No selinux module provided for [%s] !!\n",
                   be_domain));
     } else {
-        DEBUG(SSSDBG_TRACE_ALL, ("Session backend target successfully loaded "
-                  "from provider [%s].\n", ctx->bet_info[BET_SESSION].mod_name));
+        DEBUG(SSSDBG_TRACE_ALL, ("selinux backend target successfully loaded "
+                  "from provider [%s].\n", ctx->bet_info[BET_SELINUX].mod_name));
     }
 
     ret = load_backend_module(ctx, BET_HOSTID,

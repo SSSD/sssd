@@ -1328,15 +1328,16 @@ override_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>session_provider (string)</term>
+                    <term>selinux_provider (string)</term>
                     <listitem>
                         <para>
-                            The provider which should handle loading of session
-                            settings.
-                            Supported session providers are:
+                            The provider which should handle loading of selinux
+                            settings. Note that this provider will be called right
+                            after access provider ends.
+                            Supported selinux providers are:
                         </para>
                         <para>
-                            <quote>ipa</quote> to load session settings
+                            <quote>ipa</quote> to load selinux settings
                             from an IPA server. See
                             <citerefentry>
                                 <refentrytitle>sssd-ipa</refentrytitle>
@@ -1344,11 +1345,11 @@ override_homedir = /home/%u
                             </citerefentry> for more information on configuring IPA.
                         </para>
                         <para>
-                            <quote>none</quote> disallows fetching session settings explicitly.
+                            <quote>none</quote> disallows fetching selinux settings explicitly.
                         </para>
                         <para>
                             Default: <quote>id_provider</quote> is used if it
-                            is set and can handle session loading requests.
+                            is set and can handle selinux loading requests.
                         </para>
                     </listitem>
                 </varlistentry>

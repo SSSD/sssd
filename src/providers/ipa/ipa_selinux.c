@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    IPA Backend Module -- session loading
+    IPA Backend Module -- selinux loading
 
     Authors:
         Jan Zeleny <jzeleny@redhat.com>
@@ -29,7 +29,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"
-#include "providers/ipa/ipa_session.h"
+#include "providers/ipa/ipa_selinux.h"
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_rules.h"
 #include "providers/ipa/ipa_hbac_private.h"
@@ -39,7 +39,7 @@
 struct ipa_get_selinux_state {
     struct be_req *be_req;
     struct pam_data *pd;
-    struct ipa_session_ctx *session_ctx;
+    struct ipa_selinux_ctx *selinux_ctx;
     struct sdap_id_op *op;
 
     const char *hostname;
@@ -57,8 +57,8 @@ struct ipa_get_selinux_state {
 static struct
 tevent_req *ipa_get_selinux_send(struct be_req *breq,
                                  struct pam_data *pd,
-                                 struct ipa_session_ctx *session_ctx);
-static void ipa_session_handler_done(struct tevent_req *subreq);
+                                 struct ipa_selinux_ctx *selinux_ctx);
+static void ipa_selinux_handler_done(struct tevent_req *subreq);
 static errno_t ipa_get_selinux_recv(struct tevent_req *req,
                                     TALLOC_CTX *mem_ctx,
                                     size_t *count,
@@ -73,25 +73,25 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq);
 static void ipa_get_selinux_maps_done(struct tevent_req *subreq);
 static void ipa_get_selinux_hbac_done(struct tevent_req *subreq);
 
-void ipa_session_handler(struct be_req *be_req)
+void ipa_selinux_handler(struct be_req *be_req)
 {
-    struct ipa_session_ctx *session_ctx;
+    struct ipa_selinux_ctx *selinux_ctx;
     struct tevent_req *req;
     struct pam_data *pd;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    session_ctx = talloc_get_type(
-                             be_req->be_ctx->bet_info[BET_SESSION].pvt_bet_data,
-                             struct ipa_session_ctx);
+    selinux_ctx = talloc_get_type(
+                             be_req->be_ctx->bet_info[BET_SELINUX].pvt_bet_data,
+                             struct ipa_selinux_ctx);
 
 
-    req = ipa_get_selinux_send(be_req, pd, session_ctx);
+    req = ipa_get_selinux_send(be_req, pd, selinux_ctx);
     if (req == NULL) {
         goto fail;
     }
 
-    tevent_req_set_callback(req, ipa_session_handler_done, be_req);
+    tevent_req_set_callback(req, ipa_selinux_handler_done, be_req);
 
     return;
 
@@ -99,7 +99,7 @@ fail:
     be_req->fn(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
 }
 
-static void ipa_session_handler_done(struct tevent_req *req)
+static void ipa_selinux_handler_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sysdb_ctx *sysdb = breq->be_ctx->sysdb;
@@ -172,7 +172,7 @@ fail:
 
 static struct tevent_req *ipa_get_selinux_send(struct be_req *breq,
                                                struct pam_data *pd,
-                                               struct ipa_session_ctx *session_ctx)
+                                               struct ipa_selinux_ctx *selinux_ctx)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -189,14 +189,14 @@ static struct tevent_req *ipa_get_selinux_send(struct be_req *breq,
 
     state->be_req = breq;
     state->pd = pd;
-    state->session_ctx = session_ctx;
+    state->selinux_ctx = selinux_ctx;
 
     offline = be_is_offline(bctx);
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Connection status is [%s].\n",
                                   offline ? "offline" : "online"));
 
     if (!offline) {
-        state->op = sdap_id_op_create(state, session_ctx->id_ctx->sdap_id_ctx->conn_cache);
+        state->op = sdap_id_op_create(state, selinux_ctx->id_ctx->sdap_id_ctx->conn_cache);
         if (!state->op) {
             DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
             ret = ENOMEM;
@@ -237,7 +237,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
                                                   struct ipa_get_selinux_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
-    struct ipa_id_ctx *id_ctx = state->session_ctx->id_ctx;
+    struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
     struct be_ctx *bctx = state->be_req->be_ctx;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -252,7 +252,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    state->hostname = dp_opt_get_string(state->session_ctx->id_ctx->ipa_options->basic,
+    state->hostname = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                         IPA_HOSTNAME);
 
     /* FIXME: detect if HBAC is configured
@@ -265,7 +265,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
                                 state->hostname,
                                 id_ctx->ipa_options->host_map,
                                 NULL,
-                                state->session_ctx->host_search_bases);
+                                state->selinux_ctx->host_search_bases);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -320,9 +320,9 @@ static void ipa_get_config_step(struct tevent_req *req)
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
     struct be_ctx *bctx = state->be_req->be_ctx;
-    struct ipa_id_ctx *id_ctx = state->session_ctx->id_ctx;
+    struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
 
-    domain = dp_opt_get_string(state->session_ctx->id_ctx->ipa_options->basic,
+    domain = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                IPA_KRB5_REALM);
     subreq = ipa_get_config_send(state, bctx->ev,
                                  sdap_id_op_handle(state->op),
@@ -341,7 +341,7 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
     struct be_ctx *bctx = state->be_req->be_ctx;
-    struct sdap_id_ctx *id_ctx = state->session_ctx->id_ctx->sdap_id_ctx;
+    struct sdap_id_ctx *id_ctx = state->selinux_ctx->id_ctx->sdap_id_ctx;
     errno_t ret;
 
     ret = ipa_get_config_recv(subreq, state, &state->defaults);
@@ -354,8 +354,8 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
     subreq = ipa_selinux_get_maps_send(state, bctx->ev, bctx->sysdb,
                                      sdap_id_op_handle(state->op),
                                      id_ctx->opts,
-                                     state->session_ctx->id_ctx->ipa_options,
-                                     state->session_ctx->selinux_search_bases);
+                                     state->selinux_ctx->id_ctx->ipa_options,
+                                     state->selinux_ctx->selinux_search_bases);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -387,7 +387,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_get_selinux_state);
     bctx = state->be_req->be_ctx;
-    id_ctx = state->session_ctx->id_ctx;
+    id_ctx = state->selinux_ctx->id_ctx;
 
     ret = ipa_selinux_get_maps_recv(subreq, state,
                                     &state->nmaps, &state->selinuxmaps);
@@ -445,7 +445,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         subreq = ipa_hbac_rule_info_send(state, false, bctx->ev,
                                          sdap_id_op_handle(state->op),
                                          id_ctx->sdap_id_ctx->opts,
-                                         state->session_ctx->hbac_search_bases,
+                                         state->selinux_ctx->hbac_search_bases,
                                          state->host);
         if (subreq == NULL) {
             ret = ENOMEM;

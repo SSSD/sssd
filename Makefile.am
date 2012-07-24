@@ -413,7 +413,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
-    src/providers/ipa/ipa_session.h \
+    src/providers/ipa/ipa_selinux.h \
     src/providers/ipa/ipa_hosts.h \
     src/providers/ipa/ipa_selinux_common.h \
     src/providers/ipa/ipa_selinux_maps.h \
@@ -1327,7 +1327,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_hbac_services.c \
     src/providers/ipa/ipa_hbac_users.c \
     src/providers/ipa/ipa_hbac_common.c \
-    src/providers/ipa/ipa_session.c \
+    src/providers/ipa/ipa_selinux.c \
     src/providers/ipa/ipa_selinux_maps.c \
     src/providers/ipa/ipa_selinux_common.c \
     src/util/user_info_msg.c \

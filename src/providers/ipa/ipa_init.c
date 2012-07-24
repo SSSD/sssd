@@ -36,7 +36,7 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_hostid.h"
 #include "providers/ipa/ipa_dyndns.h"
-#include "providers/ipa/ipa_session.h"
+#include "providers/ipa/ipa_selinux.h"
 #include "providers/ldap/sdap_access.h"
 #include "providers/ipa/ipa_subdomains.h"
 
@@ -64,8 +64,8 @@ struct bet_ops ipa_access_ops = {
     .finalize = NULL
 };
 
-struct bet_ops ipa_session_ops = {
-    .handler = ipa_session_handler,
+struct bet_ops ipa_selinux_ops = {
+    .handler = ipa_selinux_handler,
     .finalize = NULL
 };
 
@@ -386,38 +386,38 @@ done:
     return ret;
 }
 
-int sssm_ipa_session_init(struct be_ctx *bectx,
+int sssm_ipa_selinux_init(struct be_ctx *bectx,
                           struct bet_ops **ops,
                           void **pvt_data)
 {
     int ret;
-    struct ipa_session_ctx *session_ctx;
+    struct ipa_selinux_ctx *selinux_ctx;
     struct ipa_options *opts;
 
-    session_ctx = talloc_zero(bectx, struct ipa_session_ctx);
-    if (session_ctx == NULL) {
+    selinux_ctx = talloc_zero(bectx, struct ipa_selinux_ctx);
+    if (selinux_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         return ENOMEM;
     }
 
-    ret = sssm_ipa_id_init(bectx, ops, (void **) &session_ctx->id_ctx);
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &selinux_ctx->id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
         goto done;
     }
 
-    opts = session_ctx->id_ctx->ipa_options;
+    opts = selinux_ctx->id_ctx->ipa_options;
 
-    session_ctx->hbac_search_bases = opts->hbac_search_bases;
-    session_ctx->host_search_bases = opts->host_search_bases;
-    session_ctx->selinux_search_bases = opts->selinux_search_bases;
+    selinux_ctx->hbac_search_bases = opts->hbac_search_bases;
+    selinux_ctx->host_search_bases = opts->host_search_bases;
+    selinux_ctx->selinux_search_bases = opts->selinux_search_bases;
 
-    *ops = &ipa_session_ops;
-    *pvt_data = session_ctx;
+    *ops = &ipa_selinux_ops;
+    *pvt_data = selinux_ctx;
 
 done:
     if (ret != EOK) {
-        talloc_free(session_ctx);
+        talloc_free(selinux_ctx);
     }
     return ret;
 }
