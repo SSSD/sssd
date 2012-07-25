@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <string.h>
 #include "util/util.h"
+#include "tests/common.h"
 
 #define DEBUG_TEST_ERROR    -1
 #define DEBUG_TEST_NOK      1
@@ -1021,6 +1022,8 @@ Suite *debug_suite(void)
 int main(int argc, const char *argv[])
 {
     int number_failed;
+
+    tests_set_cwd();
 
     Suite *s = debug_suite();
     SRunner *sr = srunner_create(s);

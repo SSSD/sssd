@@ -33,6 +33,7 @@
 
 #include "tests/common.h"
 #include "util/util.h"
+#include "tests/common.h"
 
 /* Interface under test */
 #include "resolv/async_resolv.h"
@@ -861,6 +862,8 @@ int main(int argc, const char *argv[])
         printf("Network tests disabled. Rerun with the \"-n\" "
                "option to run the full suite of tests\n");
     }
+
+    tests_set_cwd();
 
     resolv_suite = create_resolv_suite();
     sr = srunner_create(resolv_suite);

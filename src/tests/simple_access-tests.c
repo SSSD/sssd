@@ -28,6 +28,7 @@
 
 #include "confdb/confdb.h"
 #include "providers/simple/simple_access.h"
+#include "tests/common.h"
 
 const char *ulist_1[] = {"u1", "u2", NULL};
 
@@ -196,6 +197,8 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
+
+    tests_set_cwd();
 
     Suite *s = access_simple_suite();
     SRunner *sr = srunner_create(s);

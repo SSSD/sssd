@@ -859,6 +859,7 @@ endif
 
 resolv_tests_SOURCES = \
     src/tests/resolv-tests.c \
+    src/tests/common.c \
     $(SSSD_RESOLV_TESTS_OBJ)
 resolv_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -946,6 +947,7 @@ ad_ldap_opt_tests_LDADD = \
 
 simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
+    src/tests/common.c \
     src/providers/simple/simple_access.c
 simple_access_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -967,7 +969,8 @@ util_tests_LDADD = \
     libsss_test_common.la
 
 debug_tests_SOURCES = \
-    src/tests/debug-tests.c
+    src/tests/debug-tests.c \
+    src/tests/common.c
 debug_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
