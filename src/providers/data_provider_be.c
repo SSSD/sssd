@@ -770,13 +770,13 @@ static void be_pam_handler_callback(struct be_req *req,
     if (!dbret) {
         DEBUG(1, ("Failed to generate dbus reply\n"));
         dbus_message_unref(reply);
-        return;
+        goto done;
     }
 
     dbus_conn = sbus_get_connection(req->becli->conn);
     if (!dbus_conn) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
-        return;
+        goto done;
     }
 
     dbus_connection_send(dbus_conn, reply, NULL);
@@ -784,6 +784,7 @@ static void be_pam_handler_callback(struct be_req *req,
 
     DEBUG(4, ("Sent result [%d][%s]\n", pd->pam_status, pd->domain));
 
+done:
     talloc_free(req);
 }
 
