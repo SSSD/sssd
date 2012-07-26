@@ -33,6 +33,7 @@
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_rules.h"
 #include "providers/ipa/ipa_hbac_private.h"
+#include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
 
@@ -72,6 +73,10 @@ static void ipa_get_config_step(struct tevent_req *req);
 static void ipa_get_selinux_config_done(struct tevent_req *subreq);
 static void ipa_get_selinux_maps_done(struct tevent_req *subreq);
 static void ipa_get_selinux_hbac_done(struct tevent_req *subreq);
+static int
+ipa_get_selinux_hbac_process(struct ipa_get_selinux_state *state,
+                             struct sysdb_attrs **rules,
+                             size_t rule_count);
 
 void ipa_selinux_handler(struct be_req *be_req)
 {
@@ -379,6 +384,11 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     struct be_ctx *bctx;
     struct ipa_id_ctx *id_ctx;
 
+    char *selinux_name;
+    char *access_name;
+    struct sysdb_attrs **rules;
+    size_t rule_count;
+
     const char *tmp_str;
     uint32_t priority = 0;
     errno_t ret;
@@ -437,9 +447,19 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     }
 
     if (state->possible_matches) {
-        /* FIXME: detect if HBAC is configured
-         * - if yes, we can skip HBAC retrieval and get it directly from sysdb
-         */
+        access_name = state->be_req->be_ctx->bet_info[BET_ACCESS].mod_name;
+        selinux_name = state->be_req->be_ctx->bet_info[BET_SELINUX].mod_name;
+        if (strcasecmp(access_name, selinux_name) == 0) {
+            ret = hbac_get_cached_rules(state, state->be_req->be_ctx->sysdb,
+                                        &rule_count, &rules);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            ret = ipa_get_selinux_hbac_process(state, rules, rule_count);
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_FUNC, ("%d SELinux maps referenced an HBAC rule. "
               "Need to refresh HBAC rules\n", state->possible_matches));
         subreq = ipa_hbac_rule_info_send(state, false, bctx->ev,
@@ -472,14 +492,8 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
     struct sysdb_attrs **rules;
-    struct sysdb_attrs *usermap;
-    struct ldb_message_element *el;
-    const char *hbac_dn;
-    const char *seealso_dn;
     size_t rule_count;
-    uint32_t priority = 0;
     errno_t ret;
-    int i, j;
 
     ret = ipa_hbac_rule_info_recv(subreq, state, &rule_count,
                                   &rules);
@@ -489,6 +503,29 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     if (ret != EOK) {
         goto done;
     }
+
+    ret = ipa_get_selinux_hbac_process(state, rules, rule_count);
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+}
+
+static int
+ipa_get_selinux_hbac_process(struct ipa_get_selinux_state *state,
+                             struct sysdb_attrs **rules,
+                             size_t rule_count)
+{
+    int i, j;
+    errno_t ret;
+    uint32_t priority = 0;
+    const char *hbac_dn;
+    const char *seealso_dn;
+    struct sysdb_attrs *usermap;
+    struct ldb_message_element *el;
 
     for (i = 0; i < rule_count; i++) {
         ret = sysdb_attrs_get_string(rules[i], SYSDB_ORIG_DN, &hbac_dn);
@@ -563,11 +600,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
 
     ret = EOK;
 done:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
+    return ret;
 }
 
 static errno_t
