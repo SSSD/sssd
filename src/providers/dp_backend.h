@@ -131,7 +131,6 @@ struct bet_ops {
     be_req_fn_t finalize;
 };
 
-#define MAX_BE_REQ_RESTARTS 2
 #define REQ_PHASE_ACCESS 0
 #define REQ_PHASE_SELINUX 1
 
@@ -142,8 +141,6 @@ struct be_req {
 
     be_async_callback_t fn;
     void *pvt;
-
-    int restarts;
 
     /* This is utilized in access provider
      * request handling to indicate if access or
