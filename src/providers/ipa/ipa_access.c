@@ -600,9 +600,6 @@ fail:
     ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
 }
 
-static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
-                                     struct hbac_ctx *hbac_ctx);
-
 void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
 {
     errno_t ret;
@@ -612,7 +609,8 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
     struct hbac_info *info;
 
     /* Get HBAC rules from the sysdb */
-    ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx);
+    ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx_sysdb(hbac_ctx),
+                                &hbac_ctx->rule_count, &hbac_ctx->rules);
     if (ret != EOK) {
         DEBUG(1, ("Could not retrieve rules from the cache\n"));
         ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
@@ -655,17 +653,20 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
     ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
 }
 
-static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
-                                     struct hbac_ctx *hbac_ctx)
+errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *sysdb,
+                              size_t *_rule_count,
+                              struct sysdb_attrs ***_rules)
 {
     errno_t ret;
-    struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
-    size_t count;
     struct ldb_message **msgs;
+    struct sysdb_attrs **rules;
+    size_t rule_count;
     TALLOC_CTX *tmp_ctx;
     char *filter;
     const char *attrs[] = { OBJECTCLASS,
                             IPA_CN,
+                            SYSDB_ORIG_DN,
                             IPA_UNIQUE_ID,
                             IPA_ENABLED_FLAG,
                             IPA_ACCESS_RULE_TYPE,
@@ -680,7 +681,7 @@ static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
                             IPA_HOST_CATEGORY,
                             NULL };
 
-    tmp_ctx = talloc_new(hbac_ctx);
+    tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
     filter = talloc_asprintf(tmp_ctx, "(objectClass=%s)", IPA_HBAC_RULE);
@@ -689,22 +690,24 @@ static errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(mem_ctx, sysdb, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
                               HBAC_RULES_SUBDIR, attrs,
-                              &count, &msgs);
+                              &rule_count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(1, ("Error looking up HBAC rules"));
         goto done;
     } if (ret == ENOENT) {
-       count = 0;
+       rule_count = 0;
     }
 
-    ret = sysdb_msg2attrs(mem_ctx, count, msgs, &hbac_ctx->rules);
+    ret = sysdb_msg2attrs(tmp_ctx, rule_count, msgs, &rules);
     if (ret != EOK) {
         DEBUG(1, ("Could not convert ldb message to sysdb_attrs\n"));
         goto done;
     }
-    hbac_ctx->rule_count = count;
+
+    if (_rules) *_rules = talloc_steal(mem_ctx, rules);
+    if (_rule_count) *_rule_count = rule_count;
 
     ret = EOK;
 done:
