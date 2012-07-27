@@ -245,6 +245,17 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
     struct be_ctx *bctx = state->be_req->be_ctx;
 
+    const char *access_name;
+    const char *selinux_name;
+    struct ldb_dn *host_dn;
+    const char *attrs[] = { SYSDB_ORIG_DN,
+                            SYSDB_ORIG_MEMBEROF,
+                            NULL };
+    size_t count;
+    struct ldb_message **msgs;
+    struct sysdb_attrs **hosts;
+    struct sss_domain_info *domain;
+
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
 
@@ -260,10 +271,42 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     state->hostname = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                         IPA_HOSTNAME);
 
-    /* FIXME: detect if HBAC is configured
-     * - if yes, we can skip host retrieval and get it directly from sysdb
-     *   and shortcut to ipa_get_config_step()
-     */
+    access_name = state->be_req->be_ctx->bet_info[BET_ACCESS].mod_name;
+    selinux_name = state->be_req->be_ctx->bet_info[BET_SELINUX].mod_name;
+    if (strcasecmp(access_name, selinux_name) == 0) {
+        domain = sysdb_ctx_get_domain(bctx->sysdb);
+        host_dn = sysdb_custom_dn(bctx->sysdb, state, domain->name,
+                                  state->hostname, HBAC_HOSTS_SUBDIR);
+        if (host_dn == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        /* Look up the host to get its originalMemberOf entries */
+        ret = sysdb_search_entry(state, bctx->sysdb, host_dn,
+                                 LDB_SCOPE_BASE, NULL,
+                                 attrs, &count, &msgs);
+        if (ret == ENOENT || count == 0) {
+            /* We need to query the server */
+            goto server;
+        } else if (ret != EOK) {
+            goto fail;
+        } else if (count > 1) {
+            DEBUG(SSSDBG_OP_FAILURE, ("More than one result for a BASE search!\n"));
+            ret = EIO;
+            goto fail;
+        }
+
+        ret = sysdb_msg2attrs(state, count, msgs, &hosts);
+        if (ret != EOK) {
+            goto fail;
+        }
+
+        state->host = hosts[0];
+        return ipa_get_config_step(req);
+    }
+
+server:
     subreq = ipa_host_info_send(state, bctx->ev, bctx->sysdb,
                                 sdap_id_op_handle(state->op),
                                 id_ctx->sdap_id_ctx->opts,
@@ -291,7 +334,6 @@ static void ipa_get_selinux_hosts_done(struct tevent_req *subreq)
                                                   struct tevent_req);
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
-    struct be_ctx *bctx = state->be_req->be_ctx;
     size_t host_count, hostgroup_count;
     struct sysdb_attrs **hostgroups;
     struct sysdb_attrs **host;
@@ -304,12 +346,6 @@ static void ipa_get_selinux_hosts_done(struct tevent_req *subreq)
     }
     state->host = host[0];
 
-    ret = sss_selinux_extract_user(state, bctx->sysdb,
-                                   state->pd->user, &state->user);
-    if (ret != EOK) {
-        goto done;
-    }
-
     return ipa_get_config_step(req);
 
 done:
@@ -320,12 +356,20 @@ done:
 
 static void ipa_get_config_step(struct tevent_req *req)
 {
+    errno_t ret;
     const char *domain;
     struct tevent_req *subreq;
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
     struct be_ctx *bctx = state->be_req->be_ctx;
     struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
+
+    ret = sss_selinux_extract_user(state, bctx->sysdb,
+                                   state->pd->user, &state->user);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
 
     domain = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                IPA_KRB5_REALM);
