@@ -368,10 +368,6 @@ enum response_type {
                           * the user.This should only be used in the case where
                           * it is not possile to use SSS_PAM_USER_INFO.
                           * @param A zero terminated string. */
-    SSS_PAM_SELINUX_MAP, /**< A content of a SELinux user mapping file. This
-                          * file should be then written to a particular
-                          * subdir in /etc/selinux for pam_selinux to read
-                          * @param A zero terminated string. */
 };
 
 /**

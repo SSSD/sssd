@@ -41,9 +41,6 @@
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <security/pam_modutil.h>
-#ifdef HAVE_SELINUX
-#include <selinux/selinux.h>
-#endif
 #include "sss_pam_macros.h"
 
 #include "sss_cli.h"
@@ -57,8 +54,6 @@
 #define FLAGS_USE_AUTHTOK    (1 << 2)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
-#define ALL_SERVICES "*:"
-#define ALL_SERVICES_LEN 2
 
 #define PW_RESET_MSG_FILENAME_TEMPLATE SSSD_CONF_DIR"/customize/%s/pam_sss_pw_reset_message.%s"
 #define PW_RESET_MSG_MAX_SIZE 4096
@@ -87,7 +82,6 @@ struct pam_items {
     pid_t cli_pid;
     const char *login_name;
     char *domain_name;
-    char *selinux_user;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -967,17 +961,6 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     D(("do_pam_conversation failed."));
                 }
                 break;
-            case SSS_PAM_SELINUX_MAP:
-                if (pi->selinux_user) {
-                    free(pi->selinux_user);
-                }
-                pi->selinux_user = (char *)malloc(len + 1);
-                if (!pi->selinux_user) {
-                    D(("Insufficient memory."));
-                    return PAM_SYSTEM_ERR;
-                }
-                memcpy(pi->selinux_user, &buf[p], len + 1);
-                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -999,7 +982,6 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
     pi->pam_newauthtok = NULL;
     pi->pam_newauthtok_size = 0;
-    pi->selinux_user = NULL;
 
     ret = pam_get_item(pamh, PAM_SERVICE, (const void **) &(pi->pam_service));
     if (ret != PAM_SUCCESS) return ret;
@@ -1082,16 +1064,6 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     uint8_t *repbuf = NULL;
     size_t replen;
     int pam_status = PAM_SYSTEM_ERR;
-
-#ifdef HAVE_SELINUX
-    char *path = NULL;
-    char *tmp_path = NULL;
-    char *services = NULL;
-    ssize_t written;
-    int len;
-    int fd;
-    mode_t oldmask;
-#endif /* HAVE_SELINUX */
 
     print_pam_items(pi);
 
@@ -1180,68 +1152,6 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                           pi->pam_user, pam_status,
                           pam_strerror(pamh,pam_status));
                 }
-            } else {
-                if (pi->selinux_user == NULL) {
-                    pam_status = PAM_SUCCESS;
-                    break;
-                }
-
-#ifdef HAVE_SELINUX
-                if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
-                             pi->pam_user) <  0 ||
-                    asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                oldmask = umask(022);
-                fd = mkstemp(tmp_path);
-                umask(oldmask);
-                if (fd < 0) {
-                    logger(pamh, LOG_ERR, "creating the temp file for SELinux "
-                           "data failed. %s", tmp_path);
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                /* First write filter for all services */
-                services = strdup(ALL_SERVICES);
-                if (services == NULL) {
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                errno = 0;
-                written = sss_atomic_write_s(fd, (void *)services, ALL_SERVICES_LEN);
-                if (written == -1) {
-                    ret = errno;
-                    logger(pamh, LOG_ERR, "writing to SELinux data file %s"
-                            "failed [%d]: %s", tmp_path, ret, strerror(ret));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-                len = strlen(pi->selinux_user);
-
-                errno = 0;
-                written = sss_atomic_write_s(fd, pi->selinux_user, len);
-                if (written == -1) {
-                    ret = errno;
-                    logger(pamh, LOG_ERR, "writing to SELinux data file %s"
-                            "failed [%d]: %s", tmp_path, ret, strerror(ret));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                if (written != len) {
-                    logger(pamh, LOG_ERR, "Expected to write %d bytes, wrote %d",
-                           written, len);
-                    goto done;
-                }
-
-                close(fd);
-
-                rename(tmp_path, path);
-#endif /* HAVE_SELINUX */
             }
             break;
         case SSS_PAM_OPEN_SESSION:
@@ -1259,11 +1169,6 @@ done:
         free(buf);
     }
     free(repbuf);
-#ifdef HAVE_SELINUX
-    free(path);
-    free(tmp_path);
-    free(services);
-#endif /* HAVE_SELINUX */
 
     return pam_status;
 }

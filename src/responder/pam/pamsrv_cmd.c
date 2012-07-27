@@ -33,6 +33,7 @@
 #include "responder/pam/pam_helpers.h"
 #include "db/sysdb.h"
 #include "db/sysdb_selinux.h"
+#include <selinux/selinux.h>
 
 enum pam_verbosity {
     PAM_VERBOSITY_NO_MESSAGES = 0,
@@ -353,6 +354,99 @@ fail:
     return ret;
 }
 
+#define ALL_SERVICES "*"
+
+static errno_t write_selinux_string(const char *username, char *string)
+{
+    char *path = NULL;
+    char *tmp_path = NULL;
+    ssize_t written;
+    int len;
+    int fd = 0;
+    mode_t oldmask;
+    TALLOC_CTX *tmp_ctx;
+    char *full_string = NULL;
+    errno_t ret = EOK;
+
+    len = strlen(string);
+    if (len == 0) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    path = talloc_asprintf(tmp_ctx, "%s/logins/%s", selinux_policy_root(),
+                           username);
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmp_path = talloc_asprintf(tmp_ctx, "%sXXXXXX", path);
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    oldmask = umask(022);
+    fd = mkstemp(tmp_path);
+    umask(oldmask);
+    if (fd < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("creating the temp file for SELinux "
+                                  "data failed. %s", tmp_path));
+        ret = EIO;
+        goto done;
+    }
+
+    full_string = talloc_asprintf(tmp_ctx, "%s:%s", ALL_SERVICES, string);
+    if (full_string == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    len = strlen(full_string);
+
+    errno = 0;
+    written = sss_atomic_write_s(fd, full_string, len);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("writing to SELinux data file %s"
+                                  "failed [%d]: %s", tmp_path, ret,
+                                  strerror(ret)));
+        goto done;
+    }
+
+    if (written != len) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Expected to write %d bytes, wrote %d",
+                                  written, len));
+        ret = EIO;
+        goto done;
+    }
+
+    errno = 0;
+    if (rename(tmp_path, path) < 0) {
+        ret = errno;
+    } else {
+        ret = EOK;
+    }
+
+done:
+    if (fd > 0) {
+        close(fd);
+        if (unlink(tmp_path) < 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not remove file [%s]",
+                                         tmp_path));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static errno_t get_selinux_string(struct pam_auth_req *preq)
 {
     struct sysdb_ctx *sysdb;
@@ -494,11 +588,7 @@ static errno_t get_selinux_string(struct pam_auth_req *preq)
     }
 
     if (file_content) {
-        len = strlen(file_content)+1;
-        if (len > 0) {
-            ret = pam_add_response(pd, SSS_PAM_SELINUX_MAP, len,
-                                   (uint8_t *)file_content);
-        }
+        ret = write_selinux_string(pd->user, file_content);
     }
 
 done:

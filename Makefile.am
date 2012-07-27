@@ -566,6 +566,7 @@ sssd_pam_SOURCES = \
 sssd_pam_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
+    $(SELINUX_LIBS) \
     libsss_util.la
 
 if BUILD_SUDO
@@ -1131,7 +1132,6 @@ pam_sss_la_SOURCES = \
 
 pam_sss_la_LDFLAGS = \
     -lpam \
-    $(SELINUX_LIBS) \
     -module \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_pam.exports
