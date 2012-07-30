@@ -316,29 +316,56 @@ static void get_subdomains_callback(struct be_req *req,
     DBusMessage *reply;
     DBusConnection *dbus_conn;
     dbus_bool_t dbret;
+    dbus_uint16_t err_maj = 0;
+    dbus_uint32_t err_min = 0;
+    const char *err_msg = NULL;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
               dp_pam_err_to_string(req, dp_err_type, errnum)));
 
     reply = (DBusMessage *)req->pvt;
-    dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT32, &errnum,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+
+    if (reply) {
+        /* Return a reply if one was requested
+         * There may not be one if this request began
+         * while we were offline
+         */
+        err_maj = dp_err_type;
+        err_min = errnum;
+        if (errstr) {
+            err_msg = errstr;
+        } else {
+            err_msg = dp_pam_err_to_string(req, dp_err_type, errnum);
+        }
+        if (!err_msg) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to set err_msg, Out of memory?\n"));
+            err_msg = "OOM";
+        }
+
+        dbret = dbus_message_append_args(reply,
+                                         DBUS_TYPE_UINT16, &err_maj,
+                                         DBUS_TYPE_UINT32, &err_min,
+                                         DBUS_TYPE_STRING, &err_msg,
+                                         DBUS_TYPE_INVALID);
+
+        if (!dbret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            dbus_message_unref(reply);
+            goto done;
+        }
+
+        dbus_conn = sbus_get_connection(req->becli->conn);
+        if (dbus_conn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            goto done;
+        }
+        dbus_connection_send(dbus_conn, reply, NULL);
         dbus_message_unref(reply);
-        return;
     }
 
-    dbus_conn = sbus_get_connection(req->becli->conn);
-    if (dbus_conn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
-        return;
-    }
-    dbus_connection_send(dbus_conn, reply, NULL);
-    dbus_message_unref(reply);
-
+done:
     talloc_free(req);
 }
 
