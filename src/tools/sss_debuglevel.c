@@ -319,6 +319,7 @@ fail:
 errno_t get_sssd_pid(pid_t *out_pid)
 {
     int ret;
+    size_t fsize;
     FILE *pid_file = NULL;
     char pid_str[MAX_PID_LENGTH] = {'\0'};
 
@@ -333,7 +334,8 @@ errno_t get_sssd_pid(pid_t *out_pid)
         goto done;
     }
 
-    fread(pid_str, sizeof(char), MAX_PID_LENGTH * sizeof(char), pid_file);
+    fsize = fread(pid_str, sizeof(char), MAX_PID_LENGTH * sizeof(char),
+                  pid_file);
     if (!feof(pid_file)) {
         /* eof not reached */
         ret = ferror(pid_file);
@@ -344,6 +346,12 @@ errno_t get_sssd_pid(pid_t *out_pid)
             DEBUG(SSSDBG_CRIT_FAILURE, ("File \"%s\" contains invalid pid.\n",
                   SSSD_PIDFILE));
         }
+        goto done;
+    }
+    if (fsize == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("File \"%s\" contains no pid.\n",
+              SSSD_PIDFILE));
+        ret = EINVAL;
         goto done;
     }
 
