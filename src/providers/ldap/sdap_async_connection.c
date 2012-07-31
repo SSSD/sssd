@@ -158,7 +158,8 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     int sd;
     bool sasl_nocanon;
     const char *sasl_mech;
-    ber_len_t sasl_minssf;
+    int sasl_minssf;
+    ber_len_t ber_sasl_minssf;
 
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
@@ -286,14 +287,16 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
     if (sasl_mech != NULL) {
-        sasl_minssf = (ber_len_t) dp_opt_get_int(state->opts->basic,
-                                                 SDAP_SASL_MINSSF);
-        lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_SSF_MIN,
-                               &sasl_minssf);
-        if (lret != LDAP_OPT_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to set LDAP MIN SSF option to %lu\n", sasl_minssf));
-            goto fail;
+        sasl_minssf = dp_opt_get_int(state->opts->basic, SDAP_SASL_MINSSF);
+        if (sasl_minssf >= 0) {
+            ber_sasl_minssf = (ber_len_t)sasl_minssf;
+            lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_SSF_MIN,
+                                   &ber_sasl_minssf);
+            if (lret != LDAP_OPT_SUCCESS) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set LDAP MIN SSF option "
+                                            "to %lu\n", sasl_minssf));
+                goto fail;
+            }
         }
     }
 
