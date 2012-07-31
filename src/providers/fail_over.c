@@ -75,7 +75,7 @@ struct fo_server {
     bool primary;
     void *user_data;
     int port;
-    int port_status;
+    enum port_status port_status;
     struct srv_data *srv_data;
     struct fo_service *service;
     struct timeval last_status_change;
@@ -686,12 +686,16 @@ get_first_server_entity(struct fo_service *service, struct fo_server **_server)
      * Otherwise iterate through the server list.
      */
 
-
     /* First, try primary servers after the last one we tried.
      * (only if the last one was primary as well)
      */
     if (service->last_tried_server != NULL &&
         service->last_tried_server->primary) {
+        if (service->last_tried_server->port_status == PORT_NEUTRAL) {
+            server = service->last_tried_server;
+            goto done;
+        }
+
         DLIST_FOR_EACH(server, service->last_tried_server->next) {
             /* Go only through primary servers */
             if (!server->primary) continue;
