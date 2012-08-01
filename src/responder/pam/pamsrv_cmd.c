@@ -387,7 +387,7 @@ static errno_t write_selinux_string(const char *username, char *string)
     }
 
     tmp_path = talloc_asprintf(tmp_ctx, "%sXXXXXX", path);
-    if (path == NULL) {
+    if (tmp_path == NULL) {
         ret = ENOMEM;
         goto done;
     }
