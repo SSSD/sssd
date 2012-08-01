@@ -362,6 +362,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %dir %{mcpath}
 %attr(755,root,root) %dir %{pipepath}
 %attr(755,root,root) %dir %{pubconfpath}
+%attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(711,root,root) %dir %{_sysconfdir}/sssd

@@ -48,6 +48,9 @@
 /* refresh automatically every 4 hours */
 #define IPA_SUBDOMAIN_REFRESH_PERIOD (3600 * 4)
 
+/* the directory domain - realm mappings are written to */
+#define IPA_SUBDOMAIN_MAPPING_DIR PUBCONF_PATH"/krb5.include.d"
+
 enum ipa_subdomains_req_type {
     IPA_SUBDOMAINS_MASTER,
     IPA_SUBDOMAINS_SLAVE,
@@ -269,6 +272,130 @@ static errno_t ipa_subdom_parse(TALLOC_CTX *memctx,
     }
 
     return EOK;
+}
+
+static errno_t
+ipa_subdomains_write_mappings(struct sss_domain_info *domain,
+                              size_t num_subdoms,
+                              struct sysdb_subdom *subdoms)
+{
+    errno_t ret;
+    errno_t err;
+    TALLOC_CTX *tmp_ctx;
+    const char *mapping_file;
+    char *tmp_file = NULL;
+    int fd = -1;
+    FILE *fstream = NULL;
+    size_t i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    mapping_file = talloc_asprintf(tmp_ctx, "%s/domain_realm_%s",
+                                   IPA_SUBDOMAIN_MAPPING_DIR, domain->name);
+    if (!mapping_file) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", mapping_file);
+    if (tmp_file == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    fd = mkstemp(tmp_file);
+    if (fd < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("creating the temp file [%s] for domain-realm "
+                                  "mappings failed.", tmp_file));
+        ret = EIO;
+        talloc_zfree(tmp_ctx);
+        goto done;
+    }
+
+    fstream = fdopen(fd, "a");
+    if (!fstream) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("fdopen failed [%d]: %s\n",
+                                  ret, strerror(ret)));
+        ret = close(fd);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                ("fclose failed [%d][%s].\n", ret, strerror(ret)));
+            /* Nothing to do here, just report the failure */
+        }
+        ret = EIO;
+        goto done;
+    }
+
+    ret = fprintf(fstream, "[domain_realm]\n");
+    if (ret < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("fprintf failed\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    for (i = 0; i < num_subdoms; i++) {
+        ret = fprintf(fstream, ".%s = %s\n%s = %s\n",
+                               subdoms[i].name, subdoms[i].realm,
+                               subdoms[i].name, subdoms[i].realm);
+        if (ret < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("fprintf failed\n"));
+            goto done;
+        }
+    }
+
+    ret = fclose(fstream);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("fclose failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+    fstream = NULL;
+
+    ret = rename(tmp_file, mapping_file);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("rename failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    talloc_zfree(tmp_file);
+
+    ret = chmod(mapping_file, 0644);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("fchmod failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    if (fstream) {
+        err = fclose(fstream);
+        if (err != 0) {
+            err = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                ("fclose failed [%d][%s].\n", err, strerror(err)));
+            /* Nothing to do here, just report the failure */
+        }
+    }
+
+    if (tmp_file) {
+        err = unlink(tmp_file);
+        if (err < 0) {
+            err = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not remove file [%s]: [%d]: %s",
+                   tmp_file, err, strerror(err)));
+        }
+    }
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
@@ -597,6 +724,14 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
             goto done;
+        }
+
+        ret = ipa_subdomains_write_mappings(sysdb_ctx_get_domain(sysdb),
+                                            ctx->sd_ctx->num_subdoms,
+                                            ctx->sd_ctx->subdoms);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("ipa_subdomains_write_mappings failed.\n"));
         }
     }
 

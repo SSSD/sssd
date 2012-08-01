@@ -1602,6 +1602,7 @@ installsssddirs::
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath) \
+    $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(sudolibdir) \
     $(DESTDIR)$(autofslibdir)
 
