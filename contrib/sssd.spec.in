@@ -52,9 +52,9 @@ Requires: libipa_hbac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Requires: cyrus-sasl-gssapi
 Requires: keyutils-libs
-Requires(post): initscripts chkconfig /sbin/ldconfig
+Requires(post): initscripts chkconfig
 Requires(preun):  initscripts chkconfig
-Requires(postun): initscripts chkconfig /sbin/ldconfig
+Requires(postun): initscripts chkconfig
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -130,6 +130,8 @@ services for projects like FreeIPA.
 Summary: SSSD Client libraries for NSS and PAM
 Group: Applications/System
 License: LGPLv3+
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
 
 %description client
 Provides the libraries needed by the PAM and NSS stacks to connect to the SSSD
@@ -152,6 +154,8 @@ use with ldap_default_authtok_type = obfuscated_password.
 Summary: FreeIPA Idmap library
 Group: Development/Libraries
 License: LGPLv3+
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
 
 %description -n libsss_idmap
 Utility library to SIDs to Unix uids and gids
@@ -169,6 +173,8 @@ Utility library to SIDs to Unix uids and gids
 Summary: FreeIPA HBAC Evaluator library
 Group: Development/Libraries
 License: LGPLv3+
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
 
 %description -n libipa_hbac
 Utility library to validate FreeIPA HBAC rules for authorization requests
@@ -197,6 +203,8 @@ used by Python applications.
 Summary: A library to allow communication between SUDO and SSSD
 Group: Development/Libraries
 License: LGPLv3+
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
 
 %description -n libsss_sudo
 A utility library to allow communication between SUDO and SSSD
@@ -487,7 +495,6 @@ A utility library to allow communication between Autofs and SSSD
 %endif
 
 %post
-/sbin/ldconfig
 /sbin/chkconfig --add %{servicename}
 
 if [ $1 -ge 1 ] ; then
@@ -500,11 +507,21 @@ if [ $1 = 0 ]; then
     /sbin/chkconfig --del %{servicename}
 fi
 
-%postun -p /sbin/ldconfig
-
 %post client -p /sbin/ldconfig
 
 %postun client -p /sbin/ldconfig
+
+%post -n libipa_hbac -p /sbin/ldconfig
+
+%postun -n libipa_hbac -p /sbin/ldconfig
+
+%post -n libsss_idmap -p /sbin/ldconfig
+
+%postun -n libsss_idmap -p /sbin/ldconfig
+
+%post -n libsss_sudo -p /sbin/ldconfig
+
+%postun -n libsss_sudo -p /sbin/ldconfig
 
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
