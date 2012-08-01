@@ -42,7 +42,7 @@ man_MANS = \
     sssd.8 sssd.conf.5 sssd-ldap.5 \
     sssd-krb5.5 sssd-ipa.5 sssd-simple.5 sssd-ad.5 \
     sssd_krb5_locator_plugin.8 sss_groupshow.8 \
-    pam_sss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8
+    pam_sss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 sss_seed.8
 
 if BUILD_SSH
 man_MANS += sss_ssh_authorizedkeys.1 sss_ssh_knownhostsproxy.1

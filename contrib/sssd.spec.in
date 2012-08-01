@@ -414,6 +414,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_obfuscate
 %{_sbindir}/sss_cache
 %{_sbindir}/sss_debuglevel
+%{_sbindir}/sss_seed
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
 %{_mandir}/man8/sss_groupmod.8*
@@ -424,6 +425,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_obfuscate.8*
 %{_mandir}/man8/sss_cache.8*
 %{_mandir}/man8/sss_debuglevel.8*
+%{_mandir}/man8/sss_seed.8*
 
 %files -n libsss_idmap
 %defattr(-,root,root,-)

@@ -59,6 +59,9 @@
                 <refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
+                <refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
                 <refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <phrase condition="with_ssh">
