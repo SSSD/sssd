@@ -106,7 +106,7 @@ ldap_id_mapping = False
                             the <quote>FAILOVER</quote> section.
                             This is optional if autodiscovery is enabled.
                             For more information on service discovery, refer
-                            to the the <quote>SERVICE DISCOVERY</quote> section.
+                            to the <quote>SERVICE DISCOVERY</quote> section.
                         </para>
                     </listitem>
                 </varlistentry>

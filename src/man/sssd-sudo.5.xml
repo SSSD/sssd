@@ -139,7 +139,7 @@ krb5_server = ipa.example.com
             The <emphasis>full refresh</emphasis> simply deletes all sudo rules
             stored in the cache and replaces them with all rules that are stored
             on the server. This is used to keep the cache consistent by removing
-            every rule which was deleted from the server. Hovewer, full refresh
+            every rule which was deleted from the server. However, full refresh
             may produce a lot of traffic and thus it should be run only
             occasionally depending on the size and stability of the sudo rules.
         </para>
@@ -192,7 +192,7 @@ krb5_server = ipa.example.com
         </itemizedlist>
         <para>
             There are many configuration options that can be used to adjust
-            the behaviour. Please refer to "ldap_sudo_*" in
+            the behavior. Please refer to "ldap_sudo_*" in
             <citerefentry>
                 <refentrytitle>sssd-ldap</refentrytitle>
                 <manvolnum>5</manvolnum>

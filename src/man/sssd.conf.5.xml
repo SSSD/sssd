@@ -1116,7 +1116,7 @@ override_homedir = /home/%u
                         <para>
                             <quote>ad</quote>: Active Directory provider. See
                             <citerefentry>
-                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <refentrytitle>sssd-ad</refentrytitle>
                                 <manvolnum>5</manvolnum>
                             </citerefentry> for more information on
                             configuring Active Directory.
