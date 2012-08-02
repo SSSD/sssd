@@ -108,7 +108,6 @@ endif
 if HAVE_CHECK
     non_interactive_check_based_tests = \
         sysdb-tests \
-        sysdb_ssh-tests\
         strtonum-tests \
         resolv-tests \
         krb5-utils-tests \
@@ -130,6 +129,10 @@ if HAVE_CHECK
 
 if BUILD_PAC_RESPONDER
         non_interactive_check_based_tests += pac_responder-tests
+endif
+
+if BUILD_SSH
+        non_interactive_check_based_tests += sysdb_ssh-tests
 endif
 
 endif
