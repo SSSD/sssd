@@ -957,6 +957,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Remove the local ID provider and add an LDAP one
         # LDAP ID providers can also use the krb5_realm
         domain.remove_provider('id')
+        self.assertFalse(domain.options.has_key('id_provider'))
 
         domain.add_provider('ldap', 'id')
 
@@ -981,6 +982,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Remove the auth domain and verify that the options
         # revert to the backup_list
         domain.remove_provider('auth')
+        self.assertFalse(domain.options.has_key('auth_provider'))
         options = domain.list_options()
 
         self.assertTrue(type(options) == dict,
@@ -1003,14 +1005,17 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         # Test removing nonexistent provider - Real
         domain.remove_provider('id')
+        self.assertFalse(domain.options.has_key('id_provider'))
 
         # Test removing nonexistent provider - Bad backend type
         # Should pass without complaint
         domain.remove_provider('id')
+        self.assertFalse(domain.options.has_key('id_provider'))
 
         # Test removing nonexistent provider - Bad provider type
         # Should pass without complaint
         domain.remove_provider('nosuchprovider')
+        self.assertFalse(domain.options.has_key('nosuchprovider_provider'))
 
     def testGetOption(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)

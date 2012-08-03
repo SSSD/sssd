@@ -1254,6 +1254,11 @@ class SSSDDomain(SSSDConfigObject):
             if self.options.has_key(option):
                 del self.options[option]
 
+        # Remove this provider from the option list
+        option = '%s_provider' % provider_type
+        if self.options.has_key(option):
+            del self.options[option]
+
         self.providers.remove((provider, provider_type))
 
 class SSSDConfig(SSSDChangeConf):
