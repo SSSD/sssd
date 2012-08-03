@@ -1051,7 +1051,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
             ERROR_OUT(ret, ENOMEM, done);
         }
 
-        ret = ldb_msg_add_fmt(msg, SYSDB_MEMBER, "%s", userdn);
+        ret = ldb_msg_add_string(msg, SYSDB_MEMBER, userdn);
         if (ret != LDB_SUCCESS) {
             ERROR_OUT(ret, EINVAL, done);
         }
@@ -1060,14 +1060,14 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
         if (ret != LDB_SUCCESS) {
             ERROR_OUT(ret, ENOMEM, done);
         }
-        ret = ldb_msg_add_fmt(msg, SYSDB_GHOST, "%s", name);
+        ret = ldb_msg_add_string(msg, SYSDB_GHOST, name);
         if (ret != LDB_SUCCESS) {
             ERROR_OUT(ret, EINVAL, done);
         }
         /* Delete aliases from the ghost attribute as well */
         for (j = 0; j < alias_el->num_values; j++) {
-            ret = ldb_msg_add_fmt(msg, SYSDB_GHOST, "%s",
-                                  (char *)alias_el->values[j].data);
+            ret = ldb_msg_add_string(msg, SYSDB_GHOST,
+                                     (char *) alias_el->values[j].data);
             if (ret != LDB_SUCCESS) {
                 ERROR_OUT(ret, EINVAL, done);
             }
@@ -1345,7 +1345,7 @@ int sysdb_mod_group_member(struct sysdb_ctx *sysdb,
         ERROR_OUT(ret, EINVAL, fail);
     }
 
-    ret = ldb_msg_add_fmt(msg, SYSDB_MEMBER, "%s", dn);
+    ret = ldb_msg_add_string(msg, SYSDB_MEMBER, dn);
     if (ret != LDB_SUCCESS) {
         ERROR_OUT(ret, EINVAL, fail);
     }
@@ -2351,7 +2351,7 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
             if (ret != LDB_SUCCESS) {
                 ERROR_OUT(ret, ENOMEM, fail);
             }
-            ret = ldb_msg_add_fmt(msg, SYSDB_GHOST, "%s", name);
+            ret = ldb_msg_add_string(msg, SYSDB_GHOST, name);
             if (ret != LDB_SUCCESS) {
                 ERROR_OUT(ret, EINVAL, fail);
             }

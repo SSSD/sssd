@@ -827,7 +827,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         ret = ENOMEM;
         goto done;
     }
-    ret = ldb_msg_add_fmt(msg, "cn", "%s", domain_name);
+    ret = ldb_msg_add_string(msg, "cn", domain_name);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -857,7 +857,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         ret = ENOMEM;
         goto done;
     }
-    ret = ldb_msg_add_fmt(msg, "cn", "Users");
+    ret = ldb_msg_add_string(msg, "cn", "Users");
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -887,7 +887,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         ret = ENOMEM;
         goto done;
     }
-    ret = ldb_msg_add_fmt(msg, "cn", "Groups");
+    ret = ldb_msg_add_string(msg, "cn", "Groups");
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
@@ -1549,7 +1549,7 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
         }
     }
 
-    lret = ldb_msg_add_fmt(msg, attr_name, "%s", value ? "TRUE" : "FALSE");
+    lret = ldb_msg_add_string(msg, attr_name, value ? "TRUE" : "FALSE");
     if (lret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(lret);
         goto done;

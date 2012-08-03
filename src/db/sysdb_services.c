@@ -574,7 +574,7 @@ sysdb_svc_update(struct sysdb_ctx *sysdb,
         }
 
         for (i = 0; aliases[i]; i++) {
-            lret = ldb_msg_add_fmt(msg, SYSDB_NAME_ALIAS, "%s", aliases[i]);
+            lret = ldb_msg_add_string(msg, SYSDB_NAME_ALIAS, aliases[i]);
             if (lret != LDB_SUCCESS) {
                 ret = EINVAL;
                 goto done;
@@ -590,7 +590,7 @@ sysdb_svc_update(struct sysdb_ctx *sysdb,
     }
 
     for (i = 0; protocols[i]; i++) {
-        lret = ldb_msg_add_fmt(msg, SYSDB_SVC_PROTO, "%s", protocols[i]);
+        lret = ldb_msg_add_string(msg, SYSDB_SVC_PROTO, protocols[i]);
         if (lret != LDB_SUCCESS) {
             ret = EINVAL;
             goto done;
