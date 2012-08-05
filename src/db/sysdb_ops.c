@@ -983,6 +983,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     if (ret) goto done;
 
     ret = sysdb_set_user_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    if (ret) goto done;
 
     /* remove all ghost users */
     filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)", SYSDB_GHOST, name);
