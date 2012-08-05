@@ -364,7 +364,7 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs = NULL;
     struct sysdb_attrs *user;
     struct sysdb_attrs *tmp_attrs;
-    struct ldb_message **usermaps;
+    struct ldb_message **usermaps = NULL;
     struct sss_domain_info *domain;
     struct ldb_dn *basedn;
     size_t msgs_count = 0;
@@ -460,11 +460,6 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
         } else {
             talloc_zfree(msgs[i]);
         }
-    }
-
-    if (usermaps[0] == NULL) {
-        ret = ENOENT;
-        goto done;
     }
 
     *_usermaps = talloc_steal(mem_ctx, usermaps);
