@@ -547,6 +547,9 @@ create_ccache_dir_head(const char *parent, pcre *illegal_re,
     char *end;
     errno_t ret;
 
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
     ccdirname = talloc_strdup(tmp_ctx, parent);
     if (ccdirname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
