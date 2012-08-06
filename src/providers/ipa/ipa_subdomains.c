@@ -347,13 +347,13 @@ ipa_subdomains_write_mappings(struct sss_domain_info *domain,
     }
 
     ret = fclose(fstream);
+    fstream = NULL;
     if (ret != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("fclose failed [%d][%s].\n", ret, strerror(ret)));
         goto done;
     }
-    fstream = NULL;
 
     ret = rename(tmp_file, mapping_file);
     if (ret == -1) {
