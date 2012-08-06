@@ -285,6 +285,7 @@ ipa_subdomains_write_mappings(struct sss_domain_info *domain,
     const char *mapping_file;
     char *tmp_file = NULL;
     int fd = -1;
+    mode_t old_mode;
     FILE *fstream = NULL;
     size_t i;
 
@@ -304,7 +305,9 @@ ipa_subdomains_write_mappings(struct sss_domain_info *domain,
         goto done;
     }
 
+    old_mode = umask(077);
     fd = mkstemp(tmp_file);
+    umask(old_mode);
     if (fd < 0) {
         DEBUG(SSSDBG_OP_FAILURE, ("creating the temp file [%s] for domain-realm "
                                   "mappings failed.", tmp_file));
