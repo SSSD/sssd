@@ -1781,7 +1781,14 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
     TALLOC_CTX *tmp_ctx;
     struct rfc2307bis_group_memberships_state *membership_state;
     struct membership_diff *iter;
+    struct membership_diff *iter_start;
+    struct membership_diff *iter_tmp;
     bool in_transaction = false;
+    int num_added;
+    int i;
+    int grp_count;
+    int grp_count_old = 0;
+    char **add = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -1813,10 +1820,47 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
     }
     in_transaction = true;
 
+    iter_tmp = membership_state->memberships;
+    iter_start = membership_state->memberships;
+
     DLIST_FOR_EACH(iter, membership_state->memberships) {
+        /* Create a copy of iter->add array but do not include groups outside
+         * nesting limit. This array must be NULL terminated.
+         */
+        for (grp_count = 0; iter->add[grp_count]; grp_count++);
+        if (grp_count > grp_count_old) {
+            add = talloc_realloc(tmp_ctx, add, char*, grp_count + 1);
+            if (add == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        num_added = 0;
+        for (i = 0; i < grp_count; i++) {
+            DLIST_FOR_EACH(iter_tmp, iter_start) {
+                if (!strcmp(iter_tmp->name,iter->add[i])) {
+                    add[num_added] = iter->add[i];
+                    num_added++;
+                    break;
+                }
+            }
+        }
+
+        /* Swap old and new group counter. */
+        grp_count ^= grp_count_old;
+        grp_count_old ^= grp_count;
+        grp_count ^= grp_count_old;
+
+        if (num_added == 0) {
+            /* Nothing to add. Skip. */
+            continue;
+        } else {
+            add[num_added] = NULL;
+        }
         ret = sysdb_update_members(state->sysdb, iter->name,
                                    SYSDB_MEMBER_GROUP,
-                                  (const char *const *) iter->add,
+                                  (const char *const *) add,
                                   (const char *const *) iter->del);
         if (ret != EOK) {
             DEBUG(3, ("Failed to update memberships\n"));
