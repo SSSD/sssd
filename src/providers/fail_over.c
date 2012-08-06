@@ -542,6 +542,7 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
     server->user_data = user_data;
     server->service = service;
     server->port_status = DEFAULT_PORT_STATUS;
+    server->primary = true; /* SRV servers are never back up */
 
     /* add the SRV-specific data */
     server->srv_data = talloc_zero(service, struct srv_data);
