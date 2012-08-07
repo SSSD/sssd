@@ -1061,17 +1061,20 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->ev = ev;
     state->resolv = resolv;
     state->fo_ctx = ctx;
-    state->meta = server;
+    state->meta = server->srv_data->meta;
 
     status = get_srv_data_status(server->srv_data);
-    DEBUG(6, ("The status of SRV lookup is %s\n",
-              str_srv_data_status(status)));
+    DEBUG(SSSDBG_FUNC_DATA, ("The status of SRV lookup is %s\n",
+          str_srv_data_status(status)));
     switch(status) {
     case SRV_EXPIRED: /* Need a refresh */
         state->meta = collapse_srv_lookup(server);
-        /* FALLTHROUGH */
+        /* FALLTHROUGH.
+         * "server" might be invalid now if the SRV
+         * query collapsed
+         * */
     case SRV_NEUTRAL: /* Request SRV lookup */
-        if (server->srv_data->dns_domain == NULL) {
+        if (state->meta->srv_data->dns_domain == NULL) {
             /* we need to look up our DNS domain first */
             subreq = resolve_get_domain_send(state, ev, ctx, resolv);
             if (subreq == NULL) {
