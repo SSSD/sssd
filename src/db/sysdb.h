@@ -65,16 +65,6 @@
 #define SYSDB_GIDNUM "gidNumber"
 #define SYSDB_CREATE_TIME "createTimestamp"
 
-
-#define SYSDB_NAME "name"
-#define SYSDB_NAME_ALIAS "nameAlias"
-#define SYSDB_OBJECTCLASS "objectClass"
-
-#define SYSDB_NEXTID "nextID"
-#define SYSDB_UIDNUM "uidNumber"
-#define SYSDB_GIDNUM "gidNumber"
-#define SYSDB_CREATE_TIME "createTimestamp"
-
 #define SYSDB_PWD "userPassword"
 #define SYSDB_FULLNAME "fullName"
 #define SYSDB_HOMEDIR "homeDirectory"
