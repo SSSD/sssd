@@ -353,8 +353,9 @@ static int enum_users(TALLOC_CTX *mem_ctx,
     char *buffer;
     char *newbuf;
     int ret;
+    bool again;
 
-    DEBUG(7, ("Enumerating users\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, ("Enumerating users\n"));
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -386,76 +387,83 @@ static int enum_users(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-again:
-    /* always zero out the pwd structure */
-    memset(pwd, 0, sizeof(struct passwd));
+    do {
+        again = false;
 
-    /* get entry */
-    status = ctx->ops.getpwent_r(pwd, buffer, buflen, &ret);
+        /* always zero out the pwd structure */
+        memset(pwd, 0, sizeof(struct passwd));
 
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
-        }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
-        }
-        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
-        if (!newbuf) {
-            ret = ENOMEM;
-            goto done;
-        }
-        buffer = newbuf;
-        goto again;
+        /* get entry */
+        status = ctx->ops.getpwent_r(pwd, buffer, buflen, &ret);
 
-    case NSS_STATUS_NOTFOUND:
+        switch (status) {
+            case NSS_STATUS_TRYAGAIN:
+                /* buffer too small ? */
+                if (buflen < MAX_BUF_SIZE) {
+                    buflen *= 2;
+                }
+                if (buflen > MAX_BUF_SIZE) {
+                    buflen = MAX_BUF_SIZE;
+                }
+                newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
+                if (!newbuf) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                buffer = newbuf;
+                again = true;
+                break;
 
-        /* we are done here */
-        DEBUG(7, ("Enumeration completed.\n"));
+            case NSS_STATUS_NOTFOUND:
 
-        ret = sysdb_transaction_commit(sysdb);
-        in_transaction = false;
-        break;
+                /* we are done here */
+                DEBUG(SSSDBG_TRACE_LIBS, ("Enumeration completed.\n"));
 
-    case NSS_STATUS_SUCCESS:
+                ret = sysdb_transaction_commit(sysdb);
+                in_transaction = false;
+                break;
 
-        DEBUG(7, ("User found (%s, %d, %d)\n",
-                  pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
+            case NSS_STATUS_SUCCESS:
 
-        /* uid=0 or gid=0 are invalid values */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
+                DEBUG(SSSDBG_TRACE_LIBS, ("User found (%s, %d, %d)\n",
+                            pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      pwd->pw_name));
+                /* uid=0 or gid=0 are invalid values */
+                /* also check that the id is in the valid range for this domain
+                 */
+                if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
+                    OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-            goto again; /* skip */
-        }
+                    DEBUG(SSSDBG_OP_FAILURE, ("User [%s] filtered out! (id out"
+                        " of range)\n", pwd->pw_name));
 
-        ret = save_user(sysdb, !dom->case_sensitive, pwd,
+                    again = true;
+                    break;
+                }
+
+                ret = save_user(sysdb, !dom->case_sensitive, pwd,
                         pwd->pw_name, NULL, dom->user_timeout);
-        if (ret) {
-            /* Do not fail completely on errors.
-             * Just report the failure to save and go on */
-            DEBUG(2, ("Failed to store user %s. Ignoring.\n",
-                      pwd->pw_name));
+                if (ret) {
+                    /* Do not fail completely on errors.
+                     * Just report the failure to save and go on */
+                    DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user %s."
+                                " Ignoring.\n", pwd->pw_name));
+                }
+                again = true;
+                break;
+
+            case NSS_STATUS_UNAVAIL:
+                /* "remote" backend unavailable. Enter offline mode */
+                ret = ENXIO;
+                break;
+
+            default:
+                ret = EIO;
+                DEBUG(SSSDBG_OP_FAILURE, ("proxy -> getpwent_r failed (%d)[%s]"
+                            "\n", ret, strerror(ret)));
+                break;
         }
-        goto again; /* next */
-
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        break;
-
-    default:
-        ret = EIO;
-        DEBUG(2, ("proxy -> getpwent_r failed (%d)[%s]\n",
-                  ret, strerror(ret)));
-        break;
-    }
+    } while (again);
 
 done:
     talloc_zfree(tmpctx);
@@ -940,8 +948,9 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
     char *buffer;
     char *newbuf;
     int ret;
+    bool again;
 
-    DEBUG(7, ("Enumerating groups\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, ("Enumerating groups\n"));
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -973,74 +982,82 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-again:
-    /* always zero out the grp structure */
-    memset(grp, 0, sizeof(struct group));
+    do {
+        again = false;
 
-    /* get entry */
-    status = ctx->ops.getgrent_r(grp, buffer, buflen, &ret);
+        /* always zero out the grp structure */
+        memset(grp, 0, sizeof(struct group));
 
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
+        /* get entry */
+        status = ctx->ops.getgrent_r(grp, buffer, buflen, &ret);
+
+        switch (status) {
+            case NSS_STATUS_TRYAGAIN:
+                /* buffer too small ? */
+                if (buflen < MAX_BUF_SIZE) {
+                    buflen *= 2;
+                }
+                if (buflen > MAX_BUF_SIZE) {
+                    buflen = MAX_BUF_SIZE;
+                }
+                newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
+                if (!newbuf) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                buffer = newbuf;
+                again = true;
+                break;
+
+            case NSS_STATUS_NOTFOUND:
+
+                /* we are done here */
+                DEBUG(SSSDBG_TRACE_LIBS, ("Enumeration completed.\n"));
+
+                ret = sysdb_transaction_commit(sysdb);
+                in_transaction = false;
+                break;
+
+            case NSS_STATUS_SUCCESS:
+
+                DEBUG(SSSDBG_OP_FAILURE, ("Group found (%s, %d)\n",
+                            grp->gr_name, grp->gr_gid));
+
+                /* gid=0 is an invalid value */
+                /* also check that the id is in the valid range for this domain
+                 */
+                if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
+
+                    DEBUG(SSSDBG_OP_FAILURE, ("Group [%s] filtered out! (id"
+                        "out of range)\n", grp->gr_name));
+
+                    again = true;
+                    break;
+                }
+
+                ret = save_group(sysdb, dom, grp, grp->gr_name,
+                        NULL, dom->group_timeout);
+                if (ret) {
+                    /* Do not fail completely on errors.
+                     * Just report the failure to save and go on */
+                    DEBUG(SSSDBG_OP_FAILURE, ("Failed to store group."
+                                "Ignoring\n"));
+                }
+                again = true;
+                break;
+
+            case NSS_STATUS_UNAVAIL:
+                /* "remote" backend unavailable. Enter offline mode */
+                ret = ENXIO;
+                break;
+
+            default:
+                ret = EIO;
+                DEBUG(SSSDBG_OP_FAILURE, ("proxy -> getgrent_r failed (%d)[%s]"
+                            "\n", ret, strerror(ret)));
+                break;
         }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
-        }
-        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
-        if (!newbuf) {
-            ret = ENOMEM;
-            goto done;
-        }
-        buffer = newbuf;
-        goto again;
-
-    case NSS_STATUS_NOTFOUND:
-
-        /* we are done here */
-        DEBUG(7, ("Enumeration completed.\n"));
-
-        ret = sysdb_transaction_commit(sysdb);
-        in_transaction = false;
-        break;
-
-    case NSS_STATUS_SUCCESS:
-
-        DEBUG(7, ("Group found (%s, %d)\n",
-                  grp->gr_name, grp->gr_gid));
-
-        /* gid=0 is an invalid value */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
-
-                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          grp->gr_name));
-
-            goto again; /* skip */
-        }
-
-        ret = save_group(sysdb, dom, grp, grp->gr_name,
-                         NULL, dom->group_timeout);
-        if (ret) {
-            /* Do not fail completely on errors.
-             * Just report the failure to save and go on */
-            DEBUG(2, ("Failed to store group. Ignoring.\n"));
-        }
-        goto again; /* next */
-
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        break;
-
-    default:
-        ret = EIO;
-        DEBUG(2, ("proxy -> getgrent_r failed (%d)[%s]\n",
-                  ret, strerror(ret)));
-        break;
-    }
+    } while (again);
 
 done:
     talloc_zfree(tmpctx);
@@ -1225,32 +1242,34 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-again:
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
-    status = ctx->ops.initgroups_dyn(pwd->pw_name, pwd->pw_gid, &num_gids,
-                                     &num, &gids, limit, &ret);
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (size < MAX_BUF_SIZE) {
-            num *= 2;
-            size = num*sizeof(gid_t);
-        }
-        if (size > MAX_BUF_SIZE) {
-            size = MAX_BUF_SIZE;
-            num = size/sizeof(gid_t);
-        }
-        limit = num;
-        gids = talloc_realloc_size(memctx, gids, size);
-        if (!gids) {
-            return ENOMEM;
-        }
-        goto again; /* retry with more memory */
+    do {
+        status = ctx->ops.initgroups_dyn(pwd->pw_name, pwd->pw_gid, &num_gids,
+                &num, &gids, limit, &ret);
 
+        if (status == NSS_STATUS_TRYAGAIN) {
+            /* buffer too small ? */
+            if (size < MAX_BUF_SIZE) {
+                num *= 2;
+                size = num*sizeof(gid_t);
+            }
+            if (size > MAX_BUF_SIZE) {
+                size = MAX_BUF_SIZE;
+                num = size/sizeof(gid_t);
+            }
+            limit = num;
+            gids = talloc_realloc_size(memctx, gids, size);
+            if (!gids) {
+                return ENOMEM;
+            }
+        }
+    } while(status == NSS_STATUS_TRYAGAIN);
+
+    switch (status) {
     case NSS_STATUS_SUCCESS:
-        DEBUG(4, ("User [%s] appears to be member of %lu groups\n",
-                  pwd->pw_name, num_gids));
+        DEBUG(SSSDBG_CONF_SETTINGS, ("User [%s] appears to be member of %lu"
+                    "groups\n", pwd->pw_name, num_gids));
 
         now = time(NULL);
         for (i = 0; i < num_gids; i++) {

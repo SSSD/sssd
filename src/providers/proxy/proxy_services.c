@@ -199,6 +199,7 @@ enum_services(struct proxy_id_ctx *ctx,
     time_t now = time(NULL);
     const char *protocols[2] = { NULL, NULL };
     const char **cased_aliases;
+    bool again;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Enumerating services\n"));
 
@@ -232,96 +233,102 @@ enum_services(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-again:
-    /* always zero out the svc structure */
-    memset(svc, 0, sizeof(struct servent));
+    do {
+        again = false;
 
-    /* get entry */
-    status = ctx->ops.getservent_r(svc, buffer, buflen, &ret);
+        /* always zero out the svc structure */
+        memset(svc, 0, sizeof(struct servent));
 
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
+        /* get entry */
+        status = ctx->ops.getservent_r(svc, buffer, buflen, &ret);
+
+        switch (status) {
+            case NSS_STATUS_TRYAGAIN:
+                /* buffer too small ? */
+                if (buflen < MAX_BUF_SIZE) {
+                    buflen *= 2;
+                }
+                if (buflen > MAX_BUF_SIZE) {
+                    buflen = MAX_BUF_SIZE;
+                }
+                newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
+                if (!newbuf) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                buffer = newbuf;
+                again = true;
+                break;
+
+            case NSS_STATUS_NOTFOUND:
+
+                /* we are done here */
+                DEBUG(SSSDBG_TRACE_FUNC, ("Enumeration completed.\n"));
+
+                ret = sysdb_transaction_commit(sysdb);
+                if (ret != EOK) goto done;
+
+                in_transaction = false;
+                break;
+
+            case NSS_STATUS_SUCCESS:
+
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                        ("Service found (%s, %d/%s)\n",
+                         svc->s_name, svc->s_port, svc->s_proto));
+
+                protocols[0] = sss_get_cased_name(protocols, svc->s_proto,
+                        dom->case_sensitive);
+                if (!protocols[0]) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                protocols[1] = NULL;
+
+                ret = sss_get_cased_name_list(tmpctx,
+                        (const char * const *) svc->s_aliases,
+                        dom->case_sensitive, &cased_aliases);
+                if (ret != EOK) {
+                    /* Do not fail completely on errors.
+                     * Just report the failure to save and go on */
+                    DEBUG(SSSDBG_OP_FAILURE,
+                            ("Failed to store service [%s]. Ignoring.\n",
+                             strerror(ret)));
+                    again = true;
+                    break;
+                }
+
+                ret = sysdb_store_service(sysdb,
+                        svc->s_name,
+                        svc->s_port,
+                        cased_aliases,
+                        protocols,
+                        NULL, NULL,
+                        dom->service_timeout,
+                        now);
+                if (ret) {
+                    /* Do not fail completely on errors.
+                     * Just report the failure to save and go on */
+                    DEBUG(SSSDBG_OP_FAILURE,
+                            ("Failed to store service [%s]. Ignoring.\n",
+                             strerror(ret)));
+                }
+                again = true;
+                break;
+
+            case NSS_STATUS_UNAVAIL:
+                /* "remote" backend unavailable. Enter offline mode */
+                ret = ENXIO;
+                break;
+
+            default:
+                ret = EIO;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                        ("proxy -> getservent_r failed (%d)[%s]\n",
+                         ret, strerror(ret)));
+                break;
         }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
-        }
-        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
-        if (!newbuf) {
-            ret = ENOMEM;
-            goto done;
-        }
-        buffer = newbuf;
-        goto again;
-
-    case NSS_STATUS_NOTFOUND:
-
-        /* we are done here */
-        DEBUG(SSSDBG_TRACE_FUNC, ("Enumeration completed.\n"));
-
-        ret = sysdb_transaction_commit(sysdb);
-        if (ret != EOK) goto done;
-
-        in_transaction = false;
-        break;
-
-    case NSS_STATUS_SUCCESS:
-
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Service found (%s, %d/%s)\n",
-               svc->s_name, svc->s_port, svc->s_proto));
-
-        protocols[0] = sss_get_cased_name(protocols, svc->s_proto,
-                                          dom->case_sensitive);
-        if (!protocols[0]) {
-            ret = ENOMEM;
-            goto done;
-        }
-        protocols[1] = NULL;
-
-        ret = sss_get_cased_name_list(tmpctx,
-                                      (const char * const *) svc->s_aliases,
-                                      dom->case_sensitive, &cased_aliases);
-        if (ret != EOK) {
-            /* Do not fail completely on errors.
-             * Just report the failure to save and go on */
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to store service [%s]. Ignoring.\n",
-                   strerror(ret)));
-            goto again; /* next */
-        }
-
-        ret = sysdb_store_service(sysdb,
-                                  svc->s_name,
-                                  svc->s_port,
-                                  cased_aliases,
-                                  protocols,
-                                  NULL, NULL,
-                                  dom->service_timeout,
-                                  now);
-        if (ret) {
-            /* Do not fail completely on errors.
-             * Just report the failure to save and go on */
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to store service [%s]. Ignoring.\n",
-                   strerror(ret)));
-        }
-        goto again; /* next */
-
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        break;
-
-    default:
-        ret = EIO;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("proxy -> getservent_r failed (%d)[%s]\n",
-               ret, strerror(ret)));
-        break;
-    }
+    } while (again);
 
 done:
     talloc_zfree(tmpctx);
