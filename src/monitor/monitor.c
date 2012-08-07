@@ -2522,8 +2522,8 @@ int main(int argc, const char *argv[])
                     "Cannot read config file %s, please check if permissions "
                     "are 0600 and the file is owned by root.root", config_file);
         } else {
-            DEBUG(1, ("Error loading configuration database: [%d]: %s",
-                      ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Error loading configuration database: "
+                                        "[%d]: %s\n", ret, strerror(ret)));
             sss_log(SSS_LOG_ALERT, "Cannot load configuration database");
         }
         return 4;
