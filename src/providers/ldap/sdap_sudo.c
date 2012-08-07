@@ -552,7 +552,7 @@ static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
 
     /* Remove all rules from cache */
     sysdb_filter = talloc_asprintf(state, "(%s=%s)",
-                                   SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC);
+                                   SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC);
     if (sysdb_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -724,7 +724,7 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     sysdb_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|%s))",
-                                   SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC,
+                                   SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC,
                                    sysdb_filter);
     if (sysdb_filter == NULL) {
         ret = ENOMEM;

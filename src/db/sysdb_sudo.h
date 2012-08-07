@@ -33,7 +33,7 @@
 #define SYSDB_SUDO_AT_LAST_FULL_REFRESH "sudoLastFullRefreshTime"
 
 /* sysdb attributes */
-#define SYSDB_SUDO_CACHE_AT_OC         "sudoRule"
+#define SYSDB_SUDO_CACHE_OC            "sudoRule"
 #define SYSDB_SUDO_CACHE_AT_CN         "cn"
 #define SYSDB_SUDO_CACHE_AT_USER       "sudoUser"
 #define SYSDB_SUDO_CACHE_AT_HOST       "sudoHost"

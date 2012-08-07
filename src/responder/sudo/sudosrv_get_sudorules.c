@@ -534,7 +534,7 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
     const char *debug_name = NULL;
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
     const char *attrs[] = { SYSDB_OBJECTCLASS
-                            SYSDB_SUDO_CACHE_AT_OC,
+                            SYSDB_SUDO_CACHE_OC,
                             SYSDB_SUDO_CACHE_AT_CN,
                             SYSDB_SUDO_CACHE_AT_USER,
                             SYSDB_SUDO_CACHE_AT_HOST,

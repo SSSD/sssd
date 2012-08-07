@@ -257,7 +257,7 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
     /* build global filter */
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)",
-                             SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_AT_OC);
+                             SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC);
     NULL_CHECK(filter, ret, done);
 
     if (specific_filter[0] != '\0') {
@@ -367,7 +367,7 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, ("Adding sudo rule %s\n", rule_name));
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS,
-                                 SYSDB_SUDO_CACHE_AT_OC);
+                                 SYSDB_SUDO_CACHE_OC);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not set rule object class [%d]: %s\n",
               ret, strerror(ret)));
@@ -581,7 +581,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
     bool in_transaction = false;
     const char *attrs[] = { SYSDB_OBJECTCLASS,
                             SYSDB_NAME,
-                            SYSDB_SUDO_CACHE_AT_OC,
+                            SYSDB_SUDO_CACHE_OC,
                             SYSDB_SUDO_CACHE_AT_CN,
                             NULL };
 
