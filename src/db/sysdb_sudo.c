@@ -581,7 +581,6 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
     bool in_transaction = false;
     const char *attrs[] = { SYSDB_OBJECTCLASS,
                             SYSDB_NAME,
-                            SYSDB_SUDO_CACHE_OC,
                             SYSDB_SUDO_CACHE_AT_CN,
                             NULL };
 
