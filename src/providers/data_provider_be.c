@@ -793,6 +793,7 @@ static void be_pam_handler_callback(struct be_req *req,
     pd = talloc_get_type(req->req_data, struct pam_data);
 
     if (pd->cmd == SSS_PAM_ACCT_MGMT &&
+        pd->pam_status == PAM_SUCCESS &&
         req->phase == REQ_PHASE_ACCESS &&
         dp_err_type == DP_ERR_OK) {
         if (!becli->bectx->bet_info[BET_SELINUX].bet_ops) {
