@@ -83,12 +83,12 @@ ldap_schema = ad
                         </para>
                         <para>
                             NOTE: This option is different from
-                            <quote>id_min</quote> in that <quote>id_min</quote>
+                            <quote>min_id</quote> in that <quote>min_id</quote>
                             acts to filter the output of requests to this domain,
                             whereas this option controls the range of ID
                             assignment. This is a subtle distinction, but the
                             good general advice would be to have
-                            <quote>id_min</quote> be less-than or equal to
+                            <quote>min_id</quote> be less-than or equal to
                             <quote>ldap_idmap_range_min</quote>
                         </para>
                         <para>
@@ -105,12 +105,12 @@ ldap_schema = ad
                         </para>
                         <para>
                             NOTE: This option is different from
-                            <quote>id_max</quote> in that <quote>id_max</quote>
+                            <quote>max_id</quote> in that <quote>max_id</quote>
                             acts to filter the output of requests to this domain,
                             whereas this option controls the range of ID
                             assignment. This is a subtle distinction, but the
                             good general advice would be to have
-                            <quote>id_max</quote> be greater-than or equal to
+                            <quote>max_id</quote> be greater-than or equal to
                             <quote>ldap_idmap_range_max</quote>
                         </para>
                         <para>
