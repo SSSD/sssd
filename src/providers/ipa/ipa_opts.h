@@ -125,7 +125,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_sasl_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_connection_expire_timeout", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER },
     { "ldap_disable_paging", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_idmap_range_min", DP_OPT_NUMBER, { .number = 100001 }, NULL_NUMBER },
+    { "ldap_idmap_range_min", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
     { "ldap_idmap_range_max", DP_OPT_NUMBER, { .number = 2000100000LL }, NULL_NUMBER },
     { "ldap_idmap_range_size", DP_OPT_NUMBER, { .number = 200000 }, NULL_NUMBER },
     { "ldap_idmap_autorid_compat", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },

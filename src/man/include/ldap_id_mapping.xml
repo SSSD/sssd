@@ -92,7 +92,7 @@ ldap_schema = ad
                             <quote>ldap_idmap_range_min</quote>
                         </para>
                         <para>
-                            Default: 10001
+                            Default: 200000
                         </para>
                     </listitem>
                 </varlistentry>
