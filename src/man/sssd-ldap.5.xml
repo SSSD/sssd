@@ -1414,7 +1414,7 @@
                             principal used for authentication to the directory.
                         </para>
                         <para>
-                            Default: host/machine.fqdn@REALM
+                            Default: host/hostname@REALM
                         </para>
                     </listitem>
                 </varlistentry>
