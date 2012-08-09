@@ -806,7 +806,7 @@ errno_t ipa_servers_init(struct be_ctx *ctx,
     TALLOC_CTX *tmp_ctx;
     char **list = NULL;
     char *ipa_domain;
-    int ret;
+    int ret = 0;
     int i;
 
     tmp_ctx = talloc_new(NULL);
@@ -827,6 +827,14 @@ errno_t ipa_servers_init(struct be_ctx *ctx,
         talloc_steal(service, list[i]);
 
         if (be_fo_is_srv_identifier(list[i])) {
+            if (!primary) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to add server [%s] to failover service: "
+                       "SRV resolution only allowed for primary servers!\n",
+                       list[i]));
+                continue;
+            }
+
             ipa_domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
             ret = be_fo_add_srv_server(ctx, "IPA", "ldap", ipa_domain,
                                        BE_FO_PROTO_TCP, false, NULL);

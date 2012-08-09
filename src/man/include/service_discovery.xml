@@ -3,7 +3,7 @@
     <para>
         The service discovery feature allows back ends to automatically
         find the appropriate servers to connect to using a special DNS
-        query.
+        query. This feature is not supported for backup servers.
     </para>
     <refsect2 id='configuration'>
         <title>Configuration</title>

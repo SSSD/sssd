@@ -1116,7 +1116,7 @@ errno_t sdap_urls_init(struct be_ctx *ctx,
     char *srv_user_data;
     char **list = NULL;
     LDAPURLDesc *lud;
-    errno_t ret;
+    errno_t ret = 0;
     int i;
 
     tmp_ctx = talloc_new(NULL);
@@ -1135,6 +1135,14 @@ errno_t sdap_urls_init(struct be_ctx *ctx,
     /* now for each URI add a new server to the failover service */
     for (i = 0; list[i]; i++) {
         if (be_fo_is_srv_identifier(list[i])) {
+            if (!primary) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to add server [%s] to failover service: "
+                       "SRV resolution only allowed for primary servers!\n",
+                       list[i]));
+                continue;
+            }
+
             if (!dns_service_name) {
                 DEBUG(0, ("Missing DNS service name for service [%s].\n",
                           service_name));

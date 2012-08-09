@@ -473,7 +473,7 @@ errno_t krb5_servers_init(struct be_ctx *ctx,
 {
     TALLOC_CTX *tmp_ctx;
     char **list = NULL;
-    errno_t ret;
+    errno_t ret = 0;
     int i;
     char *port_str;
     long port;
@@ -493,7 +493,6 @@ errno_t krb5_servers_init(struct be_ctx *ctx,
     }
 
     for (i = 0; list[i]; i++) {
-
         talloc_steal(service, list[i]);
         server_spec = talloc_strdup(service, list[i]);
         if (!server_spec) {
@@ -502,6 +501,14 @@ errno_t krb5_servers_init(struct be_ctx *ctx,
         }
 
         if (be_fo_is_srv_identifier(server_spec)) {
+            if (!primary) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to add server [%s] to failover service: "
+                       "SRV resolution only allowed for primary servers!\n",
+                       list[i]));
+                continue;
+            }
+
             ret = be_fo_add_srv_server(ctx, service_name, service_name, NULL,
                                        BE_FO_PROTO_UDP, true, NULL);
             if (ret) {

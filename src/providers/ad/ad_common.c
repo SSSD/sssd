@@ -152,7 +152,7 @@ ad_servers_init(TALLOC_CTX *mem_ctx,
                 bool primary)
 {
     size_t i;
-    errno_t ret;
+    errno_t ret = 0;
     char **list;
     char *ad_domain;
     TALLOC_CTX *tmp_ctx;
@@ -172,6 +172,14 @@ ad_servers_init(TALLOC_CTX *mem_ctx,
     /* Add each of these servers to the failover service */
     for (i = 0; list[i]; i++) {
         if (be_fo_is_srv_identifier(list[i])) {
+            if (!primary) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to add server [%s] to failover service: "
+                       "SRV resolution only allowed for primary servers!\n",
+                       list[i]));
+                continue;
+            }
+
             ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "ldap",
                                        ad_domain, BE_FO_PROTO_TCP,
                                        false, NULL);
