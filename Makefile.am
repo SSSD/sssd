@@ -146,7 +146,8 @@ PYTHON_TESTS =
 
 if BUILD_PYTHON_BINDINGS
 PYTHON_TESTS += $(srcdir)/src/config/SSSDConfigTest.py \
-                $(srcdir)/src/tests/pyhbac-test.py
+                $(srcdir)/src/tests/pyhbac-test.py \
+                $(srcdir)/src/tests/pysss_murmur-test.py
 endif
 
 TESTS = \
@@ -205,7 +206,8 @@ libsss_crypt_la_LIBADD = \
 if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
     pysss.la \
-    pyhbac.la
+    pyhbac.la \
+    pysss_murmur.la
 endif
 
 dist_noinst_SCRIPTS = \
@@ -216,7 +218,8 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py \
     src/config/SSSDConfig/sssd_upgrade_config.py \
     contrib/rhel/update_debug_levels.py \
-    src/tests/pyhbac-test.py
+    src/tests/pyhbac-test.py \
+    src/tests/pysss_murmur-test.py
 
 dist_noinst_DATA = \
     src/config/testconfigs/sssd-valid.conf \
@@ -1537,6 +1540,18 @@ pyhbac_la_LIBADD = \
     $(PYTHON_LIBS) \
     libipa_hbac.la
 pyhbac_la_LDFLAGS = \
+    -avoid-version \
+    -module
+
+pysss_murmur_la_SOURCES = \
+    src/python/pysss_murmur.c \
+    src/util/murmurhash3.c
+pysss_murmur_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON_CFLAGS)
+pysss_murmur_la_LIBADD = \
+    $(PYTHON_LIBS)
+pysss_murmur_la_LDFLAGS = \
     -avoid-version \
     -module
 endif
