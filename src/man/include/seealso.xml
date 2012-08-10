@@ -75,9 +75,6 @@
                 </citerefentry>,
             </phrase>
             <citerefentry>
-                <refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
                 <refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>.
         </para>
