@@ -56,7 +56,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
     if (rctx->domains == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("No domains configured.\n"));
         ret = EINVAL;
-        goto done;
+        goto immediately;
     }
 
     if (!force) {
@@ -65,11 +65,11 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   ("Last call was too recent, nothing to do!\n"));
-            goto done;
+            goto immediately;
         } else if (ret != EAGAIN) {
             DEBUG(SSSDBG_TRACE_FUNC, ("check_domain_request failed with [%d][%s]\n",
                                       ret, strerror(ret)));
-            goto done;
+            goto immediately;
         }
     }
 
@@ -82,20 +82,24 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
         info->hint = talloc_strdup(info, "");
         if (info->hint == NULL) {
             ret = ENOMEM;
-            goto done;
+            goto immediately;
         }
     }
 
     ret = get_domains_next(req);
-    if (ret == EAGAIN) {
-        ret = EOK;
+    if (ret != EAGAIN) {
+        goto immediately;
     }
 
-done:
-    if (ret != EOK) {
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
         tevent_req_error(req, ret);
-        tevent_req_post(req, rctx->ev);
     }
+    tevent_req_post(req, rctx->ev);
 
     return req;
 }
@@ -109,16 +113,13 @@ static errno_t get_domains_next(struct tevent_req *req)
     char *key;
 
     info = tevent_req_data(req, struct sss_dp_domains_info);
+
+    /* Skip all local domains. */
+    while(info->dom != NULL && !NEED_CHECK_PROVIDER(info->dom->provider)) {
+        info->dom = info->dom->next;
+    }
+
     if (info->dom == NULL) {
-        /* Note that tevent_req_post() is not here. This will
-         * influence the program only in case that this will
-         * be the first call of the function (i.e. there is no
-         * problem when this is called from get_domains_done(),
-         * it is in fact required). In case no domains are in
-         * the state, it should be treated as an error one level
-         * above.
-         */
-        tevent_req_done(req);
         return EOK;
     }
 
@@ -210,7 +211,9 @@ static void sss_dp_get_domains_callback(struct tevent_req *subreq)
 
     info->dom = info->dom->next;
     ret = get_domains_next(req);
-    if (ret != EOK && ret != EAGAIN) {
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
         goto fail;
     }
 
