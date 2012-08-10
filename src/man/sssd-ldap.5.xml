@@ -1041,21 +1041,7 @@
 
                 <varlistentry>
                     <term>ldap_service_search_base (string)</term>
-                    <listitem>
-                        <para>
-                            An optional base DN to restrict service searches
-                            to a specific subtree.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
                 <varlistentry>
@@ -2156,59 +2142,17 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
             <variablelist>
                 <varlistentry>
                     <term>ldap_netgroup_search_base (string)</term>
-                    <listitem>
-                        <para>
-                            An optional base DN to restrict netgroup searches
-                            to a specific subtree.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
                 <varlistentry>
                     <term>ldap_user_search_base (string)</term>
-                    <listitem>
-                        <para>
-                            An optional base DN to restrict user searches
-                            to a specific subtree.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
                 <varlistentry>
                     <term>ldap_group_search_base (string)</term>
-                    <listitem>
-                        <para>
-                            An optional base DN to restrict group searches
-                            to a specific subtree.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
                 <varlistentry>
@@ -2257,46 +2201,12 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
 
                 <varlistentry condition="with_sudo">
                     <term>ldap_sudo_search_base (string)</term>
-                    <listitem>
-                        <para>
-                            An optional base DN to restrict sudo rules searches
-                            to a specific subtree.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
-                        </para>
-                        <para>
-                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases_experimental.xml" />
                 </varlistentry>
 
                 <varlistentry condition="with_autofs">
                     <term>ldap_autofs_search_base (string)</term>
-                    <listitem>
-                        <para>
-                            An optional base DN to restrict automounter searches
-                            to a specific subtree.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
-                        </para>
-                        <para>
-                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-                        </para>
-                    </listitem>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases_experimental.xml" />
                 </varlistentry>
 
             </variablelist>

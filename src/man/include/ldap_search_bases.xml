@@ -1,0 +1,26 @@
+<listitem>
+    <para>
+        An optional base DN, search scope and LDAP filter
+        to restrict LDAP searches for this attribute type.
+    </para>
+    <para>
+        syntax:
+<programlisting>
+search_base[?scope?[filter][?search_base?scope?[filter]]*]
+</programlisting>
+    </para>
+    <para>
+        The scope can be one of "base", "onelevel" or
+        "subtree". The filter must be a valid LDAP search
+        filter as specified by
+        http://www.ietf.org/rfc/rfc2254.txt
+    </para>
+    <para>
+        For examples of this syntax, please refer to the
+        <quote>ldap_search_base</quote> examples section.
+    </para>
+    <para>
+        Default: the value of
+        <emphasis>ldap_search_base</emphasis>
+    </para>
+</listitem>
