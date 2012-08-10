@@ -1027,6 +1027,20 @@ override_homedir = /home/%u
                     </listitem>
                 </varlistentry>
 
+                <varlistentry condition="with_autofs">
+                    <term>entry_cache_autofs_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should the autofs service
+                            consider automounter maps valid before asking
+                            the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>cache_credentials (bool)</term>
                     <listitem>
