@@ -144,7 +144,7 @@
                             Default: If not set, the value of the
                             defaultNamingContext or namingContexts attribute
                             from the RootDSE of the LDAP server is
-                            used. If defaultNamingContext does not exists or
+                            used. If defaultNamingContext does not exist or
                             has an empty value namingContexts is used.
                             The namingContexts attribute must have a
                             single value with the DN of the search base of the
