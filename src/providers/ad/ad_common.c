@@ -207,6 +207,11 @@ done:
     return ret;
 }
 
+static int ad_user_data_cmp(void *ud1, void *ud2)
+{
+    return strcasecmp((char*) ud1, (char*) ud2);
+}
+
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *primary_servers,
@@ -240,7 +245,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    ret = be_fo_add_service(bectx, AD_SERVICE_NAME);
+    ret = be_fo_add_service(bectx, AD_SERVICE_NAME, ad_user_data_cmp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
         goto done;

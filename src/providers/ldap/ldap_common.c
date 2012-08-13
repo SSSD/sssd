@@ -1198,6 +1198,11 @@ done:
     return ret;
 }
 
+static int ldap_user_data_cmp(void *ud1, void *ud2)
+{
+    return strcasecmp((char*) ud1, (char*) ud2);
+}
+
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,
                       const char *urls, const char *backup_urls,
@@ -1218,7 +1223,7 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    ret = be_fo_add_service(ctx, service_name);
+    ret = be_fo_add_service(ctx, service_name, ldap_user_data_cmp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
         goto done;

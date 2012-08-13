@@ -89,13 +89,20 @@ struct fo_options {
 struct fo_ctx *fo_context_init(TALLOC_CTX *mem_ctx,
                                struct fo_options *opts);
 
+typedef int (*datacmp_fn)(void*, void*);
+
 /*
  * Create a new service structure for 'ctx', saving it to the location pointed
  * to by '_service'. The needed memory will be allocated from 'ctx'.
  * Service name will be set to 'name'.
+ *
+ * Function pointed by user_data_cmp returns 0 if user_data is equal
+ * or nonzero value if not. Set to NULL if no user data comparison
+ * is needed in fail over duplicate servers detection.
  */
 int fo_new_service(struct fo_ctx *ctx,
                    const char *name,
+                   datacmp_fn user_data_cmp,
                    struct fo_service **_service);
 
 /*

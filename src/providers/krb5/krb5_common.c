@@ -579,6 +579,11 @@ done:
     return ret;
 }
 
+static int krb5_user_data_cmp(void *ud1, void *ud2)
+{
+    return strcasecmp((char*) ud1, (char*) ud2);
+}
+
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
                       const char *primary_servers,
@@ -600,7 +605,7 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    ret = be_fo_add_service(ctx, service_name);
+    ret = be_fo_add_service(ctx, service_name, krb5_user_data_cmp);
     if (ret != EOK) {
         DEBUG(1, ("Failed to create failover service!\n"));
         goto done;

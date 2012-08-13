@@ -114,11 +114,11 @@ START_TEST(test_fo_new_service)
         sprintf(buf, "service_%d", i);
 
         check_leaks_push(ctx);
-        ret = fo_new_service(ctx->fo_ctx, buf, &services[i]);
+        ret = fo_new_service(ctx->fo_ctx, buf, NULL, &services[i]);
         fail_if(ret != EOK);
     }
 
-    ret = fo_new_service(ctx->fo_ctx, "service_3", &service);
+    ret = fo_new_service(ctx->fo_ctx, "service_3", NULL, &service);
     fail_if(ret != EEXIST);
 
     for (i = 9; i >= 0; i--) {
@@ -223,11 +223,11 @@ START_TEST(test_fo_resolve_service)
     fail_if(ctx == NULL);
 
     /* Add service. */
-    fail_if(fo_new_service(ctx->fo_ctx, "http", &service[0]) != EOK);
+    fail_if(fo_new_service(ctx->fo_ctx, "http", NULL, &service[0]) != EOK);
 
-    fail_if(fo_new_service(ctx->fo_ctx, "ldap", &service[1]) != EOK);
+    fail_if(fo_new_service(ctx->fo_ctx, "ldap", NULL, &service[1]) != EOK);
 
-    fail_if(fo_new_service(ctx->fo_ctx, "ntp", &service[2]) != EOK);
+    fail_if(fo_new_service(ctx->fo_ctx, "ntp", NULL, &service[2]) != EOK);
 
     /* Add servers. */
     fail_if(fo_add_server(service[0], "localhost", 20, NULL, true) != EOK);

@@ -168,7 +168,8 @@ static struct be_svc_data *be_fo_find_svc_data(struct be_ctx *ctx,
     return 0;
 }
 
-int be_fo_add_service(struct be_ctx *ctx, const char *service_name)
+int be_fo_add_service(struct be_ctx *ctx, const char *service_name,
+                      datacmp_fn user_data_cmp)
 {
     struct fo_service *service;
     struct be_svc_data *svc;
@@ -185,7 +186,8 @@ int be_fo_add_service(struct be_ctx *ctx, const char *service_name)
 
     /* if not in the be service list, try to create new one */
 
-    ret = fo_new_service(ctx->be_fo->fo_ctx, service_name, &service);
+    ret = fo_new_service(ctx->be_fo->fo_ctx, service_name, user_data_cmp,
+                         &service);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(1, ("Failed to create failover service!\n"));
         return ret;

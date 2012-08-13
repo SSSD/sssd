@@ -861,6 +861,11 @@ done:
     return ret;
 }
 
+static int ipa_user_data_cmp(void *ud1, void *ud2)
+{
+    return strcasecmp((char*) ud1, (char*) ud2);
+}
+
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *primary_servers,
                      const char *backup_servers,
@@ -893,7 +898,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    ret = be_fo_add_service(ctx, "IPA");
+    ret = be_fo_add_service(ctx, "IPA", ipa_user_data_cmp);
     if (ret != EOK) {
         DEBUG(1, ("Failed to create failover service!\n"));
         goto done;

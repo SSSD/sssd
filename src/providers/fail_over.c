@@ -66,6 +66,12 @@ struct fo_service {
     struct fo_server *active_server;
     struct fo_server *last_tried_server;
     struct fo_server *server_list;
+
+    /* Function pointed by user_data_cmp returns 0 if user_data is equal
+     * or nonzero value if not. Set to NULL if no user data comparison
+     * is needed in fail over duplicate servers detection.
+     */
+    datacmp_fn user_data_cmp;
 };
 
 struct fo_server {
@@ -393,6 +399,7 @@ service_destructor(struct fo_service *service)
 
 int
 fo_new_service(struct fo_ctx *ctx, const char *name,
+               datacmp_fn user_data_cmp,
                struct fo_service **_service)
 {
     struct fo_service *service;
@@ -419,6 +426,8 @@ fo_new_service(struct fo_ctx *ctx, const char *name,
         talloc_free(service);
         return ENOMEM;
     }
+
+    service->user_data_cmp = user_data_cmp;
 
     service->ctx = ctx;
     DLIST_ADD(ctx->service_list, service);
@@ -520,8 +529,14 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
                               service->name, proto));
 
     DLIST_FOR_EACH(server, service->server_list) {
-        if (server->user_data != user_data)
-            continue;
+        /* Compare user data only if user_data_cmp and both arguments
+         * are not NULL.
+         */
+        if (server->service->user_data_cmp && user_data && server->user_data) {
+            if (server->service->user_data_cmp(server->user_data, user_data)) {
+                continue;
+            }
+        }
 
         if (fo_is_srv_lookup(server)) {
             if (((discovery_domain == NULL &&
@@ -629,8 +644,17 @@ static bool fo_server_match(struct fo_server *server,
                            int port,
                            void *user_data)
 {
-    if (server->port != port || server->user_data != user_data) {
+    if (server->port != port) {
         return false;
+    }
+
+    /* Compare user data only if user_data_cmp and both arguments
+     * are not NULL.
+     */
+    if (server->service->user_data_cmp && server->user_data && user_data) {
+        if (server->service->user_data_cmp(server->user_data, user_data)) {
+            return false;
+        }
     }
 
     if (name == NULL && server->common == NULL) {
