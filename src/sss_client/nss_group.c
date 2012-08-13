@@ -378,13 +378,10 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
         /* fall through, we need to actively ask the parent
          * if no entry is found */
         break;
-    case EINVAL:
+    default:
         /* if using the mmaped cache failed,
          * fall back to socket based comms */
         break;
-    default:
-        *errnop = EBADMSG;
-        return NSS_STATUS_TRYAGAIN;
     }
 
     rd.len = name_len + 1;
@@ -467,13 +464,10 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
         /* fall through, we need to actively ask the parent
          * if no entry is found */
         break;
-    case EINVAL:
+    default:
         /* if using the mmaped cache failed,
          * fall back to socket based comms */
         break;
-    default:
-        *errnop = EBADMSG;
-        return NSS_STATUS_TRYAGAIN;
     }
 
     group_gid = gid;
