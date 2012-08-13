@@ -47,8 +47,21 @@ BUILD_WITH_SHARED_BUILD_DIR
 AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM([[#include <pthread.h>]],
         [[pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;]])],
-    [AC_DEFINE([HAVE_PTHREAD], [1], [Pthread mutexes available.])],
+    [AC_DEFINE([HAVE_PTHREAD], [1], [Pthread mutexes available.])
+     HAVE_PTHREAD=1
+    ],
     [AC_MSG_WARN([Pthread library not found! Clients will not be thread safe...])])
+
+
+AM_CONDITIONAL([HAVE_PTHREAD], [test x"$HAVE_PTHREAD" != "x"])
+
+SAVE_LIBS=$LIBS
+LIBS="$LIBS -lpthread"
+AC_CHECK_FUNCS([ pthread_mutexattr_setrobust \
+                 pthread_mutex_consistent \
+                 pthread_mutexattr_setrobust_np \
+                 pthread_mutex_consistent_np ])
+LIBS=$SAVE_LIBS
 
 #Check for PAM headers
 AC_CHECK_HEADERS([security/pam_appl.h security/pam_misc.h security/pam_modules.h],

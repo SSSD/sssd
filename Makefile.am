@@ -400,6 +400,10 @@ if HAVE_NSS
     dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
 endif
 
+if HAVE_PTHREAD
+CLIENT_LIBS = -lpthread
+endif
+
 #####################
 # Utility libraries #
 #####################
@@ -646,6 +650,7 @@ sss_sudo_cli_SOURCES = \
     src/sss_client/common.c \
     src/sss_client/sudo_testcli/sudo_testcli.c
 sss_sudo_cli_CFLAGS = $(AM_CFLAGS)
+sss_sudo_cli_LDFLAGS = $(CLIENT_LIBS)
 sss_sudo_cli_LDADD = \
     libsss_sudo.la
 endif
@@ -935,7 +940,7 @@ autofs_test_client_SOURCES = src/sss_client/autofs/autofs_test_client.c \
 			     src/sss_client/autofs/sss_autofs.c \
 			     src/sss_client/common.c
 autofs_test_client_CFLAGS = $(AM_CFLAGS)
-autofs_test_client_LDFLAGS = -lpopt
+autofs_test_client_LDFLAGS = -lpopt $(CLIENT_LIBS)
 endif
 
 ####################
@@ -952,6 +957,7 @@ libnss_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/sss_client/nss_compat.h
 libnss_sss_la_LDFLAGS = \
+    $(CLIENT_LIBS) \
     -module \
     -version-info 2:0:0 \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_nss.exports
@@ -964,6 +970,7 @@ pam_sss_la_SOURCES = \
     src/sss_client/sss_pam_macros.h
 
 pam_sss_la_LDFLAGS = \
+    $(CLIENT_LIBS) \
     -lpam \
     $(SELINUX_LIBS) \
     -module \
@@ -980,6 +987,7 @@ libsss_sudo_la_SOURCES = \
     src/sss_client/sudo/sss_sudo.h \
     src/sss_client/sudo/sss_sudo_private.h
 libsss_sudo_la_LDFLAGS = \
+    $(CLIENT_LIBS) \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_sudo.exports \
     -version 1:0:0
 
@@ -999,6 +1007,7 @@ libsss_autofs_la_SOURCES = \
     src/sss_client/autofs/sss_autofs_private.h
 
 libsss_autofs_la_LDFLAGS = \
+    $(CLIENT_LIBS) \
     -module \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/autofs/sss_autofs.exports
