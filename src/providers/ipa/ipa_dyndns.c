@@ -857,7 +857,7 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
                                    uint8_t remove_af,
                                    bool use_server_with_nsupdate)
 {
-    int ret, i;
+    int ret, i, ttl;
     char *servername = NULL;
     char *realm;
     char *realm_directive;
@@ -935,6 +935,15 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
         goto done;
     }
 
+    /* Get the TTL details for the record(s) */
+
+    ttl = dp_opt_get_int(ctx->dyndns_ctx->ipa_ctx->basic,
+                             IPA_DYNDNS_TTL);
+    /* Should not happen but just in case set the default */
+    if (!ttl) {
+        ttl = 1200;
+    }
+
     /* Remove existing entries as needed */
     if (remove_af & IPA_DYNDNS_REMOVE_A) {
         ctx->update_msg = talloc_asprintf_append(ctx->update_msg,
@@ -986,8 +995,9 @@ static int create_nsupdate_message(struct ipa_nsupdate_ctx *ctx,
         /* Format the record update */
         ctx->update_msg = talloc_asprintf_append(
                 ctx->update_msg,
-                "update add %s. 86400 in %s %s\n",
+                "update add %s. %d in %s %s\n",
                 ctx->dyndns_ctx->hostname,
+                ttl,
                 new_record->addr->ss_family == AF_INET ? "A" : "AAAA",
                 ip_addr);
         if (ctx->update_msg == NULL) {

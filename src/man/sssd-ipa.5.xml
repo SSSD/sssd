@@ -126,6 +126,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_dyndns_ttl (integer)</term>
+                    <listitem>
+                        <para>
+                            The TTL to apply to the client DNS record when updating it.
+                            If ipa_dyndns_update is false this has no effect. This will
+                            override the TTL serverside if set by an administrator.
+                        </para>
+                        <para>
+                            Default: 1200 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_dyndns_iface (string)</term>
                     <listitem>
                         <para>
