@@ -1006,6 +1006,15 @@ fo_resolve_service_done(struct tevent_req *subreq)
         DEBUG(1, ("Failed to resolve server '%s': %s\n",
                   common->name,
                   resolv_strerror(resolv_status)));
+        /* If the resolver failed to resolve a hostname but did not
+         * encounter an error, tell the caller to retry another server.
+         *
+         * If there are no more servers to try, the next request would
+         * just shortcut with ENOENT.
+         */
+        if (ret == ENOENT) {
+            ret = EAGAIN;
+        }
         set_server_common_status(common, SERVER_NOT_WORKING);
     } else {
         set_server_common_status(common, SERVER_NAME_RESOLVED);
