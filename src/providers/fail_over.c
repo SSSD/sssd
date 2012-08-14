@@ -99,7 +99,7 @@ struct server_common {
     char *name;
     struct resolv_hostent *rhostent;
     struct resolve_service_request *request_list;
-    int server_status;
+    enum server_status server_status;
     struct timeval last_status_change;
 };
 
@@ -716,7 +716,8 @@ get_first_server_entity(struct fo_service *service, struct fo_server **_server)
      */
     if (service->last_tried_server != NULL &&
         service->last_tried_server->primary) {
-        if (service->last_tried_server->port_status == PORT_NEUTRAL) {
+        if (service->last_tried_server->port_status == PORT_NEUTRAL &&
+            server_works(service->last_tried_server)) {
             server = service->last_tried_server;
             goto done;
         }
