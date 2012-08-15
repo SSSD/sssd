@@ -76,6 +76,12 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 void sdap_check_online(struct be_req *breq);
 void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx);
 
+struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
+                                            struct be_ctx *be_ctx,
+                                            struct sdap_id_ctx *id_ctx);
+
+errno_t sdap_reinit_cleanup_recv(struct tevent_req *req);
+
 /* id */
 void sdap_account_info_handler(struct be_req *breq);
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
@@ -139,6 +145,9 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 
 int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
+
+struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx);
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
 

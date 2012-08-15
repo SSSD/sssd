@@ -519,6 +519,8 @@ done:
     return ret;
 }
 
+static void sdap_id_op_connect_reinit_done(struct tevent_req *req);
+
 /* Subrequest callback for connection completion */
 static void sdap_id_op_connect_done(struct tevent_req *subreq)
 {
@@ -529,6 +531,8 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
     struct sdap_server_opts *current_srv_opts = NULL;
     bool can_retry = false;
     bool is_offline = false;
+    struct tevent_req *reinit_req = NULL;
+    bool reinit = false;
     int ret;
 
     ret = sdap_cli_connect_recv(subreq, conn_data, &can_retry,
@@ -570,6 +574,8 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                 current_srv_opts->max_service_value = 0;
                 current_srv_opts->max_sudo_value = 0;
                 current_srv_opts->last_usn = srv_opts->last_usn;
+
+                reinit = true;
             }
         }
         ret = sdap_id_conn_data_set_expire_timer(conn_data);
@@ -694,6 +700,38 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
 
         sdap_id_release_conn_data(conn_data);
     }
+
+    if (reinit) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Server reinitialization detected. "
+                                  "Cleaning cache.\n"));
+        reinit_req = sdap_reinit_cleanup_send(conn_cache->id_ctx->be,
+                                              conn_cache->id_ctx->be,
+                                              conn_cache->id_ctx);
+        if (reinit_req == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to perform reinitialization "
+                                        "clean up.\n"));
+            return;
+        }
+
+        tevent_req_set_callback(reinit_req, sdap_id_op_connect_reinit_done,
+                                NULL);
+    }
+}
+
+static void sdap_id_op_connect_reinit_done(struct tevent_req *req)
+{
+    errno_t ret;
+
+    ret = sdap_reinit_cleanup_recv(req);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to perform reinitialization "
+              "clean up [%d]: %s\n", ret, strerror(ret)));
+        /* not fatal */
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Reinitialization clean up completed\n"));
 }
 
 /* Mark operation connection request as complete */

@@ -1238,6 +1238,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
     src/providers/ldap/sdap_range.c \
+    src/providers/ldap/sdap_reinit.c \
     src/providers/ldap/sdap.c
 
 if BUILD_SUDO

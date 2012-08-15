@@ -37,8 +37,6 @@ extern struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
 
 /* ==Enumeration-Task===================================================== */
 
-static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
-                                                 struct sdap_id_ctx *ctx);
 static int ldap_id_enumerate_retry(struct tevent_req *req);
 static void ldap_id_enumerate_connect_done(struct tevent_req *req);
 
@@ -202,8 +200,8 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq);
 static void ldap_id_enum_services_done(struct tevent_req *subreq);
 static void ldap_id_enum_cleanup_done(struct tevent_req *subreq);
 
-static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
-                                                 struct sdap_id_ctx *ctx)
+struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx)
 {
     struct global_enum_state *state;
     struct tevent_req *req;

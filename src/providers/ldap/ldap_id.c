@@ -797,6 +797,8 @@ fail:
     sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
 }
 
+static void sdap_check_online_reinit_done(struct tevent_req *req);
+
 static void sdap_check_online_done(struct tevent_req *req)
 {
     struct sdap_online_check_ctx *check_ctx = tevent_req_callback_data(req,
@@ -806,6 +808,9 @@ static void sdap_check_online_done(struct tevent_req *req)
     bool can_retry;
     struct sdap_server_opts *srv_opts;
     struct be_req *be_req;
+    struct sdap_id_ctx *id_ctx;
+    struct tevent_req *reinit_req = NULL;
+    bool reinit = false;
 
     ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, &srv_opts);
     talloc_zfree(req);
@@ -830,14 +835,54 @@ static void sdap_check_online_done(struct tevent_req *req)
             check_ctx->id_ctx->srv_opts->max_service_value = 0;
             check_ctx->id_ctx->srv_opts->max_sudo_value = 0;
             check_ctx->id_ctx->srv_opts->last_usn = srv_opts->last_usn;
+
+            reinit = true;
         }
 
         sdap_steal_server_opts(check_ctx->id_ctx, &srv_opts);
     }
 
     be_req = check_ctx->be_req;
+    id_ctx = check_ctx->id_ctx;
     talloc_free(check_ctx);
+
+    if (reinit) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Server reinitialization detected. "
+                                  "Cleaning cache.\n"));
+        reinit_req = sdap_reinit_cleanup_send(be_req, be_req->be_ctx, id_ctx);
+        if (reinit_req == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to perform reinitialization "
+                                        "clean up.\n"));
+            /* not fatal */
+            goto done;
+        }
+
+        tevent_req_set_callback(reinit_req, sdap_check_online_reinit_done,
+                                be_req);
+        return;
+    }
+
+done:
     sdap_handler_done(be_req, dp_err, 0, NULL);
+}
+
+static void sdap_check_online_reinit_done(struct tevent_req *req)
+{
+    struct be_req *be_req = NULL;
+    errno_t ret;
+
+    be_req = tevent_req_callback_data(req, struct be_req);
+    ret = sdap_reinit_cleanup_recv(req);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to perform reinitialization "
+              "clean up [%d]: %s\n", ret, strerror(ret)));
+        /* not fatal */
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Reinitialization clean up completed\n"));
+    }
+
+    sdap_handler_done(be_req, DP_ERR_OK, 0, NULL);
 }
 
 /* =Get-Account-Info-Call================================================= */
