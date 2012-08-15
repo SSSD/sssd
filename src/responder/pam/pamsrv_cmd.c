@@ -33,7 +33,9 @@
 #include "responder/pam/pam_helpers.h"
 #include "db/sysdb.h"
 #include "db/sysdb_selinux.h"
+#ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
+#endif
 
 enum pam_verbosity {
     PAM_VERBOSITY_NO_MESSAGES = 0,
@@ -354,6 +356,8 @@ fail:
     return ret;
 }
 
+#ifdef HAVE_SELINUX
+
 #define ALL_SERVICES "*"
 
 static errno_t write_selinux_string(const char *username, char *string)
@@ -595,6 +599,7 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+#endif
 
 static errno_t filter_responses(struct confdb_ctx *cdb,
                                 struct response_data *resp_list)
@@ -791,6 +796,7 @@ static void pam_reply(struct pam_auth_req *preq)
         return;
     }
 
+#ifdef HAVE_SELINUX
     if (pd->cmd == SSS_PAM_ACCT_MGMT &&
         pd->pam_status == PAM_SUCCESS) {
         /* Try to fetch data from sysdb
@@ -800,6 +806,7 @@ static void pam_reply(struct pam_auth_req *preq)
             pd->pam_status = PAM_SYSTEM_ERR;
         }
     }
+#endif
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
