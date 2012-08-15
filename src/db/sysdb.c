@@ -300,8 +300,8 @@ struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx)
     return talloc_zero(mem_ctx, struct sysdb_attrs);
 }
 
-static int sysdb_attrs_get_el_int(struct sysdb_attrs *attrs, const char *name,
-                                  bool alloc, struct ldb_message_element **el)
+int sysdb_attrs_get_el_ext(struct sysdb_attrs *attrs, const char *name,
+                           bool alloc, struct ldb_message_element **el)
 {
     struct ldb_message_element *e = NULL;
     int i;
@@ -340,7 +340,7 @@ static int sysdb_attrs_get_el_int(struct sysdb_attrs *attrs, const char *name,
 int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
                        struct ldb_message_element **el)
 {
-    return sysdb_attrs_get_el_int(attrs, name, true, el);
+    return sysdb_attrs_get_el_ext(attrs, name, true, el);
 }
 
 int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
@@ -349,7 +349,7 @@ int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
     struct ldb_message_element *el;
     int ret;
 
-    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    ret = sysdb_attrs_get_el_ext(attrs, name, false, &el);
     if (ret) {
         return ret;
     }
@@ -370,7 +370,7 @@ int sysdb_attrs_get_uint32_t(struct sysdb_attrs *attrs, const char *name,
     char *endptr;
     uint32_t val;
 
-    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    ret = sysdb_attrs_get_el_ext(attrs, name, false, &el);
     if (ret) {
         return ret;
     }
@@ -396,7 +396,7 @@ int sysdb_attrs_get_uint16_t(struct sysdb_attrs *attrs, const char *name,
     char *endptr;
     uint16_t val;
 
-    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    ret = sysdb_attrs_get_el_ext(attrs, name, false, &el);
     if (ret) {
         return ret;
     }
@@ -420,7 +420,7 @@ errno_t sysdb_attrs_get_bool(struct sysdb_attrs *attrs, const char *name,
     struct ldb_message_element *el;
     int ret;
 
-    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    ret = sysdb_attrs_get_el_ext(attrs, name, false, &el);
     if (ret) {
         return ret;
     }
@@ -444,7 +444,7 @@ int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
     unsigned int u;
     const char **a;
 
-    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    ret = sysdb_attrs_get_el_ext(attrs, name, false, &el);
     if (ret) {
         return ret;
     }
