@@ -196,6 +196,8 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
                            const char *name, time_t value);
 int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
                        struct ldb_message_element **el);
+int sysdb_attrs_get_el_ext(struct sysdb_attrs *attrs, const char *name,
+                           bool alloc, struct ldb_message_element **el);
 int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
                              const char *name, char *str);
 int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
