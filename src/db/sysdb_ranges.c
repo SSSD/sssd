@@ -327,11 +327,11 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_commit(sysdb);
-    if (ret == EOK) {
-        in_transaction = false;
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not commit transaction\n"));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not commit transaction\n"));
+        goto done;
     }
+    in_transaction = false;
 
 done:
     if (in_transaction) {

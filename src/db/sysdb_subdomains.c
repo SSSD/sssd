@@ -528,11 +528,11 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_commit(sysdb);
-    if (ret == EOK) {
-        in_transaction = false;
-    } else {
+    if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not commit transaction\n"));
+        goto done;
     }
+    in_transaction = false;
 
 done:
     if (in_transaction) {

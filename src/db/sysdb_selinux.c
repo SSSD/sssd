@@ -174,7 +174,10 @@ static errno_t sysdb_store_selinux_entity(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
 
     in_transaction = true;
 
@@ -212,22 +215,21 @@ static errno_t sysdb_store_selinux_entity(struct sysdb_ctx *sysdb,
         ret = ldb_modify(sysdb->ldb, rm_msg);
     }
 
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
+    in_transaction = false;
+
 done:
     if (in_transaction) {
-        if (ret == EOK) {
-            sret = sysdb_transaction_commit(sysdb);
-            if (sret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not commit transaction\n"));
-            }
-        }
-
-        if (ret != EOK || sret != EOK){
-            sret = sysdb_transaction_cancel(sysdb);
-            if (sret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
-            }
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
     }
+
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }

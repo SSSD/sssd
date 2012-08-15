@@ -1526,7 +1526,10 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
 
     in_transaction = true;
 
@@ -1618,22 +1621,22 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         }
     }
 
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
+
+    in_transaction = false;
+
 done:
     if (in_transaction) {
-        if (ret == EOK) {
-            sret = sysdb_transaction_commit(sysdb);
-            if (sret != EOK) {
-                DEBUG(2, ("Could not commit transaction\n"));
-            }
-        }
-
-        if (ret != EOK || sret != EOK){
-            sret = sysdb_transaction_cancel(sysdb);
-            if (sret != EOK) {
-                DEBUG(2, ("Could not cancel transaction\n"));
-            }
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
     }
+
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
@@ -2889,7 +2892,9 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              const char *const *del_groups)
 {
     errno_t ret;
+    errno_t sret;
     int i;
+    bool in_transaction = false;
 
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if(!tmp_ctx) {
@@ -2901,6 +2906,8 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
         DEBUG(0, ("Failed to start update transaction\n"));
         goto done;
     }
+
+    in_transaction = true;
 
     if (add_groups) {
         /* Add the user to all add_groups */
@@ -2929,10 +2936,19 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
+
+    in_transaction = false;
 
 done:
-    if (ret != EOK) {
-        sysdb_transaction_cancel(sysdb);
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+        }
     }
     talloc_free(tmp_ctx);
     return ret;
@@ -3103,7 +3119,10 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
 
     in_transaction = true;
 
@@ -3138,20 +3157,19 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
 
     ret = EOK;
 
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
+
+    in_transaction = false;
+
 done:
     if (in_transaction) {
-        if (ret == EOK) {
-            sret = sysdb_transaction_commit(sysdb);
-            if (sret != EOK) {
-                DEBUG(2, ("Could not commit transaction\n"));
-            }
-        }
-
-        if (ret != EOK || sret != EOK){
-            sret = sysdb_transaction_cancel(sysdb);
-            if (sret != EOK) {
-                DEBUG(2, ("Could not cancel transaction\n"));
-            }
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
     }
     talloc_free(msg);

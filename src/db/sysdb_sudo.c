@@ -607,6 +607,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
@@ -627,9 +628,11 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_commit(sysdb);
-    if (ret == EOK) {
-        in_transaction = false;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
     }
+    in_transaction = false;
 
 done:
     if (in_transaction) {

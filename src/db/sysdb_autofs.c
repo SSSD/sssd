@@ -345,8 +345,9 @@ sysdb_autofs_map_update_members(struct sysdb_ctx *sysdb,
                                 const char *const *add_entries,
                                 const char *const *del_entries)
 {
-    errno_t ret;
+    errno_t ret, sret;
     int i;
+    bool in_transaction = false;
 
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if(!tmp_ctx) {
@@ -359,6 +360,8 @@ sysdb_autofs_map_update_members(struct sysdb_ctx *sysdb,
               ("Failed to start update transaction\n"));
         goto done;
     }
+
+    in_transaction = true;
 
     if (add_entries) {
         /* Add the all te add_entries to the map */
@@ -389,9 +392,20 @@ sysdb_autofs_map_update_members(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_transaction_commit(sysdb);
-done:
     if (ret != EOK) {
-        sysdb_transaction_cancel(sysdb);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
+
+    in_transaction = false;
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+        }
     }
     talloc_free(tmp_ctx);
     return ret;

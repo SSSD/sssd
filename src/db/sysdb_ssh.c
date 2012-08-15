@@ -31,6 +31,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
+    errno_t sret;
     struct ldb_message **hosts;
     size_t num_hosts;
     struct ldb_message_element *el;
@@ -129,7 +130,10 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
 done:
     if (in_transaction) {
-        sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+        }
     }
 
     talloc_free(tmp_ctx);
