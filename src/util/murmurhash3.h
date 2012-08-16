@@ -6,5 +6,7 @@
  * clients can be both 64 or 32 bit at the same time.
  */
 
+#include <stdint.h>
+
 uint32_t murmurhash3(const char *key, int len, uint32_t seed);
 

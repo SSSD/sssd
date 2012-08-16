@@ -19,6 +19,7 @@
 */
 
 #include <Python.h>
+#include "util/sss_python.h"
 
 #include "util/murmurhash3.h"
 
@@ -36,7 +37,8 @@ static PyObject * py_murmurhash3(PyObject *module, PyObject *args)
     long long seed;
     uint32_t hash;
 
-    if (!PyArg_ParseTuple(args, "slL", &key, &key_len, &seed)) {
+    if (!PyArg_ParseTuple(args, sss_py_const_p(char, "slL"),
+                          &key, &key_len, &seed)) {
         PyErr_Format(PyExc_ValueError, "Invalid argument\n");
         return NULL;
     }
@@ -53,13 +55,15 @@ static PyObject * py_murmurhash3(PyObject *module, PyObject *args)
 }
 
 static PyMethodDef methods[] = {
-    {"murmurhash3", (PyCFunction) py_murmurhash3, METH_VARARGS, murmurhash3_doc},
-    {NULL,NULL, 0, NULL}
+    { sss_py_const_p(char, "murmurhash3"), (PyCFunction) py_murmurhash3,
+      METH_VARARGS, murmurhash3_doc },
+    { NULL,NULL, 0, NULL }
 };
 
 
 PyMODINIT_FUNC
 initpysss_murmur(void)
 {
-    Py_InitModule3("pysss_murmur", methods, "murmur hash functions");
+    Py_InitModule3(sss_py_const_p(char, "pysss_murmur"),
+                   methods, sss_py_const_p(char, "murmur hash functions"));
 }
