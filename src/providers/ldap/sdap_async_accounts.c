@@ -4693,9 +4693,8 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     if ((num_groups == 0) ||
         (nesting > dp_opt_get_int(opts->basic, SDAP_NESTING_LEVEL))) {
         /* No parent groups to process or too deep*/
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
-        return req;
+        ret = EOK;
+        goto done;
     }
 
     state->ev = ev;
@@ -4709,9 +4708,22 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     state->nesting_level = nesting;
     state->group_hash = group_hash;
 
-    ret = rfc2307bis_nested_groups_step(req);
+    while (state->group_iter < state->num_groups) {
+        ret = rfc2307bis_nested_groups_step(req);
+        if (ret == EOK) {
+            /* This group had already been looked up. Continue to
+             * another group in the same level
+             */
+            state->group_iter++;
+            continue;
+        } else {
+            goto done;
+        }
+    }
+
+done:
     if (ret == EOK) {
-        /* All parent groups were already processed */
+        /* All groups on that level had been processed. Quit. */
         tevent_req_done(req);
         tevent_req_post(req, ev);
     } else if (ret != EAGAIN) {
@@ -4762,6 +4774,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     DEBUG(6, ("Processing group [%s]\n", state->primary_name));
 
     if (hash_has_key(state->group_hash, &key)) {
+        DEBUG(6, ("Group was already processed, taking a shortcut\n"));
         talloc_free(key.str);
         talloc_free(tmp_ctx);
         return EOK;
