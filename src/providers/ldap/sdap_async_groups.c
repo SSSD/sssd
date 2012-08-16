@@ -522,10 +522,12 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
     char *usn_value;
     bool twopass;
     int ret;
+    errno_t sret;
     int i;
     struct sysdb_attrs **saved_groups = NULL;
     int nsaved_groups = 0;
     time_t now;
+    bool in_transaction = false;
 
     switch (opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
@@ -549,8 +551,10 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     if (twopass && !populate_members) {
         saved_groups = talloc_array(tmpctx, struct sysdb_attrs *,
@@ -616,15 +620,22 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(1, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
         goto done;
     }
+    in_transaction = false;
 
     if (_usn_value) {
         *_usn_value = talloc_steal(memctx, higher_usn);
     }
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_zfree(tmpctx);
     return ret;
 }
@@ -1864,6 +1875,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
     hash_key_t key;
     hash_value_t value;
     size_t count;
+    bool in_transaction = false;
 
     if (_ghosts == NULL) {
         return EINVAL;
@@ -1886,9 +1898,10 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(1, ("Failed to start transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction!\n"));
         goto done;
     }
+    in_transaction = true;
 
     for (i = 0; i < num_users; i++) {
         ret = sysdb_attrs_primary_name(sysdb, users[i],
@@ -1973,17 +1986,21 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(1, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
         goto done;
     }
+    in_transaction = false;
 
     ret = EOK;
 done:
-    if (ret != EOK) {
+    if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(2, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
+    }
+
+    if (ret != EOK) {
         *_ghosts = NULL;
     } else {
         *_ghosts = talloc_steal(mem_ctx, ghosts);

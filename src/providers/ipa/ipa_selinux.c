@@ -123,7 +123,10 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     }
 
     ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) goto fail;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto fail;
+    }
     in_transaction = true;
 
     ret = sysdb_delete_usermaps(breq->sysdb);

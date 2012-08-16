@@ -353,6 +353,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
     char *buffer;
     char *newbuf;
     int ret;
+    errno_t sret;
     bool again;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Enumerating users\n"));
@@ -377,6 +378,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
@@ -420,6 +422,10 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_TRACE_LIBS, ("Enumeration completed.\n"));
 
                 ret = sysdb_transaction_commit(sysdb);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+                    goto done;
+                }
                 in_transaction = false;
                 break;
 
@@ -468,7 +474,10 @@ static int enum_users(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmpctx);
     if (in_transaction) {
-        sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
     }
     ctx->ops.endpwent();
     return ret;
@@ -518,7 +527,10 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     DEBUG_GR_MEM(7, grp);
 
     ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
     in_transaction = true;
 
     if (grp->gr_mem && grp->gr_mem[0]) {
@@ -948,6 +960,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
     char *buffer;
     char *newbuf;
     int ret;
+    errno_t sret;
     bool again;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Enumerating groups\n"));
@@ -972,6 +985,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
@@ -1015,6 +1029,10 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_TRACE_LIBS, ("Enumeration completed.\n"));
 
                 ret = sysdb_transaction_commit(sysdb);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+                    goto done;
+                }
                 in_transaction = false;
                 break;
 
@@ -1062,7 +1080,10 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmpctx);
     if (in_transaction) {
-        sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
     }
     ctx->ops.endgrent();
     return ret;
@@ -1090,6 +1111,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     char *buffer;
     size_t buflen;
     int ret;
+    errno_t sret;
     bool del_user;
     uid_t uid;
     struct ldb_result *cached_pwd = NULL;
@@ -1115,6 +1137,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto fail;
     }
     in_transaction = true;
@@ -1212,7 +1235,10 @@ done:
 fail:
     talloc_zfree(tmpctx);
     if (in_transaction) {
-        sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
     }
     return ret;
 }

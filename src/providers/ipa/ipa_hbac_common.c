@@ -111,7 +111,10 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
 
     /* Save the entries and groups to the cache */
     ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) return ret;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    };
     in_transaction = true;
 
     /* First, save the specific entries */
@@ -143,7 +146,10 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     }
 
     ret = sysdb_transaction_commit(sysdb);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
     in_transaction = false;
 
 done:

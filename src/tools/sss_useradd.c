@@ -62,6 +62,8 @@ int main(int argc, const char **argv)
     char *groups = NULL;
     char *badgroup = NULL;
     int ret;
+    errno_t sret;
+    bool in_transaction = false;
 
     debug_prg_name = argv[0];
 
@@ -179,21 +181,23 @@ int main(int argc, const char **argv)
 
     tctx->error = sysdb_transaction_start(tctx->sysdb);
     if (tctx->error != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     /* useradd */
     tctx->error = useradd(tctx, tctx->sysdb, tctx->octx);
     if (tctx->error) {
-        /* cancel transaction */
-        sysdb_transaction_cancel(tctx->sysdb);
         goto done;
     }
 
     tctx->error = sysdb_transaction_commit(tctx->sysdb);
     if (tctx->error) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto done;
     }
+    in_transaction = false;
 
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */
@@ -249,6 +253,13 @@ int main(int argc, const char **argv)
     }
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(tctx->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
+    }
+
     if (tctx->error) {
         switch (tctx->error) {
             case ERANGE:

@@ -223,6 +223,7 @@ enum_services(struct proxy_id_ctx *ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
@@ -266,7 +267,10 @@ enum_services(struct proxy_id_ctx *ctx,
                 DEBUG(SSSDBG_TRACE_FUNC, ("Enumeration completed.\n"));
 
                 ret = sysdb_transaction_commit(sysdb);
-                if (ret != EOK) goto done;
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+                    goto done;
+                }
 
                 in_transaction = false;
                 break;

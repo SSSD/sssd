@@ -377,8 +377,10 @@ int sdap_save_users(TALLOC_CTX *memctx,
     char *higher_usn = NULL;
     char *usn_value;
     int ret;
+    errno_t sret;
     int i;
     time_t now;
+    bool in_transaction = false;
 
     if (num_users == 0) {
         /* Nothing to do if there are no users */
@@ -392,8 +394,10 @@ int sdap_save_users(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     now = time(NULL);
     for (i = 0; i < num_users; i++) {
@@ -428,15 +432,22 @@ int sdap_save_users(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(1, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
         goto done;
     }
+    in_transaction = false;
 
     if (_usn_value) {
         *_usn_value = talloc_steal(memctx, higher_usn);
     }
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_zfree(tmpctx);
     return ret;
 }

@@ -170,6 +170,7 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
     PyObject *py_groups = Py_None;
     PyObject *py_create_home = Py_None;
     int create_home = 0;
+    bool in_transaction = false;
 
     /* parse arguments */
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
@@ -232,12 +233,11 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = true;
 
     /* useradd */
     tctx->error = useradd(tctx, tctx->sysdb, tctx->octx);
     if (tctx->error) {
-        /* cancel transaction */
-        sysdb_transaction_cancel(tctx->sysdb);
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
@@ -247,6 +247,7 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = false;
 
     /* Create user's home directory and/or mail spool */
     if (tctx->octx->create_homedir) {
@@ -285,6 +286,12 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
     Py_RETURN_NONE;
 
 fail:
+    if (in_transaction) {
+        /* We do not handle return value of sysdb_transaction_cancel()
+         * because we don't want to overwrite previous error code.
+         */
+        sysdb_transaction_cancel(tctx->sysdb);
+    }
     talloc_zfree(tctx);
     return NULL;
 }
@@ -428,6 +435,7 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
     const char * const kwlist[] = { "username", "uid", "gid", "lock",
                                     "gecos",  "homedir", "shell",
                                     "addgroups", "rmgroups", NULL };
+    bool in_transaction = false;
 
     /* parse arguments */
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
@@ -491,12 +499,11 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = true;
 
     /* usermod */
     tctx->error = usermod(tctx, tctx->sysdb, tctx->octx);
     if (tctx->error) {
-        /* cancel transaction */
-        sysdb_transaction_cancel(tctx->sysdb);
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
@@ -506,11 +513,18 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = false;
 
     talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
+    if (in_transaction) {
+        /* We do not handle return value of sysdb_transaction_cancel()
+         * because we don't want to overwrite previous error code.
+         */
+        sysdb_transaction_cancel(tctx->sysdb);
+    }
     talloc_zfree(tctx);
     return NULL;
 }
@@ -533,6 +547,7 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
     char *groupname;
     unsigned long gid = 0;
     const char * const kwlist[] = { "groupname", "gid", NULL };
+    bool in_transaction = false;
 
     /* parse arguments */
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
@@ -558,12 +573,11 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = true;
 
     /* groupadd */
     tctx->error = groupadd(tctx->sysdb, tctx->octx);
     if (tctx->error) {
-        /* cancel transaction */
-        sysdb_transaction_cancel(tctx->sysdb);
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
@@ -573,11 +587,18 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = false;
 
     talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
+    if (in_transaction) {
+        /* We do not handle return value of sysdb_transaction_cancel()
+         * because we don't want to overwrite previous error code.
+         */
+        sysdb_transaction_cancel(tctx->sysdb);
+    }
     talloc_zfree(tctx);
     return NULL;
 }
@@ -647,6 +668,7 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
     char *groupname = NULL;
     const char * const kwlist[] = { "groupname", "gid", "addgroups",
                                     "rmgroups", NULL };
+    bool in_transaction = false;
 
     /* parse arguments */
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
@@ -694,12 +716,11 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = true;
 
     /* groupmod */
     tctx->error = groupmod(tctx, tctx->sysdb, tctx->octx);
     if (tctx->error) {
-        /* cancel transaction */
-        sysdb_transaction_cancel(tctx->sysdb);
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
@@ -709,11 +730,18 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
         PyErr_SetSssError(tctx->error);
         goto fail;
     }
+    in_transaction = false;
 
     talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
+    if (in_transaction) {
+        /* We do not handle return value of sysdb_transaction_cancel()
+         * because we don't want to overwrite previous error code.
+         */
+        sysdb_transaction_cancel(tctx->sysdb);
+    }
     talloc_zfree(tctx);
     return NULL;
 }

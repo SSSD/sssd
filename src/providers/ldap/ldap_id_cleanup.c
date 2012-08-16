@@ -192,6 +192,7 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_start(state->ctx->be->sysdb);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto fail;
     }
     in_transaction = true;
@@ -209,8 +210,10 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_commit(state->ctx->be->sysdb);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto fail;
     }
+    in_transaction = false;
 
     tevent_req_done(req);
     tevent_req_post(req, ev);

@@ -480,6 +480,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     /* start transaction */
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
@@ -502,9 +503,11 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 
     /* commit transaction */
     ret = sysdb_transaction_commit(state->sysdb);
-    if (ret == EOK) {
-        in_transaction = false;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
     }
+    in_transaction = false;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Sudoers is successfuly stored in cache\n"));
 

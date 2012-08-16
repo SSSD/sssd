@@ -131,7 +131,10 @@ int main(int argc, const char *argv[])
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not commit the transaction!\n"));
-            sysdb_transaction_cancel(sysdb);
+            ret = sysdb_transaction_cancel(sysdb);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            }
         }
 
         if (skipped == true) {

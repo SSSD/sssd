@@ -121,6 +121,8 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmpctx;
     struct sysdb_attrs *attrs;
     int ret;
+    errno_t sret;
+    bool in_transaction = false;
 
     if (name == NULL || ccname == NULL) {
         DEBUG(1, ("Missing user or ccache name.\n"));
@@ -154,9 +156,11 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(6, ("Error %d starting transaction (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error %d starting transaction (%s)\n", ret, strerror(ret)));
         goto done;
     }
+    in_transaction = true;
 
     ret = sysdb_set_user_attr(sysdb, name, attrs, mod_op);
     if (ret != EOK) {
@@ -167,10 +171,18 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
+        goto done;
     }
+    in_transaction = false;
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
+    }
     talloc_zfree(tmpctx);
     return ret;
 }

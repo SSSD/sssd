@@ -678,6 +678,7 @@ static int seed_cache_user(struct seed_ctx *sctx)
 {
     bool in_transaction = false;
     int ret = EOK;
+    errno_t sret;
 
     ret = sysdb_transaction_start(sctx->sysdb);
     if (ret != EOK) {
@@ -720,8 +721,8 @@ static int seed_cache_user(struct seed_ctx *sctx)
 
 done:
     if (in_transaction == true) {
-        ret = sysdb_transaction_cancel(sctx->sysdb);
-        if (ret != EOK) {
+        sret = sysdb_transaction_cancel(sctx->sysdb);
+        if (sret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to cancel transaction\n"));
         }
     }

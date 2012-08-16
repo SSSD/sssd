@@ -32,12 +32,16 @@ errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
                            struct sysdb_attrs **maps)
 {
     errno_t ret;
+    errno_t sret;
+    bool in_transaction = false;
     int i;
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
+    in_transaction = true;
 
     for (i = 0; i < map_count; i++) {
         ret = sysdb_store_selinux_usermap(sysdb, maps[i]);
@@ -54,9 +58,15 @@ errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
         goto done;
     }
-
+    in_transaction = false;
     ret = EOK;
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction"));
+        }
+    }
     return ret;
 }

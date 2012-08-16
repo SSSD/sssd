@@ -572,9 +572,10 @@ static void hbac_sysdb_save(struct tevent_req *req)
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto fail;
     }
+    in_transaction = false;
 
     /* We don't need the rule data any longer,
      * the rest of the processing relies on
