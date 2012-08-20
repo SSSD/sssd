@@ -417,9 +417,7 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(1, ("sdap_async_sys_connect request failed.\n"));
-        close(state->sd);
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
     /* Initialize LDAP handler */
 
@@ -427,13 +425,8 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     if (lret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_init_fd failed: %s. [%ld][%s]\n",
                   sss_ldap_err2string(lret), state->sd, state->uri));
-        close(state->sd);
-        if (lret == LDAP_SERVER_DOWN) {
-            tevent_req_error(req, ETIMEDOUT);
-        } else {
-            tevent_req_error(req, EIO);
-        }
-        return;
+        ret = lret == LDAP_SERVER_DOWN ? ETIMEDOUT : EIO;
+        goto fail;
     }
 
     if (ldap_is_ldaps_url(state->uri)) {
@@ -444,15 +437,22 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
             } else {
                 DEBUG(1, ("ldap_install_tls failed: %s\n",
                           sss_ldap_err2string(lret)));
-
-                tevent_req_error(req, EIO);
-                return;
+                ret = EIO;
+                goto fail;
             }
         }
     }
 
     tevent_req_done(req);
     return;
+
+fail:
+    if (state->ldap) {
+        ldap_destroy(state->ldap);
+    } else {
+        close(state->sd);
+    }
+    tevent_req_error(req, ret);
 }
 #endif
 
