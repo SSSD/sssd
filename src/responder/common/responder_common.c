@@ -455,6 +455,7 @@ static void accept_fd_handler(struct tevent_context *ev,
         talloc_free(cctx);
         DEBUG(2, ("Failed to queue client handler%\n",
                 accept_ctx->is_private ? " on privileged pipe" : ""));
+        return;
     }
 
     cctx->ev = ev;
