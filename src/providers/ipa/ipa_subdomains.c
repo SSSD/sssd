@@ -178,22 +178,6 @@ done:
     return ret;
 }
 
-static char *name_to_realm(TALLOC_CTX *memctx, const char *name)
-{
-    char *realm;
-    char *p;
-
-    realm = talloc_strdup(memctx, name);
-    if (!realm) {
-        return NULL;
-    }
-    for (p = realm; *p; p++) {
-        *p = toupper(*p);
-    }
-
-    return realm;
-}
-
 static errno_t ipa_subdom_parse(TALLOC_CTX *memctx,
                                 struct sysdb_attrs *attrs,
                                 struct sysdb_subdom *subdom)
@@ -219,7 +203,7 @@ static errno_t ipa_subdom_parse(TALLOC_CTX *memctx,
     if (subdom->realm == NULL) {
         /* Add Realm as upper(domain name), this is generally always correct
          * with AD domains */
-        subdom->realm = name_to_realm(memctx, subdom->name);
+        subdom->realm = get_uppercase_realm(memctx, subdom->name);
         if (!subdom->realm) {
             return ENOMEM;
         }

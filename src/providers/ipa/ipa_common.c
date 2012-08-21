@@ -47,7 +47,6 @@ int ipa_get_options(TALLOC_CTX *memctx,
     char *realm;
     char *ipa_hostname;
     int ret;
-    int i;
     char hostname[HOST_NAME_MAX + 1];
 
     opts = talloc_zero(memctx, struct ipa_options);
@@ -95,16 +94,11 @@ int ipa_get_options(TALLOC_CTX *memctx,
     /* First check whether the realm has been manually specified */
     realm = dp_opt_get_string(opts->basic, IPA_KRB5_REALM);
     if (!realm) {
-        /* No explicit krb5_realm, use the IPA domain */
-        realm = talloc_strdup(opts, domain);
+        /* No explicit krb5_realm, use the IPA domain, transform to upper-case */
+        realm = get_uppercase_realm(opts, domain);
         if (!realm) {
             ret = ENOMEM;
             goto done;
-        }
-
-        /* Use the upper-case IPA domain for the kerberos realm */
-        for (i = 0; realm[i]; i++) {
-            realm[i] = toupper(realm[i]);
         }
 
         ret = dp_opt_set_string(opts->basic, IPA_KRB5_REALM,

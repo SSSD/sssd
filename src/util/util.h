@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
+#include <ctype.h>
 #include <errno.h>
 #include <libintl.h>
 #include <limits.h>
@@ -387,6 +388,8 @@ int password_destructor(void *memctx);
 
 /* from usertools.c */
 char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);
+
+char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name);
 
 struct sss_names_ctx {
     char *re_pattern;

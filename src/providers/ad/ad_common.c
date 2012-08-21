@@ -33,7 +33,6 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     int gret;
-    size_t i;
     struct ad_options *opts = NULL;
     char *domain;
     char *server;
@@ -98,14 +97,10 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
 
 
     /* Always use the upper-case AD domain for the kerberos realm */
-    realm = talloc_strdup(opts, domain);
+    realm = get_uppercase_realm(opts, domain);
     if (!realm) {
         ret = ENOMEM;
         goto done;
-    }
-
-    for (i = 0; realm[i]; i++) {
-        realm[i] = toupper(realm[i]);
     }
 
     ret = dp_opt_set_string(opts->basic, AD_KRB5_REALM, realm);
