@@ -2128,6 +2128,8 @@ struct tevent_req *rfc2307bis_nested_groups_send(
         }
     }
 
+    ret = EOK;
+
 done:
     if (ret == EOK) {
         /* All parent groups were already processed */
