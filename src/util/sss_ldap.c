@@ -448,7 +448,7 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 
 fail:
     if (state->ldap) {
-        ldap_destroy(state->ldap);
+        ldap_unbind_ext(state->ldap, NULL, NULL);
     } else {
         close(state->sd);
     }
