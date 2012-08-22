@@ -520,7 +520,13 @@ errno_t krb5_servers_init(struct be_ctx *ctx,
             continue;
         }
 
-        port_str = strrchr(server_spec, ':');
+        /* Do not try to get port number if last character is ']' */
+        if (server_spec[strlen(server_spec) - 1] != ']') {
+            port_str = strrchr(server_spec, ':');
+        } else {
+            port_str = NULL;
+        }
+
         if (port_str == NULL) {
             port = 0;
         } else {
@@ -562,6 +568,13 @@ errno_t krb5_servers_init(struct be_ctx *ctx,
                 ret = EINVAL;
                 goto done;
             }
+        }
+
+        /* It could be ipv6 address in square brackets. Remove
+         * the brackets if needed. */
+        ret = remove_ipv6_brackets(server_spec);
+        if (ret != EOK) {
+            goto done;
         }
 
         ret = be_fo_add_server(ctx, service_name, server_spec, (int) port,

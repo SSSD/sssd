@@ -841,6 +841,13 @@ errno_t ipa_servers_init(struct be_ctx *ctx,
             continue;
         }
 
+        /* It could be ipv6 address in square brackets. Remove
+         * the brackets if needed. */
+        ret = remove_ipv6_brackets(list[i]);
+        if (ret != EOK) {
+            goto done;
+        }
+
         ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL, primary);
         if (ret && ret != EEXIST) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));

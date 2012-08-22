@@ -611,3 +611,26 @@ void to_sized_string(struct sized_string *out, const char *in)
     }
 }
 
+/* This function only removes first and last
+ * character if the first character was '['.
+ *
+ * NOTE: This means, that ipv6addr must NOT be followed
+ * by port number.
+ */
+errno_t
+remove_ipv6_brackets(char *ipv6addr)
+{
+    size_t len;
+
+    if (ipv6addr && ipv6addr[0] == '[') {
+        len = strlen(ipv6addr);
+        if (len < 3) {
+            return EINVAL;
+        }
+
+        memmove(ipv6addr, &ipv6addr[1], len - 2);
+        ipv6addr[len -2] = '\0';
+    }
+
+    return EOK;
+}

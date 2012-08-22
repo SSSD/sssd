@@ -1185,6 +1185,13 @@ errno_t sdap_urls_init(struct be_ctx *ctx,
 
         talloc_steal(service, list[i]);
 
+        /* It could be ipv6 address in square brackets. Remove
+         * the brackets if needed. */
+        ret = remove_ipv6_brackets(lud->lud_host);
+        if (ret != EOK) {
+            goto done;
+        }
+
         ret = be_fo_add_server(ctx, service->name, lud->lud_host,
                                lud->lud_port, list[i], primary);
         ldap_free_urldesc(lud);

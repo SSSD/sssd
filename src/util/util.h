@@ -516,6 +516,15 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
 char *
 sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
 
+/* This function only removes first and last
+ * character if the first character was '['.
+ *
+ * NOTE: This means, that ipv6addr must NOT be followed
+ * by port number.
+ */
+errno_t
+remove_ipv6_brackets(char *ipv6addr);
+
 /* from sss_tc_utf8.c */
 char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);
