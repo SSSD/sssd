@@ -635,7 +635,7 @@ ad_set_search_bases(struct sdap_options *id_opts)
         }
     } else {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Search base not set. SSSd will attempt to discover it later, "
+              ("Search base not set. SSSD will attempt to discover it later, "
                "when connecting to the LDAP server.\n"));
     }
 
