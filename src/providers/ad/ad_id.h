@@ -26,4 +26,6 @@
 void
 ad_account_info_handler(struct be_req *breq);
 
+void
+ad_check_online(struct be_req *be_req);
 #endif /* AD_ID_H_ */

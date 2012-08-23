@@ -44,7 +44,7 @@ ad_shutdown(struct be_req *req);
 struct bet_ops ad_id_ops = {
     .handler = ad_account_info_handler,
     .finalize = ad_shutdown,
-    .check_online = sdap_check_online
+    .check_online = ad_check_online
 };
 
 struct bet_ops ad_auth_ops = {

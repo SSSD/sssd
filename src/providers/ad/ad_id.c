@@ -35,3 +35,14 @@ ad_account_info_handler(struct be_req *breq)
 
     return sdap_handle_account_info(breq, sdap_id_ctx);
 }
+
+void
+ad_check_online(struct be_req *be_req)
+{
+    struct ad_id_ctx *ad_ctx;
+
+    ad_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
+            struct ad_id_ctx);
+
+    return sdap_do_online_check(be_req, ad_ctx->sdap_id_ctx);
+}
