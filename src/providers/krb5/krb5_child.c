@@ -695,6 +695,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     krb5_kt_cursor cursor;
     krb5_keytab_entry entry;
     krb5_verify_init_creds_opt opt;
+    krb5_principal validation_princ = NULL;
 
     memset(&keytab, 0, sizeof(keytab));
     kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
@@ -715,10 +716,15 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     /* We look for the first entry from our realm or take the last one */
     memset(&entry, 0, sizeof(entry));
     while ((kt_err = krb5_kt_next_entry(kr->ctx, keytab, &entry, &cursor)) == 0) {
-        if (krb5_realm_compare(kr->ctx, entry.principal, kr->princ)) {
-            DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("Found keytab entry with the realm of the credential.\n"));
-            break;
+        if (validation_princ != NULL) {
+            krb5_free_principal(kr->ctx, validation_princ);
+            validation_princ = NULL;
+        }
+        kerr = krb5_copy_principal(kr->ctx, entry.principal,
+                                   &validation_princ);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_copy_principal failed.\n"));
+            goto done;
         }
 
         kerr = sss_krb5_free_keytab_entry_contents(kr->ctx, &entry);
@@ -726,6 +732,12 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
             DEBUG(1, ("Failed to free keytab entry.\n"));
         }
         memset(&entry, 0, sizeof(entry));
+
+        if (krb5_realm_compare(kr->ctx, validation_princ, kr->princ)) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("Found keytab entry with the realm of the credential.\n"));
+            break;
+        }
     }
 
     /* Close the keytab here.  Even though we're using cursors, the file
@@ -747,7 +759,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
     /* Get the principal to which the key belongs, for logging purposes. */
     principal = NULL;
-    kerr = krb5_unparse_name(kr->ctx, entry.principal, &principal);
+    kerr = krb5_unparse_name(kr->ctx, validation_princ, &principal);
     if (kerr != 0) {
         DEBUG(1, ("internal error parsing principal name, "
                   "not verifying TGT.\n"));
@@ -757,7 +769,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
 
     krb5_verify_init_creds_opt_init(&opt);
-    kerr = krb5_verify_init_creds(kr->ctx, kr->creds, entry.principal, keytab,
+    kerr = krb5_verify_init_creds(kr->ctx, kr->creds, validation_princ, keytab,
                                   NULL, &opt);
 
     if (kerr == 0) {
@@ -770,8 +782,8 @@ done:
     if (krb5_kt_close(kr->ctx, keytab) != 0) {
         DEBUG(1, ("krb5_kt_close failed"));
     }
-    if (sss_krb5_free_keytab_entry_contents(kr->ctx, &entry) != 0) {
-        DEBUG(1, ("Failed to free keytab entry.\n"));
+    if (validation_princ != NULL) {
+        krb5_free_principal(kr->ctx, validation_princ);
     }
     if (principal != NULL) {
         sss_krb5_free_unparsed_name(kr->ctx, principal);
