@@ -1,0 +1,21 @@
+diff -up sssd-1.8.97/src/man/sssd-krb5.5.xml.ccachepath sssd-1.8.97/src/man/sssd-krb5.5.xml
+--- sssd-1.8.97/src/man/sssd-krb5.5.xml.ccachepath	2012-08-24 12:14:27.459225839 +0200
++++ sssd-1.8.97/src/man/sssd-krb5.5.xml	2012-08-24 12:14:43.845079652 +0200
+@@ -148,7 +148,7 @@
+                             </citerefentry> for details) is created.
+                         </para>
+                         <para>
+-                            Default: /tmp
++                            Default: /run/user/%U
+                         </para>
+                     </listitem>
+                 </varlistentry>
+@@ -208,7 +208,7 @@
+                             used to create a unique filename in a safe way.
+                         </para>
+                         <para>
+-                            Default: FILE:%d/krb5cc_%U_XXXXXX
++                            Default: DIR:%d/krb5cc
+                         </para>
+                     </listitem>
+                 </varlistentry>

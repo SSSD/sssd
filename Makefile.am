@@ -1746,6 +1746,7 @@ rpmroot:
 rpmbrprep: dist-gzip rpmroot
 	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
+	cp $(srcdir)/contrib/*.patch $(RPMBUILD)/SOURCES
 
 rpms: rpmbrprep
 	cd $(RPMBUILD); \

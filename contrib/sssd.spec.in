@@ -19,7 +19,7 @@
 %endif
 
 %if (0%{?fedora} >= 17)
-    %global with_ccache --with-default-ccache-dir='/run/user/%U' --with-default-ccname-template="DIR:%d/ccdir"
+    %global with_ccache --with-default-ccache-dir='/run/user/%U' --with-default-ccname-template="DIR:%d/krb5cc"
 %endif
 
 %global enable_experimental 1
@@ -42,6 +42,9 @@ Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 ### Patches ###
+%if (0%{?fedora} >= 17)
+Patch0001:  sssd-1.9-man-change-default-ccache.patch
+%endif
 
 ### Dependencies ###
 
@@ -221,6 +224,9 @@ A utility library to allow communication between SUDO and SSSD
 
 %prep
 %setup -q
+%if (0%{?fedora} >= 17)
+%patch0001 -p1
+%endif
 
 %build
 
