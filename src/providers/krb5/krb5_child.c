@@ -700,16 +700,16 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     memset(&keytab, 0, sizeof(keytab));
     kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
     if (kerr != 0) {
-        DEBUG(1, ("error resolving keytab [%s], not verifying TGT.\n",
-                  kr->keytab));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("error resolving keytab [%s], " \
+                                    "not verifying TGT.\n", kr->keytab));
         return kerr;
     }
 
     memset(&cursor, 0, sizeof(cursor));
     kerr = krb5_kt_start_seq_get(kr->ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(1, ("error reading keytab [%s], not verifying TGT.\n",
-                  kr->keytab));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("error reading keytab [%s], " \
+                                    "not verifying TGT.\n", kr->keytab));
         return kerr;
     }
 
@@ -729,7 +729,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
         kerr = sss_krb5_free_keytab_entry_contents(kr->ctx, &entry);
         if (kerr != 0) {
-            DEBUG(1, ("Failed to free keytab entry.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to free keytab entry.\n"));
         }
         memset(&entry, 0, sizeof(entry));
 
@@ -746,14 +746,15 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
      * cursor, creating a leak. */
     kerr = krb5_kt_end_seq_get(kr->ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_kt_end_seq_get failed, not verifying TGT.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_kt_end_seq_get failed, " \
+                                    "not verifying TGT.\n"));
         goto done;
     }
 
     /* check if we got any errors from krb5_kt_next_entry */
     if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(1, ("error reading keytab [%s], not verifying TGT.\n",
-                  kr->keytab));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("error reading keytab [%s], " \
+                                    "not verifying TGT.\n", kr->keytab));
         goto done;
     }
 
@@ -761,8 +762,8 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     principal = NULL;
     kerr = krb5_unparse_name(kr->ctx, validation_princ, &principal);
     if (kerr != 0) {
-        DEBUG(1, ("internal error parsing principal name, "
-                  "not verifying TGT.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("internal error parsing principal name, "
+                                    "not verifying TGT.\n"));
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
@@ -773,14 +774,16 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
                                   NULL, &opt);
 
     if (kerr == 0) {
-        DEBUG(5, ("TGT verified using key for [%s].\n", principal));
+        DEBUG(SSSDBG_TRACE_FUNC, ("TGT verified using key for [%s].\n",
+                                  principal));
     } else {
-        DEBUG(1 ,("TGT failed verification using key for [%s].\n", principal));
+        DEBUG(SSSDBG_CRIT_FAILURE ,("TGT failed verification using key " \
+                                    "for [%s].\n", principal));
     }
 
 done:
     if (krb5_kt_close(kr->ctx, keytab) != 0) {
-        DEBUG(1, ("krb5_kt_close failed"));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("krb5_kt_close failed"));
     }
     if (validation_princ != NULL) {
         krb5_free_principal(kr->ctx, validation_princ);
