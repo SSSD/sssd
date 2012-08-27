@@ -41,20 +41,22 @@ sss_ssh_make_ent(TALLOC_CTX *mem_ctx,
                  struct ldb_message *msg,
                  struct sss_ssh_ent **result);
 
-char *
+errno_t
 sss_ssh_get_pubkey_algorithm(TALLOC_CTX *mem_ctx,
-                             struct sss_ssh_pubkey *pubkey);
+                             struct sss_ssh_pubkey *pubkey,
+                             char **result);
 
 enum sss_ssh_pubkey_format {
     SSS_SSH_FORMAT_RAW,
     SSS_SSH_FORMAT_OPENSSH
 };
 
-char *
+errno_t
 sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
                       struct sss_ssh_ent *ent,
                       struct sss_ssh_pubkey *pubkey,
                       enum sss_ssh_pubkey_format format,
-                      const char *comment);
+                      const char *comment,
+                      char **result);
 
 #endif /* _SSS_SSH_H_ */

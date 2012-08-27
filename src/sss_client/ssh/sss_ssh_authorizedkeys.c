@@ -109,12 +109,13 @@ int main(int argc, const char **argv)
 
     /* print results */
     for (i = 0; i < ent->num_pubkeys; i++) {
-        repr = sss_ssh_format_pubkey(mem_ctx, ent, &ent->pubkeys[i],
-                                     SSS_SSH_FORMAT_OPENSSH, NULL);
-        if (!repr) {
-            ERROR("Not enough memory\n");
-            ret = EXIT_FAILURE;
-            goto fini;
+        ret = sss_ssh_format_pubkey(mem_ctx, ent, &ent->pubkeys[i],
+                                    SSS_SSH_FORMAT_OPENSSH, NULL, &repr);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sss_ssh_format_pubkey() failed (%d): %s\n",
+                    ret, strerror(ret)));
+            continue;
         }
 
         printf("%s\n", repr);
