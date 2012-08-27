@@ -114,11 +114,9 @@ BuildRequires: findutils
 BuildRequires: glib2-devel
 BuildRequires: selinux-policy-targeted
 
-%if (0%{?enable_experimental} == 1)
 # RHEL 5 is too old to support samba4 and the PAC responder
 %if !0%{?is_rhel5}
 BuildRequires: samba4-devel
-%endif
 %endif
 
 %description
@@ -200,7 +198,6 @@ Requires: libipa_hbac = %{version}-%{release}
 The libipa_hbac-python contains the bindings so that libipa_hbac can be
 used by Python applications.
 
-%if (0%{?enable_experimental} == 1)
 %package -n libsss_sudo
 Summary: A library to allow communication between SUDO and SSSD
 Group: Development/Libraries
@@ -220,7 +217,6 @@ Requires: libsss_sudo = %{version}-%{release}
 
 %description -n libsss_sudo-devel
 A utility library to allow communication between SUDO and SSSD
-%endif
 
 %prep
 %setup -q
@@ -341,7 +337,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_nss
 %{_libexecdir}/%{servicename}/sssd_pam
 
-%if (0%{?enable_experimental} == 1)
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
@@ -349,7 +344,6 @@ rm -rf $RPM_BUILD_ROOT
 # RHEL 5 is too old to support the PAC responder
 %if !0%{?is_rhel5}
 %{_libexecdir}/%{servicename}/sssd_pac
-%endif
 
 %endif
 
@@ -362,10 +356,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_simple.so
 
 %{ldb_modulesdir}/memberof.so
-%if (0%{?enable_experimental} == 1)
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhostsproxy
-%endif
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,root,root) %dir %{dbpath}
@@ -392,10 +384,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man8/sssd.8*
-%if (0%{?enable_experimental} == 1)
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
-%endif
 %{python_sitearch}/pysss.so
 %{python_sitearch}/pysss_murmur.so
 %dir %{python_sitelib}/SSSDConfig
@@ -407,10 +397,8 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
-%if (0%{?enable_experimental} == 1)
 %if !0%{?is_rhel5}
 %{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
-%endif
 %endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
@@ -487,7 +475,6 @@ A utility library to allow communication between Autofs and SSSD
 %defattr(-,root,root,-)
 %{python_sitearch}/pyhbac.so
 
-%if (0%{?enable_experimental} == 1)
 %files -n libsss_sudo
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
@@ -508,7 +495,6 @@ A utility library to allow communication between Autofs and SSSD
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/sssd/modules/libsss_autofs.so*
-%endif
 
 %post
 /sbin/chkconfig --add %{servicename}

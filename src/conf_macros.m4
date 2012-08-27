@@ -467,18 +467,12 @@ AC_DEFUN([WITH_APP_LIBS],
 AC_DEFUN([WITH_SUDO],
   [ AC_ARG_WITH([sudo],
                 [AC_HELP_STRING([--with-sudo],
-                                [Whether to build with sudo support [no]]
+                                [Whether to build with sudo support [yes]]
                                )
                 ],
                 [with_sudo=$withval],
+                with_sudo=yes
                )
-
-    dnl Remove when sudo goes out of experimental
-    if test x"$enable_all_experimental_features" = xyes; then
-        if test x"$with_sudo" != xno; then
-            with_sudo=yes
-        fi
-    fi
 
     if test x"$with_sudo" = xyes; then
         AC_DEFINE(BUILD_SUDO, 1, [whether to build with SUDO support])
@@ -503,18 +497,12 @@ AC_DEFUN([WITH_SUDO_LIB_PATH],
 AC_DEFUN([WITH_AUTOFS],
   [ AC_ARG_WITH([autofs],
                 [AC_HELP_STRING([--with-autofs],
-                                [Whether to build with autofs support [no]]
+                                [Whether to build with autofs support [yes]]
                                )
                 ],
                 [with_autofs=$withval],
+                with_autofs=yes
                )
-
-    dnl Remove when autofs goes out of experimental
-    if test x"$enable_all_experimental_features" = xyes; then
-        if test x"$with_autofs" != xno; then
-            with_autofs=yes
-        fi
-    fi
 
     if test x"$with_autofs" = xyes; then
         AC_DEFINE(BUILD_AUTOFS, 1, [whether to build with AUTOFS support])
@@ -525,18 +513,12 @@ AC_DEFUN([WITH_AUTOFS],
 AC_DEFUN([WITH_SSH],
   [ AC_ARG_WITH([ssh],
                 [AC_HELP_STRING([--with-ssh],
-                                [Whether to build with SSH support [no]]
+                                [Whether to build with SSH support [yes]]
                                )
                 ],
                 [with_ssh=$withval],
+                with_ssh=yes
                )
-
-    dnl Remove when SSH goes out of experimental
-    if test x"$enable_all_experimental_features" = xyes; then
-        if test x"$with_ssh" != xno; then
-            with_ssh=yes
-        fi
-    fi
 
     if test x"$with_ssh" = xyes; then
         AC_DEFINE(BUILD_SSH, 1, [whether to build with SSH support])

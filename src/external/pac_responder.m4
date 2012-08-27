@@ -1,16 +1,11 @@
 AC_SUBST(NDR_KRB5PAC_CFLAGS)
 AC_SUBST(NDR_KRB5PAC_LIBS)
 
-AC_ARG_ENABLE([experimental-pac-responder],
-              [AS_HELP_STRING([--enable-experimental-pac-responder],
-                              [build experimental pac responder])],
+AC_ARG_ENABLE([pac-responder],
+              [AS_HELP_STRING([--enable-pac-responder],
+                              [build pac responder])],
               [build_pac_responder=$enableval],
-              [build_pac_responder=no])
-
-if test x$build_all_experimental_features != xno
-then
-    build_pac_responder=yes
-fi
+              [build_pac_responder=yes])
 
 ndr_krb5pac_ok=no
 krb5_version_ok=no

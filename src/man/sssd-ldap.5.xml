@@ -1762,7 +1762,6 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
     <refsect1 id='sudo-options' condition="with_sudo">
         <title>SUDO OPTIONS</title>
         <para>
-        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
             <variablelist>
                 <varlistentry>
                     <term>ldap_sudorule_object_class (string)</term>
@@ -2061,7 +2060,6 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
             schema which is RFC2307.
         </para>
         <para>
-        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
             <variablelist>
                 <varlistentry>
                     <term>ldap_autofs_map_object_class (string)</term>

@@ -69,9 +69,6 @@ AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
 PubKeyAgent /usr/bin/sss_ssh_authorizedkeys %u
 </programlisting>
         </para>
-        <para>
-            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-        </para>
     </refsect1>
 
     <refsect1 id='options'>

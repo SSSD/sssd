@@ -746,9 +746,6 @@ override_homedir = /home/%u
             <para>
                 These options can be used to configure the sudo service.
             </para>
-            <para>
-                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-            </para>
             <variablelist>
                 <varlistentry>
                     <term>sudo_timed (bool)</term>
@@ -771,10 +768,6 @@ override_homedir = /home/%u
             <para>
                 These options can be used to configure the autofs service.
             </para>
-            <para>
-                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-            </para>
-
             <variablelist>
                 <varlistentry>
                     <term>autofs_negative_timeout (integer)</term>
@@ -799,10 +792,6 @@ override_homedir = /home/%u
             <para>
                 These options can be used to configure the SSH service.
             </para>
-            <para>
-                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-            </para>
-
             <variablelist>
                 <varlistentry>
                     <term>ssh_hash_known_hosts (bool)</term>
@@ -821,10 +810,6 @@ override_homedir = /home/%u
 
         <refsect2 id='PAC_RESPONDER' condition="with_pac_responder">
             <title>PAC responder configuration options</title>
-            <para>
-                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
-                            href="include/experimental.xml" />
-            </para>
             <para>
                 The PAC responder works together with the authorization data
                 plugin for MIT Kerberos sssd_pac_plugin.so and a sub-domain
@@ -1319,9 +1304,6 @@ override_homedir = /home/%u
                     <term>sudo_provider (string)</term>
                     <listitem>
                         <para>
-                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-                        </para>
-                        <para>
                             The SUDO provider used for the domain.
                             Supported SUDO providers are:
                         </para>
@@ -1395,9 +1377,6 @@ override_homedir = /home/%u
                 <varlistentry condition="with_autofs">
                     <term>autofs_provider (string)</term>
                     <listitem>
-                        <para>
-                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
-                        </para>
                         <para>
                             The autofs provider used for the domain.
                             Supported autofs providers are:
