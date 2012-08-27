@@ -23,3 +23,12 @@ AC_DEFUN([AM_CHECK_SEMANAGE],
                      [AC_MSG_ERROR([libsemanage is missing])])
     AC_SUBST(SEMANAGE_LIBS)
 ])
+
+dnl Check if the SELinux login directory exists
+AC_DEFUN([AM_CHECK_SELINUX_LOGIN_DIR],
+[
+  AC_CHECK_FILE(/etc/selinux/targeted/logins/,
+                [AC_DEFINE([HAVE_SELINUX_LOGIN_DIR], [1],
+                           [The directory to store SELinux user login is available])],
+                [AC_MSG_WARN([SELinux login directory is not available])])
+])

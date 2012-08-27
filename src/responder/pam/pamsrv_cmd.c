@@ -33,7 +33,7 @@
 #include "responder/pam/pam_helpers.h"
 #include "db/sysdb.h"
 #include "db/sysdb_selinux.h"
-#ifdef HAVE_SELINUX
+#ifdef HAVE_SELINUX_LOGIN_DIR
 #include <selinux/selinux.h>
 #endif
 
@@ -356,7 +356,7 @@ fail:
     return ret;
 }
 
-#ifdef HAVE_SELINUX
+#ifdef HAVE_SELINUX_LOGIN_DIR
 
 #define ALL_SERVICES "*"
 #define selogin_path(mem_ctx, username) \
@@ -829,7 +829,7 @@ static void pam_reply(struct pam_auth_req *preq)
         return;
     }
 
-#ifdef HAVE_SELINUX
+#ifdef HAVE_SELINUX_LOGIN_DIR
     if (pd->cmd == SSS_PAM_ACCT_MGMT &&
         pd->pam_status == PAM_SUCCESS) {
         /* Try to fetch data from sysdb
