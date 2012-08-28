@@ -42,9 +42,7 @@ Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 ### Patches ###
-%if (0%{?fedora} >= 17)
 Patch0001:  sssd-1.9-man-change-default-ccache.patch
-%endif
 
 ### Dependencies ###
 
