@@ -58,7 +58,8 @@ if HAVE_GCC
     AM_CFLAGS += -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith \
                  -Wcast-qual -Wcast-align -Wwrite-strings \
                  -Werror-implicit-function-declaration \
-                 -fno-strict-aliasing
+                 -fno-strict-aliasing \
+                 -std=gnu99
 endif
 
 dist_pkgconfig_DATA =
