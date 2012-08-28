@@ -1183,76 +1183,76 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                           pi->pam_user, pam_status,
                           pam_strerror(pamh,pam_status));
                 }
-            }
-            break;
-        case SSS_PAM_OPEN_SESSION:
-            if (pi->selinux_user == NULL) {
-                pam_status = PAM_SUCCESS;
-                break;
-            }
+            } else {
+	        if (pi->selinux_user == NULL) {
+		    pam_status = PAM_SUCCESS;
+		    break;
+		}
 
 #ifdef HAVE_SELINUX
-            if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
-                         pi->pam_user) <  0 ||
-                asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+		if (asprintf(&path, "%s/logins/%s", selinux_policy_root(),
+			     pi->pam_user) <  0 ||
+		    asprintf(&tmp_path, "%sXXXXXX", path) < 0) {
+		    pam_status = PAM_SYSTEM_ERR;
+		    goto done;
+		}
 
-            oldmask = umask(022);
-            fd = mkstemp(tmp_path);
-            umask(oldmask);
-            if (fd < 0) {
-                logger(pamh, LOG_ERR, "creating the temp file for SELinux "
-                       "data failed. %s", tmp_path);
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+		oldmask = umask(022);
+		fd = mkstemp(tmp_path);
+		umask(oldmask);
+		if (fd < 0) {
+		    logger(pamh, LOG_ERR, "creating the temp file for SELinux "
+			   "data failed. %s", tmp_path);
+		    pam_status = PAM_SYSTEM_ERR;
+		    goto done;
+		}
 
-            /* First write filter for all services */
-            services = strdup(ALL_SERVICES);
-            if (services == NULL) {
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+		/* First write filter for all services */
+		services = strdup(ALL_SERVICES);
+		if (services == NULL) {
+		    pam_status = PAM_SYSTEM_ERR;
+		    goto done;
+		}
 
-            pos = 0;
-            len = ALL_SERVICES_LEN;
-            while (pos < len) {
-                errno = 0;
-                ret = write(fd, services + pos, len-pos);
-                if (ret < 0) {
-                    if (errno != EINTR) {
-                        logger(pamh, LOG_ERR, "writing to SELinux data file "
-                               "failed. %s", tmp_path);
-                        pam_status = PAM_SYSTEM_ERR;
-                        goto done;
-                    }
-                    continue;
-                }
-                pos += ret;
-            }
+		pos = 0;
+		len = ALL_SERVICES_LEN;
+		while (pos < len) {
+		    errno = 0;
+		    ret = write(fd, services + pos, len-pos);
+		    if (ret < 0) {
+		        if (errno != EINTR) {
+			    logger(pamh, LOG_ERR, "writing to SELinux data file "
+				   "failed. %s", tmp_path);
+			    pam_status = PAM_SYSTEM_ERR;
+			    goto done;
+			}
+			continue;
+		    }
+		    pos += ret;
+		}
 
-            pos = 0;
-            len = strlen(pi->selinux_user);
-            while (pos < len) {
-                ret = write(fd, pi->selinux_user + pos, len-pos);
-                if (ret < 0) {
-                    if (errno != EINTR) {
-                        logger(pamh, LOG_ERR, "writing to SELinux data file "
-                               "failed. %s", tmp_path);
-                        pam_status = PAM_SYSTEM_ERR;
-                        goto done;
-                    }
-                    continue;
-                }
-                pos += ret;
-            }
-            close(fd);
+		pos = 0;
+		len = strlen(pi->selinux_user);
+		while (pos < len) {
+		    ret = write(fd, pi->selinux_user + pos, len-pos);
+		    if (ret < 0) {
+		        if (errno != EINTR) {
+			  logger(pamh, LOG_ERR, "writing to SELinux data file "
+				 "failed. %s", tmp_path);
+			  pam_status = PAM_SYSTEM_ERR;
+			  goto done;
+			}
+			continue;
+		    }
+		    pos += ret;
+		}
+		close(fd);
 
-            rename(tmp_path, path);
+		rename(tmp_path, path);
 #endif /* HAVE_SELINUX */
+	    }
             break;
+        case SSS_PAM_OPEN_SESSION:
         case SSS_PAM_SETCRED:
         case SSS_PAM_CLOSE_SESSION:
             break;
