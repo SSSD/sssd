@@ -111,7 +111,7 @@ done:
     return ret;
 }
 
-errno_t
+static errno_t
 sss_ssh_get_pubkey_algorithm(TALLOC_CTX *mem_ctx,
                              struct sss_ssh_pubkey *pubkey,
                              char **result)
@@ -144,10 +144,7 @@ sss_ssh_get_pubkey_algorithm(TALLOC_CTX *mem_ctx,
 
 errno_t
 sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
-                      struct sss_ssh_ent *ent,
                       struct sss_ssh_pubkey *pubkey,
-                      enum sss_ssh_pubkey_format format,
-                      const char *comment,
                       char **result)
 {
     TALLOC_CTX *tmp_ctx;
@@ -155,10 +152,6 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
     char *blob;
     char *algo;
     char *out = NULL;
-
-    if (!comment) {
-        comment = ent->name;
-    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -171,26 +164,15 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    switch (format) {
-    case SSS_SSH_FORMAT_RAW:
-        /* base64-encoded key blob */
-        out = talloc_steal(mem_ctx, blob);
-        break;
+    ret = sss_ssh_get_pubkey_algorithm(tmp_ctx, pubkey, &algo);
+    if (ret != EOK) {
+        goto done;
+    }
 
-    case SSS_SSH_FORMAT_OPENSSH:
-        /* OpenSSH authorized_keys/known_hosts format */
-        ret = sss_ssh_get_pubkey_algorithm(tmp_ctx, pubkey, &algo);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        out = talloc_asprintf(mem_ctx, "%s %s %s", algo, blob, comment);
-        if (!out) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        break;
+    out = talloc_asprintf(mem_ctx, "%s %s", algo, blob);
+    if (!out) {
+        ret = ENOMEM;
+        goto done;
     }
 
     *result = out;

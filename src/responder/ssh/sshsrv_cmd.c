@@ -448,8 +448,7 @@ ssh_host_pubkeys_format_known_host_plain(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; i < ent->num_pubkeys; i++) {
-        ret = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[i],
-                                    SSS_SSH_FORMAT_OPENSSH, "", &pubkey);
+        ret = sss_ssh_format_pubkey(tmp_ctx, &ent->pubkeys[i], &pubkey);
         if (ret != EOK) {
             result = NULL;
             goto done;
@@ -492,8 +491,7 @@ ssh_host_pubkeys_format_known_host_hashed(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; i < ent->num_pubkeys; i++) {
-        ret = sss_ssh_format_pubkey(tmp_ctx, ent, &ent->pubkeys[i],
-                                    SSS_SSH_FORMAT_OPENSSH, "", &pubkey);
+        ret = sss_ssh_format_pubkey(tmp_ctx, &ent->pubkeys[i], &pubkey);
         if (ret != EOK) {
             result = NULL;
             goto done;

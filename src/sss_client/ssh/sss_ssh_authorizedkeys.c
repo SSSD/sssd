@@ -109,8 +109,7 @@ int main(int argc, const char **argv)
 
     /* print results */
     for (i = 0; i < ent->num_pubkeys; i++) {
-        ret = sss_ssh_format_pubkey(mem_ctx, ent, &ent->pubkeys[i],
-                                    SSS_SSH_FORMAT_OPENSSH, NULL, &repr);
+        ret = sss_ssh_format_pubkey(mem_ctx, &ent->pubkeys[i], &repr);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("sss_ssh_format_pubkey() failed (%d): %s\n",
