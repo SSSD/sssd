@@ -1307,6 +1307,20 @@ static void monitor_quit(struct tevent_context *ev,
     exit(0);
 }
 
+static void signal_res_init(struct mt_ctx *monitor)
+{
+    struct mt_svc *cur_svc;
+    int ret;
+    DEBUG(SSSDBG_OP_FAILURE, ("Reloading Resolv.conf.\n"));
+
+    ret = res_init();
+    if (ret == 0) {
+        for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
+            service_signal_dns_reload(cur_svc);
+        }
+    }
+}
+
 static void signal_offline(struct tevent_context *ev,
                            struct tevent_signal *se,
                            int signum,
@@ -1319,7 +1333,8 @@ static void signal_offline(struct tevent_context *ev,
 
     monitor = talloc_get_type(private_data, struct mt_ctx);
 
-    DEBUG(8, ("Signaling providers to go offline immediately.\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+         ("Signaling providers to go offline immediately.\n"));
 
     /* Signal all providers to immediately go offline */
     for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
@@ -1342,13 +1357,15 @@ static void signal_offline_reset(struct tevent_context *ev,
 
     monitor = talloc_get_type(private_data, struct mt_ctx);
 
-    DEBUG(8, ("Signaling providers to reset offline immediately.\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+         ("Signaling providers to reset offline immediately.\n"));
 
     for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
         if (cur_svc->provider) {
             service_signal_reset_offline(cur_svc);
         }
     }
+    signal_res_init(monitor);
 }
 
 static int monitor_ctx_destructor(void *mem)
