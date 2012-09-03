@@ -236,7 +236,9 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name (
         return dom;
 
     for (i = 0; i < dom->subdomain_count; i++) {
-        if (strcasecmp(dom->subdomains[i]->name, dmatch) == 0) {
+        if (strcasecmp(dom->subdomains[i]->name, dmatch) == 0 ||
+            (dom->subdomains[i]->flat_name != NULL &&
+             strcasecmp(dom->subdomains[i]->flat_name, dmatch) == 0)) {
             return dom->subdomains[i];
         }
     }
