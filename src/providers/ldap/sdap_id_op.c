@@ -842,12 +842,6 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
     if (current_conn) {
         DEBUG(9, ("releasing operation connection\n"));
         sdap_id_op_hook_conn_data(op, NULL);
-
-        if (current_conn->ops == NULL || current_conn->disconnecting) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Connection is marked for "
-                                      "disconnection, executing ...\n"));
-            sdap_id_release_conn_data(current_conn);
-        }
     }
 
     *dp_err_out = dp_err;
