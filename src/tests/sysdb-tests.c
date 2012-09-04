@@ -912,6 +912,9 @@ START_TEST (test_sysdb_getpwuid)
         goto done;
     }
 
+    fail_unless(res->count == 1, "Expected 1 user entry, found %d\n",
+                res->count);
+
     username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
 
     e_username = talloc_asprintf(test_ctx, "testuser%d", _i);
