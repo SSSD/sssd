@@ -656,7 +656,12 @@ static void auth_bind_user_done(struct tevent_req *subreq)
         state->pw_expire_data = ppolicy;
     }
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret == ETIMEDOUT) {
+        if (auth_get_server(req) == NULL) {
+            tevent_req_error(req, ENOMEM);
+        }
+        return;
+    } else if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
