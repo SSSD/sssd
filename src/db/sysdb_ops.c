@@ -1516,19 +1516,19 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
             ret = ENOMEM;
-            goto done;
+            goto fail;
         }
     }
 
     if (pwd && (sysdb->domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
-        goto done;
+        goto fail;
     }
 
     in_transaction = true;
@@ -1536,7 +1536,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
     ret = sysdb_search_user_by_name(tmp_ctx, sysdb,
                                     name, NULL, &msg);
     if (ret && ret != ENOENT) {
-        goto done;
+        goto fail;
     }
 
     /* get transaction timestamp */
@@ -1557,9 +1557,10 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                 /* Not found by UID, return the original EEXIST,
                  * this may be a conflict in MPG domain or something
                  * else */
-                return EEXIST;
+                ret = EEXIST;
+                goto fail;
             } else if (ret != EOK) {
-                goto done;
+                goto fail;
             }
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A user with the same UID [%llu] was removed from the "
@@ -1573,44 +1574,44 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
     /* the user exists, let's just replace attributes when set */
     if (uid) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, uid);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     if (gid) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     if (uid && !gid && sysdb->mpg) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, uid);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     if (gecos) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_GECOS, gecos);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     if (homedir) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, homedir);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     if (shell) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_SHELL, shell);
-        if (ret) goto done;
+        if (ret) goto fail;
     }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) goto done;
+    if (ret) goto fail;
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  ((cache_timeout) ?
                                   (now + cache_timeout) : 0));
-    if (ret) goto done;
+    if (ret) goto fail;
 
     ret = sysdb_set_user_attr(sysdb, name, attrs, SYSDB_MOD_REP);
-    if (ret != EOK) goto done;
+    if (ret != EOK) goto fail;
 
     if (remove_attrs) {
         ret = sysdb_remove_attrs(sysdb, name,
@@ -1621,15 +1622,16 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         }
     }
 
+done:
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
-        goto done;
+        goto fail;
     }
 
     in_transaction = false;
 
-done:
+fail:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
