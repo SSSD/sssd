@@ -10,15 +10,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-08-01 22:54+0200\n"
-"PO-Revision-Date: 2012-07-18 14:02+0000\n"
+"POT-Creation-Date: 2012-09-05 16:37+0200\n"
+"PO-Revision-Date: 2012-08-11 08:36+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: src/config/SSSDConfig/__init__.py.in:39
 msgid "Set the verbosity of the debug logging"
@@ -139,11 +139,8 @@ msgstr ""
 "valeur"
 
 #: src/config/SSSDConfig/__init__.py.in:68
-#, fuzzy
 msgid "Override shell value from the identity provider with this value"
-msgstr ""
-"Remplacer par cette valeur celle du répertoire personnel obtenu avec le "
-"fournisseur d'identité"
+msgstr "Écraser le shell donné par le fournisseur d'identité avec cette valeur"
 
 #: src/config/SSSDConfig/__init__.py.in:69
 msgid "The list of shells users are allowed to log in with"
@@ -327,7 +324,7 @@ msgstr "Adresse du serveur IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid "Address of backup IPA server"
-msgstr ""
+msgstr "Adresse du serveur IPA de secours"
 
 #: src/config/SSSDConfig/__init__.py.in:130
 msgid "IPA client hostname"
@@ -387,9 +384,8 @@ msgid "Active Directory server address"
 msgstr "Adresse du serveur Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:144
-#, fuzzy
 msgid "Active Directory backup server address"
-msgstr "Adresse du serveur Active Directory"
+msgstr "Adresse du serveur Active Directory de secours"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "Active Directory client hostname"
@@ -401,9 +397,8 @@ msgid "Kerberos server address"
 msgstr "Adresse du serveur Kerberos"
 
 #: src/config/SSSDConfig/__init__.py.in:150
-#, fuzzy
 msgid "Kerberos backup server address"
-msgstr "Adresse du serveur Kerberos"
+msgstr "Adresse du serveur Kerberos de secours"
 
 #: src/config/SSSDConfig/__init__.py.in:151
 msgid "Kerberos realm"
@@ -471,9 +466,8 @@ msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, l'adresse du serveur LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:173
-#, fuzzy
 msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr "ldap_uri, l'adresse du serveur LDAP"
+msgstr "ldap_backup_uri, l'URI du serveur LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "The default base DN"
@@ -923,9 +917,10 @@ msgid "URI of an LDAP server where password changes are allowed"
 msgstr "URI d'un serveur LDAP où les changements de mot de passe sont acceptés"
 
 #: src/config/SSSDConfig/__init__.py.in:305
-#, fuzzy
 msgid "URI of a backup LDAP server where password changes are allowed"
-msgstr "URI d'un serveur LDAP où les changements de mot de passe sont acceptés"
+msgstr ""
+"URI d'un serveur LDAP de secours où sont autorisées les modifications de mot "
+"de passe"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid "DNS service name for LDAP password change server"
@@ -1069,42 +1064,42 @@ msgstr "Rechercher le nom canonique du groupe dans le cache si possible"
 msgid "PAM stack to use"
 msgstr "Pile PAM à utiliser"
 
-#: src/monitor/monitor.c:2398
+#: src/monitor/monitor.c:2415
 msgid "Become a daemon (default)"
 msgstr "Devenir un démon (par défaut)"
 
-#: src/monitor/monitor.c:2400
+#: src/monitor/monitor.c:2417
 msgid "Run interactive (not a daemon)"
 msgstr "Fonctionner en interactif (non démon)"
 
-#: src/monitor/monitor.c:2402 src/tools/sss_debuglevel.c:77
+#: src/monitor/monitor.c:2419 src/tools/sss_debuglevel.c:77
 msgid "Specify a non-default config file"
 msgstr "Définir un fichier de configuration différent de celui par défaut"
 
-#: src/monitor/monitor.c:2404
+#: src/monitor/monitor.c:2421
 msgid "Print version number and exit"
 msgstr "Afficher le numéro de version et quitte"
 
-#: src/providers/krb5/krb5_child.c:1838 src/providers/ldap/ldap_child.c:399
-#: src/util/util.h:91
+#: src/providers/krb5/krb5_child.c:1853 src/providers/ldap/ldap_child.c:399
+#: src/util/util.h:92
 msgid "Debug level"
 msgstr "Niveau de débogage"
 
-#: src/providers/krb5/krb5_child.c:1840 src/providers/ldap/ldap_child.c:401
-#: src/util/util.h:95
+#: src/providers/krb5/krb5_child.c:1855 src/providers/ldap/ldap_child.c:401
+#: src/util/util.h:96
 msgid "Add debug timestamps"
 msgstr "Ajouter l'horodatage au débogage"
 
-#: src/providers/krb5/krb5_child.c:1842 src/providers/ldap/ldap_child.c:403
-#: src/util/util.h:97
+#: src/providers/krb5/krb5_child.c:1857 src/providers/ldap/ldap_child.c:403
+#: src/util/util.h:98
 msgid "Show timestamps with microseconds"
 msgstr "Afficher l'horodatage en microsecondes"
 
-#: src/providers/krb5/krb5_child.c:1844 src/providers/ldap/ldap_child.c:405
+#: src/providers/krb5/krb5_child.c:1859 src/providers/ldap/ldap_child.c:405
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
-#: src/providers/data_provider_be.c:2270
+#: src/providers/data_provider_be.c:2298
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -1204,7 +1199,7 @@ msgstr "Mot de passe expiré. Changez votre mot de passe maintenant."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:321 src/tools/sss_debuglevel.c:75
+#: src/tools/sss_cache.c:324 src/tools/sss_debuglevel.c:75
 msgid "The debug level to run with"
 msgstr "Le niveau de débogage utilisé avec"
 
@@ -1213,17 +1208,16 @@ msgstr "Le niveau de débogage utilisé avec"
 msgid "The SSSD domain to use"
 msgstr "Le domaine SSSD à utiliser"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:71
-#: src/tools/sss_groupadd.c:56 src/tools/sss_groupdel.c:52
-#: src/tools/sss_groupmod.c:63 src/tools/sss_groupshow.c:662
-#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:72
-#: src/tools/sss_cache.c:352
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
+#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
+#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
+#: src/tools/sss_cache.c:355
 msgid "Error setting the locale\n"
 msgstr "Erreur lors du paramétrage de la locale\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:115
 msgid "Not enough memory\n"
 msgstr "Mémoire insuffisante\n"
 
@@ -1287,96 +1281,96 @@ msgstr "Spécifie un répertoire squelette alternatif"
 msgid "The SELinux user for user's login"
 msgstr "L'utilisateur SELinux pour l'identifiant de l'utilisateur"
 
-#: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
-#: src/tools/sss_usermod.c:85
+#: src/tools/sss_useradd.c:86 src/tools/sss_groupmod.c:78
+#: src/tools/sss_usermod.c:87
 msgid "Specify group to add to\n"
 msgstr "Définir le groupe à ajouter à\n"
 
-#: src/tools/sss_useradd.c:108
+#: src/tools/sss_useradd.c:110
 msgid "Specify user to add\n"
 msgstr "Définir l'utilisateur à ajouter à\n"
 
-#: src/tools/sss_useradd.c:117 src/tools/sss_groupadd.c:82
-#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:109
+#: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
+#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:111
 #: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:193
-#: src/tools/sss_usermod.c:126
+#: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
 msgstr "Erreur à l'initialisation des outils - aucun domaine local\n"
 
-#: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
-#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:111
+#: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
+#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:113
 #: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:195
-#: src/tools/sss_usermod.c:128
+#: src/tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "Erreur à l'initialisation des outils\n"
 
-#: src/tools/sss_useradd.c:128 src/tools/sss_groupadd.c:93
-#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:119
+#: src/tools/sss_useradd.c:130 src/tools/sss_groupadd.c:95
+#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:121
 #: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:204
-#: src/tools/sss_usermod.c:137
+#: src/tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "Domaine invalide définit dans le FQDN\n"
 
-#: src/tools/sss_useradd.c:137 src/tools/sss_groupmod.c:139
-#: src/tools/sss_groupmod.c:166 src/tools/sss_usermod.c:160
-#: src/tools/sss_usermod.c:187
+#: src/tools/sss_useradd.c:139 src/tools/sss_groupmod.c:141
+#: src/tools/sss_groupmod.c:168 src/tools/sss_usermod.c:162
+#: src/tools/sss_usermod.c:189
 msgid "Internal error while parsing parameters\n"
 msgstr "Erreur interne lors de l'analyse des paramètres\n"
 
-#: src/tools/sss_useradd.c:145 src/tools/sss_usermod.c:168
-#: src/tools/sss_usermod.c:195
+#: src/tools/sss_useradd.c:147 src/tools/sss_usermod.c:170
+#: src/tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
 msgstr "Les groupes doivent être dans le même domaine que l'utilisateur\n"
 
-#: src/tools/sss_useradd.c:153
+#: src/tools/sss_useradd.c:155
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
 msgstr "Impossible de trouver le groupe %1$s dans le domaine local\n"
 
-#: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
+#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
 msgstr "Impossible de définir les valeurs par défaut\n"
 
-#: src/tools/sss_useradd.c:175 src/tools/sss_usermod.c:151
+#: src/tools/sss_useradd.c:177 src/tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
 msgstr "L'UID sélectionné est en dehors de la plage autorisée\n"
 
-#: src/tools/sss_useradd.c:202 src/tools/sss_usermod.c:236
+#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:243
 msgid "Cannot set SELinux login context\n"
 msgstr "Impossible de définir le contexte de connexion SELinux\n"
 
-#: src/tools/sss_useradd.c:217
+#: src/tools/sss_useradd.c:221
 msgid "Cannot get info about the user\n"
 msgstr "Impossible de trouver les informations sur l'utilisateur\n"
 
-#: src/tools/sss_useradd.c:229
+#: src/tools/sss_useradd.c:233
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
 "Le répertoire de l'utilisateur existe déjà, les données du répertoire "
 "squelette ne sont pas copiées\n"
 
-#: src/tools/sss_useradd.c:232
+#: src/tools/sss_useradd.c:236
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
 msgstr "Impossible de créer le répertoire de l'utilisateur : %1$s\n"
 
-#: src/tools/sss_useradd.c:243
+#: src/tools/sss_useradd.c:247
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
 msgstr ""
 "Impossible de créer le répertoire de réception des messages électroniques "
 "pour l'utilisateur : %1$s\n"
 
-#: src/tools/sss_useradd.c:255
+#: src/tools/sss_useradd.c:266
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr ""
 "L'identifiant de l'utilisateur ne peut pas être alloué - domaine plein ?\n"
 
-#: src/tools/sss_useradd.c:259
+#: src/tools/sss_useradd.c:270
 msgid "A user or group with the same name or ID already exists\n"
 msgstr "Un utilisateur ou groupe avec le même nom ou identifiant existe déjà\n"
 
-#: src/tools/sss_useradd.c:265
+#: src/tools/sss_useradd.c:276
 msgid "Transaction error. Could not add user.\n"
 msgstr "Erreur de transaction. Impossible d'ajouter l'utilisateur.\n"
 
@@ -1384,23 +1378,23 @@ msgstr "Erreur de transaction. Impossible d'ajouter l'utilisateur.\n"
 msgid "The GID of the group"
 msgstr "Le GID du groupe"
 
-#: src/tools/sss_groupadd.c:73
+#: src/tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
 msgstr "Définir le groupe à ajouter\n"
 
-#: src/tools/sss_groupadd.c:102 src/tools/sss_groupmod.c:190
+#: src/tools/sss_groupadd.c:104 src/tools/sss_groupmod.c:192
 msgid "The selected GID is outside the allowed range\n"
 msgstr "Le GID choisit est en dehors de la plage autorisée\n"
 
-#: src/tools/sss_groupadd.c:127
+#: src/tools/sss_groupadd.c:141
 msgid "Could not allocate ID for the group - domain full?\n"
 msgstr "Impossible d'allouer l'identifiant du groupe - domaine plein ?\n"
 
-#: src/tools/sss_groupadd.c:131
+#: src/tools/sss_groupadd.c:145
 msgid "A group with the same name or GID already exists\n"
 msgstr "Un groupe avec le même nom ou GID existe déjà\n"
 
-#: src/tools/sss_groupadd.c:136
+#: src/tools/sss_groupadd.c:150
 msgid "Transaction error. Could not add group.\n"
 msgstr "Erreur de transaction. Impossible d'ajouter le groupe.\n"
 
@@ -1435,15 +1429,15 @@ msgstr "Groupes auxquels ce groupe sera ajouté"
 msgid "Groups to remove this group from"
 msgstr "Groupes desquels ce groupe sera retiré"
 
-#: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
+#: src/tools/sss_groupmod.c:86 src/tools/sss_usermod.c:95
 msgid "Specify group to remove from\n"
 msgstr "Définir le groupe duquel supprimer\n"
 
-#: src/tools/sss_groupmod.c:98
+#: src/tools/sss_groupmod.c:100
 msgid "Specify group to modify\n"
 msgstr "Définir le groupe à modifier\n"
 
-#: src/tools/sss_groupmod.c:126
+#: src/tools/sss_groupmod.c:128
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
@@ -1451,14 +1445,14 @@ msgstr ""
 "Impossible de trouver le groupe dans le domaine local, la modification des "
 "groupes n'est autorisée que dans le domaine local\n"
 
-#: src/tools/sss_groupmod.c:147 src/tools/sss_groupmod.c:174
+#: src/tools/sss_groupmod.c:149 src/tools/sss_groupmod.c:176
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr ""
 "Les membres du groupe doivent être dans le même domaine que le groupe "
 "parent\n"
 
-#: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
-#: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
+#: src/tools/sss_groupmod.c:157 src/tools/sss_groupmod.c:184
+#: src/tools/sss_usermod.c:178 src/tools/sss_usermod.c:205
 #, c-format
 msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
@@ -1467,19 +1461,19 @@ msgstr ""
 "Impossible de trouver le groupe %1$s dans le domaine local, seuls les "
 "groupes du domaine local sont autorisés\n"
 
-#: src/tools/sss_groupmod.c:216
+#: src/tools/sss_groupmod.c:229
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 "Impossible de modifier le groupe - vérifier que les noms des groupes membres "
 "sont corrects\n"
 
-#: src/tools/sss_groupmod.c:220
+#: src/tools/sss_groupmod.c:233
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 "Impossible de modifier le groupe - vérifier que le nom du groupe est "
 "correct\n"
 
-#: src/tools/sss_groupmod.c:224
+#: src/tools/sss_groupmod.c:237
 msgid "Transaction error. Could not modify group.\n"
 msgstr "Erreur de transaction. Impossible de modifier le groupe.\n"
 
@@ -1634,11 +1628,11 @@ msgstr "Verrouiller le compte"
 msgid "Unlock the account"
 msgstr "Déverrouiller le compte"
 
-#: src/tools/sss_usermod.c:117
+#: src/tools/sss_usermod.c:119
 msgid "Specify user to modify\n"
 msgstr "Spécifier l'utilisateur à modifier\n"
 
-#: src/tools/sss_usermod.c:144
+#: src/tools/sss_usermod.c:146
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
@@ -1646,100 +1640,100 @@ msgstr ""
 "Impossible de trouver l'utilisateur dans le domaine local, la modification "
 "des utilisateurs n'est autorisée que dans le domaine local\n"
 
-#: src/tools/sss_usermod.c:246
+#: src/tools/sss_usermod.c:260
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 "Impossible de modifier l'utilisateur - vérifiez que les noms de groupe sont "
 "corrects\n"
 
-#: src/tools/sss_usermod.c:250
+#: src/tools/sss_usermod.c:264
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 "Impossible de modifier l'utilisateur - l'utilisateur est déjà membre du "
 "groupe ?\n"
 
-#: src/tools/sss_usermod.c:254
+#: src/tools/sss_usermod.c:268
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Erreur de transaction. Impossible de modifier l'utlisateur.\n"
 
-#: src/tools/sss_cache.c:138
+#: src/tools/sss_cache.c:141
 msgid "No cache object matched the specified search\n"
 msgstr "Aucun object trouvé dans le cache pour la recherche spécifiée\n"
 
-#: src/tools/sss_cache.c:172
+#: src/tools/sss_cache.c:175
 #, c-format
 msgid "No such %1$s named %2$s, skipping\n"
 msgstr "Aucun %1$s nommé %2$s, on passe\n"
 
-#: src/tools/sss_cache.c:175
+#: src/tools/sss_cache.c:178
 #, c-format
 msgid "No objects of type %1$s in the cache, skipping\n"
 msgstr "Aucun objet de type %1$s dans le cache, on passe\n"
 
-#: src/tools/sss_cache.c:187
+#: src/tools/sss_cache.c:190
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr "Impossible d'invalider %1$s"
 
-#: src/tools/sss_cache.c:194
+#: src/tools/sss_cache.c:197
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "Impossible d'invalider %1$s %2$s"
 
-#: src/tools/sss_cache.c:323
+#: src/tools/sss_cache.c:326
 msgid "Invalidate particular user"
 msgstr "Invalider un utilisateur spécifique"
 
-#: src/tools/sss_cache.c:325
+#: src/tools/sss_cache.c:328
 msgid "Invalidate all users"
 msgstr "Invalider tous les utilisateurs"
 
-#: src/tools/sss_cache.c:327
+#: src/tools/sss_cache.c:330
 msgid "Invalidate particular group"
 msgstr "Invalider un groupe particulier"
 
-#: src/tools/sss_cache.c:329
+#: src/tools/sss_cache.c:332
 msgid "Invalidate all groups"
 msgstr "Invalider tous les groupes"
 
-#: src/tools/sss_cache.c:331
+#: src/tools/sss_cache.c:334
 msgid "Invalidate particular netgroup"
 msgstr "Invalider un groupe réseau particulier"
 
-#: src/tools/sss_cache.c:333
+#: src/tools/sss_cache.c:336
 msgid "Invalidate all netgroups"
 msgstr "Invalider tous les groupes réseau"
 
-#: src/tools/sss_cache.c:335
+#: src/tools/sss_cache.c:338
 msgid "Invalidate particular service"
 msgstr "Invalidation d'un service particulier"
 
-#: src/tools/sss_cache.c:337
+#: src/tools/sss_cache.c:340
 msgid "Invalidate all services"
 msgstr "Invalidation de tous les services"
 
-#: src/tools/sss_cache.c:340
+#: src/tools/sss_cache.c:343
 msgid "Invalidate particular autofs map"
 msgstr "Invalidation d'une carte autofs particulière"
 
-#: src/tools/sss_cache.c:342
+#: src/tools/sss_cache.c:345
 msgid "Invalidate all autofs maps"
 msgstr "Invalidation de toutes les cartes autofs"
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:348
 msgid "Only invalidate entries from a particular domain"
 msgstr "N'invalider des entrées que d'un domaine spécifique"
 
-#: src/tools/sss_cache.c:384
+#: src/tools/sss_cache.c:387
 msgid "Please select at least one object to invalidate\n"
 msgstr "Merci de sélectionner au moins un objet à invalider\n"
 
-#: src/tools/sss_cache.c:455
+#: src/tools/sss_cache.c:458
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr "Impossible d'ouvrir le domaine %1$s\n"
 
-#: src/tools/sss_cache.c:457
+#: src/tools/sss_cache.c:460
 msgid "Could not open available domains\n"
 msgstr "Impossible d'ouvrir aucun des domaines disponibles\n"
 
@@ -1760,7 +1754,7 @@ msgstr "Mémoire saturée\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s doit être lancé en tant que root\n"
 
-#: src/util/util.h:93
+#: src/util/util.h:94
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "

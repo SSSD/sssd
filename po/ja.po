@@ -8,15 +8,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-08-01 22:54+0200\n"
-"PO-Revision-Date: 2012-07-12 22:09+0000\n"
+"POT-Creation-Date: 2012-09-05 16:37+0200\n"
+"PO-Revision-Date: 2012-08-04 00:26+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: src/config/SSSDConfig/__init__.py.in:39
 msgid "Set the verbosity of the debug logging"
@@ -41,7 +41,7 @@ msgstr "サービス再起動前の Ping タイムアウト"
 #: src/config/SSSDConfig/__init__.py.in:44
 msgid ""
 "Timeout between three failed ping checks and forcibly killing the service"
-msgstr ""
+msgstr "3 回 の ping チェック失敗とサービスの強制停止のタイムアウト間隔"
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Command to start service"
@@ -57,7 +57,7 @@ msgstr "このレスポンダーににより開かれるファイル記述子の
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "クライアントの自動切断までのアイドル時間"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
@@ -124,11 +124,12 @@ msgstr "識別プロバイダーからのホームディレクトリーの値を
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
+"アイデンティティプロバイダーからの空のホームディレクトリーをこの値で置き換え"
+"ます"
 
 #: src/config/SSSDConfig/__init__.py.in:68
-#, fuzzy
 msgid "Override shell value from the identity provider with this value"
-msgstr "識別プロバイダーからのホームディレクトリーの値をこの値で上書きする"
+msgstr "アイデンティティプロバイダーからのシェル値をこの値で上書きします"
 
 #: src/config/SSSDConfig/__init__.py.in:69
 msgid "The list of shells users are allowed to log in with"
@@ -149,11 +150,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "Shell to use if the provider does not list one"
-msgstr ""
+msgstr "プロバイダーが一覧に持っていないとき使用するシェル"
 
 #: src/config/SSSDConfig/__init__.py.in:73
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "メモリー内のキャッシュレコードが有効な期間"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "How long to allow cached logins between online logins (days)"
@@ -187,11 +188,11 @@ msgstr "sudo ルールにおいて時間による属性を評価するかどう�
 
 #: src/config/SSSDConfig/__init__.py.in:90
 msgid "Whether to hash host names and addresses in the known_hosts file"
-msgstr ""
+msgstr "known_hosts ファイルにおいてホスト名とアドレスをハッシュ化するかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:93
 msgid "List of UIDs or user names allowed to access the PAC responder"
-msgstr ""
+msgstr "PAC レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "Identity provider"
@@ -294,7 +295,7 @@ msgstr "IPA サーバーのアドレス"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid "Address of backup IPA server"
-msgstr ""
+msgstr "バックアップ IPA サーバーのアドレス"
 
 #: src/config/SSSDConfig/__init__.py.in:130
 msgid "IPA client hostname"
@@ -331,28 +332,27 @@ msgstr "この IPA クライアントが使用している automounter の場所
 
 #: src/config/SSSDConfig/__init__.py.in:138
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
+msgstr "IPA ドメインに関する情報を含むオブジェクトに対する検索ベース"
 
 #: src/config/SSSDConfig/__init__.py.in:139
 msgid "Search base for objects containing info about ID ranges"
-msgstr ""
+msgstr "ID 範囲に関する情報を含むオブジェクトに対する検索ベース"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Active Directory ドメイン"
 
 #: src/config/SSSDConfig/__init__.py.in:143
 msgid "Active Directory server address"
-msgstr ""
+msgstr "Active Directory サーバーアドレス"
 
 #: src/config/SSSDConfig/__init__.py.in:144
-#, fuzzy
 msgid "Active Directory backup server address"
-msgstr "Kerberos サーバーのアドレス"
+msgstr "Active Directory バックアップサーバーのアドレス"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "Active Directory client hostname"
-msgstr ""
+msgstr "Active Directory クライアントホスト名"
 
 #: src/config/SSSDConfig/__init__.py.in:148
 #: src/config/SSSDConfig/__init__.py.in:149
@@ -360,9 +360,8 @@ msgid "Kerberos server address"
 msgstr "Kerberos サーバーのアドレス"
 
 #: src/config/SSSDConfig/__init__.py.in:150
-#, fuzzy
 msgid "Kerberos backup server address"
-msgstr "Kerberos サーバーのアドレス"
+msgstr "Kerberos バックアップサーバーのアドレス"
 
 #: src/config/SSSDConfig/__init__.py.in:151
 msgid "Kerberos realm"
@@ -426,9 +425,8 @@ msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, LDAP サーバーの URI"
 
 #: src/config/SSSDConfig/__init__.py.in:173
-#, fuzzy
 msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr "ldap_uri, LDAP サーバーの URI"
+msgstr "ldap_backup_uri, LDAP サーバーの URI"
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "The default base DN"
@@ -584,7 +582,7 @@ msgstr "ID 検索に TLS を要求する"
 
 #: src/config/SSSDConfig/__init__.py.in:216
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr ""
+msgstr "事前設定済み ID の代わりに objectSID の ID マッピングを使用します"
 
 #: src/config/SSSDConfig/__init__.py.in:217
 msgid "Base DN for user lookups"
@@ -825,27 +823,27 @@ msgstr "ID マッピングの上限"
 
 #: src/config/SSSDConfig/__init__.py.in:287
 msgid "Number of IDs for each slice when ID-mapping"
-msgstr ""
+msgstr "ID マッピングするとき、各スライスに対する ID の数"
 
 #: src/config/SSSDConfig/__init__.py.in:288
 msgid "Use autorid-compatible algorithm for ID-mapping"
-msgstr ""
+msgstr "ID マッピングに対する autorid 互換アルゴリズムを使用します"
 
 #: src/config/SSSDConfig/__init__.py.in:289
 msgid "Name of the default domain for ID-mapping"
-msgstr ""
+msgstr "ID マッピングに対するデフォルトドメインの名前"
 
 #: src/config/SSSDConfig/__init__.py.in:290
 msgid "SID of the default domain for ID-mapping"
-msgstr ""
+msgstr "ID マッピングに対するデフォルトドメインの SID"
 
 #: src/config/SSSDConfig/__init__.py.in:292
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr ""
+msgstr "グループ検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用します"
 
 #: src/config/SSSDConfig/__init__.py.in:293
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr ""
+msgstr "初期グループの検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用します"
 
 #: src/config/SSSDConfig/__init__.py.in:296
 msgid "Policy to evaluate the password expiration"
@@ -868,9 +866,8 @@ msgid "URI of an LDAP server where password changes are allowed"
 msgstr "パスワードの変更が許可される LDAP サーバーの URI"
 
 #: src/config/SSSDConfig/__init__.py.in:305
-#, fuzzy
 msgid "URI of a backup LDAP server where password changes are allowed"
-msgstr "パスワードの変更が許可される LDAP サーバーの URI"
+msgstr "パスワードの変更が許可されるバックアップ LDAP サーバーの URI"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid "DNS service name for LDAP password change server"
@@ -882,34 +879,40 @@ msgstr "sudo ルール検索のベース DN"
 
 #: src/config/SSSDConfig/__init__.py.in:310
 msgid "Automatic full refresh period"
-msgstr ""
+msgstr "自動的な完全更新間隔"
 
 #: src/config/SSSDConfig/__init__.py.in:311
 msgid "Automatic smart refresh period"
-msgstr ""
+msgstr "自動的なスマート更新間隔"
 
 #: src/config/SSSDConfig/__init__.py.in:312
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
+"ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するかどう"
+"か"
 
 #: src/config/SSSDConfig/__init__.py.in:313
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
+"sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイン"
+"名"
 
 #: src/config/SSSDConfig/__init__.py.in:314
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
+"sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネット"
+"ワーク"
 
 #: src/config/SSSDConfig/__init__.py.in:315
 msgid "Whether to include rules that contains netgroup in host attribute"
-msgstr ""
+msgstr "ホスト属性にネットワークグループを含むルールを含めるかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:316
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
-msgstr ""
+msgstr "ホスト属性に正規表現を含むルールを含めるかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:317
 msgid "Object class for sudo rules"
@@ -1007,42 +1010,42 @@ msgstr "可能ならばキャッシュから正規化されたグループ名を
 msgid "PAM stack to use"
 msgstr "使用する PAM スタック"
 
-#: src/monitor/monitor.c:2398
+#: src/monitor/monitor.c:2415
 msgid "Become a daemon (default)"
 msgstr "デーモンとして実行（デフォルト）"
 
-#: src/monitor/monitor.c:2400
+#: src/monitor/monitor.c:2417
 msgid "Run interactive (not a daemon)"
 msgstr "対話的に実行（デーモンではない）"
 
-#: src/monitor/monitor.c:2402 src/tools/sss_debuglevel.c:77
+#: src/monitor/monitor.c:2419 src/tools/sss_debuglevel.c:77
 msgid "Specify a non-default config file"
 msgstr "非標準の設定ファイルの指定"
 
-#: src/monitor/monitor.c:2404
+#: src/monitor/monitor.c:2421
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
-#: src/providers/krb5/krb5_child.c:1838 src/providers/ldap/ldap_child.c:399
-#: src/util/util.h:91
+#: src/providers/krb5/krb5_child.c:1853 src/providers/ldap/ldap_child.c:399
+#: src/util/util.h:92
 msgid "Debug level"
 msgstr "デバッグレベル"
 
-#: src/providers/krb5/krb5_child.c:1840 src/providers/ldap/ldap_child.c:401
-#: src/util/util.h:95
+#: src/providers/krb5/krb5_child.c:1855 src/providers/ldap/ldap_child.c:401
+#: src/util/util.h:96
 msgid "Add debug timestamps"
 msgstr "デバッグのタイムスタンプを追加する"
 
-#: src/providers/krb5/krb5_child.c:1842 src/providers/ldap/ldap_child.c:403
-#: src/util/util.h:97
+#: src/providers/krb5/krb5_child.c:1857 src/providers/ldap/ldap_child.c:403
+#: src/util/util.h:98
 msgid "Show timestamps with microseconds"
 msgstr "タイムスタンプをミリ秒単位で表示する"
 
-#: src/providers/krb5/krb5_child.c:1844 src/providers/ldap/ldap_child.c:405
+#: src/providers/krb5/krb5_child.c:1859 src/providers/ldap/ldap_child.c:405
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
-#: src/providers/data_provider_be.c:2270
+#: src/providers/data_provider_be.c:2298
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
@@ -1089,7 +1092,7 @@ msgstr "、キャッシュされたパスワードが失効します: "
 #: src/sss_client/pam_sss.c:635
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
-msgstr ""
+msgstr "パスワードの期限が切れています。あと %1$d 回ログインできます。"
 
 #: src/sss_client/pam_sss.c:681
 #, c-format
@@ -1137,7 +1140,7 @@ msgstr "パスワードの期限が切れました。いますぐパスワード
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:321 src/tools/sss_debuglevel.c:75
+#: src/tools/sss_cache.c:324 src/tools/sss_debuglevel.c:75
 msgid "The debug level to run with"
 msgstr "実行するデバッグレベル"
 
@@ -1146,17 +1149,16 @@ msgstr "実行するデバッグレベル"
 msgid "The SSSD domain to use"
 msgstr "使用する SSSD ドメイン"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:71
-#: src/tools/sss_groupadd.c:56 src/tools/sss_groupdel.c:52
-#: src/tools/sss_groupmod.c:63 src/tools/sss_groupshow.c:662
-#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:72
-#: src/tools/sss_cache.c:352
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
+#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
+#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
+#: src/tools/sss_cache.c:355
 msgid "Error setting the locale\n"
 msgstr "ロケールの設定中にエラーが発生しました\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:115
 msgid "Not enough memory\n"
 msgstr "十分なメモリーがありません\n"
 
@@ -1220,94 +1222,94 @@ msgstr "代替のスケルトンディレクトリーを指定する"
 msgid "The SELinux user for user's login"
 msgstr "ユーザーのログインに対する SELinux ユーザー"
 
-#: src/tools/sss_useradd.c:84 src/tools/sss_groupmod.c:76
-#: src/tools/sss_usermod.c:85
+#: src/tools/sss_useradd.c:86 src/tools/sss_groupmod.c:78
+#: src/tools/sss_usermod.c:87
 msgid "Specify group to add to\n"
 msgstr "追加するグループを指定してください\n"
 
-#: src/tools/sss_useradd.c:108
+#: src/tools/sss_useradd.c:110
 msgid "Specify user to add\n"
 msgstr "追加するユーザーを指定してください\n"
 
-#: src/tools/sss_useradd.c:117 src/tools/sss_groupadd.c:82
-#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:109
+#: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
+#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:111
 #: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:193
-#: src/tools/sss_usermod.c:126
+#: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
 msgstr ""
 "ツールを初期化中にエラーが発生しました - ローカルドメインがありません\n"
 
-#: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
-#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:111
+#: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
+#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:113
 #: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:195
-#: src/tools/sss_usermod.c:128
+#: src/tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "ツールを初期化中にエラーが発生しました\n"
 
-#: src/tools/sss_useradd.c:128 src/tools/sss_groupadd.c:93
-#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:119
+#: src/tools/sss_useradd.c:130 src/tools/sss_groupadd.c:95
+#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:121
 #: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:204
-#: src/tools/sss_usermod.c:137
+#: src/tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "FQDN で指定されたドメインが無効です\n"
 
-#: src/tools/sss_useradd.c:137 src/tools/sss_groupmod.c:139
-#: src/tools/sss_groupmod.c:166 src/tools/sss_usermod.c:160
-#: src/tools/sss_usermod.c:187
+#: src/tools/sss_useradd.c:139 src/tools/sss_groupmod.c:141
+#: src/tools/sss_groupmod.c:168 src/tools/sss_usermod.c:162
+#: src/tools/sss_usermod.c:189
 msgid "Internal error while parsing parameters\n"
 msgstr "パラメーターを解析中に内部エラーが発生しました\n"
 
-#: src/tools/sss_useradd.c:145 src/tools/sss_usermod.c:168
-#: src/tools/sss_usermod.c:195
+#: src/tools/sss_useradd.c:147 src/tools/sss_usermod.c:170
+#: src/tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
 msgstr "グループがユーザーと同じドメインになければいけません\n"
 
-#: src/tools/sss_useradd.c:153
+#: src/tools/sss_useradd.c:155
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
 msgstr "ローカルドメインにグループ %1$s を見つけられません\n"
 
-#: src/tools/sss_useradd.c:168 src/tools/sss_userdel.c:214
+#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
 msgstr "デフォルト値を設定できません\n"
 
-#: src/tools/sss_useradd.c:175 src/tools/sss_usermod.c:151
+#: src/tools/sss_useradd.c:177 src/tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
 msgstr "選択された UID は許容される範囲を越えています\n"
 
-#: src/tools/sss_useradd.c:202 src/tools/sss_usermod.c:236
+#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:243
 msgid "Cannot set SELinux login context\n"
 msgstr "SELinux ログインコンテキストを設定できません\n"
 
-#: src/tools/sss_useradd.c:217
+#: src/tools/sss_useradd.c:221
 msgid "Cannot get info about the user\n"
 msgstr "ユーザーに関する情報を取得できません\n"
 
-#: src/tools/sss_useradd.c:229
+#: src/tools/sss_useradd.c:233
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
 "ユーザーのホームディレクトリーがすでに存在します、スケルトンディレクトリーか"
 "らデータをコピーしません\n"
 
-#: src/tools/sss_useradd.c:232
+#: src/tools/sss_useradd.c:236
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
 msgstr "ユーザーのホームディレクトリーを作成できません: %1$s\n"
 
-#: src/tools/sss_useradd.c:243
+#: src/tools/sss_useradd.c:247
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
 msgstr "ユーザーのメールスプールを作成できません: %1$s\n"
 
-#: src/tools/sss_useradd.c:255
+#: src/tools/sss_useradd.c:266
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr "ユーザーに ID を割り当てられませんでした - ドメインがいっぱいですか?\n"
 
-#: src/tools/sss_useradd.c:259
+#: src/tools/sss_useradd.c:270
 msgid "A user or group with the same name or ID already exists\n"
 msgstr "同じ名前または ID を持つユーザーまたはグループがすでに存在します\n"
 
-#: src/tools/sss_useradd.c:265
+#: src/tools/sss_useradd.c:276
 msgid "Transaction error. Could not add user.\n"
 msgstr "トランザクションエラー。ユーザーを追加できませんでした。\n"
 
@@ -1315,23 +1317,23 @@ msgstr "トランザクションエラー。ユーザーを追加できません
 msgid "The GID of the group"
 msgstr "グループの GID"
 
-#: src/tools/sss_groupadd.c:73
+#: src/tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
 msgstr "追加するグループを指定してください\n"
 
-#: src/tools/sss_groupadd.c:102 src/tools/sss_groupmod.c:190
+#: src/tools/sss_groupadd.c:104 src/tools/sss_groupmod.c:192
 msgid "The selected GID is outside the allowed range\n"
 msgstr "選択された GID は許容される範囲を越えています\n"
 
-#: src/tools/sss_groupadd.c:127
+#: src/tools/sss_groupadd.c:141
 msgid "Could not allocate ID for the group - domain full?\n"
 msgstr "グループに ID を割り当てられませんでした - ドメインがいっぱいですか?\n"
 
-#: src/tools/sss_groupadd.c:131
+#: src/tools/sss_groupadd.c:145
 msgid "A group with the same name or GID already exists\n"
 msgstr "同じ名前または GID を持つグループがすでに存在します\n"
 
-#: src/tools/sss_groupadd.c:136
+#: src/tools/sss_groupadd.c:150
 msgid "Transaction error. Could not add group.\n"
 msgstr "トランザクションエラー。グループを追加できませんでした。\n"
 
@@ -1342,7 +1344,7 @@ msgstr "削除するグループを指定してください\n"
 #: src/tools/sss_groupdel.c:101
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "グループ %1$s はドメインに対して定義された ID の範囲を越えています\n"
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1364,15 +1366,15 @@ msgstr "このグループに追加するグループ"
 msgid "Groups to remove this group from"
 msgstr "このグループから削除するグループ"
 
-#: src/tools/sss_groupmod.c:84 src/tools/sss_usermod.c:93
+#: src/tools/sss_groupmod.c:86 src/tools/sss_usermod.c:95
 msgid "Specify group to remove from\n"
 msgstr "削除するグループを指定してください\n"
 
-#: src/tools/sss_groupmod.c:98
+#: src/tools/sss_groupmod.c:100
 msgid "Specify group to modify\n"
 msgstr "変更するグループを指定してください\n"
 
-#: src/tools/sss_groupmod.c:126
+#: src/tools/sss_groupmod.c:128
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
@@ -1380,30 +1382,32 @@ msgstr ""
 "ローカルドメインにグループが見つかりませんでした。グループの変更はローカルド"
 "メインにおいてのみ許可されます\n"
 
-#: src/tools/sss_groupmod.c:147 src/tools/sss_groupmod.c:174
+#: src/tools/sss_groupmod.c:149 src/tools/sss_groupmod.c:176
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr "メンバーグループが親グループと同じドメインにある必要があります\n"
 
-#: src/tools/sss_groupmod.c:155 src/tools/sss_groupmod.c:182
-#: src/tools/sss_usermod.c:176 src/tools/sss_usermod.c:203
+#: src/tools/sss_groupmod.c:157 src/tools/sss_groupmod.c:184
+#: src/tools/sss_usermod.c:178 src/tools/sss_usermod.c:205
 #, c-format
 msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"ローカルドメインにグループ %1$s が見つかりません。ローカルドメインにあるグ"
+"ループのみが許可されます\n"
 
-#: src/tools/sss_groupmod.c:216
+#: src/tools/sss_groupmod.c:229
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 "グループを変更できませんでした - メンバーグループ名が正しいかを確認してくださ"
 "い\n"
 
-#: src/tools/sss_groupmod.c:220
+#: src/tools/sss_groupmod.c:233
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 "グループを変更できませんでした - グループ名が正しいかを確認してください\n"
 
-#: src/tools/sss_groupmod.c:224
+#: src/tools/sss_groupmod.c:237
 msgid "Transaction error. Could not modify group.\n"
 msgstr "トランザクションエラー。グループを変更できませんでした。\n"
 
@@ -1424,7 +1428,7 @@ msgstr "%1$s GID 番号: %2$d\n"
 #: src/tools/sss_groupshow.c:603
 #, c-format
 msgid "%1$sMember users: "
-msgstr ""
+msgstr "%1$s メンバーユーザー: "
 
 #: src/tools/sss_groupshow.c:610
 #, c-format
@@ -1487,7 +1491,7 @@ msgstr "削除するユーザーを指定する\n"
 #: src/tools/sss_userdel.c:230
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "ユーザー %1$s はドメインに対して定義された ID の範囲を超えています\n"
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
@@ -1497,6 +1501,7 @@ msgstr "SELinux ログインコンテキストをリセットできません\n"
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
+"警告: ユーザー (uid %1$lu) が削除されたときにまだログインしていました。\n"
 
 #: src/tools/sss_userdel.c:272
 msgid "Cannot determine if the user was logged in on this platform"
@@ -1510,7 +1515,7 @@ msgstr "ユーザーがログインしていたかを確認中にエラーが発
 #: src/tools/sss_userdel.c:284
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
-msgstr ""
+msgstr "削除後コマンドの実行に失敗しました: %1$s\n"
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
@@ -1520,7 +1525,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
-msgstr ""
+msgstr "ホームディレクトリーを削除できません: %1$s\n"
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1553,11 +1558,11 @@ msgstr "アカウントをロックする"
 msgid "Unlock the account"
 msgstr "アカウントをロック解除する"
 
-#: src/tools/sss_usermod.c:117
+#: src/tools/sss_usermod.c:119
 msgid "Specify user to modify\n"
 msgstr "変更するユーザーを指定してください\n"
 
-#: src/tools/sss_usermod.c:144
+#: src/tools/sss_usermod.c:146
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
@@ -1565,98 +1570,98 @@ msgstr ""
 "ローカルドメインにユーザーを見つけられません。ユーザーの変更はローカルドメイ"
 "ンにおいてのみ許可されます。\n"
 
-#: src/tools/sss_usermod.c:246
+#: src/tools/sss_usermod.c:260
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 "ユーザーを変更できませんでした - グループ名が正しいかを確認してください\n"
 
-#: src/tools/sss_usermod.c:250
+#: src/tools/sss_usermod.c:264
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 "ユーザーを変更できませんでした - ユーザーはすでにグループのメンバーですか?\n"
 
-#: src/tools/sss_usermod.c:254
+#: src/tools/sss_usermod.c:268
 msgid "Transaction error. Could not modify user.\n"
 msgstr "トランザクションエラー。ユーザーを変更できませんでした。\n"
 
-#: src/tools/sss_cache.c:138
+#: src/tools/sss_cache.c:141
 msgid "No cache object matched the specified search\n"
 msgstr "指定された検索に一致するキャッシュオブジェクトがありません\n"
 
-#: src/tools/sss_cache.c:172
-#, c-format
-msgid "No such %1$s named %2$s, skipping\n"
-msgstr ""
-
 #: src/tools/sss_cache.c:175
 #, c-format
-msgid "No objects of type %1$s in the cache, skipping\n"
-msgstr ""
+msgid "No such %1$s named %2$s, skipping\n"
+msgstr "%2$s という名前の %1$s はありません、スキップします\n"
 
-#: src/tools/sss_cache.c:187
+#: src/tools/sss_cache.c:178
+#, c-format
+msgid "No objects of type %1$s in the cache, skipping\n"
+msgstr "キャッシュに形式 %1$s のオブジェクトがありません、スキップします\n"
+
+#: src/tools/sss_cache.c:190
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr "%1$s を無効化できませんでした"
 
-#: src/tools/sss_cache.c:194
+#: src/tools/sss_cache.c:197
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "%1$s %2$s を無効化できませんでした"
 
-#: src/tools/sss_cache.c:323
+#: src/tools/sss_cache.c:326
 msgid "Invalidate particular user"
 msgstr "特定のユーザーを無効にする"
 
-#: src/tools/sss_cache.c:325
+#: src/tools/sss_cache.c:328
 msgid "Invalidate all users"
 msgstr "すべてのユーザーを無効にする"
 
-#: src/tools/sss_cache.c:327
+#: src/tools/sss_cache.c:330
 msgid "Invalidate particular group"
 msgstr "特定のグループを無効にする"
 
-#: src/tools/sss_cache.c:329
+#: src/tools/sss_cache.c:332
 msgid "Invalidate all groups"
 msgstr "すべてのグループを無効にする"
 
-#: src/tools/sss_cache.c:331
+#: src/tools/sss_cache.c:334
 msgid "Invalidate particular netgroup"
 msgstr "特定のネットワークグループを無効にする"
 
-#: src/tools/sss_cache.c:333
+#: src/tools/sss_cache.c:336
 msgid "Invalidate all netgroups"
 msgstr "すべてのネットワークグループを無効にする"
 
-#: src/tools/sss_cache.c:335
+#: src/tools/sss_cache.c:338
 msgid "Invalidate particular service"
 msgstr "特定のサービスの無効化"
 
-#: src/tools/sss_cache.c:337
+#: src/tools/sss_cache.c:340
 msgid "Invalidate all services"
 msgstr "すべてのサービスの無効化"
 
-#: src/tools/sss_cache.c:340
+#: src/tools/sss_cache.c:343
 msgid "Invalidate particular autofs map"
 msgstr "特定の autofs マップの無効化"
 
-#: src/tools/sss_cache.c:342
+#: src/tools/sss_cache.c:345
 msgid "Invalidate all autofs maps"
 msgstr "すべての autofs マップの無効化"
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:348
 msgid "Only invalidate entries from a particular domain"
 msgstr "特定のドメインのみからエントリーを無効にする"
 
-#: src/tools/sss_cache.c:384
+#: src/tools/sss_cache.c:387
 msgid "Please select at least one object to invalidate\n"
-msgstr ""
+msgstr "無効化するオブジェクトを少なくとも一つ選択してください\n"
 
-#: src/tools/sss_cache.c:455
+#: src/tools/sss_cache.c:458
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr "ドメイン %1$s を開けませんでした\n"
 
-#: src/tools/sss_cache.c:457
+#: src/tools/sss_cache.c:460
 msgid "Could not open available domains\n"
 msgstr "利用可能なドメインを開けませんでした\n"
 
@@ -1677,6 +1682,6 @@ msgstr "メモリー不足\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s は root として実行する必要があります\n"
 
-#: src/util/util.h:93
+#: src/util/util.h:94
 msgid "Send the debug output to files instead of stderr"
 msgstr "デバッグ出力を標準エラーの代わりにファイルに送信する"
