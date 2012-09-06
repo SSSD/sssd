@@ -204,6 +204,7 @@ used by Python applications.
 Summary: A library to allow communication between SUDO and SSSD
 Group: Development/Libraries
 License: LGPLv3+
+Requires: sssd = %{version}-%{release}
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
