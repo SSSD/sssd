@@ -112,6 +112,7 @@ BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
 BuildRequires: glib2-devel
+BuildRequires: selinux-policy-targeted
 
 %if (0%{?enable_experimental} == 1)
 # RHEL 5 is too old to support samba4 and the PAC responder
