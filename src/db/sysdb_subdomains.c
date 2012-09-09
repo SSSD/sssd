@@ -59,7 +59,7 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    list = talloc_zero_array(tmp_ctx, struct sysdb_subdom *, res->count);
+    list = talloc_zero_array(tmp_ctx, struct sysdb_subdom *, res->count + 1);
     if (list == NULL) {
         ret = ENOMEM;
         goto done;
@@ -116,6 +116,8 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
             }
         }
     }
+
+    list[res->count] = NULL;
 
     *subdomain_count = res->count;
     *subdomain_list = talloc_steal(mem_ctx, list);

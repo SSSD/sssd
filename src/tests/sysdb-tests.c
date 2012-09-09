@@ -3414,7 +3414,7 @@ START_TEST(test_sysdb_subdomain_create)
     fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
     fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
-    fail_unless(cur_subdomains[0] == NULL, "No empyt sub-domain list returned.");
+    fail_unless(cur_subdomains[0] == NULL, "No empty sub-domain list returned.");
 
     ret = sysdb_update_subdomains(test_ctx->sysdb, num_subdom1, new_subdom1);
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
@@ -3453,7 +3453,7 @@ START_TEST(test_sysdb_subdomain_create)
     fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
     fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
-    fail_unless(cur_subdomains[0] == NULL, "No empyt sub-domain list returned.");
+    fail_unless(cur_subdomains[0] == NULL, "No empty sub-domain list returned.");
 }
 END_TEST
 
