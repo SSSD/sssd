@@ -165,7 +165,6 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
     ret = sysdb_set_user_attr(sysdb, name, attrs, mod_op);
     if (ret != EOK) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        sysdb_transaction_cancel(sysdb);
         goto done;
     }
 
