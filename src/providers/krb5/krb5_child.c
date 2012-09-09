@@ -923,6 +923,36 @@ done:
 
 }
 
+static int kerr_to_status(krb5_error_code kerr)
+{
+    int pam_status = PAM_SYSTEM_ERR;
+
+    if (kerr == 0) {
+        return PAM_SUCCESS;
+    }
+
+    KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+    switch (kerr) {
+        case KRB5_KDC_UNREACH:
+                pam_status = PAM_AUTHINFO_UNAVAIL;
+                break;
+        case KRB5KDC_ERR_KEY_EXP:
+                pam_status = PAM_NEW_AUTHTOK_REQD;
+                break;
+        case KRB5KRB_AP_ERR_BAD_INTEGRITY:
+                pam_status = PAM_AUTH_ERR;
+                break;
+        case KRB5KDC_ERR_PREAUTH_FAILED:
+                pam_status = PAM_CRED_ERR;
+                break;
+        default:
+                pam_status = PAM_SYSTEM_ERR;
+                break;
+    }
+
+    return pam_status;
+}
+
 static errno_t changepw_child(int fd, struct krb5_req *kr)
 {
     int ret;
@@ -982,9 +1012,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
                                         kr->options);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        if (kerr == KRB5_KDC_UNREACH) {
-            pam_status = PAM_AUTHINFO_UNAVAIL;
-        }
+        pam_status = kerr_to_status(kerr);
         goto sendresponse;
     }
 
@@ -1152,22 +1180,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     talloc_zfree(pass_str);
     memset(kr->pd->authtok, 0, kr->pd->authtok_size);
 
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        switch (kerr) {
-            case KRB5_KDC_UNREACH:
-                    pam_status = PAM_AUTHINFO_UNAVAIL;
-                    break;
-            case KRB5KDC_ERR_KEY_EXP:
-                    pam_status = PAM_NEW_AUTHTOK_REQD;
-                    break;
-            case KRB5KDC_ERR_PREAUTH_FAILED:
-                    pam_status = PAM_CRED_ERR;
-                    break;
-            default:
-                    pam_status = PAM_SYSTEM_ERR;
-        }
-    }
+    pam_status = kerr_to_status(kerr);
 
 sendresponse:
     ret = sendresponse(fd, kerr, pam_status, kr);
