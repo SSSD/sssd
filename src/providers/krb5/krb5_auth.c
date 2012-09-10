@@ -639,7 +639,8 @@ static void krb5_find_ccache_step(struct tevent_req *req)
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Saved ccache %s if of different type than ccache in "
-               "configuration file, reusing the old ccache\n"));
+               "configuration file, reusing the old ccache\n",
+               kr->old_ccname));
 
         kr->cc_be = get_cc_be_ops_ccache(kr->old_ccname);
         if (kr->cc_be == NULL) {
