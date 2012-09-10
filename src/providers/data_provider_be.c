@@ -2076,6 +2076,68 @@ static void signal_be_offline(struct tevent_context *ev,
     be_mark_offline(ctx);
 }
 
+int be_process_init_sudo(struct be_ctx *be_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char **services = NULL;
+    char *provider = NULL;
+    bool responder_enabled = false;
+    int i;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string_as_list(be_ctx->cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_SERVICES, &services);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to read from confdb [%d]: %s\n",
+                                     ret, strerror(ret)));
+        goto done;
+    }
+
+    for (i = 0; services[i] != NULL; i++) {
+        if (strcmp(services[i], "sudo") == 0) {
+            responder_enabled = true;
+            break;
+        }
+    }
+
+    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                            CONFDB_DOMAIN_SUDO_PROVIDER, NULL, &provider);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to read from confdb [%d]: %s\n",
+                                     ret, strerror(ret)));
+        goto done;
+    }
+
+    if (!responder_enabled && provider == NULL) {
+        /* provider is not set explicitly */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("SUDO is not listed in services, disabling SUDO module.\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (!responder_enabled && provider != NULL
+            && strcmp(provider, NO_PROVIDER) != 0) {
+        /* provider is set but responder is disabled */
+        DEBUG(SSSDBG_MINOR_FAILURE, ("SUDO provider is set, but it is not "
+              "listed in active services. SUDO support will not work!\n"));
+    }
+
+    ret = load_backend_module(be_ctx, BET_SUDO, &be_ctx->bet_info[BET_SUDO],
+                              be_ctx->bet_info[BET_ID].mod_name);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int be_process_init(TALLOC_CTX *mem_ctx,
                     const char *be_domain,
                     struct tevent_context *ev,
@@ -2187,9 +2249,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                "from provider [%s].\n", ctx->bet_info[BET_CHPASS].mod_name));
     }
 
-    ret = load_backend_module(ctx, BET_SUDO,
-                              &ctx->bet_info[BET_SUDO],
-                              ctx->bet_info[BET_ID].mod_name);
+    ret = be_process_init_sudo(ctx);
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
