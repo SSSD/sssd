@@ -2096,21 +2096,22 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ctx->conf_path = talloc_asprintf(ctx, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!ctx->identity || !ctx->conf_path) {
         DEBUG(0, ("Out of memory!?\n"));
-        return ENOMEM;
+        ret = ENOMEM;
+        goto fail;
     }
 
     ret = be_init_failover(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("fatal error initializing failover context\n"));
-        return ret;
+        goto fail;
     }
 
     ret = sysdb_init_domain_and_sysdb(ctx, cdb, be_domain, DB_PATH,
                                       &ctx->domain, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error opening cache database\n"));
-        return ret;
+        goto fail;
     }
 
     ret = sss_monitor_init(ctx, ctx->ev, &monitor_be_interface,
@@ -2119,13 +2120,13 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("fatal error setting up monitor bus\n"));
-        return ret;
+        goto fail;
     }
 
     ret = be_srv_init(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error setting up server bus\n"));
-        return ret;
+        goto fail;
     }
 
     ret = load_backend_module(ctx, BET_ID,
@@ -2133,7 +2134,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("fatal error initializing data providers\n"));
-        return ret;
+        goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL,
           ("ID backend target successfully loaded from provider [%s].\n",
@@ -2146,7 +2147,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing data providers\n"));
-            return ret;
+            goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("No authentication module provided for [%s] !!\n",
@@ -2162,7 +2163,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to setup ACCESS backend.\n"));
-        return ret;
+        goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL,
           ("ACCESS backend target successfully loaded "
@@ -2175,7 +2176,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing data providers\n"));
-            return ret;
+            goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("No change password module provided for [%s] !!\n",
@@ -2193,7 +2194,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing data providers\n"));
-            return ret;
+            goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("No SUDO module provided for [%s] !!\n", be_domain));
@@ -2210,7 +2211,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing data providers\n"));
-            return ret;
+            goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("No autofs module provided for [%s] !!\n", be_domain));
@@ -2226,7 +2227,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing data providers\n"));
-            return ret;
+            goto fail;
         }
         DEBUG(SSSDBG_CRIT_FAILURE, ("No selinux module provided for [%s] !!\n",
                   be_domain));
@@ -2242,7 +2243,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing data providers\n"));
-            return ret;
+            goto fail;
         }
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("No host info module provided for [%s] !!\n", be_domain));
@@ -2267,7 +2268,8 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
                             signal_be_offline, ctx);
     if (tes == NULL) {
-        return EIO;
+        ret = EIO;
+        goto fail;
     }
 
     ret = sss_sigchld_init(ctx, ctx->ev, &ctx->sigchld_ctx);
@@ -2275,10 +2277,14 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Could not initialize sigchld context: [%s]\n",
                strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     return EOK;
+
+fail:
+    talloc_free(ctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])
