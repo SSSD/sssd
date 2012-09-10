@@ -35,9 +35,6 @@
 #include "tools/tools_util.h"
 #include "confdb/confdb.h"
 
-#define SSSD_PIDFILE            ""PID_PATH"/sssd.pid"
-#define MAX_PID_LENGTH          10
-
 #define CHECK(expr, done, msg) do { \
     if (expr) { \
         ERROR(msg "\n"); \
@@ -52,12 +49,9 @@ struct debuglevel_tool_ctx {
 
 static errno_t set_debug_level(struct debuglevel_tool_ctx *tool_ctx,
                                int debug_to_set, const char *config_file);
-static errno_t send_sighup(void);
 static errno_t connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx);
 static errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
                                    char ***output_sections);
-static errno_t get_sssd_pid(pid_t *out_pid);
-static pid_t parse_pid(const char *strpid);
 static int parse_debug_level(const char *strlevel);
 
 int main(int argc, const char **argv)
@@ -142,7 +136,7 @@ int main(int argc, const char **argv)
     ret = set_debug_level(ctx, debug_to_set, config_file);
     CHECK(ret != EOK, fini, "Could not set debug level.");
 
-    ret = send_sighup();
+    ret = signal_sssd(SIGHUP);
     CHECK(ret != EOK, fini,
           "Could not force sssd processes to reload configuration. "
           "Is sssd running?");
@@ -202,26 +196,6 @@ errno_t set_debug_level(struct debuglevel_tool_ctx *tool_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
-}
-
-errno_t send_sighup()
-{
-    int ret;
-    pid_t pid;
-
-    ret = get_sssd_pid(&pid);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    if (kill(pid, SIGHUP) != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not send SIGHUP to process %d: %s\n",
-              pid, strerror(errno)));
-        return ret;
-    }
-
-    return EOK;
 }
 
 errno_t connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx)
@@ -314,78 +288,6 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
 fail:
     talloc_free(tmp_ctx);
     return ret;
-}
-
-errno_t get_sssd_pid(pid_t *out_pid)
-{
-    int ret;
-    size_t fsize;
-    FILE *pid_file = NULL;
-    char pid_str[MAX_PID_LENGTH] = {'\0'};
-
-    *out_pid = 0;
-
-    errno = 0;
-    pid_file = fopen(SSSD_PIDFILE, "r");
-    if (pid_file == NULL) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to open pid file \"%s\": %s\n",
-              SSSD_PIDFILE, strerror(ret)));
-        goto done;
-    }
-
-    fsize = fread(pid_str, sizeof(char), MAX_PID_LENGTH * sizeof(char),
-                  pid_file);
-    if (!feof(pid_file)) {
-        /* eof not reached */
-        ret = ferror(pid_file);
-        if (ret != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to read from file \"%s\": %s\n",
-                  SSSD_PIDFILE, strerror(ret)));
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("File \"%s\" contains invalid pid.\n",
-                  SSSD_PIDFILE));
-        }
-        goto done;
-    }
-    if (fsize == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("File \"%s\" contains no pid.\n",
-              SSSD_PIDFILE));
-        ret = EINVAL;
-        goto done;
-    }
-
-    pid_str[MAX_PID_LENGTH-1] = '\0';
-    *out_pid = parse_pid(pid_str);
-    if (*out_pid == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("File \"%s\" contains invalid pid.\n", SSSD_PIDFILE));
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (pid_file != NULL) {
-        fclose(pid_file);
-    }
-    return ret;
-}
-
-pid_t parse_pid(const char *strpid)
-{
-    long value;
-    char *endptr;
-
-    errno = 0;
-    value = strtol(strpid, &endptr, 10);
-    if ((errno != 0) || (endptr == strpid)
-        || ((*endptr != '\0') && (*endptr != '\n'))) {
-        return 0;
-    }
-
-    return value;
 }
 
 int parse_debug_level(const char *strlevel)

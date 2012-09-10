@@ -27,6 +27,9 @@
 
 #include "util/util.h"
 
+#define SSSD_PIDFILE ""PID_PATH"/sssd.pid"
+#define MAX_PID_LENGTH 10
+
 #define BAD_POPT_PARAMS(pc, msg, val, label) do { \
         usage(pc, msg);                           \
         val = EXIT_FAILURE;                       \
@@ -98,6 +101,8 @@ int remove_homedir(TALLOC_CTX *mem_ctx,
                    uid_t uid, bool force);
 
 int run_userdel_cmd(struct tools_ctx *tctx);
+
+errno_t signal_sssd(int signum);
 
 /* from files.c */
 int remove_tree(const char *root);
