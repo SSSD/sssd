@@ -712,7 +712,7 @@ static bool extract_entities(hash_entry_t *entry, void *pvt)
     state = talloc_get_type(pvt, struct extract_state);
     member = talloc_get_type(entry->value.ptr, struct sysdb_attrs);
 
-    ret = sysdb_attrs_get_el(member, SYSDB_MEMBEROF, &el);
+    ret = sysdb_attrs_get_el(member, SYSDB_ORIG_MEMBEROF, &el);
     if (ret != EOK) return false;
 
     ret = sysdb_attrs_get_el(member, SYSDB_NAME, &name_el);
