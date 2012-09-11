@@ -51,6 +51,7 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
+#include "responder/nss/nsssrv.h"
 
 #ifdef USE_KEYRING
 #include <keyutils.h>
@@ -701,6 +702,10 @@ static int service_signal_rotate(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_METHOD_ROTATE);
 }
+static int service_signal_clear_memcache(struct mt_svc *svc)
+{
+    return service_signal(svc, MON_CLI_METHOD_CLEAR_MEMCACHE);
+}
 
 static int check_domain_ranges(struct sss_domain_info *domains)
 {
@@ -1177,10 +1182,15 @@ static void monitor_hup(struct tevent_context *ev,
 
     DEBUG(1, ("Received SIGHUP.\n"));
 
-    /* Signal all services to rotate debug files */
+    /* Send D-Bus message to other services to rotate their logs.
+     * NSS service receives also message to clear memory caches. */
     for(cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
         service_signal_rotate(cur_svc);
+        if (!strcmp(NSS_SBUS_SERVICE_NAME, cur_svc->name)) {
+            service_signal_clear_memcache(cur_svc);
+        }
     }
+
 }
 
 static int monitor_cleanup(void)

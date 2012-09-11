@@ -51,10 +51,14 @@
 #define SHELL_REALLOC_INCREMENT 5
 #define SHELL_REALLOC_MAX       50
 
+static int nss_clear_memcache(DBusMessage *message,
+                              struct sbus_connection *conn);
+
 struct sbus_method monitor_nss_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { MON_CLI_METHOD_ROTATE, responder_logrotate },
+    { MON_CLI_METHOD_CLEAR_MEMCACHE, nss_clear_memcache},
     { NULL, NULL }
 };
 
@@ -65,6 +69,65 @@ struct sbus_interface monitor_nss_interface = {
     monitor_nss_methods,
     NULL
 };
+
+static int nss_clear_memcache(DBusMessage *message,
+                              struct sbus_connection *conn)
+{
+    errno_t ret;
+    int memcache_timeout;
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct resp_ctx);
+    struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
+
+    ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
+    if (ret != 0) {
+        ret = errno;
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("CLEAR_MC_FLAG not found. Nothing to do.\n"));
+            goto done;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to unlink file: %s.\n",
+                  strerror(ret)));
+            return ret;
+        }
+    }
+
+    /* CLEAR_MC_FLAG removed successfully. Clearing memory caches. */
+
+    ret = confdb_get_int(rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_MEMCACHE_TIMEOUT,
+                         300, &memcache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Unable to get memory cache entry timeout.\n"));
+        return ret;
+    }
+
+    /* TODO: read cache sizes from configuration */
+    DEBUG(SSSDBG_TRACE_FUNC, ("Clearing memory caches.\n"));
+    ret = sss_mmap_cache_reinit(nctx, SSS_MC_CACHE_ELEMENTS,
+                                (time_t) memcache_timeout,
+                                &nctx->pwd_mc_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("passwd mmap cache invalidation failed\n"));
+        return ret;
+    }
+
+    ret = sss_mmap_cache_reinit(nctx, SSS_MC_CACHE_ELEMENTS,
+                                (time_t) memcache_timeout,
+                                &nctx->grp_mc_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("group mmap cache invalidation failed\n"));
+        return ret;
+    }
+
+done:
+    return monitor_common_pong(message, conn);
+}
 
 static errno_t nss_get_etc_shells(TALLOC_CTX *mem_ctx, char ***_shells)
 {
@@ -328,6 +391,16 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* create mmap caches */
+    /* Remove the CLEAR_MC_FLAG file if exists. */
+    ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
+    if (ret != 0 && errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to unlink file [%s]. This can cause memory cache to "
+               "be purged when next log rotation is requested. %d: %s\n",
+               SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, ret, strerror(ret)));
+    }
+
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_MEMCACHE_TIMEOUT,
@@ -339,14 +412,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
 
     /* TODO: read cache sizes from configuration */
     ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
-                              50000, (time_t)memcache_timeout,
+                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
                               &nctx->pwd_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("passwd mmap cache is DISABLED\n"));
     }
 
     ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
-                              50000, (time_t)memcache_timeout,
+                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
                               &nctx->grp_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("group mmap cache is DISABLED\n"));

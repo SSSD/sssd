@@ -22,6 +22,8 @@
 #ifndef _NSSSRV_MMAP_CACHE_H_
 #define _NSSSRV_MMAP_CACHE_H_
 
+#define SSS_MC_CACHE_ELEMENTS 50000
+
 struct sss_mc_ctx;
 
 enum sss_mc_type {
@@ -47,5 +49,8 @@ errno_t sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
                                 struct sized_string *pw,
                                 gid_t gid, size_t memnum,
                                 char *membuf, size_t memsize);
+
+errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
+                              time_t timeout, struct sss_mc_ctx **mc_ctx);
 
 #endif /* _NSSSRV_MMAP_CACHE_H_ */

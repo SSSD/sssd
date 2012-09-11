@@ -100,6 +100,7 @@ int main(int argc, const char *argv[])
     struct sysdb_ctx *sysdb;
     int i;
     bool skipped;
+    FILE *clear_mc_flag;
 
     ret = init_context(argc, argv, &tctx);
     if (ret != EOK) {
@@ -141,6 +142,31 @@ int main(int argc, const char *argv[])
             ERROR("No cache object matched the specified search\n");
             ret = ENOENT;
             goto done;
+        } else {
+            /*Local cache changed -> signal monitor to invalidate fastcache */
+            clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
+            if (clear_mc_flag == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to create clear_mc_flag file. "
+                      "Memory cache will not be cleared.\n"));
+                goto done;
+            }
+            ret = fclose(clear_mc_flag);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Unable to close file descriptor: %s\n",
+                       strerror(ret)));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
+            ret = signal_sssd(SIGHUP);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to send SIGHUP to monitor.\n"));
+                goto done;
+            }
         }
     }
 

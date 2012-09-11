@@ -45,6 +45,7 @@
 #define MON_CLI_METHOD_OFFLINE "goOffline" /* Applicable only to providers */
 #define MON_CLI_METHOD_RESET_OFFLINE "resetOffline" /* Applicable only to providers */
 #define MON_CLI_METHOD_ROTATE "rotateLogs"
+#define MON_CLI_METHOD_CLEAR_MEMCACHE "clearMemcache"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 

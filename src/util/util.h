@@ -54,6 +54,8 @@ typedef int errno_t;
 
 #define ENUM_INDICATOR "*"
 
+#define CLEAR_MC_FLAG "clear_mc_flag"
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;

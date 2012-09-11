@@ -725,3 +725,49 @@ done:
     return ret;
 }
 
+errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
+                              time_t timeout, struct sss_mc_ctx **mc_ctx)
+{
+    errno_t ret;
+    TALLOC_CTX* tmp_ctx = NULL;
+    char *name;
+    enum sss_mc_type type;
+
+    if (mc_ctx == NULL || (*mc_ctx) == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unable to re-init unitialized memory cache.\n"));
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        return ENOMEM;
+    }
+
+    name = talloc_strdup(tmp_ctx, (*mc_ctx)->name);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    type = (*mc_ctx)->type;
+    ret = talloc_free(*mc_ctx);
+    if (ret != 0) {
+        /* This can happen only if destructor is associated with this
+         * context */
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Destructor asociated with memory"
+                                    " context failed.\n"));
+    }
+
+    ret = sss_mmap_cache_init(mem_ctx, name, type, n_elem, timeout, mc_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to re-initialize mmap cache.\n"));
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
