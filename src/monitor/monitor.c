@@ -2256,11 +2256,6 @@ static int start_service(struct mt_svc *svc)
 
     DEBUG(4,("Queueing service %s for startup\n", svc->name));
 
-    /* at startup we need to start the data providers before the responders
-     * to avoid races where a service starts before sbus pipes are ready
-     * to accept connections. So if startup is true delay by 2 seconds any
-     * process that is not a data provider */
-
     tv = tevent_timeval_current();
 
     /* Add a timed event to start up the service.
