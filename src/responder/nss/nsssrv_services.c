@@ -930,7 +930,7 @@ errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
         /* The protocol must be no longer than the remaining
          * body space, after the name was copied.
          */
-        protocol = talloc_array(tmp_ctx, char, blen - i - 1);
+        protocol = talloc_array(tmp_ctx, char, blen - i);
         if (!protocol) {
             ret = ENOMEM;
             goto done;
