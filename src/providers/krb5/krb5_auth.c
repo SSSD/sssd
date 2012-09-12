@@ -819,6 +819,7 @@ static void krb5_child_done(struct tevent_req *subreq)
         /* ..which is unreachable by now.. */
         if (res->msg_status == PAM_AUTHTOK_LOCK_BUSY) {
             be_fo_set_port_status(state->be_ctx,
+                                  state->krb5_ctx->service->name,
                                   kr->kpasswd_srv, PORT_NOT_WORKING);
             /* ..try to resolve next kpasswd server */
             if (krb5_next_kpasswd(req) == NULL) {
@@ -827,6 +828,7 @@ static void krb5_child_done(struct tevent_req *subreq)
             return;
         } else {
             be_fo_set_port_status(state->be_ctx,
+                                  state->krb5_ctx->service->name,
                                   kr->kpasswd_srv, PORT_WORKING);
         }
     }
@@ -837,7 +839,8 @@ static void krb5_child_done(struct tevent_req *subreq)
     if (res->msg_status == PAM_AUTHINFO_UNAVAIL ||
         (kr->kpasswd_srv == NULL && res->msg_status == PAM_AUTHTOK_LOCK_BUSY)) {
         if (kr->srv != NULL) {
-            be_fo_set_port_status(state->be_ctx, kr->srv, PORT_NOT_WORKING);
+            be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
+                                  kr->srv, PORT_NOT_WORKING);
             /* ..try to resolve next KDC */
             if (krb5_next_kdc(req) == NULL) {
                 tevent_req_error(req, ENOMEM);
@@ -845,7 +848,8 @@ static void krb5_child_done(struct tevent_req *subreq)
             return;
         }
     } else if (kr->srv != NULL) {
-        be_fo_set_port_status(state->be_ctx, kr->srv, PORT_WORKING);
+        be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
+                              kr->srv, PORT_WORKING);
     }
 
     /* Now only a successful authentication or password change is left.
@@ -917,19 +921,19 @@ static struct tevent_req *krb5_next_server(struct tevent_req *req)
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_CMD_RENEW:
-            be_fo_set_port_status(state->be_ctx,
+            be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
                                   state->kr->srv, PORT_NOT_WORKING);
             next_req = krb5_next_kdc(req);
             break;
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
             if (state->kr->kpasswd_srv) {
-                be_fo_set_port_status(state->be_ctx,
+                be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
                                       state->kr->kpasswd_srv, PORT_NOT_WORKING);
                 next_req = krb5_next_kpasswd(req);
                 break;
             } else {
-                be_fo_set_port_status(state->be_ctx,
+                be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
                                       state->kr->srv, PORT_NOT_WORKING);
                 next_req = krb5_next_kdc(req);
                 break;

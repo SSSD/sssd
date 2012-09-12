@@ -242,6 +242,7 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
 int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv);
 
 void be_fo_set_port_status(struct be_ctx *ctx,
+                           const char *service_name,
                            struct fo_server *server,
                            enum port_status status);
 
