@@ -186,6 +186,6 @@ int fo_is_srv_lookup(struct fo_server *s);
 
 void fo_reset_services(struct fo_ctx *fo_ctx);
 
-struct fo_service *fo_get_server_service(struct fo_server *server);
+bool fo_svc_has_server(struct fo_service *service, struct fo_server *server);
 
 #endif /* !__FAIL_OVER_H__ */

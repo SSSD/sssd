@@ -590,6 +590,7 @@ static void auth_connect_done(struct tevent_req *subreq)
         if (state->srv) {
             /* mark this server as bad if connection failed */
             be_fo_set_port_status(state->ctx->be,
+                                  state->sdap_service->name,
                                   state->srv, PORT_NOT_WORKING);
         }
         if (ret == ETIMEDOUT) {
@@ -602,7 +603,8 @@ static void auth_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     } else if (state->srv) {
-        be_fo_set_port_status(state->ctx->be, state->srv, PORT_WORKING);
+        be_fo_set_port_status(state->ctx->be, state->sdap_service->name,
+                              state->srv, PORT_WORKING);
     }
 
     ret = get_user_dn(state, state->ctx->be->sysdb, state->ctx->opts,
