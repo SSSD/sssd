@@ -136,11 +136,9 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
 
-    if (default_user != NULL && map_order != NULL) {
-        ret = sysdb_store_selinux_config(sysdb, default_user, map_order);
-        if (ret != EOK) {
-            goto fail;
-        }
+    ret = sysdb_store_selinux_config(sysdb, default_user, map_order);
+    if (ret != EOK) {
+        goto fail;
     }
 
     if (map_count > 0 && maps != NULL) {
@@ -668,13 +666,15 @@ ipa_get_selinux_recv(struct tevent_req *req,
     if (state->defaults != NULL) {
         ret = sysdb_attrs_get_string(state->defaults, IPA_CONFIG_SELINUX_DEFAULT_MAP,
                                      &tmp_str);
-        if (ret != EOK) {
+        if (ret != EOK && ret != ENOENT) {
             return ret;
         }
 
-        *default_user = talloc_strdup(mem_ctx, tmp_str);
-        if (*default_user == NULL) {
-            return ENOMEM;
+        if (ret == EOK) {
+            *default_user = talloc_strdup(mem_ctx, tmp_str);
+            if (*default_user == NULL) {
+                return ENOMEM;
+            }
         }
 
         ret = sysdb_attrs_get_string(state->defaults, IPA_CONFIG_SELINUX_MAP_ORDER,

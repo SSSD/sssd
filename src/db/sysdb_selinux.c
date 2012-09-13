@@ -191,6 +191,11 @@ errno_t sysdb_store_selinux_config(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
+    if (!order) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("The SELinux order is missing\n"));
+        return EINVAL;
+    }
+
     if (default_user) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_SELINUX_DEFAULT_USER,
                                     default_user);
@@ -205,7 +210,7 @@ errno_t sysdb_store_selinux_config(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret =  sysdb_store_selinux_entity(sysdb, attrs, SELINUX_CONFIG);
+    ret = sysdb_store_selinux_entity(sysdb, attrs, SELINUX_CONFIG);
 done:
     talloc_free(attrs);
     return ret;
@@ -344,7 +349,9 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_SUBTREE, filter,
                              attrs, &msgs_count, &msgs);
-    if (ret) {
+    if (ret == ENOENT) {
+        msgs_count = 0;
+    } else if (ret) {
         goto done;
     }
 

@@ -519,29 +519,32 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
         goto done;
     }
 
-    /* We need two values from the config object:
-     * - default SELinux user in case no other is available
-     * - the order for fetched usermaps
-     */
-    for (i = 0; i < config->num_elements; i++) {
-        if (strcasecmp(config->elements[i].name, SYSDB_SELINUX_DEFAULT_USER) == 0) {
-            default_user = (const char *)config->elements[i].values[0].data;
-        } else if (strcasecmp(config->elements[i].name, SYSDB_SELINUX_DEFAULT_ORDER) == 0) {
-            tmp_str = (char *)config->elements[i].values[0].data;
-            len = config->elements[i].values[0].length;
-            order = talloc_strdup(tmp_ctx, tmp_str);
-            if (order == NULL) {
-                goto done;
-            }
-        }
+    default_user = ldb_msg_find_attr_as_string(config,
+                                               SYSDB_SELINUX_DEFAULT_USER,
+                                               NULL);
+    if (!default_user || default_user[0] == '\0') {
+        /* Skip creating the maps altogether if there is no default
+         * or empty default
+         */
+        ret = EOK;
+        goto done;
     }
 
-    if (default_user == NULL || order == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No default SELinux user "
-                                  "or map order given!\n"));
+    tmp_str = ldb_msg_find_attr_as_string(config,
+                                          SYSDB_SELINUX_DEFAULT_ORDER,
+                                          NULL);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("No map order given!\n"));
         ret = EINVAL;
         goto done;
     }
+
+    order = talloc_strdup(tmp_ctx, tmp_str);
+    if (order == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    len = strlen(order);
 
     /* The "order" string contains one or more SELinux user records
      * separated by $. Now we need to create an array of string from
@@ -576,10 +579,6 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
     ret = sysdb_search_selinux_usermap_by_username(tmp_ctx, sysdb, pd->user,
                                                    &usermaps);
     if (ret != EOK && ret != ENOENT) {
-        goto done;
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No maps defined on the server\n"));
-        ret = EOK;
         goto done;
     }
 
