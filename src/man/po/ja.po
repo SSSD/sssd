@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-09-05 16:36+0300\n"
-"PO-Revision-Date: 2012-08-10 20:07+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2012-09-13 18:47+0300\n"
+"PO-Revision-Date: 2012-09-10 01:11+0000\n"
+"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -267,6 +267,10 @@ msgid ""
 "\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder\">, pac</"
 "phrase>"
 msgstr ""
+"サポートされるサービス: nss, pam <phrase condition=\"with_sudo\">, sudo</"
+"phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
+"condition=\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder"
+"\">, pac</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:98 sssd.conf.5.xml:278
@@ -1511,7 +1515,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1031
 msgid "entry_cache_autofs_timeout (integer)"
-msgstr ""
+msgstr "entry_cache_autofs_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1034
@@ -4081,6 +4085,7 @@ msgstr ""
 #: sssd-ldap.5.xml:1372
 msgid "Currently this feature supports only ActiveDirectory objectSID mapping."
 msgstr ""
+"この機能は現在 ActiveDirectory objectSID マッピングのみサポートします。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1382
@@ -4113,7 +4118,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1403
 msgid "Default: host/hostname@REALM"
-msgstr ""
+msgstr "初期値: host/hostname@REALM"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1409
@@ -5816,12 +5821,14 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:199
 msgid "ipa_subdomains_search_base (string)"
-msgstr ""
+msgstr "ipa_subdomains_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:202
 msgid "Optional. Use the given string as search base for trusted domains."
 msgstr ""
+"オプションです。信頼されたドメインに対する検索ベースとして、与えられた文字列"
+"を使用します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:211
@@ -6576,11 +6583,29 @@ msgid ""
 "ldap_sasl_realm = EXAMPLE.COM\n"
 "krb5_server = ipa.example.com\n"
 msgstr ""
+"[sssd]\n"
+"config_file_version = 2\n"
+"services = nss, pam, sudo\n"
+"domains = EXAMPLE\n"
+"\n"
+"[domain/EXAMPLE]\n"
+"id_provider = ipa\n"
+"ipa_domain = example.com\n"
+"ipa_server = ipa.example.com\n"
+"ldap_tls_cacert = /etc/ipa/ca.crt\n"
+"\n"
+"sudo_provider = ldap\n"
+"ldap_uri = ldap://ipa.example.com\n"
+"ldap_sudo_search_base = ou=sudoers,dc=example,dc=com\n"
+"ldap_sasl_mech = GSSAPI\n"
+"ldap_sasl_authid = host/hostname.example.com\n"
+"ldap_sasl_realm = EXAMPLE.COM\n"
+"krb5_server = ipa.example.com\n"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-sudo.5.xml:123
 msgid "The SUDO rule caching mechanism"
-msgstr ""
+msgstr "SUDO ルールキャッシュメカニズム"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:125
@@ -8298,6 +8323,8 @@ msgid ""
 "<option>-p</option>,<option>--password-file</option> <replaceable>PASS_FILE</"
 "replaceable>"
 msgstr ""
+"<option>-p</option>,<option>--password-file</option> <replaceable>PASS_FILE</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:153
@@ -8691,7 +8718,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/ldap_id_mapping.xml:17
 msgid "Mapping Algorithm"
-msgstr ""
+msgstr "マッピング・アルゴリズム"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:19
@@ -8744,7 +8771,7 @@ msgstr ""
 #: include/ldap_id_mapping.xml:59
 msgid ""
 "Minimum configuration (in the <quote>[domain/DOMAINNAME]</quote> section):"
-msgstr ""
+msgstr "最小の設定 (<quote>[domain/DOMAINNAME]</quote> セクションにおいて):"
 
 #. type: Content of: <refsect1><refsect2><para><programlisting>
 #: include/ldap_id_mapping.xml:64
@@ -8753,6 +8780,8 @@ msgid ""
 "ldap_id_mapping = True\n"
 "ldap_schema = ad\n"
 msgstr ""
+"ldap_id_mapping = True\n"
+"ldap_schema = ad\n"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:69
@@ -9112,6 +9141,42 @@ msgid ""
 "manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
+"<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <phrase condition=\"with_sudo\"> <citerefentry> "
+"<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>, </phrase> <citerefentry> <refentrytitle>sss_cache</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
+"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_ssh_knowhostsproxy</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
@@ -9120,19 +9185,21 @@ msgid ""
 "An optional base DN, search scope and LDAP filter to restrict LDAP searches "
 "for this attribute type."
 msgstr ""
+"オプションのベース DN。この属性の種別に対する LDAP 検索を制限する、検索範囲お"
+"よび LDAP フィルター。"
 
 #. type: Content of: <listitem><para><programlisting>
 #: include/ldap_search_bases.xml:9
 #: include/ldap_search_bases_experimental.xml:9
 #, no-wrap
 msgid "search_base[?scope?[filter][?search_base?scope?[filter]]*]\n"
-msgstr ""
+msgstr "search_base[?scope?[filter][?search_base?scope?[filter]]*]\n"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:7
 #: include/ldap_search_bases_experimental.xml:7
 msgid "syntax: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "構文: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:13
