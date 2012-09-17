@@ -306,12 +306,16 @@ do
 done
 
 touch sssd_tools.lang
+touch sssd_client.lang
 for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`
 do
     lang=`echo $man | cut -c 1-2`
     case `basename $man` in
         sss_*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
+            ;;
+        sssd_krb5_*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_client.lang
             ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
@@ -395,7 +399,7 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{python_sitelib}/SSSDConfig
 %{python_sitelib}/SSSDConfig/*.py*
 
-%files client
+%files client -f sssd_client.lang
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
 /%{_lib}/libnss_sss.so.2
