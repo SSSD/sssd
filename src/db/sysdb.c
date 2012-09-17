@@ -736,6 +736,8 @@ int sysdb_error_to_errno(int ldberr)
         return EBUSY;
     case LDB_ERR_ENTRY_ALREADY_EXISTS:
         return EEXIST;
+    case LDB_ERR_INVALID_ATTRIBUTE_SYNTAX:
+        return EINVAL;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("LDB returned unexpected error: [%s]\n",
