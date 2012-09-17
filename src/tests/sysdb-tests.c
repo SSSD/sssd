@@ -30,6 +30,7 @@
 #include "confdb/confdb_setup.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
+#include "db/sysdb_autofs.h"
 #include "tests/common.h"
 
 #define TESTS_PATH "tests_sysdb"
@@ -48,6 +49,8 @@
 
 #define MBO_USER_BASE 27500
 #define MBO_GROUP_BASE 28500
+
+#define TEST_AUTOFS_MAP_BASE 29500
 
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
@@ -161,6 +164,7 @@ struct test_data {
     const char *username;
     const char *groupname;
     const char *netgrname;
+    const char *autofsmapname;
     uid_t uid;
     gid_t gid;
     const char *shell;
@@ -3611,6 +3615,217 @@ START_TEST(test_sysdb_subdomain_group_ops)
 }
 END_TEST
 
+#ifdef BUILD_AUTOFS
+START_TEST(test_autofs_create_map)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    errno_t ret;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    ret = sysdb_save_autofsmap(test_ctx->sysdb, autofsmapname,
+                               autofsmapname, NULL, 0, 0);
+    fail_if(ret != EOK, "Could not store autofs map %s", autofsmapname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_autofs_retrieve_map)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    errno_t ret;
+    struct ldb_message *map = NULL;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    ret = sysdb_get_map_byname(test_ctx, test_ctx->sysdb,
+                               autofsmapname, &map);
+    fail_if(ret != EOK, "Could not retrieve autofs map %s", autofsmapname);
+    fail_if(map == NULL, "No map retrieved?\n");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_autofs_delete_map)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    errno_t ret;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    ret = sysdb_delete_autofsmap(test_ctx->sysdb, autofsmapname);
+    fail_if(ret != EOK, "Could not retrieve autofs map %s", autofsmapname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_autofs_retrieve_map_neg)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    errno_t ret;
+    struct ldb_message *map = NULL;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    ret = sysdb_get_map_byname(test_ctx, test_ctx->sysdb,
+                               autofsmapname, &map);
+    fail_if(ret != ENOENT, "Expected ENOENT, got %d instead\n", ret);
+    fail_if(map != NULL, "Unexpected map found\n");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_autofs_store_entry_in_map)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    const char *autofskey;
+    const char *autofsval;
+    errno_t ret;
+    int ii;
+    const int limit = 10;
+    const char *add_entries[limit+1];
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    add_entries[limit] = NULL;
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    for (ii=0; ii < limit; ii++) {
+        autofskey = talloc_asprintf(test_ctx, "%s_testkey%d",
+                                    autofsmapname, ii);
+        fail_if(autofskey == NULL, "Out of memory\n");
+
+        autofsval = talloc_asprintf(test_ctx, "testserver:/testval%d", ii);
+        fail_if(autofsval == NULL, "Out of memory\n");
+
+        ret = sysdb_save_autofsentry(test_ctx->sysdb, autofskey,
+                                     autofsval, NULL);
+        fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
+
+        add_entries[ii] = autofskey;
+    }
+
+    ret = sysdb_autofs_map_update_members(test_ctx->sysdb, autofsmapname,
+                                          (const char *const *) add_entries,
+                                          NULL);
+    fail_if(ret != EOK, "Could not add entries to map %s\n");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_autofs_retrieve_keys_by_map)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    errno_t ret;
+    size_t count;
+    struct ldb_message **entries;
+    const int expected = 10;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    ret = sysdb_autofs_entries_by_map(test_ctx, test_ctx->sysdb,
+                                      autofsmapname, &count, &entries);
+    fail_if(ret != EOK, "Cannot get autofs entries for map %s\n",
+            autofsmapname);
+    fail_if(count != expected, "Expected to find %d entries, got %d\n",
+            expected, count);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_autofs_key_duplicate)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofsmapname;
+    const char *autofskey;
+    const char *autofsval;
+    errno_t ret;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
+    fail_if(autofsmapname == NULL, "Out of memory\n");
+
+    autofskey = talloc_asprintf(test_ctx, "testkey");
+    fail_if(autofskey == NULL, "Out of memory\n");
+
+    autofsval = talloc_asprintf(test_ctx, "testserver:/testval%d", _i);
+    fail_if(autofsval == NULL, "Out of memory\n");
+
+    ret = sysdb_save_autofsentry(test_ctx->sysdb, autofskey,
+                                 autofsval, NULL);
+    fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+#if 0
+/*
+ * Disabled due to
+ * https://fedorahosted.org/sssd/ticket/1506
+ */
+START_TEST(test_autofs_get_duplicate_keys)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *autofskey;
+    errno_t ret;
+    const char *attrs[] = { SYSDB_AUTOFS_ENTRY_KEY,
+                            SYSDB_AUTOFS_ENTRY_VALUE,
+                            NULL };
+    size_t count;
+    struct ldb_message **msgs;
+    const int expected = 10;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    autofskey = talloc_asprintf(test_ctx, "testkey");
+    fail_if(autofskey == NULL, "Out of memory\n");
+
+    ret = sysdb_search_custom_by_name(test_ctx, test_ctx->sysdb,
+                                      autofskey, AUTOFS_ENTRY_SUBDIR,
+                                      attrs, &count, &msgs);
+    fail_if(ret != EOK, "sysdb search failed\n");
+    fail_if(count != expected, "Expected %d maps with name %s, found %d\n",
+            expected, autofskey, count);
+    talloc_free(test_ctx);
+}
+END_TEST
+#endif
+
+#endif
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -3829,6 +4044,40 @@ Suite *create_sysdb_suite(void)
 
     suite_add_tcase(s, tc_subdomain);
 
+#ifdef BUILD_AUTOFS
+    TCase *tc_autofs = tcase_create("SYSDB autofs Tests");
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_create_map,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_retrieve_map,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_store_entry_in_map,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_retrieve_keys_by_map,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_delete_map,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_retrieve_map_neg,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+    tcase_add_loop_test(tc_subdomain, test_autofs_key_duplicate,
+                        TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
+
+#if 0
+/*
+ * Disabled due to
+ * https://fedorahosted.org/sssd/ticket/1506
+ */
+    tcase_add_test(tc_subdomain, test_autofs_get_duplicate_keys);
+#endif
+
+    suite_add_tcase(s, tc_autofs);
+#endif
 
     return s;
 }
