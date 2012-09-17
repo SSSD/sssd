@@ -280,18 +280,9 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     }
 
     if (!primary_servers) {
-        if (backup_servers) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  ("No primary servers defined but backup are present, "
-                   "setting backup servers as primary\n"));
-            primary_servers = backup_servers;
-            backup_servers = NULL;
-        } else {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  ("No primary or backup servers defined but backup are present, "
-                   "setting backup servers as primary\n"));
-            primary_servers = BE_SRV_IDENTIFIER;
-        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("No primary servers defined, using service discovery\n"));
+        primary_servers = BE_SRV_IDENTIFIER;
     }
 
     ret = ad_servers_init(mem_ctx, bectx, primary_servers, options, true);

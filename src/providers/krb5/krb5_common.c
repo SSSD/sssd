@@ -637,18 +637,9 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
 
     if (!primary_servers) {
-        if (backup_servers) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  ("No primary servers defined but backup are present, "
-                   "setting backup servers as primary\n"));
-            primary_servers = backup_servers;
-            backup_servers = NULL;
-        } else {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  ("No primary or backup servers defined, "
-                   "using service discovery\n"));
-            primary_servers = BE_SRV_IDENTIFIER;
-        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("No primary servers defined, using service discovery\n"));
+        primary_servers = BE_SRV_IDENTIFIER;
     }
 
     ret = krb5_servers_init(ctx, service, service_name, primary_servers, true);

@@ -1243,18 +1243,9 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
 
     if (!urls) {
-        if (backup_urls) {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary LDAP URL but "
-                                         "backup URL given - using it "
-                                         "as primary!\n"));
-            urls = backup_urls;
-            backup_urls = NULL;
-        }
-        else {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary and backup LDAP "
-                                         "URLs - using service discovery!\n"));
-            urls = BE_SRV_IDENTIFIER;
-        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("No primary servers defined, using service discovery\n"));
+        urls = BE_SRV_IDENTIFIER;
     }
 
     ret = sdap_urls_init(ctx, service, service_name, dns_service_name,

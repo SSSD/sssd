@@ -932,16 +932,9 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
 
     if (!primary_servers) {
-        if (backup_servers) {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary IPA server but "
-                                         "backup server given - using it as primary!\n"));
-            primary_servers = backup_servers;
-            backup_servers = NULL;
-        } else {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Missing primary and backup IPA "
-                                         "servers - using service discovery!\n"));
-            primary_servers = BE_SRV_IDENTIFIER;
-        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("No primary servers defined, using service discovery\n"));
+        primary_servers = BE_SRV_IDENTIFIER;
     }
 
     ret = ipa_servers_init(ctx, service, options, primary_servers, true);
