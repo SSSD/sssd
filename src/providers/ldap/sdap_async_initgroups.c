@@ -2642,6 +2642,8 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     const char *orig_dn;
     const char *cname;
     bool in_transaction = false;
+    bool use_id_mapping =
+            dp_opt_get_bool(state->opts->basic, SDAP_ID_MAPPING);
 
     DEBUG(9, ("Receiving info for the user\n"));
 
@@ -2731,9 +2733,17 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
 
-        if (state->opts->support_matching_rule
-                && dp_opt_get_bool(state->opts->basic,
-                                   SDAP_AD_MATCHING_RULE_INITGROUPS)) {
+        if (use_id_mapping
+                && state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
+            /* Take advantage of AD's tokenGroups mechanism to look up all
+             * parent groups in a single request.
+             */
+            subreq = sdap_get_ad_tokengroups_initgroups_send(
+                    state, state->ev, state->opts, state->sysdb,
+                    state->sh, cname, orig_dn, state->timeout);
+        } else if (state->opts->support_matching_rule
+                    && dp_opt_get_bool(state->opts->basic,
+                                       SDAP_AD_MATCHING_RULE_INITGROUPS)) {
             /* Take advantage of AD's extensibleMatch filter to look up
              * all parent groups in a single request.
              */
@@ -2815,7 +2825,13 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_AD:
-        if (dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_INITGROUPS)) {
+        if (use_id_mapping
+                && state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
+            ret = sdap_get_ad_tokengroups_initgroups_recv(subreq);
+        }
+        else if (state->opts->support_matching_rule
+                && dp_opt_get_bool(state->opts->basic,
+                                   SDAP_AD_MATCHING_RULE_INITGROUPS)) {
             ret = sdap_get_ad_match_rule_initgroups_recv(subreq);
         } else {
             ret = sdap_initgr_rfc2307bis_recv(subreq);
