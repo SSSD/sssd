@@ -592,7 +592,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         goto done;
     }
 
-    while (dom) {
+    for (; dom; dom = dom->next) {
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -641,8 +641,6 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         }
 
         talloc_free(hosts);
-
-        dom = dom->next;
     }
 
     ret = fchmod(fd, 0644);
