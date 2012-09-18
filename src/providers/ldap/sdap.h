@@ -129,6 +129,7 @@ struct sdap_ppolicy_data {
 
 #define SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS "namingContexts"
 #define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
+#define SDAP_ROOTDSE_ATTR_AD_VERSION "domainControllerFunctionality"
 
 #define SDAP_IPA_USN "entryUSN"
 #define SDAP_IPA_LAST_USN "lastUSN"
@@ -364,6 +365,17 @@ struct sdap_search_base {
     const char *filter;
 };
 
+/* Values from
+ * http://msdn.microsoft.com/en-us/library/cc223272%28v=prot.13%29.aspx
+ */
+enum dc_functional_level {
+    DS_BEHAVIOR_WIN2000 = 0,
+    DS_BEHAVIOR_WIN2003 = 2,
+    DS_BEHAVIOR_WIN2008 = 3,
+    DS_BEHAVIOR_WIN2008R2 = 4,
+    DS_BEHAVIOR_WIN2012 = 5
+};
+
 struct sdap_options {
     struct dp_option *basic;
     struct sdap_attr_map *gen_map;
@@ -397,6 +409,7 @@ struct sdap_options {
     struct sdap_search_base **autofs_search_bases;
 
     bool support_matching_rule;
+    enum dc_functional_level dc_functional_level;
 };
 
 struct sdap_server_opts {
