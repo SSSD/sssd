@@ -933,6 +933,9 @@ static int kerr_to_status(krb5_error_code kerr)
 
     KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
     switch (kerr) {
+        case KRB5_LIBOS_CANTREADPWD:
+                pam_status = PAM_CRED_UNAVAIL;
+                break;
         case KRB5_KDC_UNREACH:
                 pam_status = PAM_AUTHINFO_UNAVAIL;
                 break;
@@ -942,6 +945,7 @@ static int kerr_to_status(krb5_error_code kerr)
         case KRB5KRB_AP_ERR_BAD_INTEGRITY:
                 pam_status = PAM_AUTH_ERR;
                 break;
+        case KRB5_PREAUTH_FAILED:
         case KRB5KDC_ERR_PREAUTH_FAILED:
                 pam_status = PAM_CRED_ERR;
                 break;
