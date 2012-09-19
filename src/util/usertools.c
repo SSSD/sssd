@@ -75,6 +75,57 @@ static int sss_names_ctx_destructor(struct sss_names_ctx *snctx)
     return 0;
 }
 
+#define IPA_AD_DEFAULT_RE "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                         "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                         "(^(?P<name>[^@\\\\]+)$))"
+
+static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
+                                          struct confdb_ctx *cdb,
+                                          const char *conf_path,
+                                          char **re_pattern)
+{
+    int ret;
+    size_t c;
+    char *id_provider = NULL;
+
+    struct provider_default_re {
+        const char *name;
+        const char *re;
+    } provider_default_re[] = {{"ipa", IPA_AD_DEFAULT_RE},
+                               {"ad", IPA_AD_DEFAULT_RE},
+                               {NULL, NULL}};
+
+    ret = confdb_get_string(cdb, mem_ctx, conf_path, CONFDB_DOMAIN_ID_PROVIDER,
+                            NULL, &id_provider);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to read ID provider " \
+                                  "from conf db.\n"));
+        goto done;
+    }
+
+    if (id_provider == NULL) {
+        *re_pattern = NULL;
+    } else {
+        for (c = 0; provider_default_re[c].name != NULL; c++) {
+            if (strcmp(id_provider, provider_default_re[c].name) == 0) {
+                *re_pattern = talloc_strdup(mem_ctx, provider_default_re[c].re);
+                if (*re_pattern == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                    ret = ENOMEM;
+                    goto done;
+                }
+                break;
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(id_provider);
+    return ret;
+}
+
 int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                    const char *domain, struct sss_names_ctx **out)
 {
@@ -113,6 +164,15 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         if (ret != EOK) goto done;
     }
 
+    if (ctx->re_pattern == NULL) {
+        ret = get_id_provider_default_re(ctx, cdb, conf_path, &ctx->re_pattern);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get provider default regular " \
+                                      "expression for domain [%s].\n", domain));
+            goto done;
+        }
+    }
+
     if (!ctx->re_pattern) {
         ctx->re_pattern = talloc_strdup(ctx,
                                 "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
@@ -129,6 +189,8 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                   "the Python syntax (?P<name>).\n", ctx->re_pattern));
 #endif
     }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Using re [%s].\n", ctx->re_pattern));
 
     ret = confdb_get_string(cdb, ctx, conf_path,
                             CONFDB_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
