@@ -1568,7 +1568,14 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
             ret = sysdb_add_user(sysdb, name, uid, gid, gecos,
                                  homedir, shell, attrs, cache_timeout, now);
         }
-        goto done;
+
+        /* Handle the result of sysdb_add_user */
+        if (ret == EOK) {
+            goto done;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not add user\n"));
+            goto fail;
+        }
     }
 
     /* the user exists, let's just replace attributes when set */
