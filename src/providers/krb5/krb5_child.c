@@ -923,38 +923,43 @@ done:
 
 }
 
-static int kerr_to_status(krb5_error_code kerr)
+static int kerr_handle_error(krb5_error_code kerr)
 {
-    int pam_status = PAM_SYSTEM_ERR;
-
-    if (kerr == 0) {
-        return PAM_SUCCESS;
-    }
+    int pam_status;
 
     KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
     switch (kerr) {
         case KRB5_LIBOS_CANTREADPWD:
-                pam_status = PAM_CRED_UNAVAIL;
-                break;
+            pam_status = PAM_CRED_UNAVAIL;
+            break;
         case KRB5_KDC_UNREACH:
-                pam_status = PAM_AUTHINFO_UNAVAIL;
-                break;
+            pam_status = PAM_AUTHINFO_UNAVAIL;
+            break;
         case KRB5KDC_ERR_KEY_EXP:
-                pam_status = PAM_NEW_AUTHTOK_REQD;
-                break;
+            pam_status = PAM_NEW_AUTHTOK_REQD;
+            break;
         case KRB5KRB_AP_ERR_BAD_INTEGRITY:
-                pam_status = PAM_AUTH_ERR;
-                break;
+            pam_status = PAM_AUTH_ERR;
+            break;
         case KRB5_PREAUTH_FAILED:
         case KRB5KDC_ERR_PREAUTH_FAILED:
-                pam_status = PAM_CRED_ERR;
-                break;
+            pam_status = PAM_CRED_ERR;
+            break;
         default:
-                pam_status = PAM_SYSTEM_ERR;
-                break;
+            pam_status = PAM_SYSTEM_ERR;
+            break;
     }
 
     return pam_status;
+}
+
+static int kerr_to_status(krb5_error_code kerr)
+{
+    if (kerr == 0) {
+        return PAM_SUCCESS;
+    }
+
+    return kerr_handle_error(kerr);
 }
 
 static errno_t changepw_child(int fd, struct krb5_req *kr)
@@ -1015,8 +1020,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
                                         changepw_princ,
                                         kr->options);
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        pam_status = kerr_to_status(kerr);
+        pam_status = kerr_handle_error(kerr);
         goto sendresponse;
     }
 
@@ -1104,12 +1108,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     talloc_zfree(newpass_str);
     memset(kr->pd->newauthtok, 0, kr->pd->newauthtok_size);
 
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        if (kerr == KRB5_KDC_UNREACH) {
-            pam_status = PAM_AUTHINFO_UNAVAIL;
-        }
-    }
+    pam_status = kerr_to_status(kerr);
 
 sendresponse:
     ret = sendresponse(fd, kerr, pam_status, kr);
@@ -1264,11 +1263,7 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
 
     kerr = krb5_get_renewed_creds(kr->ctx, kr->creds, kr->princ, ccache, NULL);
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        if (kerr == KRB5_KDC_UNREACH) {
-            status = PAM_AUTHINFO_UNAVAIL;
-            DEBUG(SSSDBG_TRACE_ALL, ("kdc unreachable for renewed creds.\n"));
-        }
+        status = kerr_handle_error(kerr);
         goto done;
     }
 
