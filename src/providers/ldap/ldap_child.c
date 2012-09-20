@@ -56,16 +56,16 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     size_t p = 0;
     uint32_t len;
 
-    DEBUG(7, ("total buffer size: %d\n", size));
+    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: %d\n", size));
 
     /* realm_str size and length */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
-    DEBUG(7, ("realm_str size: %d\n", len));
+    DEBUG(SSSDBG_TRACE_LIBS, ("realm_str size: %d\n", len));
     if (len) {
         if ((p + len ) > size) return EINVAL;
         ibuf->realm_str = talloc_strndup(ibuf, (char *)(buf + p), len);
-        DEBUG(7, ("got realm_str: %s\n", ibuf->realm_str));
+        DEBUG(SSSDBG_TRACE_LIBS, ("got realm_str: %s\n", ibuf->realm_str));
         if (ibuf->realm_str == NULL) return ENOMEM;
         p += len;
     }
@@ -73,11 +73,11 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     /* princ_str size and length */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
-    DEBUG(7, ("princ_str size: %d\n", len));
+    DEBUG(SSSDBG_TRACE_LIBS, ("princ_str size: %d\n", len));
     if (len) {
         if ((p + len ) > size) return EINVAL;
         ibuf->princ_str = talloc_strndup(ibuf, (char *)(buf + p), len);
-        DEBUG(7, ("got princ_str: %s\n", ibuf->princ_str));
+        DEBUG(SSSDBG_TRACE_LIBS, ("got princ_str: %s\n", ibuf->princ_str));
         if (ibuf->princ_str == NULL) return ENOMEM;
         p += len;
     }
@@ -85,18 +85,18 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     /* keytab_name size and length */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
-    DEBUG(7, ("keytab_name size: %d\n", len));
+    DEBUG(SSSDBG_TRACE_LIBS, ("keytab_name size: %d\n", len));
     if (len) {
         if ((p + len ) > size) return EINVAL;
         ibuf->keytab_name = talloc_strndup(ibuf, (char *)(buf + p), len);
-        DEBUG(7, ("got keytab_name: %s\n", ibuf->keytab_name));
+        DEBUG(SSSDBG_TRACE_LIBS, ("got keytab_name: %s\n", ibuf->keytab_name));
         if (ibuf->keytab_name == NULL) return ENOMEM;
         p += len;
     }
 
     /* ticket lifetime */
     SAFEALIGN_COPY_INT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
-    DEBUG(7, ("lifetime: %d\n", ibuf->lifetime));
+    DEBUG(SSSDBG_TRACE_LIBS, ("lifetime: %d\n", ibuf->lifetime));
 
     return EOK;
 }
@@ -167,14 +167,15 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = krb5_init_context(&context);
     if (krberr) {
-        DEBUG(2, ("Failed to init kerberos context\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to init kerberos context\n"));
         return krberr;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Kerberos context initialized\n"));
 
     if (!realm_str) {
         krberr = krb5_get_default_realm(context, &default_realm);
         if (krberr) {
-            DEBUG(2, ("Failed to get default realm name: %s\n",
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get default realm name: %s\n",
                       sss_krb5_get_error_message(context, krberr)));
             goto done;
         }
@@ -215,14 +216,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_TRACE_LIBS, ("got hostname: [%s]\n", hostname));
 
         ret = select_principal_from_keytab(memctx, hostname, realm_name,
-                                           keytab_name, &full_princ, NULL, NULL);
+                keytab_name, &full_princ, NULL, NULL);
         if (ret) goto done;
     }
     if (!full_princ) {
         krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
-    DEBUG(4, ("Principal name is: [%s]\n", full_princ));
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Principal name is: [%s]\n", full_princ));
 
     krberr = krb5_parse_name(context, full_princ, &kprinc);
     if (krberr) {
@@ -248,7 +249,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     /* Verify the keytab */
     ret = sss_krb5_verify_keytab_ex(full_princ, keytab_name, context, keytab);
     if (ret) {
-        DEBUG(2, ("Unable to verify principal is present in the keytab\n"));
+        DEBUG(SSSDBG_OP_FAILURE,
+                ("Unable to verify principal is present in the keytab\n"));
         krberr = KRB5_KT_IOERR;
         goto done;
     }
@@ -262,7 +264,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = krb5_cc_resolve(context, ccname, &ccache);
     if (krberr) {
-        DEBUG(2, ("Failed to set cache name: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to set cache name: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
         goto done;
     }
@@ -284,7 +286,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                         keytab, 0, NULL, &options);
-
     if (krberr) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to init credentials: %s\n",
@@ -296,26 +297,29 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                 sss_krb5_get_error_message(context, krberr));
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("credentials initialized\n"));
 
     /* Use updated principal if changed due to canonicalization. */
     krberr = krb5_cc_initialize(context, ccache, my_creds.client);
     if (krberr) {
-        DEBUG(2, ("Failed to init ccache: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to init ccache: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
         goto done;
     }
 
     krberr = krb5_cc_store_cred(context, ccache, &my_creds);
     if (krberr) {
-        DEBUG(2, ("Failed to store creds: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to store creds: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("credentials stored\n"));
 
 #ifdef HAVE_KRB5_GET_TIME_OFFSETS
-    krberr = krb5_get_time_offsets(context, &kdc_time_offset, &kdc_time_offset_usec);
+    krberr = krb5_get_time_offsets(context, &kdc_time_offset,
+            &kdc_time_offset_usec);
     if (krberr) {
-        DEBUG(2, ("Failed to get KDC time offset: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get KDC time offset: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
         kdc_time_offset = 0;
     } else {
@@ -323,6 +327,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
             kdc_time_offset++;
         }
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Got KDC time offset\n"));
 #else
     /* If we don't have this function, just assume no offset */
     kdc_time_offset = 0;
@@ -355,12 +360,15 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
     r->buf = NULL;
     r->size = 0;
 
+    DEBUG(SSSDBG_TRACE_FUNC, ("Building response for result [%d]\n", kerr));
+
     if (kerr == 0) {
         ret = pack_buffer(r, EOK, kerr, ccname, expire_time);
     } else {
         krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
         if (krb5_msg == NULL) {
-            DEBUG(1, ("sss_krb5_get_error_message failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                    ("sss_krb5_get_error_message failed.\n"));
             return ENOMEM;
         }
 
@@ -459,6 +467,8 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("context initialized\n"));
+
     errno = 0;
     len = sss_atomic_read_s(STDIN_FILENO, buf, IN_BUF_SIZE);
     if (len == -1) {
@@ -475,18 +485,20 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("getting TGT sync\n"));
     kerr = ldap_child_get_tgt_sync(main_ctx,
                                    ibuf->realm_str, ibuf->princ_str,
                                    ibuf->keytab_name, ibuf->lifetime,
                                    &ccname, &expire_time);
     if (kerr != EOK) {
-        DEBUG(1, ("ldap_child_get_tgt_sync failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("ldap_child_get_tgt_sync failed.\n"));
         /* Do not return, must report failure */
     }
 
     ret = prepare_response(main_ctx, ccname, expire_time, kerr, &resp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("prepare_response failed. [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("prepare_response failed. [%d][%s].\n",
+                    ret, strerror(ret)));
         goto fail;
     }
 
@@ -494,7 +506,8 @@ int main(int argc, const char *argv[])
     written = sss_atomic_write_s(STDOUT_FILENO, resp->buf, resp->size);
     if (written == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("write failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("write failed [%d][%s].\n", ret,
+                    strerror(ret)));
         goto fail;
     }
 
