@@ -223,6 +223,12 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                     goto fail;
                 }
                 for (i = 0; vals[i]; i++) {
+                    if (vals[i]->bv_len == 0) {
+                        DEBUG(SSSDBG_MINOR_FAILURE,
+                              ("Value of attribute [%s] is empty. "
+                               "Skipping this value.\n", str));
+                        continue;
+                    }
                     if (base64) {
                         v.data = (uint8_t *)sss_base64_encode(attrs,
                                 (uint8_t *)vals[i]->bv_val, vals[i]->bv_len);
