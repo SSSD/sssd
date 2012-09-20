@@ -402,12 +402,21 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
         return EIO;
     }
 
+    reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
+
+    /* return an error if corresponding backend target is not configured */
+    if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Undefined backend target.\n"));
+        err_maj = DP_ERR_FATAL;
+        err_min = ENODEV;
+        err_msg = "Subdomains back end target is not configured";
+        goto immediate;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
           domain_hint == NULL ? "no hint": domain_hint ));
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
 
     /* If we are offline return immediately
      */
@@ -450,16 +459,6 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
 
     be_req->req_data = req;
 
-    /* return an error if corresponding backend target is not configured */
-    if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Undefined backend target.\n"));
-        err_maj = DP_ERR_FATAL;
-        err_min = ENODEV;
-        err_msg = "Subdomains back end target is not configured";
-        goto immediate;
-    }
-
-
     ret = be_file_request(becli->bectx,
                           be_req,
                           becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops->handler);
@@ -489,8 +488,10 @@ immediate:
             return EIO;
         }
 
-        DEBUG(SSSDBG_TRACE_LIBS, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
+        if (!(err_maj == DP_ERR_FATAL && err_min == ENODEV)) {
+            DEBUG(SSSDBG_TRACE_LIBS, ("Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg));
+        }
 
         /* send reply back */
         sbus_conn_send_reply(conn, reply);
