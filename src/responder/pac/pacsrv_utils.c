@@ -225,7 +225,6 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
     struct ldb_message **msgs;
     TALLOC_CTX *tmp_ctx = NULL;
     struct dom_sid *sid = NULL;
-    char *dom_name;
     enum idmap_error_code err;
     size_t range_count;
     struct range_info **range_list;
@@ -235,10 +234,8 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
     if (pac_ctx->my_dom_sid == NULL || pac_ctx->range_map == NULL) {
         if (dom->parent != NULL) {
             sysdb = dom->parent->sysdb;
-            dom_name = dom->parent->name;
         } else {
             sysdb = dom->sysdb;
-            dom_name = dom->name;
         }
 
         if (sysdb == NULL) {
@@ -254,7 +251,7 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
             goto done;
         }
 
-        basedn = sysdb_domain_dn(sysdb, tmp_ctx, dom_name);
+        basedn = sysdb_domain_dn(sysdb, tmp_ctx);
         if (basedn == NULL) {
             ret = ENOMEM;
             goto done;

@@ -61,7 +61,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
         goto done;
     }
 
-    base_dn = sysdb_domain_dn(ctx, tmpctx, domain->name);
+    base_dn = sysdb_domain_dn(ctx, tmpctx);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;

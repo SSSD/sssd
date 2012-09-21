@@ -423,7 +423,7 @@ static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
     int ret;
     int i;
 
-    dn = sysdb_group_dn(sysdb, mem_ctx, domain->name, name);
+    dn = sysdb_group_dn(sysdb, mem_ctx, name);
     if (!dn) {
         return ENOMEM;
     }

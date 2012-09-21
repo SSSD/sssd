@@ -319,22 +319,19 @@ int sysdb_error_to_errno(int ldberr);
 errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, void *mem_ctx,
                       const char *_dn, char **_name, char **_val);
 struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                             const char *domain, const char *name);
+                             const char *name);
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                              const char *domain, const char *name);
+                              const char *name);
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                                 const char *domain, const char *name);
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                                      const char *domain);
+                                 const char *name);
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, void *mem_ctx);
 errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, void *mem_ctx,
                             const char *dn_str, char **name);
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                               const char *domain);
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, void *mem_ctx);
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                                const char *domain, const char *object_name,
-                                const char *subtree_name);
+                               const char *object_name,
+                               const char *subtree_name);
 struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
-                                       const char *domain,
                                        const char *subtree_name);
 
 char *sysdb_user_strdn(TALLOC_CTX *mem_ctx,

@@ -501,7 +501,6 @@ static void hbac_sysdb_save(struct tevent_req *req)
          * are also denied.
          */
         base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx,
-                                          domain->name,
                                           HBAC_RULES_SUBDIR);
         if (base_dn == NULL) {
             talloc_free(tmp_ctx);

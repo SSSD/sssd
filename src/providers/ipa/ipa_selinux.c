@@ -255,7 +255,6 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     size_t count;
     struct ldb_message **msgs;
     struct sysdb_attrs **hosts;
-    struct sss_domain_info *domain;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -275,9 +274,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     access_name = state->be_req->be_ctx->bet_info[BET_ACCESS].mod_name;
     selinux_name = state->be_req->be_ctx->bet_info[BET_SELINUX].mod_name;
     if (strcasecmp(access_name, selinux_name) == 0) {
-        domain = sysdb_ctx_get_domain(bctx->sysdb);
-        host_dn = sysdb_custom_dn(bctx->sysdb, state, domain->name,
-                                  state->hostname, HBAC_HOSTS_SUBDIR);
+        host_dn = sysdb_custom_dn(bctx->sysdb, state, state->hostname, HBAC_HOSTS_SUBDIR);
         if (host_dn == NULL) {
             ret = ENOMEM;
             goto fail;

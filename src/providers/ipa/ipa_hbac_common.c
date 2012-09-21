@@ -44,7 +44,7 @@ ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
     }
 
     if (delete_subdir) {
-        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain->name, subdir);
+        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, subdir);
         if (base_dn == NULL) {
             ret = ENOMEM;
             goto done;
@@ -617,8 +617,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
 
     svc->name = servicename;
 
-    svc_dn = sysdb_custom_dn(sysdb, tmp_ctx, domain->name,
-                             svc->name, HBAC_SERVICES_SUBDIR);
+    svc_dn = sysdb_custom_dn(sysdb, tmp_ctx, svc->name, HBAC_SERVICES_SUBDIR);
     if (svc_dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -725,8 +724,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    host_dn = sysdb_custom_dn(sysdb, tmp_ctx, domain->name,
-                              host->name, HBAC_HOSTS_SUBDIR);
+    host_dn = sysdb_custom_dn(sysdb, tmp_ctx, host->name, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         ret = ENOMEM;
         goto done;

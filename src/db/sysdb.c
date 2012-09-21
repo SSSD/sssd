@@ -93,7 +93,6 @@ errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
 
 struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
                                        TALLOC_CTX *mem_ctx,
-                                       const char *domain,
                                        const char *subtree_name)
 {
     errno_t ret;
@@ -111,7 +110,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
     }
 
     dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
-                        clean_subtree, domain);
+                        clean_subtree, sysdb->domain->name);
     if (dn) {
         talloc_steal(mem_ctx, dn);
     }
@@ -119,9 +118,10 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
 
     return dn;
 }
+
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                                const char *domain, const char *object_name,
-                                const char *subtree_name)
+                               const char *object_name,
+                               const char *subtree_name)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
@@ -145,7 +145,7 @@ struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM, clean_name,
-                        clean_subtree, domain);
+                        clean_subtree, sysdb->domain->name);
 
 done:
     talloc_free(tmp_ctx);
@@ -153,7 +153,7 @@ done:
 }
 
 struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                             const char *domain, const char *name)
+                             const char *name)
 {
     errno_t ret;
     char *clean_name;
@@ -165,14 +165,14 @@ struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_USER,
-                        clean_name, domain);
+                        clean_name, sysdb->domain->name);
     talloc_free(clean_name);
 
     return dn;
 }
 
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                              const char *domain, const char *name)
+                              const char *name)
 {
     errno_t ret;
     char *clean_name;
@@ -184,14 +184,14 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_GROUP,
-                        clean_name, domain);
+                        clean_name, sysdb->domain->name);
     talloc_free(clean_name);
 
     return dn;
 }
 
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                                 const char *domain, const char *name)
+                                 const char *name)
 {
     errno_t ret;
     char *clean_name;
@@ -203,16 +203,16 @@ struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_NETGROUP,
-                        clean_name, domain);
+                        clean_name, sysdb->domain->name);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                                 const char *domain)
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
 {
-    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_NETGROUP_BASE, domain);
+    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_NETGROUP_BASE,
+                          sysdb->domain->name);
 }
 
 errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
@@ -279,10 +279,9 @@ errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     return sysdb_get_rdn(sysdb, mem_ctx, _dn, NULL, _name);
 }
 
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                              const char *domain)
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
 {
-    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain);
+    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_DOM_BASE, sysdb->domain->name);
 }
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *sysdb)

@@ -545,8 +545,7 @@ errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb)
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, sysdb->domain->name,
-                                      SUDORULE_SUBDIR);
+    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, SUDORULE_SUBDIR);
     NULL_CHECK(base_dn, ret, done);
 
     ret = sysdb_delete_recursive(sysdb, base_dn, true);
