@@ -35,16 +35,6 @@
 #define SYSDB_AUTOFS_ENTRY_KEY    "automountKey"
 #define SYSDB_AUTOFS_ENTRY_VALUE  "automountInformation"
 
-struct ldb_dn *
-sysdb_autofsmap_dn(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
-                   const char *map_name);
-
-struct ldb_dn *
-sysdb_autofsentry_dn(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
-                     const char *entry_name);
-
 errno_t
 sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
                      const char *name,
@@ -65,9 +55,14 @@ sysdb_delete_autofsmap(struct sysdb_ctx *sysdb_ctx,
 
 errno_t
 sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
+                       const char *map,
                        const char *key,
                        const char *value,
                        struct sysdb_attrs *attrs);
+errno_t
+sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
+                      const char *map,
+                      const char *key);
 
 errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
@@ -75,15 +70,6 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
                             const char *mapname,
                             size_t *_count,
                             struct ldb_message ***_entries);
-
-errno_t sysdb_map_entry_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                             const char *entry_dn, char **_name);
-
-errno_t
-sysdb_autofs_map_update_members(struct sysdb_ctx *sysdb,
-                                const char *mapname,
-                                const char *const *add_entries,
-                                const char *const *del_entries);
 
 errno_t
 sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,

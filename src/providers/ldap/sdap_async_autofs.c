@@ -28,6 +28,11 @@
 #include "db/sysdb_autofs.h"
 #include "providers/ldap/ldap_common.h"
 
+enum autofs_map_op {
+    AUTOFS_MAP_OP_ADD,
+    AUTOFS_MAP_OP_DEL
+};
+
 /* ====== Utility functions ====== */
 static const char *
 get_autofs_map_name(struct sysdb_attrs *map, struct sdap_options *opts)
@@ -60,9 +65,11 @@ get_autofs_entry_key(struct sysdb_attrs *entry, struct sdap_options *opts)
 }
 
 static errno_t
-save_autofs_entry(struct sysdb_ctx *sysdb,
-                  struct sdap_options *opts,
-                  struct sysdb_attrs *entry)
+mod_autofs_entry(struct sysdb_ctx *sysdb,
+                 const char *map,
+                 struct sdap_options *opts,
+                 struct sysdb_attrs *entry,
+                 enum autofs_map_op mod_op)
 {
     const char *key;
     const char *value;
@@ -79,20 +86,27 @@ save_autofs_entry(struct sysdb_ctx *sysdb,
     if (el->num_values == 0) return EINVAL;
     else value = (const char *)el->values[0].data;
 
-    ret = sysdb_save_autofsentry(sysdb, key, value, NULL);
-    if (ret != EOK) {
-        return ret;
+    switch (mod_op) {
+    case AUTOFS_MAP_OP_ADD:
+        ret = sysdb_save_autofsentry(sysdb, map, key, value, NULL);
+        break;
+    case AUTOFS_MAP_OP_DEL:
+        ret = sysdb_del_autofsentry(sysdb, map, key);
+        break;
     }
 
-    return EOK;
+    return ret;
 }
 
 static errno_t
-save_autofs_entries(struct sysdb_ctx *sysdb,
-                    struct sdap_options *opts,
-                    char **add_entries,
-                    struct sysdb_attrs **entries,
-                    size_t num_entries)
+mod_autofs_entries(struct sysdb_ctx *sysdb,
+                   struct sdap_options *opts,
+                   const char *map,
+                   char **mod_entries,
+                   struct sysdb_attrs **entries,
+                   size_t num_entries,
+                   enum autofs_map_op mod_op)
+
 {
     errno_t ret, tret;
     const char *key;
@@ -108,8 +122,12 @@ save_autofs_entries(struct sysdb_ctx *sysdb,
     }
     in_transaction = true;
 
-    for (i=0; add_entries[i]; i++) {
+    /* Loop through entry names.. */
+    for (i=0; mod_entries[i]; i++) {
         for (j=0; j < num_entries; j++) {
+            /* get a pointer to sysdb_attrs of an entry that is not
+             * cached, skip names that are not in **entries
+             */
             key = get_autofs_entry_key(entries[j], opts);
             if (!key) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
@@ -117,14 +135,14 @@ save_autofs_entries(struct sysdb_ctx *sysdb,
                 return EINVAL;
             }
 
-            if (strcmp(add_entries[i], key)) {
+            if (strcmp(mod_entries[i], key)) {
                 continue;
             }
 
-            ret = save_autofs_entry(sysdb, opts, entries[j]);
+            ret = mod_autofs_entry(sysdb, map, opts, entries[j], mod_op);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                    ("Cannot save autofs entry [%d]: %s. Ignoring.\n",
+                    ("Cannot modify autofs entry [%d]: %s. Ignoring.\n",
                     ret, strerror(ret)));
                 continue;
             }
@@ -151,6 +169,30 @@ done:
         }
     }
     return ret;
+}
+
+static errno_t
+save_autofs_entries(struct sysdb_ctx *sysdb,
+                    struct sdap_options *opts,
+                    const char *map,
+                    char **add_entries,
+                    struct sysdb_attrs **entries,
+                    size_t num_entries)
+{
+    return mod_autofs_entries(sysdb, opts, map, add_entries,
+                              entries, num_entries, AUTOFS_MAP_OP_ADD);
+}
+
+static errno_t
+del_autofs_entries(struct sysdb_ctx *sysdb,
+                   struct sdap_options *opts,
+                   const char *map,
+                   char **add_entries,
+                   struct sysdb_attrs **entries,
+                   size_t num_entries)
+{
+    return mod_autofs_entries(sysdb, opts, map, add_entries,
+                              entries, num_entries, AUTOFS_MAP_OP_DEL);
 }
 
 static errno_t
@@ -751,8 +793,9 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     errno_t ret, tret;
     bool in_transaction = false;
     TALLOC_CTX *tmp_ctx;
-    struct ldb_message *sysdb_map;
-    struct ldb_message_element *map_members = NULL;
+    struct ldb_message **entries = NULL;
+    size_t count;
+    const char *val;
     char **sysdb_entrylist;
     char **ldap_entrylist;
     char **add_entries;
@@ -782,8 +825,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         }
     }
 
-    ret = sysdb_get_map_byname(tmp_ctx, state->sysdb, state->mapname,
-                               &sysdb_map);
+    ret = sysdb_autofs_entries_by_map(tmp_ctx, state->sysdb, state->mapname,
+                                      &count, &entries);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("cache lookup for the map failed [%d]: %s\n",
@@ -791,30 +834,32 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         goto done;
     }
 
-    if (sysdb_map) {
-        map_members = ldb_msg_find_element(sysdb_map, SYSDB_MEMBER);
-    }
-
-    if (!map_members || map_members->num_values == 0) {
+    if (count == 0) {
         /* No map members for this map in sysdb currently */
         sysdb_entrylist = NULL;
     } else {
-        sysdb_entrylist = talloc_array(state, char *, map_members->num_values+1);
+        sysdb_entrylist = talloc_array(state, char *, count+1);
         if (!sysdb_entrylist) {
             ret = ENOMEM;
             goto done;
         }
 
         /* Get a list of the map members by name only */
-        for (i=0; i < map_members->num_values; i++) {
-            ret = sysdb_map_entry_name(sysdb_entrylist, state->sysdb,
-                                      (const char *) map_members->values[i].data,
-                                      &sysdb_entrylist[i]);
-            if (ret != EOK) {
+        for (i=0; i < count; i++) {
+            val = ldb_msg_find_attr_as_string(entries[i],
+                                              SYSDB_AUTOFS_ENTRY_KEY, NULL);
+            if (!val) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("An entry with no value?\n"));
+                continue;
+            }
+
+            sysdb_entrylist[i] = talloc_strdup(sysdb_entrylist, val);
+            if (!sysdb_entrylist[i]) {
+                ret = ENOMEM;
                 goto done;
             }
         }
-        sysdb_entrylist[map_members->num_values] = NULL;
+        sysdb_entrylist[count] = NULL;
     }
 
     /* Find the differences between the sysdb and LDAP lists
@@ -845,8 +890,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     /* Create entries that don't exist yet */
     if (add_entries && add_entries[0]) {
         ret = save_autofs_entries(state->sysdb, state->opts,
-                                  add_entries, state->entries,
-                                  state->entries_count);
+                                  state->mapname, add_entries,
+                                  state->entries, state->entries_count);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Cannot save autofs entries [%d]: %s\n",
@@ -855,16 +900,19 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         }
     }
 
-    /* Save the memberships */
-    DEBUG(SSSDBG_TRACE_FUNC, ("Updating memberships for %s\n", state->mapname));
-    ret = sysdb_autofs_map_update_members(state->sysdb, state->mapname,
-                                          (const char *const *) add_entries,
-                                          (const char *const *) del_entries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Membership update failed [%d]: %s\n",
-              ret, strerror(ret)));
-        goto done;
+    /* Delete entries that don't exist anymore */
+    if (del_entries && del_entries[0]) {
+        ret = del_autofs_entries(state->sysdb, state->opts,
+                                 state->mapname, del_entries,
+                                 state->entries, state->entries_count);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Cannot delete autofs entries [%d]: %s\n",
+                  ret, strerror(ret)));
+            goto done;
+        }
     }
+
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {

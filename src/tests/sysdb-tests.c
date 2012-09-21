@@ -3704,12 +3704,9 @@ START_TEST(test_autofs_store_entry_in_map)
     errno_t ret;
     int ii;
     const int limit = 10;
-    const char *add_entries[limit+1];
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
-
-    add_entries[limit] = NULL;
 
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
@@ -3722,17 +3719,10 @@ START_TEST(test_autofs_store_entry_in_map)
         autofsval = talloc_asprintf(test_ctx, "testserver:/testval%d", ii);
         fail_if(autofsval == NULL, "Out of memory\n");
 
-        ret = sysdb_save_autofsentry(test_ctx->sysdb, autofskey,
+        ret = sysdb_save_autofsentry(test_ctx->sysdb, autofsmapname, autofskey,
                                      autofsval, NULL);
         fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
-
-        add_entries[ii] = autofskey;
     }
-
-    ret = sysdb_autofs_map_update_members(test_ctx->sysdb, autofsmapname,
-                                          (const char *const *) add_entries,
-                                          NULL);
-    fail_if(ret != EOK, "Could not add entries to map %s\n");
 
     talloc_free(test_ctx);
 }
@@ -3783,18 +3773,13 @@ START_TEST(test_autofs_key_duplicate)
     autofsval = talloc_asprintf(test_ctx, "testserver:/testval%d", _i);
     fail_if(autofsval == NULL, "Out of memory\n");
 
-    ret = sysdb_save_autofsentry(test_ctx->sysdb, autofskey,
+    ret = sysdb_save_autofsentry(test_ctx->sysdb, autofsmapname, autofskey,
                                  autofsval, NULL);
     fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
     talloc_free(test_ctx);
 }
 END_TEST
 
-#if 0
-/*
- * Disabled due to
- * https://fedorahosted.org/sssd/ticket/1506
- */
 START_TEST(test_autofs_get_duplicate_keys)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -3805,6 +3790,8 @@ START_TEST(test_autofs_get_duplicate_keys)
                             NULL };
     size_t count;
     struct ldb_message **msgs;
+    struct ldb_dn *dn;
+    const char *filter;
     const int expected = 10;
 
     ret = setup_sysdb_tests(&test_ctx);
@@ -3813,18 +3800,23 @@ START_TEST(test_autofs_get_duplicate_keys)
     autofskey = talloc_asprintf(test_ctx, "testkey");
     fail_if(autofskey == NULL, "Out of memory\n");
 
-    ret = sysdb_search_custom_by_name(test_ctx, test_ctx->sysdb,
-                                      autofskey, AUTOFS_ENTRY_SUBDIR,
-                                      attrs, &count, &msgs);
-    fail_if(ret != EOK, "sysdb search failed\n");
-    fail_if(count != expected, "Expected %d maps with name %s, found %d\n",
-            expected, autofskey, count);
+    filter = talloc_asprintf(test_ctx, "(&(objectclass=%s)(%s=%s))",
+                             SYSDB_AUTOFS_ENTRY_OC, SYSDB_NAME, autofskey);
+    fail_if(filter == NULL, "Out of memory\n");
+
+    dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        AUTOFS_MAP_SUBDIR, test_ctx->sysdb->domain->name);
+    fail_if(dn == NULL, "Out of memory\n");
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb, dn, LDB_SCOPE_SUBTREE,
+                             filter, attrs, &count, &msgs);
+    fail_if(count != expected, "Found %d entries with name %s, expected %d\n",
+            count, autofskey, expected);
     talloc_free(test_ctx);
 }
 END_TEST
-#endif
 
-#endif
+#endif /* BUILD_AUTOFS */
 
 Suite *create_sysdb_suite(void)
 {
@@ -4068,13 +4060,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_subdomain, test_autofs_key_duplicate,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-#if 0
-/*
- * Disabled due to
- * https://fedorahosted.org/sssd/ticket/1506
- */
     tcase_add_test(tc_subdomain, test_autofs_get_duplicate_keys);
-#endif
 
     suite_add_tcase(s, tc_autofs);
 #endif

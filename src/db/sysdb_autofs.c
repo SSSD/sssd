@@ -24,7 +24,9 @@
 #include "db/sysdb_private.h"
 #include "db/sysdb_autofs.h"
 
-struct ldb_dn *
+#define SYSDB_TMPL_AUTOFS_ENTRY SYSDB_NAME"=%s,"SYSDB_TMPL_CUSTOM
+
+static struct ldb_dn *
 sysdb_autofsmap_dn(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
                    const char *map_name)
@@ -33,29 +35,27 @@ sysdb_autofsmap_dn(TALLOC_CTX *mem_ctx,
                            map_name, AUTOFS_MAP_SUBDIR);
 }
 
-struct ldb_dn *
+static struct ldb_dn *
 sysdb_autofsentry_dn(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
+                     const char *map_name,
                      const char *entry_name)
 {
-    return sysdb_custom_dn(sysdb, mem_ctx, sysdb->domain->name,
-                           entry_name, AUTOFS_ENTRY_SUBDIR);
-}
-
-static char *
-sysdb_autofsmap_strdn(TALLOC_CTX *mem_ctx,
-                      struct sysdb_ctx *sysdb,
-                      const char *map_name)
-{
+    errno_t ret;
+    char *clean_name;
     struct ldb_dn *dn;
-    char *strdn;
 
-    dn = sysdb_autofsmap_dn(mem_ctx, sysdb, map_name);
-    if (!dn) return NULL;
+    ret = sysdb_dn_sanitize(NULL, entry_name, &clean_name);
+    if (ret != EOK) {
+        return NULL;
+    }
 
-    strdn = talloc_strdup(mem_ctx, ldb_dn_get_linearized(dn));
-    talloc_free(dn);
-    return strdn;
+    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_AUTOFS_ENTRY,
+                        clean_name, map_name, AUTOFS_MAP_SUBDIR,
+                        sysdb->domain->name);
+    talloc_free(clean_name);
+
+    return dn;
 }
 
 errno_t
@@ -208,12 +208,15 @@ done:
 
 errno_t
 sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
+                       const char *map,
                        const char *key,
                        const char *value,
                        struct sysdb_attrs *attrs)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct ldb_dn *dn;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Adding autofs entry [%s] - [%s]\n", key, value));
@@ -260,16 +263,44 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
         goto done;
     }
 
-    ret = sysdb_store_custom(sysdb_ctx, key, AUTOFS_ENTRY_SUBDIR, attrs);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
-              ret, strerror(ret)));
+    dn = sysdb_autofsentry_dn(tmp_ctx, sysdb_ctx, map, key);
+    if (!dn) {
+        ret = ENOMEM;
         goto done;
     }
 
-    ret = EOK;
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = dn;
+    msg->elements = attrs->a;
+    msg->num_elements = attrs->num;
+
+    ret = ldb_add(sysdb_ctx->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
 done:
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
+                      const char *map,
+                      const char *key)
+{
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    dn = sysdb_autofsentry_dn(sysdb_ctx, sysdb_ctx, map, key);
+    if (!dn) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_delete_entry(sysdb_ctx, dn, true);
+    talloc_free(dn);
     return ret;
 }
 
@@ -288,7 +319,7 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
                             NULL };
     size_t count;
     struct ldb_message **msgs;
-    char *mapdn;
+    struct ldb_dn *mapdn;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Getting entries for map %s\n", mapname));
 
@@ -297,21 +328,21 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    mapdn = sysdb_autofsmap_strdn(tmp_ctx, sysdb, mapname);
+    mapdn = sysdb_autofsmap_dn(tmp_ctx, sysdb, mapname);
     if (!mapdn) {
         ret = ENOMEM;
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(&(objectclass=%s)(%s=%s))",
-                             SYSDB_AUTOFS_ENTRY_OC, SYSDB_MEMBEROF, mapdn);
+    filter = talloc_asprintf(tmp_ctx, "(objectclass=%s)",
+                             SYSDB_AUTOFS_ENTRY_OC);
     if (!filter) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter, AUTOFS_ENTRY_SUBDIR,
-                              attrs, &count, &msgs);
+    ret = sysdb_search_entry(tmp_ctx, sysdb, mapdn, LDB_SCOPE_ONELEVEL,
+                             filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb search failed: %d\n", ret));
         goto done;
@@ -328,85 +359,6 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, ("found %d entries for map %s\n",
                                    count, mapname));
 done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-errno_t
-sysdb_map_entry_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                     const char *entry_dn, char **_name)
-{
-    return sysdb_get_rdn(sysdb, mem_ctx, entry_dn, NULL, _name);
-}
-
-errno_t
-sysdb_autofs_map_update_members(struct sysdb_ctx *sysdb,
-                                const char *mapname,
-                                const char *const *add_entries,
-                                const char *const *del_entries)
-{
-    errno_t ret, sret;
-    int i;
-    bool in_transaction = false;
-
-    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
-    if(!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to start update transaction\n"));
-        goto done;
-    }
-
-    in_transaction = true;
-
-    if (add_entries) {
-        /* Add the all te add_entries to the map */
-        for (i = 0; add_entries[i]; i++) {
-            ret = sysdb_add_group_member(sysdb, mapname, add_entries[i],
-                                         SYSDB_MEMBER_AUTOFSENTRY);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not add entry [%s] to map [%s]. "
-                       "Skipping.\n", add_entries[i], mapname));
-                /* Continue on, we should try to finish the rest */
-            }
-        }
-    }
-
-    if (del_entries) {
-        /* Add the all te del_entries to the map */
-        for (i = 0; del_entries[i]; i++) {
-            ret = sysdb_remove_group_member(sysdb, mapname, del_entries[i],
-                                            SYSDB_MEMBER_AUTOFSENTRY);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not del entry [%s] to map [%s]. "
-                       "Skipping.\n", del_entries[i], mapname));
-                /* Continue on, we should try to finish the rest */
-            }
-        }
-    }
-
-    ret = sysdb_transaction_commit(sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
-        goto done;
-    }
-
-    in_transaction = false;
-    ret = EOK;
-
-done:
-    if (in_transaction) {
-        sret = sysdb_transaction_cancel(sysdb);
-        if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
-        }
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
