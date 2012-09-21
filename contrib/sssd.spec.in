@@ -370,6 +370,8 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,root,root) %dir %{dbpath}
 %attr(755,root,root) %dir %{mcpath}
+%ghost %attr(0644,root,root) %verify(not md5 size mtime) %{mcpath}/passwd
+%ghost %attr(0644,root,root) %verify(not md5 size mtime) %{mcpath}/group
 %attr(755,root,root) %dir %{pipepath}
 %attr(755,root,root) %dir %{pubconfpath}
 %attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
