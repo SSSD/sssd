@@ -157,11 +157,11 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
         } else {
             if (dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_AUTORID_COMPAT)) {
                 /* In autorid compatibility mode, we MUST have a slice 0 */
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Autorid compatibility mode selected, but %s is not set\n",
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("WARNING: Autorid compatibility mode selected, "
+                       "but %s is not set. UID/GID values may differ "
+                       "between clients.\n",
                        idmap_ctx->id_ctx->opts->basic[SDAP_IDMAP_DEFAULT_DOMAIN_SID].opt_name));
-                ret = EINVAL;
-                goto done;
             }
             /* Otherwise, we'll just fall back to hash values as they are seen */
         }
