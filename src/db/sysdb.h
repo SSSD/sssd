@@ -316,22 +316,22 @@ errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
 int sysdb_error_to_errno(int ldberr);
 
 /* DNs related helper functions */
-errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, void *mem_ctx,
+errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                       const char *_dn, char **_name, char **_val);
-struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
+struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                              const char *name);
-struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
+struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                               const char *name);
-struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
+struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                                  const char *name);
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, void *mem_ctx);
-errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, void *mem_ctx,
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
+errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                             const char *dn_str, char **name);
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, void *mem_ctx);
-struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
+struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                                const char *object_name,
                                const char *subtree_name);
-struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, void *mem_ctx,
+struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                                        const char *subtree_name);
 
 char *sysdb_user_strdn(TALLOC_CTX *mem_ctx,
@@ -830,7 +830,7 @@ errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
                                struct ldb_result *res,
                                struct sysdb_netgroup_ctx ***entries);
 
-errno_t sysdb_dn_sanitize(void *mem_ctx, const char *input,
+errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
                           char **sanitized);
 
 errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
