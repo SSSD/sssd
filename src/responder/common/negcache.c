@@ -596,7 +596,9 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         filter_set = true;
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
-            ret = sss_parse_name_for_domains(tmpctx, domain_list, filter_list[i],
+            ret = sss_parse_name_for_domains(tmpctx, domain_list,
+                                             rctx->default_domain,
+                                             filter_list[i],
                                              &domainname, &name);
             if (ret != EOK) {
                 DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
@@ -641,7 +643,8 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     else if (ret != EOK) goto done;
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
-        ret = sss_parse_name_for_domains(tmpctx, domain_list, filter_list[i],
+        ret = sss_parse_name_for_domains(tmpctx, domain_list,
+                                         rctx->default_domain, filter_list[i],
                                          &domainname, &name);
         if (ret != EOK) {
             DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
@@ -738,7 +741,8 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     else if (ret != EOK) goto done;
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
-        ret = sss_parse_name_for_domains(tmpctx, domain_list, filter_list[i],
+        ret = sss_parse_name_for_domains(tmpctx, domain_list,
+                                         rctx->default_domain, filter_list[i],
                                          &domainname, &name);
         if (ret != EOK) {
             DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",

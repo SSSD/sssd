@@ -101,6 +101,8 @@ struct resp_ctx {
     size_t allowed_uids_count;
     uid_t *allowed_uids;
 
+    char *default_domain;
+
     void *pvt_ctx;
 };
 
@@ -160,6 +162,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
+                               const char *default_domain,
                                const char *orig, char **domain, char **name);
 
 int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,

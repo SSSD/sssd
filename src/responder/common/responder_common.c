@@ -783,6 +783,16 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    ret = confdb_get_string(rctx->cdb, rctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_DEFAULT_DOMAIN, NULL,
+                            &rctx->default_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannnot get the default domain [%d]: %s\n",
+               ret, strerror(ret)));
+        return ret;
+    }
+
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, rctx,
                            &rctx->mon_conn);

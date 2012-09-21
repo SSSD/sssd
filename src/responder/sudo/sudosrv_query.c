@@ -312,7 +312,8 @@ errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
 
     /* parse username */
 
-    ret = sss_parse_name_for_domains(tmp_ctx, rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(tmp_ctx, rctx->domains,
+                                     rctx->default_domain, rawname,
                                      &domainname, &username);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid name received [%s]\n", rawname));

@@ -310,6 +310,7 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name (
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
+                               const char *default_domain,
                                const char *orig, char **domain, char **name)
 {
     struct sss_domain_info *dom, *match;
@@ -319,7 +320,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
     char *candidate_domain = NULL;
     bool name_mismatch = false;
     TALLOC_CTX *tmp_ctx;
-    int code;
+    int ret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL)
@@ -329,8 +330,8 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
     rdomain = NULL;
 
     for (dom = domains; dom != NULL; dom = dom->next) {
-        code = sss_parse_name(tmp_ctx, dom->names, orig, &dmatch, &nmatch);
-        if (code == EOK) {
+        ret = sss_parse_name(tmp_ctx, dom->names, orig, &dmatch, &nmatch);
+        if (ret == EOK) {
             /*
              * If the name matched without the domain part, make note of it.
              * All the other domain expressions must agree on the domain-less
@@ -363,28 +364,55 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
             }
 
         /* EINVAL is returned when name doesn't match */
-        } else if (code != EINVAL) {
-            talloc_free(tmp_ctx);
-            return code;
+        } else if (ret != EINVAL) {
+            goto done;
         }
     }
 
     if (rdomain == NULL && rname == NULL) {
         if (candidate_name && !name_mismatch) {
-            DEBUG(SSSDBG_FUNC_DATA,
-                  ("name '%s' matched without domain, user is %s\n", orig, nmatch));
+            DEBUG(SSSDBG_FUNC_DATA, ("name '%s' matched without domain, " \
+                                     "user is %s\n", orig, nmatch));
             rdomain = NULL;
+            if (default_domain != NULL) {
+                rdomain = talloc_strdup(tmp_ctx, default_domain);
+                if (default_domain == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                    ret = ENOMEM;
+                    goto done;
+                }
+
+                for (dom = domains; dom != NULL; dom = dom->next) {
+                    match = match_any_domain_or_subdomain_name(dom, rdomain);
+                    if (match != NULL) {
+                        break;
+                    }
+                }
+                if (match == NULL) {
+                    DEBUG(SSSDBG_FUNC_DATA, ("default domain [%s] is currently " \
+                                             "not know, trying to look it up.\n",
+                                             rdomain));
+                    *domain = talloc_steal(memctx, rdomain);
+                    ret = EAGAIN;
+                    goto done;
+                }
+            }
+
+            DEBUG(SSSDBG_FUNC_DATA, ("using default domain [%s]\n", rdomain));
+
             rname = candidate_name;
         } else if (candidate_domain) {
             *domain = talloc_steal(memctx, candidate_domain);
-            return EAGAIN;
+            ret = EAGAIN;
+            goto done;
         }
     }
 
     if (rdomain == NULL && rname == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("name '%s' did not match any domain's expression\n", orig));
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     if (domain != NULL) {
@@ -395,9 +423,11 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
         *name = talloc_steal(memctx, rname);
     }
 
+    ret = EOK;
+done:
     talloc_free(tmp_ctx);
 
-    return EOK;
+    return ret;
 }
 
 char *

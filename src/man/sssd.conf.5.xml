@@ -214,6 +214,30 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>default_domain_suffix (string)</term>
+                        <listitem>
+                            <para>
+                                This string will be used as a default domain
+                                name for all names without a domain name
+                                component. The main use case are environments
+                                were the local domain is only managing hosts
+                                but no users and all users are coming from a
+                                trusted domain. The option allows those users
+                                to log in just with their user name without
+                                giving a domain name as well.
+                            </para>
+                            <para>
+                                Please note that if this option is set all
+                                users from the local domain have to use their
+                                fully qualified name, e.g. user@domain.name,
+                                to log in.
+                            </para>
+                            <para>
+                                Default: not set
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>

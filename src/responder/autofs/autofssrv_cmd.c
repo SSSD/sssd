@@ -374,7 +374,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     dctx->cmd_ctx = state->cmdctx;
     state->dctx = dctx;
 
-    ret = sss_parse_name_for_domains(state, client->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(state, client->rctx->domains,
+                                     client->rctx->default_domain, rawname,
                                      &domname, &state->mapname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,

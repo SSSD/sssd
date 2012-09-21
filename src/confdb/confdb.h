@@ -66,6 +66,7 @@
 #define CONFDB_MONITOR_ACTIVE_DOMAINS "domains"
 #define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
+#define CONFDB_MONITOR_DEFAULT_DOMAIN "default_domain_suffix"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"

@@ -84,6 +84,9 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('full_name_format' in new_options)
         self.assertEquals(new_options['full_name_format'][0], str)
 
+        self.assertTrue('default_domain_suffix' in new_options)
+        self.assertEquals(new_options['default_domain_suffix'][0], str)
+
         del sssdconfig
 
     def testDomains(self):
@@ -277,6 +280,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             're_expression',
             'full_name_format',
             'krb5_rcache_dir',
+            'default_domain_suffix',
             'debug_level',
             'debug_timestamps',
             'debug_microseconds',

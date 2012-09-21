@@ -806,7 +806,8 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret == EAGAIN) {
         req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
@@ -878,7 +879,8 @@ static void nss_cmd_getpwnam_cb(struct tevent_req *req)
         goto done;
     }
 
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
@@ -2293,7 +2295,8 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret == EAGAIN) {
         req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
@@ -2365,7 +2368,8 @@ static void nss_cmd_getgrnam_cb(struct tevent_req *req)
         goto done;
     }
 
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
@@ -3423,7 +3427,8 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret == EAGAIN) {
         req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
@@ -3495,7 +3500,8 @@ static void nss_cmd_initgroups_cb(struct tevent_req *req)
         goto done;
     }
 
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains, rawname,
+    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));

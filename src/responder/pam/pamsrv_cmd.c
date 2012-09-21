@@ -119,8 +119,9 @@ static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd
 }
 
 static int pam_parse_in_data_v2(struct sss_domain_info *domains,
-                             struct pam_data *pd,
-                             uint8_t *body, size_t blen)
+                                const char *default_domain,
+                                struct pam_data *pd,
+                                uint8_t *body, size_t blen)
 {
     size_t c;
     uint32_t type;
@@ -156,7 +157,8 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
                     ret = extract_string(&pam_user, size, body, blen, &c);
                     if (ret != EOK) return ret;
 
-                    ret = sss_parse_name_for_domains(pd, domains, pam_user,
+                    ret = sss_parse_name_for_domains(pd, domains,
+                                                     default_domain, pam_user,
                                                      &pd->domain, &pd->user);
                     if (ret != EOK) return ret;
                     break;
@@ -209,12 +211,13 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
 }
 
 static int pam_parse_in_data_v3(struct sss_domain_info *domains,
-                             struct pam_data *pd,
-                             uint8_t *body, size_t blen)
+                                const char *default_domain,
+                                struct pam_data *pd,
+                                uint8_t *body, size_t blen)
 {
     int ret;
 
-    ret = pam_parse_in_data_v2(domains, pd, body, blen);
+    ret = pam_parse_in_data_v2(domains, default_domain, pd, body, blen);
     if (ret != EOK) {
         DEBUG(1, ("pam_parse_in_data_v2 failed.\n"));
         return ret;
@@ -229,6 +232,7 @@ static int pam_parse_in_data_v3(struct sss_domain_info *domains,
 }
 
 static int pam_parse_in_data(struct sss_domain_info *domains,
+                             const char *default_domain,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
 {
@@ -244,7 +248,8 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
     for (start = end; end < last; end++) if (body[end] == '\0') break;
     if (body[end++] != '\0') return EINVAL;
 
-    ret = sss_parse_name_for_domains(pd, domains, (char *)&body[start], &pd->domain, &pd->user);
+    ret = sss_parse_name_for_domains(pd, domains, default_domain,
+                                     (char *)&body[start], &pd->domain, &pd->user);
     if (ret != EOK) return ret;
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
@@ -997,13 +1002,19 @@ errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
 
     switch (cctx->cli_protocol_version->version) {
         case 1:
-            ret = pam_parse_in_data(cctx->rctx->domains, pd, body, blen);
+            ret = pam_parse_in_data(cctx->rctx->domains,
+                                    cctx->rctx->default_domain, pd,
+                                    body, blen);
             break;
         case 2:
-            ret = pam_parse_in_data_v2(cctx->rctx->domains, pd, body, blen);
+            ret = pam_parse_in_data_v2(cctx->rctx->domains,
+                                       cctx->rctx->default_domain, pd,
+                                       body, blen);
             break;
         case 3:
-            ret = pam_parse_in_data_v3(cctx->rctx->domains, pd, body, blen);
+            ret = pam_parse_in_data_v3(cctx->rctx->domains,
+                                       cctx->rctx->default_domain, pd,
+                                       body, blen);
             break;
         default:
             DEBUG(1, ("Illegal protocol version [%d].\n",
