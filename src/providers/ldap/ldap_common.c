@@ -429,8 +429,8 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
                   dp_opt_get_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE)));
         }
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error: no autofs search base set\n"));
-        return ENOENT;
+        DEBUG(SSSDBG_TRACE_FUNC, ("Search base not set, trying to discover it later "
+              "connecting to the LDAP server.\n"));
     }
 
     ret = sdap_parse_search_base(opts, opts->basic,
