@@ -64,7 +64,10 @@ SAVE_CFLAGS=$CFLAGS
 SAVE_LIBS=$LIBS
 CFLAGS="$CFLAGS $OPENLDAP_CFLAGS"
 LIBS="$LIBS $OPENLDAP_LIBS"
-AC_CHECK_FUNCS([ldap_control_create ldap_init_fd])
+AC_CHECK_FUNCS([ldap_control_create ldap_init_fd \
+                ldap_create_deref_control_value  \
+                ldap_parse_derefresponse_control \
+                ldap_derefresponse_free])
 AC_CHECK_MEMBERS([struct ldap_conncb.lc_arg],
                  [AC_RUN_IFELSE(
                    [AC_LANG_PROGRAM(
@@ -78,6 +81,11 @@ AC_CHECK_MEMBERS([struct ldap_conncb.lc_arg],
                    [AC_MSG_WARN([Found broken callback implementation])],
                    [])],
                  [], [[#include <ldap.h>]])
+
+AC_CHECK_TYPE([LDAPDerefRes],
+              [],
+              [AC_MSG_ERROR([The OpenLDAP version found does not contain the required type LDAPDerefRes])],
+              [[#include <ldap.h>]])
 
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
