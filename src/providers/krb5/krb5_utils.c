@@ -721,8 +721,9 @@ cc_file_check_existing(const char *location, uid_t uid,
 
     ret = cc_residual_is_used(uid, filename, SSS_KRB5_TYPE_FILE, &active);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active\n"));
-        return ret;
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active. "
+                                  "Will create a new one.\n"));
+        active = false;
     }
 
     kerr = krb5_init_context(&context);
@@ -890,8 +891,9 @@ cc_dir_check_existing(const char *location, uid_t uid,
     ret = cc_residual_is_used(uid, dir, SSS_KRB5_TYPE_DIR, &active);
     talloc_free(tmp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not check if ccache is active\n"));
-        return ret;
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active. "
+                                  "Will create a new one.\n"));
+        active = false;
     }
 
     krberr = krb5_init_context(&context);
