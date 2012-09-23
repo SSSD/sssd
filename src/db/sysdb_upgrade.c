@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "db/sysdb_private.h"
+#include "db/sysdb_autofs.h"
 
 static int finish_upgrade(int result, struct ldb_context *ldb,
                           const char *next_ver, const char **ver)
@@ -1313,6 +1314,139 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
 
 done:
     ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_11, ver);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    struct ldb_result *res;
+    struct ldb_message *msg;
+    struct ldb_message *entry;
+    const char *key;
+    const char *value;
+    struct ldb_message_element *memberof_el;
+    struct ldb_dn *memberof_dn;
+    struct ldb_dn *basedn;
+    const struct ldb_val *val;
+    const char *attrs[] = { SYSDB_AUTOFS_ENTRY_KEY,
+                            SYSDB_AUTOFS_ENTRY_VALUE,
+                            SYSDB_MEMBEROF,
+                            NULL };
+    size_t i, j;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                            AUTOFS_ENTRY_SUBDIR, sysdb->domain->name);
+    if (basedn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_12));
+
+    ret = ldb_transaction_start(sysdb->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, basedn, LDB_SCOPE_SUBTREE,
+                     attrs, "(objectClass=%s)", SYSDB_AUTOFS_ENTRY_OC);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("Found %d autofs entries\n", res->count));
+
+    for (i = 0; i < res->count; i++) {
+        entry = res->msgs[i];
+        key = ldb_msg_find_attr_as_string(entry,
+                                          SYSDB_AUTOFS_ENTRY_KEY, NULL);
+        value = ldb_msg_find_attr_as_string(entry,
+                                            SYSDB_AUTOFS_ENTRY_VALUE, NULL);
+        memberof_el = ldb_msg_find_element(entry, SYSDB_MEMBEROF);
+
+        if (key && value && memberof_el) {
+            for (j = 0; j < memberof_el->num_values; j++) {
+                memberof_dn = ldb_dn_from_ldb_val(tmp_ctx, sysdb->ldb,
+                                                  &(memberof_el->values[j]));
+                if (!memberof_dn) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("Cannot convert memberof into DN, skipping\n"));
+                    continue;
+                }
+
+                val = ldb_dn_get_rdn_val(memberof_dn);
+                if (!val) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("Cannot get map name from map DN\n"));
+                    continue;
+                }
+
+                ret = sysdb_save_autofsentry(sysdb, (const char *) val->data,
+                                             key, value, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("Cannot save autofs entry [%s]-[%s] into map %s\n",
+                           key, value, val->data));
+                    continue;
+                }
+            }
+
+        }
+
+        /* Delete the old entry if it was either processed or incomplete */
+        DEBUG(SSSDBG_TRACE_LIBS, ("Deleting [%s]\n",
+              ldb_dn_get_linearized(entry->dn)));
+
+        ret = ldb_delete(sysdb->ldb, entry->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot delete old autofs entry %s\n",
+                  ldb_dn_get_linearized(entry->dn)));
+            continue;
+        }
+    }
+
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_12);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    ret = finish_upgrade(ret, sysdb->ldb, SYSDB_VERSION_0_12, ver);
     talloc_free(tmp_ctx);
     return ret;
 }
