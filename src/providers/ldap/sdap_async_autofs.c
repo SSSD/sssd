@@ -91,7 +91,7 @@ mod_autofs_entry(struct sysdb_ctx *sysdb,
         ret = sysdb_save_autofsentry(sysdb, map, key, value, NULL);
         break;
     case AUTOFS_MAP_OP_DEL:
-        ret = sysdb_del_autofsentry(sysdb, map, key);
+        ret = sysdb_del_autofsentry(sysdb, map, key, value);
         break;
     }
 
@@ -794,6 +794,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     bool in_transaction = false;
     TALLOC_CTX *tmp_ctx;
     struct ldb_message **entries = NULL;
+    struct sysdb_attrs **entries_attrs;
     size_t count;
     const char *val;
     char **sysdb_entrylist;
@@ -902,9 +903,16 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
 
     /* Delete entries that don't exist anymore */
     if (del_entries && del_entries[0]) {
+        ret = sysdb_msg2attrs(tmp_ctx, count, entries, &entries_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sysdb_msg2attrs failed: [%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
+
         ret = del_autofs_entries(state->sysdb, state->opts,
                                  state->mapname, del_entries,
-                                 state->entries, state->entries_count);
+                                 entries_attrs, count);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Cannot delete autofs entries [%d]: %s\n",

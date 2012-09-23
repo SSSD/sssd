@@ -62,7 +62,8 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
 errno_t
 sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
                       const char *map,
-                      const char *key);
+                      const char *key,
+                      const char *value);
 
 errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,

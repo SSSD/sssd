@@ -39,22 +39,42 @@ static struct ldb_dn *
 sysdb_autofsentry_dn(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
                      const char *map_name,
-                     const char *entry_name)
+                     const char *entry_name,
+                     const char *entry_value)
 {
     errno_t ret;
+    TALLOC_CTX *tmp_ctx;
     char *clean_name;
-    struct ldb_dn *dn;
+    char *clean_value;
+    const char *rdn;
+    struct ldb_dn *dn = NULL;
 
-    ret = sysdb_dn_sanitize(NULL, entry_name, &clean_name);
-    if (ret != EOK) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_AUTOFS_ENTRY,
-                        clean_name, map_name, AUTOFS_MAP_SUBDIR,
-                        sysdb->domain->name);
-    talloc_free(clean_name);
+    ret = sysdb_dn_sanitize(tmp_ctx, entry_name, &clean_name);
+    if (ret != EOK) {
+        goto done;
+    }
 
+    ret = sysdb_dn_sanitize(tmp_ctx, entry_value, &clean_value);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    rdn = talloc_asprintf(tmp_ctx, "%s%s", clean_name, clean_value);
+    if (!rdn) {
+        goto done;
+    }
+
+    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_AUTOFS_ENTRY,
+                        rdn, map_name, AUTOFS_MAP_SUBDIR,
+                        sysdb->domain->name);
+
+done:
+    talloc_free(tmp_ctx);
     return dn;
 }
 
@@ -217,6 +237,7 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     struct ldb_dn *dn;
+    const char *name;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Adding autofs entry [%s] - [%s]\n", key, value));
@@ -256,14 +277,20 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
         goto done;
     }
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, key);
+    name = talloc_asprintf(tmp_ctx, "%s%s", key, value);
+    if (!name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not set name attribute [%d]: %s\n",
               ret, strerror(ret)));
         goto done;
     }
 
-    dn = sysdb_autofsentry_dn(tmp_ctx, sysdb_ctx, map, key);
+    dn = sysdb_autofsentry_dn(tmp_ctx, sysdb_ctx, map, key, value);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -289,12 +316,13 @@ done:
 errno_t
 sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
                       const char *map,
-                      const char *key)
+                      const char *key,
+                      const char *value)
 {
     struct ldb_dn *dn;
     errno_t ret;
 
-    dn = sysdb_autofsentry_dn(sysdb_ctx, sysdb_ctx, map, key);
+    dn = sysdb_autofsentry_dn(sysdb_ctx, sysdb_ctx, map, key, value);
     if (!dn) {
         return ENOMEM;
     }

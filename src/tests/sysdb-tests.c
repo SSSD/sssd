@@ -3801,7 +3801,7 @@ START_TEST(test_autofs_get_duplicate_keys)
     fail_if(autofskey == NULL, "Out of memory\n");
 
     filter = talloc_asprintf(test_ctx, "(&(objectclass=%s)(%s=%s))",
-                             SYSDB_AUTOFS_ENTRY_OC, SYSDB_NAME, autofskey);
+                             SYSDB_AUTOFS_ENTRY_OC, SYSDB_AUTOFS_ENTRY_KEY, autofskey);
     fail_if(filter == NULL, "Out of memory\n");
 
     dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
