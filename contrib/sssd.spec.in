@@ -319,6 +319,11 @@ do
     esac
 done
 
+# Old versions of rpmbuild require %ghost files to be present in the buildroot
+mkdir -p $RPM_BUILD_ROOT/%{mcpath}
+touch $RPM_BUILD_ROOT/%{mcpath}/passwd
+touch $RPM_BUILD_ROOT/%{mcpath}/group
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
