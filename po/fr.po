@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-09-13 18:48+0200\n"
+"POT-Creation-Date: 2012-09-24 22:16+0200\n"
 "PO-Revision-Date: 2012-08-11 08:36+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
@@ -1064,42 +1064,42 @@ msgstr "Rechercher le nom canonique du groupe dans le cache si possible"
 msgid "PAM stack to use"
 msgstr "Pile PAM à utiliser"
 
-#: src/monitor/monitor.c:2410
+#: src/monitor/monitor.c:2446
 msgid "Become a daemon (default)"
 msgstr "Devenir un démon (par défaut)"
 
-#: src/monitor/monitor.c:2412
+#: src/monitor/monitor.c:2448
 msgid "Run interactive (not a daemon)"
 msgstr "Fonctionner en interactif (non démon)"
 
-#: src/monitor/monitor.c:2414 src/tools/sss_debuglevel.c:77
+#: src/monitor/monitor.c:2450 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Définir un fichier de configuration différent de celui par défaut"
 
-#: src/monitor/monitor.c:2416
+#: src/monitor/monitor.c:2452
 msgid "Print version number and exit"
 msgstr "Afficher le numéro de version et quitte"
 
-#: src/providers/krb5/krb5_child.c:1866 src/providers/ldap/ldap_child.c:399
-#: src/util/util.h:92
+#: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
+#: src/util/util.h:94
 msgid "Debug level"
 msgstr "Niveau de débogage"
 
-#: src/providers/krb5/krb5_child.c:1868 src/providers/ldap/ldap_child.c:401
-#: src/util/util.h:96
+#: src/providers/krb5/krb5_child.c:1867 src/providers/ldap/ldap_child.c:409
+#: src/util/util.h:98
 msgid "Add debug timestamps"
 msgstr "Ajouter l'horodatage au débogage"
 
-#: src/providers/krb5/krb5_child.c:1870 src/providers/ldap/ldap_child.c:403
-#: src/util/util.h:98
+#: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
+#: src/util/util.h:100
 msgid "Show timestamps with microseconds"
 msgstr "Afficher l'horodatage en microsecondes"
 
-#: src/providers/krb5/krb5_child.c:1872 src/providers/ldap/ldap_child.c:405
+#: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
-#: src/providers/data_provider_be.c:2364
+#: src/providers/data_provider_be.c:2365
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -1199,7 +1199,7 @@ msgstr "Mot de passe expiré. Changez votre mot de passe maintenant."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:324 src/tools/sss_debuglevel.c:75
+#: src/tools/sss_cache.c:350 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Le niveau de débogage utilisé avec"
 
@@ -1212,7 +1212,7 @@ msgstr "Le domaine SSSD à utiliser"
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
 #: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:355
+#: src/tools/sss_cache.c:381
 msgid "Error setting the locale\n"
 msgstr "Erreur lors du paramétrage de la locale\n"
 
@@ -1656,92 +1656,92 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Erreur de transaction. Impossible de modifier l'utlisateur.\n"
 
-#: src/tools/sss_cache.c:141
+#: src/tools/sss_cache.c:142
 msgid "No cache object matched the specified search\n"
 msgstr "Aucun object trouvé dans le cache pour la recherche spécifiée\n"
 
-#: src/tools/sss_cache.c:175
+#: src/tools/sss_cache.c:201
 #, c-format
 msgid "No such %1$s named %2$s, skipping\n"
 msgstr "Aucun %1$s nommé %2$s, on passe\n"
 
-#: src/tools/sss_cache.c:178
+#: src/tools/sss_cache.c:204
 #, c-format
 msgid "No objects of type %1$s in the cache, skipping\n"
 msgstr "Aucun objet de type %1$s dans le cache, on passe\n"
 
-#: src/tools/sss_cache.c:190
+#: src/tools/sss_cache.c:216
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr "Impossible d'invalider %1$s"
 
-#: src/tools/sss_cache.c:197
+#: src/tools/sss_cache.c:223
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "Impossible d'invalider %1$s %2$s"
 
-#: src/tools/sss_cache.c:326
+#: src/tools/sss_cache.c:352
 msgid "Invalidate particular user"
 msgstr "Invalider un utilisateur spécifique"
 
-#: src/tools/sss_cache.c:328
+#: src/tools/sss_cache.c:354
 msgid "Invalidate all users"
 msgstr "Invalider tous les utilisateurs"
 
-#: src/tools/sss_cache.c:330
+#: src/tools/sss_cache.c:356
 msgid "Invalidate particular group"
 msgstr "Invalider un groupe particulier"
 
-#: src/tools/sss_cache.c:332
+#: src/tools/sss_cache.c:358
 msgid "Invalidate all groups"
 msgstr "Invalider tous les groupes"
 
-#: src/tools/sss_cache.c:334
+#: src/tools/sss_cache.c:360
 msgid "Invalidate particular netgroup"
 msgstr "Invalider un groupe réseau particulier"
 
-#: src/tools/sss_cache.c:336
+#: src/tools/sss_cache.c:362
 msgid "Invalidate all netgroups"
 msgstr "Invalider tous les groupes réseau"
 
-#: src/tools/sss_cache.c:338
+#: src/tools/sss_cache.c:364
 msgid "Invalidate particular service"
 msgstr "Invalidation d'un service particulier"
 
-#: src/tools/sss_cache.c:340
+#: src/tools/sss_cache.c:366
 msgid "Invalidate all services"
 msgstr "Invalidation de tous les services"
 
-#: src/tools/sss_cache.c:343
+#: src/tools/sss_cache.c:369
 msgid "Invalidate particular autofs map"
 msgstr "Invalidation d'une carte autofs particulière"
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:371
 msgid "Invalidate all autofs maps"
 msgstr "Invalidation de toutes les cartes autofs"
 
-#: src/tools/sss_cache.c:348
+#: src/tools/sss_cache.c:374
 msgid "Only invalidate entries from a particular domain"
 msgstr "N'invalider des entrées que d'un domaine spécifique"
 
-#: src/tools/sss_cache.c:387
+#: src/tools/sss_cache.c:413
 msgid "Please select at least one object to invalidate\n"
 msgstr "Merci de sélectionner au moins un objet à invalider\n"
 
-#: src/tools/sss_cache.c:458
+#: src/tools/sss_cache.c:484
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr "Impossible d'ouvrir le domaine %1$s\n"
 
-#: src/tools/sss_cache.c:460
+#: src/tools/sss_cache.c:486
 msgid "Could not open available domains\n"
 msgstr "Impossible d'ouvrir aucun des domaines disponibles\n"
 
-#: src/tools/sss_debuglevel.c:43
+#: src/tools/sss_debuglevel.c:40
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sss_debuglevel.c:102
+#: src/tools/sss_debuglevel.c:96
 msgid "Specify debug level you want to set\n"
 msgstr "Définir le niveau de débogage à utiliser\n"
 
@@ -1749,12 +1749,12 @@ msgstr "Définir le niveau de débogage à utiliser\n"
 msgid "Out of memory\n"
 msgstr "Mémoire saturée\n"
 
-#: src/tools/tools_util.h:40
+#: src/tools/tools_util.h:43
 #, c-format
 msgid "%1$s must be run as root\n"
 msgstr "%1$s doit être lancé en tant que root\n"
 
-#: src/util/util.h:94
+#: src/util/util.h:96
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "

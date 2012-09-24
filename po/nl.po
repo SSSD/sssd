@@ -3,7 +3,7 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Geert Warrink <geert.warrink@onsnet.nu>, 2011.
+# Geert Warrink <geert.warrink@onsnet.nu>, 2011-2012.
 # Richard E. van der Luit <nippur@fedoraproject.org>, 2012.
 # sgallagh <sgallagh@redhat.com>, 2011.
 # Wijnand Modderman-Lenstra <accounts-transifex@maze.io>, 2011.
@@ -11,9 +11,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-09-13 18:48+0200\n"
-"PO-Revision-Date: 2012-08-01 21:07+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2012-09-24 22:16+0200\n"
+"PO-Revision-Date: 2012-09-18 17:58+0000\n"
+"Last-Translator: Geert Warrink <geert.warrink@onsnet.nu>\n"
 "Language-Team: Dutch (http://www.transifex.com/projects/p/fedora/language/"
 "nl/)\n"
 "Language: nl\n"
@@ -46,6 +46,7 @@ msgstr "Ping timeout voordat service herstart is"
 msgid ""
 "Timeout between three failed ping checks and forcibly killing the service"
 msgstr ""
+"Time-out tussen drie mislukte ping checks en de service dwingend te stoppen "
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Command to start service"
@@ -58,10 +59,12 @@ msgstr "Aantal pogingen naar de Data Providers te verbinden"
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "The number of file descriptors that may be opened by this responder"
 msgstr ""
+"Het aantal bestand descriptors die door deze beantwoorder geopend mogen "
+"worden"
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "Duur van inactiviteit voor het automatisch loskoppelen van een cliënt"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
@@ -129,10 +132,12 @@ msgstr ""
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
+"Vervang lege persoonlijke map waarde van de eindentiteitsaanbieder met deze "
+"waarde"
 
 #: src/config/SSSDConfig/__init__.py.in:68
 msgid "Override shell value from the identity provider with this value"
-msgstr ""
+msgstr "Overschrijf shell waarde van identiteit provider met deze waarde"
 
 #: src/config/SSSDConfig/__init__.py.in:69
 msgid "The list of shells users are allowed to log in with"
@@ -154,11 +159,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "Shell to use if the provider does not list one"
-msgstr ""
+msgstr "Te gebruiken shell als de aanbieder er geen aangeeft "
 
 #: src/config/SSSDConfig/__init__.py.in:73
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "Hoe lang zullen cache records in het geheugen geldig blijven"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "How long to allow cached logins between online logins (days)"
@@ -201,10 +206,13 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:90
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr ""
+"Moeten host namen en adressen gehashd worden in het known_hosts bestand"
 
 #: src/config/SSSDConfig/__init__.py.in:93
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr ""
+"Lijst met UID's of gebruikersnamen waarvoor toegang tot de PAC responder "
+"toegestaan is"
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "Identity provider"
@@ -312,7 +320,7 @@ msgstr "IPA-serveradres"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid "Address of backup IPA server"
-msgstr ""
+msgstr "Adres van back-up IPA server"
 
 #: src/config/SSSDConfig/__init__.py.in:130
 msgid "IPA client hostname"
@@ -355,27 +363,27 @@ msgstr "De automounter locatie die door deze IPA client wordt gebruikt"
 
 #: src/config/SSSDConfig/__init__.py.in:138
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
+msgstr "Zoek in base voor object die info over IPA domein bevat  "
 
 #: src/config/SSSDConfig/__init__.py.in:139
 msgid "Search base for objects containing info about ID ranges"
-msgstr ""
+msgstr "Zoek in base voor objecten die info over ID bereiken bevat"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Active Directory domein"
 
 #: src/config/SSSDConfig/__init__.py.in:143
 msgid "Active Directory server address"
-msgstr ""
+msgstr "Active Directory server adres"
 
 #: src/config/SSSDConfig/__init__.py.in:144
 msgid "Active Directory backup server address"
-msgstr ""
+msgstr "Active Directory back-up server adres"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "Active Directory client hostname"
-msgstr ""
+msgstr "Active Directory cliënt hostnaam"
 
 #: src/config/SSSDConfig/__init__.py.in:148
 #: src/config/SSSDConfig/__init__.py.in:149
@@ -384,7 +392,7 @@ msgstr "Kerberos-serveradres"
 
 #: src/config/SSSDConfig/__init__.py.in:150
 msgid "Kerberos backup server address"
-msgstr ""
+msgstr "Kerberos back-up server adres"
 
 #: src/config/SSSDConfig/__init__.py.in:151
 msgid "Kerberos realm"
@@ -452,7 +460,7 @@ msgstr "ldap_uri, de URI van de LDAP server"
 
 #: src/config/SSSDConfig/__init__.py.in:173
 msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_backup_uri, De URI van de LDAP server"
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "The default base DN"
@@ -615,7 +623,7 @@ msgstr "Vereis TLS voor het opzoeken van ID's"
 
 #: src/config/SSSDConfig/__init__.py.in:216
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr ""
+msgstr "Gebruik ID-mapping van objectSID gebruiken in plaats van pre-set ID's"
 
 #: src/config/SSSDConfig/__init__.py.in:217
 msgid "Base DN for user lookups"
@@ -664,11 +672,11 @@ msgstr "UUID-attribuut"
 #: src/config/SSSDConfig/__init__.py.in:229
 #: src/config/SSSDConfig/__init__.py.in:265
 msgid "objectSID attribute"
-msgstr ""
+msgstr "objectSID attribuut"
 
 #: src/config/SSSDConfig/__init__.py.in:230
 msgid "Active Directory primary group attribute for ID-mapping"
-msgstr ""
+msgstr "Active Directory primaire groep attribuut voor ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:231
 msgid "User principal attribute (for Kerberos)"
@@ -848,35 +856,35 @@ msgstr "Service protocol attribuut"
 
 #: src/config/SSSDConfig/__init__.py.in:285
 msgid "Lower bound for ID-mapping"
-msgstr ""
+msgstr "Ondergrens voor ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:286
 msgid "Upper bound for ID-mapping"
-msgstr ""
+msgstr "Bovengrens voor ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:287
 msgid "Number of IDs for each slice when ID-mapping"
-msgstr ""
+msgstr "Aantal ID's voor elk segment bij ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:288
 msgid "Use autorid-compatible algorithm for ID-mapping"
-msgstr ""
+msgstr "Gebruik autorid-compatibel algoritme voor ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:289
 msgid "Name of the default domain for ID-mapping"
-msgstr ""
+msgstr "Naam van het standaard domein voor ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:290
 msgid "SID of the default domain for ID-mapping"
-msgstr ""
+msgstr "SID van het standaard domein voor ID-mapping"
 
 #: src/config/SSSDConfig/__init__.py.in:292
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr ""
+msgstr "Gebruik LDAP_MATCHING_RULE_IN_CHAIN voor groep opzoeken"
 
 #: src/config/SSSDConfig/__init__.py.in:293
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr ""
+msgstr "Gebruik LDAP_MATCHING_RULE_IN_CHAIN voor initgroep opzoeken"
 
 #: src/config/SSSDConfig/__init__.py.in:296
 msgid "Policy to evaluate the password expiration"
@@ -904,6 +912,7 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:305
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr ""
+"URI van een back-up LDAP server waar wachtwoord veranderingen toegestaan zijn"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid "DNS service name for LDAP password change server"
@@ -915,34 +924,41 @@ msgstr "Basis DN voor sudo regels lookups"
 
 #: src/config/SSSDConfig/__init__.py.in:310
 msgid "Automatic full refresh period"
-msgstr ""
+msgstr "Automatische volledige ververs periode"
 
 #: src/config/SSSDConfig/__init__.py.in:311
 msgid "Automatic smart refresh period"
-msgstr ""
+msgstr "Automatische slimme ververs periode"
 
 #: src/config/SSSDConfig/__init__.py.in:312
 msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
+msgstr "Moeten regels gefilterd worden volgens hostnaam, IP adres en netwerk"
 
 #: src/config/SSSDConfig/__init__.py.in:313
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
+"Hostnamen en/of volledig gekwalificeerde domeinnamen van deze machine voor "
+"het filteren van sudo regels"
 
 #: src/config/SSSDConfig/__init__.py.in:314
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
+"IPv4 of IPv6 adressen of netwerk van deze machine voor het filteren van sudo "
+"regels"
 
 #: src/config/SSSDConfig/__init__.py.in:315
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
+"Moeten regels toegevoegd worden die netgroep bevatten in host attribuut "
 
 #: src/config/SSSDConfig/__init__.py.in:316
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
+"Moeten regels toegevoegd worden die regulaire expressie bevatten in host "
+"attribuut "
 
 #: src/config/SSSDConfig/__init__.py.in:317
 msgid "Object class for sudo rules"
@@ -1010,7 +1026,7 @@ msgstr "Automounter map ingavewaarde attribuut"
 
 #: src/config/SSSDConfig/__init__.py.in:335
 msgid "Base DN for automounter map lookups"
-msgstr ""
+msgstr "Basis DN voor automounter kaart opzoeken"
 
 #: src/config/SSSDConfig/__init__.py.in:338
 msgid "Comma separated list of allowed users"
@@ -1034,48 +1050,48 @@ msgstr "De naam van de NSS-bibliotheek die gebruikt wordt"
 
 #: src/config/SSSDConfig/__init__.py.in:347
 msgid "Whether to look up canonical group name from cache if possible"
-msgstr ""
+msgstr "Moet indien mogelijk canonieke groepsnaam in cache opgezocht worden "
 
 #: src/config/SSSDConfig/__init__.py.in:350
 msgid "PAM stack to use"
 msgstr "PAM-stack die gebruikt wordt"
 
-#: src/monitor/monitor.c:2410
+#: src/monitor/monitor.c:2446
 msgid "Become a daemon (default)"
 msgstr "Start in de achtergrond (standaard)"
 
-#: src/monitor/monitor.c:2412
+#: src/monitor/monitor.c:2448
 msgid "Run interactive (not a daemon)"
 msgstr "Start interactief (standaard)"
 
-#: src/monitor/monitor.c:2414 src/tools/sss_debuglevel.c:77
+#: src/monitor/monitor.c:2450 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Geef een niet-standaard configuratiebestand op"
 
-#: src/monitor/monitor.c:2416
+#: src/monitor/monitor.c:2452
 msgid "Print version number and exit"
 msgstr "Print versie nummer en sluit af"
 
-#: src/providers/krb5/krb5_child.c:1866 src/providers/ldap/ldap_child.c:399
-#: src/util/util.h:92
+#: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
+#: src/util/util.h:94
 msgid "Debug level"
 msgstr "Debug niveau"
 
-#: src/providers/krb5/krb5_child.c:1868 src/providers/ldap/ldap_child.c:401
-#: src/util/util.h:96
+#: src/providers/krb5/krb5_child.c:1867 src/providers/ldap/ldap_child.c:409
+#: src/util/util.h:98
 msgid "Add debug timestamps"
 msgstr "Voeg tijdstempels toe aan debugberichten"
 
-#: src/providers/krb5/krb5_child.c:1870 src/providers/ldap/ldap_child.c:403
-#: src/util/util.h:98
+#: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
+#: src/util/util.h:100
 msgid "Show timestamps with microseconds"
 msgstr "Toon tijdstempel met microseconden"
 
-#: src/providers/krb5/krb5_child.c:1872 src/providers/ldap/ldap_child.c:405
+#: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
 msgid "An open file descriptor for the debug logs"
 msgstr "Een geopend bestand voor de debug logs"
 
-#: src/providers/data_provider_be.c:2364
+#: src/providers/data_provider_be.c:2365
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domein voor de informatie provider (verplicht)"
 
@@ -1124,11 +1140,12 @@ msgstr ", uw wachtwoord verloopt op:"
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
+"Je wachtwoord is verlopen. Je hebt nog slechts %1$d login(s) beschikbaar."
 
 #: src/sss_client/pam_sss.c:681
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
-msgstr ""
+msgstr "Je wachtwoord zal verlopen in %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:730
 msgid "Authentication is denied until: "
@@ -1171,51 +1188,51 @@ msgstr "Wachtwoord verlopen. Verander nu uw wachtwoord."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:324 src/tools/sss_debuglevel.c:75
+#: src/tools/sss_cache.c:350 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Het debugniveau waarmee gestart wordt"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:196
 msgid "The SSSD domain to use"
-msgstr ""
+msgstr "Hrt te gebruiken SSSD domein"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
 #: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:355
+#: src/tools/sss_cache.c:381
 msgid "Error setting the locale\n"
 msgstr "Fout bij het zetten van de locale\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "Niet genoeg geheugen\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
-msgstr ""
+msgstr "Gebruiker niet gespecificeerd\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:105
 msgid "Error looking up public keys\n"
-msgstr ""
+msgstr "Fout bij het opzoeken van publieke sleutels\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:194
 msgid "The port to use to connect to the host"
-msgstr ""
+msgstr "De te gebruiken poort voor het verbinden met de host"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:238
 msgid "Invalid port\n"
-msgstr ""
+msgstr "Ongeldige poort\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:243
 msgid "Host not specified\n"
-msgstr ""
+msgstr "Host niet gespecificeerd\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
 msgid "The path to the proxy command must be absolute\n"
-msgstr ""
+msgstr "Het pad naar het proxy commando moet absoluut zijn\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1299,6 +1316,8 @@ msgstr ""
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
 msgstr ""
+"Kan groep %1$s niet in lokale domein vinden\n"
+"\n"
 
 #: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1323,12 +1342,12 @@ msgstr "De gebruikersmap bestaat reeds, voorbeeldmap niet gekopieerd\n"
 #: src/tools/sss_useradd.c:236
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
-msgstr ""
+msgstr "Kan persoonlijk map voor gebruiker niet aanmaken: %1$s\n"
 
 #: src/tools/sss_useradd.c:247
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
-msgstr ""
+msgstr "Kan mail spool voor gebruiker niet aanmaken: %1$s\n"
 
 #: src/tools/sss_useradd.c:266
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1373,7 +1392,7 @@ msgstr "Geef groep op om te verwijderen\n"
 #: src/tools/sss_groupdel.c:101
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "Groep %1$s ligt buiten het gedefinieerde ID gebied voor domein\n"
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1424,6 +1443,8 @@ msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"Kan groep %1$s niet in lokale domein vinden, alleen groepen in lokale domein "
+"zijn toegestaan\n"
 
 #: src/tools/sss_groupmod.c:229
 msgid "Could not modify group - check if member group names are correct\n"
@@ -1443,7 +1464,7 @@ msgstr "Transactiefout. Kan de groep niet aanpassen.\n"
 #: src/tools/sss_groupshow.c:598
 #, c-format
 msgid "%1$s%2$sGroup: %3$s\n"
-msgstr ""
+msgstr "%1$s%2$sGroep: %3$s\n"
 
 #: src/tools/sss_groupshow.c:599
 msgid "Magic Private "
@@ -1452,12 +1473,12 @@ msgstr "Magic Private "
 #: src/tools/sss_groupshow.c:601
 #, c-format
 msgid "%1$sGID number: %2$d\n"
-msgstr ""
+msgstr "%1$sGID nummer: %2$d\n"
 
 #: src/tools/sss_groupshow.c:603
 #, c-format
 msgid "%1$sMember users: "
-msgstr ""
+msgstr "%1$sLid gebruikers: "
 
 #: src/tools/sss_groupshow.c:610
 #, c-format
@@ -1465,6 +1486,8 @@ msgid ""
 "\n"
 "%1$sIs a member of: "
 msgstr ""
+"\n"
+"%1$sIs lid van: "
 
 #: src/tools/sss_groupshow.c:617
 #, c-format
@@ -1472,6 +1495,8 @@ msgid ""
 "\n"
 "%1$sMember groups: "
 msgstr ""
+"\n"
+"%1$sLid groepen: "
 
 #: src/tools/sss_groupshow.c:653
 msgid "Print indirect group members recursively"
@@ -1518,7 +1543,7 @@ msgstr "Specificeer de te verwijderen gebruiker\n"
 #: src/tools/sss_userdel.c:230
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "Gebruiker %1$s ligt buiten het gedefinieerde ID bereik voor domein\n"
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
@@ -1528,6 +1553,8 @@ msgstr "Kan de SELinux logincontext niet herstellen\n"
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
+"WAARSCHUWING: De gebruiker (uid %1$lu) was nog ingelogd bij het "
+"verwijderen.\n"
 
 #: src/tools/sss_userdel.c:272
 msgid "Cannot determine if the user was logged in on this platform"
@@ -1540,7 +1567,7 @@ msgstr "Fout bij het controleren of de gebruiker was ingelogd\n"
 #: src/tools/sss_userdel.c:284
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
-msgstr ""
+msgstr "Het post-verwijder commando mislukte: %1$s\n"
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
@@ -1550,7 +1577,7 @@ msgstr ""
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
-msgstr ""
+msgstr "Kan persoonlijke map niet verwijderen: %1$s\n"
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1609,104 +1636,105 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transactiefout. Kan de gebruiker niet aanpassen.\n"
 
-#: src/tools/sss_cache.c:141
+#: src/tools/sss_cache.c:142
 msgid "No cache object matched the specified search\n"
 msgstr ""
+"Geen enkel cache object komt overeen met de gespecificeerde zoekopdracht\n"
 
-#: src/tools/sss_cache.c:175
+#: src/tools/sss_cache.c:201
 #, c-format
 msgid "No such %1$s named %2$s, skipping\n"
-msgstr ""
+msgstr "Er is geen %1$s met de naam %2$s, wordt overgeslagen\n"
 
-#: src/tools/sss_cache.c:178
+#: src/tools/sss_cache.c:204
 #, c-format
 msgid "No objects of type %1$s in the cache, skipping\n"
-msgstr ""
+msgstr "Er zijn geen objecten met type %1$s in de cache, worden overgeslagen\n"
 
-#: src/tools/sss_cache.c:190
+#: src/tools/sss_cache.c:216
 #, c-format
 msgid "Couldn't invalidate %1$s"
-msgstr ""
+msgstr "Kon %1$s niet ongeldig maken"
 
-#: src/tools/sss_cache.c:197
+#: src/tools/sss_cache.c:223
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
-msgstr ""
+msgstr "Kon %1$s %2$s niet ongeldig maken"
 
-#: src/tools/sss_cache.c:326
+#: src/tools/sss_cache.c:352
 msgid "Invalidate particular user"
-msgstr ""
+msgstr "Maak bepaalde gebruiker ongeldig"
 
-#: src/tools/sss_cache.c:328
+#: src/tools/sss_cache.c:354
 msgid "Invalidate all users"
-msgstr ""
+msgstr "Maak alle gebruikers ongeldig"
 
-#: src/tools/sss_cache.c:330
+#: src/tools/sss_cache.c:356
 msgid "Invalidate particular group"
-msgstr ""
+msgstr "Maak bepaalde groep ongeldig"
 
-#: src/tools/sss_cache.c:332
+#: src/tools/sss_cache.c:358
 msgid "Invalidate all groups"
-msgstr ""
+msgstr "Maak alle groepen ongeldig"
 
-#: src/tools/sss_cache.c:334
+#: src/tools/sss_cache.c:360
 msgid "Invalidate particular netgroup"
-msgstr ""
+msgstr "Maak bepaalde netgroep ongeldig"
 
-#: src/tools/sss_cache.c:336
+#: src/tools/sss_cache.c:362
 msgid "Invalidate all netgroups"
-msgstr ""
+msgstr "Maak alle netgroepen ongeldig"
 
-#: src/tools/sss_cache.c:338
+#: src/tools/sss_cache.c:364
 msgid "Invalidate particular service"
-msgstr ""
+msgstr "Maak bepaalde service ongeldig "
 
-#: src/tools/sss_cache.c:340
+#: src/tools/sss_cache.c:366
 msgid "Invalidate all services"
-msgstr ""
+msgstr "Maak alle services ongeldig"
 
-#: src/tools/sss_cache.c:343
+#: src/tools/sss_cache.c:369
 msgid "Invalidate particular autofs map"
-msgstr ""
+msgstr "Maak bepaalde autofs map ongeldig"
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:371
 msgid "Invalidate all autofs maps"
-msgstr ""
+msgstr "Maak alle autofs mappen ongeldig"
 
-#: src/tools/sss_cache.c:348
+#: src/tools/sss_cache.c:374
 msgid "Only invalidate entries from a particular domain"
-msgstr ""
+msgstr "Maak alleen ingangen van een bepaald domein ongeldig"
 
-#: src/tools/sss_cache.c:387
+#: src/tools/sss_cache.c:413
 msgid "Please select at least one object to invalidate\n"
-msgstr ""
+msgstr "Selecteer tenminste een object om ongeldig te maken\n"
 
-#: src/tools/sss_cache.c:458
+#: src/tools/sss_cache.c:484
 #, c-format
 msgid "Could not open domain %1$s\n"
-msgstr ""
+msgstr "Kon domein %1$s niet openen\n"
 
-#: src/tools/sss_cache.c:460
+#: src/tools/sss_cache.c:486
 msgid "Could not open available domains\n"
-msgstr ""
+msgstr "Kon beschikbare domeinen niet openen\n"
 
-#: src/tools/sss_debuglevel.c:43
+#: src/tools/sss_debuglevel.c:40
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
-#: src/tools/sss_debuglevel.c:102
+#: src/tools/sss_debuglevel.c:96
 msgid "Specify debug level you want to set\n"
-msgstr ""
+msgstr "Specificeer het debug niveau dat je wilt instellen\n"
 
 #: src/tools/tools_util.c:280
 msgid "Out of memory\n"
 msgstr "Het geheugen zit vol\n"
 
-#: src/tools/tools_util.h:40
+#: src/tools/tools_util.h:43
 #, c-format
 msgid "%1$s must be run as root\n"
-msgstr ""
+msgstr "%1$s moet als root uitgevoerd worden\n"
 
-#: src/util/util.h:94
+#: src/util/util.h:96
 msgid "Send the debug output to files instead of stderr"
 msgstr "Stuur de debuguitvoer naar bestanden in plaats van stderr"

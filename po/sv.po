@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-09-13 18:48+0200\n"
-"PO-Revision-Date: 2012-08-01 21:07+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2012-09-24 22:16+0200\n"
+"PO-Revision-Date: 2012-09-24 15:19+0000\n"
+"Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/fedora/language/"
 "sv/)\n"
 "Language: sv\n"
@@ -42,6 +42,8 @@ msgstr "Ping-tidsgräns före tjänst startas om"
 msgid ""
 "Timeout between three failed ping checks and forcibly killing the service"
 msgstr ""
+"Tidsgräns mellan tre misslyckade ping-kontroller och att framtvingat döda "
+"tjänsten"
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Command to start service"
@@ -53,11 +55,11 @@ msgstr "Antal gånger att försöka ansluta till dataleverantörer"
 
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "The number of file descriptors that may be opened by this responder"
-msgstr ""
+msgstr "Antalet fildeskriptorer som får öppnas av denna svarare"
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "Inaktiv tid före en klient automatiskt kopplas ifrån"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
@@ -84,6 +86,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Katalog på filsystemet där SSSD skall lagra sparade återspolningsfiler från "
+"Kerberos."
 
 #: src/config/SSSDConfig/__init__.py.in:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -116,39 +120,42 @@ msgstr "Värdet på lösenordfältet som NSS-leverantörer skall returnera"
 
 #: src/config/SSSDConfig/__init__.py.in:66
 msgid "Override homedir value from the identity provider with this value"
-msgstr ""
+msgstr "Åsidosätt hemkatalogvärdet från identitetsleverantören med detta värde"
 
 #: src/config/SSSDConfig/__init__.py.in:67
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
+"Ersätt ett tomt hemkatalogvärde från identitetsleverantören med detta värde"
 
 #: src/config/SSSDConfig/__init__.py.in:68
 msgid "Override shell value from the identity provider with this value"
-msgstr ""
+msgstr "Åsidosätt skalvärdet från identitetsleverantören med detta värde"
 
 #: src/config/SSSDConfig/__init__.py.in:69
 msgid "The list of shells users are allowed to log in with"
-msgstr ""
+msgstr "Listan på skal användare får lova att logga in med"
 
 #: src/config/SSSDConfig/__init__.py.in:70
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
-msgstr ""
+msgstr "Listan på skal som kommer förbjudas, och ersättas med standardskalet"
 
 #: src/config/SSSDConfig/__init__.py.in:71
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
+"Om ett skal lagrat i en central katalog är tillåtet men inte tillgängligt, "
+"använd detta alternativ"
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "Shell to use if the provider does not list one"
-msgstr ""
+msgstr "Skal att använda om leverantören inte listar något"
 
 #: src/config/SSSDConfig/__init__.py.in:73
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "Hur länge sparade poster i minnet är giltiga"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "How long to allow cached logins between online logins (days)"
@@ -157,37 +164,40 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:77
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "Hur många misslyckade inloggningsförsök som tillåts i frånkopplat läge"
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Hur länge (minuter) som inloggning nekas efter att "
+"frånkopplade_inloggningsförsök har nåtts"
 
 #: src/config/SSSDConfig/__init__.py.in:79
 msgid "What kind of messages are displayed to the user during authentication"
-msgstr ""
+msgstr "Vilka slags meddelanden som visas för användaren under autenticering"
 
 #: src/config/SSSDConfig/__init__.py.in:80
 msgid "How many seconds to keep identity information cached for PAM requests"
-msgstr ""
+msgstr "Hur många sekunder identitetsinformationen hålls sparad för PAM-frågor"
 
 #: src/config/SSSDConfig/__init__.py.in:81
 msgid "How many days before password expiration a warning should be displayed"
-msgstr ""
+msgstr "Hur många dagar före ett lösenord går ut en varning skall visas"
 
 #: src/config/SSSDConfig/__init__.py.in:84
 msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr ""
+msgstr "Om tidsbaserade attribut i sudo-regler skall beräknas"
 
 #: src/config/SSSDConfig/__init__.py.in:90
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr ""
+"Om värdnamn och adresser i known_hosts-filen skall göras till kontrollsummor"
 
 #: src/config/SSSDConfig/__init__.py.in:93
 msgid "List of UIDs or user names allowed to access the PAC responder"
-msgstr ""
+msgstr "Lista över UID:er eller användarnamn som tillåts komma åt PAC-svararen"
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "Identity provider"
@@ -258,27 +268,29 @@ msgstr "Tidsgränslängd för postcache (sekunder)"
 #: src/config/SSSDConfig/__init__.py.in:113
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
-msgstr ""
+msgstr "Begränsa eller föredra en specifik adressfamilj vid DNS-uppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:114
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
+"Hur länge cachade poster skall behållas efter senaste lyckade inloggning "
+"(dagar)"
 
 #: src/config/SSSDConfig/__init__.py.in:115
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr ""
+msgstr "Hur länge man väntar på svar från DNS när servrar slås upp (sekunder)"
 
 #: src/config/SSSDConfig/__init__.py.in:116
 msgid "The domain part of service discovery DNS query"
-msgstr ""
+msgstr "Domändelen av DNS-frågan för tjänstedetektering"
 
 #: src/config/SSSDConfig/__init__.py.in:117
 msgid "Override GID value from the identity provider with this value"
-msgstr ""
+msgstr "Åsidosätt GID-värdet från identitetsleverantören med detta värde"
 
 #: src/config/SSSDConfig/__init__.py.in:118
 msgid "Treat usernames as case sensitive"
-msgstr ""
+msgstr "Behandla användarnamn som skiftlägeskänsliga"
 
 #: src/config/SSSDConfig/__init__.py.in:127
 msgid "IPA domain"
@@ -290,7 +302,7 @@ msgstr "IPA-serveradress"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid "Address of backup IPA server"
-msgstr ""
+msgstr "Adress till reserv-IPA-server"
 
 #: src/config/SSSDConfig/__init__.py.in:130
 msgid "IPA client hostname"
@@ -298,20 +310,20 @@ msgstr "IPA-klienvärdnamn"
 
 #: src/config/SSSDConfig/__init__.py.in:131
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
-msgstr ""
+msgstr "Om klientens DNS-post i FreeIPA automatiskt skall uppdateras"
 
 #: src/config/SSSDConfig/__init__.py.in:132
 msgid "The interface whose IP should be used for dynamic DNS updates"
-msgstr ""
+msgstr "Gränssnittet var IP skall användas för dynamiska DNS-uppdateringar"
 
 #: src/config/SSSDConfig/__init__.py.in:133
 msgid "Search base for HBAC related objects"
-msgstr ""
+msgstr "Sökbas för HBAC-relaterade objekt"
 
 #: src/config/SSSDConfig/__init__.py.in:134
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
-msgstr ""
+msgstr "Tidsåtgången mellan uppslagningar av HBAC-reglerna mot IPA-servern"
 
 #: src/config/SSSDConfig/__init__.py.in:135
 msgid "If DENY rules are present, either DENY_ALL or IGNORE"
@@ -384,7 +396,7 @@ msgstr "Aktivera validering av kreditiv"
 
 #: src/config/SSSDConfig/__init__.py.in:159
 msgid "Store password if offline for later online authentication"
-msgstr ""
+msgstr "Lagra lösenord när ej ansluten för ansluten autentisering senare"
 
 #: src/config/SSSDConfig/__init__.py.in:160
 msgid "Renewable lifetime of the TGT"
@@ -413,7 +425,7 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:168
 #: src/config/SSSDConfig/__init__.py.in:169
 msgid "Server where the change password service is running if not on the KDC"
-msgstr ""
+msgstr "Server där ändringstjänsten för lösenord kör om inte på KDC:n"
 
 #: src/config/SSSDConfig/__init__.py.in:172
 msgid "ldap_uri, The URI of the LDAP server"
@@ -461,11 +473,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:183
 msgid "File that contains CA certificates"
-msgstr ""
+msgstr "Fil som innehåller CA-certifikat"
 
 #: src/config/SSSDConfig/__init__.py.in:184
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Sökväg till katalogen med CA-certifikat"
 
 #: src/config/SSSDConfig/__init__.py.in:185
 msgid "File that contains the client certificate"
@@ -509,11 +521,11 @@ msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
 #: src/config/SSSDConfig/__init__.py.in:195
 msgid "Follow LDAP referrals"
-msgstr ""
+msgstr "Följer LDAP-hänvisningar"
 
 #: src/config/SSSDConfig/__init__.py.in:196
 msgid "Lifetime of TGT for LDAP connection"
-msgstr ""
+msgstr "Livslängd på TGT för LDAP-anslutning"
 
 #: src/config/SSSDConfig/__init__.py.in:197
 msgid "How to dereference aliases"
@@ -571,7 +583,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:215
 msgid "Require TLS for ID lookups"
-msgstr ""
+msgstr "Kräv TLS för ID-uppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:216
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
@@ -844,7 +856,7 @@ msgstr "Policy för att utvärdera utgång av lösenord"
 
 #: src/config/SSSDConfig/__init__.py.in:299
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "LDAP-filter för att bestämma åtkomstprivilegier"
 
 #: src/config/SSSDConfig/__init__.py.in:300
 msgid "Which attributes shall be used to evaluate if an account is expired"
@@ -971,11 +983,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:338
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "Kommaseparerad lista över tillåtna användare"
 
 #: src/config/SSSDConfig/__init__.py.in:339
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "Kommaseparerad lista över förbjudna användare"
 
 #: src/config/SSSDConfig/__init__.py.in:342
 msgid "Default shell, /bin/bash"
@@ -997,68 +1009,68 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/monitor/monitor.c:2410
+#: src/monitor/monitor.c:2446
 msgid "Become a daemon (default)"
-msgstr ""
+msgstr "Bli en demon (standard)"
 
-#: src/monitor/monitor.c:2412
+#: src/monitor/monitor.c:2448
 msgid "Run interactive (not a daemon)"
-msgstr ""
+msgstr "Kör interaktivt (inte en demon)"
 
-#: src/monitor/monitor.c:2414 src/tools/sss_debuglevel.c:77
+#: src/monitor/monitor.c:2450 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
-msgstr ""
+msgstr "Ange en konfigurationsfil annan än standard"
 
-#: src/monitor/monitor.c:2416
+#: src/monitor/monitor.c:2452
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1866 src/providers/ldap/ldap_child.c:399
-#: src/util/util.h:92
+#: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
+#: src/util/util.h:94
 msgid "Debug level"
-msgstr ""
+msgstr "Felsökningsnivå"
 
-#: src/providers/krb5/krb5_child.c:1868 src/providers/ldap/ldap_child.c:401
-#: src/util/util.h:96
-msgid "Add debug timestamps"
-msgstr ""
-
-#: src/providers/krb5/krb5_child.c:1870 src/providers/ldap/ldap_child.c:403
+#: src/providers/krb5/krb5_child.c:1867 src/providers/ldap/ldap_child.c:409
 #: src/util/util.h:98
+msgid "Add debug timestamps"
+msgstr "Lägg till felsökningstidstämplar"
+
+#: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
+#: src/util/util.h:100
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1872 src/providers/ldap/ldap_child.c:405
+#: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
 msgid "An open file descriptor for the debug logs"
-msgstr ""
+msgstr "Ett öppet filhandtag för felsökningsloggarna"
 
-#: src/providers/data_provider_be.c:2364
+#: src/providers/data_provider_be.c:2365
 msgid "Domain of the information provider (mandatory)"
-msgstr ""
+msgstr "Domän för informationsleverantören (obligatoriskt)"
 
 #: src/sss_client/common.c:926
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Priviligierat uttag (socket) har fel ägarskap eller rättigheter."
 
 #: src/sss_client/common.c:929
 msgid "Public socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Publikt uttag (socket) har fel ägarskap eller rättigheter."
 
 #: src/sss_client/common.c:932
 msgid "Unexpected format of the server credential message."
-msgstr ""
+msgstr "Oväntat format på serverns kreditivmeddelande."
 
 #: src/sss_client/common.c:935
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "SSSD körs inte av root."
 
 #: src/sss_client/common.c:940
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Ett fel uppstod, men ingen beskrivning kan hittas."
 
 #: src/sss_client/common.c:946
 msgid "Unexpected error while looking for an error description"
-msgstr ""
+msgstr "Oväntat fel vid sökning efter ett felmeddelande"
 
 #: src/sss_client/pam_sss.c:375
 msgid "Passwords do not match"
@@ -1066,15 +1078,15 @@ msgstr "Lösenorden stämmer inte överens"
 
 #: src/sss_client/pam_sss.c:563
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "Återställning av lösenord av root stöds inte."
 
 #: src/sss_client/pam_sss.c:604
 msgid "Authenticated with cached credentials"
-msgstr ""
+msgstr "Autentiserad med cachade kreditiv"
 
 #: src/sss_client/pam_sss.c:605
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", ditt cache-lösenord kommer gå ut: "
 
 #: src/sss_client/pam_sss.c:635
 #, c-format
@@ -1088,19 +1100,19 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:730
 msgid "Authentication is denied until: "
-msgstr ""
+msgstr "Autentisering nekas till: "
 
 #: src/sss_client/pam_sss.c:751
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "Systemet är frånkopplat, ändring av lösenord är inte möjligt"
 
 #: src/sss_client/pam_sss.c:781 src/sss_client/pam_sss.c:794
 msgid "Password change failed. "
-msgstr ""
+msgstr "Lösenordsändringen misslyckades. "
 
 #: src/sss_client/pam_sss.c:784 src/sss_client/pam_sss.c:795
 msgid "Server message: "
-msgstr ""
+msgstr "Servermeddelande: "
 
 #: src/sss_client/pam_sss.c:1213
 msgid "New Password: "
@@ -1116,20 +1128,20 @@ msgstr "Lösenord: "
 
 #: src/sss_client/pam_sss.c:1332
 msgid "Current Password: "
-msgstr ""
+msgstr "Nuvarande lösenord: "
 
 #: src/sss_client/pam_sss.c:1479
 msgid "Password expired. Change your password now."
-msgstr ""
+msgstr "Lösenordet har gått ut.  Ändra ditt lösenord nu."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:324 src/tools/sss_debuglevel.c:75
+#: src/tools/sss_cache.c:350 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
-msgstr "Felsökningsnivå att köra med"
+msgstr "Felsökningsnivån att köra med"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:196
@@ -1140,7 +1152,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
 #: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:355
+#: src/tools/sss_cache.c:381
 msgid "Error setting the locale\n"
 msgstr "Fel när lokalen sattes\n"
 
@@ -1207,7 +1219,7 @@ msgstr "Ange en alternativ skelettkatalog"
 
 #: src/tools/sss_useradd.c:57 src/tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "SELinux-användaren för användarens inloggning"
 
 #: src/tools/sss_useradd.c:86 src/tools/sss_groupmod.c:78
 #: src/tools/sss_usermod.c:87
@@ -1223,7 +1235,7 @@ msgstr "Ange en användare att lägga till\n"
 #: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:193
 #: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
-msgstr ""
+msgstr "Fel vid initiering av verktygen — ingen lokal domän\n"
 
 #: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
 #: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:113
@@ -1265,7 +1277,7 @@ msgstr "Den valda UID:n är utanför det tillåtna intervallet\n"
 
 #: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:243
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Kan inte sätta SELinux-inloggningskontext\n"
 
 #: src/tools/sss_useradd.c:221
 msgid "Cannot get info about the user\n"
@@ -1402,7 +1414,7 @@ msgstr ""
 
 #: src/tools/sss_groupshow.c:599
 msgid "Magic Private "
-msgstr ""
+msgstr "Magiskt privat "
 
 #: src/tools/sss_groupshow.c:601
 #, c-format
@@ -1430,21 +1442,23 @@ msgstr ""
 
 #: src/tools/sss_groupshow.c:653
 msgid "Print indirect group members recursively"
-msgstr ""
+msgstr "Skriv ut indirekta gruppmedlemmar rekursivt"
 
 #: src/tools/sss_groupshow.c:686
 msgid "Specify group to show\n"
-msgstr ""
+msgstr "Ange en grupp att visa\n"
 
 #: src/tools/sss_groupshow.c:725
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr ""
+"Ingen sådan grupp i den lokala domänen.  Att skriva ut grupper är endast "
+"tillåtet i den lokala domänen.\n"
 
 #: src/tools/sss_groupshow.c:730
 msgid "Internal error. Could not print group.\n"
-msgstr ""
+msgstr "Internt fel.  Det gick inte att skriva ut gruppen.\n"
 
 #: src/tools/sss_userdel.c:133
 msgid "Remove home directory and mail spool"
@@ -1460,7 +1474,7 @@ msgstr "Framtvinga borttagning av filer som inte ägs av användaren"
 
 #: src/tools/sss_userdel.c:139
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Döda anvädares processer före de tas bort"
 
 #: src/tools/sss_userdel.c:184
 msgid "Specify user to delete\n"
@@ -1473,7 +1487,7 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Kan inte återställa SELinux-inloggningskontext\n"
 
 #: src/tools/sss_userdel.c:267
 #, c-format
@@ -1482,11 +1496,11 @@ msgstr ""
 
 #: src/tools/sss_userdel.c:272
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
+msgstr "Det går inte att avgöra om användaren var inloggad på denna plattform"
 
 #: src/tools/sss_userdel.c:277
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Fel vid kontroll om användaren var inloggad\n"
 
 #: src/tools/sss_userdel.c:284
 #, c-format
@@ -1559,92 +1573,92 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra användaren.\n"
 
-#: src/tools/sss_cache.c:141
+#: src/tools/sss_cache.c:142
 msgid "No cache object matched the specified search\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:175
+#: src/tools/sss_cache.c:201
 #, c-format
 msgid "No such %1$s named %2$s, skipping\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:178
+#: src/tools/sss_cache.c:204
 #, c-format
 msgid "No objects of type %1$s in the cache, skipping\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:190
+#: src/tools/sss_cache.c:216
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:197
+#: src/tools/sss_cache.c:223
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:326
+#: src/tools/sss_cache.c:352
 msgid "Invalidate particular user"
 msgstr ""
 
-#: src/tools/sss_cache.c:328
+#: src/tools/sss_cache.c:354
 msgid "Invalidate all users"
 msgstr ""
 
-#: src/tools/sss_cache.c:330
+#: src/tools/sss_cache.c:356
 msgid "Invalidate particular group"
 msgstr ""
 
-#: src/tools/sss_cache.c:332
+#: src/tools/sss_cache.c:358
 msgid "Invalidate all groups"
 msgstr ""
 
-#: src/tools/sss_cache.c:334
+#: src/tools/sss_cache.c:360
 msgid "Invalidate particular netgroup"
 msgstr ""
 
-#: src/tools/sss_cache.c:336
+#: src/tools/sss_cache.c:362
 msgid "Invalidate all netgroups"
 msgstr ""
 
-#: src/tools/sss_cache.c:338
+#: src/tools/sss_cache.c:364
 msgid "Invalidate particular service"
 msgstr ""
 
-#: src/tools/sss_cache.c:340
+#: src/tools/sss_cache.c:366
 msgid "Invalidate all services"
 msgstr ""
 
-#: src/tools/sss_cache.c:343
+#: src/tools/sss_cache.c:369
 msgid "Invalidate particular autofs map"
 msgstr ""
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:371
 msgid "Invalidate all autofs maps"
 msgstr ""
 
-#: src/tools/sss_cache.c:348
+#: src/tools/sss_cache.c:374
 msgid "Only invalidate entries from a particular domain"
 msgstr ""
 
-#: src/tools/sss_cache.c:387
+#: src/tools/sss_cache.c:413
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:458
+#: src/tools/sss_cache.c:484
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:460
+#: src/tools/sss_cache.c:486
 msgid "Could not open available domains\n"
 msgstr ""
 
-#: src/tools/sss_debuglevel.c:43
+#: src/tools/sss_debuglevel.c:40
 msgid "\n"
 msgstr ""
 
-#: src/tools/sss_debuglevel.c:102
+#: src/tools/sss_debuglevel.c:96
 msgid "Specify debug level you want to set\n"
 msgstr ""
 
@@ -1652,11 +1666,11 @@ msgstr ""
 msgid "Out of memory\n"
 msgstr "Slut på minne\n"
 
-#: src/tools/tools_util.h:40
+#: src/tools/tools_util.h:43
 #, c-format
 msgid "%1$s must be run as root\n"
 msgstr ""
 
-#: src/util/util.h:94
+#: src/util/util.h:96
 msgid "Send the debug output to files instead of stderr"
-msgstr ""
+msgstr "Skicka felutskrifter till filer istället för standard fel"
