@@ -82,7 +82,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
     /* All groups are cached, nothing to do */
     if (mi == 0) {
-        talloc_zfree(tmp_ctx);
+        ret = EOK;
         goto done;
     }
 
