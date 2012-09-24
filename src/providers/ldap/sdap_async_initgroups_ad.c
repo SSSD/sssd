@@ -489,6 +489,12 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
                        strerror(ret)));
                 goto done;
             }
+        } else {
+            /* Unexpected error */
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not look up group in sysdb: [%s]\n",
+                   strerror(ret)));
+            goto done;
         }
 
         ldap_grouplist[group_count] =
