@@ -524,9 +524,9 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
 {
     struct fo_server *server;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Adding new SRV server in domain '%s', to service '%s' using %s\n",
-                              discovery_domain ? discovery_domain : "unknown",
-                              service->name, proto));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Adding new SRV server to service '%s' using '%s'.\n",
+           service->name, proto));
 
     DLIST_FOR_EACH(server, service->server_list) {
         /* Compare user data only if user_data_cmp and both arguments
@@ -1110,6 +1110,10 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     case SRV_NEUTRAL: /* Request SRV lookup */
         if (state->meta->srv_data->dns_domain == NULL) {
             /* we need to look up our DNS domain first */
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("SRV resolution of service '%s'. "
+                   "dns_discovery_domain not specified. Need to look it up.\n",
+                   server->service->name));
             subreq = resolve_get_domain_send(state, ev, ctx, resolv);
             if (subreq == NULL) {
                 ret = ENOMEM;
@@ -1119,6 +1123,10 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
             break;
         }
         /* we know the DNS domain, just do the lookup */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("SRV resolution of service '%s'. "
+               "Will use DNS discovery domain '%s'\n",
+               server->service->name, state->meta->srv_data->dns_domain));
         resolve_srv_cont(req);
         break;
     case SRV_RESOLVE_ERROR: /* query could not be resolved but don't retry yet */
