@@ -71,10 +71,6 @@ krb5_error_code check_for_valid_tgt(krb5_context context,
                                     krb5_ccache ccache, const char *realm,
                                     const char *client_princ_str, bool *result);
 
-int sss_krb5_verify_keytab(const char *principal,
-                           const char *realm_str,
-                           const char *keytab_name);
-
 int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
                               krb5_context context, krb5_keytab keytab);
 

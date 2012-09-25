@@ -453,7 +453,6 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
 int setup_child(struct sdap_id_ctx *ctx)
 {
     int ret;
-    const char *mech;
     unsigned v;
     FILE *debug_filep;
     const char *realm;
@@ -461,26 +460,6 @@ int setup_child(struct sdap_id_ctx *ctx)
     realm = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_REALM);
     if (!realm) {
         realm = dp_opt_get_string(ctx->opts->basic, SDAP_KRB5_REALM);
-    }
-
-    mech = dp_opt_get_string(ctx->opts->basic,
-                             SDAP_SASL_MECH);
-    if (!mech) {
-        return EOK;
-    }
-
-    if (mech && (strcasecmp(mech, "GSSAPI") == 0)) {
-        ret = sss_krb5_verify_keytab(dp_opt_get_string(ctx->opts->basic,
-                                                       SDAP_SASL_AUTHID),
-                                     realm,
-                                     dp_opt_get_string(ctx->opts->basic,
-                                                       SDAP_KRB5_KEYTAB));
-
-        if (ret != EOK) {
-            DEBUG(0, ("Could not verify keytab\n"));
-            return ret;
-        }
-
     }
 
     if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
