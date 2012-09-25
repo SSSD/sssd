@@ -554,6 +554,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     struct sss_domain_info *dom = cctx->rctx->domains;
     struct ssh_ctx *ssh_ctx = (struct ssh_ctx *)cctx->rctx->pvt_ctx;
     struct sysdb_ctx *sysdb;
+    time_t now = time(NULL);
     struct ldb_message **hosts;
     size_t num_hosts, i;
     struct sss_ssh_ent *ent;
@@ -565,6 +566,13 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    ret = sysdb_update_ssh_known_host_expire(cmd_ctx->domain->sysdb,
+                                             cmd_ctx->name, now,
+                                             ssh_ctx->known_hosts_timeout);
+    if (ret != EOK) {
+        goto done;
     }
 
     /* write known_hosts file */
@@ -592,7 +600,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
             goto done;
         }
 
-        ret = sysdb_get_ssh_known_hosts(tmp_ctx, sysdb, attrs,
+        ret = sysdb_get_ssh_known_hosts(tmp_ctx, sysdb, now, attrs,
                                         &hosts, &num_hosts);
         if (ret != EOK) {
             if (ret != ENOENT) {

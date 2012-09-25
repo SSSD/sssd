@@ -812,6 +812,18 @@ override_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>ssh_known_hosts_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds to keep a host in the managed
+                            known_hosts file after its host keys were requested.
+                        </para>
+                        <para>
+                            Default: 180
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

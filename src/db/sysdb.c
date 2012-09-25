@@ -1103,6 +1103,13 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                 }
             }
 
+            if (strcmp(version, SYSDB_VERSION_0_12) == 0) {
+                ret = sysdb_upgrade_12(sysdb, &version);
+                if (ret != EOK) {
+                    goto done;
+                }
+            }
+
             /* The version should now match SYSDB_VERSION.
              * If not, it means we didn't match any of the
              * known older versions. The DB might be

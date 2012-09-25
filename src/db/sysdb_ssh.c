@@ -177,6 +177,52 @@ done:
 }
 
 errno_t
+sysdb_update_ssh_known_host_expire(struct sysdb_ctx *sysdb,
+                                   const char *name,
+                                   time_t now,
+                                   int known_hosts_timeout)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Updating known_hosts expire time of host %s\n", name));
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_SSH_KNOWN_HOSTS_EXPIRE,
+                                 now + known_hosts_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not set known_hosts expire time [%d]: %s\n",
+               ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = sysdb_update_ssh_host(sysdb, name, attrs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
 sysdb_delete_ssh_host(struct sysdb_ctx *sysdb,
                       const char *name)
 {
@@ -275,10 +321,32 @@ done:
 errno_t
 sysdb_get_ssh_known_hosts(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *sysdb,
+                          time_t now,
                           const char **attrs,
                           struct ldb_message ***hosts,
                           size_t *num_hosts)
 {
-    return sysdb_search_ssh_hosts(mem_ctx, sysdb, NULL, attrs,
-                                  hosts, num_hosts);
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char *filter;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(%s>=%ld)",
+                             SYSDB_SSH_KNOWN_HOSTS_EXPIRE, (long)now);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_ssh_hosts(mem_ctx, sysdb, filter, attrs,
+                                 hosts, num_hosts);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
