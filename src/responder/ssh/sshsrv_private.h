@@ -44,8 +44,7 @@ struct ssh_cmd_ctx {
     struct sss_domain_info *domain;
     bool check_next;
 
-    struct ldb_message **results;
-    size_t results_len;
+    struct ldb_message *result;
 };
 
 struct sss_cmd_table *get_ssh_cmds(void);

@@ -164,19 +164,19 @@ struct test_data {
     const char *hostname;
     const char *alias;
 
-    struct ldb_message **hosts;
+    struct ldb_message *host;
     struct sysdb_attrs *attrs;
-
-    size_t count;
 };
 
 static int test_sysdb_store_ssh_host(struct test_data *data)
 {
     int ret;
+    time_t now = time(NULL);
 
     ret = sysdb_store_ssh_host(data->ctx->sysdb,
                                data->hostname,
                                data->alias,
+                               now,
                                data->attrs);
     return ret;
 }
@@ -189,14 +189,15 @@ static int test_sysdb_delete_ssh_host(struct test_data *data)
     return ret;
 }
 
-static int test_sysdb_search_ssh_hosts(struct test_data *data)
+static int test_sysdb_get_ssh_host(struct test_data *data)
 {
     int ret;
     const char *attrs[] = { SYSDB_NAME, NULL };
 
-    ret = sysdb_search_ssh_hosts(data->ctx, data->ctx->sysdb,
-                                 data->hostname, attrs,
-                                 &data->hosts, &data->count);
+    ret = sysdb_get_ssh_host(data->ctx, data->ctx->sysdb,
+                             data->hostname, attrs,
+                             &data->host);
+
     return ret;
 }
 
@@ -232,18 +233,6 @@ START_TEST (store_one_host_test)
     if (data->attrs == NULL) {
         fail("Out of memory!");
         talloc_free(test_ctx);
-        return;
-    }
-
-    ret = sysdb_attrs_add_string(data->attrs, SYSDB_OBJECTCLASS, "testClass");
-    if (ret != EOK) {
-        fail("Could not add attribute.");
-        return;
-    }
-
-    ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME, TEST_HOSTNAME);
-    if (ret != EOK) {
-        fail("Could not add attribute.");
         return;
     }
 
@@ -324,7 +313,7 @@ START_TEST (delete_nonexistent_host_test)
 }
 END_TEST
 
-START_TEST (sysdb_search_ssh_host_test)
+START_TEST (sysdb_get_ssh_host_test)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
@@ -359,20 +348,6 @@ START_TEST (sysdb_search_ssh_host_test)
         return;
     }
 
-    ret = sysdb_attrs_add_string(data->attrs, SYSDB_OBJECTCLASS, "testClass");
-    if (ret != EOK) {
-        fail("Could not add attribute.");
-        talloc_free(test_ctx);
-        return;
-    }
-
-    ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME, TEST_HOSTNAME);
-    if (ret != EOK) {
-        fail("Could not add attribute.");
-        talloc_free(test_ctx);
-        return;
-    }
-
     ret = test_sysdb_store_ssh_host(data);
     if (ret != EOK) {
         fail("Could not store host '%s' to database", TEST_HOSTNAME);
@@ -380,7 +355,7 @@ START_TEST (sysdb_search_ssh_host_test)
         return;
     }
 
-    ret = test_sysdb_search_ssh_hosts(data);
+    ret = test_sysdb_get_ssh_host(data);
 
     fail_if(ret != EOK, "Could not find host '%s'",TEST_HOSTNAME);
     talloc_free(test_ctx);
@@ -396,7 +371,7 @@ Suite *create_sysdb_ssh_suite(void)
     tcase_add_test(tc_sysdb_ssh, store_one_host_test);
     tcase_add_test(tc_sysdb_ssh, delete_existing_host_test);
     tcase_add_test(tc_sysdb_ssh, delete_nonexistent_host_test);
-    tcase_add_test(tc_sysdb_ssh, sysdb_search_ssh_host_test);
+    tcase_add_test(tc_sysdb_ssh, sysdb_get_ssh_host_test);
     suite_add_tcase(s, tc_sysdb_ssh);
     return s;
 }

@@ -235,17 +235,14 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         return EIO;
     }
 
-    cmd_ctx->results = res->msgs;
-    cmd_ctx->results_len = res->count;
-
-    if (cmd_ctx->results_len > 1) {
+    if (res->count > 1) {
         DEBUG(SSSDBG_FATAL_FAILURE,
             ("User search by name (%s) returned > 1 results!\n",
              cmd_ctx->name));
-        return ENOENT;
+        return EINVAL;
     }
 
-    if (cmd_ctx->results_len == 0) {
+    if (!res->count) {
         /* if a multidomain search, try with next */
         if (cmd_ctx->check_next) {
             cmd_ctx->domain = cmd_ctx->domain->next;
@@ -257,6 +254,8 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
 
         return ENOENT;
     }
+
+    cmd_ctx->result = res->msgs[0];
 
     /* one result found */
     return EOK;
@@ -360,23 +359,15 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         return EFAULT;
     }
 
-    ret = sysdb_search_ssh_hosts(cmd_ctx, sysdb,
-                                 cmd_ctx->name, attrs,
-                                 &cmd_ctx->results, &cmd_ctx->results_len);
+    ret = sysdb_get_ssh_host(cmd_ctx, sysdb, cmd_ctx->name, attrs,
+                             &cmd_ctx->result);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Failed to make request to our cache!\n"));
         return EIO;
     }
 
-    if (cmd_ctx->results_len > 1) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-            ("Host search by name (%s) returned > 1 results!\n",
-             cmd_ctx->name));
-        return ENOENT;
-    }
-
-    if (cmd_ctx->results_len == 0) {
+    if (ret == ENOENT) {
         /* if a multidomain search, try with next */
         if (cmd_ctx->check_next) {
             cmd_ctx->domain = cmd_ctx->domain->next;
@@ -601,8 +592,8 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
             goto done;
         }
 
-        ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, "*", attrs,
-                                     &hosts, &num_hosts);
+        ret = sysdb_get_ssh_known_hosts(tmp_ctx, sysdb, attrs,
+                                        &hosts, &num_hosts);
         if (ret != EOK) {
             if (ret != ENOENT) {
                 DEBUG(SSSDBG_OP_FAILURE,
@@ -741,8 +732,7 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     uint8_t *body;
     size_t body_len;
     size_t c = 0;
-    size_t i;
-    unsigned int j;
+    unsigned int i;
     struct ldb_message_element *el;
     uint32_t count = 0;
     const char *name;
@@ -758,14 +748,9 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
         return ret;
     }
 
-    /* count number of results */
-    for (i = 0; i < cmd_ctx->results_len; i++) {
-        el = ldb_msg_find_element(cmd_ctx->results[i], SYSDB_SSH_PUBKEY);
-        if (!el) {
-            continue;
-        }
-
-        count += el->num_values;
+    el = ldb_msg_find_element(cmd_ctx->result, SYSDB_SSH_PUBKEY);
+    if (el) {
+        count = el->num_values;
     }
 
     ret = sss_packet_grow(cctx->creq->out, 2*sizeof(uint32_t));
@@ -777,55 +762,50 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     SAFEALIGN_SET_UINT32(body+c, count, &c);
     SAFEALIGN_SET_UINT32(body+c, 0, &c);
 
-    for (i = 0; i < cmd_ctx->results_len; i++) {
-        name = ldb_msg_find_attr_as_string(cmd_ctx->results[i],
-                                           SYSDB_NAME, NULL);
-        if (!name) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Got unnamed result for [%s@%s]\n",
-                   cmd_ctx->name, cmd_ctx->domain->name));
-            return ENOENT;
-        }
+    if (!el) {
+        return EOK;
+    }
 
-        fqname = talloc_asprintf(cmd_ctx, "%s@%s",
-                                 name, cmd_ctx->domain->name);
-        if (!fqname) {
+    name = ldb_msg_find_attr_as_string(cmd_ctx->result, SYSDB_NAME, NULL);
+    if (!name) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Got unnamed result for [%s@%s]\n",
+               cmd_ctx->name, cmd_ctx->domain->name));
+        return ENOENT;
+    }
+
+    fqname = talloc_asprintf(cmd_ctx, "%s@%s",
+                             name, cmd_ctx->domain->name);
+    if (!fqname) {
+        return ENOMEM;
+    }
+
+    fqname_len = strlen(fqname)+1;
+
+    for (i = 0; i < el->num_values; i++) {
+        key = sss_base64_decode(cmd_ctx,
+                                (const char *)el->values[i].data,
+                                &key_len);
+        if (!key) {
             return ENOMEM;
         }
 
-        fqname_len = strlen(fqname)+1;
-
-        el = ldb_msg_find_element(cmd_ctx->results[i], SYSDB_SSH_PUBKEY);
-        if (!el) {
-            /* this object has no SSH public keys */
-            continue;
-        }
-
-        for (j = 0; j < el->num_values; j++) {
-            key = sss_base64_decode(cmd_ctx,
-                                    (const char *)el->values[j].data,
-                                    &key_len);
-            if (!key) {
-                return ENOMEM;
-            }
-
-            ret = sss_packet_grow(cctx->creq->out,
-                                  3*sizeof(uint32_t) + key_len + fqname_len);
-            if (ret != EOK) {
-                talloc_free(key);
-                return ret;
-            }
-            sss_packet_get_body(cctx->creq->out, &body, &body_len);
-
-            SAFEALIGN_SET_UINT32(body+c, 0, &c);
-            SAFEALIGN_SET_UINT32(body+c, fqname_len, &c);
-            safealign_memcpy(body+c, fqname, fqname_len, &c);
-            SAFEALIGN_SET_UINT32(body+c, key_len, &c);
-            safealign_memcpy(body+c, key, key_len, &c);
-
+        ret = sss_packet_grow(cctx->creq->out,
+                              3*sizeof(uint32_t) + key_len + fqname_len);
+        if (ret != EOK) {
             talloc_free(key);
-            count++;
+            return ret;
         }
+        sss_packet_get_body(cctx->creq->out, &body, &body_len);
+
+        SAFEALIGN_SET_UINT32(body+c, 0, &c);
+        SAFEALIGN_SET_UINT32(body+c, fqname_len, &c);
+        safealign_memcpy(body+c, fqname, fqname_len, &c);
+        SAFEALIGN_SET_UINT32(body+c, key_len, &c);
+        safealign_memcpy(body+c, key, key_len, &c);
+
+        talloc_free(key);
+        count++;
     }
 
     return EOK;

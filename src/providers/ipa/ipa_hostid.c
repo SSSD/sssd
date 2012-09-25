@@ -246,6 +246,8 @@ hosts_get_done(struct tevent_req *subreq)
                                                     struct hosts_get_state);
     int dp_error = DP_ERR_FATAL;
     errno_t ret;
+    struct sysdb_attrs *attrs;
+    time_t now = time(NULL);
 
     ret = ipa_host_info_recv(subreq, state,
                              &state->count, &state->hosts,
@@ -280,8 +282,20 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_store_ssh_host(state->sysdb, state->name, state->alias,
-                               state->hosts[0]);
+    attrs = sysdb_new_attrs(state);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* we are interested only in the host keys */
+    ret = sysdb_attrs_copy_values(state->hosts[0], attrs, SYSDB_SSH_PUBKEY);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_store_ssh_host(state->sysdb, state->name, state->alias, now,
+                               attrs);
     if (ret != EOK) {
         goto done;
     }
