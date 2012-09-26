@@ -163,13 +163,33 @@
                             Depending on the selected schema, the default
                             attribute names retrieved from the servers may vary.
                             The way that some attributes are handled may also differ.
-
+                        </para>
+                        <para>
                             Four schema types are currently supported:
-                            rfc2307
-                            rfc2307bis
-                            IPA
-                            AD
-
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        rfc2307
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        rfc2307bis
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        IPA
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        AD
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
                             The main difference between these schema types is
                             how group memberships are recorded in the server.
                             With rfc2307, group members are listed by name in the
