@@ -2234,12 +2234,12 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
 
                 <varlistentry condition="with_sudo">
                     <term>ldap_sudo_search_base (string)</term>
-                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases_experimental.xml" />
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
                 <varlistentry condition="with_autofs">
                     <term>ldap_autofs_search_base (string)</term>
-                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases_experimental.xml" />
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
             </variablelist>
