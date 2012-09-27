@@ -64,6 +64,9 @@
  * doesn't shutdown on receiving SIGTERM */
 #define MONITOR_DEF_FORCE_TIME 60
 
+/* name of the monitor server instance */
+#define MONITOR_NAME "sssd"
+
 /* Special value to leave the Kerberos Replay Cache set to use
  * the libkrb5 defaults
  */
@@ -140,6 +143,8 @@ struct mt_ctx {
     struct sss_domain_info *domains;
     TALLOC_CTX *service_ctx; /* Memory context for services */
     char **services;
+    int num_services;
+    int started_services;
     struct mt_svc *svc_list;
     struct sbus_connection *sbus_srv;
     struct config_file_ctx *file_ctx;
@@ -345,6 +350,12 @@ static int svc_destructor(void *mem)
         talloc_set_destructor((TALLOC_CTX *)svc->conn_spy, NULL);
         talloc_zfree(svc->conn_spy);
     }
+
+    if (svc->type == MT_SVC_SERVICE && svc->svc_started
+            && svc->mt_ctx != NULL && svc->mt_ctx->started_services > 0) {
+        svc->mt_ctx->started_services--;
+    }
+
     return 0;
 }
 
@@ -416,6 +427,23 @@ static int mark_service_as_started(struct mt_svc *svc)
         /* then start all services */
         for (i = 0; ctx->services[i]; i++) {
             add_new_service(ctx, ctx->services[i], 0);
+        }
+    }
+
+    if (svc->type == MT_SVC_SERVICE) {
+        ctx->started_services++;
+    }
+
+    /* create the pid file if all services are alive */
+    if (ctx->started_services == ctx->num_services) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("All services have successfully started, "
+                                  "creating pid file\n"));
+        ret = pidfile(PID_PATH, MONITOR_NAME);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Error creating pidfile: %s/%s.pid! (%d [%s])\n",
+                   PID_PATH, MONITOR_NAME, ret, strerror(ret)));
+            kill(getpid(), SIGTERM);
         }
     }
 
@@ -789,6 +817,7 @@ int get_monitor_config(struct mt_ctx *ctx)
     int ret;
     int timeout_seconds;
     char *badsrv = NULL;
+    int i;
 
     ret = confdb_get_int(ctx->cdb,
                          CONFDB_MONITOR_CONF_ENTRY,
@@ -817,6 +846,12 @@ int get_monitor_config(struct mt_ctx *ctx)
     if (badsrv != NULL) {
         DEBUG(0, ("Invalid service %s\n", badsrv));
         return EINVAL;
+    }
+
+    ctx->started_services = 0;
+    ctx->num_services = 0;
+    for (i = 0; ctx->services[i] != NULL; i++) {
+        ctx->num_services++;
     }
 
     ctx->domain_ctx = talloc_new(ctx);
@@ -2518,9 +2553,6 @@ int main(int argc, const char *argv[])
         return 6;
     }
 
-    /* we want a pid file check */
-    flags |= FLAGS_PID_FILE;
-
     /* Open before server_setup() does to have logging
      * during configuration checking */
     if (debug_to_file) {
@@ -2588,7 +2620,7 @@ int main(int argc, const char *argv[])
 
     /* set up things like debug , signals, daemonization, etc... */
     monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;
-    ret = server_setup("sssd", flags, monitor->conf_path, &main_ctx);
+    ret = server_setup(MONITOR_NAME, flags, monitor->conf_path, &main_ctx);
     if (ret != EOK) return 2;
 
     monitor->ev = main_ctx->event_ctx;

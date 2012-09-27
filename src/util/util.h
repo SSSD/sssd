@@ -361,6 +361,7 @@ struct main_context {
 };
 
 int die_if_parent_died(void);
+int pidfile(const char *path, const char *name);
 int server_setup(const char *name, int flags,
                  const char *conf_entry,
                  struct main_context **main_ctx);
