@@ -887,7 +887,7 @@
                     <listitem>
                         <para>
                             This option tells SSSD to take advantage of an
-                            Active Directory-specific feature which will speed
+                            Active Directory-specific feature which might speed
                             up initgroups operations (most notably when
                             dealing with complex or deep nested groups).
                         </para>
@@ -904,7 +904,7 @@
                             MSDN(TM) documentation</ulink> for more details.
                         </para>
                         <para>
-                            Default: True
+                            Default: False
                         </para>
                     </listitem>
                 </varlistentry>
