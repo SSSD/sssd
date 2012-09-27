@@ -2508,12 +2508,15 @@ int main(int argc, const char *argv[])
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) flags |= FLAGS_INTERACTIVE;
 
-    if (opt_config_file)
+    if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
-    else
+    } else {
         config_file = talloc_strdup(tmp_ctx, CONFDB_DEFAULT_CONFIG_FILE);
-    if(!config_file)
+    }
+
+    if (!config_file) {
         return 6;
+    }
 
     /* we want a pid file check */
     flags |= FLAGS_PID_FILE;

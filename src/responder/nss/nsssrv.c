@@ -474,7 +474,7 @@ int main(int argc, const char *argv[])
 
     CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
 
-   /* set up things like debug, signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_nss";
 
     ret = server_setup("sssd[nss]", 0, CONFDB_NSS_CONF_ENTRY, &main_ctx);
