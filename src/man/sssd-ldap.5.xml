@@ -1620,6 +1620,21 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_chpass_update_last_change (bool)</term>
+                    <listitem>
+                        <para>
+                            Specifies whether to update the
+                            ldap_user_shadow_last_change attribute with
+                            days since the Epoch after a password change
+                            operation.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_access_filter (string)</term>
                     <listitem>
                         <para>

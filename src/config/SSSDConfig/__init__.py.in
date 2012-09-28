@@ -305,6 +305,7 @@ option_strings = {
     'ldap_chpass_uri' : _('URI of an LDAP server where password changes are allowed'),
     'ldap_chpass_backup_uri' : _('URI of a backup LDAP server where password changes are allowed'),
     'ldap_chpass_dns_service_name' : _('DNS service name for LDAP password change server'),
+    'ldap_chpass_update_last_change' : _('Whether to update the ldap_user_shadow_last_change attribute after a password change'),
 
     # [provider/ldap/sudo]
     'ldap_sudo_search_base' : _('Base DN for sudo rules lookups'),
