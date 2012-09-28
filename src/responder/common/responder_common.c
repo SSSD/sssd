@@ -878,7 +878,9 @@ responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
     int i;
 
     for (dom = rctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, domain) == 0) {
+        if (strcasecmp(dom->name, domain) == 0 ||
+            (dom->flat_name != NULL &&
+             strcasecmp(dom->flat_name, domain) == 0)) {
             ret_dom = dom;
             break;
         }

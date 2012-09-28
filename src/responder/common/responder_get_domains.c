@@ -233,6 +233,7 @@ static errno_t get_domains_done(struct tevent_req *req)
     struct sss_domain_info **new_sd_list = NULL;
     size_t subdomain_count;
     struct sysdb_subdom **subdomains;
+    struct sysdb_subdom *master_info;
 
     state = tevent_req_data(req, struct sss_dp_domains_info);
     domain = state->dom;
@@ -278,6 +279,20 @@ static errno_t get_domains_done(struct tevent_req *req)
     while (c > 1) {
         new_sd_list[c-1]->next  = new_sd_list[c];
         --c;
+    }
+
+    if (domain->flat_name == NULL) {
+        ret = sysdb_master_domain_get_info(domain, domain->sysdb, &master_info);
+        if (ret != EOK) {
+                DEBUG(SSSDBG_FUNC_DATA, ("sysdb_master_domain_get_info " \
+                                         "failed.\n"));
+                goto done;
+        }
+
+        domain->flat_name = talloc_strdup(domain, master_info->flat_name);
+        talloc_free(master_info);
+        DEBUG(SSSDBG_TRACE_LIBS, ("Adding flat name [%s] to domain [%s].\n",
+                                  domain->flat_name, domain->name));
     }
 
     errno = 0;

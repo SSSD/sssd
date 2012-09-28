@@ -294,7 +294,8 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name (
 {
     uint32_t i;
 
-    if (strcasecmp (dom->name, dmatch) == 0)
+    if (strcasecmp (dom->name, dmatch) == 0 ||
+        (dom->flat_name != NULL && strcasecmp(dom->flat_name, dmatch) == 0))
         return dom;
 
     for (i = 0; i < dom->subdomain_count; i++) {
