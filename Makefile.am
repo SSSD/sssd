@@ -1187,7 +1187,6 @@ libsss_sudo_la_LDFLAGS = \
     -version-info 2:0:1
 
 sudolib_LTLIBRARIES = libsss_sudo.la
-dist_pkgconfig_DATA += src/sss_client/sudo/libsss_sudo.pc
 
 include_HEADERS += \
     src/sss_client/sudo/sss_sudo.h

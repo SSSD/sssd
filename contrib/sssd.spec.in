@@ -486,7 +486,7 @@ A utility library to allow communication between Autofs and SSSD
 %files -n libsss_sudo
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
-%{_libdir}/libsss_sudo.so.*
+%{_libdir}/libsss_sudo.so*
 
 %files -n libsss_sudo-devel
 %defattr(-,root,root,-)
@@ -497,8 +497,6 @@ A utility library to allow communication between Autofs and SSSD
 %doc libsss_sudo_doc/html
 %endif
 %{_includedir}/sss_sudo.h
-%{_libdir}/libsss_sudo.so
-%{_libdir}/pkgconfig/libsss_sudo.pc
 
 %files -n libsss_autofs
 %defattr(-,root,root,-)
