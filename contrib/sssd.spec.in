@@ -147,8 +147,11 @@ Requires: sssd = %{version}-%{release}
 Provides userspace tools for manipulating users, groups, and nested groups in
 SSSD when using id_provider = local in /etc/sssd/sssd.conf.
 
-Also provides a userspace tool for generating an obfuscated LDAP password for
-use with ldap_default_authtok_type = obfuscated_password.
+Also provides several other administrative tools:
+    * sss_cache to expire cached entries
+    * sss_debuglevel to change the debug level on the fly
+    * sss_seed which pre-creates a user entry for use in kickstarts
+    * sss_obfuscate for generating an obfuscated LDAP password
 
 %package -n libsss_idmap
 Summary: FreeIPA Idmap library
@@ -158,7 +161,7 @@ Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
 %description -n libsss_idmap
-Utility library to SIDs to Unix uids and gids
+Utility library to convert SIDs to Unix uids and gids
 
 %package -n libsss_idmap-devel
 Summary: FreeIPA Idmap library
@@ -486,6 +489,7 @@ A utility library to allow communication between Autofs and SSSD
 %{_libdir}/libsss_sudo.so.*
 
 %files -n libsss_sudo-devel
+%defattr(-,root,root,-)
 %if 0%{?fedora}
 %doc libsss_sudo_doc/html
 %endif
