@@ -24,6 +24,12 @@ search_base[?scope?[filter][?search_base?scope?[filter]]*]
         <emphasis>ldap_search_base</emphasis>
     </para>
     <para>
+        Please note that specifying scope or filter is not supported for
+        searches against an Active Directory Server that might yield a
+        large number of results and trigger the Range Retrieval extension
+        in the response.
+    </para>
+    <para>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="experimental.xml" />
     </para>
 </listitem>
