@@ -203,8 +203,8 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
     tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_ID,
                                           NULL);
     if (tmp_str != NULL) {
-        info->flat_name = talloc_strdup(info, tmp_str);
-        if (info->flat_name == NULL) {
+        info->id = talloc_strdup(info, tmp_str);
+        if (info->id == NULL) {
             ret = ENOMEM;
             goto done;
         }
