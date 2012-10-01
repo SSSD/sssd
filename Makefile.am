@@ -1734,6 +1734,7 @@ RPMBUILD ?= $(PWD)/rpmbuild
 dist_noinst_DATA += \
     m4 \
     contrib/sssd.spec.in \
+    contrib/sssd-1.9-man-change-default-ccache.patch \
     BUILD.txt \
     COPYING
 
