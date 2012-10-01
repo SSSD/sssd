@@ -124,12 +124,16 @@
                         <term>re_expression (string)</term>
                         <listitem>
                             <para>
-                                Default regular expression that describes how to parse the string
-                                containing user name and domain into these components.
+                                Default regular expression that describes how to
+                                parse the string containing user name and domain
+                                into these components.
                             </para>
                             <para>
-                                Each domain can have an individual regular expression configured.
-                                see DOMAIN SECTIONS for more info on these regular expressions.
+                                Each domain can have an individual regular
+                                expression configured. For some ID providers
+                                there are also default regular expressions.  See
+                                DOMAIN SECTIONS for more info on these regular
+                                expressions.
                             </para>
                         </listitem>
                     </varlistentry>
@@ -1459,13 +1463,34 @@ override_homedir = /home/%u
                     <term>re_expression (string)</term>
                     <listitem>
                         <para>
-                            Regular expression for this domain that describes how to parse
-                            the string containing user name and domain into these components.
+                            Regular expression for this domain that describes
+                            how to parse the string containing user name and
+                            domain into these components.
+                        </para>
+                        <para>
+                            Default for the AD and IPA provider:
+                            <quote>(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?P&lt;name&gt;[^@\\]+)$))</quote>
+                            which allows three different styles for user names:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>username</para>
+                                </listitem>
+                                <listitem>
+                                    <para>username@domain.name</para>
+                                </listitem>
+                                <listitem>
+                                    <para>domain\username</para>
+                                </listitem>
+                            </itemizedlist>
+                            While the first two correspond to the general
+                            default the third one is introduced to allow easy
+                            integration of users from Windows domains.
                         </para>
                         <para>
                             Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
-                            which translates to "the name is everything up to the
-                            <quote>@</quote> sign, the domain everything after that"
+                            which translates to "the name is everything up to
+                            the <quote>@</quote> sign, the domain everything
+                            after that"
                         </para>
                         <para>
                             PLEASE NOTE: the support for non-unique named
