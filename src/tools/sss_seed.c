@@ -377,6 +377,7 @@ done:
     if (ret == EOK) {
         *_uctx = talloc_steal(mem_ctx, input_uctx);
     } else {
+        ERROR("Interactive input failed.\n");
         talloc_zfree(input_uctx);
     }
     return ret;
