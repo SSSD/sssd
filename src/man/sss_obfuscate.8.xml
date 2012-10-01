@@ -57,7 +57,7 @@
     <refsect1 id='options'>
         <title>OPTIONS</title>
         <variablelist remap='IP'>
-            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help_py.xml" />
             <varlistentry>
                 <term>
                     <option>-s</option>,<option>--stdin</option>
