@@ -337,7 +337,7 @@ static krb5_error_code create_ccache_file(krb5_context ctx,
 
 
     ccname_len = strlen(cc_file_name);
-    if (ccname_len >= 6 && strcmp(cc_file_name + (ccname_len-6), "XXXXXX")==0 ) {
+    if (ccname_len >= 6 && strcmp(cc_file_name + (ccname_len - 6), "XXXXXX") == 0) {
         fd = mkstemp(cc_file_name);
         if (fd == -1) {
             kerr = errno;

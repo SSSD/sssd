@@ -695,10 +695,24 @@ cc_residual_is_used(uid_t uid, const char *ccname,
     return EOK;
 }
 
+static void
+cc_check_template(const char *cc_template)
+{
+    size_t template_len;
+
+    template_len = strlen(cc_template);
+    if (template_len >= 6 &&
+        strcmp(cc_template + (template_len - 6), "XXXXXX") != 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache file name template [%s] doesn't "
+                   "contain randomizing characters (XXXXXX), file might not "
+                   "be rewritable\n", cc_template));
+    }
+}
+
 errno_t
 cc_file_check_existing(const char *location, uid_t uid,
                        const char *realm, const char *princ,
-                       bool *_active, bool *_valid)
+                       const char *cc_template, bool *_active, bool *_valid)
 {
     errno_t ret;
     bool active;
@@ -723,6 +737,7 @@ cc_file_check_existing(const char *location, uid_t uid,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active. "
                                   "Will create a new one.\n"));
+        cc_check_template(cc_template);
         active = false;
     }
 
@@ -846,7 +861,7 @@ get_ccache_for_princ(krb5_context context, const char *location,
 errno_t
 cc_dir_check_existing(const char *location, uid_t uid,
                       const char *realm, const char *princ,
-                      bool *_active, bool *_valid)
+                      const char *cc_template, bool *_active, bool *_valid)
 {
     bool active = false;
     bool valid = false;
@@ -893,6 +908,7 @@ cc_dir_check_existing(const char *location, uid_t uid,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active. "
                                   "Will create a new one.\n"));
+        cc_check_template(cc_template);
         active = false;
     }
 

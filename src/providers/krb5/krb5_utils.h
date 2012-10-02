@@ -37,7 +37,8 @@ typedef errno_t (*cc_be_create_fn)(const char *location, pcre *illegal_re,
                                    uid_t uid, gid_t gid, bool private_path);
 typedef errno_t (*cc_be_check_existing)(const char *location, uid_t uid,
                                         const char *realm, const char *princ,
-                                        bool *active, bool *valid);
+                                        const char *cc_template, bool *active,
+                                        bool *valid);
 typedef const char * (*cc_be_ccache_for_princ)(TALLOC_CTX *mem_ctx,
                                                const char *location,
                                                const char *princ);
