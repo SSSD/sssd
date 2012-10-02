@@ -263,7 +263,7 @@ static int seed_password_input_file(TALLOC_CTX *mem_ctx,
     }
 
     errno = 0;
-    len = sss_atomic_read_s(fd, buf, PASS_MAX);
+    len = sss_atomic_read_s(fd, buf, PASS_MAX + 1);
     if (len == -1) {
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to read password from file "
@@ -274,6 +274,13 @@ static int seed_password_input_file(TALLOC_CTX *mem_ctx,
     }
 
     close(fd);
+
+    if (len > PASS_MAX) {
+        ERROR("Password file too big.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     buf[len] = '\0';
 
     /* Only the first line is valid (without '\n'). */

@@ -159,6 +159,18 @@
         </variablelist>
     </refsect1>
 
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            The length of the password (or the size of file specified with -p
+            or --password-file option) must be less than or equal to PASS_MAX
+            bytes (64 bytes on systems with no globally-defined PASS_MAX value).
+        </para>
+        <para>
+        </para>
+    </refsect1>
+
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
