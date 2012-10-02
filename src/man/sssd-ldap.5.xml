@@ -1638,14 +1638,16 @@
                     <term>ldap_access_filter (string)</term>
                     <listitem>
                         <para>
-                            If using access_provider = ldap, this option is
+                            If using access_provider = ldap and
+                            ldap_access_order = filter (default), this option is
                             mandatory. It specifies an LDAP search filter
                             criteria that must be met for the user to be
                             granted access on this host. If
-                            access_provider = ldap and this option is
-                            not set, it will result in all users being
-                            denied access. Use access_provider = permit to
-                            change this default behavior.
+                            access_provider = ldap, ldap_access_order = filter
+                            and this option is not set, it will result in all
+                            users being denied access.
+                            Use access_provider = permit to change this default
+                            behavior.
                         </para>
                         <para>
                             Example:
