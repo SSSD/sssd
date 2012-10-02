@@ -76,6 +76,14 @@ static int sss_dp_req_destructor(void *ptr)
         sdp_req->pending_reply = NULL;
     }
 
+    /* Do not call callbacks if the responder is shutting down, because
+     * the top level responder context (pam_ctx, sudo_ctx, ...) may be
+     * already semi-freed and we may end up accessing freed memory.
+     */
+    if (sdp_req->rctx->shutting_down) {
+        return 0;
+    }
+
     /* If there are callbacks that haven't been invoked, return
      * an error now.
      */

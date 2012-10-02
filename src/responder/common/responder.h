@@ -104,6 +104,8 @@ struct resp_ctx {
     char *default_domain;
 
     void *pvt_ctx;
+
+    bool shutting_down;
 };
 
 struct cli_ctx {

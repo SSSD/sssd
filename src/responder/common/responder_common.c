@@ -716,6 +716,18 @@ failed:
     return EIO;
 }
 
+static int sss_responder_ctx_destructor(void *ptr)
+{
+    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
+
+    /* mark that we are shutting down the responder, so it is propagated
+     * into underlying contexts that are freed right before rctx */
+    DEBUG(SSSDBG_TRACE_FUNC, ("Responder is being shut down\n"));
+    rctx->shutting_down = true;
+
+    return 0;
+}
+
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
@@ -745,6 +757,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->sock_name = sss_pipe_name;
     rctx->priv_sock_name = sss_priv_pipe_name;
     rctx->confdb_service_path = confdb_service_path;
+    rctx->shutting_down = false;
+
+    talloc_set_destructor((TALLOC_CTX*)rctx, sss_responder_ctx_destructor);
 
     ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
                          CONFDB_RESPONDER_CLI_IDLE_TIMEOUT,
