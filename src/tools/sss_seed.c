@@ -446,8 +446,6 @@ static int seed_init(TALLOC_CTX *mem_ctx,
     }
 
     debug_prg_name = argv[0];
-    debug_level = debug_convert_old_level(pc_debug);
-
     ret = set_locale();
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("set_locale failed (%d): %s\n",
@@ -456,8 +454,6 @@ static int seed_init(TALLOC_CTX *mem_ctx,
         ret = EINVAL;
         goto fini;
     }
-
-    CHECK_ROOT(ret, argv[0]);
 
     /* parse arguments */
     pc = poptGetContext(NULL, argc, argv, options, 0);
@@ -480,6 +476,10 @@ static int seed_init(TALLOC_CTX *mem_ctx,
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
+
+    debug_level = debug_convert_old_level(pc_debug);
+
+    CHECK_ROOT(ret, argv[0]);
 
     /* check username provided */
     if (pc_name == NULL) {
