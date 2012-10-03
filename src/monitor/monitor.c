@@ -65,7 +65,8 @@
 #define MONITOR_DEF_FORCE_TIME 60
 
 /* name of the monitor server instance */
-#define MONITOR_NAME "sssd"
+#define MONITOR_NAME        "sssd"
+#define SSSD_PIDFILE_PATH   PID_PATH"/"MONITOR_NAME".pid"
 
 /* Special value to leave the Kerberos Replay Cache set to use
  * the libkrb5 defaults
@@ -1231,29 +1232,17 @@ static void monitor_hup(struct tevent_context *ev,
 
 static int monitor_cleanup(void)
 {
-    char *file;
     int ret;
-    TALLOC_CTX *tmp_ctx;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
-    file = talloc_asprintf(tmp_ctx, "%s/%s.pid", PID_PATH, "sssd");
-    if (file == NULL) {
-        return ENOMEM;
-    }
 
     errno = 0;
-    ret = unlink(file);
+    ret = unlink(SSSD_PIDFILE_PATH);
     if (ret == -1) {
         ret = errno;
-        DEBUG(0, ("Error removing pidfile! (%d [%s])\n",
-                ret, strerror(ret)));
-        talloc_free(file);
-        return errno;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Error removing pidfile! (%d [%s])\n", ret, strerror(ret)));
+        return ret;
     }
 
-    talloc_free(file);
     return EOK;
 }
 
@@ -2595,6 +2584,15 @@ int main(int argc, const char *argv[])
                 "recommended not to run nscd in parallel with SSSD, unless "
                 "nscd is configured not to cache the passwd, group and "
                 "netgroup nsswitch maps.");
+    }
+
+    /* Check if the SSSD is already running */
+    ret = check_file(SSSD_PIDFILE_PATH, 0, 0, 0600, CHECK_REG, NULL, false);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("pidfile exists at %s\n", SSSD_PIDFILE_PATH));
+        ERROR("SSSD is already running\n");
+        return 2;
     }
 
     /* Parse config file, fail if cannot be done */
