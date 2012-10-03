@@ -740,6 +740,7 @@ static struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
 
     tevent_req_set_callback(subreq, sdap_sudo_rules_refresh_done, req);
 
+    ret = EOK;
 immediately:
     talloc_free(tmp_ctx);
 
