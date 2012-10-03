@@ -743,8 +743,8 @@ static int check_domain_ranges(struct sss_domain_info *domains)
     while (dom) {
         other = dom->next;
         if (dom->id_max && dom->id_min > dom->id_max) {
-            DEBUG(1, ("Domain '%s' does not have a valid ID range\n",
-                      dom->name));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Domain '%s' does not have a valid ID range\n", dom->name));
             return EINVAL;
         }
 
@@ -753,8 +753,9 @@ static int check_domain_ranges(struct sss_domain_info *domains)
             id_max = MIN((dom->id_max ? dom->id_max : UINT32_MAX),
                          (other->id_max ? other->id_max : UINT32_MAX));
             if (id_min <= id_max) {
-                DEBUG(1, ("Domains '%s' and '%s' overlap in range %u - %u\n",
-                          dom->name, other->name, id_min, id_max));
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Domains '%s' and '%s' overlap in range %u - %u\n",
+                      dom->name, other->name, id_min, id_max));
             }
             other = other->next;
         }
