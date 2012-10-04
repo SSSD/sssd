@@ -114,7 +114,7 @@ ldap_schema = ad
                             <quote>ldap_idmap_range_max</quote>
                         </para>
                         <para>
-                            Default: 2000100000
+                            Default: 2000200000
                         </para>
                     </listitem>
                 </varlistentry>
