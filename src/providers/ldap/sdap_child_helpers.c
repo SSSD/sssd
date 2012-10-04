@@ -455,12 +455,6 @@ int setup_child(struct sdap_id_ctx *ctx)
     int ret;
     unsigned v;
     FILE *debug_filep;
-    const char *realm;
-
-    realm = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_REALM);
-    if (!realm) {
-        realm = dp_opt_get_string(ctx->opts->basic, SDAP_KRB5_REALM);
-    }
 
     if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
         ret = open_debug_file_ex("ldap_child", &debug_filep);
