@@ -195,6 +195,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
     uint32_t header[4];
     size_t datarecv;
     uint8_t *buf = NULL;
+    bool pollhup = false;
     int len;
     int ret;
 
@@ -235,7 +236,10 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            if (pfd.revents & (POLLHUP)) {
+                pollhup = true;
+            }
+            if (pfd.revents & (POLLERR | POLLNVAL)) {
                 *errnop = EPIPE;
             }
             if (!(pfd.revents & POLLIN)) {
@@ -320,6 +324,10 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
                 }
             }
         }
+    }
+
+    if (pollhup) {
+        sss_cli_close_socket();
     }
 
     *_len = len;
