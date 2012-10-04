@@ -211,8 +211,8 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         return EINVAL;
     }
 
-    max_slices = (idmap_upper - idmap_lower + 1) / rangesize;
-    if (((idmap_upper - idmap_lower + 1) % rangesize) != 0) {
+    max_slices = (idmap_upper - idmap_lower) / rangesize;
+    if (((idmap_upper - idmap_lower) % rangesize) != 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               ("Range size does not divide evenly. Uppermost range will "
                "not be used\n"));
