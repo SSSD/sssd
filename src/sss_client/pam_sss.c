@@ -54,6 +54,7 @@
 #define FLAGS_USE_AUTHTOK    (1 << 2)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
+#define FD_DESTRUCTOR "pam_sss:fd_destructor"
 
 #define PW_RESET_MSG_FILENAME_TEMPLATE SSSD_CONF_DIR"/customize/%s/pam_sss_pw_reset_message.%s"
 #define PW_RESET_MSG_MAX_SIZE 4096
@@ -120,6 +121,24 @@ static void free_exp_data(pam_handle_t *pamh, void *ptr, int err)
 {
     free(ptr);
     ptr = NULL;
+}
+
+static void close_fd(pam_handle_t *pamh, void *ptr, int err)
+{
+    int fd = *((int *) ptr);
+
+    if (err & PAM_DATA_REPLACE) {
+        /* Nothing to do */
+        return;
+    }
+
+    if (fd == -1) {
+        /* fd not yet initialized */
+        return;
+    }
+
+    D(("Closing the fd"));
+    close(fd);
 }
 
 static size_t add_authtok_item(enum pam_item_type type,
@@ -1058,6 +1077,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
                             enum sss_cli_command task, bool quiet_mode)
 {
     int ret;
+    int sret;
     int errnop;
     struct sss_cli_req_data rd;
     uint8_t *buf = NULL;
@@ -1077,6 +1097,11 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 
     errnop = 0;
     ret = sss_pam_make_request(task, &rd, &repbuf, &replen, &errnop);
+
+    sret = pam_set_data(pamh, FD_DESTRUCTOR, sss_pam_get_socket(), close_fd);
+    if (sret != PAM_SUCCESS) {
+        D(("pam_set_data failed, client might leaks fds"));
+    }
 
     if (ret != PAM_SUCCESS) {
         if (errnop != 0) {

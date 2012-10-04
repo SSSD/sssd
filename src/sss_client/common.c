@@ -794,6 +794,12 @@ errno_t check_server_cred(int sockfd)
 #endif
     return 0;
 }
+
+int *sss_pam_get_socket(void)
+{
+    return &sss_cli_sd;
+}
+
 int sss_pam_make_request(enum sss_cli_command cmd,
                       struct sss_cli_req_data *rd,
                       uint8_t **repbuf, size_t *replen,
