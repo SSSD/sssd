@@ -341,7 +341,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
              if (NEED_CHECK_PROVIDER(dom->provider)
                      && midpoint_refresh
                      && midpoint_refresh < now) {
-                 /* We're past the the cache refresh timeout
+                 /* We're past the cache refresh timeout
                   * We'll return the value from the cache, but we'll also
                   * queue the cache entry for update out-of-band.
                   */

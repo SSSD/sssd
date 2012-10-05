@@ -271,7 +271,7 @@ sss_cmd_check_cache(struct ldb_message *msg,
         /* cache still valid */
 
         if (midpoint_refresh && midpoint_refresh < now) {
-            /* We're past the the cache refresh timeout
+            /* We're past the cache refresh timeout
              * We'll return the value from the cache, but we'll also
              * queue the cache entry for update out-of-band.
              */

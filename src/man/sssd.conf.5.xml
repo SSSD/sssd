@@ -225,7 +225,7 @@
                                 This string will be used as a default domain
                                 name for all names without a domain name
                                 component. The main use case are environments
-                                were the local domain is only managing hosts
+                                where the local domain is only managing hosts
                                 but no users and all users are coming from a
                                 trusted domain. The option allows those users
                                 to log in just with their user name without
