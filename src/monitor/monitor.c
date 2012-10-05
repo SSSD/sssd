@@ -156,6 +156,7 @@ struct mt_ctx {
     struct netlink_ctx *nlctx;
     const char *conf_path;
     struct sss_sigchild_ctx *sigchld_ctx;
+    bool pid_file_created;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -436,7 +437,7 @@ static int mark_service_as_started(struct mt_svc *svc)
     }
 
     /* create the pid file if all services are alive */
-    if (ctx->started_services == ctx->num_services) {
+    if (!ctx->pid_file_created && ctx->started_services == ctx->num_services) {
         DEBUG(SSSDBG_TRACE_FUNC, ("All services have successfully started, "
                                   "creating pid file\n"));
         ret = pidfile(PID_PATH, MONITOR_NAME);
@@ -446,6 +447,8 @@ static int mark_service_as_started(struct mt_svc *svc)
                    PID_PATH, MONITOR_NAME, ret, strerror(ret)));
             kill(getpid(), SIGTERM);
         }
+
+        ctx->pid_file_created = true;
     }
 
 done:
@@ -1429,6 +1432,8 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
     if(!ctx) {
         return ENOMEM;
     }
+
+    ctx->pid_file_created = false;
     talloc_set_destructor((TALLOC_CTX *)ctx, monitor_ctx_destructor);
 
     cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
