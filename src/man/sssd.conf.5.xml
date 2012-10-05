@@ -825,6 +825,7 @@ override_homedir = /home/%u
                     </listitem>
                 </varlistentry>
             </variablelist>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_restart.xml" />
         </refsect2>
 
         <refsect2 id='SSH' condition="with_ssh">

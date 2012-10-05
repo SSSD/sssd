@@ -350,6 +350,7 @@
                         <para>
                             Default: The location named "default"
                         </para>
+                        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_restart.xml" />
                     </listitem>
                 </varlistentry>
 

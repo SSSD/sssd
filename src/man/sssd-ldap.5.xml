@@ -2166,6 +2166,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                 </varlistentry>
             </variablelist>
         </para>
+        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_restart.xml" />
     </refsect1>
 
     <refsect1 id='advanced-options'>
