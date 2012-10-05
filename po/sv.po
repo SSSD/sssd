@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-09-24 22:16+0200\n"
-"PO-Revision-Date: 2012-09-24 15:19+0000\n"
+"POT-Creation-Date: 2012-10-05 19:20+0200\n"
+"PO-Revision-Date: 2012-10-02 12:38+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/fedora/language/"
 "sv/)\n"
@@ -28,7 +28,7 @@ msgstr "Inkludera tidsstämplar i felsökningsloggar"
 
 #: src/config/SSSDConfig/__init__.py.in:41
 msgid "Include microseconds in timestamps in debug logs"
-msgstr ""
+msgstr "Inkludera mikrosekunder i tidsstämplar i felsökningsloggar"
 
 #: src/config/SSSDConfig/__init__.py.in:42
 msgid "Write debug messages to logfiles"
@@ -89,59 +89,63 @@ msgstr ""
 "Katalog på filsystemet där SSSD skall lagra sparade återspolningsfiler från "
 "Kerberos."
 
-#: src/config/SSSDConfig/__init__.py.in:59
+#: src/config/SSSDConfig/__init__.py.in:57
+msgid "Domain to add to names without a domain component."
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:60
 msgid "Enumeration cache timeout length (seconds)"
 msgstr "Tidsgränslängd för uppräkningscache (sekunder)"
 
-#: src/config/SSSDConfig/__init__.py.in:60
+#: src/config/SSSDConfig/__init__.py.in:61
 msgid "Entry cache background update timeout length (seconds)"
 msgstr "Tidsgränslängd för bakgrundsuppdateringar av postcache (sekunder)"
 
-#: src/config/SSSDConfig/__init__.py.in:61
-#: src/config/SSSDConfig/__init__.py.in:87
+#: src/config/SSSDConfig/__init__.py.in:62
+#: src/config/SSSDConfig/__init__.py.in:88
 msgid "Negative cache timeout length (seconds)"
 msgstr "Tidsgränslängd för negativ cache (sekunder)"
 
-#: src/config/SSSDConfig/__init__.py.in:62
+#: src/config/SSSDConfig/__init__.py.in:63
 msgid "Users that SSSD should explicitly ignore"
 msgstr "Användare som SSSD uttryckligen skall bortse ifrån"
 
-#: src/config/SSSDConfig/__init__.py.in:63
+#: src/config/SSSDConfig/__init__.py.in:64
 msgid "Groups that SSSD should explicitly ignore"
 msgstr "Grupper som SSSD uttryckligen skall bortse ifrån"
 
-#: src/config/SSSDConfig/__init__.py.in:64
+#: src/config/SSSDConfig/__init__.py.in:65
 msgid "Should filtered users appear in groups"
 msgstr "Skall filtrerade användare förekomma i grupper"
 
-#: src/config/SSSDConfig/__init__.py.in:65
+#: src/config/SSSDConfig/__init__.py.in:66
 msgid "The value of the password field the NSS provider should return"
 msgstr "Värdet på lösenordfältet som NSS-leverantörer skall returnera"
 
-#: src/config/SSSDConfig/__init__.py.in:66
+#: src/config/SSSDConfig/__init__.py.in:67
 msgid "Override homedir value from the identity provider with this value"
 msgstr "Åsidosätt hemkatalogvärdet från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/__init__.py.in:67
+#: src/config/SSSDConfig/__init__.py.in:68
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
 "Ersätt ett tomt hemkatalogvärde från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/__init__.py.in:68
+#: src/config/SSSDConfig/__init__.py.in:69
 msgid "Override shell value from the identity provider with this value"
 msgstr "Åsidosätt skalvärdet från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/__init__.py.in:69
+#: src/config/SSSDConfig/__init__.py.in:70
 msgid "The list of shells users are allowed to log in with"
 msgstr "Listan på skal användare får lova att logga in med"
 
-#: src/config/SSSDConfig/__init__.py.in:70
+#: src/config/SSSDConfig/__init__.py.in:71
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr "Listan på skal som kommer förbjudas, och ersättas med standardskalet"
 
-#: src/config/SSSDConfig/__init__.py.in:71
+#: src/config/SSSDConfig/__init__.py.in:72
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
@@ -149,24 +153,24 @@ msgstr ""
 "Om ett skal lagrat i en central katalog är tillåtet men inte tillgängligt, "
 "använd detta alternativ"
 
-#: src/config/SSSDConfig/__init__.py.in:72
+#: src/config/SSSDConfig/__init__.py.in:73
 msgid "Shell to use if the provider does not list one"
 msgstr "Skal att använda om leverantören inte listar något"
 
-#: src/config/SSSDConfig/__init__.py.in:73
+#: src/config/SSSDConfig/__init__.py.in:74
 msgid "How long will be in-memory cache records valid"
 msgstr "Hur länge sparade poster i minnet är giltiga"
 
-#: src/config/SSSDConfig/__init__.py.in:76
+#: src/config/SSSDConfig/__init__.py.in:77
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
 "Hur länge sparade inloggningar tillåts mellan online-inloggningar (dagar)"
 
-#: src/config/SSSDConfig/__init__.py.in:77
+#: src/config/SSSDConfig/__init__.py.in:78
 msgid "How many failed logins attempts are allowed when offline"
 msgstr "Hur många misslyckade inloggningsförsök som tillåts i frånkopplat läge"
 
-#: src/config/SSSDConfig/__init__.py.in:78
+#: src/config/SSSDConfig/__init__.py.in:79
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
@@ -174,855 +178,883 @@ msgstr ""
 "Hur länge (minuter) som inloggning nekas efter att "
 "frånkopplade_inloggningsförsök har nåtts"
 
-#: src/config/SSSDConfig/__init__.py.in:79
+#: src/config/SSSDConfig/__init__.py.in:80
 msgid "What kind of messages are displayed to the user during authentication"
 msgstr "Vilka slags meddelanden som visas för användaren under autenticering"
 
-#: src/config/SSSDConfig/__init__.py.in:80
+#: src/config/SSSDConfig/__init__.py.in:81
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr "Hur många sekunder identitetsinformationen hålls sparad för PAM-frågor"
 
-#: src/config/SSSDConfig/__init__.py.in:81
+#: src/config/SSSDConfig/__init__.py.in:82
 msgid "How many days before password expiration a warning should be displayed"
 msgstr "Hur många dagar före ett lösenord går ut en varning skall visas"
 
-#: src/config/SSSDConfig/__init__.py.in:84
+#: src/config/SSSDConfig/__init__.py.in:85
 msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr "Om tidsbaserade attribut i sudo-regler skall beräknas"
 
-#: src/config/SSSDConfig/__init__.py.in:90
+#: src/config/SSSDConfig/__init__.py.in:91
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr ""
 "Om värdnamn och adresser i known_hosts-filen skall göras till kontrollsummor"
 
-#: src/config/SSSDConfig/__init__.py.in:93
+#: src/config/SSSDConfig/__init__.py.in:92
+msgid ""
+"How many seconds to keep a host in the known_hosts file after its host keys "
+"were requested"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:95
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr "Lista över UID:er eller användarnamn som tillåts komma åt PAC-svararen"
 
-#: src/config/SSSDConfig/__init__.py.in:96
+#: src/config/SSSDConfig/__init__.py.in:98
 msgid "Identity provider"
 msgstr "Identifiera leverantör"
 
-#: src/config/SSSDConfig/__init__.py.in:97
+#: src/config/SSSDConfig/__init__.py.in:99
 msgid "Authentication provider"
 msgstr "Autentiseringsleverantör"
 
-#: src/config/SSSDConfig/__init__.py.in:98
+#: src/config/SSSDConfig/__init__.py.in:100
 msgid "Access control provider"
 msgstr "Leverantör av åtkomstkontroll"
 
-#: src/config/SSSDConfig/__init__.py.in:99
+#: src/config/SSSDConfig/__init__.py.in:101
 msgid "Password change provider"
 msgstr "Leverantör av lösenordsändringar"
 
-#: src/config/SSSDConfig/__init__.py.in:100
-msgid "SUDO provider"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:101
-msgid "Autofs provider"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:102
-msgid "Session-loading provider"
-msgstr ""
+msgid "SUDO provider"
+msgstr "SUDO-leverantör"
 
 #: src/config/SSSDConfig/__init__.py.in:103
-msgid "Host identity provider"
-msgstr ""
+msgid "Autofs provider"
+msgstr "Autofs-leverantör"
 
-#: src/config/SSSDConfig/__init__.py.in:106
+#: src/config/SSSDConfig/__init__.py.in:104
+msgid "Session-loading provider"
+msgstr "Sessionsinläsningsleverantör"
+
+#: src/config/SSSDConfig/__init__.py.in:105
+msgid "Host identity provider"
+msgstr "Värdidentiftetsleverantör"
+
+#: src/config/SSSDConfig/__init__.py.in:108
 msgid "Minimum user ID"
 msgstr "Minsta användar-ID"
 
-#: src/config/SSSDConfig/__init__.py.in:107
+#: src/config/SSSDConfig/__init__.py.in:109
 msgid "Maximum user ID"
 msgstr "Största användar-ID"
 
-#: src/config/SSSDConfig/__init__.py.in:108
+#: src/config/SSSDConfig/__init__.py.in:110
 msgid "Enable enumerating all users/groups"
 msgstr "Aktivera uppräkning av alla användare/grupper"
 
-#: src/config/SSSDConfig/__init__.py.in:109
+#: src/config/SSSDConfig/__init__.py.in:111
 msgid "Cache credentials for offline login"
 msgstr "Cache-kreditiv för frånkopplad inloggning"
 
-#: src/config/SSSDConfig/__init__.py.in:110
+#: src/config/SSSDConfig/__init__.py.in:112
 msgid "Store password hashes"
 msgstr "Lagra lösenords-kontrollsummor"
 
-#: src/config/SSSDConfig/__init__.py.in:111
+#: src/config/SSSDConfig/__init__.py.in:113
 msgid "Display users/groups in fully-qualified form"
 msgstr "Visa användare/grupper i fullständigt kvalificerat format"
 
-#: src/config/SSSDConfig/__init__.py.in:112
-#: src/config/SSSDConfig/__init__.py.in:119
-#: src/config/SSSDConfig/__init__.py.in:120
+#: src/config/SSSDConfig/__init__.py.in:114
 #: src/config/SSSDConfig/__init__.py.in:121
 #: src/config/SSSDConfig/__init__.py.in:122
 #: src/config/SSSDConfig/__init__.py.in:123
 #: src/config/SSSDConfig/__init__.py.in:124
+#: src/config/SSSDConfig/__init__.py.in:125
+#: src/config/SSSDConfig/__init__.py.in:126
 msgid "Entry cache timeout length (seconds)"
 msgstr "Tidsgränslängd för postcache (sekunder)"
 
-#: src/config/SSSDConfig/__init__.py.in:113
+#: src/config/SSSDConfig/__init__.py.in:115
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr "Begränsa eller föredra en specifik adressfamilj vid DNS-uppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:114
+#: src/config/SSSDConfig/__init__.py.in:116
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Hur länge cachade poster skall behållas efter senaste lyckade inloggning "
 "(dagar)"
 
-#: src/config/SSSDConfig/__init__.py.in:115
+#: src/config/SSSDConfig/__init__.py.in:117
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr "Hur länge man väntar på svar från DNS när servrar slås upp (sekunder)"
 
-#: src/config/SSSDConfig/__init__.py.in:116
+#: src/config/SSSDConfig/__init__.py.in:118
 msgid "The domain part of service discovery DNS query"
 msgstr "Domändelen av DNS-frågan för tjänstedetektering"
 
-#: src/config/SSSDConfig/__init__.py.in:117
+#: src/config/SSSDConfig/__init__.py.in:119
 msgid "Override GID value from the identity provider with this value"
 msgstr "Åsidosätt GID-värdet från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/__init__.py.in:118
+#: src/config/SSSDConfig/__init__.py.in:120
 msgid "Treat usernames as case sensitive"
 msgstr "Behandla användarnamn som skiftlägeskänsliga"
 
-#: src/config/SSSDConfig/__init__.py.in:127
+#: src/config/SSSDConfig/__init__.py.in:129
 msgid "IPA domain"
 msgstr "IPA-domän"
 
-#: src/config/SSSDConfig/__init__.py.in:128
+#: src/config/SSSDConfig/__init__.py.in:130
 msgid "IPA server address"
 msgstr "IPA-serveradress"
 
-#: src/config/SSSDConfig/__init__.py.in:129
+#: src/config/SSSDConfig/__init__.py.in:131
 msgid "Address of backup IPA server"
 msgstr "Adress till reserv-IPA-server"
 
-#: src/config/SSSDConfig/__init__.py.in:130
+#: src/config/SSSDConfig/__init__.py.in:132
 msgid "IPA client hostname"
 msgstr "IPA-klienvärdnamn"
 
-#: src/config/SSSDConfig/__init__.py.in:131
+#: src/config/SSSDConfig/__init__.py.in:133
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr "Om klientens DNS-post i FreeIPA automatiskt skall uppdateras"
 
-#: src/config/SSSDConfig/__init__.py.in:132
+#: src/config/SSSDConfig/__init__.py.in:134
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "Gränssnittet var IP skall användas för dynamiska DNS-uppdateringar"
 
-#: src/config/SSSDConfig/__init__.py.in:133
+#: src/config/SSSDConfig/__init__.py.in:135
 msgid "Search base for HBAC related objects"
 msgstr "Sökbas för HBAC-relaterade objekt"
 
-#: src/config/SSSDConfig/__init__.py.in:134
+#: src/config/SSSDConfig/__init__.py.in:136
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "Tidsåtgången mellan uppslagningar av HBAC-reglerna mot IPA-servern"
 
-#: src/config/SSSDConfig/__init__.py.in:135
-msgid "If DENY rules are present, either DENY_ALL or IGNORE"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:136
-msgid "If set to false, host argument given by PAM will be ignored"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:137
-msgid "The automounter location this IPA client is using"
-msgstr ""
+msgid "If DENY rules are present, either DENY_ALL or IGNORE"
+msgstr "Om det finns DENY-regler, antingen DENY_ALL eller IGNORE"
 
 #: src/config/SSSDConfig/__init__.py.in:138
-msgid "Search base for object containing info about IPA domain"
-msgstr ""
+msgid "If set to false, host argument given by PAM will be ignored"
+msgstr "Om satt till falskt kommer värdargument givna av PAM ignoreras"
 
 #: src/config/SSSDConfig/__init__.py.in:139
+msgid "The automounter location this IPA client is using"
+msgstr "Platsen för automatmonteraren denna IPA-klient använder"
+
+#: src/config/SSSDConfig/__init__.py.in:140
+msgid "Search base for object containing info about IPA domain"
+msgstr "Sökbas för objekt som innehåller information om IPA-domänen"
+
+#: src/config/SSSDConfig/__init__.py.in:141
 msgid "Search base for objects containing info about ID ranges"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:142
-msgid "Active Directory domain"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:143
-msgid "Active Directory server address"
-msgstr ""
+msgstr "Sökbas för objekt som innehåller information om ID-intervall"
 
 #: src/config/SSSDConfig/__init__.py.in:144
-msgid "Active Directory backup server address"
-msgstr ""
+msgid "Active Directory domain"
+msgstr "Active Directory-domän"
 
 #: src/config/SSSDConfig/__init__.py.in:145
-msgid "Active Directory client hostname"
-msgstr ""
+msgid "Active Directory server address"
+msgstr "Adress till Active Directory-server"
 
-#: src/config/SSSDConfig/__init__.py.in:148
-#: src/config/SSSDConfig/__init__.py.in:149
-msgid "Kerberos server address"
-msgstr "Kerberosserveradress"
+#: src/config/SSSDConfig/__init__.py.in:146
+msgid "Active Directory backup server address"
+msgstr "Adress till Active Directory-reservserver"
+
+#: src/config/SSSDConfig/__init__.py.in:147
+msgid "Active Directory client hostname"
+msgstr "Active Directory-klienvärdnamn"
 
 #: src/config/SSSDConfig/__init__.py.in:150
-msgid "Kerberos backup server address"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:151
+msgid "Kerberos server address"
+msgstr "Adress till server för Kerberos"
+
+#: src/config/SSSDConfig/__init__.py.in:152
+msgid "Kerberos backup server address"
+msgstr "Adress till reservserver för Kerberos"
+
+#: src/config/SSSDConfig/__init__.py.in:153
 msgid "Kerberos realm"
 msgstr "Kerberosrike"
 
-#: src/config/SSSDConfig/__init__.py.in:152
+#: src/config/SSSDConfig/__init__.py.in:154
 msgid "Authentication timeout"
 msgstr "Autentiseringstidsgräns"
 
-#: src/config/SSSDConfig/__init__.py.in:155
+#: src/config/SSSDConfig/__init__.py.in:157
 msgid "Directory to store credential caches"
 msgstr "Katalog att lagra kreditiv-cachar i"
 
-#: src/config/SSSDConfig/__init__.py.in:156
+#: src/config/SSSDConfig/__init__.py.in:158
 msgid "Location of the user's credential cache"
 msgstr "Plats för användarens kreditiv-cache"
 
-#: src/config/SSSDConfig/__init__.py.in:157
+#: src/config/SSSDConfig/__init__.py.in:159
 msgid "Location of the keytab to validate credentials"
 msgstr "Plats för nyckeltabellen för att validera kreditiv"
 
-#: src/config/SSSDConfig/__init__.py.in:158
+#: src/config/SSSDConfig/__init__.py.in:160
 msgid "Enable credential validation"
 msgstr "Aktivera validering av kreditiv"
 
-#: src/config/SSSDConfig/__init__.py.in:159
+#: src/config/SSSDConfig/__init__.py.in:161
 msgid "Store password if offline for later online authentication"
 msgstr "Lagra lösenord när ej ansluten för ansluten autentisering senare"
 
-#: src/config/SSSDConfig/__init__.py.in:160
-msgid "Renewable lifetime of the TGT"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:161
-msgid "Lifetime of the TGT"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:162
-msgid "Time between two checks for renewal"
-msgstr ""
+msgid "Renewable lifetime of the TGT"
+msgstr "Förnybar livstid för TGT:n"
 
 #: src/config/SSSDConfig/__init__.py.in:163
-msgid "Enables FAST"
-msgstr ""
+msgid "Lifetime of the TGT"
+msgstr "Livstid för TGT:n"
 
 #: src/config/SSSDConfig/__init__.py.in:164
-msgid "Selects the principal to use for FAST"
-msgstr ""
+msgid "Time between two checks for renewal"
+msgstr "Tid mellan två kontroller av förnyelse"
 
 #: src/config/SSSDConfig/__init__.py.in:165
-msgid "Enables principal canonicalization"
-msgstr ""
+msgid "Enables FAST"
+msgstr "Aktiverar FAST"
 
-#: src/config/SSSDConfig/__init__.py.in:168
-#: src/config/SSSDConfig/__init__.py.in:169
+#: src/config/SSSDConfig/__init__.py.in:166
+msgid "Selects the principal to use for FAST"
+msgstr "Väljer huvudman att använda för FAST"
+
+#: src/config/SSSDConfig/__init__.py.in:167
+msgid "Enables principal canonicalization"
+msgstr "Aktivera kanonsisk form av huvudman"
+
+#: src/config/SSSDConfig/__init__.py.in:170
+#: src/config/SSSDConfig/__init__.py.in:171
 msgid "Server where the change password service is running if not on the KDC"
 msgstr "Server där ändringstjänsten för lösenord kör om inte på KDC:n"
 
-#: src/config/SSSDConfig/__init__.py.in:172
+#: src/config/SSSDConfig/__init__.py.in:174
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, URI:n för LDAP-servern"
 
-#: src/config/SSSDConfig/__init__.py.in:173
+#: src/config/SSSDConfig/__init__.py.in:175
 msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_backup_uri, URI:n för LDAP-servern"
 
-#: src/config/SSSDConfig/__init__.py.in:174
+#: src/config/SSSDConfig/__init__.py.in:176
 msgid "The default base DN"
 msgstr "Standard bas-DN"
 
-#: src/config/SSSDConfig/__init__.py.in:175
+#: src/config/SSSDConfig/__init__.py.in:177
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "Schematypen som används i LDAP-servern, rfc2307"
 
-#: src/config/SSSDConfig/__init__.py.in:176
+#: src/config/SSSDConfig/__init__.py.in:178
 msgid "The default bind DN"
 msgstr "Standard bindnings-DN"
 
-#: src/config/SSSDConfig/__init__.py.in:177
+#: src/config/SSSDConfig/__init__.py.in:179
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Typen på autenticerings-token för standard bindnings-DN"
 
-#: src/config/SSSDConfig/__init__.py.in:178
+#: src/config/SSSDConfig/__init__.py.in:180
 msgid "The authentication token of the default bind DN"
 msgstr "Autenticerings-token för standard bindnings-DN"
 
-#: src/config/SSSDConfig/__init__.py.in:179
+#: src/config/SSSDConfig/__init__.py.in:181
 msgid "Length of time to attempt connection"
 msgstr "Tidslängd att försöka ansluta"
 
-#: src/config/SSSDConfig/__init__.py.in:180
+#: src/config/SSSDConfig/__init__.py.in:182
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Tidslängd att försök synkrona LDAP-operationer"
 
-#: src/config/SSSDConfig/__init__.py.in:181
-msgid "Length of time between attempts to reconnect while offline"
-msgstr "Tidslängd mellan försök att återansluta under frånkoppling"
-
-#: src/config/SSSDConfig/__init__.py.in:182
-msgid "Use only the upper case for realm names"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:183
+msgid "Length of time between attempts to reconnect while offline"
+msgstr "Tidslängd mellan försök att återansluta vid frånkoppling"
+
+#: src/config/SSSDConfig/__init__.py.in:184
+msgid "Use only the upper case for realm names"
+msgstr "Använd endast versaler för namn på riken"
+
+#: src/config/SSSDConfig/__init__.py.in:185
 msgid "File that contains CA certificates"
 msgstr "Fil som innehåller CA-certifikat"
 
-#: src/config/SSSDConfig/__init__.py.in:184
+#: src/config/SSSDConfig/__init__.py.in:186
 msgid "Path to CA certificate directory"
 msgstr "Sökväg till katalogen med CA-certifikat"
 
-#: src/config/SSSDConfig/__init__.py.in:185
-msgid "File that contains the client certificate"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:186
-msgid "File that contains the client key"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:187
-msgid "List of possible ciphers suites"
-msgstr ""
+msgid "File that contains the client certificate"
+msgstr "Fil som innehåller klientcertifikatet"
 
 #: src/config/SSSDConfig/__init__.py.in:188
+msgid "File that contains the client key"
+msgstr "Fil som innehåller klientnyckeln"
+
+#: src/config/SSSDConfig/__init__.py.in:189
+msgid "List of possible ciphers suites"
+msgstr "Lista över möjliga chiffersviter"
+
+#: src/config/SSSDConfig/__init__.py.in:190
 msgid "Require TLS certificate verification"
 msgstr "Kräv TLS-certifikatverifiering"
 
-#: src/config/SSSDConfig/__init__.py.in:189
+#: src/config/SSSDConfig/__init__.py.in:191
 msgid "Specify the sasl mechanism to use"
 msgstr "Ange sasl-mekanismen att använda"
 
-#: src/config/SSSDConfig/__init__.py.in:190
+#: src/config/SSSDConfig/__init__.py.in:192
 msgid "Specify the sasl authorization id to use"
 msgstr "Ange sasl-auktorisering-id att använda"
 
-#: src/config/SSSDConfig/__init__.py.in:191
-msgid "Specify the sasl authorization realm to use"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:192
-msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:193
+msgid "Specify the sasl authorization realm to use"
+msgstr "Ange sasl-auktoriseringsrike att använda"
+
+#: src/config/SSSDConfig/__init__.py.in:194
+msgid "Specify the minimal SSF for LDAP sasl authorization"
+msgstr "Ange minsta SSF för LDAP-sasl-auktorisering"
+
+#: src/config/SSSDConfig/__init__.py.in:195
 msgid "Kerberos service keytab"
 msgstr "Kerberostjänstens nyckeltabell"
 
-#: src/config/SSSDConfig/__init__.py.in:194
+#: src/config/SSSDConfig/__init__.py.in:196
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
-#: src/config/SSSDConfig/__init__.py.in:195
+#: src/config/SSSDConfig/__init__.py.in:197
 msgid "Follow LDAP referrals"
 msgstr "Följer LDAP-hänvisningar"
 
-#: src/config/SSSDConfig/__init__.py.in:196
+#: src/config/SSSDConfig/__init__.py.in:198
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Livslängd på TGT för LDAP-anslutning"
 
-#: src/config/SSSDConfig/__init__.py.in:197
-msgid "How to dereference aliases"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:198
-msgid "Service name for DNS service lookups"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:199
-msgid "The number of records to retrieve in a single LDAP query"
-msgstr ""
+msgid "How to dereference aliases"
+msgstr "Hur alias skall derefereras"
 
 #: src/config/SSSDConfig/__init__.py.in:200
-msgid "The number of members that must be missing to trigger a full deref"
-msgstr ""
+msgid "Service name for DNS service lookups"
+msgstr "Tjänstenamn för uppslagning av DNS-tjänster"
 
 #: src/config/SSSDConfig/__init__.py.in:201
+msgid "The number of records to retrieve in a single LDAP query"
+msgstr "Antalet poster som skall hämtas i en enda LDAP-fråga"
+
+#: src/config/SSSDConfig/__init__.py.in:202
+msgid "The number of members that must be missing to trigger a full deref"
+msgstr ""
+"Antalet medlemmar som måste saknas för att orsaka en fullständig dereferering"
+
+#: src/config/SSSDConfig/__init__.py.in:203
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
+"Huruvida LDAP-biblioteket skall utföra en omvänd uppslagning för att ta fram "
+"värdnamnets kanoniska form under en SASL-bindning"
 
-#: src/config/SSSDConfig/__init__.py.in:203
+#: src/config/SSSDConfig/__init__.py.in:205
 msgid "entryUSN attribute"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:204
-msgid "lastUSN attribute"
-msgstr ""
+msgstr "entryUSN-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:206
-msgid "How long to retain a connection to the LDAP server before disconnecting"
-msgstr ""
+msgid "lastUSN attribute"
+msgstr "lastUSN-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:208
-msgid "Disable the LDAP paging control"
+msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
+"Hur länge en anslutning till LDAP-servern skall behållas före den kopplas ner"
 
-#: src/config/SSSDConfig/__init__.py.in:211
+#: src/config/SSSDConfig/__init__.py.in:210
+msgid "Disable the LDAP paging control"
+msgstr "Avaktivera flödesstyrningen (paging) av LDAP"
+
+#: src/config/SSSDConfig/__init__.py.in:213
 msgid "Length of time to wait for a search request"
 msgstr "Tidslängd att vänta på en sökbegäran"
 
-#: src/config/SSSDConfig/__init__.py.in:212
+#: src/config/SSSDConfig/__init__.py.in:214
 msgid "Length of time to wait for a enumeration request"
-msgstr ""
+msgstr "Tidslängd att vänta på en uppräkningsbegäran"
 
-#: src/config/SSSDConfig/__init__.py.in:213
+#: src/config/SSSDConfig/__init__.py.in:215
 msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
-#: src/config/SSSDConfig/__init__.py.in:214
+#: src/config/SSSDConfig/__init__.py.in:216
 msgid "Length of time between cache cleanups"
-msgstr ""
+msgstr "Tidslängd mellan cache-tömningar"
 
-#: src/config/SSSDConfig/__init__.py.in:215
+#: src/config/SSSDConfig/__init__.py.in:217
 msgid "Require TLS for ID lookups"
 msgstr "Kräv TLS för ID-uppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:216
+#: src/config/SSSDConfig/__init__.py.in:218
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr ""
+msgstr "Använd ID-översättning av objectSID istället för pre-set ID:n"
 
-#: src/config/SSSDConfig/__init__.py.in:217
+#: src/config/SSSDConfig/__init__.py.in:219
 msgid "Base DN for user lookups"
 msgstr "Bas-DN för användaruppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:218
+#: src/config/SSSDConfig/__init__.py.in:220
 msgid "Scope of user lookups"
 msgstr "Omfång av användaruppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:219
+#: src/config/SSSDConfig/__init__.py.in:221
 msgid "Filter for user lookups"
 msgstr "Filter för användaruppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:220
+#: src/config/SSSDConfig/__init__.py.in:222
 msgid "Objectclass for users"
 msgstr "Objektklass för användare"
 
-#: src/config/SSSDConfig/__init__.py.in:221
+#: src/config/SSSDConfig/__init__.py.in:223
 msgid "Username attribute"
 msgstr "Användarnamnsattribut"
 
-#: src/config/SSSDConfig/__init__.py.in:223
+#: src/config/SSSDConfig/__init__.py.in:225
 msgid "UID attribute"
 msgstr "UID-attribut"
 
-#: src/config/SSSDConfig/__init__.py.in:224
+#: src/config/SSSDConfig/__init__.py.in:226
 msgid "Primary GID attribute"
 msgstr "Primärt GID-attribut"
 
-#: src/config/SSSDConfig/__init__.py.in:225
+#: src/config/SSSDConfig/__init__.py.in:227
 msgid "GECOS attribute"
 msgstr "GECOS-attribut"
 
-#: src/config/SSSDConfig/__init__.py.in:226
+#: src/config/SSSDConfig/__init__.py.in:228
 msgid "Home directory attribute"
 msgstr "Hemkatalogattribut"
 
-#: src/config/SSSDConfig/__init__.py.in:227
+#: src/config/SSSDConfig/__init__.py.in:229
 msgid "Shell attribute"
 msgstr "Skalattribut"
 
-#: src/config/SSSDConfig/__init__.py.in:228
+#: src/config/SSSDConfig/__init__.py.in:230
 msgid "UUID attribute"
 msgstr "UUID-attribut"
 
-#: src/config/SSSDConfig/__init__.py.in:229
-#: src/config/SSSDConfig/__init__.py.in:265
-msgid "objectSID attribute"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:230
-msgid "Active Directory primary group attribute for ID-mapping"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:231
+#: src/config/SSSDConfig/__init__.py.in:267
+msgid "objectSID attribute"
+msgstr "objectSID-attribut"
+
+#: src/config/SSSDConfig/__init__.py.in:232
+msgid "Active Directory primary group attribute for ID-mapping"
+msgstr "Primärt gruppattribut i Active Directory för ID-mappning"
+
+#: src/config/SSSDConfig/__init__.py.in:233
 msgid "User principal attribute (for Kerberos)"
 msgstr "Användarens huvudmansattribut (för Kerberos)"
 
-#: src/config/SSSDConfig/__init__.py.in:232
+#: src/config/SSSDConfig/__init__.py.in:234
 msgid "Full Name"
 msgstr "Fullständigt namn"
 
-#: src/config/SSSDConfig/__init__.py.in:233
+#: src/config/SSSDConfig/__init__.py.in:235
 msgid "memberOf attribute"
 msgstr "medlemAv-attribut"
 
-#: src/config/SSSDConfig/__init__.py.in:234
+#: src/config/SSSDConfig/__init__.py.in:236
 msgid "Modification time attribute"
 msgstr "Modifieringstidsattribut"
 
-#: src/config/SSSDConfig/__init__.py.in:236
-msgid "shadowLastChange attribute"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:237
-msgid "shadowMin attribute"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:238
-msgid "shadowMax attribute"
-msgstr ""
+msgid "shadowLastChange attribute"
+msgstr "attributet shadowLastChange"
 
 #: src/config/SSSDConfig/__init__.py.in:239
-msgid "shadowWarning attribute"
-msgstr ""
+msgid "shadowMin attribute"
+msgstr "shadowMin-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:240
-msgid "shadowInactive attribute"
-msgstr ""
+msgid "shadowMax attribute"
+msgstr "shadowMax-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:241
-msgid "shadowExpire attribute"
-msgstr ""
+msgid "shadowWarning attribute"
+msgstr "shadowWarning-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:242
-msgid "shadowFlag attribute"
-msgstr ""
+msgid "shadowInactive attribute"
+msgstr "shadowInactive-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:243
-msgid "Attribute listing authorized PAM services"
-msgstr ""
+msgid "shadowExpire attribute"
+msgstr "shadowExpire-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:244
-msgid "Attribute listing authorized server hosts"
-msgstr ""
+msgid "shadowFlag attribute"
+msgstr "shadowFlag-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:245
-msgid "krbLastPwdChange attribute"
-msgstr ""
+msgid "Attribute listing authorized PAM services"
+msgstr "Attribut för listning av auktoriserade PAM-tjänster"
 
 #: src/config/SSSDConfig/__init__.py.in:246
-msgid "krbPasswordExpiration attribute"
-msgstr ""
+msgid "Attribute listing authorized server hosts"
+msgstr "Attribut för listning av auktoriserade servervärdar"
 
 #: src/config/SSSDConfig/__init__.py.in:247
-msgid "Attribute indicating that server side password policies are active"
-msgstr ""
+msgid "krbLastPwdChange attribute"
+msgstr "attributet krbLastPwdChange"
 
 #: src/config/SSSDConfig/__init__.py.in:248
-msgid "accountExpires attribute of AD"
-msgstr ""
+msgid "krbPasswordExpiration attribute"
+msgstr "krbPasswordExpiration-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:249
-msgid "userAccountControl attribute of AD"
-msgstr ""
+msgid "Attribute indicating that server side password policies are active"
+msgstr "Attribut som indikerar att serversidans lösenordspolicyer är aktiva"
 
 #: src/config/SSSDConfig/__init__.py.in:250
-msgid "nsAccountLock attribute"
-msgstr ""
+msgid "accountExpires attribute of AD"
+msgstr "AD:s attribut accountExpires"
 
 #: src/config/SSSDConfig/__init__.py.in:251
-msgid "loginDisabled attribute of NDS"
-msgstr ""
+msgid "userAccountControl attribute of AD"
+msgstr "AD:s attribut userAccountControl"
 
 #: src/config/SSSDConfig/__init__.py.in:252
-msgid "loginExpirationTime attribute of NDS"
-msgstr ""
+msgid "nsAccountLock attribute"
+msgstr "attributet nsAccountLock"
 
 #: src/config/SSSDConfig/__init__.py.in:253
-msgid "loginAllowedTimeMap attribute of NDS"
-msgstr ""
+msgid "loginDisabled attribute of NDS"
+msgstr "NDS attribut loginDisabled"
 
 #: src/config/SSSDConfig/__init__.py.in:254
-msgid "SSH public key attribute"
-msgstr ""
+msgid "loginExpirationTime attribute of NDS"
+msgstr "NDS attribut loginExpirationTime"
+
+#: src/config/SSSDConfig/__init__.py.in:255
+msgid "loginAllowedTimeMap attribute of NDS"
+msgstr "NDS attribut loginAllowedTimeMap"
 
 #: src/config/SSSDConfig/__init__.py.in:256
+msgid "SSH public key attribute"
+msgstr "Attribut för publik SSH-nyckel"
+
+#: src/config/SSSDConfig/__init__.py.in:258
 msgid "Base DN for group lookups"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:259
-msgid "Objectclass for groups"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:260
-msgid "Group name"
-msgstr ""
+msgstr "Bas-DN för gruppuppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:261
-msgid "Group password"
-msgstr ""
+msgid "Objectclass for groups"
+msgstr "Objektklass för grupper"
 
 #: src/config/SSSDConfig/__init__.py.in:262
-msgid "GID attribute"
-msgstr ""
+msgid "Group name"
+msgstr "Gruppnamn"
 
 #: src/config/SSSDConfig/__init__.py.in:263
-msgid "Group member attribute"
-msgstr ""
+msgid "Group password"
+msgstr "Grupplösenord"
 
 #: src/config/SSSDConfig/__init__.py.in:264
-msgid "Group UUID attribute"
-msgstr ""
+msgid "GID attribute"
+msgstr "GID-attribut"
+
+#: src/config/SSSDConfig/__init__.py.in:265
+msgid "Group member attribute"
+msgstr "Gruppmedlemsattribut"
 
 #: src/config/SSSDConfig/__init__.py.in:266
-msgid "Modification time attribute for groups"
-msgstr ""
+msgid "Group UUID attribute"
+msgstr "Grupp-UUID-attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:268
-msgid "Maximum nesting level SSSd will follow"
-msgstr ""
+msgid "Modification time attribute for groups"
+msgstr "Modifieringstidsattribut för grupper"
 
 #: src/config/SSSDConfig/__init__.py.in:270
-msgid "Base DN for netgroup lookups"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:271
-msgid "Objectclass for netgroups"
-msgstr ""
+msgid "Maximum nesting level SSSd will follow"
+msgstr "Maximal nästningsnivå SSSd kommer följa"
 
 #: src/config/SSSDConfig/__init__.py.in:272
-msgid "Netgroup name"
-msgstr ""
+msgid "Base DN for netgroup lookups"
+msgstr "Bas-DN för nätgruppuppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:273
-msgid "Netgroups members attribute"
-msgstr ""
+msgid "Objectclass for netgroups"
+msgstr "Objektklass för nätgrupper"
 
 #: src/config/SSSDConfig/__init__.py.in:274
-msgid "Netgroup triple attribute"
-msgstr ""
+msgid "Netgroup name"
+msgstr "Nätgruppnamn"
 
 #: src/config/SSSDConfig/__init__.py.in:275
-msgid "Netgroup UUID attribute"
-msgstr ""
+msgid "Netgroups members attribute"
+msgstr "Attribut på nätgruppmedlemmar"
 
 #: src/config/SSSDConfig/__init__.py.in:276
-msgid "Modification time attribute for netgroups"
-msgstr ""
+msgid "Netgroup triple attribute"
+msgstr "Attribut på nätgruppstripplar"
+
+#: src/config/SSSDConfig/__init__.py.in:277
+msgid "Netgroup UUID attribute"
+msgstr "Attribut på nätgrupps-UUID"
 
 #: src/config/SSSDConfig/__init__.py.in:278
-msgid "Base DN for service lookups"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:279
-msgid "Objectclass for services"
-msgstr ""
+msgid "Modification time attribute for netgroups"
+msgstr "Modifieringstidsattribut för nätgrupper"
 
 #: src/config/SSSDConfig/__init__.py.in:280
-msgid "Service name attribute"
-msgstr ""
+msgid "Base DN for service lookups"
+msgstr "Bas-DN för tjänsteuppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:281
-msgid "Service port attribute"
-msgstr ""
+msgid "Objectclass for services"
+msgstr "Objektklass för tjänster"
 
 #: src/config/SSSDConfig/__init__.py.in:282
+msgid "Service name attribute"
+msgstr "Tjänstenamnsattribut"
+
+#: src/config/SSSDConfig/__init__.py.in:283
+msgid "Service port attribute"
+msgstr "Tjänsteportsattribut"
+
+#: src/config/SSSDConfig/__init__.py.in:284
 msgid "Service protocol attribute"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:285
-msgid "Lower bound for ID-mapping"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:286
-msgid "Upper bound for ID-mapping"
-msgstr ""
+msgstr "Tjänsteprotokollsattribut"
 
 #: src/config/SSSDConfig/__init__.py.in:287
-msgid "Number of IDs for each slice when ID-mapping"
-msgstr ""
+msgid "Lower bound for ID-mapping"
+msgstr "Undre gräns för ID-mappning"
 
 #: src/config/SSSDConfig/__init__.py.in:288
-msgid "Use autorid-compatible algorithm for ID-mapping"
-msgstr ""
+msgid "Upper bound for ID-mapping"
+msgstr "Övre gräns för ID-mappning"
 
 #: src/config/SSSDConfig/__init__.py.in:289
-msgid "Name of the default domain for ID-mapping"
-msgstr ""
+msgid "Number of IDs for each slice when ID-mapping"
+msgstr "Antal ID:n till varje skiva vid ID-mappning"
 
 #: src/config/SSSDConfig/__init__.py.in:290
-msgid "SID of the default domain for ID-mapping"
-msgstr ""
+msgid "Use autorid-compatible algorithm for ID-mapping"
+msgstr "Använd en autorid-kompatibel algoritm för ID-mappning"
+
+#: src/config/SSSDConfig/__init__.py.in:291
+msgid "Name of the default domain for ID-mapping"
+msgstr "Standarddomänens namn för ID-mappning"
 
 #: src/config/SSSDConfig/__init__.py.in:292
+msgid "SID of the default domain for ID-mapping"
+msgstr "Standarddomänens SID för ID-mappning"
+
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr ""
+msgstr "Använd LDAP_MATCHING_RULE_IN_CHAIN för gruppuppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:295
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr ""
+msgstr "Använd LDAP_MATCHING_RULE_IN_CHAIN för init-gruppuppslagningar"
 
-#: src/config/SSSDConfig/__init__.py.in:296
+#: src/config/SSSDConfig/__init__.py.in:298
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy för att utvärdera utgång av lösenord"
 
-#: src/config/SSSDConfig/__init__.py.in:299
+#: src/config/SSSDConfig/__init__.py.in:301
 msgid "LDAP filter to determine access privileges"
 msgstr "LDAP-filter för att bestämma åtkomstprivilegier"
 
-#: src/config/SSSDConfig/__init__.py.in:300
+#: src/config/SSSDConfig/__init__.py.in:302
 msgid "Which attributes shall be used to evaluate if an account is expired"
-msgstr ""
+msgstr "Vilka attribut skall användas för att avgöra om ett konto gått ut"
 
-#: src/config/SSSDConfig/__init__.py.in:301
+#: src/config/SSSDConfig/__init__.py.in:303
 msgid "Which rules should be used to evaluate access control"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:304
-msgid "URI of an LDAP server where password changes are allowed"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:305
-msgid "URI of a backup LDAP server where password changes are allowed"
-msgstr ""
+msgstr "Vilka regler skall användas för att avgöra åtkomstkontroll"
 
 #: src/config/SSSDConfig/__init__.py.in:306
+msgid "URI of an LDAP server where password changes are allowed"
+msgstr "URI till en LDAP-server där lösenordsändringar är tillåtna"
+
+#: src/config/SSSDConfig/__init__.py.in:307
+msgid "URI of a backup LDAP server where password changes are allowed"
+msgstr "URI till en reserv-LDAP-server där lösenordsändringar är tillåtna"
+
+#: src/config/SSSDConfig/__init__.py.in:308
 msgid "DNS service name for LDAP password change server"
-msgstr ""
+msgstr "DNS-tjänstenamn för LDAP-lösenordsändringsservern"
 
 #: src/config/SSSDConfig/__init__.py.in:309
-msgid "Base DN for sudo rules lookups"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:310
-msgid "Automatic full refresh period"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:311
-msgid "Automatic smart refresh period"
+msgid ""
+"Whether to update the ldap_user_shadow_last_change attribute after a "
+"password change"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:312
-msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
+msgid "Base DN for sudo rules lookups"
+msgstr "Bas-DN för regeluppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:313
+msgid "Automatic full refresh period"
+msgstr "Intervall mellan automatisk fullständig omläsning"
+
+#: src/config/SSSDConfig/__init__.py.in:314
+msgid "Automatic smart refresh period"
+msgstr "Intervall mellan automatisk smart omläsning"
+
+#: src/config/SSSDConfig/__init__.py.in:315
+msgid "Whether to filter rules by hostname, IP addresses and network"
+msgstr ""
+"Huruvida regler skall filtreras efter värdnamn, IP-adresser och nätverk"
+
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
+"Värdnamn och/eller fullständigt kvalificerade domännamn på denna maskin för "
+"att filtrera sudo-regler"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:317
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
+"IPv4- eller IPv6-adresser eller -nätverk för denna maskin för att filtrera "
+"sudo-regler"
 
-#: src/config/SSSDConfig/__init__.py.in:315
+#: src/config/SSSDConfig/__init__.py.in:318
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
+"Huruvida regler som innehåller nätgrupper i värdattribut skall inkluderas"
 
-#: src/config/SSSDConfig/__init__.py.in:316
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:317
-msgid "Object class for sudo rules"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:318
-msgid "Sudo rule name"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:319
-msgid "Sudo rule command attribute"
-msgstr ""
+"Huruvida regler som innehåller reguljära uttryck i värdattribut skall "
+"inkluderas"
 
 #: src/config/SSSDConfig/__init__.py.in:320
-msgid "Sudo rule host attribute"
-msgstr ""
+msgid "Object class for sudo rules"
+msgstr "Objektklass för sudo-regler"
 
 #: src/config/SSSDConfig/__init__.py.in:321
-msgid "Sudo rule user attribute"
-msgstr ""
+msgid "Sudo rule name"
+msgstr "Sudo-regelnamn"
 
 #: src/config/SSSDConfig/__init__.py.in:322
-msgid "Sudo rule option attribute"
-msgstr ""
+msgid "Sudo rule command attribute"
+msgstr "Attribut för sudo-regelkommandon"
 
 #: src/config/SSSDConfig/__init__.py.in:323
-msgid "Sudo rule runasuser attribute"
-msgstr ""
+msgid "Sudo rule host attribute"
+msgstr "Attribut för sudo-regelvärd"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-msgid "Sudo rule runasgroup attribute"
-msgstr ""
+msgid "Sudo rule user attribute"
+msgstr "Attribut för sudo-regelanvändare"
 
 #: src/config/SSSDConfig/__init__.py.in:325
-msgid "Sudo rule notbefore attribute"
-msgstr ""
+msgid "Sudo rule option attribute"
+msgstr "Attribut för sudo-regelflaggor"
 
 #: src/config/SSSDConfig/__init__.py.in:326
-msgid "Sudo rule notafter attribute"
-msgstr ""
+msgid "Sudo rule runasuser attribute"
+msgstr "Attribut för sudo-runasuser"
 
 #: src/config/SSSDConfig/__init__.py.in:327
-msgid "Sudo rule order attribute"
-msgstr ""
+msgid "Sudo rule runasgroup attribute"
+msgstr "Attribut på runasgroup i sudo-regel"
+
+#: src/config/SSSDConfig/__init__.py.in:328
+msgid "Sudo rule notbefore attribute"
+msgstr "Attribut för sudo-notbefore-regler"
+
+#: src/config/SSSDConfig/__init__.py.in:329
+msgid "Sudo rule notafter attribute"
+msgstr "Attribut för sudo-notafter-regler"
 
 #: src/config/SSSDConfig/__init__.py.in:330
-msgid "Object class for automounter maps"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:331
-msgid "Automounter map name attribute"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:332
-msgid "Object class for automounter map entries"
-msgstr ""
+msgid "Sudo rule order attribute"
+msgstr "Attribut för sudo-order-regler"
 
 #: src/config/SSSDConfig/__init__.py.in:333
-msgid "Automounter map entry key attribute"
-msgstr ""
+msgid "Object class for automounter maps"
+msgstr "Objektklass för automatmonteraravbildningar"
 
 #: src/config/SSSDConfig/__init__.py.in:334
-msgid "Automounter map entry value attribute"
-msgstr ""
+msgid "Automounter map name attribute"
+msgstr "Attribut för automatmonteraravbildningsnamn"
 
 #: src/config/SSSDConfig/__init__.py.in:335
-msgid "Base DN for automounter map lookups"
-msgstr ""
+msgid "Object class for automounter map entries"
+msgstr "Objektklass för poster i automatmonteraravbildningar"
+
+#: src/config/SSSDConfig/__init__.py.in:336
+msgid "Automounter map entry key attribute"
+msgstr "Attribut för postnycklar i automatmonteraravbildningar"
+
+#: src/config/SSSDConfig/__init__.py.in:337
+msgid "Automounter map entry value attribute"
+msgstr "Attribut på postvärde i avbildning för automatmonteraren"
 
 #: src/config/SSSDConfig/__init__.py.in:338
+msgid "Base DN for automounter map lookups"
+msgstr "Bas-DN för uppslagningar i automatmonteraravbildningar"
+
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Comma separated list of allowed users"
 msgstr "Kommaseparerad lista över tillåtna användare"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Comma separated list of prohibited users"
 msgstr "Kommaseparerad lista över förbjudna användare"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Default shell, /bin/bash"
 msgstr "Standardskal, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "Base for home directories"
 msgstr "Bas för hemkataloger"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:349
 msgid "The name of the NSS library to use"
 msgstr "Namnet på NSS-biblioteket att använda"
 
-#: src/config/SSSDConfig/__init__.py.in:347
-msgid "Whether to look up canonical group name from cache if possible"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:350
+msgid "Whether to look up canonical group name from cache if possible"
+msgstr "Huruvida kanoniska gruppnamn skall slås upp från cachen om möjligt"
+
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/monitor/monitor.c:2446
+#: src/monitor/monitor.c:2476
 msgid "Become a daemon (default)"
 msgstr "Bli en demon (standard)"
 
-#: src/monitor/monitor.c:2448
+#: src/monitor/monitor.c:2478
 msgid "Run interactive (not a daemon)"
 msgstr "Kör interaktivt (inte en demon)"
 
-#: src/monitor/monitor.c:2450 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2480 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Ange en konfigurationsfil annan än standard"
 
-#: src/monitor/monitor.c:2452
+#: src/monitor/monitor.c:2482
 msgid "Print version number and exit"
+msgstr "Skriv ut versionsnumret och avsluta"
+
+#: src/monitor/monitor.c:2599
+msgid "SSSD is already running\n"
 msgstr ""
 
 #: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
@@ -1038,7 +1070,7 @@ msgstr "Lägg till felsökningstidstämplar"
 #: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
 #: src/util/util.h:100
 msgid "Show timestamps with microseconds"
-msgstr ""
+msgstr "Visa tidsstämplar med mikrosekunder"
 
 #: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
 msgid "An open file descriptor for the debug logs"
@@ -1091,12 +1123,12 @@ msgstr ", ditt cache-lösenord kommer gå ut: "
 #: src/sss_client/pam_sss.c:635
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
-msgstr ""
+msgstr "Ditt lösenord har gått ut.  Du har en frist på %1$d inloggningar kvar."
 
 #: src/sss_client/pam_sss.c:681
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
-msgstr ""
+msgstr "Ditt lösenordet kommer gå ut om %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:730
 msgid "Authentication is denied until: "
@@ -1146,7 +1178,7 @@ msgstr "Felsökningsnivån att köra med"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:196
 msgid "The SSSD domain to use"
-msgstr ""
+msgstr "SSSD-domäner att använda"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
@@ -1159,31 +1191,31 @@ msgstr "Fel när lokalen sattes\n"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "Inte tillräckligt med minne\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
-msgstr ""
+msgstr "Ingen användare angiven\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:105
 msgid "Error looking up public keys\n"
-msgstr ""
+msgstr "Fel vid uppslagning av publika nycklar\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:194
 msgid "The port to use to connect to the host"
-msgstr ""
+msgstr "Porten att använda för att ansluta till värden"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:238
 msgid "Invalid port\n"
-msgstr ""
+msgstr "Felaktig port\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:243
 msgid "Host not specified\n"
-msgstr ""
+msgstr "Värden inte angiven\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
 msgid "The path to the proxy command must be absolute\n"
-msgstr ""
+msgstr "Sökvägen till proxy-kommandot måste vara absolut\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1224,7 +1256,7 @@ msgstr "SELinux-användaren för användarens inloggning"
 #: src/tools/sss_useradd.c:86 src/tools/sss_groupmod.c:78
 #: src/tools/sss_usermod.c:87
 msgid "Specify group to add to\n"
-msgstr ""
+msgstr "Ange en grupp att lägga till till\n"
 
 #: src/tools/sss_useradd.c:110
 msgid "Specify user to add\n"
@@ -1265,7 +1297,7 @@ msgstr "Grupper måste finnas i samma domän som användaren\n"
 #: src/tools/sss_useradd.c:155
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
-msgstr ""
+msgstr "Hittar inte gruppen %1$s i den lokala domänen\n"
 
 #: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
 msgid "Cannot set default values\n"
@@ -1292,12 +1324,12 @@ msgstr ""
 #: src/tools/sss_useradd.c:236
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
-msgstr ""
+msgstr "Kan inte skapa användarens hemkatalog: %1$s\n"
 
 #: src/tools/sss_useradd.c:247
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
-msgstr ""
+msgstr "Kan inte skapa användarens brevlåda: %1$s\n"
 
 #: src/tools/sss_useradd.c:266
 msgid "Could not allocate ID for the user - domain full?\n"
@@ -1342,7 +1374,7 @@ msgstr "Ange grupp att ta bort\n"
 #: src/tools/sss_groupdel.c:101
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "Gruppen %1$s är utanför det definierade ID-intervallet för domänen\n"
 
 #: src/tools/sss_groupdel.c:115
 msgid ""
@@ -1366,7 +1398,7 @@ msgstr "Grupper att ta bort denna grupp från"
 
 #: src/tools/sss_groupmod.c:86 src/tools/sss_usermod.c:95
 msgid "Specify group to remove from\n"
-msgstr ""
+msgstr "Ange grupp att ta bort ifrån\n"
 
 #: src/tools/sss_groupmod.c:100
 msgid "Specify group to modify\n"
@@ -1391,6 +1423,8 @@ msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"Kan inte hitta grupp %1$s i den lokala domänen, endast grupper i den lokala "
+"domänen är tillåtna\n"
 
 #: src/tools/sss_groupmod.c:229
 msgid "Could not modify group - check if member group names are correct\n"
@@ -1410,7 +1444,7 @@ msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
 #: src/tools/sss_groupshow.c:598
 #, c-format
 msgid "%1$s%2$sGroup: %3$s\n"
-msgstr ""
+msgstr "%1$s%2$sGrupp: %3$s\n"
 
 #: src/tools/sss_groupshow.c:599
 msgid "Magic Private "
@@ -1419,12 +1453,12 @@ msgstr "Magiskt privat "
 #: src/tools/sss_groupshow.c:601
 #, c-format
 msgid "%1$sGID number: %2$d\n"
-msgstr ""
+msgstr "%1$sGID-nummer: %2$d\n"
 
 #: src/tools/sss_groupshow.c:603
 #, c-format
 msgid "%1$sMember users: "
-msgstr ""
+msgstr "%1$sMedlemsanvändare: "
 
 #: src/tools/sss_groupshow.c:610
 #, c-format
@@ -1432,6 +1466,8 @@ msgid ""
 "\n"
 "%1$sIs a member of: "
 msgstr ""
+"\n"
+"%1$sÄr en medlem i: "
 
 #: src/tools/sss_groupshow.c:617
 #, c-format
@@ -1439,6 +1475,8 @@ msgid ""
 "\n"
 "%1$sMember groups: "
 msgstr ""
+"\n"
+"%1$sMedlemsgrupper: "
 
 #: src/tools/sss_groupshow.c:653
 msgid "Print indirect group members recursively"
@@ -1484,6 +1522,7 @@ msgstr "Ange användare att ta bort\n"
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
+"Användaren %1$s är utanför det definierade ID-intervallet för domänen\n"
 
 #: src/tools/sss_userdel.c:255
 msgid "Cannot reset SELinux login context\n"
@@ -1493,6 +1532,7 @@ msgstr "Kan inte återställa SELinux-inloggningskontext\n"
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
+"VARNING: Användaren (uid %1$lu) var fortfarande inloggad när han togs bort.\n"
 
 #: src/tools/sss_userdel.c:272
 msgid "Cannot determine if the user was logged in on this platform"
@@ -1505,7 +1545,7 @@ msgstr "Fel vid kontroll om användaren var inloggad\n"
 #: src/tools/sss_userdel.c:284
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
-msgstr ""
+msgstr "Kommandot efter borttagandet misslyckades: %1$s\n"
 
 #: src/tools/sss_userdel.c:296
 msgid "Not removing home dir - not owned by user\n"
@@ -1514,7 +1554,7 @@ msgstr "Tar inte bort hemkatalogen - ägs inte av användaren\n"
 #: src/tools/sss_userdel.c:298
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
-msgstr ""
+msgstr "Kan inte ta bort hemkatalogen: %1$s\n"
 
 #: src/tools/sss_userdel.c:309
 msgid ""
@@ -1575,92 +1615,92 @@ msgstr "Transaktionsfel.  Det gick inte att ändra användaren.\n"
 
 #: src/tools/sss_cache.c:142
 msgid "No cache object matched the specified search\n"
-msgstr ""
+msgstr "Inga cache-objekt matchade den angivna sökningen\n"
 
 #: src/tools/sss_cache.c:201
 #, c-format
 msgid "No such %1$s named %2$s, skipping\n"
-msgstr ""
+msgstr "Ingen sådan %1$s med namnet %2$s, hoppar över\n"
 
 #: src/tools/sss_cache.c:204
 #, c-format
 msgid "No objects of type %1$s in the cache, skipping\n"
-msgstr ""
+msgstr "Inga objekt av typen %1$s i cachen, hoppar över\n"
 
 #: src/tools/sss_cache.c:216
 #, c-format
 msgid "Couldn't invalidate %1$s"
-msgstr ""
+msgstr "Kunde inte invalidera %1$s"
 
 #: src/tools/sss_cache.c:223
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
-msgstr ""
+msgstr "Kunde inte invalidera %1$s %2$s"
 
 #: src/tools/sss_cache.c:352
 msgid "Invalidate particular user"
-msgstr ""
+msgstr "Invalidera en viss användare"
 
 #: src/tools/sss_cache.c:354
 msgid "Invalidate all users"
-msgstr ""
+msgstr "Invalidera alla användare"
 
 #: src/tools/sss_cache.c:356
 msgid "Invalidate particular group"
-msgstr ""
+msgstr "Invalidera en viss grupp"
 
 #: src/tools/sss_cache.c:358
 msgid "Invalidate all groups"
-msgstr ""
+msgstr "Invalidera alla grupper"
 
 #: src/tools/sss_cache.c:360
 msgid "Invalidate particular netgroup"
-msgstr ""
+msgstr "Invalidera en viss nätgrupp"
 
 #: src/tools/sss_cache.c:362
 msgid "Invalidate all netgroups"
-msgstr ""
+msgstr "Invalidera alla nätgrupper"
 
 #: src/tools/sss_cache.c:364
 msgid "Invalidate particular service"
-msgstr ""
+msgstr "Invalidera en viss tjänst"
 
 #: src/tools/sss_cache.c:366
 msgid "Invalidate all services"
-msgstr ""
+msgstr "Invalidera alla tjänster"
 
 #: src/tools/sss_cache.c:369
 msgid "Invalidate particular autofs map"
-msgstr ""
+msgstr "Invalidera en viss autofs-mapp"
 
 #: src/tools/sss_cache.c:371
 msgid "Invalidate all autofs maps"
-msgstr ""
+msgstr "Invalidera alla autofs-mappar"
 
 #: src/tools/sss_cache.c:374
 msgid "Only invalidate entries from a particular domain"
-msgstr ""
+msgstr "Invalidera endast poster från en viss domän"
 
 #: src/tools/sss_cache.c:413
 msgid "Please select at least one object to invalidate\n"
-msgstr ""
+msgstr "Välj åtminstone ett objekt att invalidera\n"
 
 #: src/tools/sss_cache.c:484
 #, c-format
 msgid "Could not open domain %1$s\n"
-msgstr ""
+msgstr "Kunde inte öppna domänen %1$s\n"
 
 #: src/tools/sss_cache.c:486
 msgid "Could not open available domains\n"
-msgstr ""
+msgstr "Kunde inte öppna tillgängliga domäner\n"
 
 #: src/tools/sss_debuglevel.c:40
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/tools/sss_debuglevel.c:96
 msgid "Specify debug level you want to set\n"
-msgstr ""
+msgstr "Ange felsökningsnivån du vill ställa in\n"
 
 #: src/tools/tools_util.c:280
 msgid "Out of memory\n"
@@ -1669,7 +1709,7 @@ msgstr "Slut på minne\n"
 #: src/tools/tools_util.h:43
 #, c-format
 msgid "%1$s must be run as root\n"
-msgstr ""
+msgstr "%1$s måste köras som root\n"
 
 #: src/util/util.h:96
 msgid "Send the debug output to files instead of stderr"
