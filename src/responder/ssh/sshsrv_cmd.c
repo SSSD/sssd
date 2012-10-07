@@ -559,7 +559,8 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     size_t num_hosts, i;
     struct sss_ssh_ent *ent;
     int fd = -1;
-    char *filename, *entstr;
+    char *filename = NULL;
+    char *entstr;
     ssize_t wret;
     mode_t old_mask;
 
