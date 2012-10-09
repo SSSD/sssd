@@ -612,19 +612,21 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     }
 
     now = time(NULL);
-    if (state->dom->subdomain_homedir) {
-        homedir =  expand_homedir_template(state, state->dom->subdomain_homedir,
-                                           attrs->a.user.pw_name,
-                                           attrs->a.user.pw_uid,
-                                           state->dom->name);
-        if (homedir == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
 
     switch (attrs->response_type) {
         case RESP_USER:
+            if (state->dom->subdomain_homedir) {
+                homedir =  expand_homedir_template(state,
+                                                   state->dom->subdomain_homedir,
+                                                   attrs->a.user.pw_name,
+                                                   attrs->a.user.pw_uid,
+                                                   state->dom->name);
+                if (homedir == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+            }
+
             ret = sysdb_store_domuser(state->dom, attrs->a.user.pw_name, NULL,
                                       attrs->a.user.pw_uid,
                                       0, NULL, /* gecos */
