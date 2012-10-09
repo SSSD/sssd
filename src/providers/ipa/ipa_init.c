@@ -228,6 +228,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     FILE *debug_filep;
     unsigned v;
     int ret;
+    time_t renew_intv;
 
     if (!ipa_options) {
         ret = common_ipa_init(bectx);
@@ -304,6 +305,18 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
                                                  bectx->ev);
         if (ret != EOK) {
             DEBUG(1, ("init_delayed_online_authentication failed.\n"));
+            goto done;
+        }
+    }
+
+    renew_intv = dp_opt_get_int(krb5_auth_ctx->opts, KRB5_RENEW_INTERVAL);
+    if (renew_intv > 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+             ("Initializing Kerberos ticket renewal with %d second interval\n",
+              renew_intv));
+        ret = init_renew_tgt(krb5_auth_ctx, bectx, bectx->ev, renew_intv);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("init_renew_tgt failed.\n"));
             goto done;
         }
     }
