@@ -1491,7 +1491,7 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("No [%s] attribute while id-mapping. [%d][%s]\n",
                sid_attr, el->num_values, strerror(ret)));
-        return ret;
+        return ENOENT;
     }
 
     err = sss_idmap_bin_sid_to_sid(idmap_ctx->map,
