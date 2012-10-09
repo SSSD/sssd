@@ -34,6 +34,9 @@
 
 #include "util/util.h"
 
+#define KRB5_CHILD_LOG_FILE     "krb5_child"
+#define LDAP_CHILD_LOG_FILE     "ldap_child"
+
 /* MIT Kerberos has the same hardcoded warning interval of 7 days. Due to the
  * fact that using the expiration time of a Kerberos password with LDAP
  * authentication is presumably a rare case a separate config option is not
@@ -163,5 +166,9 @@ typedef krb5_ticket_times sss_krb5_ticket_times;
 #elif HAVE_KRB5_TIMES
 typedef krb5_times sss_krb5_ticket_times;
 #endif
+
+void
+sss_child_krb5_trace_cb(krb5_context context,
+                        const struct krb5_trace_info *info, void *data);
 
 #endif /* __SSS_KRB5_H__ */

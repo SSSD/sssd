@@ -1616,6 +1616,25 @@ done:
     return kerr;
 }
 
+static errno_t
+set_child_debugging(krb5_context ctx)
+{
+    krb5_error_code kerr;
+
+    /* Set the global error context */
+    krb5_error_ctx = ctx;
+
+    if (debug_level & SSSDBG_TRACE_ALL) {
+        kerr = krb5_set_trace_callback(ctx, sss_child_krb5_trace_cb, NULL);
+        if (kerr) {
+            KRB5_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
+            return EIO;
+        }
+    }
+
+    return EOK;
+}
+
 static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr = 0;
@@ -1682,7 +1701,11 @@ static int krb5_child_setup(struct krb5_req *kr, uint32_t offline)
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto failed;
     }
-    krb5_error_ctx = kr->ctx;
+
+    kerr = set_child_debugging(kr->ctx);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Cannot set krb5_child debugging\n"));
+    }
 
     kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ);
     if (kerr != 0) {

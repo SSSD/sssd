@@ -963,3 +963,15 @@ sss_krb5_residual_check_type(const char *full_location,
 
     return sss_krb5_residual_by_type(full_location, type);
 }
+
+void
+sss_child_krb5_trace_cb(krb5_context context,
+                        const struct krb5_trace_info *info, void *data)
+{
+    if (info == NULL) {
+        /* Null info means destroy the callback data. */
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, ("%s\n", info->message));
+}
