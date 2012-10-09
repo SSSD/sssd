@@ -35,12 +35,13 @@
 #include "providers/dp_backend.h"
 
 static krb5_context krb5_error_ctx;
+#define LDAP_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
-static const char *__krb5_error_msg;
+static const char *__ldap_child_krb5_error_msg;
 #define KRB5_SYSLOG(krb5_error) do { \
-    __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
-    sss_log(SSS_LOG_ERR, "%s", __krb5_error_msg); \
-    sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
+    __ldap_child_krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
+    sss_log(SSS_LOG_ERR, "%s", __ldap_child_krb5_error_msg); \
+    sss_krb5_free_error_message(krb5_error_ctx, __ldap_child_krb5_error_msg); \
 } while(0)
 
 struct input_buffer {

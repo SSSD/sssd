@@ -69,8 +69,6 @@ struct krb5_child_ctx {
     char *ccache_dir;
     char *ccname_template;
     int auth_timeout;
-
-    int child_debug_fd;
 };
 
 struct krb5_req {
