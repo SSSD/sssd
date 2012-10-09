@@ -696,6 +696,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     krb5_keytab_entry entry;
     krb5_verify_init_creds_opt opt;
     krb5_principal validation_princ = NULL;
+    bool realm_entry_found = false;
 
     memset(&keytab, 0, sizeof(keytab));
     kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
@@ -736,8 +737,15 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
         if (krb5_realm_compare(kr->ctx, validation_princ, kr->princ)) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   ("Found keytab entry with the realm of the credential.\n"));
+            realm_entry_found = true;
             break;
         }
+    }
+
+    if (!realm_entry_found) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+                ("Keytab entry with the realm of the credential not found "
+                 "in keytab. Using the last entry.\n"));
     }
 
     /* Close the keytab here.  Even though we're using cursors, the file

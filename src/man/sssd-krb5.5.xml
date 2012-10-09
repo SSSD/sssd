@@ -231,7 +231,13 @@
                     <term>krb5_validate (boolean)</term>
                     <listitem>
                         <para>
-                            Verify with the help of krb5_keytab that the TGT obtained has not been spoofed.
+                            Verify with the help of krb5_keytab that the TGT
+                            obtained has not been spoofed. The keytab is checked for
+                            entries sequentially, and the first entry with matching
+                            realm is used for validation. If no entry matches the last
+                            one is used. This can be utilized to achieve validation in
+                            enviroments with cross-realm trust by placing appropriate
+                            keytab entry as the last one or the only one.
                         </para>
                         <para>
                             Default: false
