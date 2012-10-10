@@ -23,128 +23,61 @@
 #include "providers/data_provider.h"
 #include "db/sysdb.h"
 
+/* ========== Get subdomains for a domain ================= */
+static DBusMessage *sss_dp_get_domains_msg(void *pvt);
+
 struct sss_dp_domains_info {
-    struct resp_ctx *rctx;
     struct sss_domain_info *dom;
     const char *hint;
     bool force;
-
-    struct sss_dp_req_state *state;
 };
 
-static DBusMessage *sss_dp_get_domains_msg(void *pvt);
-static errno_t get_domains_next(struct tevent_req *req);
-static void sss_dp_get_domains_callback(struct tevent_req *subreq);
-
-static errno_t get_domains_done(struct tevent_req *req);
-static errno_t check_last_request(struct resp_ctx *rctx, const char *hint);
-
-struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
-                                           struct resp_ctx *rctx,
-                                           bool force,
-                                           const char *hint)
+static struct tevent_req *
+get_subdomains_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+                    struct sss_domain_info *dom,
+                    const bool force,
+                    const char *hint)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct sss_dp_domains_info *info;
-
-    req = tevent_req_create(mem_ctx, &info, struct sss_dp_domains_info);
-    if (req == NULL) {
-         return NULL;
-    }
-
-    if (rctx->domains == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No domains configured.\n"));
-        ret = EINVAL;
-        goto immediately;
-    }
-
-    if (!force) {
-        ret = check_last_request(rctx, hint);
-
-        if (ret == EOK) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  ("Last call was too recent, nothing to do!\n"));
-            goto immediately;
-        } else if (ret != EAGAIN) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("check_domain_request failed with [%d][%s]\n",
-                                      ret, strerror(ret)));
-            goto immediately;
-        }
-    }
-
-    info->rctx = rctx;
-    info->dom = rctx->domains;
-    info->force = force;
-    if (hint != NULL) {
-        info->hint = hint;
-    } else {
-        info->hint = talloc_strdup(info, "");
-        if (info->hint == NULL) {
-            ret = ENOMEM;
-            goto immediately;
-        }
-    }
-
-    ret = get_domains_next(req);
-    if (ret != EAGAIN) {
-        goto immediately;
-    }
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, rctx->ev);
-
-    return req;
-}
-
-static errno_t get_domains_next(struct tevent_req *req)
-{
-    struct sss_dp_domains_info *info;
-    struct tevent_req *subreq;
     struct sss_dp_req_state *state;
-    errno_t ret;
+    struct sss_dp_domains_info *info;
     char *key;
 
-    info = tevent_req_data(req, struct sss_dp_domains_info);
-
-    /* Skip all local domains. */
-    while(info->dom != NULL && !NEED_CHECK_PROVIDER(info->dom->provider)) {
-        info->dom = info->dom->next;
+    req = tevent_req_create(mem_ctx, &state, struct sss_dp_req_state);
+    if (req == NULL) {
+        return NULL;
     }
 
-    if (info->dom == NULL) {
-        return EOK;
+    info = talloc_zero(state, struct sss_dp_domains_info);
+    if (!info) {
+        ret = ENOMEM;
+        goto fail;
     }
+    info->hint = hint;
+    info->force = force;
+    info->dom = dom;
 
-    subreq = tevent_req_create(info, &state, struct sss_dp_req_state);
-    if (subreq == NULL) {
-         return ENOMEM;
-    }
-
-    key = talloc_asprintf(info, "domains@%s", info->dom->name);
+    key = talloc_asprintf(state, "domains@%s", dom->name);
     if (key == NULL) {
-        talloc_free(subreq);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto fail;
     }
 
-    ret = sss_dp_issue_request(info, info->rctx, key, info->dom,
-                               sss_dp_get_domains_msg, info, subreq);
+    ret = sss_dp_issue_request(state, rctx, key, dom,
+                               sss_dp_get_domains_msg, info, req);
     talloc_free(key);
     if (ret != EOK) {
-        talloc_free(subreq);
-        return ret;
+        ret = EIO;
+        goto fail;
     }
 
-    tevent_req_set_callback(subreq, sss_dp_get_domains_callback, req);
+    return req;
 
-    return EAGAIN;
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, rctx->ev);
+    return req;
 }
 
 static DBusMessage *
@@ -186,37 +119,152 @@ sss_dp_get_domains_msg(void *pvt)
     return msg;
 }
 
-static void sss_dp_get_domains_callback(struct tevent_req *subreq)
+static errno_t
+get_next_domain_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req,
+                     dbus_uint16_t *dp_err,
+                     dbus_uint32_t *dp_ret,
+                     char **err_msg)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct sss_dp_domains_info *info = tevent_req_data(req, struct sss_dp_domains_info);
+    return sss_dp_req_recv(mem_ctx, req, dp_err, dp_ret, err_msg);
+}
+
+/* ====== Iterate over all domains, searching for their subdomains  ======= */
+static errno_t process_subdomains(struct sss_domain_info *dom);
+static errno_t check_last_request(struct resp_ctx *rctx, const char *hint);
+
+struct sss_dp_get_domains_state {
+    struct resp_ctx *rctx;
+    struct sss_domain_info *dom;
+    const char *hint;
+    bool force;
+};
+
+static void
+sss_dp_get_domains_process(struct tevent_req *subreq);
+
+struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
+                                           struct resp_ctx *rctx,
+                                           bool force,
+                                           const char *hint)
+{
     errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sss_dp_get_domains_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct sss_dp_get_domains_state);
+    if (req == NULL) {
+         return NULL;
+    }
+
+    if (rctx->domains == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No domains configured.\n"));
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    if (!force) {
+        ret = check_last_request(rctx, hint);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Last call was too recent, nothing to do!\n"));
+            goto immediately;
+        } else if (ret != EAGAIN) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("check_domain_request failed with [%d][%s]\n",
+                                      ret, strerror(ret)));
+            goto immediately;
+        }
+    }
+
+    state->rctx = rctx;
+    state->force = force;
+    if (hint != NULL) {
+        state->hint = hint;
+    } else {
+        state->hint = talloc_strdup(state, "");
+        if (state->hint == NULL) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+    }
+
+    state->dom = rctx->domains;
+    while(state->dom != NULL && !NEED_CHECK_PROVIDER(state->dom->provider)) {
+        state->dom = state->dom->next;
+    }
+
+    if (state->dom == NULL) {
+        /* All domains were local */
+        ret = EOK;
+        goto immediately;
+    }
+
+    subreq = get_subdomains_send(req, rctx, state->dom,
+                                 state->force, state->hint);
+    if (ret != EAGAIN) {
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, sss_dp_get_domains_process, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, rctx->ev);
+
+    return req;
+}
+
+static void
+sss_dp_get_domains_process(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sss_dp_get_domains_state *state = tevent_req_data(req,
+                                                struct sss_dp_get_domains_state);
     dbus_uint16_t dp_err;
     dbus_uint32_t dp_ret;
     char *err_msg;
 
-    /* TODO: handle errors better */
-    ret = sss_dp_req_recv(info, subreq, &dp_err, &dp_ret, &err_msg);
-    talloc_free(subreq);
+    ret = get_next_domain_recv(req, subreq, &dp_err, &dp_ret, &err_msg);
+    talloc_zfree(subreq);
     if (ret != EOK) {
         goto fail;
     }
 
-    ret = get_domains_done(req);
+    ret = process_subdomains(state->dom);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_domains_done failed, "
+        DEBUG(SSSDBG_OP_FAILURE, ("process_subdomains failed, "
                                   "trying next domain.\n"));
         goto fail;
     }
 
-    info->dom = info->dom->next;
-    ret = get_domains_next(req);
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else if (ret != EAGAIN) {
-        goto fail;
+    /* Advance to the next domain */
+    state->dom = state->dom->next;
+
+    /* Skip local domains */
+    while(state->dom != NULL && !NEED_CHECK_PROVIDER(state->dom->provider)) {
+        state->dom = state->dom->next;
     }
 
+    if (state->dom == NULL) {
+        /* All domains were local */
+        tevent_req_done(req);
+        return;
+    }
+
+    subreq = get_subdomains_send(req, state->rctx, state->dom, state->force, state->hint);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sss_dp_get_domains_process, req);
     return;
 
 fail:
@@ -224,19 +272,15 @@ fail:
     return;
 }
 
-static errno_t get_domains_done(struct tevent_req *req)
+static errno_t
+process_subdomains(struct sss_domain_info *domain)
 {
     int ret;
     size_t c;
-    struct sss_dp_domains_info *state;
-    struct sss_domain_info *domain;
     struct sss_domain_info **new_sd_list = NULL;
     size_t subdomain_count;
     struct sysdb_subdom **subdomains;
     struct sysdb_subdom *master_info;
-
-    state = tevent_req_data(req, struct sss_dp_domains_info);
-    domain = state->dom;
 
     /* Retrieve all subdomains of this domain from sysdb
      * and create their struct sss_domain_info representations
