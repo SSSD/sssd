@@ -30,11 +30,11 @@
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> manual page
+            </citerefentry> manual page.
         </para>
         <para>
             The Kerberos 5 authentication backend contains auth and chpass
-            providers. It must be paired with identity provider in
+            providers. It must be paired with an identity provider in
             order to function properly (for example, id_provider = ldap). Some
             information required by the Kerberos 5 authentication backend must
             be provided by the identity provider, such as the user's Kerberos
@@ -48,11 +48,11 @@
             file in the home directory of the user. See <citerefentry>
             <refentrytitle>.k5login</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry> for more details. Please note that an empty .k5login
-            file will deny all access to this user. To activate this feature
-            use 'access_provider = krb5' in your sssd configuration.
+            file will deny all access to this user. To activate this feature,
+            use 'access_provider = krb5' in your SSSD configuration.
         </para>
         <para>
-            In the case where the UPN is not available in the identity backend
+            In the case where the UPN is not available in the identity backend,
             <command>sssd</command> will construct a UPN using the format
             <replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>.
         </para>
@@ -62,13 +62,13 @@
     <refsect1 id='file-format'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
-            If the auth-module krb5 is used in a SSSD domain, the following
+            If the auth-module krb5 is used in an SSSD domain, the following
             options must be used. See the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>
-            for details on the configuration of a SSSD domain.
+            </citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>,
+            for details on the configuration of an SSSD domain.
             <variablelist>
                 <varlistentry>
                     <term>krb5_server, krb5_backup_server (string)</term>
@@ -76,12 +76,12 @@
                         <para>
                             Specifies the comma-separated list of IP addresses or hostnames
                             of the Kerberos servers to which SSSD should
-                            connect in the order of preference. For more
+                            connect, in the order of preference. For more
                             information on failover and server redundancy,
                             see the <quote>FAILOVER</quote> section. An optional
                             port number (preceded by a colon) may be appended to
                             the addresses or hostnames.
-                            If empty, service discovery is enabled -
+                            If empty, service discovery is enabled;
                             for more information, refer to the
                             <quote>SERVICE DISCOVERY</quote> section.
                         </para>
@@ -114,15 +114,15 @@
                     <listitem>
                         <para>
                             If the change password service is not running on the
-                            KDC alternative servers can be defined here. An
+                            KDC, alternative servers can be defined here. An
                             optional port number (preceded by a colon) may be
                             appended to the addresses or hostnames.
                         </para>
                         <para>
                             For more information on failover and server
                             redundancy, see the <quote>FAILOVER</quote> section.
-                            Please note that even if there are no more kpasswd
-                            servers to try the back end is not switch to offline
+                            NOTE: Even if there are no more kpasswd
+                            servers to try, the backend is not switched to operate offline
                             if authentication against the KDC is still possible.
                         </para>
                         <para>
@@ -138,10 +138,11 @@
                             Directory to store credential caches. All the
                             substitution sequences of krb5_ccname_template can
                             be used here, too, except %d and %P. If the
-                            directory does not exist it will be created. If %u,
-                            %U, %p or %h are used a private directory belonging
-                            to the user is created. Otherwise a public directory
-                            with restricted deletion flag (aka sticky bit, see
+                            directory does not exist, it will be created. If %u,
+                            %U, %p or %h are used, a private directory belonging
+                            to the user is created. Otherwise, a public directory
+                            with restricted deletion flag (aka sticky bit, as
+                            described in
                             <citerefentry>
                                 <refentrytitle>chmod</refentrytitle>
                                 <manvolnum>1</manvolnum>
@@ -158,11 +159,11 @@
                     <listitem>
                         <para>
                             Location of the user's credential cache. Two credential
-                            cache types are currently supported - <quote>FILE</quote>
-                            and <quote>DIR</quote>. The cache can either be specified
-                            as <replaceable>TYPE:RESIDUAL</replaceable>, or an absolute
+                            cache types are currently supported: <quote>FILE</quote>
+                            and <quote>DIR</quote>. The cache can be specified either
+                            as <replaceable>TYPE:RESIDUAL</replaceable>, or as an absolute
                             path, which implies the <quote>FILE</quote> type. In the
-                            template the following sequences are substituted:
+                            template, the following sequences are substituted:
                             <variablelist>
                                 <varlistentry>
                                     <term>%u</term>
@@ -194,7 +195,7 @@
                                 </varlistentry>
                                 <varlistentry>
                                     <term>%P</term>
-                                    <listitem><para>the process ID of the sssd
+                                    <listitem><para>the process ID of the SSSD
                                                     client</para>
                                     </listitem>
                                 </varlistentry>
@@ -217,8 +218,8 @@
                     <term>krb5_auth_timeout (integer)</term>
                     <listitem>
                         <para>
-                            Timeout in seconds after an online authentication or
-                            change password request is aborted. If possible the
+                            Timeout in seconds after an online authentication request
+                            or change password request is aborted. If possible, the
                             authentication request is continued offline.
                         </para>
                         <para>
@@ -233,11 +234,11 @@
                         <para>
                             Verify with the help of krb5_keytab that the TGT
                             obtained has not been spoofed. The keytab is checked for
-                            entries sequentially, and the first entry with matching
-                            realm is used for validation. If no entry matches the last
-                            one is used. This can be utilized to achieve validation in
-                            enviroments with cross-realm trust by placing appropriate
-                            keytab entry as the last one or the only one.
+                            entries sequentially, and the first entry with a matching
+                            realm is used for validation. If no entry matches the realm, the last
+                            entry in the keytab is used. This process can be used to validate
+                            environments using cross-realm trust by placing the appropriate
+                            keytab entry as the last entry or the only entry in the keytab file.
                         </para>
                         <para>
                             Default: false
@@ -264,14 +265,14 @@
                         <para>
                             Store the password of the user if the provider is
                             offline and use it to request a TGT when the
-                            provider gets online again.
+                            provider comes online again.
                         </para>
                         <para>
-                            Please note that this feature currently only
-                            available on a Linux platform. Passwords stored in
-                            this way are kept in plaintext in the kernel
-                            keyring and are potentially accessible by the root
-                            user (with difficulty).
+                            NOTE: this feature is only available on Linux.
+                            Passwords stored in this way are kept in
+                            plaintext in the kernel keyring and are
+                            potentially accessible by the root user
+                            (with difficulty).
                         </para>
                         <para>
                             Default: false
@@ -284,30 +285,29 @@
                     <listitem>
                         <para>
                             Request a renewable ticket with a total
-                            lifetime given by an integer immediately followed
-                            by one of the following delimiters:
+                            lifetime, given as an integer immediately followed
+                            by a time unit:
                         </para>
                         <para>
-                            <emphasis>s</emphasis> seconds
+                            <emphasis>s</emphasis> for seconds
                         </para>
                         <para>
-                            <emphasis>m</emphasis> minutes
+                            <emphasis>m</emphasis> for minutes
                         </para>
                         <para>
-                            <emphasis>h</emphasis> hours
+                            <emphasis>h</emphasis> for hours
                         </para>
                         <para>
-                            <emphasis>d</emphasis> days.
+                            <emphasis>d</emphasis> for days.
                         </para>
                         <para>
-                            If there is no delimiter <emphasis>s</emphasis> is
+                            If there is no unit given, <emphasis>s</emphasis> is
                             assumed.
                         </para>
                         <para>
-                            Please note that it is not possible to mix units.
-                            If you want to set the renewable lifetime to one
-                            and a half hours please use '90m' instead of
-                            '1h30m'.
+                            NOTE: It is not possible to mix units.  To set
+                            the renewable lifetime to one and a half hours,
+                            use '90m' instead of '1h30m'.
                         </para>
                         <para>
                             Default: not set, i.e. the TGT is not renewable
@@ -319,29 +319,28 @@
                     <term>krb5_lifetime (string)</term>
                     <listitem>
                         <para>
-                            Request ticket with a with a lifetime given by an
-                            integer immediately followed by one of the following
-                            delimiters:
+                            Request ticket with a with a lifetime, given as an
+                            integer immediately followed by a time unit:
                         </para>
                         <para>
-                            <emphasis>s</emphasis> seconds
+                            <emphasis>s</emphasis> for seconds
                         </para>
                         <para>
-                            <emphasis>m</emphasis> minutes
+                            <emphasis>m</emphasis> for minutes
                         </para>
                         <para>
-                            <emphasis>h</emphasis> hours
+                            <emphasis>h</emphasis> for hours
                         </para>
                         <para>
-                            <emphasis>d</emphasis> days.
+                            <emphasis>d</emphasis> for days.
                         </para>
                         <para>
-                            If there is no delimiter <emphasis>s</emphasis> is
+                            If there is no unit given <emphasis>s</emphasis> is
                             assumed.
                         </para>
                         <para>
-                            Please note that it is not possible to mix units.
-                            If you want to set the lifetime to one and a half
+                            NOTE: It is not possible to mix units.
+                            To set the lifetime to one and a half
                             hours please use '90m' instead of '1h30m'.
                         </para>
                         <para>
@@ -360,7 +359,7 @@
                             of their lifetime is exceeded.
                         </para>
                         <para>
-                             If this option is not set or 0 the automatic
+                             If this option is not set or is 0 the automatic
                              renewal is disabled.
                         </para>
                         <para>
@@ -378,28 +377,30 @@
                             following options are supported:
                         </para>
                         <para>
-                            <emphasis>never</emphasis> use FAST, this is
-                            equivalent to not set this option at all.
+                            <emphasis>never</emphasis> use FAST. This is
+                            equivalent to not setting this option at all.
                         </para>
                         <para>
-                            <emphasis>try</emphasis> to use FAST, if the server
-                            does not support fast continue without.
+                            <emphasis>try</emphasis> to use FAST. If the server
+                            does not support FAST, continue the
+                            authentication without it.
                         </para>
                         <para>
-                            <emphasis>demand</emphasis> to use FAST, fail if the
-                            server does not require fast.
+                            <emphasis>demand</emphasis> to use FAST. The
+                            authentication fails if the server does not
+                            require fast.
                         </para>
                         <para>
                             Default: not set, i.e. FAST is not used.
                         </para>
                         <para>
-                            Please note that a keytab is required to use fast.
+                            NOTE: a keytab is required to use FAST.
                         </para>
                         <para>
-                            Please note also that sssd supports fast only with
-                            MIT Kerberos version 1.8 and above. If sssd used
-                            with an older version using this option is a
-                            configuration error.
+                            NOTE: SSSD supports FAST only with
+                            MIT Kerberos version 1.8 and later. If SSSD is used
+                            with an older version of MIT Kerberos, using this
+                            option is a configuration error.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -419,7 +420,7 @@
                         <para>
                             Specifies if the host and user principal should be
                             canonicalized. This feature is available with MIT
-                            Kerberos >= 1.7
+                            Kerberos 1.7 and later versions.
                         </para>
 
                         <para>
@@ -442,7 +443,7 @@
             The following example assumes that SSSD is correctly
             configured and FOO is one of the domains in the
             <replaceable>[sssd]</replaceable> section. This example shows
-            only configuration of Kerberos authentication, it does not include
+            only configuration of Kerberos authentication; it does not include
             any identity provider.
         </para>
         <para>
