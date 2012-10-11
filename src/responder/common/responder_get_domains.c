@@ -131,6 +131,7 @@ get_next_domain_recv(TALLOC_CTX *mem_ctx,
 
 /* ====== Iterate over all domains, searching for their subdomains  ======= */
 static errno_t process_subdomains(struct sss_domain_info *dom);
+static void set_time_of_last_request(struct resp_ctx *rctx);
 static errno_t check_last_request(struct resp_ctx *rctx, const char *hint);
 
 struct sss_dp_get_domains_state {
@@ -211,6 +212,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
 immediately:
     if (ret == EOK) {
+        set_time_of_last_request(rctx);
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
@@ -255,6 +257,7 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
 
     if (state->dom == NULL) {
         /* All domains were local */
+        set_time_of_last_request(state->rctx);
         tevent_req_done(req);
         return;
     }
@@ -368,6 +371,19 @@ errno_t sss_dp_get_domains_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
+}
+
+static void set_time_of_last_request(struct resp_ctx *rctx)
+{
+    int ret;
+
+    errno = 0;
+    ret = gettimeofday(&rctx->get_domains_last_call, NULL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC, ("gettimeofday failed [%d][%s].\n",
+                                  ret, strerror(ret)));
+    }
 }
 
 static errno_t check_last_request(struct resp_ctx *rctx, const char *hint)
