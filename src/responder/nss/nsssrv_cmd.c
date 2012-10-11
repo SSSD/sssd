@@ -1618,6 +1618,14 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 
         if (!n) break;
 
+        if (n < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("BUG: Negative difference"
+                  "[%d - %d = %d]\n", pdom->res->count, cctx->pwent_cur, n));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Domain: %d (total %d)\n",
+                                        cctx->pwent_dom_idx, pctx->num));
+            break;
+        }
+
         if (n > num) n = num;
 
         msgs = &(pdom->res->msgs[cctx->pwent_cur]);
