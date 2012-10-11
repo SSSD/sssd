@@ -30,6 +30,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 struct ipa_user_get_state {
     struct tevent_context *ev;
@@ -74,7 +75,8 @@ struct tevent_req *ipa_get_subdomain_account_info_send(TALLOC_CTX *memctx,
     }
 
     state->domain = new_subdomain(state, state->ctx->be->domain, ar->domain,
-                                  NULL, NULL);
+                          get_flat_name_from_subdomain_name(ctx->be,ar->domain),
+                          NULL);
     if (state->domain == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
         ret = ENOMEM;

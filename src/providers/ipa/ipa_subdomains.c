@@ -80,6 +80,30 @@ struct ipa_subdomains_ctx {
     struct sysdb_subdom *subdoms;
 };
 
+const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
+                                              const char *name)
+{
+    size_t c;
+    struct ipa_subdomains_ctx *ctx;
+
+    ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
+                          struct ipa_subdomains_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Subdomains are not configured.\n"));
+        return NULL;
+    }
+
+    for (c = 0; c < ctx->num_subdoms; c++) {
+        if (strcasecmp(ctx->subdoms[c].name, name) == 0 ||
+            (ctx->subdoms[c].flat_name != NULL &&
+             strcasecmp(ctx->subdoms[c].flat_name, name) == 0)) {
+            return ctx->subdoms[c].flat_name;
+        }
+    }
+
+    return NULL;
+}
+
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
 {
     if (be_req) {

@@ -599,10 +599,14 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (strcasecmp(state->dom->name, attrs->domain_name) != 0) {
+    if (!(strcasecmp(state->dom->name, attrs->domain_name) == 0 ||
+          (state->dom->flat_name != NULL &&
+           strcasecmp(state->dom->flat_name, attrs->domain_name) == 0))) {
         DEBUG(SSSDBG_OP_FAILURE, ("Unexpected domain name returned, "
-                                  "expected [%s], got [%s].\n",
-                                  state->dom->name, attrs->domain_name));
+                                  "expected [%s] or [%s], got [%s].\n",
+                     state->dom->name,
+                     state->dom->flat_name == NULL ? "" : state->dom->flat_name,
+                     attrs->domain_name));
         ret = EINVAL;
         goto done;
     }
