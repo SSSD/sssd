@@ -1788,7 +1788,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
         talloc_zfree(values);
     }
 
-    /* Users are all saved. Now save groups */
+    /* Users are all retrieved. Now retrieve groups */
     hret = hash_values(state->group_hash, &group_count, &values);
     if (hret != HASH_SUCCESS) {
         ret = EIO;
@@ -2009,6 +2009,274 @@ done:
     return ret;
 }
 
+/*
+ * Get user based on a user DN. Optimized for environments where the containers
+ * are strictly defined, such as IPA.
+ */
+static void
+sdap_nested_get_user_done(struct tevent_req *subreq);
+static errno_t
+sdap_nested_get_ipa_user(TALLOC_CTX *mem_ctx, const char *user_dn,
+                         struct sysdb_ctx *sysdb, struct sysdb_attrs ***_reply);
+
+struct sdap_nested_get_user_state {
+    size_t count;
+    struct sysdb_attrs **replies;
+};
+
+static struct tevent_req *
+sdap_nested_get_user_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+                          struct sss_domain_info *domain,
+                          struct sysdb_ctx *sysdb,
+                          struct sdap_options *opts,
+                          struct sdap_handle *sh,
+                          const char *user_dn,
+                          const char *search_bases_filter)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    const char **sdap_attrs;
+    const char *filter;
+    struct sdap_nested_get_user_state *state;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_nested_get_user_state);
+    if (!req) {
+        return NULL;
+    }
+
+    if (opts->schema_type == SDAP_SCHEMA_IPA_V1) {
+        /* If the schema is IPA, then just shortcut and guess the name */
+        ret = sdap_nested_get_ipa_user(state, user_dn, sysdb, &state->replies);
+        if (ret == EOK) {
+            state->count = 1;
+            goto immediate;
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Couldn't parse out user information "
+                  "based on DN %s, falling back to an LDAP lookup\n"));
+        }
+    }
+
+    /* Only pull down username and originalDN */
+    sdap_attrs = talloc_array(state, const char *, 3);
+    if (!sdap_attrs) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    sdap_attrs[0] = "objectClass";
+    sdap_attrs[1] = opts->user_map[SDAP_AT_USER_NAME].name;
+    sdap_attrs[2] = NULL;
+
+    if (search_bases_filter != NULL) {
+        filter = talloc_asprintf(sdap_attrs, "(&%s(objectclass=%s))",
+                                 search_bases_filter,
+                                 opts->user_map[SDAP_OC_USER].name);
+    } else {
+        filter = talloc_asprintf(sdap_attrs, "(objectclass=%s)",
+                                 opts->user_map[SDAP_OC_USER].name);
+    }
+    if (!filter) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    subreq = sdap_get_generic_send(state, ev, opts, sh, user_dn,
+                                   LDAP_SCOPE_BASE, filter, sdap_attrs,
+                                   opts->user_map, SDAP_OPTS_USER,
+                                   dp_opt_get_int(opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (!subreq) {
+        ret = EIO;
+        goto immediate;
+    }
+    talloc_steal(subreq, sdap_attrs);
+
+    tevent_req_set_callback(subreq, sdap_nested_get_user_done, req);
+    return req;
+
+immediate:
+    if (ret) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+/* This should be a function pointer set from the IPA provider */
+static errno_t
+sdap_nested_get_ipa_user(TALLOC_CTX *mem_ctx, const char *user_dn,
+                         struct sysdb_ctx *sysdb, struct sysdb_attrs ***_reply)
+{
+    errno_t ret;
+    struct sysdb_attrs **reply = NULL;
+    struct sysdb_attrs *user = NULL;
+    char *name;
+    struct ldb_dn *dn = NULL;
+    const char *rdn_name;
+    const char *users_comp_name;
+    const char *acct_comp_name;
+    const struct ldb_val *rdn_val;
+    const struct ldb_val *users_comp_val;
+    const struct ldb_val *acct_comp_val;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    dn = ldb_dn_new(tmp_ctx, sysdb_ctx_get_ldb(sysdb), user_dn);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (ldb_dn_get_comp_num(dn) < 4) {
+        /* RDN, users, accounts, and at least one DC=
+         * For example:
+         * uid=admin,cn=users,cn=accounts,dc=example,dc=com */
+        /* If it's fewer, it's not a user DN */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* If the RDN attribute name is 'uid' */
+    rdn_name = ldb_dn_get_rdn_name(dn);
+    if (rdn_name == NULL) {
+        /* Shouldn't happen if ldb_dn_validate()
+         * passed, but we'll be careful.
+         */
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strcasecmp("uid", rdn_name) != 0) {
+        /* RDN has the wrong attribute name.
+         * It's not a service.
+         */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* and the second component is "cn=users" */
+    users_comp_name = ldb_dn_get_component_name(dn, 1);
+    if (strcasecmp("cn", users_comp_name) != 0) {
+        /* The second component name is not "cn" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    users_comp_val = ldb_dn_get_component_val(dn, 1);
+    if (strncasecmp("users",
+                    (const char *) users_comp_val->data,
+                    users_comp_val->length) != 0) {
+        /* The second component value is not "users" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* and the third component is "cn=accounts" */
+    acct_comp_name = ldb_dn_get_component_name(dn, 2);
+    if (strcasecmp("cn", acct_comp_name) != 0) {
+        /* The third component name is not "cn" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    acct_comp_val = ldb_dn_get_component_val(dn, 2);
+    if (strncasecmp("accounts",
+                    (const char *) acct_comp_val->data,
+                    acct_comp_val->length) != 0) {
+        /* The third component value is not "accounts" */
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* Then the value of the RDN is the group name */
+    reply = talloc_zero_array(tmp_ctx, struct sysdb_attrs *, 2);
+    if (!reply) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    reply[0] = sysdb_new_attrs(reply);
+    if (!reply[0]) {
+        ret = ENOMEM;
+        goto done;
+    }
+    user = reply[0];
+
+    rdn_val = ldb_dn_get_rdn_val(dn);
+    name = talloc_strndup(user, (const char *)rdn_val->data,
+                          rdn_val->length);
+    if (name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(user, SYSDB_NAME, name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(user, SYSDB_ORIG_DN, user_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(user, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+    *_reply = talloc_steal(mem_ctx, reply);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static void
+sdap_nested_get_user_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_get_user_state *state = tevent_req_data(req,
+                                           struct sdap_nested_get_user_state);
+
+    ret = sdap_get_generic_recv(subreq, state, &state->count, &state->replies);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t
+sdap_nested_get_user_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                          size_t *_count, struct sysdb_attrs ***_replies)
+{
+    struct sdap_nested_get_user_state *state = tevent_req_data(req,
+                                            struct sdap_nested_get_user_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_count) {
+        *_count = state->count;
+    }
+
+    if (_replies) {
+        *_replies = talloc_steal(mem_ctx, state->replies);
+    }
+
+    return EOK;
+}
+
 struct sdap_deref_ctx {
     const char *orig_dn;
 
@@ -2214,6 +2482,7 @@ static errno_t sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                                     char *member_dn,
                                     struct ldb_message ***_msgs,
                                     enum sysdb_member_type *_mtype);
+
 static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq);
 static void sdap_nested_group_process_user(struct tevent_req *subreq);
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
@@ -2698,8 +2967,6 @@ done:
 static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                                              tevent_req_fn fn)
 {
-    const char **sdap_attrs;
-    char *filter;
     char *search_bases_filter = NULL;
     struct tevent_req *subreq;
     struct sdap_nested_group_ctx *state =
@@ -2739,41 +3006,13 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
          */
     }
 
-    /* Only pull down username and originalDN */
-    sdap_attrs = talloc_array(state, const char *, 3);
-    if (!sdap_attrs) return ENOMEM;
-    sdap_attrs[0] = "objectClass";
-    sdap_attrs[1] = state->opts->user_map[SDAP_AT_USER_NAME].name;
-    sdap_attrs[2] = NULL;
-
-    if (search_bases_filter != NULL) {
-        filter = talloc_asprintf(sdap_attrs, "(&%s(objectclass=%s))",
-                                 search_bases_filter,
-                                 state->opts->user_map[SDAP_OC_USER].name);
-    } else {
-        filter = talloc_asprintf(sdap_attrs, "(objectclass=%s)",
-                                 state->opts->user_map[SDAP_OC_USER].name);
-    }
-    if (!filter) {
-        talloc_free(sdap_attrs);
-        return ENOMEM;
-    }
-
-    subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   state->sh, state->member_dn,
-                                   LDAP_SCOPE_BASE,
-                                   filter, sdap_attrs,
-                                   state->opts->user_map,
-                                   SDAP_OPTS_USER,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT),
-                                   false);
+    subreq = sdap_nested_get_user_send(state, state->ev, state->domain,
+                                       state->sysdb, state->opts, state->sh,
+                                       state->member_dn, search_bases_filter);
     if (!subreq) {
-        talloc_free(sdap_attrs);
         return EIO;
     }
-    talloc_steal(subreq, sdap_attrs);
-
+    talloc_steal(subreq, search_bases_filter);
     tevent_req_set_callback(subreq, fn, req);
     return EOK;
 }
@@ -2879,7 +3118,7 @@ static void sdap_nested_group_process_user(struct tevent_req *subreq)
         return;
     }
 
-    ret = sdap_get_generic_recv(subreq, tmp_ctx, &count, &replies);
+    ret = sdap_nested_get_user_recv(subreq, tmp_ctx, &count, &replies);
     talloc_zfree(subreq);
     if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
@@ -3088,7 +3327,7 @@ static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq)
         return;
     }
 
-    ret = sdap_get_generic_recv(subreq, tmp_ctx, &count, &replies);
+    ret = sdap_nested_get_user_recv(subreq, tmp_ctx, &count, &replies);
     talloc_zfree(subreq);
     if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
