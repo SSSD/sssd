@@ -125,20 +125,13 @@ static void free_exp_data(pam_handle_t *pamh, void *ptr, int err)
 
 static void close_fd(pam_handle_t *pamh, void *ptr, int err)
 {
-    int fd = *((int *) ptr);
-
     if (err & PAM_DATA_REPLACE) {
         /* Nothing to do */
         return;
     }
 
-    if (fd == -1) {
-        /* fd not yet initialized */
-        return;
-    }
-
     D(("Closing the fd"));
-    close(fd);
+    sss_pam_close_fd();
 }
 
 static size_t add_authtok_item(enum pam_item_type type,
@@ -1098,7 +1091,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     errnop = 0;
     ret = sss_pam_make_request(task, &rd, &repbuf, &replen, &errnop);
 
-    sret = pam_set_data(pamh, FD_DESTRUCTOR, sss_pam_get_socket(), close_fd);
+    sret = pam_set_data(pamh, FD_DESTRUCTOR, NULL, close_fd);
     if (sret != PAM_SUCCESS) {
         D(("pam_set_data failed, client might leaks fds"));
     }

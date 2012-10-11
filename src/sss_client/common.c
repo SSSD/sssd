@@ -795,11 +795,6 @@ errno_t check_server_cred(int sockfd)
     return 0;
 }
 
-int *sss_pam_get_socket(void)
-{
-    return &sss_cli_sd;
-}
-
 int sss_pam_make_request(enum sss_cli_command cmd,
                       struct sss_cli_req_data *rd,
                       uint8_t **repbuf, size_t *replen,
@@ -877,6 +872,18 @@ int sss_pam_make_request(enum sss_cli_command cmd,
 out:
     sss_pam_unlock();
     return ret;
+}
+
+void sss_pam_close_fd(void)
+{
+    sss_pam_lock();
+
+    if (sss_cli_sd != -1) {
+        close(sss_cli_sd);
+        sss_cli_sd = -1;
+    }
+
+    sss_pam_unlock();
 }
 
 int sss_sudo_make_request(enum sss_cli_command cmd,
