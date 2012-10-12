@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-10-05 19:20+0200\n"
-"PO-Revision-Date: 2012-09-18 17:58+0000\n"
+"POT-Creation-Date: 2012-10-12 21:15+0200\n"
+"PO-Revision-Date: 2012-10-07 14:53+0000\n"
 "Last-Translator: Geert Warrink <geert.warrink@onsnet.nu>\n"
 "Language-Team: Dutch (http://www.transifex.com/projects/p/fedora/language/"
 "nl/)\n"
@@ -96,7 +96,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:57
 msgid "Domain to add to names without a domain component."
-msgstr ""
+msgstr "Domein toe te voegen aan namen zonder een domein component."
 
 #: src/config/SSSDConfig/__init__.py.in:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -217,6 +217,8 @@ msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
 msgstr ""
+"Hoeveel seconden moet een host in het known_hosts bestand blijven nadat de "
+"host sleutels ervan werden aangevraagd"
 
 #: src/config/SSSDConfig/__init__.py.in:95
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -933,6 +935,8 @@ msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr ""
+"Moet het ldap_user_shadow_last_change attribuut vernieuwd worden na een "
+"wachtwoordwijziging"
 
 #: src/config/SSSDConfig/__init__.py.in:312
 msgid "Base DN for sudo rules lookups"
@@ -1090,24 +1094,24 @@ msgstr "Print versie nummer en sluit af"
 
 #: src/monitor/monitor.c:2599
 msgid "SSSD is already running\n"
-msgstr ""
+msgstr "SSSD draait al\n"
 
-#: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
+#: src/providers/krb5/krb5_child.c:1894 src/providers/ldap/ldap_child.c:432
 #: src/util/util.h:94
 msgid "Debug level"
 msgstr "Debug niveau"
 
-#: src/providers/krb5/krb5_child.c:1867 src/providers/ldap/ldap_child.c:409
+#: src/providers/krb5/krb5_child.c:1896 src/providers/ldap/ldap_child.c:434
 #: src/util/util.h:98
 msgid "Add debug timestamps"
 msgstr "Voeg tijdstempels toe aan debugberichten"
 
-#: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
+#: src/providers/krb5/krb5_child.c:1898 src/providers/ldap/ldap_child.c:436
 #: src/util/util.h:100
 msgid "Show timestamps with microseconds"
 msgstr "Toon tijdstempel met microseconden"
 
-#: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
+#: src/providers/krb5/krb5_child.c:1900 src/providers/ldap/ldap_child.c:438
 msgid "An open file descriptor for the debug logs"
 msgstr "Een geopend bestand voor de debug logs"
 
@@ -1115,91 +1119,91 @@ msgstr "Een geopend bestand voor de debug logs"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domein voor de informatie provider (verplicht)"
 
-#: src/sss_client/common.c:926
+#: src/sss_client/common.c:947
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Socket met privileges heeft verkeerde rechten of eigendom."
 
-#: src/sss_client/common.c:929
+#: src/sss_client/common.c:950
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Publiek socket heeft verkeerde rechten of eigendom."
 
-#: src/sss_client/common.c:932
+#: src/sss_client/common.c:953
 msgid "Unexpected format of the server credential message."
 msgstr "Onverwacht formaat van het inloggegevensbericht van de server."
 
-#: src/sss_client/common.c:935
+#: src/sss_client/common.c:956
 msgid "SSSD is not run by root."
 msgstr "SSSD wordt niet door root gestart."
 
-#: src/sss_client/common.c:940
+#: src/sss_client/common.c:961
 msgid "An error occurred, but no description can be found."
 msgstr ""
 "Er is een fout opgetreden, maar er kan geen omschrijving gevonden worden."
 
-#: src/sss_client/common.c:946
+#: src/sss_client/common.c:967
 msgid "Unexpected error while looking for an error description"
 msgstr "Onverwachtte fout bij het opzoeken van een omschrijving"
 
-#: src/sss_client/pam_sss.c:375
+#: src/sss_client/pam_sss.c:387
 msgid "Passwords do not match"
 msgstr "Wachtwoorden komen niet overeen"
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:575
 msgid "Password reset by root is not supported."
 msgstr "Wachtwoorden als root wijzigen wordt niet ondersteund."
 
-#: src/sss_client/pam_sss.c:604
+#: src/sss_client/pam_sss.c:616
 msgid "Authenticated with cached credentials"
 msgstr "Geauthenticeerd met gecachte inloggegevens."
 
-#: src/sss_client/pam_sss.c:605
+#: src/sss_client/pam_sss.c:617
 msgid ", your cached password will expire at: "
 msgstr ", uw wachtwoord verloopt op:"
 
-#: src/sss_client/pam_sss.c:635
+#: src/sss_client/pam_sss.c:647
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
 "Je wachtwoord is verlopen. Je hebt nog slechts %1$d login(s) beschikbaar."
 
-#: src/sss_client/pam_sss.c:681
+#: src/sss_client/pam_sss.c:693
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Je wachtwoord zal verlopen in %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:730
+#: src/sss_client/pam_sss.c:742
 msgid "Authentication is denied until: "
 msgstr "Inloggen wordt geweigerd tot:"
 
-#: src/sss_client/pam_sss.c:751
+#: src/sss_client/pam_sss.c:763
 msgid "System is offline, password change not possible"
 msgstr "Systeem is offline, wachtwoord wijzigen niet mogelijk"
 
-#: src/sss_client/pam_sss.c:781 src/sss_client/pam_sss.c:794
+#: src/sss_client/pam_sss.c:793 src/sss_client/pam_sss.c:806
 msgid "Password change failed. "
 msgstr "Wijzigen van wachtwoord mislukt."
 
-#: src/sss_client/pam_sss.c:784 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:807
 msgid "Server message: "
 msgstr "Serverbericht:"
 
-#: src/sss_client/pam_sss.c:1213
+#: src/sss_client/pam_sss.c:1231
 msgid "New Password: "
 msgstr "Nieuw Wachtwoord: "
 
-#: src/sss_client/pam_sss.c:1214
+#: src/sss_client/pam_sss.c:1232
 msgid "Reenter new Password: "
 msgstr "Voer nieuw wachtwoord nogmaals in: "
 
-#: src/sss_client/pam_sss.c:1300
+#: src/sss_client/pam_sss.c:1318
 msgid "Password: "
 msgstr "Wachtwoord: "
 
-#: src/sss_client/pam_sss.c:1332
+#: src/sss_client/pam_sss.c:1350
 msgid "Current Password: "
 msgstr "Huidig wachtwoord:"
 
-#: src/sss_client/pam_sss.c:1479
+#: src/sss_client/pam_sss.c:1497
 msgid "Password expired. Change your password now."
 msgstr "Wachtwoord verlopen. Verander nu uw wachtwoord."
 

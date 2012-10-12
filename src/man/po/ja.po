@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-10-05 19:20+0300\n"
-"PO-Revision-Date: 2012-09-10 01:11+0000\n"
-"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
+"POT-Creation-Date: 2012-10-12 21:14+0300\n"
+"PO-Revision-Date: 2012-10-05 17:53+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -450,32 +450,30 @@ msgstr "初期値: 60"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:222
-#, fuzzy
-#| msgid "ldap_idmap_default_domain_sid (string)"
 msgid "default_domain_suffix (string)"
-msgstr "ldap_idmap_default_domain_sid (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:225
 msgid ""
 "This string will be used as a default domain name for all names without a "
-"domain name component. The main use case are environments were the local "
-"domain is only managing hosts but no users and all users are coming from a "
-"trusted domain. The option allows those users to log in just with their user "
-"name without giving a domain name as well."
+"domain name component. The main use case is environments where the primary "
+"domain is intended for managing host policies and all users are located in a "
+"trusted domain.  The option allows those users to log in just with their "
+"user name without giving a domain name as well."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:235
 msgid ""
-"Please note that if this option is set all users from the local domain have "
-"to use their fully qualified name, e.g. user@domain.name, to log in."
+"Please note that if this option is set all users from the primary domain "
+"have to use their fully qualified name, e.g. user@domain.name, to log in."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:241 sssd-ldap.5.xml:1336 sssd-ldap.5.xml:1348
 #: sssd-ldap.5.xml:1409 sssd-ldap.5.xml:2206 sssd-ldap.5.xml:2233
-#: sssd-krb5.5.xml:361 include/ldap_id_mapping.xml:145
+#: sssd-krb5.5.xml:366 include/ldap_id_mapping.xml:145
 #: include/ldap_id_mapping.xml:156
 msgid "Default: not set"
 msgstr "初期値: 設定されません"
@@ -560,7 +558,7 @@ msgstr "デバッグメッセージの日時にマイクロ秒を追加します
 #: sssd.conf.5.xml:288 sssd.conf.5.xml:787 sssd.conf.5.xml:1630
 #: sssd-ldap.5.xml:640 sssd-ldap.5.xml:1377 sssd-ldap.5.xml:1396
 #: sssd-ldap.5.xml:1533 sssd-ipa.5.xml:123 sssd-ipa.5.xml:339
-#: sssd-krb5.5.xml:237 sssd-krb5.5.xml:271 sssd-krb5.5.xml:420
+#: sssd-krb5.5.xml:244 sssd-krb5.5.xml:278 sssd-krb5.5.xml:427
 msgid "Default: false"
 msgstr "初期値: false"
 
@@ -715,7 +713,7 @@ msgstr ""
 "せ）をキャッシュする秒数を指定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:414 sssd.conf.5.xml:811 sssd-krb5.5.xml:225
+#: sssd.conf.5.xml:414 sssd.conf.5.xml:811 sssd-krb5.5.xml:226
 msgid "Default: 15"
 msgstr "初期値: 15"
 
@@ -761,17 +759,17 @@ msgid "override_homedir (string)"
 msgstr "override_homedir (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:168
+#: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:169
 msgid "%u"
 msgstr "%u"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:169
+#: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:170
 msgid "login name"
 msgstr "ログイン名"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:172
+#: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:173
 msgid "%U"
 msgstr "%U"
 
@@ -781,7 +779,7 @@ msgid "UID number"
 msgstr "UID 番号"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:190
+#: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:191
 msgid "%d"
 msgstr "%d"
 
@@ -801,12 +799,12 @@ msgid "fully qualified user name (user@domain)"
 msgstr "完全修飾ユーザー名 (user@domain)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:471 sssd-ad.5.xml:157 sssd-krb5.5.xml:202
+#: sssd.conf.5.xml:471 sssd-ad.5.xml:157 sssd-krb5.5.xml:203
 msgid "%%"
 msgstr "%%"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:472 sssd-ad.5.xml:158 sssd-krb5.5.xml:203
+#: sssd.conf.5.xml:472 sssd-ad.5.xml:158 sssd-krb5.5.xml:204
 msgid "a literal '%'"
 msgstr "文字 '%'"
 
@@ -1264,10 +1262,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:816
-#, fuzzy
-#| msgid "ldap_opt_timeout (integer)"
 msgid "ssh_known_hosts_timeout (integer)"
-msgstr "ldap_opt_timeout (整数)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:819
@@ -1278,10 +1274,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:823
-#, fuzzy
-#| msgid "Default: 10"
 msgid "Default: 180"
-msgstr "初期値: 10"
+msgstr "初期値: 180"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:832
@@ -2068,17 +2062,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1492
-#, fuzzy
-#| msgid "domain name"
 msgid "username@domain.name"
-msgstr "ドメイン名"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1495
-#, fuzzy
-#| msgid "domain name"
 msgid "domain\\username"
-msgstr "ドメイン名"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1498
@@ -2504,7 +2494,7 @@ msgstr "初期値: なし、コマンドを実行しません"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:1815 sssd-ldap.5.xml:2259 sssd-simple.5.xml:126
-#: sssd-ipa.5.xml:583 sssd-ad.5.xml:228 sssd-krb5.5.xml:434
+#: sssd-ipa.5.xml:583 sssd-ad.5.xml:228 sssd-krb5.5.xml:441
 msgid "EXAMPLE"
 msgstr "例"
 
@@ -2783,17 +2773,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:168
-#, fuzzy
-#| msgid "The two mechanisms currently supported are:"
 msgid "Four schema types are currently supported:"
-msgstr "現在 2 つのメカニズムがサポートされます:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:172
-#, fuzzy
-#| msgid "Default: rfc2307"
 msgid "rfc2307"
-msgstr "初期値: rfc2307"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:177
@@ -4308,7 +4294,7 @@ msgid "krb5_server, krb5_backup_server (string)"
 msgstr "krb5_server, krb5_backup_server (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1486 sssd-krb5.5.xml:77
+#: sssd-ldap.5.xml:1486
 msgid ""
 "Specifies the comma-separated list of IP addresses or hostnames of the "
 "Kerberos servers to which SSSD should connect in the order of preference. "
@@ -4357,7 +4343,7 @@ msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
 msgstr "初期値: システムの初期値、<filename>/etc/krb5.conf</filename> 参照。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1524 sssd-ipa.5.xml:269 sssd-krb5.5.xml:411
+#: sssd-ldap.5.xml:1524 sssd-ipa.5.xml:269 sssd-krb5.5.xml:418
 msgid "krb5_canonicalize (boolean)"
 msgstr "krb5_canonicalize (論理値)"
 
@@ -4480,10 +4466,8 @@ msgstr "初期値: 設定されていません、つまりサービス検索が�
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1623
-#, fuzzy
-#| msgid "ldap_user_shadow_last_change (string)"
 msgid "ldap_chpass_update_last_change (bool)"
-msgstr "ldap_user_shadow_last_change (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1626
@@ -5309,7 +5293,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><para>
 #: sssd-ldap.5.xml:2266 sssd-simple.5.xml:134 sssd-ipa.5.xml:591
 #: sssd-ad.5.xml:236 sssd-sudo.5.xml:56 sssd-sudo.5.xml:78 sssd-sudo.5.xml:99
-#: sssd-krb5.5.xml:443 include/ldap_id_mapping.xml:63
+#: sssd-krb5.5.xml:450 include/ldap_id_mapping.xml:63
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -5982,12 +5966,12 @@ msgid "Default: the value of <emphasis>cn=ad,cn=etc,%basedn</emphasis>"
 msgstr "初期値: <emphasis>cn=ad,cn=etc,%basedn</emphasis> の値"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:237 sssd-krb5.5.xml:231
+#: sssd-ipa.5.xml:237 sssd-krb5.5.xml:232
 msgid "krb5_validate (boolean)"
 msgstr "krb5_validate (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:240 sssd-krb5.5.xml:234
+#: sssd-ipa.5.xml:240
 msgid ""
 "Verify with the help of krb5_keytab that the TGT obtained has not been "
 "spoofed."
@@ -7347,13 +7331,21 @@ msgstr "sssd-krb5"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:23
+#, fuzzy
+#| msgid ""
+#| "This manual page describes the configuration of the Kerberos 5 "
+#| "authentication backend for <citerefentry> <refentrytitle>sssd</"
+#| "refentrytitle> <manvolnum>8</manvolnum> </citerefentry>.  For a detailed "
+#| "syntax reference, please refer to the <quote>FILE FORMAT</quote> section "
+#| "of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry> manual page"
 msgid ""
 "This manual page describes the configuration of the Kerberos 5 "
 "authentication backend for <citerefentry> <refentrytitle>sssd</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry>.  For a detailed "
 "syntax reference, please refer to the <quote>FILE FORMAT</quote> section of "
 "the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> manual page"
+"manvolnum> </citerefentry> manual page."
 msgstr ""
 "このマニュアルは <citerefentry> <refentrytitle>sssd</refentrytitle> "
 "<manvolnum>8</manvolnum> </citerefentry> に対する Kerberos 5 認証バックエンド"
@@ -7364,9 +7356,19 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:36
+#, fuzzy
+#| msgid ""
+#| "The Kerberos 5 authentication backend contains auth and chpass providers. "
+#| "It must be paired with identity provider in order to function properly "
+#| "(for example, id_provider = ldap). Some information required by the "
+#| "Kerberos 5 authentication backend must be provided by the identity "
+#| "provider, such as the user's Kerberos Principal Name (UPN). The "
+#| "configuration of the identity provider should have an entry to specify "
+#| "the UPN. Please refer to the man page for the applicable identity "
+#| "provider for details on how to configure this."
 msgid ""
 "The Kerberos 5 authentication backend contains auth and chpass providers. It "
-"must be paired with identity provider in order to function properly (for "
+"must be paired with an identity provider in order to function properly (for "
 "example, id_provider = ldap). Some information required by the Kerberos 5 "
 "authentication backend must be provided by the identity provider, such as "
 "the user's Kerberos Principal Name (UPN). The configuration of the identity "
@@ -7384,12 +7386,20 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:47
+#, fuzzy
+#| msgid ""
+#| "This backend also provides access control based on the .k5login file in "
+#| "the home directory of the user. See <citerefentry> <refentrytitle>."
+#| "k5login</refentrytitle><manvolnum>5</manvolnum> </citerefentry> for more "
+#| "details. Please note that an empty .k5login file will deny all access to "
+#| "this user. To activate this feature use 'access_provider = krb5' in your "
+#| "sssd configuration."
 msgid ""
 "This backend also provides access control based on the .k5login file in the "
 "home directory of the user. See <citerefentry> <refentrytitle>.k5login</"
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry> for more details. "
 "Please note that an empty .k5login file will deny all access to this user. "
-"To activate this feature use 'access_provider = krb5' in your sssd "
+"To activate this feature, use 'access_provider = krb5' in your SSSD "
 "configuration."
 msgstr ""
 "このバックエンドは、ユーザーのホームディレクトリーにある .k5login ファイルに"
@@ -7401,14 +7411,31 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
+#, fuzzy
+#| msgid ""
+#| "In the case where the UPN is not available in the identity backend "
+#| "<command>sssd</command> will construct a UPN using the format "
+#| "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 msgid ""
-"In the case where the UPN is not available in the identity backend "
+"In the case where the UPN is not available in the identity backend, "
 "<command>sssd</command> will construct a UPN using the format "
 "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 msgstr ""
 "UPN が識別バックエンド <command>sssd</command> において利用できない場合は、形"
 "式 <replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable> "
 "を使用して UPN を構築します。"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:77
+msgid ""
+"Specifies the comma-separated list of IP addresses or hostnames of the "
+"Kerberos servers to which SSSD should connect, in the order of preference. "
+"For more information on failover and server redundancy, see the "
+"<quote>FAILOVER</quote> section. An optional port number (preceded by a "
+"colon) may be appended to the addresses or hostnames.  If empty, service "
+"discovery is enabled; for more information, refer to the <quote>SERVICE "
+"DISCOVERY</quote> section."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:106
@@ -7424,10 +7451,15 @@ msgstr "krb5_kpasswd, krb5_backup_kpasswd (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:116
+#, fuzzy
+#| msgid ""
+#| "If the change password service is not running on the KDC alternative "
+#| "servers can be defined here. An optional port number (preceded by a "
+#| "colon) may be appended to the addresses or hostnames."
 msgid ""
-"If the change password service is not running on the KDC alternative servers "
-"can be defined here. An optional port number (preceded by a colon) may be "
-"appended to the addresses or hostnames."
+"If the change password service is not running on the KDC, alternative "
+"servers can be defined here. An optional port number (preceded by a colon) "
+"may be appended to the addresses or hostnames."
 msgstr ""
 "パスワード変更サービスが KDC において実行されていなければ、代替サーバーがここ"
 "で指定できます。オプションのポート番号が（コロンに続けて）アドレスまたはホス"
@@ -7435,10 +7467,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:122
+#, fuzzy
+#| msgid ""
+#| "For more information on failover and server redundancy, see the "
+#| "<quote>FAILOVER</quote> section.  Please note that even if there are no "
+#| "more kpasswd servers to try the back end is not switch to offline if "
+#| "authentication against the KDC is still possible."
 msgid ""
 "For more information on failover and server redundancy, see the "
-"<quote>FAILOVER</quote> section.  Please note that even if there are no more "
-"kpasswd servers to try the back end is not switch to offline if "
+"<quote>FAILOVER</quote> section.  NOTE: Even if there are no more kpasswd "
+"servers to try, the backend is not switched to operate offline if "
 "authentication against the KDC is still possible."
 msgstr ""
 "フェイルオーバーとサーバー冗長性に関する詳細は、<quote>フェイルオーバー</"
@@ -7458,14 +7496,23 @@ msgstr "krb5_ccachedir (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:138
+#, fuzzy
+#| msgid ""
+#| "Directory to store credential caches. All the substitution sequences of "
+#| "krb5_ccname_template can be used here, too, except %d and %P. If the "
+#| "directory does not exist it will be created. If %u, %U, %p or %h are used "
+#| "a private directory belonging to the user is created. Otherwise a public "
+#| "directory with restricted deletion flag (aka sticky bit, see "
+#| "<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</"
+#| "manvolnum> </citerefentry> for details) is created."
 msgid ""
 "Directory to store credential caches. All the substitution sequences of "
 "krb5_ccname_template can be used here, too, except %d and %P. If the "
-"directory does not exist it will be created. If %u, %U, %p or %h are used a "
-"private directory belonging to the user is created. Otherwise a public "
-"directory with restricted deletion flag (aka sticky bit, see <citerefentry> "
-"<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry> for details) is created."
+"directory does not exist, it will be created. If %u, %U, %p or %h are used, "
+"a private directory belonging to the user is created. Otherwise, a public "
+"directory with restricted deletion flag (aka sticky bit, as described in "
+"<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
+"</citerefentry> for details) is created."
 msgstr ""
 "クレディンシャルキャッシュを保存するディレクトリーです。すべての "
 "krb5_ccname_template の置換シーケンスが、%d と %P を除き、ここで使用できま"
@@ -7476,75 +7523,86 @@ msgstr ""
 "</citerefentry> を参照してください）を持つ公開ディレクトリーが作成されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:151
+#: sssd-krb5.5.xml:152
 msgid "Default: /tmp"
 msgstr "初期値: /tmp"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:157
+#: sssd-krb5.5.xml:158
 msgid "krb5_ccname_template (string)"
 msgstr "krb5_ccname_template (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:173
+#: sssd-krb5.5.xml:174
 msgid "login UID"
 msgstr "ログイン UID"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:176
+#: sssd-krb5.5.xml:177
 msgid "%p"
 msgstr "%p"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:177
+#: sssd-krb5.5.xml:178
 msgid "principal name"
 msgstr "プリンシパル名"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:181
+#: sssd-krb5.5.xml:182
 msgid "%r"
 msgstr "%r"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:182
+#: sssd-krb5.5.xml:183
 msgid "realm name"
 msgstr "レルム名"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:185
+#: sssd-krb5.5.xml:186
 msgid "%h"
 msgstr "%h"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:186
+#: sssd-krb5.5.xml:187
 msgid "home directory"
 msgstr "ホームディレクトリー"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:191
+#: sssd-krb5.5.xml:192
 msgid "value of krb5ccache_dir"
 msgstr "krb5ccache_dir の値"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:196
+#: sssd-krb5.5.xml:197
 msgid "%P"
 msgstr "%P"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:197
-msgid "the process ID of the sssd client"
+#: sssd-krb5.5.xml:198
+#, fuzzy
+#| msgid "the process ID of the sssd client"
+msgid "the process ID of the SSSD client"
 msgstr "sssd クライアントのプロセス ID"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:160
+#: sssd-krb5.5.xml:161
+#, fuzzy
+#| msgid ""
+#| "Location of the user's credential cache. Two credential cache types are "
+#| "currently supported - <quote>FILE</quote> and <quote>DIR</quote>. The "
+#| "cache can either be specified as <replaceable>TYPE:RESIDUAL</"
+#| "replaceable>, or an absolute path, which implies the <quote>FILE</quote> "
+#| "type. In the template the following sequences are substituted: "
+#| "<placeholder type=\"variablelist\" id=\"0\"/> If the template ends with "
+#| "'XXXXXX' mkstemp(3) is used to create a unique filename in a safe way."
 msgid ""
 "Location of the user's credential cache. Two credential cache types are "
-"currently supported - <quote>FILE</quote> and <quote>DIR</quote>. The cache "
-"can either be specified as <replaceable>TYPE:RESIDUAL</replaceable>, or an "
-"absolute path, which implies the <quote>FILE</quote> type. In the template "
-"the following sequences are substituted: <placeholder type=\"variablelist\" "
-"id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is used to create a "
-"unique filename in a safe way."
+"currently supported: <quote>FILE</quote> and <quote>DIR</quote>. The cache "
+"can be specified either as <replaceable>TYPE:RESIDUAL</replaceable>, or as "
+"an absolute path, which implies the <quote>FILE</quote> type. In the "
+"template, the following sequences are substituted: <placeholder type="
+"\"variablelist\" id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is "
+"used to create a unique filename in a safe way."
 msgstr ""
 "ユーザーのクレディンシャルキャッシュの場所です。二つのクレディンシャルキャッ"
 "シュ形式が現在サポートされます - <quote>FILE</quote> および <quote>DIR</"
@@ -7555,31 +7613,48 @@ msgstr ""
 "なファイル名を作成するために使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:211
+#: sssd-krb5.5.xml:212
 msgid "Default: FILE:%d/krb5cc_%U_XXXXXX"
 msgstr "初期値: FILE:%d/krb5cc_%U_XXXXXX"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:217
+#: sssd-krb5.5.xml:218
 msgid "krb5_auth_timeout (integer)"
 msgstr "krb5_auth_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:220
+#: sssd-krb5.5.xml:221
+#, fuzzy
+#| msgid ""
+#| "Timeout in seconds after an online authentication or change password "
+#| "request is aborted. If possible the authentication request is continued "
+#| "offline."
 msgid ""
-"Timeout in seconds after an online authentication or change password request "
-"is aborted. If possible the authentication request is continued offline."
+"Timeout in seconds after an online authentication request or change password "
+"request is aborted. If possible, the authentication request is continued "
+"offline."
 msgstr ""
 "オンライン認証またはパスワード変更要求が中止された後の秒単位のタイムアウトで"
 "す。可能ならば、認証要求がオフラインで継続されます。"
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:235
+msgid ""
+"Verify with the help of krb5_keytab that the TGT obtained has not been "
+"spoofed. The keytab is checked for entries sequentially, and the first entry "
+"with a matching realm is used for validation. If no entry matches the realm, "
+"the last entry in the keytab is used. This process can be used to validate "
+"environments using cross-realm trust by placing the appropriate keytab entry "
+"as the last entry or the only entry in the keytab file."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:243
+#: sssd-krb5.5.xml:250
 msgid "krb5_keytab (string)"
 msgstr "krb5_keytab (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:246
+#: sssd-krb5.5.xml:253
 msgid ""
 "The location of the keytab to use when validating credentials obtained from "
 "KDCs."
@@ -7588,112 +7663,157 @@ msgstr ""
 "です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:250
+#: sssd-krb5.5.xml:257
 msgid "Default: /etc/krb5.keytab"
 msgstr "初期値: /etc/krb5.keytab"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:256
+#: sssd-krb5.5.xml:263
 msgid "krb5_store_password_if_offline (boolean)"
 msgstr "krb5_store_password_if_offline (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:259
+#: sssd-krb5.5.xml:266
+#, fuzzy
+#| msgid ""
+#| "Store the password of the user if the provider is offline and use it to "
+#| "request a TGT when the provider gets online again."
 msgid ""
 "Store the password of the user if the provider is offline and use it to "
-"request a TGT when the provider gets online again."
+"request a TGT when the provider comes online again."
 msgstr ""
 "プロバイダーがオフラインの場合にユーザーのパスワードを保存して、プロバイダー"
 "が再びオンラインになったときに TGT を要求するために使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:264
+#: sssd-krb5.5.xml:271
+#, fuzzy
+#| msgid ""
+#| "Please note that this feature currently only available on a Linux "
+#| "platform. Passwords stored in this way are kept in plaintext in the "
+#| "kernel keyring and are potentially accessible by the root user (with "
+#| "difficulty)."
 msgid ""
-"Please note that this feature currently only available on a Linux platform. "
-"Passwords stored in this way are kept in plaintext in the kernel keyring and "
-"are potentially accessible by the root user (with difficulty)."
+"NOTE: this feature is only available on Linux.  Passwords stored in this way "
+"are kept in plaintext in the kernel keyring and are potentially accessible "
+"by the root user (with difficulty)."
 msgstr ""
 "この機能は現在 Linux プラットフォームにおいてのみ利用可能なことに注意してくだ"
 "さい。この方法で保存したパスワードは、カーネルのキーリングに平文で保持され、"
 "潜在的に root ユーザーによりアクセスできる可能性があります（難しいです）。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:277
+#: sssd-krb5.5.xml:284
 msgid "krb5_renewable_lifetime (string)"
 msgstr "krb5_renewable_lifetime (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:280
+#: sssd-krb5.5.xml:287
+#, fuzzy
+#| msgid ""
+#| "Request ticket with a with a lifetime given by an integer immediately "
+#| "followed by one of the following delimiters:"
 msgid ""
-"Request a renewable ticket with a total lifetime given by an integer "
-"immediately followed by one of the following delimiters:"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:285 sssd-krb5.5.xml:321
-msgid "<emphasis>s</emphasis> seconds"
-msgstr "<emphasis>s</emphasis> 秒"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:288 sssd-krb5.5.xml:324
-msgid "<emphasis>m</emphasis> minutes"
-msgstr "<emphasis>m</emphasis> 分"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:291 sssd-krb5.5.xml:327
-msgid "<emphasis>h</emphasis> hours"
-msgstr "<emphasis>h</emphasis> 時"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:294 sssd-krb5.5.xml:330
-msgid "<emphasis>d</emphasis> days."
-msgstr "<emphasis>d</emphasis> 日。"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:297 sssd-krb5.5.xml:333
-msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
-msgstr "デリミター <emphasis>s</emphasis> がないと仮定されている場合です。"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:301
-msgid ""
-"Please note that it is not possible to mix units.  If you want to set the "
-"renewable lifetime to one and a half hours please use '90m' instead of "
-"'1h30m'."
-msgstr ""
-"単位は混在できないことに注意してください。更新可能な生存期間を1時間半に設定し"
-"たければ、 '1h30m' の代わりに '90m' を使用してください。"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:307
-msgid "Default: not set, i.e. the TGT is not renewable"
-msgstr "初期値: 設定されません、つまり TGT は更新可能ではありません"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:313
-msgid "krb5_lifetime (string)"
-msgstr "krb5_lifetime (文字列)"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:316
-msgid ""
-"Request ticket with a with a lifetime given by an integer immediately "
-"followed by one of the following delimiters:"
+"Request a renewable ticket with a total lifetime, given as an integer "
+"immediately followed by a time unit:"
 msgstr ""
 "以下の区切り文字のどれかの直後に続く整数により指定される生存期間とともに用い"
 "る要求チケット:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:337
+#: sssd-krb5.5.xml:292 sssd-krb5.5.xml:326
+#, fuzzy
+#| msgid "<emphasis>s</emphasis> seconds"
+msgid "<emphasis>s</emphasis> for seconds"
+msgstr "<emphasis>s</emphasis> 秒"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:295 sssd-krb5.5.xml:329
+#, fuzzy
+#| msgid "<emphasis>m</emphasis> minutes"
+msgid "<emphasis>m</emphasis> for minutes"
+msgstr "<emphasis>m</emphasis> 分"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:298 sssd-krb5.5.xml:332
+#, fuzzy
+#| msgid "<emphasis>h</emphasis> hours"
+msgid "<emphasis>h</emphasis> for hours"
+msgstr "<emphasis>h</emphasis> 時"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:301 sssd-krb5.5.xml:335
+#, fuzzy
+#| msgid "<emphasis>d</emphasis> days."
+msgid "<emphasis>d</emphasis> for days."
+msgstr "<emphasis>d</emphasis> 日。"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:304
+#, fuzzy
+#| msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
+msgid "If there is no unit given, <emphasis>s</emphasis> is assumed."
+msgstr "デリミター <emphasis>s</emphasis> がないと仮定されている場合です。"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:308
+#, fuzzy
+#| msgid ""
+#| "Please note that it is not possible to mix units.  If you want to set the "
+#| "renewable lifetime to one and a half hours please use '90m' instead of "
+#| "'1h30m'."
 msgid ""
-"Please note that it is not possible to mix units.  If you want to set the "
-"lifetime to one and a half hours please use '90m' instead of '1h30m'."
+"NOTE: It is not possible to mix units.  To set the renewable lifetime to one "
+"and a half hours, use '90m' instead of '1h30m'."
 msgstr ""
 "単位は混在できないことに注意してください。更新可能な生存期間を1時間半に設定し"
 "たければ、 '1h30m' の代わりに '90m' を使用してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:313
+msgid "Default: not set, i.e. the TGT is not renewable"
+msgstr "初期値: 設定されません、つまり TGT は更新可能ではありません"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-krb5.5.xml:319
+msgid "krb5_lifetime (string)"
+msgstr "krb5_lifetime (文字列)"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:322
+#, fuzzy
+#| msgid ""
+#| "Request ticket with a with a lifetime given by an integer immediately "
+#| "followed by one of the following delimiters:"
+msgid ""
+"Request ticket with a with a lifetime, given as an integer immediately "
+"followed by a time unit:"
+msgstr ""
+"以下の区切り文字のどれかの直後に続く整数により指定される生存期間とともに用い"
+"る要求チケット:"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:338
+#, fuzzy
+#| msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
+msgid "If there is no unit given <emphasis>s</emphasis> is assumed."
+msgstr "デリミター <emphasis>s</emphasis> がないと仮定されている場合です。"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:342
+#, fuzzy
+#| msgid ""
+#| "Please note that it is not possible to mix units.  If you want to set the "
+#| "lifetime to one and a half hours please use '90m' instead of '1h30m'."
+msgid ""
+"NOTE: It is not possible to mix units.  To set the lifetime to one and a "
+"half hours please use '90m' instead of '1h30m'."
+msgstr ""
+"単位は混在できないことに注意してください。更新可能な生存期間を1時間半に設定し"
+"たければ、 '1h30m' の代わりに '90m' を使用してください。"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:347
 msgid ""
 "Default: not set, i.e. the default ticket lifetime configured on the KDC."
 msgstr ""
@@ -7701,12 +7821,12 @@ msgstr ""
 "期値です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:349
+#: sssd-krb5.5.xml:354
 msgid "krb5_renew_interval (integer)"
 msgstr "krb5_renew_interval (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:352
+#: sssd-krb5.5.xml:357
 msgid ""
 "The time in seconds between two checks if the TGT should be renewed. TGTs "
 "are renewed if about half of their lifetime is exceeded."
@@ -7715,19 +7835,21 @@ msgstr ""
 "は更新されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:357
-msgid "If this option is not set or 0 the automatic renewal is disabled."
+#: sssd-krb5.5.xml:362
+#, fuzzy
+#| msgid "If this option is not set or 0 the automatic renewal is disabled."
+msgid "If this option is not set or is 0 the automatic renewal is disabled."
 msgstr ""
 "このオプションが設定されていない場合、または 0 に設定されている場合、自動更新"
 "は無効にされます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:367
+#: sssd-krb5.5.xml:372
 msgid "krb5_use_fast (string)"
 msgstr "krb5_use_fast (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:370
+#: sssd-krb5.5.xml:375
 msgid ""
 "Enables flexible authentication secure tunneling (FAST) for Kerberos pre-"
 "authentication. The following options are supported:"
@@ -7736,47 +7858,66 @@ msgstr ""
 "を有効化します。以下のオプションがサポートされます:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:375
+#: sssd-krb5.5.xml:380
+#, fuzzy
+#| msgid ""
+#| "<emphasis>never</emphasis> use FAST, this is equivalent to not set this "
+#| "option at all."
 msgid ""
-"<emphasis>never</emphasis> use FAST, this is equivalent to not set this "
+"<emphasis>never</emphasis> use FAST. This is equivalent to not setting this "
 "option at all."
 msgstr ""
 "<emphasis>never</emphasis> は FAST を使用します、このオプションを何も設定しな"
 "いことと同等です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:379
+#: sssd-krb5.5.xml:384
+#, fuzzy
+#| msgid ""
+#| "<emphasis>try</emphasis> to use FAST, if the server does not support fast "
+#| "continue without."
 msgid ""
-"<emphasis>try</emphasis> to use FAST, if the server does not support fast "
-"continue without."
+"<emphasis>try</emphasis> to use FAST. If the server does not support FAST, "
+"continue the authentication without it."
 msgstr ""
 "<emphasis>try</emphasis> は FAST を使用します。サーバーが fast をサポートして"
 "いなければ、続行しません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:383
+#: sssd-krb5.5.xml:389
+#, fuzzy
+#| msgid ""
+#| "<emphasis>demand</emphasis> to use FAST, fail if the server does not "
+#| "require fast."
 msgid ""
-"<emphasis>demand</emphasis> to use FAST, fail if the server does not require "
-"fast."
+"<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
+"server does not require fast."
 msgstr ""
 "<emphasis>demand</emphasis> は FAST を使用します、サーバーが fast を要求しな"
 "ければ失敗します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:387
+#: sssd-krb5.5.xml:394
 msgid "Default: not set, i.e. FAST is not used."
 msgstr "初期値: 設定されません、つまり FAST が使用されません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:390
-msgid "Please note that a keytab is required to use fast."
+#: sssd-krb5.5.xml:397
+#, fuzzy
+#| msgid "Please note that a keytab is required to use fast."
+msgid "NOTE: a keytab is required to use FAST."
 msgstr "キーテーブルが fast を使用する必要があることに注意してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:393
+#: sssd-krb5.5.xml:400
+#, fuzzy
+#| msgid ""
+#| "Please note also that sssd supports fast only with MIT Kerberos version "
+#| "1.8 and above. If sssd used with an older version using this option is a "
+#| "configuration error."
 msgid ""
-"Please note also that sssd supports fast only with MIT Kerberos version 1.8 "
-"and above. If sssd used with an older version using this option is a "
+"NOTE: SSSD supports FAST only with MIT Kerberos version 1.8 and later. If "
+"SSSD is used with an older version of MIT Kerberos, using this option is a "
 "configuration error."
 msgstr ""
 "sssd は MIT Kerberos バージョン 1.8 およびそれ以上のみで fast をサポートする"
@@ -7784,32 +7925,43 @@ msgstr ""
 "ンは設定エラーになります。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:402
+#: sssd-krb5.5.xml:409
 msgid "krb5_fast_principal (string)"
 msgstr "krb5_fast_principal (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:405
+#: sssd-krb5.5.xml:412
 msgid "Specifies the server principal to use for FAST."
 msgstr "FAST に対して使用するサーバープリンシパルを指定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:414
+#: sssd-krb5.5.xml:421
+#, fuzzy
+#| msgid ""
+#| "Specifies if the host and user principal should be canonicalized. This "
+#| "feature is available with MIT Kerberos >= 1.7"
 msgid ""
 "Specifies if the host and user principal should be canonicalized. This "
-"feature is available with MIT Kerberos >= 1.7"
+"feature is available with MIT Kerberos 1.7 and later versions."
 msgstr ""
 "ホストおよびユーザーのプリンシパルが正規化されるかどうかを指定します。この機"
 "能は MIT Kerberos >= 1.7 にて利用可能です。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:65
+#, fuzzy
+#| msgid ""
+#| "If the auth-module krb5 is used in a SSSD domain, the following options "
+#| "must be used. See the <citerefentry> <refentrytitle>sssd.conf</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page, "
+#| "section <quote>DOMAIN SECTIONS</quote> for details on the configuration "
+#| "of a SSSD domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
-"If the auth-module krb5 is used in a SSSD domain, the following options must "
-"be used. See the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> manual page, section <quote>DOMAIN "
-"SECTIONS</quote> for details on the configuration of a SSSD domain.  "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"If the auth-module krb5 is used in an SSSD domain, the following options "
+"must be used. See the <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page, section "
+"<quote>DOMAIN SECTIONS</quote>, for details on the configuration of an SSSD "
+"domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "認証モジュール krb5 が SSSD ドメインにおいて使用されていると、以下のオプショ"
 "ンが使用される必要があります。 SSSD ドメインの設定における詳細は "
@@ -7818,11 +7970,17 @@ msgstr ""
 "quote> を参照してください。  <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-krb5.5.xml:436
+#: sssd-krb5.5.xml:443
+#, fuzzy
+#| msgid ""
+#| "The following example assumes that SSSD is correctly configured and FOO "
+#| "is one of the domains in the <replaceable>[sssd]</replaceable> section. "
+#| "This example shows only configuration of Kerberos authentication, it does "
+#| "not include any identity provider."
 msgid ""
 "The following example assumes that SSSD is correctly configured and FOO is "
 "one of the domains in the <replaceable>[sssd]</replaceable> section. This "
-"example shows only configuration of Kerberos authentication, it does not "
+"example shows only configuration of Kerberos authentication; it does not "
 "include any identity provider."
 msgstr ""
 "以下の例は、SSSD が正しく設定され、FOO が <replaceable>[sssd]</replaceable> "
@@ -7830,7 +7988,7 @@ msgstr ""
 "の設定のみを示し、識別プロバイダーを何も含みません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-krb5.5.xml:444
+#: sssd-krb5.5.xml:451
 #, no-wrap
 msgid ""
 "    [domain/FOO]\n"
@@ -8990,10 +9148,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:117
-#, fuzzy
-#| msgid "Default: 2000100000"
 msgid "Default: 2000200000"
-msgstr "初期値: 2000100000"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:122
@@ -9073,10 +9229,8 @@ msgstr ""
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help.xml:3
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-?</option>,<option>--help</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/param_help.xml:7 include/param_help_py.xml:7

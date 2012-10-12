@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: sssd-docs 1.9.1\n"
+"Project-Id-Version: sssd-docs 1.9.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-10-05 19:20+0300\n"
+"POT-Creation-Date: 2012-10-12 21:14+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -374,21 +374,21 @@ msgstr ""
 #: sssd.conf.5.xml:225
 msgid ""
 "This string will be used as a default domain name for all names without a "
-"domain name component. The main use case are environments were the local "
-"domain is only managing hosts but no users and all users are coming from a "
-"trusted domain. The option allows those users to log in just with their user "
-"name without giving a domain name as well."
+"domain name component. The main use case is environments where the primary "
+"domain is intended for managing host policies and all users are located in a "
+"trusted domain.  The option allows those users to log in just with their "
+"user name without giving a domain name as well."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:235
 msgid ""
-"Please note that if this option is set all users from the local domain have "
-"to use their fully qualified name, e.g. user@domain.name, to log in."
+"Please note that if this option is set all users from the primary domain "
+"have to use their fully qualified name, e.g. user@domain.name, to log in."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:241 sssd-ldap.5.xml:1336 sssd-ldap.5.xml:1348 sssd-ldap.5.xml:1409 sssd-ldap.5.xml:2206 sssd-ldap.5.xml:2233 sssd-krb5.5.xml:361 include/ldap_id_mapping.xml:145 include/ldap_id_mapping.xml:156
+#: sssd.conf.5.xml:241 sssd-ldap.5.xml:1336 sssd-ldap.5.xml:1348 sssd-ldap.5.xml:1409 sssd-ldap.5.xml:2206 sssd-ldap.5.xml:2233 sssd-krb5.5.xml:366 include/ldap_id_mapping.xml:145 include/ldap_id_mapping.xml:156
 msgid "Default: not set"
 msgstr ""
 
@@ -458,7 +458,7 @@ msgid "Add microseconds to the timestamp in debug messages"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:288 sssd.conf.5.xml:787 sssd.conf.5.xml:1630 sssd-ldap.5.xml:640 sssd-ldap.5.xml:1377 sssd-ldap.5.xml:1396 sssd-ldap.5.xml:1533 sssd-ipa.5.xml:123 sssd-ipa.5.xml:339 sssd-krb5.5.xml:237 sssd-krb5.5.xml:271 sssd-krb5.5.xml:420
+#: sssd.conf.5.xml:288 sssd.conf.5.xml:787 sssd.conf.5.xml:1630 sssd-ldap.5.xml:640 sssd-ldap.5.xml:1377 sssd-ldap.5.xml:1396 sssd-ldap.5.xml:1533 sssd-ipa.5.xml:123 sssd-ipa.5.xml:339 sssd-krb5.5.xml:244 sssd-krb5.5.xml:278 sssd-krb5.5.xml:427
 msgid "Default: false"
 msgstr ""
 
@@ -592,7 +592,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:414 sssd.conf.5.xml:811 sssd-krb5.5.xml:225
+#: sssd.conf.5.xml:414 sssd.conf.5.xml:811 sssd-krb5.5.xml:226
 msgid "Default: 15"
 msgstr ""
 
@@ -631,17 +631,17 @@ msgid "override_homedir (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:168
+#: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:169
 msgid "%u"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:169
+#: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:170
 msgid "login name"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:172
+#: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:173
 msgid "%U"
 msgstr ""
 
@@ -651,7 +651,7 @@ msgid "UID number"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:190
+#: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:191
 msgid "%d"
 msgstr ""
 
@@ -671,12 +671,12 @@ msgid "fully qualified user name (user@domain)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:471 sssd-ad.5.xml:157 sssd-krb5.5.xml:202
+#: sssd.conf.5.xml:471 sssd-ad.5.xml:157 sssd-krb5.5.xml:203
 msgid "%%"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:472 sssd-ad.5.xml:158 sssd-krb5.5.xml:203
+#: sssd.conf.5.xml:472 sssd-ad.5.xml:158 sssd-krb5.5.xml:204
 msgid "a literal '%'"
 msgstr ""
 
@@ -2173,7 +2173,7 @@ msgid "Default: None, no command is run"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:1815 sssd-ldap.5.xml:2259 sssd-simple.5.xml:126 sssd-ipa.5.xml:583 sssd-ad.5.xml:228 sssd-krb5.5.xml:434
+#: sssd.conf.5.xml:1815 sssd-ldap.5.xml:2259 sssd-simple.5.xml:126 sssd-ipa.5.xml:583 sssd-ad.5.xml:228 sssd-krb5.5.xml:441
 msgid "EXAMPLE"
 msgstr ""
 
@@ -3787,7 +3787,7 @@ msgid "krb5_server, krb5_backup_server (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1486 sssd-krb5.5.xml:77
+#: sssd-ldap.5.xml:1486
 msgid ""
 "Specifies the comma-separated list of IP addresses or hostnames of the "
 "Kerberos servers to which SSSD should connect in the order of "
@@ -3831,7 +3831,7 @@ msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1524 sssd-ipa.5.xml:269 sssd-krb5.5.xml:411
+#: sssd-ldap.5.xml:1524 sssd-ipa.5.xml:269 sssd-krb5.5.xml:418
 msgid "krb5_canonicalize (boolean)"
 msgstr ""
 
@@ -4670,7 +4670,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: sssd-ldap.5.xml:2266 sssd-simple.5.xml:134 sssd-ipa.5.xml:591 sssd-ad.5.xml:236 sssd-sudo.5.xml:56 sssd-sudo.5.xml:78 sssd-sudo.5.xml:99 sssd-krb5.5.xml:443 include/ldap_id_mapping.xml:63
+#: sssd-ldap.5.xml:2266 sssd-simple.5.xml:134 sssd-ipa.5.xml:591 sssd-ad.5.xml:236 sssd-sudo.5.xml:56 sssd-sudo.5.xml:78 sssd-sudo.5.xml:99 sssd-krb5.5.xml:450 include/ldap_id_mapping.xml:63
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
@@ -5226,12 +5226,12 @@ msgid "Default: the value of <emphasis>cn=ad,cn=etc,%basedn</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:237 sssd-krb5.5.xml:231
+#: sssd-ipa.5.xml:237 sssd-krb5.5.xml:232
 msgid "krb5_validate (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:240 sssd-krb5.5.xml:234
+#: sssd-ipa.5.xml:240
 msgid ""
 "Verify with the help of krb5_keytab that the TGT obtained has not been "
 "spoofed."
@@ -6421,14 +6421,14 @@ msgid ""
 "</citerefentry>.  For a detailed syntax reference, please refer to the "
 "<quote>FILE FORMAT</quote> section of the <citerefentry> "
 "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> manual page"
+"</citerefentry> manual page."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:36
 msgid ""
 "The Kerberos 5 authentication backend contains auth and chpass providers. It "
-"must be paired with identity provider in order to function properly (for "
+"must be paired with an identity provider in order to function properly (for "
 "example, id_provider = ldap). Some information required by the Kerberos 5 "
 "authentication backend must be provided by the identity provider, such as "
 "the user's Kerberos Principal Name (UPN). The configuration of the identity "
@@ -6444,16 +6444,28 @@ msgid ""
 "home directory of the user. See <citerefentry> "
 "<refentrytitle>.k5login</refentrytitle><manvolnum>5</manvolnum> "
 "</citerefentry> for more details. Please note that an empty .k5login file "
-"will deny all access to this user. To activate this feature use "
-"'access_provider = krb5' in your sssd configuration."
+"will deny all access to this user. To activate this feature, use "
+"'access_provider = krb5' in your SSSD configuration."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
 msgid ""
-"In the case where the UPN is not available in the identity backend "
+"In the case where the UPN is not available in the identity backend, "
 "<command>sssd</command> will construct a UPN using the format "
 "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:77
+msgid ""
+"Specifies the comma-separated list of IP addresses or hostnames of the "
+"Kerberos servers to which SSSD should connect, in the order of "
+"preference. For more information on failover and server redundancy, see the "
+"<quote>FAILOVER</quote> section. An optional port number (preceded by a "
+"colon) may be appended to the addresses or hostnames.  If empty, service "
+"discovery is enabled; for more information, refer to the <quote>SERVICE "
+"DISCOVERY</quote> section."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -6471,17 +6483,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:116
 msgid ""
-"If the change password service is not running on the KDC alternative servers "
-"can be defined here. An optional port number (preceded by a colon) may be "
-"appended to the addresses or hostnames."
+"If the change password service is not running on the KDC, alternative "
+"servers can be defined here. An optional port number (preceded by a colon) "
+"may be appended to the addresses or hostnames."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:122
 msgid ""
 "For more information on failover and server redundancy, see the "
-"<quote>FAILOVER</quote> section.  Please note that even if there are no more "
-"kpasswd servers to try the back end is not switch to offline if "
+"<quote>FAILOVER</quote> section.  NOTE: Even if there are no more kpasswd "
+"servers to try, the backend is not switched to operate offline if "
 "authentication against the KDC is still possible."
 msgstr ""
 
@@ -6500,319 +6512,336 @@ msgstr ""
 msgid ""
 "Directory to store credential caches. All the substitution sequences of "
 "krb5_ccname_template can be used here, too, except %d and %P. If the "
-"directory does not exist it will be created. If %u, %U, %p or %h are used a "
-"private directory belonging to the user is created. Otherwise a public "
-"directory with restricted deletion flag (aka sticky bit, see <citerefentry> "
-"<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
+"directory does not exist, it will be created. If %u, %U, %p or %h are used, "
+"a private directory belonging to the user is created. Otherwise, a public "
+"directory with restricted deletion flag (aka sticky bit, as described in "
+"<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
 "</citerefentry> for details) is created."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:151
+#: sssd-krb5.5.xml:152
 msgid "Default: /tmp"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:157
+#: sssd-krb5.5.xml:158
 msgid "krb5_ccname_template (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:173
+#: sssd-krb5.5.xml:174
 msgid "login UID"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:176
+#: sssd-krb5.5.xml:177
 msgid "%p"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:177
+#: sssd-krb5.5.xml:178
 msgid "principal name"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:181
+#: sssd-krb5.5.xml:182
 msgid "%r"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:182
+#: sssd-krb5.5.xml:183
 msgid "realm name"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:185
+#: sssd-krb5.5.xml:186
 msgid "%h"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:186
+#: sssd-krb5.5.xml:187
 msgid "home directory"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:191
+#: sssd-krb5.5.xml:192
 msgid "value of krb5ccache_dir"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:196
+#: sssd-krb5.5.xml:197
 msgid "%P"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:197
-msgid "the process ID of the sssd client"
+#: sssd-krb5.5.xml:198
+msgid "the process ID of the SSSD client"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:160
+#: sssd-krb5.5.xml:161
 msgid ""
 "Location of the user's credential cache. Two credential cache types are "
-"currently supported - <quote>FILE</quote> and <quote>DIR</quote>. The cache "
-"can either be specified as <replaceable>TYPE:RESIDUAL</replaceable>, or an "
-"absolute path, which implies the <quote>FILE</quote> type. In the template "
-"the following sequences are substituted: <placeholder type=\"variablelist\" "
-"id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is used to create a "
-"unique filename in a safe way."
+"currently supported: <quote>FILE</quote> and <quote>DIR</quote>. The cache "
+"can be specified either as <replaceable>TYPE:RESIDUAL</replaceable>, or as "
+"an absolute path, which implies the <quote>FILE</quote> type. In the "
+"template, the following sequences are substituted: <placeholder "
+"type=\"variablelist\" id=\"0\"/> If the template ends with 'XXXXXX' "
+"mkstemp(3) is used to create a unique filename in a safe way."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:211
+#: sssd-krb5.5.xml:212
 msgid "Default: FILE:%d/krb5cc_%U_XXXXXX"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:217
+#: sssd-krb5.5.xml:218
 msgid "krb5_auth_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:220
+#: sssd-krb5.5.xml:221
 msgid ""
-"Timeout in seconds after an online authentication or change password request "
-"is aborted. If possible the authentication request is continued offline."
+"Timeout in seconds after an online authentication request or change password "
+"request is aborted. If possible, the authentication request is continued "
+"offline."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:235
+msgid ""
+"Verify with the help of krb5_keytab that the TGT obtained has not been "
+"spoofed. The keytab is checked for entries sequentially, and the first entry "
+"with a matching realm is used for validation. If no entry matches the realm, "
+"the last entry in the keytab is used. This process can be used to validate "
+"environments using cross-realm trust by placing the appropriate keytab entry "
+"as the last entry or the only entry in the keytab file."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:243
+#: sssd-krb5.5.xml:250
 msgid "krb5_keytab (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:246
+#: sssd-krb5.5.xml:253
 msgid ""
 "The location of the keytab to use when validating credentials obtained from "
 "KDCs."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:250
+#: sssd-krb5.5.xml:257
 msgid "Default: /etc/krb5.keytab"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:256
+#: sssd-krb5.5.xml:263
 msgid "krb5_store_password_if_offline (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:259
+#: sssd-krb5.5.xml:266
 msgid ""
 "Store the password of the user if the provider is offline and use it to "
-"request a TGT when the provider gets online again."
+"request a TGT when the provider comes online again."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:264
+#: sssd-krb5.5.xml:271
 msgid ""
-"Please note that this feature currently only available on a Linux "
-"platform. Passwords stored in this way are kept in plaintext in the kernel "
-"keyring and are potentially accessible by the root user (with difficulty)."
+"NOTE: this feature is only available on Linux.  Passwords stored in this way "
+"are kept in plaintext in the kernel keyring and are potentially accessible "
+"by the root user (with difficulty)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:277
+#: sssd-krb5.5.xml:284
 msgid "krb5_renewable_lifetime (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:280
+#: sssd-krb5.5.xml:287
 msgid ""
-"Request a renewable ticket with a total lifetime given by an integer "
-"immediately followed by one of the following delimiters:"
+"Request a renewable ticket with a total lifetime, given as an integer "
+"immediately followed by a time unit:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:285 sssd-krb5.5.xml:321
-msgid "<emphasis>s</emphasis> seconds"
+#: sssd-krb5.5.xml:292 sssd-krb5.5.xml:326
+msgid "<emphasis>s</emphasis> for seconds"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:288 sssd-krb5.5.xml:324
-msgid "<emphasis>m</emphasis> minutes"
+#: sssd-krb5.5.xml:295 sssd-krb5.5.xml:329
+msgid "<emphasis>m</emphasis> for minutes"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:291 sssd-krb5.5.xml:327
-msgid "<emphasis>h</emphasis> hours"
+#: sssd-krb5.5.xml:298 sssd-krb5.5.xml:332
+msgid "<emphasis>h</emphasis> for hours"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:294 sssd-krb5.5.xml:330
-msgid "<emphasis>d</emphasis> days."
+#: sssd-krb5.5.xml:301 sssd-krb5.5.xml:335
+msgid "<emphasis>d</emphasis> for days."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:297 sssd-krb5.5.xml:333
-msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
+#: sssd-krb5.5.xml:304
+msgid "If there is no unit given, <emphasis>s</emphasis> is assumed."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:301
+#: sssd-krb5.5.xml:308
 msgid ""
-"Please note that it is not possible to mix units.  If you want to set the "
-"renewable lifetime to one and a half hours please use '90m' instead of "
-"'1h30m'."
+"NOTE: It is not possible to mix units.  To set the renewable lifetime to one "
+"and a half hours, use '90m' instead of '1h30m'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:307
+#: sssd-krb5.5.xml:313
 msgid "Default: not set, i.e. the TGT is not renewable"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:313
+#: sssd-krb5.5.xml:319
 msgid "krb5_lifetime (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:316
+#: sssd-krb5.5.xml:322
 msgid ""
-"Request ticket with a with a lifetime given by an integer immediately "
-"followed by one of the following delimiters:"
+"Request ticket with a with a lifetime, given as an integer immediately "
+"followed by a time unit:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:337
-msgid ""
-"Please note that it is not possible to mix units.  If you want to set the "
-"lifetime to one and a half hours please use '90m' instead of '1h30m'."
+#: sssd-krb5.5.xml:338
+msgid "If there is no unit given <emphasis>s</emphasis> is assumed."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:342
+msgid ""
+"NOTE: It is not possible to mix units.  To set the lifetime to one and a "
+"half hours please use '90m' instead of '1h30m'."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:347
 msgid "Default: not set, i.e. the default ticket lifetime configured on the KDC."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:349
+#: sssd-krb5.5.xml:354
 msgid "krb5_renew_interval (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:352
+#: sssd-krb5.5.xml:357
 msgid ""
 "The time in seconds between two checks if the TGT should be renewed. TGTs "
 "are renewed if about half of their lifetime is exceeded."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:357
-msgid "If this option is not set or 0 the automatic renewal is disabled."
+#: sssd-krb5.5.xml:362
+msgid "If this option is not set or is 0 the automatic renewal is disabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:367
+#: sssd-krb5.5.xml:372
 msgid "krb5_use_fast (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:370
+#: sssd-krb5.5.xml:375
 msgid ""
 "Enables flexible authentication secure tunneling (FAST) for Kerberos "
 "pre-authentication. The following options are supported:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:375
+#: sssd-krb5.5.xml:380
 msgid ""
-"<emphasis>never</emphasis> use FAST, this is equivalent to not set this "
+"<emphasis>never</emphasis> use FAST. This is equivalent to not setting this "
 "option at all."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:379
+#: sssd-krb5.5.xml:384
 msgid ""
-"<emphasis>try</emphasis> to use FAST, if the server does not support fast "
-"continue without."
+"<emphasis>try</emphasis> to use FAST. If the server does not support FAST, "
+"continue the authentication without it."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:383
+#: sssd-krb5.5.xml:389
 msgid ""
-"<emphasis>demand</emphasis> to use FAST, fail if the server does not require "
-"fast."
+"<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
+"server does not require fast."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:387
+#: sssd-krb5.5.xml:394
 msgid "Default: not set, i.e. FAST is not used."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:390
-msgid "Please note that a keytab is required to use fast."
+#: sssd-krb5.5.xml:397
+msgid "NOTE: a keytab is required to use FAST."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:393
+#: sssd-krb5.5.xml:400
 msgid ""
-"Please note also that sssd supports fast only with MIT Kerberos version 1.8 "
-"and above. If sssd used with an older version using this option is a "
+"NOTE: SSSD supports FAST only with MIT Kerberos version 1.8 and later. If "
+"SSSD is used with an older version of MIT Kerberos, using this option is a "
 "configuration error."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:402
+#: sssd-krb5.5.xml:409
 msgid "krb5_fast_principal (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:405
+#: sssd-krb5.5.xml:412
 msgid "Specifies the server principal to use for FAST."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:414
+#: sssd-krb5.5.xml:421
 msgid ""
 "Specifies if the host and user principal should be canonicalized. This "
-"feature is available with MIT Kerberos >= 1.7"
+"feature is available with MIT Kerberos 1.7 and later versions."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:65
 msgid ""
-"If the auth-module krb5 is used in a SSSD domain, the following options must "
-"be used. See the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> manual page, section <quote>DOMAIN "
-"SECTIONS</quote> for details on the configuration of a SSSD domain.  "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"If the auth-module krb5 is used in an SSSD domain, the following options "
+"must be used. See the <citerefentry> "
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
+"</citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>, for "
+"details on the configuration of an SSSD domain.  <placeholder "
+"type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-krb5.5.xml:436
+#: sssd-krb5.5.xml:443
 msgid ""
 "The following example assumes that SSSD is correctly configured and FOO is "
 "one of the domains in the <replaceable>[sssd]</replaceable> section. This "
-"example shows only configuration of Kerberos authentication, it does not "
+"example shows only configuration of Kerberos authentication; it does not "
 "include any identity provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-krb5.5.xml:444
+#: sssd-krb5.5.xml:451
 #, no-wrap
 msgid ""
 "    [domain/FOO]\n"

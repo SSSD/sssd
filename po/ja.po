@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-10-05 19:20+0200\n"
-"PO-Revision-Date: 2012-08-04 00:26+0000\n"
+"POT-Creation-Date: 2012-10-12 21:15+0200\n"
+"PO-Revision-Date: 2012-10-09 07:17+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
@@ -89,7 +89,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:57
 msgid "Domain to add to names without a domain component."
-msgstr ""
+msgstr "domain 要素なしで追加するドメインの名前。"
 
 #: src/config/SSSDConfig/__init__.py.in:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -198,7 +198,7 @@ msgstr "known_hosts ファイルにおいてホスト名とアドレスをハッ
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
-msgstr ""
+msgstr "ホスト鍵が要求された後 known_hosts ファイルにホストを保持する秒数"
 
 #: src/config/SSSDConfig/__init__.py.in:95
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -887,7 +887,7 @@ msgstr "LDAP パスワードの変更サーバーの DNS サービス名"
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
-msgstr ""
+msgstr "パスワード変更後 ldap_user_shadow_last_change 属性を更新するかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:312
 msgid "Base DN for sudo rules lookups"
@@ -1044,24 +1044,24 @@ msgstr "バージョン番号を表示して終了する"
 
 #: src/monitor/monitor.c:2599
 msgid "SSSD is already running\n"
-msgstr ""
+msgstr "SSSD はすでに動作中です\n"
 
-#: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
+#: src/providers/krb5/krb5_child.c:1894 src/providers/ldap/ldap_child.c:432
 #: src/util/util.h:94
 msgid "Debug level"
 msgstr "デバッグレベル"
 
-#: src/providers/krb5/krb5_child.c:1867 src/providers/ldap/ldap_child.c:409
+#: src/providers/krb5/krb5_child.c:1896 src/providers/ldap/ldap_child.c:434
 #: src/util/util.h:98
 msgid "Add debug timestamps"
 msgstr "デバッグのタイムスタンプを追加する"
 
-#: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
+#: src/providers/krb5/krb5_child.c:1898 src/providers/ldap/ldap_child.c:436
 #: src/util/util.h:100
 msgid "Show timestamps with microseconds"
 msgstr "タイムスタンプをミリ秒単位で表示する"
 
-#: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
+#: src/providers/krb5/krb5_child.c:1900 src/providers/ldap/ldap_child.c:438
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
@@ -1069,89 +1069,89 @@ msgstr "デバッグログのオープンファイルディスクリプター"
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
-#: src/sss_client/common.c:926
+#: src/sss_client/common.c:947
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "特権ソケットの所有者またはパーミッションが誤っています。"
 
-#: src/sss_client/common.c:929
+#: src/sss_client/common.c:950
 msgid "Public socket has wrong ownership or permissions."
 msgstr "公開ソケットの所有者またはパーミッションが誤っています。"
 
-#: src/sss_client/common.c:932
+#: src/sss_client/common.c:953
 msgid "Unexpected format of the server credential message."
 msgstr "サーバーのクレディンシャルメッセージの予期しない形式です。"
 
-#: src/sss_client/common.c:935
+#: src/sss_client/common.c:956
 msgid "SSSD is not run by root."
 msgstr "SSSD は root により実行されません。"
 
-#: src/sss_client/common.c:940
+#: src/sss_client/common.c:961
 msgid "An error occurred, but no description can be found."
 msgstr "エラーが発生しましたが、説明がありませんでした。"
 
-#: src/sss_client/common.c:946
+#: src/sss_client/common.c:967
 msgid "Unexpected error while looking for an error description"
 msgstr "エラーの説明を検索中に予期しないエラーが発生しました"
 
-#: src/sss_client/pam_sss.c:375
+#: src/sss_client/pam_sss.c:387
 msgid "Passwords do not match"
 msgstr "パスワードが一致しません"
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:575
 msgid "Password reset by root is not supported."
 msgstr "root によるパスワードのリセットはサポートされません。"
 
-#: src/sss_client/pam_sss.c:604
+#: src/sss_client/pam_sss.c:616
 msgid "Authenticated with cached credentials"
 msgstr "キャッシュされているクレディンシャルを用いて認証されました"
 
-#: src/sss_client/pam_sss.c:605
+#: src/sss_client/pam_sss.c:617
 msgid ", your cached password will expire at: "
 msgstr "、キャッシュされたパスワードが失効します: "
 
-#: src/sss_client/pam_sss.c:635
+#: src/sss_client/pam_sss.c:647
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "パスワードの期限が切れています。あと %1$d 回ログインできます。"
 
-#: src/sss_client/pam_sss.c:681
+#: src/sss_client/pam_sss.c:693
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "あなたのパスワードは %1$d %2$s に危険が切れます。"
 
-#: src/sss_client/pam_sss.c:730
+#: src/sss_client/pam_sss.c:742
 msgid "Authentication is denied until: "
 msgstr "次まで認証が拒否されます: "
 
-#: src/sss_client/pam_sss.c:751
+#: src/sss_client/pam_sss.c:763
 msgid "System is offline, password change not possible"
 msgstr "システムがオフラインです、パスワード変更ができません"
 
-#: src/sss_client/pam_sss.c:781 src/sss_client/pam_sss.c:794
+#: src/sss_client/pam_sss.c:793 src/sss_client/pam_sss.c:806
 msgid "Password change failed. "
 msgstr "パスワードの変更に失敗しました。 "
 
-#: src/sss_client/pam_sss.c:784 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:807
 msgid "Server message: "
 msgstr "サーバーのメッセージ: "
 
-#: src/sss_client/pam_sss.c:1213
+#: src/sss_client/pam_sss.c:1231
 msgid "New Password: "
 msgstr "新しいパスワード: "
 
-#: src/sss_client/pam_sss.c:1214
+#: src/sss_client/pam_sss.c:1232
 msgid "Reenter new Password: "
 msgstr "新しいパスワードの再入力: "
 
-#: src/sss_client/pam_sss.c:1300
+#: src/sss_client/pam_sss.c:1318
 msgid "Password: "
 msgstr "パスワード: "
 
-#: src/sss_client/pam_sss.c:1332
+#: src/sss_client/pam_sss.c:1350
 msgid "Current Password: "
 msgstr "現在のパスワード: "
 
-#: src/sss_client/pam_sss.c:1479
+#: src/sss_client/pam_sss.c:1497
 msgid "Password expired. Change your password now."
 msgstr "パスワードの期限が切れました。いますぐパスワードを変更してください。"
 

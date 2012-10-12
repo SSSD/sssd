@@ -1,29 +1,30 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
+# Translators:
+# Valentin Laskov <laskov@festa.bg>, 2012.
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2012-10-12 21:15+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2012-10-08 07:11+0000\n"
+"Last-Translator: Valentin Laskov <laskov@festa.bg>\n"
+"Language-Team: Bulgarian <trans-bg@lists.fedoraproject.org>\n"
+"Language: bg\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/config/SSSDConfig/__init__.py.in:39
 msgid "Set the verbosity of the debug logging"
-msgstr ""
+msgstr "Задава ниво на подробност на debug лог записите"
 
 #: src/config/SSSDConfig/__init__.py.in:40
 msgid "Include timestamps in debug logs"
-msgstr ""
+msgstr "Включва час и дата в debug лога"
 
 #: src/config/SSSDConfig/__init__.py.in:41
 msgid "Include microseconds in timestamps in debug logs"
@@ -31,11 +32,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:42
 msgid "Write debug messages to logfiles"
-msgstr ""
+msgstr "Записва debug съобщенията в логфайлове"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 msgid "Ping timeout before restarting service"
-msgstr ""
+msgstr "Ping изчакване преди рестарт на услугата"
 
 #: src/config/SSSDConfig/__init__.py.in:44
 msgid ""
@@ -44,11 +45,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Command to start service"
-msgstr ""
+msgstr "Команда за стартиране на услугата"
 
 #: src/config/SSSDConfig/__init__.py.in:46
 msgid "Number of times to attempt connection to Data Providers"
-msgstr ""
+msgstr "Време за опити за връзка с Data Provider-и"
 
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "The number of file descriptors that may be opened by this responder"
@@ -60,11 +61,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "SSSD услуги за стартиране"
 
 #: src/config/SSSDConfig/__init__.py.in:52
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "SSSD домейни за стартиране"
 
 #: src/config/SSSDConfig/__init__.py.in:53
 msgid "Timeout for messages sent over the SBUS"
@@ -103,11 +104,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:63
 msgid "Users that SSSD should explicitly ignore"
-msgstr ""
+msgstr "Потребители, които SSSD изрично трябва да игнорира"
 
 #: src/config/SSSDConfig/__init__.py.in:64
 msgid "Groups that SSSD should explicitly ignore"
-msgstr ""
+msgstr "Групи, които SSSD изрично трябва да игнорира"
 
 #: src/config/SSSDConfig/__init__.py.in:65
 msgid "Should filtered users appear in groups"
@@ -159,13 +160,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "Колко неуспешни опита за влизане са разрешени, когато сме офлайн"
 
 #: src/config/SSSDConfig/__init__.py.in:79
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Колко време (в минути) да е забранено влизането, след достигане броя "
+"неуспешни опити за влизане, когато сме офлайн"
 
 #: src/config/SSSDConfig/__init__.py.in:80
 msgid "What kind of messages are displayed to the user during authentication"
@@ -360,7 +363,7 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:150
 #: src/config/SSSDConfig/__init__.py.in:151
 msgid "Kerberos server address"
-msgstr ""
+msgstr "Адрес на Kerberos сървър"
 
 #: src/config/SSSDConfig/__init__.py.in:152
 msgid "Kerberos backup server address"

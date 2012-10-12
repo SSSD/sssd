@@ -4,13 +4,13 @@
 #
 # Translators:
 # sgallagh <sgallagh@redhat.com>, 2011.
-# Yuri Chornoivan <yurchor@ukr.net>, 2011, 2012.
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-10-05 19:20+0300\n"
-"PO-Revision-Date: 2012-08-10 20:44+0000\n"
+"POT-Creation-Date: 2012-10-12 21:14+0300\n"
+"PO-Revision-Date: 2012-10-05 18:53+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -333,17 +333,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:132
-#, fuzzy
-#| msgid ""
-#| "Each domain can have an individual regular expression configured.  see "
-#| "DOMAIN SECTIONS for more info on these regular expressions."
 msgid ""
 "Each domain can have an individual regular expression configured. For some "
 "ID providers there are also default regular expressions.  See DOMAIN "
 "SECTIONS for more info on these regular expressions."
 msgstr ""
-"Для кожного з доменів можна налаштувати окремий формальний вираз. Докладніше "
-"про ці формальні вирази можна дізнатися з довідки до РОЗДІЛІВ ДОМЕНІВ."
+"Для кожного з доменів можна налаштувати окремий формальний вираз. Для деяких "
+"з засобів надання ідентифікаторів передбачено типові формальні вирази. "
+"Докладніше про ці формальні вирази можна дізнатися з довідки до РОЗДІЛІВ "
+"ДОМЕНІВ."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:141 sssd.conf.5.xml:1523
@@ -479,32 +477,50 @@ msgstr "Типове значення: 60"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:222
-#, fuzzy
-#| msgid "ldap_idmap_default_domain_sid (string)"
 msgid "default_domain_suffix (string)"
-msgstr "ldap_idmap_default_domain_sid (рядок)"
+msgstr "default_domain_suffix (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:225
+#, fuzzy
+#| msgid ""
+#| "This string will be used as a default domain name for all names without a "
+#| "domain name component. The main use case are environments were the local "
+#| "domain is only managing hosts but no users and all users are coming from "
+#| "a trusted domain. The option allows those users to log in just with their "
+#| "user name without giving a domain name as well."
 msgid ""
 "This string will be used as a default domain name for all names without a "
-"domain name component. The main use case are environments were the local "
-"domain is only managing hosts but no users and all users are coming from a "
-"trusted domain. The option allows those users to log in just with their user "
-"name without giving a domain name as well."
+"domain name component. The main use case is environments where the primary "
+"domain is intended for managing host policies and all users are located in a "
+"trusted domain.  The option allows those users to log in just with their "
+"user name without giving a domain name as well."
 msgstr ""
+"Цей рядок буде використано як типову назву домену для всіх назв без "
+"компонента назви домену. Основним призначенням використання цього рядка є "
+"середовища, де локальний домен керує лише вузлами але не записами "
+"користувачів, а всі дані щодо записів користувачів надходять з довіреного "
+"домену. За допомогою цього параметра користувачі можуть входити до системи "
+"за допомогою лише імені користувача без додавання до нього назви домену."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:235
+#, fuzzy
+#| msgid ""
+#| "Please note that if this option is set all users from the local domain "
+#| "have to use their fully qualified name, e.g. user@domain.name, to log in."
 msgid ""
-"Please note that if this option is set all users from the local domain have "
-"to use their fully qualified name, e.g. user@domain.name, to log in."
+"Please note that if this option is set all users from the primary domain "
+"have to use their fully qualified name, e.g. user@domain.name, to log in."
 msgstr ""
+"Будь ласка, зауважте, що якщо цей параметр встановлено, всім користувачам "
+"локального домену доведеться використовувати повні імена користувачів, тобто "
+"користувач@назва.домену, для входу до системи."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:241 sssd-ldap.5.xml:1336 sssd-ldap.5.xml:1348
 #: sssd-ldap.5.xml:1409 sssd-ldap.5.xml:2206 sssd-ldap.5.xml:2233
-#: sssd-krb5.5.xml:361 include/ldap_id_mapping.xml:145
+#: sssd-krb5.5.xml:366 include/ldap_id_mapping.xml:145
 #: include/ldap_id_mapping.xml:156
 msgid "Default: not set"
 msgstr "Типове значення: not set"
@@ -591,7 +607,7 @@ msgstr ""
 #: sssd.conf.5.xml:288 sssd.conf.5.xml:787 sssd.conf.5.xml:1630
 #: sssd-ldap.5.xml:640 sssd-ldap.5.xml:1377 sssd-ldap.5.xml:1396
 #: sssd-ldap.5.xml:1533 sssd-ipa.5.xml:123 sssd-ipa.5.xml:339
-#: sssd-krb5.5.xml:237 sssd-krb5.5.xml:271 sssd-krb5.5.xml:420
+#: sssd-krb5.5.xml:244 sssd-krb5.5.xml:278 sssd-krb5.5.xml:427
 msgid "Default: false"
 msgstr "Типове значення: false"
 
@@ -756,7 +772,7 @@ msgstr ""
 "даних, зокрема неіснуючих) перед повторним запитом до сервера обробки."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:414 sssd.conf.5.xml:811 sssd-krb5.5.xml:225
+#: sssd.conf.5.xml:414 sssd.conf.5.xml:811 sssd-krb5.5.xml:226
 msgid "Default: 15"
 msgstr "Типове значення: 15"
 
@@ -803,17 +819,17 @@ msgid "override_homedir (string)"
 msgstr "override_homedir (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:168
+#: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:169
 msgid "%u"
 msgstr "%u"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:169
+#: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:170
 msgid "login name"
 msgstr "ім'я користувача"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:172
+#: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:173
 msgid "%U"
 msgstr "%U"
 
@@ -823,7 +839,7 @@ msgid "UID number"
 msgstr "номер UID"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:190
+#: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:191
 msgid "%d"
 msgstr "%d"
 
@@ -843,12 +859,12 @@ msgid "fully qualified user name (user@domain)"
 msgstr "ім’я користувача повністю (користувач@домен)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:471 sssd-ad.5.xml:157 sssd-krb5.5.xml:202
+#: sssd.conf.5.xml:471 sssd-ad.5.xml:157 sssd-krb5.5.xml:203
 msgid "%%"
 msgstr "%%"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:472 sssd-ad.5.xml:158 sssd-krb5.5.xml:203
+#: sssd.conf.5.xml:472 sssd-ad.5.xml:158 sssd-krb5.5.xml:204
 msgid "a literal '%'"
 msgstr "символ відсотків («%»)"
 
@@ -1340,10 +1356,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:816
-#, fuzzy
-#| msgid "ldap_opt_timeout (integer)"
 msgid "ssh_known_hosts_timeout (integer)"
-msgstr "ldap_opt_timeout (ціле число)"
+msgstr "ssh_known_hosts_timeout (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:819
@@ -1351,13 +1365,13 @@ msgid ""
 "How many seconds to keep a host in the managed known_hosts file after its "
 "host keys were requested."
 msgstr ""
+"Кількість секунд, протягом яких запису вузла зберігатиметься у керованому "
+"файлі known_hosts після надсилання запиту щодо ключів вузла."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:823
-#, fuzzy
-#| msgid "Default: 10"
 msgid "Default: 180"
-msgstr "Типове значення: 10"
+msgstr "Типове значення: 180"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:832
@@ -2215,25 +2229,25 @@ msgid ""
 "P&lt;name&gt;[^@\\\\]+)$))</quote> which allows three different styles for "
 "user names:"
 msgstr ""
+"Типовий для засобів надання AD і IPA: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
+"\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
+"P&lt;name&gt;[^@\\\\]+)$))</quote> За його допомогою можна визначати три "
+"різні стилі запису імен користувачів:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1489
 msgid "username"
-msgstr ""
+msgstr "користувач"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1492
-#, fuzzy
-#| msgid "domain name"
 msgid "username@domain.name"
-msgstr "назва домену"
+msgstr "користувач@назва.домену"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1495
-#, fuzzy
-#| msgid "domain name"
 msgid "domain\\username"
-msgstr "назва домену"
+msgstr "домен\\користувач"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1498
@@ -2241,6 +2255,8 @@ msgid ""
 "While the first two correspond to the general default the third one is "
 "introduced to allow easy integration of users from Windows domains."
 msgstr ""
+"Перші два стилі відповідають загальним типовим стилям, а третій введено для "
+"того, щоб полегшити інтеграцію користувачів з доменів Windows."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1503
@@ -2682,7 +2698,7 @@ msgstr "Типове значення: None, не виконувати жодн�
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:1815 sssd-ldap.5.xml:2259 sssd-simple.5.xml:126
-#: sssd-ipa.5.xml:583 sssd-ad.5.xml:228 sssd-krb5.5.xml:434
+#: sssd-ipa.5.xml:583 sssd-ad.5.xml:228 sssd-krb5.5.xml:441
 msgid "EXAMPLE"
 msgstr "ПРИКЛАД"
 
@@ -2984,50 +3000,37 @@ msgid ""
 "the selected schema, the default attribute names retrieved from the servers "
 "may vary.  The way that some attributes are handled may also differ."
 msgstr ""
+"Визначає тип схеми, що використовується на сервері LDAP призначення. "
+"Відповідно до вибраної схеми, типові назви атрибутів, отриманих з сервера, "
+"можуть бути різними. Спосіб обробки атрибутів також може бути різним."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:168
-#, fuzzy
-#| msgid "The two mechanisms currently supported are:"
 msgid "Four schema types are currently supported:"
-msgstr "У поточній версії передбачено підтримку двох механізмів:"
+msgstr "У поточній версії передбачено підтримку чотирьох типів схем:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:172
-#, fuzzy
-#| msgid "Default: rfc2307"
 msgid "rfc2307"
-msgstr "Типове значення: rfc2307"
+msgstr "rfc2307"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:177
 msgid "rfc2307bis"
-msgstr ""
+msgstr "rfc2307bis"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:182
 msgid "IPA"
-msgstr ""
+msgstr "IPA"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:187
 msgid "AD"
-msgstr ""
+msgstr "AD"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:193
-#, fuzzy
-#| msgid ""
-#| "Specifies the Schema Type in use on the target LDAP server.  Depending on "
-#| "the selected schema, the default attribute names retrieved from the "
-#| "servers may vary.  The way that some attributes are handled may also "
-#| "differ.  Four schema types are currently supported: rfc2307 rfc2307bis "
-#| "IPA AD The main difference between these schema types is how group "
-#| "memberships are recorded in the server.  With rfc2307, group members are "
-#| "listed by name in the <emphasis>memberUid</emphasis> attribute.  With "
-#| "rfc2307bis and IPA, group members are listed by DN and stored in the "
-#| "<emphasis>member</emphasis> attribute.  The AD schema type sets the "
-#| "attributes to correspond with Active Directory 2008r2 values."
 msgid ""
 "The main difference between these schema types is how group memberships are "
 "recorded in the server.  With rfc2307, group members are listed by name in "
@@ -3036,17 +3039,13 @@ msgid ""
 "attribute.  The AD schema type sets the attributes to correspond with Active "
 "Directory 2008r2 values."
 msgstr ""
-"Визначає тип схеми, який використовується на сервері LDAP призначення. "
-"Залежно від вибраної схеми може змінюватися перелік типових назв атрибутів, "
-"які отримуються від серверів. Також може змінюватися і спосіб обробки деяких "
-"з атрибутів. Передбачено підтримку чотирьох типів схем: rfc2307, rfc2307bis, "
-"IPA та AD. Основною відмінністю між цими типами схем є спосіб зберігання "
-"записів щодо участі у групах. У разі використання rfc2307 імена учасники "
-"груп зберігатимуться у списку атрибута <emphasis>memberUid</emphasis>. У "
-"разі використання rfc2307bis або IPA у списку міститимуться DN учасників "
-"групи, а сам список зберігатиметься у атрибуті <emphasis>member</emphasis>. "
-"Тип схеми AD встановлює атрибути відповідності значенням Active Directory "
-"2008r2."
+"Основною відмінністю між цими типами схем є спосіб запису даних щодо участі "
+"у групах на сервері. Відповідно до rfc2307, список учасників груп "
+"впорядковується за користувачами у атрибуті <emphasis>memberUid</emphasis>. "
+"Відповідно до rfc2307bis і IPA, список учасників груп впорядковується за "
+"назвою домену (DN) і зберігається у атрибуті <emphasis>member</emphasis>. "
+"Відповідно до типу схеми AD, встановлюється відповідність зі значеннями "
+"Active Directory 2008r2."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:203
@@ -3905,18 +3904,13 @@ msgstr "ldap_initgroups_use_matching_rule_in_chain"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:889
-#, fuzzy
-#| msgid ""
-#| "This option tells SSSD to take advantage of an Active Directory-specific "
-#| "feature which will speed up initgroups operations (most notably when "
-#| "dealing with complex or deep nested groups)."
 msgid ""
 "This option tells SSSD to take advantage of an Active Directory-specific "
 "feature which might speed up initgroups operations (most notably when "
 "dealing with complex or deep nested groups)."
 msgstr ""
 "За допомогою цього параметра можна наказати SSSD скористатися перевагами "
-"специфічної для Active Directory можливості, яка пришвидшує дії з "
+"специфічної для Active Directory можливості, яка може пришвидшити дії з "
 "початковими групами (initgroups). Особливо помітним таке пришвидшення є у "
 "системах зі складною системою груп або системою груп з високим рівнем "
 "вкладеності."
@@ -4616,7 +4610,7 @@ msgid "krb5_server, krb5_backup_server (string)"
 msgstr "krb5_server, krb5_backup_server (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1486 sssd-krb5.5.xml:77
+#: sssd-ldap.5.xml:1486
 msgid ""
 "Specifies the comma-separated list of IP addresses or hostnames of the "
 "Kerberos servers to which SSSD should connect in the order of preference. "
@@ -4675,7 +4669,7 @@ msgstr ""
 "filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1524 sssd-ipa.5.xml:269 sssd-krb5.5.xml:411
+#: sssd-ldap.5.xml:1524 sssd-ipa.5.xml:269 sssd-krb5.5.xml:418
 msgid "krb5_canonicalize (boolean)"
 msgstr "krb5_canonicalize (булеве значення)"
 
@@ -4805,10 +4799,8 @@ msgstr "Типове значення: не встановлено, тобто �
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1623
-#, fuzzy
-#| msgid "ldap_user_shadow_last_change (string)"
 msgid "ldap_chpass_update_last_change (bool)"
-msgstr "ldap_user_shadow_last_change (рядок)"
+msgstr "ldap_chpass_update_last_change (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1626
@@ -4816,6 +4808,8 @@ msgid ""
 "Specifies whether to update the ldap_user_shadow_last_change attribute with "
 "days since the Epoch after a password change operation."
 msgstr ""
+"Визначає, чи слід оновлювати атрибут ldap_user_shadow_last_change даними "
+"щодо кількості днів з часу виконання дії зі зміни пароля."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1638
@@ -4824,13 +4818,6 @@ msgstr "ldap_access_filter (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1641
-#, fuzzy
-#| msgid ""
-#| "If using access_provider = ldap, this option is mandatory. It specifies "
-#| "an LDAP search filter criteria that must be met for the user to be "
-#| "granted access on this host. If access_provider = ldap and this option is "
-#| "not set, it will result in all users being denied access. Use "
-#| "access_provider = permit to change this default behavior."
 msgid ""
 "If using access_provider = ldap and ldap_access_order = filter (default), "
 "this option is mandatory. It specifies an LDAP search filter criteria that "
@@ -4839,10 +4826,11 @@ msgid ""
 "set, it will result in all users being denied access.  Use access_provider = "
 "permit to change this default behavior."
 msgstr ""
-"Якщо використовується access_provider = ldap, цей параметр є обов’язковим. "
-"Він вказує критерії фільтрування LDAP, яким має задовольняти запис "
-"користувача для надання доступу до цього вузла. Якщо визначено "
-"access_provider = ldap, а цей параметр не встановлено, доступ буде "
+"Якщо використовується access_provider = ldap та ldap_access_order = filter "
+"(типова поведінка), цей параметр є обов’язковим. Він вказує критерії "
+"фільтрування LDAP, яким має задовольняти запис користувача для надання "
+"доступу до цього вузла. Якщо визначено access_provider = ldap та "
+"ldap_access_order = filter, а цей параметр не встановлено, доступ буде "
 "заборонено всім користувачам. Щоб змінити таку типову поведінку системи, "
 "скористайтеся параметром access_provider = permit"
 
@@ -5681,7 +5669,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><para>
 #: sssd-ldap.5.xml:2266 sssd-simple.5.xml:134 sssd-ipa.5.xml:591
 #: sssd-ad.5.xml:236 sssd-sudo.5.xml:56 sssd-sudo.5.xml:78 sssd-sudo.5.xml:99
-#: sssd-krb5.5.xml:443 include/ldap_id_mapping.xml:63
+#: sssd-krb5.5.xml:450 include/ldap_id_mapping.xml:63
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -6398,12 +6386,12 @@ msgstr ""
 "Типове значення: значення виразу <emphasis>cn=ad,cn=etc,%basedn</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:237 sssd-krb5.5.xml:231
+#: sssd-ipa.5.xml:237 sssd-krb5.5.xml:232
 msgid "krb5_validate (boolean)"
 msgstr "krb5_validate (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:240 sssd-krb5.5.xml:234
+#: sssd-ipa.5.xml:240
 msgid ""
 "Verify with the help of krb5_keytab that the TGT obtained has not been "
 "spoofed."
@@ -7896,13 +7884,21 @@ msgstr "sssd-krb5"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:23
+#, fuzzy
+#| msgid ""
+#| "This manual page describes the configuration of the Kerberos 5 "
+#| "authentication backend for <citerefentry> <refentrytitle>sssd</"
+#| "refentrytitle> <manvolnum>8</manvolnum> </citerefentry>.  For a detailed "
+#| "syntax reference, please refer to the <quote>FILE FORMAT</quote> section "
+#| "of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry> manual page"
 msgid ""
 "This manual page describes the configuration of the Kerberos 5 "
 "authentication backend for <citerefentry> <refentrytitle>sssd</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry>.  For a detailed "
 "syntax reference, please refer to the <quote>FILE FORMAT</quote> section of "
 "the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> manual page"
+"manvolnum> </citerefentry> manual page."
 msgstr ""
 "На цій сторінці довідника описано налаштування засобу розпізнавання Kerberos "
 "5 для <citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
@@ -7913,9 +7909,19 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:36
+#, fuzzy
+#| msgid ""
+#| "The Kerberos 5 authentication backend contains auth and chpass providers. "
+#| "It must be paired with identity provider in order to function properly "
+#| "(for example, id_provider = ldap). Some information required by the "
+#| "Kerberos 5 authentication backend must be provided by the identity "
+#| "provider, such as the user's Kerberos Principal Name (UPN). The "
+#| "configuration of the identity provider should have an entry to specify "
+#| "the UPN. Please refer to the man page for the applicable identity "
+#| "provider for details on how to configure this."
 msgid ""
 "The Kerberos 5 authentication backend contains auth and chpass providers. It "
-"must be paired with identity provider in order to function properly (for "
+"must be paired with an identity provider in order to function properly (for "
 "example, id_provider = ldap). Some information required by the Kerberos 5 "
 "authentication backend must be provided by the identity provider, such as "
 "the user's Kerberos Principal Name (UPN). The configuration of the identity "
@@ -7935,12 +7941,20 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:47
+#, fuzzy
+#| msgid ""
+#| "This backend also provides access control based on the .k5login file in "
+#| "the home directory of the user. See <citerefentry> <refentrytitle>."
+#| "k5login</refentrytitle><manvolnum>5</manvolnum> </citerefentry> for more "
+#| "details. Please note that an empty .k5login file will deny all access to "
+#| "this user. To activate this feature use 'access_provider = krb5' in your "
+#| "sssd configuration."
 msgid ""
 "This backend also provides access control based on the .k5login file in the "
 "home directory of the user. See <citerefentry> <refentrytitle>.k5login</"
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry> for more details. "
 "Please note that an empty .k5login file will deny all access to this user. "
-"To activate this feature use 'access_provider = krb5' in your sssd "
+"To activate this feature, use 'access_provider = krb5' in your SSSD "
 "configuration."
 msgstr ""
 "У цьому інструменті керування даними також передбачено можливості керування "
@@ -7954,14 +7968,47 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
+#, fuzzy
+#| msgid ""
+#| "In the case where the UPN is not available in the identity backend "
+#| "<command>sssd</command> will construct a UPN using the format "
+#| "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 msgid ""
-"In the case where the UPN is not available in the identity backend "
+"In the case where the UPN is not available in the identity backend, "
 "<command>sssd</command> will construct a UPN using the format "
 "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 msgstr ""
 "У випадку, коли доступу до UPN у модулі профілів не передбачено, "
 "<command>sssd</command> побудує UPN у форматі <replaceable>ім’я_користувача</"
 "replaceable>@<replaceable>область_krb5</replaceable>."
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:77
+#, fuzzy
+#| msgid ""
+#| "Specifies the comma-separated list of IP addresses or hostnames of the "
+#| "Kerberos servers to which SSSD should connect in the order of preference. "
+#| "For more information on failover and server redundancy, see the "
+#| "<quote>FAILOVER</quote> section. An optional port number (preceded by a "
+#| "colon) may be appended to the addresses or hostnames.  If empty, service "
+#| "discovery is enabled - for more information, refer to the <quote>SERVICE "
+#| "DISCOVERY</quote> section."
+msgid ""
+"Specifies the comma-separated list of IP addresses or hostnames of the "
+"Kerberos servers to which SSSD should connect, in the order of preference. "
+"For more information on failover and server redundancy, see the "
+"<quote>FAILOVER</quote> section. An optional port number (preceded by a "
+"colon) may be appended to the addresses or hostnames.  If empty, service "
+"discovery is enabled; for more information, refer to the <quote>SERVICE "
+"DISCOVERY</quote> section."
+msgstr ""
+"Визначає список IP-адрес або назв вузлів, відокремлених комами, серверів "
+"Kerberos, з якими SSSD має встановлювати з’єднання. Список має бути "
+"впорядковано за пріоритетом.  Докладніше про резервування та додаткові "
+"сервери можна дізнатися з розділу «РЕЗЕРВ». До адрес або назв вузлів може "
+"бути додано номер порту (перед номером слід вписати двокрапку). Якщо "
+"параметр матиме порожнє значення, буде увімкнено виявлення служб. Докладніше "
+"про виявлення служб можна дізнатися з розділу «ПОШУК СЛУЖБ»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:106
@@ -7979,10 +8026,15 @@ msgstr "krb5_kpasswd, krb5_backup_kpasswd (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:116
+#, fuzzy
+#| msgid ""
+#| "If the change password service is not running on the KDC alternative "
+#| "servers can be defined here. An optional port number (preceded by a "
+#| "colon) may be appended to the addresses or hostnames."
 msgid ""
-"If the change password service is not running on the KDC alternative servers "
-"can be defined here. An optional port number (preceded by a colon) may be "
-"appended to the addresses or hostnames."
+"If the change password service is not running on the KDC, alternative "
+"servers can be defined here. An optional port number (preceded by a colon) "
+"may be appended to the addresses or hostnames."
 msgstr ""
 "Якщо службу зміни паролів не запущено на KDC, тут можна визначити "
 "альтернативні сервери. До адрес або назв вузлів можна додати номер порту "
@@ -7990,10 +8042,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:122
+#, fuzzy
+#| msgid ""
+#| "For more information on failover and server redundancy, see the "
+#| "<quote>FAILOVER</quote> section.  Please note that even if there are no "
+#| "more kpasswd servers to try the back end is not switch to offline if "
+#| "authentication against the KDC is still possible."
 msgid ""
 "For more information on failover and server redundancy, see the "
-"<quote>FAILOVER</quote> section.  Please note that even if there are no more "
-"kpasswd servers to try the back end is not switch to offline if "
+"<quote>FAILOVER</quote> section.  NOTE: Even if there are no more kpasswd "
+"servers to try, the backend is not switched to operate offline if "
 "authentication against the KDC is still possible."
 msgstr ""
 "Додаткові відомості щодо резервних серверів можна знайти у розділі «РЕЗЕРВ». "
@@ -8013,14 +8071,23 @@ msgstr "krb5_ccachedir (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:138
+#, fuzzy
+#| msgid ""
+#| "Directory to store credential caches. All the substitution sequences of "
+#| "krb5_ccname_template can be used here, too, except %d and %P. If the "
+#| "directory does not exist it will be created. If %u, %U, %p or %h are used "
+#| "a private directory belonging to the user is created. Otherwise a public "
+#| "directory with restricted deletion flag (aka sticky bit, see "
+#| "<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</"
+#| "manvolnum> </citerefentry> for details) is created."
 msgid ""
 "Directory to store credential caches. All the substitution sequences of "
 "krb5_ccname_template can be used here, too, except %d and %P. If the "
-"directory does not exist it will be created. If %u, %U, %p or %h are used a "
-"private directory belonging to the user is created. Otherwise a public "
-"directory with restricted deletion flag (aka sticky bit, see <citerefentry> "
-"<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry> for details) is created."
+"directory does not exist, it will be created. If %u, %U, %p or %h are used, "
+"a private directory belonging to the user is created. Otherwise, a public "
+"directory with restricted deletion flag (aka sticky bit, as described in "
+"<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
+"</citerefentry> for details) is created."
 msgstr ""
 "Каталог для зберігання кешу реєстраційних даних. Тут можна використовувати "
 "всі послідовності-замінники krb5_ccname_template, окрім %d і %P. Якщо "
@@ -8032,75 +8099,86 @@ msgstr ""
 "manvolnum> </citerefentry>)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:151
+#: sssd-krb5.5.xml:152
 msgid "Default: /tmp"
 msgstr "Типове значення: /tmp"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:157
+#: sssd-krb5.5.xml:158
 msgid "krb5_ccname_template (string)"
 msgstr "krb5_ccname_template (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:173
+#: sssd-krb5.5.xml:174
 msgid "login UID"
 msgstr "ідентифікатор користувача"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:176
+#: sssd-krb5.5.xml:177
 msgid "%p"
 msgstr "%p"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:177
+#: sssd-krb5.5.xml:178
 msgid "principal name"
 msgstr "назва реєстраційного запису"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:181
+#: sssd-krb5.5.xml:182
 msgid "%r"
 msgstr "%r"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:182
+#: sssd-krb5.5.xml:183
 msgid "realm name"
 msgstr "назва області"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:185
+#: sssd-krb5.5.xml:186
 msgid "%h"
 msgstr "%h"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:186
+#: sssd-krb5.5.xml:187
 msgid "home directory"
 msgstr "домашній каталог"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:191
+#: sssd-krb5.5.xml:192
 msgid "value of krb5ccache_dir"
 msgstr "значення krb5ccache_dir"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:196
+#: sssd-krb5.5.xml:197
 msgid "%P"
 msgstr "%P"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:197
-msgid "the process ID of the sssd client"
+#: sssd-krb5.5.xml:198
+#, fuzzy
+#| msgid "the process ID of the sssd client"
+msgid "the process ID of the SSSD client"
 msgstr "ідентифікатор процесу клієнтської частини sssd"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:160
+#: sssd-krb5.5.xml:161
+#, fuzzy
+#| msgid ""
+#| "Location of the user's credential cache. Two credential cache types are "
+#| "currently supported - <quote>FILE</quote> and <quote>DIR</quote>. The "
+#| "cache can either be specified as <replaceable>TYPE:RESIDUAL</"
+#| "replaceable>, or an absolute path, which implies the <quote>FILE</quote> "
+#| "type. In the template the following sequences are substituted: "
+#| "<placeholder type=\"variablelist\" id=\"0\"/> If the template ends with "
+#| "'XXXXXX' mkstemp(3) is used to create a unique filename in a safe way."
 msgid ""
 "Location of the user's credential cache. Two credential cache types are "
-"currently supported - <quote>FILE</quote> and <quote>DIR</quote>. The cache "
-"can either be specified as <replaceable>TYPE:RESIDUAL</replaceable>, or an "
-"absolute path, which implies the <quote>FILE</quote> type. In the template "
-"the following sequences are substituted: <placeholder type=\"variablelist\" "
-"id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is used to create a "
-"unique filename in a safe way."
+"currently supported: <quote>FILE</quote> and <quote>DIR</quote>. The cache "
+"can be specified either as <replaceable>TYPE:RESIDUAL</replaceable>, or as "
+"an absolute path, which implies the <quote>FILE</quote> type. In the "
+"template, the following sequences are substituted: <placeholder type="
+"\"variablelist\" id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is "
+"used to create a unique filename in a safe way."
 msgstr ""
 "Розташування кешу з реєстраційними даними користувача. У поточній версії "
 "передбачено підтримку двох типів кешу реєстраційних даних: <quote>FILE</"
@@ -8112,32 +8190,49 @@ msgstr ""
 "для безпечного створення назви файла використовується mkstemp(3)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:211
+#: sssd-krb5.5.xml:212
 msgid "Default: FILE:%d/krb5cc_%U_XXXXXX"
 msgstr "Типове значення: FILE:%d/krb5cc_%U_XXXXXX"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:217
+#: sssd-krb5.5.xml:218
 msgid "krb5_auth_timeout (integer)"
 msgstr "krb5_auth_timeout (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:220
+#: sssd-krb5.5.xml:221
+#, fuzzy
+#| msgid ""
+#| "Timeout in seconds after an online authentication or change password "
+#| "request is aborted. If possible the authentication request is continued "
+#| "offline."
 msgid ""
-"Timeout in seconds after an online authentication or change password request "
-"is aborted. If possible the authentication request is continued offline."
+"Timeout in seconds after an online authentication request or change password "
+"request is aborted. If possible, the authentication request is continued "
+"offline."
 msgstr ""
 "Час очікування, по завершенню якого буде перервано сеанс розпізнавання або "
 "зміни пароля у мережі. Якщо це можливо, обробку запиту щодо розпізнавання "
 "буде продовжено у автономному режимі."
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:235
+msgid ""
+"Verify with the help of krb5_keytab that the TGT obtained has not been "
+"spoofed. The keytab is checked for entries sequentially, and the first entry "
+"with a matching realm is used for validation. If no entry matches the realm, "
+"the last entry in the keytab is used. This process can be used to validate "
+"environments using cross-realm trust by placing the appropriate keytab entry "
+"as the last entry or the only entry in the keytab file."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:243
+#: sssd-krb5.5.xml:250
 msgid "krb5_keytab (string)"
 msgstr "krb5_keytab (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:246
+#: sssd-krb5.5.xml:253
 msgid ""
 "The location of the keytab to use when validating credentials obtained from "
 "KDCs."
@@ -8146,31 +8241,41 @@ msgstr ""
 "реєстраційних даних, отриманих від KDC."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:250
+#: sssd-krb5.5.xml:257
 msgid "Default: /etc/krb5.keytab"
 msgstr "Типове значення: /etc/krb5.keytab"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:256
+#: sssd-krb5.5.xml:263
 msgid "krb5_store_password_if_offline (boolean)"
 msgstr "krb5_store_password_if_offline (булівське значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:259
+#: sssd-krb5.5.xml:266
+#, fuzzy
+#| msgid ""
+#| "Store the password of the user if the provider is offline and use it to "
+#| "request a TGT when the provider gets online again."
 msgid ""
 "Store the password of the user if the provider is offline and use it to "
-"request a TGT when the provider gets online again."
+"request a TGT when the provider comes online again."
 msgstr ""
 "Зберігати пароль користувача, якщо засіб перевірки перебуває поза мережею, і "
 "використовувати його для запитів TGT після встановлення з’єднання з засобом "
 "перевірки."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:264
+#: sssd-krb5.5.xml:271
+#, fuzzy
+#| msgid ""
+#| "Please note that this feature currently only available on a Linux "
+#| "platform. Passwords stored in this way are kept in plaintext in the "
+#| "kernel keyring and are potentially accessible by the root user (with "
+#| "difficulty)."
 msgid ""
-"Please note that this feature currently only available on a Linux platform. "
-"Passwords stored in this way are kept in plaintext in the kernel keyring and "
-"are potentially accessible by the root user (with difficulty)."
+"NOTE: this feature is only available on Linux.  Passwords stored in this way "
+"are kept in plaintext in the kernel keyring and are potentially accessible "
+"by the root user (with difficulty)."
 msgstr ""
 "Будь ласка, зауважте, що й можливість у поточній версії доступна лише на "
 "платформі Linux. Паролі зберігатимуться у форматі звичайного тексту (без "
@@ -8179,89 +8284,124 @@ msgstr ""
 "деякі перешкоди."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:277
+#: sssd-krb5.5.xml:284
 msgid "krb5_renewable_lifetime (string)"
 msgstr "krb5_renewable_lifetime (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:280
+#: sssd-krb5.5.xml:287
+#, fuzzy
+#| msgid ""
+#| "Request a renewable ticket with a total lifetime given by an integer "
+#| "immediately followed by one of the following delimiters:"
 msgid ""
-"Request a renewable ticket with a total lifetime given by an integer "
-"immediately followed by one of the following delimiters:"
+"Request a renewable ticket with a total lifetime, given as an integer "
+"immediately followed by a time unit:"
 msgstr ""
 "Надіслати запит щодо поновлюваного квитка з загальним строком дії, вказаним "
 "за допомогою цілого числа, записаного одразу після одного з таких "
 "розділювачів:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:285 sssd-krb5.5.xml:321
-msgid "<emphasis>s</emphasis> seconds"
+#: sssd-krb5.5.xml:292 sssd-krb5.5.xml:326
+#, fuzzy
+#| msgid "<emphasis>s</emphasis> seconds"
+msgid "<emphasis>s</emphasis> for seconds"
 msgstr "<emphasis>s</emphasis> — секунди"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:288 sssd-krb5.5.xml:324
-msgid "<emphasis>m</emphasis> minutes"
+#: sssd-krb5.5.xml:295 sssd-krb5.5.xml:329
+#, fuzzy
+#| msgid "<emphasis>m</emphasis> minutes"
+msgid "<emphasis>m</emphasis> for minutes"
 msgstr "<emphasis>m</emphasis> — хвилини"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:291 sssd-krb5.5.xml:327
-msgid "<emphasis>h</emphasis> hours"
+#: sssd-krb5.5.xml:298 sssd-krb5.5.xml:332
+#, fuzzy
+#| msgid "<emphasis>h</emphasis> hours"
+msgid "<emphasis>h</emphasis> for hours"
 msgstr "<emphasis>h</emphasis> — години"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:294 sssd-krb5.5.xml:330
-msgid "<emphasis>d</emphasis> days."
+#: sssd-krb5.5.xml:301 sssd-krb5.5.xml:335
+#, fuzzy
+#| msgid "<emphasis>d</emphasis> days."
+msgid "<emphasis>d</emphasis> for days."
 msgstr "<emphasis>d</emphasis> — дні."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:297 sssd-krb5.5.xml:333
-msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
+#: sssd-krb5.5.xml:304
+#, fuzzy
+#| msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
+msgid "If there is no unit given, <emphasis>s</emphasis> is assumed."
 msgstr ""
 "Якщо позначки часу не буде вказано, вважатиметься, що використано позначку "
 "<emphasis>s</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:301
+#: sssd-krb5.5.xml:308
+#, fuzzy
+#| msgid ""
+#| "Please note that it is not possible to mix units.  If you want to set the "
+#| "renewable lifetime to one and a half hours please use '90m' instead of "
+#| "'1h30m'."
 msgid ""
-"Please note that it is not possible to mix units.  If you want to set the "
-"renewable lifetime to one and a half hours please use '90m' instead of "
-"'1h30m'."
+"NOTE: It is not possible to mix units.  To set the renewable lifetime to one "
+"and a half hours, use '90m' instead of '1h30m'."
 msgstr ""
 "Будь ласка, зауважте, що не можна використовувати одразу декілька одиниць. "
 "Якщо вам потрібно встановити строк дії у півтори години, слід вказати «90m», "
 "а не «1h30m»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:307
+#: sssd-krb5.5.xml:313
 msgid "Default: not set, i.e. the TGT is not renewable"
 msgstr "Типове значення: не встановлено, тобто TGT не є оновлюваним"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:313
+#: sssd-krb5.5.xml:319
 msgid "krb5_lifetime (string)"
 msgstr "krb5_lifetime (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:316
+#: sssd-krb5.5.xml:322
+#, fuzzy
+#| msgid ""
+#| "Request ticket with a with a lifetime given by an integer immediately "
+#| "followed by one of the following delimiters:"
 msgid ""
-"Request ticket with a with a lifetime given by an integer immediately "
-"followed by one of the following delimiters:"
+"Request ticket with a with a lifetime, given as an integer immediately "
+"followed by a time unit:"
 msgstr ""
 "Надіслати запит щодо квитка зі строком дії, вказаним за допомогою цілого "
 "числа, записаного одразу після одного з таких розділювачів:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:337
+#: sssd-krb5.5.xml:338
+#, fuzzy
+#| msgid "If there is no delimiter <emphasis>s</emphasis> is assumed."
+msgid "If there is no unit given <emphasis>s</emphasis> is assumed."
+msgstr ""
+"Якщо позначки часу не буде вказано, вважатиметься, що використано позначку "
+"<emphasis>s</emphasis>."
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:342
+#, fuzzy
+#| msgid ""
+#| "Please note that it is not possible to mix units.  If you want to set the "
+#| "lifetime to one and a half hours please use '90m' instead of '1h30m'."
 msgid ""
-"Please note that it is not possible to mix units.  If you want to set the "
-"lifetime to one and a half hours please use '90m' instead of '1h30m'."
+"NOTE: It is not possible to mix units.  To set the lifetime to one and a "
+"half hours please use '90m' instead of '1h30m'."
 msgstr ""
 "Будь ласка, зауважте, що не можна використовувати одразу декілька одиниць. "
 "Якщо вам потрібно встановити строк дії у півтори години, слід вказати «90m», "
 "а не «1h30m»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:342
+#: sssd-krb5.5.xml:347
 msgid ""
 "Default: not set, i.e. the default ticket lifetime configured on the KDC."
 msgstr ""
@@ -8269,12 +8409,12 @@ msgstr ""
 "визначатиметься у налаштуваннях KDC."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:349
+#: sssd-krb5.5.xml:354
 msgid "krb5_renew_interval (integer)"
 msgstr "krb5_renew_interval (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:352
+#: sssd-krb5.5.xml:357
 msgid ""
 "The time in seconds between two checks if the TGT should be renewed. TGTs "
 "are renewed if about half of their lifetime is exceeded."
@@ -8284,19 +8424,21 @@ msgstr ""
 "їхнього строку дії."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:357
-msgid "If this option is not set or 0 the automatic renewal is disabled."
+#: sssd-krb5.5.xml:362
+#, fuzzy
+#| msgid "If this option is not set or 0 the automatic renewal is disabled."
+msgid "If this option is not set or is 0 the automatic renewal is disabled."
 msgstr ""
 "Якщо значення для цього параметра встановлено не буде або буде встановлено "
 "значення 0, автоматичного оновлення не відбуватиметься."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:367
+#: sssd-krb5.5.xml:372
 msgid "krb5_use_fast (string)"
 msgstr "krb5_use_fast (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:370
+#: sssd-krb5.5.xml:375
 msgid ""
 "Enables flexible authentication secure tunneling (FAST) for Kerberos pre-"
 "authentication. The following options are supported:"
@@ -8306,48 +8448,67 @@ msgstr ""
 "Kerberos. Передбачено такі варіанти:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:375
+#: sssd-krb5.5.xml:380
+#, fuzzy
+#| msgid ""
+#| "<emphasis>never</emphasis> use FAST, this is equivalent to not set this "
+#| "option at all."
 msgid ""
-"<emphasis>never</emphasis> use FAST, this is equivalent to not set this "
+"<emphasis>never</emphasis> use FAST. This is equivalent to not setting this "
 "option at all."
 msgstr ""
 "<emphasis>never</emphasis> використовувати FAST, рівнозначний варіанту, за "
 "якого значення цього параметра взагалі не задається."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:379
+#: sssd-krb5.5.xml:384
+#, fuzzy
+#| msgid ""
+#| "<emphasis>try</emphasis> to use FAST, if the server does not support fast "
+#| "continue without."
 msgid ""
-"<emphasis>try</emphasis> to use FAST, if the server does not support fast "
-"continue without."
+"<emphasis>try</emphasis> to use FAST. If the server does not support FAST, "
+"continue the authentication without it."
 msgstr ""
 "<emphasis>try</emphasis> — використовувати FAST. Якщо на сервері не "
 "передбачено підтримки FAST, продовжити роботу без FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:383
+#: sssd-krb5.5.xml:389
+#, fuzzy
+#| msgid ""
+#| "<emphasis>demand</emphasis> to use FAST, fail if the server does not "
+#| "require fast."
 msgid ""
-"<emphasis>demand</emphasis> to use FAST, fail if the server does not require "
-"fast."
+"<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
+"server does not require fast."
 msgstr ""
 "<emphasis>demand</emphasis> — використовувати FAST. Якщо на сервері не "
 "передбачено підтримки FAST, не продовжувати роботу."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:387
+#: sssd-krb5.5.xml:394
 msgid "Default: not set, i.e. FAST is not used."
 msgstr "Типове значення: не встановлено, тобто FAST не використовується."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:390
-msgid "Please note that a keytab is required to use fast."
+#: sssd-krb5.5.xml:397
+#, fuzzy
+#| msgid "Please note that a keytab is required to use fast."
+msgid "NOTE: a keytab is required to use FAST."
 msgstr ""
 "Будь ласка, зауважте, що для використання fast потрібна таблиця ключів."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:393
+#: sssd-krb5.5.xml:400
+#, fuzzy
+#| msgid ""
+#| "Please note also that sssd supports fast only with MIT Kerberos version "
+#| "1.8 and above. If sssd used with an older version using this option is a "
+#| "configuration error."
 msgid ""
-"Please note also that sssd supports fast only with MIT Kerberos version 1.8 "
-"and above. If sssd used with an older version using this option is a "
+"NOTE: SSSD supports FAST only with MIT Kerberos version 1.8 and later. If "
+"SSSD is used with an older version of MIT Kerberos, using this option is a "
 "configuration error."
 msgstr ""
 "Будь ласка, зауважте, що у sssd передбачено підтримку fast лише у разі "
@@ -8356,33 +8517,44 @@ msgstr ""
 "налаштуваннях."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:402
+#: sssd-krb5.5.xml:409
 msgid "krb5_fast_principal (string)"
 msgstr "krb5_fast_principal (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:405
+#: sssd-krb5.5.xml:412
 msgid "Specifies the server principal to use for FAST."
 msgstr ""
 "Визначає реєстраційний запис сервера, який слід використовувати для FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:414
+#: sssd-krb5.5.xml:421
+#, fuzzy
+#| msgid ""
+#| "Specifies if the host and user principal should be canonicalized. This "
+#| "feature is available with MIT Kerberos >= 1.7"
 msgid ""
 "Specifies if the host and user principal should be canonicalized. This "
-"feature is available with MIT Kerberos >= 1.7"
+"feature is available with MIT Kerberos 1.7 and later versions."
 msgstr ""
 "Визначає, чи слід перетворювати реєстраційний запис вузла і користувача у "
 "канонічну форму. Цю можливість передбачено з версії MIT Kerberos >= 1.7"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:65
+#, fuzzy
+#| msgid ""
+#| "If the auth-module krb5 is used in a SSSD domain, the following options "
+#| "must be used. See the <citerefentry> <refentrytitle>sssd.conf</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page, "
+#| "section <quote>DOMAIN SECTIONS</quote> for details on the configuration "
+#| "of a SSSD domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
-"If the auth-module krb5 is used in a SSSD domain, the following options must "
-"be used. See the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> manual page, section <quote>DOMAIN "
-"SECTIONS</quote> for details on the configuration of a SSSD domain.  "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"If the auth-module krb5 is used in an SSSD domain, the following options "
+"must be used. See the <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page, section "
+"<quote>DOMAIN SECTIONS</quote>, for details on the configuration of an SSSD "
+"domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "Якщо у домені SSSD використано auth-module krb5, має бути використано "
 "вказані нижче параметри. Зверніться до сторінки довідника (man) "
@@ -8391,11 +8563,17 @@ msgstr ""
 "про налаштування домену SSSD. <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-krb5.5.xml:436
+#: sssd-krb5.5.xml:443
+#, fuzzy
+#| msgid ""
+#| "The following example assumes that SSSD is correctly configured and FOO "
+#| "is one of the domains in the <replaceable>[sssd]</replaceable> section. "
+#| "This example shows only configuration of Kerberos authentication, it does "
+#| "not include any identity provider."
 msgid ""
 "The following example assumes that SSSD is correctly configured and FOO is "
 "one of the domains in the <replaceable>[sssd]</replaceable> section. This "
-"example shows only configuration of Kerberos authentication, it does not "
+"example shows only configuration of Kerberos authentication; it does not "
 "include any identity provider."
 msgstr ""
 "У наведеному нижче прикладі припускається, що SSSD налаштовано належним "
@@ -8404,7 +8582,7 @@ msgstr ""
 "Kerberos, там не вказано інструменту обробки профілів."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-krb5.5.xml:444
+#: sssd-krb5.5.xml:451
 #, no-wrap
 msgid ""
 "    [domain/FOO]\n"
@@ -9079,6 +9257,9 @@ msgid ""
 "password-file option) must be less than or equal to PASS_MAX bytes (64 bytes "
 "on systems with no globally-defined PASS_MAX value)."
 msgstr ""
+"Довжина пароля (або розмір файла, визначеного за допомогою параметра -p або "
+"--password-file) має бути меншою або рівною PASS_MAX байтів (64 байти у "
+"системах без визначеного на загальному рівні значення PASS_MAX)."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_authorizedkeys.1.xml:10 sss_ssh_authorizedkeys.1.xml:15
@@ -9692,10 +9873,8 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:117
-#, fuzzy
-#| msgid "Default: 2000100000"
 msgid "Default: 2000200000"
-msgstr "Типове значення: 2000100000"
+msgstr "Типове значення: 2000200000"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:122
@@ -9780,10 +9959,8 @@ msgstr ""
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help.xml:3
-#, fuzzy
-#| msgid "<option>-h</option>,<option>--help</option>"
 msgid "<option>-?</option>,<option>--help</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr "<option>-?</option>,<option>--help</option>"
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/param_help.xml:7 include/param_help_py.xml:7
@@ -10108,6 +10285,10 @@ msgid ""
 "against an Active Directory Server that might yield a large number of "
 "results and trigger the Range Retrieval extension in the response."
 msgstr ""
+"Будь ласка, зауважте, що підтримки визначення області або фільтра для "
+"пошуків на сервері Active Directory не передбачено. Це може призвести до "
+"отримання значної кількості результатів і викликати реакцію з боку "
+"розширення діапазону отримання (Range Retrieval)."
 
 #. type: Content of: <para>
 #: include/autofs_restart.xml:2
@@ -10116,3 +10297,7 @@ msgid ""
 "any autofs-related changes are made to the sssd.conf, you typically also "
 "need to restart the automounter daemon after restarting the SSSD."
 msgstr ""
+"Будь ласка, зауважте, що засіб автоматичного монтування читає основну карту "
+"лише під час запуску, отже якщо до ssd.conf внесено будь-які пов’язані з "
+"autofs зміни, типово слід перезапустити фонову службу автоматичного "
+"монтування після перезапуску SSSD."

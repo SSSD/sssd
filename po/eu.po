@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-10-05 19:20+0200\n"
-"PO-Revision-Date: 2012-08-01 21:07+0000\n"
+"POT-Creation-Date: 2012-10-12 21:15+0200\n"
+"PO-Revision-Date: 2012-10-05 17:31+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Basque (http://www.transifex.com/projects/p/fedora/language/"
 "eu/)\n"
@@ -1033,22 +1033,22 @@ msgstr "Inprimatu bertsio zenbakia eta irten"
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1865 src/providers/ldap/ldap_child.c:407
+#: src/providers/krb5/krb5_child.c:1894 src/providers/ldap/ldap_child.c:432
 #: src/util/util.h:94
 msgid "Debug level"
 msgstr "Arazketa maila"
 
-#: src/providers/krb5/krb5_child.c:1867 src/providers/ldap/ldap_child.c:409
+#: src/providers/krb5/krb5_child.c:1896 src/providers/ldap/ldap_child.c:434
 #: src/util/util.h:98
 msgid "Add debug timestamps"
 msgstr "Gehitu arazketako data-zigiluak"
 
-#: src/providers/krb5/krb5_child.c:1869 src/providers/ldap/ldap_child.c:411
+#: src/providers/krb5/krb5_child.c:1898 src/providers/ldap/ldap_child.c:436
 #: src/util/util.h:100
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1871 src/providers/ldap/ldap_child.c:413
+#: src/providers/krb5/krb5_child.c:1900 src/providers/ldap/ldap_child.c:438
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
@@ -1056,89 +1056,89 @@ msgstr ""
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: src/sss_client/common.c:926
+#: src/sss_client/common.c:947
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:929
+#: src/sss_client/common.c:950
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:932
+#: src/sss_client/common.c:953
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:935
+#: src/sss_client/common.c:956
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:940
+#: src/sss_client/common.c:961
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:946
+#: src/sss_client/common.c:967
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:375
+#: src/sss_client/pam_sss.c:387
 msgid "Passwords do not match"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:575
 msgid "Password reset by root is not supported."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:604
+#: src/sss_client/pam_sss.c:616
 msgid "Authenticated with cached credentials"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:605
+#: src/sss_client/pam_sss.c:617
 msgid ", your cached password will expire at: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:635
+#: src/sss_client/pam_sss.c:647
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:681
+#: src/sss_client/pam_sss.c:693
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:730
+#: src/sss_client/pam_sss.c:742
 msgid "Authentication is denied until: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:751
+#: src/sss_client/pam_sss.c:763
 msgid "System is offline, password change not possible"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:781 src/sss_client/pam_sss.c:794
+#: src/sss_client/pam_sss.c:793 src/sss_client/pam_sss.c:806
 msgid "Password change failed. "
 msgstr "Huts egin du pasahitza aldatzeak. "
 
-#: src/sss_client/pam_sss.c:784 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:807
 msgid "Server message: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1213
+#: src/sss_client/pam_sss.c:1231
 msgid "New Password: "
 msgstr "Pasahitz berria: "
 
-#: src/sss_client/pam_sss.c:1214
+#: src/sss_client/pam_sss.c:1232
 msgid "Reenter new Password: "
 msgstr "Berriz sartu pasahitz berria: "
 
-#: src/sss_client/pam_sss.c:1300
+#: src/sss_client/pam_sss.c:1318
 msgid "Password: "
 msgstr "Pasahitza: "
 
-#: src/sss_client/pam_sss.c:1332
+#: src/sss_client/pam_sss.c:1350
 msgid "Current Password: "
 msgstr "Uneko pasahitza: "
 
-#: src/sss_client/pam_sss.c:1479
+#: src/sss_client/pam_sss.c:1497
 msgid "Password expired. Change your password now."
 msgstr "Pasahitza iraungita. Aldatu zure pasahitza orain."
 
