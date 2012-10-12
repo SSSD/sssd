@@ -150,7 +150,7 @@ set_child_debugging(krb5_context ctx)
     krb5_error_ctx = ctx;
 
     if (debug_level & SSSDBG_TRACE_ALL) {
-        kerr = krb5_set_trace_callback(ctx, sss_child_krb5_trace_cb, NULL);
+        kerr = sss_child_set_krb5_tracing(ctx);
         if (kerr) {
             LDAP_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
             return EIO;

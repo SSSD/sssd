@@ -167,8 +167,7 @@ typedef krb5_ticket_times sss_krb5_ticket_times;
 typedef krb5_times sss_krb5_ticket_times;
 #endif
 
-void
-sss_child_krb5_trace_cb(krb5_context context,
-                        const struct krb5_trace_info *info, void *data);
+/* Redirect libkrb5 tracing towards our DEBUG statements */
+errno_t sss_child_set_krb5_tracing(krb5_context ctx);
 
 #endif /* __SSS_KRB5_H__ */

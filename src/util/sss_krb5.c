@@ -964,7 +964,8 @@ sss_krb5_residual_check_type(const char *full_location,
     return sss_krb5_residual_by_type(full_location, type);
 }
 
-void
+#ifdef HAVE_KRB5_SET_TRACE_CALLBACK
+static void
 sss_child_krb5_trace_cb(krb5_context context,
                         const struct krb5_trace_info *info, void *data)
 {
@@ -975,3 +976,17 @@ sss_child_krb5_trace_cb(krb5_context context,
 
     DEBUG(SSSDBG_TRACE_ALL, ("%s\n", info->message));
 }
+
+errno_t
+sss_child_set_krb5_tracing(krb5_context ctx)
+{
+    return krb5_set_trace_callback(ctx, sss_child_krb5_trace_cb, NULL);
+}
+#else /* HAVE_KRB5_SET_TRACE_CALLBACK */
+errno_t
+sss_child_set_krb5_tracing(krb5_context ctx)
+{
+    DEBUG(SSSDBG_CONF_SETTINGS, ("krb5 tracing is not available\n"));
+    return 0;
+}
+#endif /* HAVE_KRB5_SET_TRACE_CALLBACK */
