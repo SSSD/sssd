@@ -97,6 +97,12 @@ int main(int argc, const char **argv)
                         ret, fini);
     }
 
+    /* No more arguments expected. If something follows it is an error. */
+    if (poptGetArg(pc)) {
+        BAD_POPT_PARAMS(pc, _("Only one argument expected\n"),
+                        ret, fini);
+    }
+
     /* get config file */
     if (pc_config_file) {
         config_file = talloc_strdup(ctx, pc_config_file);
