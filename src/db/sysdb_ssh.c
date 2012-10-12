@@ -28,29 +28,16 @@ sysdb_update_ssh_host(struct sysdb_ctx *sysdb,
                       const char *name,
                       struct sysdb_attrs *attrs)
 {
-    TALLOC_CTX *tmp_ctx;
     errno_t ret;
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("Updating host %s\n", name));
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
 
     ret = sysdb_store_custom(sysdb, name, SSH_HOSTS_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Error storing host %s [%d]: %s\n", name, ret, strerror(ret)));
-        goto done;
+        return ret;
     }
 
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
+    return EOK;
 }
 
 errno_t
@@ -69,9 +56,24 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
     struct ldb_message_element *el;
     unsigned int i;
 
+    DEBUG(SSSDBG_TRACE_FUNC, ("Storing host %s\n", name));
+
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
+
+    in_transaction = true;
+
+    ret = sysdb_get_ssh_host(tmp_ctx, sysdb, name, search_attrs, &host);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, SYSDB_SSH_HOST_OC);
@@ -91,20 +93,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
     if (alias) {
         new_alias = true;
 
-        ret = sysdb_transaction_start(sysdb);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
-            goto done;
-        }
-
-        in_transaction = true;
-
         /* copy aliases from the existing entry */
-        ret = sysdb_get_ssh_host(tmp_ctx, sysdb, name, search_attrs, &host);
-        if (ret != EOK && ret != ENOENT) {
-            goto done;
-        }
-
         if (host) {
             el = ldb_msg_find_element(host, SYSDB_NAME_ALIAS);
 
@@ -138,6 +127,17 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
         }
     }
 
+    /* make sure sshPublicKey is present when modifying an existing host */
+    if (host) {
+        ret = sysdb_attrs_get_el(attrs, SYSDB_SSH_PUBKEY, &el);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not get sysdb sshPublicKey [%d]: %s\n",
+                   ret, strerror(ret)));
+            goto done;
+        }
+    }
+
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -151,15 +151,13 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    if (in_transaction) {
-        ret = sysdb_transaction_commit(sysdb);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
-            goto done;
-        }
-
-        in_transaction = false;
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
     }
+
+    in_transaction = false;
 
     ret = EOK;
 
