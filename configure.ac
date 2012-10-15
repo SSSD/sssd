@@ -16,6 +16,8 @@ AC_CONFIG_AUX_DIR([build])
 
 AM_INIT_AUTOMAKE([-Wall foreign subdir-objects tar-pax])
 AM_PROG_CC_C_O
+m4_pattern_allow([AM_PROG_AR])
+AM_PROG_AR
 AC_DISABLE_STATIC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
