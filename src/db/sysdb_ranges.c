@@ -64,8 +64,11 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto done;
     }
 
+    /* Ranges are stored in the tree of the parent domain */
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_RANGE_BASE,
-                            sysdb->domain->name);
+                            sysdb->domain->parent != NULL ?
+                                sysdb->domain->parent->name :
+                                sysdb->domain->name);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
