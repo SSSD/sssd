@@ -88,7 +88,7 @@ int main(int argc, const char **argv)
             goto fini;
         }
     }
-    debug_level = debug_convert_old_level(pc_debug);
+    DEBUG_INIT(pc_debug);
 
     /* get debug level */
     debug_as_string = poptGetArg(pc);

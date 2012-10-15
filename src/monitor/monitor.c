@@ -2497,7 +2497,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
+    DEBUG_INIT(debug_level);
 
     if (opt_version) {
         puts(VERSION""DISTRO_VERSION""PRERELEASE_VERSION);

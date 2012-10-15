@@ -2388,8 +2388,7 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
-
+    DEBUG_INIT(debug_level);
 
     /* set up things like debug , signals, daemonization, etc... */
     debug_log_file = talloc_asprintf(NULL, "sssd_%s", be_domain);

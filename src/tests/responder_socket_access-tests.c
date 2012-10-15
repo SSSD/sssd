@@ -163,7 +163,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
+    DEBUG_INIT(debug_level);
     tests_set_cwd();
 
     Suite *s = responder_test_suite();

@@ -2078,7 +2078,7 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    CONVERT_AND_SET_DEBUG_LEVEL(debug_level);
+    DEBUG_INIT(debug_level);
 
     debug_prg_name = talloc_asprintf(NULL, "[sssd[krb5_child[%d]]]", getpid());
     if (!debug_prg_name) {

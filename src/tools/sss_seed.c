@@ -521,7 +521,7 @@ static int seed_init(TALLOC_CTX *mem_ctx,
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
-    debug_level = debug_convert_old_level(pc_debug);
+    DEBUG_INIT(pc_debug);
 
     CHECK_ROOT(ret, argv[0]);
 

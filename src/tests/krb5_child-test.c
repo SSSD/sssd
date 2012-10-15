@@ -477,7 +477,7 @@ main(int argc, const char *argv[])
         }
     }
 
-    debug_level = debug_convert_old_level(pc_debug);
+    DEBUG_INIT(pc_debug);
 
     if (opt != -1) {
         poptPrintUsage(pc, stderr, 0);

@@ -111,7 +111,7 @@ int main(int argc, const char **argv)
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
-    debug_level = debug_convert_old_level(pc_debug);
+    DEBUG_INIT(pc_debug);
 
     /* username is an argument without --option */
     pc_username = poptGetArg(pc);

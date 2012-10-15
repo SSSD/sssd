@@ -100,7 +100,7 @@ int main(int argc, const char **argv)
         BAD_POPT_PARAMS(pc, _("Specify group to modify\n"), ret, fini);
     }
 
-    debug_level = debug_convert_old_level(pc_debug);
+    DEBUG_INIT(pc_debug);
 
     CHECK_ROOT(ret, debug_prg_name);
 

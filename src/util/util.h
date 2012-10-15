@@ -194,11 +194,15 @@ errno_t set_debug_file_from_fd(const int fd);
 */
 #define DEBUG_IS_SET(level) (debug_level & (level))
 
-#define CONVERT_AND_SET_DEBUG_LEVEL(new_value) debug_level = ( \
-    ((new_value) != SSSDBG_INVALID) \
-    ? debug_convert_old_level(new_value) \
-    : SSSDBG_UNRESOLVED /* Debug level should be loaded from config file. */ \
-);
+#define DEBUG_INIT(dbg_lvl) do { \
+    if (dbg_lvl != SSSDBG_INVALID) { \
+        debug_level = debug_convert_old_level(dbg_lvl); \
+    } else { \
+        debug_level = SSSDBG_UNRESOLVED; \
+    } \
+\
+    talloc_set_log_fn(talloc_log_fn); \
+} while (0)
 
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)
@@ -341,6 +345,7 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
 int open_debug_file_ex(const char *filename, FILE **filep);
 int open_debug_file(void);
 int rotate_debug_files(void);
+void talloc_log_fn(const char *msg);
 
 /* From sss_log.c */
 #define SSS_LOG_EMERG   0   /* system is unusable */

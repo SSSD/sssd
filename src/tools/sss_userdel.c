@@ -173,7 +173,7 @@ int main(int argc, const char **argv)
         }
     }
 
-    debug_level = debug_convert_old_level(pc_debug);
+    DEBUG_INIT(pc_debug);
 
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);

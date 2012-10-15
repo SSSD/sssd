@@ -414,7 +414,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
                 ret, fini);
     }
 
-    debug_level = debug_convert_old_level(debug);
+    DEBUG_INIT(debug);
     debug_prg_name = argv[0];
     CHECK_ROOT(ret, debug_prg_name);
 
