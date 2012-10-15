@@ -231,6 +231,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
     struct ldb_message *msg;
     struct passwd *pwd = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
+    struct sysdb_attrs *user_attrs = NULL;
 
     sysdb = pr_ctx->dom->sysdb;
     if (sysdb == NULL) {
@@ -252,7 +253,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         /* TODO: check id uid and gid are equal. */
     } else if (ret == ENOENT) {
         ret = get_pwd_from_pac(tmp_ctx, pr_ctx->pac_ctx, pr_ctx->dom,
-                               pr_ctx->logon_info, &pwd);
+                               pr_ctx->logon_info, &pwd, &user_attrs);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("get_pwd_from_pac failed.\n"));
             goto done;
@@ -261,7 +262,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         ret = sysdb_store_user(sysdb, pwd->pw_name, NULL,
                                pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
                                pwd->pw_dir,
-                               pwd->pw_shell, NULL, NULL,
+                               pwd->pw_shell, user_attrs, NULL,
                                pr_ctx->dom->user_timeout, 0);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_user failed [%d][%s].\n",
