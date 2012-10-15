@@ -990,3 +990,17 @@ sss_child_set_krb5_tracing(krb5_context ctx)
     return 0;
 }
 #endif /* HAVE_KRB5_SET_TRACE_CALLBACK */
+
+krb5_error_code sss_krb5_find_authdata(krb5_context context,
+                                       krb5_authdata *const *ticket_authdata,
+                                       krb5_authdata *const *ap_req_authdata,
+                                       krb5_authdatatype ad_type,
+                                       krb5_authdata ***results)
+{
+#ifdef HAVE_KRB5_FIND_AUTHDATA
+    return krb5_find_authdata(context, ticket_authdata, ap_req_authdata,
+                              ad_type, results);
+#else
+    return ENOTSUP;
+#endif
+}
