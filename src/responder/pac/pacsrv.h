@@ -104,5 +104,6 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
                          struct pac_ctx *pac_ctx,
                          struct sss_domain_info *dom,
                          struct PAC_LOGON_INFO *logon_info,
-                         struct passwd **_pwd);
+                         struct passwd **_pwd,
+                         struct sysdb_attrs **_attrs);
 #endif /* __PACSRV_H__ */

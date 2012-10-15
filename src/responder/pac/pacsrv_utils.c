@@ -495,11 +495,15 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
                          struct pac_ctx *pac_ctx,
                          struct sss_domain_info *dom,
                          struct PAC_LOGON_INFO *logon_info,
-                         struct passwd **_pwd)
+                         struct passwd **_pwd,
+                         struct sysdb_attrs **_attrs)
 {
     struct passwd *pwd = NULL;
+    struct sysdb_attrs *attrs = NULL;
     struct netr_SamBaseInfo *base_info;
     int ret;
+    char *uc_realm;
+    char *upn;
 
     pwd = talloc_zero(mem_ctx, struct passwd);
     if (pwd == NULL) {
@@ -565,7 +569,43 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
 
     pwd->pw_shell = NULL; /* Using default */
 
+    attrs = sysdb_new_attrs(mem_ctx);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    uc_realm = get_uppercase_realm(mem_ctx, dom->name);
+    if (uc_realm == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("get_uppercase_realm failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    upn = talloc_asprintf(mem_ctx, "%s@%s", pwd->pw_name, uc_realm);
+    talloc_free(uc_realm);
+    if (upn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, upn);
+    talloc_free(upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, pwd->pw_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        goto done;
+    }
+
     *_pwd = pwd;
+    *_attrs = attrs;
 
     ret = EOK;
 
