@@ -167,7 +167,8 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
     char *endptr;
     struct passwd *pwd;
 
-    ret = split_on_separator(mem_ctx, cvs_string, ',', true, &list, &list_size);
+    ret = split_on_separator(mem_ctx, cvs_string, ',', true, false,
+                             &list, &list_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("split_on_separator failed [%d][%s].\n",
                                   ret, strerror(ret)));

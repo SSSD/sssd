@@ -599,7 +599,7 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         goto done;
     }
 
-    ret = split_on_separator(ctx, values[0], ',', true, result, NULL);
+    ret = split_on_separator(ctx, values[0], ',', true, true, result, NULL);
 
 done:
     talloc_free(values);

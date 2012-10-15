@@ -89,7 +89,7 @@ struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
     conf_ip_addr = dp_opt_get_string(opts->basic, SDAP_SUDO_IP);
 
     if (conf_hostnames != NULL) {
-        ret = split_on_separator(state, conf_hostnames, ' ', true,
+        ret = split_on_separator(state, conf_hostnames, ' ', true, true,
                                  &state->hostnames, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -102,7 +102,7 @@ struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
     }
 
     if (conf_ip_addr != NULL) {
-        ret = split_on_separator(state, conf_ip_addr, ' ', true,
+        ret = split_on_separator(state, conf_ip_addr, ' ', true, true,
                                  &state->ip_addr, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,

@@ -561,7 +561,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = split_on_separator(tmp_ctx, unparsed_base, '?', false,
+    ret = split_on_separator(tmp_ctx, unparsed_base, '?', false, false,
                              &split_bases, &count);
     if (ret != EOK) goto done;
 
@@ -1214,7 +1214,7 @@ errno_t sdap_urls_init(struct be_ctx *ctx,
 
 
     /* split server parm into a list */
-    ret = split_on_separator(tmp_ctx, urls, ',', true, &list, NULL);
+    ret = split_on_separator(tmp_ctx, urls, ',', true, true, &list, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to parse server list!\n"));
         goto done;

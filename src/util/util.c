@@ -27,118 +27,97 @@
 #include "util/sss_utf8.h"
 #include "dhash.h"
 
-/* split a string into an allocated array of strings.
- * the separator is a string, and is case-sensitive.
- * optionally single values can be trimmed of of spaces and tabs */
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
-                       const char sep, bool trim, char ***_list, int *size)
+                       const char sep, bool trim, bool skip_empty,
+                       char ***_list, int *size)
 {
-    const char *t, *p, *n;
-    size_t l, len;
-    char **list, **r;
-    const char sep_str[2] = { sep, '\0'};
+    int ret;
+    const char *substr_end = str;
+    const char *substr_begin = str;
+    const char *sep_pos = NULL;
+    size_t substr_len;
+    char **list = NULL;
+    int num_strings = 0;
+    TALLOC_CTX *tmp_ctx = NULL;
 
-    if (!str || !*str || !_list) return EINVAL;
-
-    t = str;
-
-    list = NULL;
-    l = 0;
-
-    /* trim leading whitespace */
-    if (trim)
-        while (isspace(*t)) t++;
-
-    /* find substrings separated by the separator */
-    while (t && (p = strpbrk(t, sep_str))) {
-        len = p - t;
-        n = p + 1; /* save next string starting point */
-        if (trim) {
-            /* strip whitespace after the separator
-             * so it's not in the next token */
-            while (isspace(*t)) {
-                t++;
-                len--;
-                if (len == 0) break;
-            }
-            p--;
-            /* strip whitespace before the separator
-             * so it's not in the current token */
-            while (len > 0 && (isspace(*p))) {
-                len--;
-                p--;
-            }
-        }
-
-        /* Add the token to the array, +2 b/c of the trailing NULL */
-        r = talloc_realloc(mem_ctx, list, char *, l + 2);
-        if (!r) {
-            talloc_free(list);
-            return ENOMEM;
-        } else {
-            list = r;
-        }
-
-        if (len == 0) {
-            list[l] = talloc_strdup(list, "");
-        } else {
-            list[l] = talloc_strndup(list, t, len);
-        }
-        if (!list[l]) {
-            talloc_free(list);
-            return ENOMEM;
-        }
-        l++;
-
-        t = n; /* move to next string */
+    if (str == NULL || *str == '\0' || _list == NULL) {
+        return EINVAL;
     }
 
-    /* Handle the last remaining token */
-    if (t) {
-        r = talloc_realloc(mem_ctx, list, char *, l + 2);
-        if (!r) {
-            talloc_free(list);
-            return ENOMEM;
-        } else {
-            list = r;
-        }
-
-        if (trim) {
-            /* trim leading whitespace */
-            len = strlen(t);
-            while (isspace(*t)) {
-                t++;
-                len--;
-                if (len == 0) break;
-            }
-            /* trim trailing whitespace */
-            p = t + len - 1;
-            while (len > 0 && (isspace(*p))) {
-                len--;
-                p--;
-            }
-
-            if (len == 0) {
-                list[l] = talloc_strdup(list, "");
-            } else {
-                list[l] = talloc_strndup(list, t, len);
-            }
-        } else {
-            list[l] = talloc_strdup(list, t);
-        }
-        if (!list[l]) {
-            talloc_free(list);
-            return ENOMEM;
-        }
-        l++;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
     }
 
-    list[l] = NULL; /* terminate list */
+    do {
+        substr_len = 0;
 
-    if (size) *size = l;
-    *_list = list;
+        /* If this is not the first substring, then move from the separator. */
+        if (sep_pos != NULL) {
+            substr_end = sep_pos + 1;
+            substr_begin = sep_pos + 1;
+        }
 
-    return EOK;
+        /* Find end of the first substring */
+        while (*substr_end != sep && *substr_end != '\0') {
+            substr_end++;
+            substr_len++;
+        }
+
+        sep_pos = substr_end;
+
+        if (trim) {
+            /* Trim leading whitespace */
+            while (isspace(*substr_begin) && substr_begin < substr_end) {
+                substr_begin++;
+                substr_len--;
+            }
+
+            /* Trim trailing whitespace */
+            while (substr_end - 1 > substr_begin && isspace(*(substr_end-1))) {
+                substr_end--;
+                substr_len--;
+            }
+        }
+
+        /* Copy the substring to the output list of strings */
+        if (skip_empty == false || substr_len > 0) {
+            list = talloc_realloc(tmp_ctx, list, char*, num_strings + 2);
+            if (list == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            /* empty string is stored for substr_len == 0 */
+            list[num_strings] = talloc_strndup(list, substr_begin, substr_len);
+            if (list[num_strings] == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            num_strings++;
+        }
+
+    } while (*sep_pos != '\0');
+
+    if (list == NULL) {
+        /* No allocations were done, make space for the NULL */
+        list = talloc(tmp_ctx, char *);
+        if (list == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    list[num_strings] = NULL;
+
+    if (size) {
+        *size = num_strings;
+    }
+
+    *_list = talloc_steal(mem_ctx, list);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static void free_args(char **args)

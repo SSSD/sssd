@@ -718,6 +718,96 @@ START_TEST(test_atomicio_read_from_empty_file)
 }
 END_TEST
 
+struct split_data {
+    const char *input;
+    const char **expected_list;
+    bool trim;
+    bool skip_empty;
+    int expected_size;
+    int expected_ret;
+};
+
+START_TEST(test_split_on_separator)
+{
+    TALLOC_CTX *mem = global_talloc_context;
+    errno_t ret;
+    char **list = NULL;
+    int size;
+    const char *str_ref;
+    const char *str_out;
+    int i;
+    int a;
+    int num_of_tests;
+    struct split_data sts[] = {
+        {
+            "one,two,three", /* input string */
+            (const char *[]){"one", "two", "three", NULL}, /* expec. output list */
+            false, false, /* trim, skip_empty */
+            3, 0 /* expec. size, expec. retval */
+        },
+        {
+            "one,two,three",
+            (const char *[]){"one", "two", "three", NULL},
+            true, true,
+            3, 0
+        },
+        {
+            "  one,  two   ,three ",
+            (const char*[]){"one", "two", "three", NULL},
+            true, true,
+            3, 0
+        },
+        {
+            /* If skip empty is false, single comma means "empty,empty" */
+            ",",
+            (const char*[]){"", "", NULL, NULL},
+            false, false,
+            2, 0
+        },
+        {
+            "one,  ,",
+            (const char*[]){"one", "  ", "NULL", "NULL"},
+            false, true,
+            2, 0
+        },
+        {
+            ", ,,",
+            (const char*[]){NULL},
+            true, true,
+            0, 0
+        },
+        {
+            NULL,
+            NULL,
+            false, false,
+            0, EINVAL
+        },
+    };
+    num_of_tests = sizeof(sts) / sizeof(struct split_data);
+
+    for (a = 0; a < num_of_tests; a++) {
+        ret = split_on_separator(mem, sts[a].input, ',', sts[a].trim,
+                                 sts[a].skip_empty, &list, &size);
+
+        fail_unless(ret == sts[a].expected_ret,
+                    "split_on_separator failed [%d]: %s\n", ret,
+                    strerror(ret));
+        if (ret) {
+            continue;
+        }
+        fail_unless(size == sts[a].expected_size, "Returned wrong size %d "
+                    "(expected %d).\n", size, sts[a].expected_size);
+
+        for (i = 0; str_ref = sts[a].expected_list[i], str_out = list[i]; i++) {
+            fail_unless(strcmp(str_ref, str_out) == 0,
+                        "Expected:%s Got:%s\n", str_ref, str_out);
+        }
+        talloc_free(list);
+        list = NULL;
+    }
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -733,6 +823,7 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_parse_args);
     tcase_add_test (tc_util, test_add_string_to_list);
     tcase_add_test (tc_util, test_string_in_list);
+    tcase_add_test (tc_util, test_split_on_separator);
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");

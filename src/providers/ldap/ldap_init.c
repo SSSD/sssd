@@ -294,7 +294,7 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         order = "filter";
     }
 
-    ret = split_on_separator(access_ctx, order, ',', true,
+    ret = split_on_separator(access_ctx, order, ',', true, true,
                              &order_list, &order_list_len);
     if (ret != EOK) {
         DEBUG(1, ("split_on_separator failed.\n"));

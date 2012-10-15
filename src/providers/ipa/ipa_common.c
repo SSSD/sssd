@@ -770,7 +770,7 @@ errno_t ipa_servers_init(struct be_ctx *ctx,
     }
 
     /* split server parm into a list */
-    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
+    ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
         goto done;
