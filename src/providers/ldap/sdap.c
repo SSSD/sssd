@@ -746,7 +746,7 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
      * a zero-length namingContexts value in some situations. In this
      * case, we should return it as NULL so things fail gracefully.
      */
-    if (naming_context[0] == '\0') {
+    if (naming_context && naming_context[0] == '\0') {
         talloc_zfree(naming_context);
     }
 
