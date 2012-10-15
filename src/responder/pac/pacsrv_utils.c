@@ -167,13 +167,6 @@ errno_t domsid_rid_to_uid(struct pac_ctx *pac_ctx,
         return ENOMEM;
     }
 
-    err = sss_idmap_smb_sid_to_sid(pac_ctx->idmap_ctx, domsid, &sid_str);
-    if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_smb_sid_to_sid failed.\n"));
-        ret = EFAULT;
-        goto done;
-    }
-
     err = sss_idmap_sid_to_unix(pac_ctx->idmap_ctx, sid_str, &id);
     if (err == IDMAP_NO_DOMAIN) {
         ret = add_idmap_domain(pac_ctx->idmap_ctx, sysdb, domain_name,
