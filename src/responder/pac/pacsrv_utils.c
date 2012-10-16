@@ -510,10 +510,12 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     base_info = &logon_info->info3.base;
 
     if (base_info->account_name.size != 0) {
-        pwd->pw_name = talloc_strdup(pwd,
-                                     base_info->account_name.string);
+        /* To be compatible with winbind based lookups we have to use lower
+         * case names only, effectively making the domain case-insenvitive. */
+        pwd->pw_name = sss_tc_utf8_str_tolower(pwd,
+                                               base_info->account_name.string);
         if (pwd->pw_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_utf8_str_tolower failed.\n"));
             ret = ENOMEM;
             goto done;
         }

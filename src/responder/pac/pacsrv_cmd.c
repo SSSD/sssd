@@ -113,13 +113,21 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
         goto done;
     }
 
-    pr_ctx->user_name = pr_ctx->logon_info->info3.base.account_name.string;
-    if (pr_ctx->user_name == NULL) {
+    if (pr_ctx->logon_info->info3.base.account_name.string == NULL) {
         ret = EINVAL;
         DEBUG(SSSDBG_FATAL_FAILURE, ("Missing account name in PAC.\n"));
         goto done;
     }
 
+    /* To be compatible with winbind based lookups we have to use lower case
+     * names only, effectively making the domain case-insenvitive. */
+    pr_ctx->user_name = sss_tc_utf8_str_tolower(pr_ctx,
+                            pr_ctx->logon_info->info3.base.account_name.string);
+    if (pr_ctx->user_name == NULL) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_tc_utf8_str_tolower failed.\n"));
+        goto done;
+    }
 
     pr_ctx->dom = responder_get_domain(pr_ctx, cctx->rctx, pr_ctx->domain_name);
     if (pr_ctx->dom == NULL) {
