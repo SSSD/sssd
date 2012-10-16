@@ -346,6 +346,26 @@ static struct sss_mc_rec *sss_mc_get_record(struct sss_mc_ctx *mcc,
     return rec;
 }
 
+static inline void sss_mmap_set_rec_header(struct sss_mc_ctx *mcc,
+                                           struct sss_mc_rec *rec,
+                                           size_t len, int ttl,
+                                           const char *key1, size_t key1_len,
+                                           const char *key2, size_t key2_len)
+{
+    rec->len = len;
+    rec->expire = time(NULL) + ttl;
+    rec->hash1 = sss_mc_hash(mcc, key1, key1_len);
+    rec->hash2 = sss_mc_hash(mcc, key2, key2_len);
+}
+
+static inline void sss_mmap_chain_in_rec(struct sss_mc_ctx *mcc,
+                                         struct sss_mc_rec *rec)
+{
+    /* name first */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash1);
+    /* then uid/gid */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash2);
+}
 
 /***************************************************************************
  * passwd map
@@ -390,10 +410,8 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
     MC_RAISE_BARRIER(rec);
 
     /* header */
-    rec->len = rec_len;
-    rec->expire = time(NULL) + mcc->valid_time_slot;
-    rec->hash1 = sss_mc_hash(mcc, name->str, name->len);
-    rec->hash2 = sss_mc_hash(mcc, uidkey.str, uidkey.len);
+    sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
+                            name->str, name->len, uidkey.str, uidkey.len);
 
     /* passwd struct */
     data->name = MC_PTR_DIFF(data->strs, data);
@@ -414,10 +432,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
     MC_LOWER_BARRIER(rec);
 
     /* finally chain the rec in the hash table */
-    /* name hash first */
-    sss_mc_add_rec_to_chain(mcc, rec, rec->hash1);
-    /* then uid */
-    sss_mc_add_rec_to_chain(mcc, rec, rec->hash2);
+    sss_mmap_chain_in_rec(mcc, rec);
 
     return EOK;
 }
@@ -464,10 +479,8 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
     MC_RAISE_BARRIER(rec);
 
     /* header */
-    rec->len = rec_len;
-    rec->expire = time(NULL) + mcc->valid_time_slot;
-    rec->hash1 = sss_mc_hash(mcc, name->str, name->len);
-    rec->hash2 = sss_mc_hash(mcc, gidkey.str, gidkey.len);
+    sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
+                            name->str, name->len, gidkey.str, gidkey.len);
 
     /* group struct */
     data->name = MC_PTR_DIFF(data->strs, data);
@@ -484,10 +497,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
     MC_LOWER_BARRIER(rec);
 
     /* finally chain the rec in the hash table */
-    /* name hash first */
-    sss_mc_add_rec_to_chain(mcc, rec, rec->hash1);
-    /* then gid */
-    sss_mc_add_rec_to_chain(mcc, rec, rec->hash2);
+    sss_mmap_chain_in_rec(mcc, rec);
 
     return EOK;
 }
