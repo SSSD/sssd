@@ -212,6 +212,7 @@ struct sss_domain_info {
     const char *fallback_homedir;
     const char *subdomain_homedir;
     const char *override_shell;
+    const char *default_shell;
 
     uint32_t user_timeout;
     uint32_t group_timeout;

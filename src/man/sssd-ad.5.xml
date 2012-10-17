@@ -205,7 +205,8 @@ fallback_homedir = /home/%u
                         <para>
                             The default shell to use if the provider does not
                             return one during lookup. This option supersedes
-                            any other shell options if it takes effect.
+                            any other shell options if it takes effect and can
+                            be set either in the [nss] section or per-domain.
                         </para>
                         <para>
                             Default: not set (Return NULL if no shell is
