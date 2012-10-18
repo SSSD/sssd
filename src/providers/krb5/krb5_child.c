@@ -89,6 +89,7 @@ struct krb5_req {
     char *ccname;
     char *keytab;
     bool validate;
+    bool upn_from_different_realm;
     char *fast_ccname;
 
     const char *upn;
@@ -1359,6 +1360,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     size_t p = 0;
     uint32_t len;
     uint32_t validate;
+    uint32_t different_realm;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: [%d]\n", size));
 
@@ -1370,6 +1372,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     SAFEALIGN_COPY_UINT32_CHECK(&validate, buf + p, size, &p);
     kr->validate = (validate == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(offline, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&different_realm, buf + p, size, &p);
+    kr->upn_from_different_realm = (different_realm == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     if ((p + len ) > size) return EINVAL;
     kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
