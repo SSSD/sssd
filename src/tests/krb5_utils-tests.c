@@ -673,6 +673,47 @@ START_TEST(test_no_substitution)
 }
 END_TEST
 
+START_TEST(test_compare_principal_realm)
+{
+    int ret;
+    bool different_realm;
+
+    ret = compare_principal_realm(NULL, "a", &different_realm);
+    fail_unless(ret == EINVAL, "NULL upn does not cause EINVAL.");
+
+    ret = compare_principal_realm("a", NULL, &different_realm);
+    fail_unless(ret == EINVAL, "NULL realm does not cause EINVAL.");
+
+    ret = compare_principal_realm("a", "b", NULL);
+    fail_unless(ret == EINVAL, "NULL different_realmbool " \
+                               "does not cause EINVAL.");
+
+    ret = compare_principal_realm("", "a", &different_realm);
+    fail_unless(ret == EINVAL, "Empty upn does not cause EINVAL.");
+
+    ret = compare_principal_realm("a", "", &different_realm);
+    fail_unless(ret == EINVAL, "Empty realm does not cause EINVAL.");
+
+    ret = compare_principal_realm("ABC", "ABC", &different_realm);
+    fail_unless(ret == EINVAL, "Short UPN does not cause EINVAL.");
+
+    ret = compare_principal_realm("userABC", "ABC", &different_realm);
+    fail_unless(ret == EINVAL, "Missing '@' does not cause EINVAL.");
+
+    fail_unless(different_realm == false, "Same realm but " \
+                                          "different_realm is not false.");
+    ret = compare_principal_realm("user@ABC", "ABC", &different_realm);
+    fail_unless(ret == EOK, "Failure with same realm");
+    fail_unless(different_realm == false, "Same realm but " \
+                                          "different_realm is not false.");
+
+    ret = compare_principal_realm("user@ABC", "DEF", &different_realm);
+    fail_unless(ret == EOK, "Failure with different realm");
+    fail_unless(different_realm == true, "Different realm but " \
+                                          "different_realm is not true.");
+}
+END_TEST
+
 Suite *krb5_utils_suite (void)
 {
     Suite *s = suite_create ("krb5_utils");
@@ -712,6 +753,10 @@ Suite *krb5_utils_suite (void)
         printf("Run as root to enable more tests.\n");
     }
     suite_add_tcase (s, tc_create_dir);
+
+    TCase *tc_krb5_helpers = tcase_create("Helper functions");
+    tcase_add_test(tc_krb5_helpers, test_compare_principal_realm);
+    suite_add_tcase(s, tc_krb5_helpers);
 
     return s;
 }
