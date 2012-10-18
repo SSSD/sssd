@@ -502,8 +502,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                            struct tevent_context *ev,
                                            struct sdap_handle *sh,
                                            char *user_dn,
-                                           char *password,
-                                           char *new_password)
+                                           const char *password,
+                                           const char *new_password)
 {
     struct tevent_req *req = NULL;
     struct sdap_exop_modify_passwd_state *state;

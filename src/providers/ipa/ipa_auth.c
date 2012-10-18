@@ -332,7 +332,6 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     const char **attrs;
     struct ldb_message *user_msg;
     const char *dn;
-    struct dp_opt_blob password;
     int dp_err = DP_ERR_FATAL;
     int ret;
 
@@ -374,11 +373,8 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
         goto done;
     }
 
-    password.data = state->pd->authtok;
-    password.length = state->pd->authtok_size;
-
     req = sdap_auth_send(state, state->ev, state->sh, NULL, NULL, dn,
-                         "password", password);
+                         &state->pd->authtok);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_auth_send failed.\n"));
         goto done;

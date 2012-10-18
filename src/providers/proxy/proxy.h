@@ -89,11 +89,8 @@ struct proxy_nss_ops {
 };
 
 struct authtok_conv {
-    uint32_t authtok_size;
-    uint8_t *authtok;
-
-    uint32_t newauthtok_size;
-    uint8_t *newauthtok;
+    struct sss_auth_token authtok;
+    struct sss_auth_token newauthtok;
 
     bool sent_old;
 };

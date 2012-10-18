@@ -712,7 +712,7 @@ static void proxy_child_done(struct tevent_req *req)
     struct proxy_client_ctx *client_ctx =
             tevent_req_callback_data(req, struct proxy_client_ctx);
     struct pam_data *pd = NULL;
-    char *password;
+    const char *password;
     int ret;
     struct tevent_immediate *imm;
 
@@ -747,17 +747,15 @@ static void proxy_child_done(struct tevent_req *req)
 
     /* Check if we need to save the cached credentials */
     if ((pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) &&
-            pd->pam_status == PAM_SUCCESS &&
-            client_ctx->be_req->be_ctx->domain->cache_credentials) {
-        password = talloc_strndup(client_ctx->be_req,
-                                  (char *) pd->authtok,
-                                  pd->authtok_size);
-        if (!password) {
+        (pd->pam_status == PAM_SUCCESS) &&
+        client_ctx->be_req->be_ctx->domain->cache_credentials) {
+
+        ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+        if (ret) {
             /* password caching failures are not fatal errors */
             DEBUG(2, ("Failed to cache password\n"));
             goto done;
         }
-        talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
         ret = sysdb_cache_password(client_ctx->be_req->be_ctx->sysdb,
                                    pd->user, password);

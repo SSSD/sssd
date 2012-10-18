@@ -950,7 +950,7 @@ done:
 }
 
 static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
-                                        char *password)
+                                        const char *password)
 {
     krb5_error_code kerr = 0;
     int ret;
@@ -971,7 +971,8 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Attempting kinit for realm [%s]\n",realm_name));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        password, sss_krb5_prompter, kr, 0,
+                                        discard_const(password),
+                                        sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
@@ -1066,8 +1067,8 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 {
     int ret;
     krb5_error_code kerr = 0;
-    char *pass_str = NULL;
-    char *newpass_str = NULL;
+    const char *password = NULL;
+    const char *newpassword = NULL;
     int pam_status = PAM_SYSTEM_ERR;
     int result_code = -1;
     krb5_data result_code_string;
@@ -1082,16 +1083,11 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Password change operation\n"));
 
-    if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_PASSWORD) {
+    ret = sss_authtok_get_password(&kr->pd->authtok, &password, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to fetch current password [%d] %s.\n",
+                  ret, strerror(ret)));
         pam_status = PAM_CRED_INSUFFICIENT;
-        kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
-    }
-
-    pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
-                              kr->pd->authtok_size);
-    if (pass_str == NULL) {
-        DEBUG(1, ("talloc_strndup failed.\n"));
         kerr = KRB5KRB_ERR_GENERIC;
         goto sendresponse;
     }
@@ -1112,7 +1108,8 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Attempting kinit for realm [%s]\n",realm_name));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        pass_str, prompter, kr, 0,
+                                        discard_const(password),
+                                        prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                         chagepw_options);
     sss_krb5_get_init_creds_opt_free(kr->ctx, chagepw_options);
@@ -1121,9 +1118,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
-    memset(pass_str, 0, kr->pd->authtok_size);
-    talloc_zfree(pass_str);
-    memset(kr->pd->authtok, 0, kr->pd->authtok_size);
+    sss_authtok_set_empty(&kr->pd->authtok);
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -1134,17 +1129,18 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
-    newpass_str = talloc_strndup(kr, (const char *) kr->pd->newauthtok,
-                              kr->pd->newauthtok_size);
-    if (newpass_str == NULL) {
-        DEBUG(1, ("talloc_strndup failed.\n"));
+    ret = sss_authtok_get_password(&kr->pd->newauthtok, &newpassword, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to fetch new password [%d] %s.\n",
+                  ret, strerror(ret)));
         kerr = KRB5KRB_ERR_GENERIC;
         goto sendresponse;
     }
 
     memset(&result_code_string, 0, sizeof(krb5_data));
     memset(&result_string, 0, sizeof(krb5_data));
-    kerr = krb5_change_password(kr->ctx, kr->creds, newpass_str, &result_code,
+    kerr = krb5_change_password(kr->ctx, kr->creds,
+                                discard_const(newpassword), &result_code,
                                 &result_code_string, &result_string);
 
     if (kerr == KRB5_KDC_UNREACH) {
@@ -1200,10 +1196,9 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
 
-    kerr = get_and_save_tgt(kr, newpass_str);
-    memset(newpass_str, 0, kr->pd->newauthtok_size);
-    talloc_zfree(newpass_str);
-    memset(kr->pd->newauthtok, 0, kr->pd->newauthtok_size);
+    kerr = get_and_save_tgt(kr, newpassword);
+
+    sss_authtok_set_empty(&kr->pd->newauthtok);
 
     pam_status = kerr_to_status(kerr);
 
@@ -1220,28 +1215,21 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
 {
     int ret;
     krb5_error_code kerr = 0;
-    char *pass_str = NULL;
+    const char *password = NULL;
     int pam_status = PAM_SYSTEM_ERR;
     krb5_get_init_creds_opt *chagepw_options;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Attempting to get a TGT\n"));
 
-    if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_PASSWORD) {
+    ret = sss_authtok_get_password(&kr->pd->authtok, &password, NULL);
+    if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Unknown authtok type\n"));
         pam_status = PAM_CRED_INSUFFICIENT;
         kerr = KRB5KRB_ERR_GENERIC;
         goto sendresponse;
     }
 
-    pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
-                              kr->pd->authtok_size);
-    if (pass_str == NULL) {
-        DEBUG(1, ("talloc_strndup failed.\n"));
-        kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
-    }
-
-    kerr = get_and_save_tgt(kr, pass_str);
+    kerr = get_and_save_tgt(kr, password);
 
     /* If the password is expired the KDC will always return
        KRB5KDC_ERR_KEY_EXP regardless if the supplied password is correct or
@@ -1264,7 +1252,8 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         }
 
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                            pass_str, sss_krb5_prompter, kr, 0,
+                                            discard_const(password),
+                                            sss_krb5_prompter, kr, 0,
                                             SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                             chagepw_options);
 
@@ -1276,9 +1265,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         }
     }
 
-    memset(pass_str, 0, kr->pd->authtok_size);
-    talloc_zfree(pass_str);
-    memset(kr->pd->authtok, 0, kr->pd->authtok_size);
+    sss_authtok_set_empty(&kr->pd->authtok);
 
     pam_status = kerr_to_status(kerr);
 
@@ -1333,22 +1320,17 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
     int ret;
     int status = PAM_AUTHTOK_ERR;
     int kerr;
-    char *ccname;
+    const char *ccname;
     krb5_ccache ccache = NULL;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Renewing a ticket\n"));
 
-    if (kr->pd->authtok_type != SSS_AUTHTOK_TYPE_CCFILE) {
-        DEBUG(1, ("Unsupported authtok type for TGT renewal [%d].\n",
-                  kr->pd->authtok_type));
+    ret = sss_authtok_get_ccfile(&kr->pd->authtok, &ccname, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Unsupported authtok type for TGT renewal [%d].\n",
+               sss_authtok_get_type(&kr->pd->authtok)));
         kerr = EINVAL;
-        goto done;
-    }
-
-    ccname = talloc_strndup(kr, (char *) kr->pd->authtok, kr->pd->authtok_size);
-    if (ccname == NULL) {
-        DEBUG(1, ("talloc_strndup failed.\n"));
-        kerr = ENOMEM;
         goto done;
     }
 
@@ -1444,6 +1426,38 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
     return ret;
 }
 
+static errno_t unpack_authtok(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
+                              uint8_t *buf, size_t size, size_t *p)
+{
+    uint32_t auth_token_type;
+    uint32_t auth_token_length;
+    errno_t ret = EOK;
+
+    SAFEALIGN_COPY_UINT32_CHECK(&auth_token_type, buf + *p, size, p);
+    SAFEALIGN_COPY_UINT32_CHECK(&auth_token_length, buf + *p, size, p);
+    if ((*p + auth_token_length) > size) {
+        return EINVAL;
+    }
+    switch (auth_token_type) {
+    case SSS_AUTHTOK_TYPE_EMPTY:
+        sss_authtok_set_empty(tok);
+        break;
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+        ret = sss_authtok_set_password(mem_ctx, tok, (char *)(buf + *p), 0);
+        break;
+    case SSS_AUTHTOK_TYPE_CCFILE:
+        ret = sss_authtok_set_ccfile(mem_ctx, tok, (char *)(buf + *p), 0);
+        break;
+    default:
+        return EINVAL;
+    }
+
+    if (ret == EOK) {
+        *p += auth_token_length;
+    }
+    return ret;
+}
+
 static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
                              struct krb5_req *kr, uint32_t *offline)
 {
@@ -1451,6 +1465,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     uint32_t len;
     uint32_t validate;
     uint32_t different_realm;
+    errno_t ret;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: [%d]\n", size));
 
@@ -1491,35 +1506,26 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
         if (kr->keytab == NULL) return ENOMEM;
         p += len;
 
-        SAFEALIGN_COPY_UINT32_CHECK(&pd->authtok_type, buf + p, size, &p);
-        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-        if ((p + len) > size) return EINVAL;
-        pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
-        if (pd->authtok == NULL) return ENOMEM;
-        pd->authtok_size = len + 1;
-        p += len;
+        ret = unpack_authtok(pd, &pd->authtok, buf, size, &p);
+        if (ret) {
+            return ret;
+        }
 
         DEBUG(SSSDBG_CONF_SETTINGS, ("ccname: [%s] keytab: [%s]\n",
               kr->ccname, kr->keytab));
     } else {
         kr->ccname = NULL;
         kr->keytab = NULL;
-        pd->authtok = NULL;
-        pd->authtok_size = 0;
+        sss_authtok_set_empty(&pd->authtok);
     }
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        SAFEALIGN_COPY_UINT32_CHECK(&pd->newauthtok_type, buf + p, size, &p);
-        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-
-        if ((p + len) > size) return EINVAL;
-        pd->newauthtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
-        if (pd->newauthtok == NULL) return ENOMEM;
-        pd->newauthtok_size = len + 1;
-        p += len;
+        ret = unpack_authtok(pd, &pd->newauthtok, buf, size, &p);
+        if (ret) {
+            return ret;
+        }
     } else {
-        pd->newauthtok = NULL;
-        pd->newauthtok_size = 0;
+        sss_authtok_set_empty(&pd->newauthtok);
     }
 
     if (pd->cmd == SSS_PAM_ACCT_MGMT) {

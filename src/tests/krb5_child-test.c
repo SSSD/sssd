@@ -167,6 +167,9 @@ create_dummy_pam_data(TALLOC_CTX *mem_ctx, const char *user,
                       const char *password)
 {
     struct pam_data *pd;
+    const char *authtok;
+    size_t authtok_len;
+    errno_t ret;
 
     pd = talloc_zero(mem_ctx, struct pam_data);
     if (!pd) goto fail;
@@ -175,12 +178,12 @@ create_dummy_pam_data(TALLOC_CTX *mem_ctx, const char *user,
     pd->user = talloc_strdup(pd, user);
     if (!pd->user) goto fail;
 
-    pd->authtok = discard_const(talloc_strdup(pd, password));
-    if (!pd->authtok) goto fail;
-    pd->authtok_size = strlen(password);
-    pd->authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+    ret = sss_authtok_set_password(pd, &pd->authtok, password, 0);
+    if (ret) goto fail;
+
+    (void)sss_authtok_get_password(&pd->authtok, &authtok, &authtok_len);
     DEBUG(SSSDBG_FUNC_DATA, ("Authtok [%s] len [%d]\n",
-          pd->authtok, pd->authtok_size));
+                             authtok, (int)authtok_len));
 
     return pd;
 

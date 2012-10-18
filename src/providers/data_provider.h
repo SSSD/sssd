@@ -41,6 +41,7 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
 #include "sss_client/sss_cli.h"
+#include "util/authtok.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
@@ -169,18 +170,14 @@ struct response_data {
 
 struct pam_data {
     int cmd;
-    uint32_t authtok_type;
-    uint32_t authtok_size;
-    uint32_t newauthtok_type;
-    uint32_t newauthtok_size;
     char *domain;
     char *user;
     char *service;
     char *tty;
     char *ruser;
     char *rhost;
-    uint8_t *authtok;
-    uint8_t *newauthtok;
+    struct sss_auth_token authtok;
+    struct sss_auth_token newauthtok;
     uint32_t cli_pid;
 
     int pam_status;

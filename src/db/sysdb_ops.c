@@ -2780,7 +2780,6 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
     time_t expire_date = -1;
     time_t delayed_until = -1;
     int ret;
-    int i;
 
     if (name == NULL || *name == '\0') {
         DEBUG(1, ("Missing user name.\n"));

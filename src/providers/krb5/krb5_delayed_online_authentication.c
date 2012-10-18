@@ -71,27 +71,29 @@ static void authenticate_user(struct tevent_context *ev,
 
     DEBUG_PAM_DATA(9, pd);
 
-    if (pd->authtok == NULL || pd->authtok_size == 0) {
-        DEBUG(1, ("Missing authtok for user [%s].\n", pd->user));
-        return;
-    }
-
 #ifdef USE_KEYRING
+    char *password;
     long keysize;
     long keyrevoke;
-    int ret;
-    keysize = keyctl_read(pd->key_serial, (char *) pd->authtok,
-                          pd->authtok_size);
-    keyrevoke = keyctl_revoke(pd->key_serial);
+    errno_t ret;
+
+    keysize = keyctl_read_alloc(pd->key_serial, (void **)&password);
     if (keysize == -1) {
         ret = errno;
         DEBUG(1, ("keyctl_read failed [%d][%s].\n", ret, strerror(ret)));
         return;
-    } else if (keysize != pd->authtok_size) {
-        DEBUG(1, ("keyctl_read returned key with wrong size, "
-                  "expect [%d] got [%d].\n", pd->authtok_size, keysize));
+    }
+
+    ret = sss_authtok_set_password(pd, &pd->authtok, password, keysize);
+    safezero(password, keysize);
+    free(password);
+    if (ret) {
+        DEBUG(1, ("failed to set password in auth token [%d][%s].\n",
+                  ret, strerror(ret)));
         return;
     }
+
+    keyrevoke = keyctl_revoke(pd->key_serial);
     if (keyrevoke == -1) {
         ret = errno;
         DEBUG(1, ("keyctl_revoke failed [%d][%s].\n", ret, strerror(ret)));
@@ -244,8 +246,8 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    if (pd->authtok_size == 0 || pd->authtok == NULL) {
-        DEBUG(1, ("Missing authtok for user [%s].\n", pd->user));
+    if (sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+        DEBUG(1, ("Invalid authtok for user [%s].\n", pd->user));
         return EINVAL;
     }
 
@@ -257,17 +259,29 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
 
 
 #ifdef USE_KEYRING
-    new_pd->key_serial = add_key("user", new_pd->user, new_pd->authtok,
-                                 new_pd->authtok_size, KEY_SPEC_SESSION_KEYRING);
+    const char *password;
+    size_t len;
+
+    ret = sss_authtok_get_password(&new_pd->authtok, &password, &len);
+    if (ret) {
+        DEBUG(1, ("Failed to get password [%d][%s].\n", ret, strerror(ret)));
+        sss_authtok_set_empty(&new_pd->authtok);
+        talloc_free(new_pd);
+        return ret;
+    }
+
+    new_pd->key_serial = add_key("user", new_pd->user, password, len,
+                                 KEY_SPEC_SESSION_KEYRING);
     if (new_pd->key_serial == -1) {
         ret = errno;
-        DEBUG(1, ("add_key fialed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, ("add_key failed [%d][%s].\n", ret, strerror(ret)));
+        sss_authtok_set_empty(&new_pd->authtok);
         talloc_free(new_pd);
         return ret;
     }
     DEBUG(9, ("Saved authtok of user [%s] with serial [%ld].\n",
               new_pd->user, new_pd->key_serial));
-    memset(new_pd->authtok, 0, new_pd->authtok_size);
+    sss_authtok_set_empty(&new_pd->authtok);
 #endif
 
     key.type = HASH_KEY_ULONG;

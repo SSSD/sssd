@@ -80,6 +80,9 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
     int i;
     struct pam_response *reply;
     struct authtok_conv *auth_data;
+    const char *password;
+    size_t pwlen;
+    errno_t ret;
 
     auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
 
@@ -94,11 +97,13 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
             case PAM_PROMPT_ECHO_OFF:
                 DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
                 reply[i].resp_retcode = 0;
-                reply[i].resp = calloc(auth_data->authtok_size + 1,
-                                       sizeof(char));
+
+                ret = sss_authtok_get_password(&auth_data->authtok,
+                                               &password, &pwlen);
+                if (ret) goto failed;
+                reply[i].resp = calloc(pwlen + 1, sizeof(char));
                 if (reply[i].resp == NULL) goto failed;
-                memcpy(reply[i].resp, auth_data->authtok,
-                       auth_data->authtok_size);
+                memcpy(reply[i].resp, password, pwlen + 1);
 
                 break;
             default:
@@ -124,6 +129,9 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
     int i;
     struct pam_response *reply;
     struct authtok_conv *auth_data;
+    const char *password;
+    size_t pwlen;
+    errno_t ret;
 
     auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
 
@@ -141,20 +149,23 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
                 reply[i].resp_retcode = 0;
                 if (!auth_data->sent_old) {
                     /* The first prompt will be asking for the old authtok */
-                    reply[i].resp = calloc(auth_data->authtok_size + 1,
-                                           sizeof(char));
+                    ret = sss_authtok_get_password(&auth_data->authtok,
+                                                  &password, &pwlen);
+                    if (ret) goto failed;
+                    reply[i].resp = calloc(pwlen + 1, sizeof(char));
                     if (reply[i].resp == NULL) goto failed;
-                    memcpy(reply[i].resp, auth_data->authtok,
-                           auth_data->authtok_size);
+                    memcpy(reply[i].resp, password, pwlen + 1);
                     auth_data->sent_old = true;
                 }
                 else {
                     /* Subsequent prompts are looking for the new authtok */
-                    reply[i].resp = calloc(auth_data->newauthtok_size + 1,
-                                           sizeof(char));
+                    ret = sss_authtok_get_password(&auth_data->newauthtok,
+                                                  &password, &pwlen);
+                    if (ret) goto failed;
+                    reply[i].resp = calloc(pwlen + 1, sizeof(char));
                     if (reply[i].resp == NULL) goto failed;
-                    memcpy(reply[i].resp, auth_data->newauthtok,
-                           auth_data->newauthtok_size);
+                    memcpy(reply[i].resp, password, pwlen + 1);
+                    auth_data->sent_old = true;
                 }
 
                 break;
@@ -213,8 +224,8 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
         }
         switch (pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
-                auth_data->authtok_size = pd->authtok_size;
-                auth_data->authtok = pd->authtok;
+                sss_authtok_copy(auth_data, &pd->authtok,
+                                 &auth_data->authtok);
                 pam_status = pam_authenticate(pamh, 0);
                 break;
             case SSS_PAM_SETCRED:
@@ -230,21 +241,21 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
                 pam_status=pam_close_session(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK:
-                auth_data->authtok_size = pd->authtok_size;
-                auth_data->authtok = pd->authtok;
+                sss_authtok_copy(auth_data, &pd->authtok,
+                                 &auth_data->authtok);
                 if (pd->priv != 1) {
                     pam_status = pam_authenticate(pamh, 0);
                     auth_data->sent_old = false;
                     if (pam_status != PAM_SUCCESS) break;
                 }
-                auth_data->newauthtok_size = pd->newauthtok_size;
-                auth_data->newauthtok = pd->newauthtok;
+                sss_authtok_copy(auth_data, &pd->newauthtok,
+                                 &auth_data->newauthtok);
                 pam_status = pam_chauthtok(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK_PRELIM:
                 if (pd->priv != 1) {
-                    auth_data->authtok_size = pd->authtok_size;
-                    auth_data->authtok = pd->authtok;
+                    sss_authtok_copy(auth_data, &pd->authtok,
+                                     &auth_data->authtok);
                     pam_status = pam_authenticate(pamh, 0);
                 } else {
                     pam_status = PAM_SUCCESS;

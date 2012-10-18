@@ -593,22 +593,14 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
         goto done;
     }
 
-    if (renew_data->pd->newauthtok_type != SSS_AUTHTOK_TYPE_EMPTY) {
-        talloc_zfree(renew_data->pd->newauthtok);
-        renew_data->pd->newauthtok_size = 0;
-        renew_data->pd->newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-    }
+    sss_authtok_set_empty(&renew_data->pd->newauthtok);
 
-    talloc_zfree(renew_data->pd->authtok);
-    renew_data->pd->authtok = (uint8_t *) talloc_strdup(renew_data->pd,
-                                                        renew_data->ccfile);
-    if (renew_data->pd->authtok == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
-        ret = ENOMEM;
+    ret = sss_authtok_set_ccfile(renew_data->pd, &renew_data->pd->authtok,
+                                 renew_data->ccfile, 0);
+    if (ret) {
+        DEBUG(1, ("Failed to store ccfile in auth token.\n"));
         goto done;
     }
-    renew_data->pd->authtok_size = strlen((char *) renew_data->pd->authtok) + 1;
-    renew_data->pd->authtok_type = SSS_AUTHTOK_TYPE_CCFILE;
 
     renew_data->pd->cmd = SSS_CMD_RENEW;
 

@@ -463,7 +463,7 @@ struct auth_state {
     struct tevent_context *ev;
     struct sdap_auth_ctx *ctx;
     const char *username;
-    struct dp_opt_blob password;
+    struct sss_auth_token *authtok;
     struct sdap_service *sdap_service;
 
     struct sdap_handle *sh;
@@ -485,7 +485,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
                                     struct tevent_context *ev,
                                     struct sdap_auth_ctx *ctx,
                                     const char *username,
-                                    struct dp_opt_blob password,
+                                    struct sss_auth_token *authtok,
                                     bool try_chpass_service)
 {
     struct tevent_req *req;
@@ -494,8 +494,8 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct auth_state);
     if (!req) return NULL;
 
-    /* Treat a zero-length password as a failure */
-    if (password.length == 0) {
+    /* The token must be a password token */
+    if (sss_authtok_get_type(authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
         state->result = SDAP_AUTH_FAILED;
         tevent_req_done(req);
         return tevent_req_post(req, ev);
@@ -504,7 +504,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
     state->username = username;
-    state->password = password;
+    state->authtok = authtok;
     state->srv = NULL;
     if (try_chpass_service && ctx->chpass_service != NULL &&
         ctx->chpass_service->name != NULL) {
@@ -629,7 +629,7 @@ static void auth_connect_done(struct tevent_req *subreq)
 
     subreq = sdap_auth_send(state, state->ev, state->sh,
                             NULL, NULL, state->dn,
-                            "password", state->password);
+                            state->authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -721,8 +721,6 @@ struct sdap_pam_chpass_state {
     struct pam_data *pd;
     const char *username;
     char *dn;
-    char *password;
-    char *new_password;
     struct sdap_handle *sh;
 
     struct sdap_auth_ctx *ctx;
@@ -738,7 +736,6 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     struct sdap_auth_ctx *ctx;
     struct tevent_req *subreq;
     struct pam_data *pd;
-    struct dp_opt_blob authtok;
     int dp_err = DP_ERR_FATAL;
 
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
@@ -752,8 +749,8 @@ void sdap_pam_chpass_handler(struct be_req *breq)
         goto done;
     }
 
-    if (pd->priv == 1 && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM &&
-        pd->authtok_size == 0) {
+    if ((pd->priv == 1) && (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
+        (sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
         DEBUG(4, ("Password reset by root is not supported.\n"));
         pd->pam_status = PAM_PERM_DENIED;
         dp_err = DP_ERR_OK;
@@ -776,25 +773,9 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     state->pd = pd;
     state->username = pd->user;
     state->ctx = ctx;
-    state->password = talloc_strndup(state,
-                                     (char *)pd->authtok, pd->authtok_size);
-    if (!state->password) goto done;
-    talloc_set_destructor((TALLOC_CTX *)state->password,
-                          password_destructor);
 
-    if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        state->new_password = talloc_strndup(state,
-                                             (char *)pd->newauthtok,
-                                             pd->newauthtok_size);
-        if (!state->new_password) goto done;
-        talloc_set_destructor((TALLOC_CTX *)state->new_password,
-                              password_destructor);
-    }
-
-    authtok.data = (uint8_t *)state->password;
-    authtok.length = strlen(state->password);
-    subreq = auth_send(breq, breq->be_ctx->ev,
-                       ctx, state->username, authtok, true);
+    subreq = auth_send(breq, breq->be_ctx->ev, ctx,
+                       state->username, &pd->authtok, true);
     if (!subreq) goto done;
 
     tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
@@ -881,18 +862,30 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
             state->pd->pam_status = PAM_MODULE_UNKNOWN;
             goto done;
         } else {
+            const char *password;
+            const char *new_password;
+
+            ret = sss_authtok_get_password(&state->pd->authtok,
+                                           &password, NULL);
+            if (ret) {
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+            ret = sss_authtok_get_password(&state->pd->newauthtok,
+                                           &new_password, NULL);
+            if (ret) {
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+
             subreq = sdap_exop_modify_passwd_send(state,
                                                   state->breq->be_ctx->ev,
-                                                  state->sh,
-                                                  state->dn,
-                                                  state->password,
-                                                  state->new_password);
-
+                                                  state->sh, state->dn,
+                                                  password, new_password);
             if (!subreq) {
                 DEBUG(2, ("Failed to change password for %s\n", state->username));
                 goto done;
             }
-
             tevent_req_set_callback(subreq, sdap_pam_chpass_done, state);
             return;
         }
@@ -1007,8 +1000,6 @@ done:
 struct sdap_pam_auth_state {
     struct be_req *breq;
     struct pam_data *pd;
-    const char *username;
-    struct dp_opt_blob password;
 };
 
 static void sdap_pam_auth_done(struct tevent_req *req);
@@ -1043,12 +1034,9 @@ void sdap_pam_auth_handler(struct be_req *breq)
 
         state->breq = breq;
         state->pd = pd;
-        state->username = pd->user;
-        state->password.data = pd->authtok;
-        state->password.length = pd->authtok_size;
 
         subreq = auth_send(breq, breq->be_ctx->ev, ctx,
-                           state->username, state->password,
+                           pd->user, &pd->authtok,
                            pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ? true : false);
         if (!subreq) goto done;
 
@@ -1082,6 +1070,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     enum pwexpire pw_expire_type;
     struct be_ctx *be_ctx = state->breq->be_ctx;
     void *pw_expire_data;
+    const char *password;
     int dp_err = DP_ERR_OK;
     int ret;
 
@@ -1164,26 +1153,19 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     if (result == SDAP_AUTH_SUCCESS &&
         state->breq->be_ctx->domain->cache_credentials) {
 
-        char *password = talloc_strndup(state, (char *)
-                                        state->password.data,
-                                        state->password.length);
-        /* password caching failures are not fatal errors */
-        if (!password) {
-            DEBUG(2, ("Failed to cache password for %s\n", state->username));
-            goto done;
+        ret = sss_authtok_get_password(&state->pd->authtok, &password, NULL);
+        if (ret == EOK) {
+            ret = sysdb_cache_password(state->breq->be_ctx->sysdb,
+                                       state->pd->user, password);
         }
-        talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
-
-        ret = sysdb_cache_password(state->breq->be_ctx->sysdb,
-                                   state->username, password);
 
         /* password caching failures are not fatal errors */
         if (ret != EOK) {
             DEBUG(2, ("Failed to cache password for %s\n",
-                      state->username));
+                      state->pd->user));
         } else {
             DEBUG(4, ("Password successfully cached for %s\n",
-                      state->username));
+                      state->pd->user));
         }
         goto done;
     }

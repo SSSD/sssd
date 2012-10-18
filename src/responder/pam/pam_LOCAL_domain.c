@@ -154,22 +154,19 @@ static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
 static void do_pam_chauthtok(struct LOCAL_request *lreq)
 {
     int ret;
-    char *newauthtok;
+    const char *password;
     char *salt;
     char *new_hash;
     struct pam_data *pd;
 
     pd = lreq->preq->pd;
 
-    newauthtok = talloc_strndup(lreq, (char *) pd->newauthtok,
-                                pd->newauthtok_size);
-    NULL_CHECK_OR_JUMP(newauthtok, ("talloc_strndup failed.\n"), lreq->error,
-                       ENOMEM, done);
-    memset(pd->newauthtok, 0, pd->newauthtok_size);
-
-    if (strlen(newauthtok) == 0) {
+    ret = sss_authtok_get_password(&pd->newauthtok, &password, NULL);
+    if (ret) {
         /* TODO: should we allow null passwords via a config option ? */
-        DEBUG(1, ("Empty passwords are not allowed!\n"));
+        if (ret == ENOENT) {
+            DEBUG(1, ("Empty passwords are not allowed!\n"));
+        }
         lreq->error = EINVAL;
         goto done;
     }
@@ -179,11 +176,10 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
     DEBUG(4, ("Using salt [%s]\n", salt));
 
-    ret = s3crypt_sha512(lreq, newauthtok, salt, &new_hash);
+    ret = s3crypt_sha512(lreq, password, salt, &new_hash);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("Hash generation failed.\n"),
                       lreq->error, ret, done);
     DEBUG(4, ("New hash [%s]\n", new_hash));
-    memset(newauthtok, 0, pd->newauthtok_size);
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
@@ -204,7 +200,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
 
 done:
-    return;
+    sss_authtok_set_empty(&pd->newauthtok);
 }
 
 int LOCAL_pam_handler(struct pam_auth_req *preq)
@@ -223,9 +219,9 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
                                   NULL};
     struct ldb_result *res;
     const char *username = NULL;
-    const char *password = NULL;
+    const char *pwdhash = NULL;
     char *new_hash = NULL;
-    char *authtok = NULL;
+    const char *password;
     struct pam_data *pd = preq->pd;
     int ret;
 
@@ -287,25 +283,22 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
                 DEBUG(4, ("allowing root to reset a password.\n"));
                 break;
             }
-            authtok = talloc_strndup(lreq, (char *) pd->authtok,
-                                     pd->authtok_size);
-            NULL_CHECK_OR_JUMP(authtok, ("talloc_strndup failed.\n"),
-                               lreq->error, ENOMEM, done);
-            memset(pd->authtok, 0, pd->authtok_size);
+            ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+            NEQ_CHECK_OR_JUMP(ret, EOK, ("Failed to get password.\n"),
+                               lreq->error, ret, done);
 
-            password = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
-            NULL_CHECK_OR_JUMP(password, ("No password stored.\n"),
+            pwdhash = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
+            NULL_CHECK_OR_JUMP(pwdhash, ("No password stored.\n"),
                                lreq->error, LDB_ERR_NO_SUCH_ATTRIBUTE, done);
-            DEBUG(4, ("user: [%s], password hash: [%s]\n", username, password));
+            DEBUG(4, ("user: [%s], password hash: [%s]\n", username, pwdhash));
 
-            ret = s3crypt_sha512(lreq, authtok, password, &new_hash);
-            memset(authtok, 0, pd->authtok_size);
+            ret = s3crypt_sha512(lreq, password, pwdhash, &new_hash);
             NEQ_CHECK_OR_JUMP(ret, EOK, ("nss_sha512_crypt failed.\n"),
                               lreq->error, ret, done);
 
             DEBUG(4, ("user: [%s], new hash: [%s]\n", username, new_hash));
 
-            if (strcmp(new_hash, password) != 0) {
+            if (strcmp(new_hash, pwdhash) != 0) {
                 DEBUG(1, ("Passwords do not match.\n"));
                 do_failed_login(lreq);
                 goto done;
@@ -338,13 +331,8 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     }
 
 done:
-    if (pd->authtok != NULL)
-        memset(pd->authtok, 0, pd->authtok_size);
-    if (authtok != NULL)
-        memset(authtok, 0, pd->authtok_size);
-    if (pd->newauthtok != NULL)
-        memset(pd->newauthtok, 0, pd->newauthtok_size);
-
+    sss_authtok_set_empty(&pd->newauthtok);
+    sss_authtok_set_empty(&pd->authtok);
     prepare_reply(lreq);
     return EOK;
 }

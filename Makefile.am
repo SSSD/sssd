@@ -1459,6 +1459,7 @@ krb5_child_SOURCES = \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
     src/util/atomic_io.c \
+    src/util/authtok.c \
     src/util/util.c \
     src/util/signal.c \
     src/sss_client/common.c
@@ -1480,6 +1481,7 @@ ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/util/sss_krb5.c \
     src/util/atomic_io.c \
+    src/util/authtok.c \
     src/util/util.c \
     src/util/signal.c
 ldap_child_CFLAGS = \

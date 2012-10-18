@@ -24,30 +24,43 @@
 bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
 {
     dbus_bool_t db_ret;
+    const char *service;
+    const char *tty;
+    const char *ruser;
+    const char *rhost;
+    uint32_t authtok_type;
+    uint32_t authtok_length;
+    uint8_t *authtok_data;
+    uint32_t new_authtok_type;
+    uint32_t new_authtok_length;
+    uint8_t *new_authtok_data;
 
     if (pd->user == NULL) return false;
-    if (pd->service == NULL) pd->service = talloc_strdup(pd, "");
-    if (pd->tty == NULL) pd->tty = talloc_strdup(pd, "");
-    if (pd->ruser == NULL) pd->ruser = talloc_strdup(pd, "");
-    if (pd->rhost == NULL) pd->rhost = talloc_strdup(pd, "");
-
+    service = pd->service ? pd->service : "";
+    tty = pd->tty ? pd->tty : "";
+    ruser = pd->ruser ? pd->ruser : "";
+    rhost = pd->rhost ? pd->rhost : "";
+    authtok_type = (uint32_t)sss_authtok_get_type(&pd->authtok);
+    authtok_data = sss_authtok_get_data(&pd->authtok);
+    authtok_length = sss_authtok_get_size(&pd->authtok);
+    new_authtok_type = (uint32_t)sss_authtok_get_type(&pd->newauthtok);
+    new_authtok_data = sss_authtok_get_data(&pd->newauthtok);
+    new_authtok_length = sss_authtok_get_size(&pd->newauthtok);
 
     db_ret = dbus_message_append_args(msg,
                                       DBUS_TYPE_INT32,  &(pd->cmd),
                                       DBUS_TYPE_STRING, &(pd->user),
                                       DBUS_TYPE_STRING, &(pd->domain),
-                                      DBUS_TYPE_STRING, &(pd->service),
-                                      DBUS_TYPE_STRING, &(pd->tty),
-                                      DBUS_TYPE_STRING, &(pd->ruser),
-                                      DBUS_TYPE_STRING, &(pd->rhost),
-                                      DBUS_TYPE_UINT32, &(pd->authtok_type),
+                                      DBUS_TYPE_STRING, &service,
+                                      DBUS_TYPE_STRING, &tty,
+                                      DBUS_TYPE_STRING, &ruser,
+                                      DBUS_TYPE_STRING, &rhost,
+                                      DBUS_TYPE_UINT32, &authtok_type,
                                       DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                          &(pd->authtok),
-                                          (pd->authtok_size),
-                                      DBUS_TYPE_UINT32, &(pd->newauthtok_type),
+                                      &authtok_data, authtok_length,
+                                      DBUS_TYPE_UINT32, &new_authtok_type,
                                       DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                          &(pd->newauthtok),
-                                          pd->newauthtok_size,
+                                      &new_authtok_data, new_authtok_length,
                                       DBUS_TYPE_INT32, &(pd->priv),
                                       DBUS_TYPE_UINT32, &(pd->cli_pid),
                                       DBUS_TYPE_INVALID);
@@ -61,6 +74,12 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
     dbus_bool_t db_ret;
     int ret;
     struct pam_data pd;
+    uint32_t authtok_type;
+    uint32_t authtok_length;
+    uint8_t *authtok_data;
+    uint32_t new_authtok_type;
+    uint32_t new_authtok_length;
+    uint8_t *new_authtok_data;
 
     memset(&pd, 0, sizeof(pd));
 
@@ -72,14 +91,12 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
                                    DBUS_TYPE_STRING, &(pd.tty),
                                    DBUS_TYPE_STRING, &(pd.ruser),
                                    DBUS_TYPE_STRING, &(pd.rhost),
-                                   DBUS_TYPE_UINT32, &(pd.authtok_type),
+                                   DBUS_TYPE_UINT32, &authtok_type,
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                       &(pd.authtok),
-                                       &(pd.authtok_size),
-                                   DBUS_TYPE_UINT32, &(pd.newauthtok_type),
+                                   &authtok_data, &authtok_length,
+                                   DBUS_TYPE_UINT32, &new_authtok_type,
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                       &(pd.newauthtok),
-                                       &(pd.newauthtok_size),
+                                   &new_authtok_data, &new_authtok_length,
                                    DBUS_TYPE_INT32, &(pd.priv),
                                    DBUS_TYPE_UINT32, &(pd.cli_pid),
                                    DBUS_TYPE_INVALID);
@@ -95,14 +112,17 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
         return false;
     }
 
-    if (pd.authtok_size != 0 && pd.authtok != NULL) {
-        memset(pd.authtok, 0, pd.authtok_size);
-        pd.authtok_size = 0;
+    ret = sss_authtok_set(*new_pd, &((*new_pd)->authtok), authtok_type,
+                          authtok_data, authtok_length);
+    if (ret) {
+        DEBUG(1, ("Failed to set auth token: %d [%s]\n", ret, strerror(ret)));
+        return false;
     }
-
-    if (pd.newauthtok_size != 0 && pd.newauthtok != NULL) {
-        memset(pd.newauthtok, 0, pd.newauthtok_size);
-        pd.newauthtok_size = 0;
+    ret = sss_authtok_set(*new_pd, &((*new_pd)->newauthtok), new_authtok_type,
+                          new_authtok_data, new_authtok_length);
+    if (ret) {
+        DEBUG(1, ("Failed to set auth token: %d [%s]\n", ret, strerror(ret)));
+        return false;
     }
 
     return true;

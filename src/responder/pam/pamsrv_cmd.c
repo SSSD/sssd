@@ -49,21 +49,38 @@ enum pam_verbosity {
 
 static void pam_reply(struct pam_auth_req *preq);
 
-static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok,
-                           size_t data_size, uint8_t *body, size_t blen,
-                           size_t *c) {
+static int extract_authtok_v2(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
+                              size_t data_size, uint8_t *body, size_t blen,
+                              size_t *c)
+{
+    uint32_t auth_token_type;
+    uint32_t auth_token_length;
+    uint8_t *auth_token_data;
+    int ret = EOK;
 
     if (data_size < sizeof(uint32_t) || *c+data_size > blen ||
         SIZE_T_OVERFLOW(*c, data_size)) return EINVAL;
-    *size = data_size - sizeof(uint32_t);
 
-    SAFEALIGN_COPY_UINT32_CHECK(type, &body[*c], blen, c);
+    SAFEALIGN_COPY_UINT32_CHECK(&auth_token_type, &body[*c], blen, c);
+    auth_token_length = data_size - sizeof(uint32_t);
+    auth_token_data = body+(*c);
 
-    *tok = body+(*c);
+    switch (auth_token_type) {
+    case SSS_AUTHTOK_TYPE_EMPTY:
+        sss_authtok_set_empty(tok);
+        break;
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+        ret = sss_authtok_set_password(mem_ctx, tok,
+                                       (const char *)auth_token_data,
+                                       auth_token_length);
+        break;
+    default:
+        return EINVAL;
+    }
 
-    *c += (*size);
+    *c += auth_token_length;
 
-    return EOK;
+    return ret;
 }
 
 static int extract_string(char **var, size_t size, uint8_t *body, size_t blen,
@@ -185,14 +202,13 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_AUTHTOK:
-                    ret = extract_authtok(&pd->authtok_type, &pd->authtok_size,
-                                          &pd->authtok, size, body, blen, &c);
+                    ret = extract_authtok_v2(pd, &pd->authtok,
+                                             size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_NEWAUTHTOK:
-                    ret = extract_authtok(&pd->newauthtok_type,
-                                          &pd->newauthtok_size,
-                                          &pd->newauthtok, size, body, blen, &c);
+                    ret = extract_authtok_v2(pd, &pd->newauthtok,
+                                             size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 default:
@@ -232,14 +248,44 @@ static int pam_parse_in_data_v3(struct sss_domain_info *domains,
     return EOK;
 }
 
+static int extract_authtok_v1(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
+                              uint8_t *body, size_t blen, size_t *c)
+{
+    uint32_t auth_token_type;
+    uint32_t auth_token_length;
+    uint8_t *auth_token_data;
+    int ret = EOK;
+
+    SAFEALIGN_COPY_UINT32_CHECK(&auth_token_type, &body[*c], blen, c);
+    SAFEALIGN_COPY_UINT32_CHECK(&auth_token_length, &body[*c], blen, c);
+    auth_token_data = body+(*c);
+
+    switch (auth_token_type) {
+    case SSS_AUTHTOK_TYPE_EMPTY:
+        sss_authtok_set_empty(tok);
+        break;
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+        ret = sss_authtok_set_password(mem_ctx, tok,
+                                       (const char *)auth_token_data,
+                                       auth_token_length);
+        break;
+    default:
+        return EINVAL;
+    }
+
+    *c += auth_token_length;
+
+    return ret;
+}
+
 static int pam_parse_in_data(struct sss_domain_info *domains,
                              const char *default_domain,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
 {
-    int start;
-    int end;
-    int last;
+    size_t start;
+    size_t end;
+    size_t last;
     int ret;
 
     last = blen - 1;
@@ -269,45 +315,15 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
     if (body[end++] != '\0') return EINVAL;
     pd->rhost = (char *) &body[start];
 
-    start = end;
-    pd->authtok_type = (int) body[start];
-
-    start += sizeof(uint32_t);
-    pd->authtok_size = (int) body[start];
-    if (pd->authtok_size >= blen) return EINVAL;
-
-    start += sizeof(uint32_t);
-    end = start + pd->authtok_size;
-    if (pd->authtok_size == 0) {
-        pd->authtok = NULL;
-    } else {
-        if (end <= blen) {
-            pd->authtok = (uint8_t *) &body[start];
-        } else {
-            DEBUG(1, ("Invalid authtok size: %d\n", pd->authtok_size));
-            return EINVAL;
-        }
+    ret = extract_authtok_v1(pd, &pd->authtok, body, blen, &end);
+    if (ret) {
+        DEBUG(1, ("Invalid auth token\n"));
+        return ret;
     }
-
-    start = end;
-    pd->newauthtok_type = (int) body[start];
-
-    start += sizeof(uint32_t);
-    pd->newauthtok_size = (int) body[start];
-    if (pd->newauthtok_size >= blen) return EINVAL;
-
-    start += sizeof(uint32_t);
-    end = start + pd->newauthtok_size;
-
-    if (pd->newauthtok_size == 0) {
-        pd->newauthtok = NULL;
-    } else {
-        if (end <= blen) {
-            pd->newauthtok = (uint8_t *) &body[start];
-        } else {
-            DEBUG(1, ("Invalid newauthtok size: %d\n", pd->newauthtok_size));
-            return EINVAL;
-        }
+    ret = extract_authtok_v1(pd, &pd->newauthtok, body, blen, &end);
+    if (ret) {
+        DEBUG(1, ("Invalid new auth token\n"));
+        return ret;
     }
 
     DEBUG_PAM_DATA(4, pd);
@@ -763,9 +779,9 @@ static void pam_reply(struct pam_auth_req *preq)
                     goto done;
                 }
 
-                password = talloc_strndup(preq, pd->authtok, pd->authtok_size);
-                if (!password) {
-                    DEBUG(0, ("Fatal: Out of memory copying password\n"));
+                ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+                if (ret) {
+                    DEBUG(0, ("Failed to get password.\n"));
                     goto done;
                 }
 
@@ -775,10 +791,6 @@ static void pam_reply(struct pam_auth_req *preq)
                                        &exp_date, &delay_until);
 
                 pam_handle_cached_login(preq, ret, exp_date, delay_until);
-                if (password) {
-                    for (i = 0; password[i]; i++) password[i] = 0;
-                    talloc_zfree(password);
-                }
                 return;
             }
             break;

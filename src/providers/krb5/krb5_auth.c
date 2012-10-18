@@ -278,12 +278,12 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
                                   struct pam_data *pd, uid_t uid,
                                   int *pam_status, int *dp_err)
 {
-    char *password = NULL;
+    const char *password = NULL;
     errno_t ret;
 
-    password = talloc_strndup(state, pd->authtok, pd->authtok_size);
-    if (!password) {
-        DEBUG(0, ("Out of memory copying password\n"));
+    ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to get password [%d] %s\n", ret, strerror(ret)));
         *pam_status = PAM_SYSTEM_ERR;
         *dp_err = DP_ERR_OK;
         return;
@@ -294,7 +294,7 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
         DEBUG(1, ("Offline authentication failed\n"));
         *pam_status = cached_login_pam_status(ret);
         *dp_err = DP_ERR_OK;
-        goto done;
+        return;
     }
 
     ret = add_user_to_delayed_online_authentication(krb5_ctx, pd, uid);
@@ -304,12 +304,6 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     }
     *pam_status = PAM_AUTHINFO_UNAVAIL;
     *dp_err = DP_ERR_OFFLINE;
-
-done:
-    if (password) {
-        for (i = 0; password[i]; i++) password[i] = 0;
-        talloc_zfree(password);
-    }
 }
 
 static errno_t krb5_auth_prepare_ccache_file(struct krb5child_req *kr,
@@ -385,15 +379,8 @@ static errno_t krb5_auth_prepare_ccache_file(struct krb5child_req *kr,
 
 static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
 {
-    TALLOC_CTX *tmp_ctx;
-    char *password = NULL;
+    const char *password = NULL;
     int ret = EOK;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        DEBUG(0, ("Out of memory when trying to store credentials\n"));
-        return;
-    }
 
     switch(pd->cmd) {
         case SSS_CMD_RENEW:
@@ -404,21 +391,19 @@ static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
             break;
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            password = talloc_size(tmp_ctx, pd->authtok_size + 1);
-            if (password != NULL) {
-                memcpy(password, pd->authtok, pd->authtok_size);
-                password[pd->authtok_size] = '\0';
-            }
+            ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
             break;
         case SSS_PAM_CHAUTHTOK:
-            password = talloc_size(tmp_ctx, pd->newauthtok_size + 1);
-            if (password != NULL) {
-                memcpy(password, pd->newauthtok, pd->newauthtok_size);
-                password[pd->newauthtok_size] = '\0';
-            }
+            ret = sss_authtok_get_password(&pd->newauthtok, &password, NULL);
             break;
         default:
             DEBUG(0, ("unsupported PAM command [%d].\n", pd->cmd));
+    }
+
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to get password [%d] %s\n", ret, strerror(ret)));
+        /* password caching failures are not fatal errors */
+        return;
     }
 
     if (password == NULL) {
@@ -426,11 +411,8 @@ static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
             DEBUG(0, ("password not available, offline auth may not work.\n"));
             /* password caching failures are not fatal errors */
         }
-        talloc_zfree(tmp_ctx);
         return;
     }
-
-    talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
     ret = sysdb_cache_password(sysdb, pd->user, password);
     if (ret) {
@@ -438,8 +420,6 @@ static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
                   " (%d)[%s]!?\n", ret, strerror(ret)));
         /* password caching failures are not fatal errors */
     }
-
-    talloc_zfree(tmp_ctx);
 }
 
 /* krb5_auth request */
@@ -504,9 +484,17 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         case SSS_PAM_AUTHENTICATE:
         case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK:
+            if (sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+                DEBUG(1, ("Missing authtok for user [%s].\n", pd->user));
+                state->pam_status = PAM_SYSTEM_ERR;
+                state->dp_err = DP_ERR_FATAL;
+                ret = EINVAL;
+                goto done;
+            }
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            if (pd->priv == 1 && pd->authtok_size == 0) {
+            if (pd->priv == 1 &&
+                sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
                 DEBUG(4, ("Password reset by root is not supported.\n"));
                 state->pam_status = PAM_PERM_DENIED;
                 state->dp_err = DP_ERR_OK;

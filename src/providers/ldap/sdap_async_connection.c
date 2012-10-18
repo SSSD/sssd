@@ -493,7 +493,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     DEBUG(4, ("Executing simple bind as: %s\n", state->user_dn));
 
     ret = ldap_sasl_bind(state->sh->ldap, state->user_dn, LDAP_SASL_SIMPLE,
-                         state->pw, request_controls, NULL, &msgid);
+                         pw, request_controls, NULL, &msgid);
     if (ctrls[0]) ldap_control_free(ctrls[0]);
     if (ret == -1 || msgid == -1) {
         ret = ldap_get_option(state->sh->ldap,
@@ -1082,18 +1082,12 @@ int sdap_kinit_recv(struct tevent_req *req,
 /* ==Authenticaticate-User-by-DN========================================== */
 
 struct sdap_auth_state {
-    const char *user_dn;
-    struct berval pw;
     struct sdap_ppolicy_data *ppolicy;
-
-    int result;
     bool is_sasl;
+    int result;
 };
 
 static void sdap_auth_done(struct tevent_req *subreq);
-static int sdap_auth_get_authtok(const char *authtok_type,
-                                 struct dp_opt_blob authtok,
-                                 struct berval *pw);
 
 /* TODO: handle sasl_cred */
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
@@ -1102,30 +1096,13 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_mech,
                                   const char *sasl_user,
                                   const char *user_dn,
-                                  const char *authtok_type,
-                                  struct dp_opt_blob authtok)
+                                  struct sss_auth_token *authtok)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
-    int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_auth_state);
     if (!req) return NULL;
-
-    state->user_dn = user_dn;
-
-    ret = sdap_auth_get_authtok(authtok_type, authtok, &state->pw);
-    if (ret != EOK) {
-        if (ret == ENOSYS) {
-            DEBUG(1, ("Getting authtok is not supported with the "
-                      "crypto library compiled with, authentication "
-                      "might fail!\n"));
-        } else {
-            DEBUG(1, ("Cannot parse authtok.\n"));
-            tevent_req_error(req, ret);
-            return tevent_req_post(req, ev);
-        }
-    }
 
     if (sasl_mech) {
         state->is_sasl = true;
@@ -1135,8 +1112,27 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
             return tevent_req_post(req, ev);
         }
     } else {
+        const char *password = NULL;
+        struct berval pw;
+        size_t pwlen;
+        errno_t ret;
+
+        ret = sss_authtok_get_password(authtok, &password, &pwlen);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse authtok.\n"));
+            tevent_req_error(req, ret);
+            return tevent_req_post(req, ev);
+        }
+        /* Treat a zero-length password as a failure */
+        if (*password == '\0') {
+            tevent_req_error(req, ENOENT);
+            return tevent_req_post(req, ev);
+        }
+        pw.bv_val = discard_const(password);
+        pw.bv_len = pwlen - 1;
+
         state->is_sasl = false;
-        subreq = simple_bind_send(state, ev, sh, user_dn, &state->pw);
+        subreq = simple_bind_send(state, ev, sh, user_dn, &pw);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return tevent_req_post(req, ev);
@@ -1598,6 +1594,10 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                                               SDAP_SASL_MECH);
     const char *user_dn = dp_opt_get_string(state->opts->basic,
                                             SDAP_DEFAULT_BIND_DN);
+    const char *authtok_type;
+    struct dp_opt_blob authtok_blob;
+    struct sss_auth_token authtok = { 0 };
+    errno_t ret;
 
     /* Set the LDAP expiration time
      * If SASL has already set it, use the sooner of the two
@@ -1620,17 +1620,31 @@ static void sdap_cli_auth_step(struct tevent_req *req)
         return;
     }
 
-    subreq = sdap_auth_send(state,
-                            state->ev,
-                            state->sh,
-                            sasl_mech,
+    authtok_type = dp_opt_get_string(state->opts->basic,
+                                     SDAP_DEFAULT_AUTHTOK_TYPE);
+    if (authtok_type != NULL) {
+        if (strcasecmp(authtok_type, "password") != 0) {
+            DEBUG(SSSDBG_TRACE_LIBS, ("Invalid authtoken type\n"));
+            tevent_req_error(req, EINVAL);
+            return;
+        }
+        authtok_blob = dp_opt_get_blob(state->opts->basic,
+                                       SDAP_DEFAULT_AUTHTOK);
+
+        ret = sss_authtok_set_password(state, &authtok,
+                                       (const char *)authtok_blob.data,
+                                       authtok_blob.length);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+    subreq = sdap_auth_send(state, state->ev,
+                            state->sh, sasl_mech,
                             dp_opt_get_string(state->opts->basic,
-                                                        SDAP_SASL_AUTHID),
-                            user_dn,
-                            dp_opt_get_string(state->opts->basic,
-                                               SDAP_DEFAULT_AUTHTOK_TYPE),
-                            dp_opt_get_blob(state->opts->basic,
-                                                    SDAP_DEFAULT_AUTHTOK));
+                                              SDAP_SASL_AUTHID),
+                            user_dn, &authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
