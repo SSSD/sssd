@@ -24,6 +24,7 @@
 */
 
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -67,17 +68,42 @@ static void close_low_fds(void)
 #endif
 }
 
+static void deamon_parent_sigterm(int sig)
+{
+    _exit(0);
+}
+
 /**
  Become a daemon, discarding the controlling terminal.
 **/
 
 void become_daemon(bool Fork)
 {
+    pid_t pid;
+    int status;
     int ret;
 
     if (Fork) {
-        if (fork()) {
-            _exit(0);
+        pid = fork();
+        if (pid != 0) {
+            /* Terminate parent process on demand so we can hold systemd
+             * or initd from starting next service until sssd in initialized.
+             * We use signals directly here because we don't have a tevent
+             * context yet. */
+            CatchSignal(SIGTERM, deamon_parent_sigterm);
+
+            /* or exit when sssd monitor is terminated */
+            waitpid(pid, &status, 0);
+
+            /* return error if we didn't exited normally */
+            ret = 1;
+
+            if (WIFEXITED(status)) {
+                /* but return our exit code otherwise */
+                ret = WEXITSTATUS(status);
+            }
+
+            _exit(ret);
         }
     }
 
@@ -434,6 +460,7 @@ int server_setup(const char *name, int flags,
         return ENOMEM;
     }
 
+    ctx->parent_pid = getppid();
     ctx->event_ctx = event_ctx;
 
     conf_db = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
