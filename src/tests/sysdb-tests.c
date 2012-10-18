@@ -1576,8 +1576,7 @@ static void cached_authentication_without_expiration(const char *username,
         return;
     }
 
-    ret = sysdb_cache_auth(test_ctx->sysdb, data->username,
-                           (const uint8_t *)password, strlen(password),
+    ret = sysdb_cache_auth(test_ctx->sysdb, data->username, password,
                            test_ctx->confdb, false, &expire_date, &delayed_until);
 
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
@@ -1636,8 +1635,7 @@ static void cached_authentication_with_expiration(const char *username,
                               data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Could not modify user %s", data->username);
 
-    ret = sysdb_cache_auth(test_ctx->sysdb, data->username,
-                           (const uint8_t *) password, strlen(password),
+    ret = sysdb_cache_auth(test_ctx->sysdb, data->username, password,
                            test_ctx->confdb, false, &expire_date, &delayed_until);
 
     fail_unless(ret == expected_result,

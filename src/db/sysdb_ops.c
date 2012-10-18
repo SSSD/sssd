@@ -2757,8 +2757,7 @@ done:
 
 int sysdb_cache_auth(struct sysdb_ctx *sysdb,
                      const char *name,
-                     const uint8_t *authtok,
-                     size_t authtok_size,
+                     const char *password,
                      struct confdb_ctx *cdb,
                      bool just_check,
                      time_t *_expire_date,
@@ -2773,7 +2772,6 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
     struct ldb_message *ldb_msg;
     const char *userhash;
     char *comphash;
-    char *password = NULL;
     uint64_t lastLogin = 0;
     int cred_expiration;
     uint32_t failed_login_attempts = 0;
@@ -2859,13 +2857,6 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
 
     /* TODO: verify user account (disabled, expired ...) */
 
-    password = talloc_strndup(tmp_ctx, (const char *)authtok, authtok_size);
-    if (password == NULL) {
-        DEBUG(1, ("talloc_strndup failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
     userhash = ldb_msg_find_attr_as_string(ldb_msg, SYSDB_CACHEDPWD, NULL);
     if (userhash == NULL || *userhash == '\0') {
         DEBUG(4, ("Cached credentials not available.\n"));
@@ -2949,7 +2940,6 @@ done:
     if (_delayed_until != NULL) {
         *_delayed_until = delayed_until;
     }
-    if (password) for (i = 0; password[i]; i++) password[i] = 0;
     if (ret) {
         ldb_transaction_cancel(sysdb->ldb);
     } else {

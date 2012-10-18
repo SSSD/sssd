@@ -733,7 +733,6 @@ static void pam_reply(struct pam_auth_req *preq)
     struct timeval tv;
     struct tevent_timer *te;
     struct pam_data *pd;
-    struct sysdb_ctx *sysdb;
     struct pam_ctx *pctx;
     uint32_t user_info_type;
     time_t exp_date = -1;
@@ -753,24 +752,34 @@ static void pam_reply(struct pam_auth_req *preq)
             if ((preq->domain != NULL) &&
                 (preq->domain->cache_credentials == true) &&
                 (pd->offline_auth == false)) {
+                const char *password = NULL;
 
-                    /* do auth with offline credentials */
-                    pd->offline_auth = true;
+                /* do auth with offline credentials */
+                pd->offline_auth = true;
 
-                    sysdb = preq->domain->sysdb;
-                    if (sysdb == NULL) {
-                        DEBUG(0, ("Fatal: Sysdb CTX not found for "
-                                  "domain [%s]!\n", preq->domain->name));
-                        goto done;
-                    }
+                if (preq->domain->sysdb == NULL) {
+                    DEBUG(0, ("Fatal: Sysdb CTX not found for domain"
+                              " [%s]!\n", preq->domain->name));
+                    goto done;
+                }
 
-                    ret = sysdb_cache_auth(sysdb, pd->user,
-                                           pd->authtok, pd->authtok_size,
-                                           pctx->rctx->cdb, false,
-                                           &exp_date, &delay_until);
+                password = talloc_strndup(preq, pd->authtok, pd->authtok_size);
+                if (!password) {
+                    DEBUG(0, ("Fatal: Out of memory copying password\n"));
+                    goto done;
+                }
 
-                    pam_handle_cached_login(preq, ret, exp_date, delay_until);
-                    return;
+                ret = sysdb_cache_auth(preq->domain->sysdb,
+                                       pd->user, password,
+                                       pctx->rctx->cdb, false,
+                                       &exp_date, &delay_until);
+
+                pam_handle_cached_login(preq, ret, exp_date, delay_until);
+                if (password) {
+                    for (i = 0; password[i]; i++) password[i] = 0;
+                    talloc_zfree(password);
+                }
+                return;
             }
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:

@@ -278,16 +278,23 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
                                   struct pam_data *pd, uid_t uid,
                                   int *pam_status, int *dp_err)
 {
+    char *password = NULL;
     errno_t ret;
 
-    ret = sysdb_cache_auth(sysdb, pd->user, pd->authtok,
-                           pd->authtok_size, cdb, true, NULL,
-                           NULL);
+    password = talloc_strndup(state, pd->authtok, pd->authtok_size);
+    if (!password) {
+        DEBUG(0, ("Out of memory copying password\n"));
+        *pam_status = PAM_SYSTEM_ERR;
+        *dp_err = DP_ERR_OK;
+        return;
+    }
+
+    ret = sysdb_cache_auth(sysdb, pd->user, password, cdb, true, NULL, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Offline authentication failed\n"));
         *pam_status = cached_login_pam_status(ret);
         *dp_err = DP_ERR_OK;
-        return;
+        goto done;
     }
 
     ret = add_user_to_delayed_online_authentication(krb5_ctx, pd, uid);
@@ -297,6 +304,12 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     }
     *pam_status = PAM_AUTHINFO_UNAVAIL;
     *dp_err = DP_ERR_OFFLINE;
+
+done:
+    if (password) {
+        for (i = 0; password[i]; i++) password[i] = 0;
+        talloc_zfree(password);
+    }
 }
 
 static errno_t krb5_auth_prepare_ccache_file(struct krb5child_req *kr,
