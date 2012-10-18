@@ -157,6 +157,8 @@ struct mt_ctx {
     const char *conf_path;
     struct sss_sigchild_ctx *sigchld_ctx;
     bool pid_file_created;
+    bool is_daemon;
+    pid_t parent_pid;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -449,6 +451,28 @@ static int mark_service_as_started(struct mt_svc *svc)
         }
 
         ctx->pid_file_created = true;
+
+        /* Initialization is complete, terminate parent process if in daemon
+         * mode. Make sure we send the signal to the right process */
+        if (ctx->is_daemon) {
+            if (ctx->parent_pid <= 1 || ctx->parent_pid != getppid()) {
+                /* the parent process was already terminated */
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid parent pid: %d\n",
+                      ctx->parent_pid));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("SSSD is initialized, "
+                                      "terminating parent process\n"));
+
+            errno = 0;
+            ret = kill(ctx->parent_pid, SIGTERM);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to terminate parent "
+                      "process [%d]: %s\n", ret, strerror(ret)));
+            }
+        }
     }
 
 done:
@@ -2647,6 +2671,8 @@ int main(int argc, const char *argv[])
     ret = server_setup(MONITOR_NAME, flags, monitor->conf_path, &main_ctx);
     if (ret != EOK) return 2;
 
+    monitor->is_daemon = !opt_interactive;
+    monitor->parent_pid = main_ctx->parent_pid;
     monitor->ev = main_ctx->event_ctx;
     talloc_steal(main_ctx, monitor);
 
