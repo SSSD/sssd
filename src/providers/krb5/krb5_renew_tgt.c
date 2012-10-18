@@ -373,7 +373,8 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
-    const char *ccache_filter = "("SYSDB_CCACHE_FILE"=*)";
+    const char *ccache_filter = "(&("SYSDB_CCACHE_FILE"=*)" \
+                                  "("SYSDB_OBJECTCLASS"="SYSDB_USER_CLASS"))";
     const char *ccache_attrs[] = { SYSDB_CCACHE_FILE, SYSDB_UPN, SYSDB_NAME,
                                    NULL };
     size_t msgs_count = 0;
@@ -382,6 +383,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     const char *ccache_file;
     const char *upn;
     const char *user_name;
+    struct ldb_dn *base_dn;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -389,10 +391,18 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
         return ENOMEM;
     }
 
-    ret = sysdb_search_users(tmp_ctx, renew_tgt_ctx->be_ctx->sysdb,
-                             ccache_filter, ccache_attrs, &msgs_count, &msgs);
+    base_dn = sysdb_base_dn(renew_tgt_ctx->be_ctx->sysdb, tmp_ctx);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_base_dn failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, renew_tgt_ctx->be_ctx->sysdb, base_dn,
+                             LDB_SCOPE_SUBTREE, ccache_filter, ccache_attrs,
+                             &msgs_count, &msgs);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_search_users failed.\n"));
+        DEBUG(1, ("sysdb_search_entry failed.\n"));
         goto done;
     }
 
