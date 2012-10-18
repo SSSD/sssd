@@ -328,6 +328,7 @@ struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_c
 errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                             const char *dn_str, char **name);
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
+struct ldb_dn *sysdb_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                                const char *object_name,
                                const char *subtree_name);

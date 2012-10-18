@@ -283,6 +283,10 @@ struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
 {
     return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_DOM_BASE, sysdb->domain->name);
 }
+struct ldb_dn *sysdb_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
+{
+    return ldb_dn_new(mem_ctx, sysdb->ldb, SYSDB_BASE);
+}
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *sysdb)
 {
