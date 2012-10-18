@@ -54,6 +54,7 @@ struct krb5child_req {
     bool active_ccache_present;
     bool valid_tgt_present;
     bool run_as_user;
+    bool upn_from_different_realm;
 };
 
 errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,

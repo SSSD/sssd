@@ -881,3 +881,34 @@ errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
     *_upn = upn;
     return EOK;
 }
+
+errno_t compare_principal_realm(const char *upn, const char *realm,
+                                bool *different_realm)
+{
+    size_t upn_len;
+    size_t realm_len;
+    char *at_sign;
+
+    if (upn == NULL || realm == NULL || different_realm == NULL) {
+        return EINVAL;
+    }
+
+    upn_len = strlen(upn);
+    realm_len = strlen(realm);
+    at_sign = strchr(upn, '@');
+
+    /* if coming from the same realm the upn must be at least the size of the
+     * realm plus 1 for the '@' char. */
+    if (upn_len == 0 || realm_len == 0 || upn_len <= realm_len + 1 ||
+        at_sign == NULL) {
+        return EINVAL;
+    }
+
+    if (strcmp(realm, at_sign + 1) == 0) {
+        *different_realm = false;
+    } else {
+        *different_realm = true;
+    }
+
+    return EOK;
+}

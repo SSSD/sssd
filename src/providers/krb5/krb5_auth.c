@@ -427,6 +427,13 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                 DEBUG(1, ("krb5_get_simple_upn failed.\n"));
                 goto done;
             }
+        } else {
+            ret = compare_principal_realm(kr->upn, realm,
+                                          &kr->upn_from_different_realm);
+            if (ret != 0) {
+                DEBUG(SSSDBG_OP_FAILURE, ("compare_principal_realm failed.\n"));
+                goto done;
+            }
         }
 
         kr->homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,
