@@ -1443,7 +1443,8 @@ krb5_child_SOURCES = \
     src/util/sss_krb5.c \
     src/util/atomic_io.c \
     src/util/util.c \
-    src/util/signal.c
+    src/util/signal.c \
+    src/sss_client/common.c
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
@@ -1455,7 +1456,8 @@ krb5_child_LDADD = \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
-    $(KRB5_LIBS)
+    $(KRB5_LIBS) \
+    $(CLIENT_LIBS)
 
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
