@@ -119,6 +119,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
 {
+    struct resp_ctx *rctx;
     struct sss_cmd_table *pac_cmds;
     struct be_conn *iter;
     struct pac_ctx *pac_ctx;
@@ -127,15 +128,9 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     int fd_limit;
     char *uid_str;
 
-    pac_ctx = talloc_zero(mem_ctx, struct pac_ctx);
-    if (!pac_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing pac_ctx\n"));
-        return ENOMEM;
-    }
-
     pac_cmds = get_pac_cmds();
 
-    ret = sss_process_init(pac_ctx, ev, cdb,
+    ret = sss_process_init(mem_ctx, ev, cdb,
                            pac_cmds,
                            SSS_PAC_SOCKET_NAME, NULL,
                            CONFDB_PAC_CONF_ENTRY,
@@ -143,10 +138,20 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                            PAC_SBUS_SERVICE_VERSION,
                            &monitor_pac_interface,
                            "PAC", &pac_dp_interface,
-                           &pac_ctx->rctx);
+                           &rctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        return ret;
+    }
+
+    pac_ctx = talloc_zero(rctx, struct pac_ctx);
+    if (!pac_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing pac_ctx\n"));
+        ret = ENOMEM;
         goto fail;
     }
+
+    pac_ctx->rctx = rctx;
     pac_ctx->rctx->pvt_ctx = pac_ctx;
 
 
@@ -207,7 +212,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    talloc_free(pac_ctx);
+    talloc_free(rctx);
     return ret;
 }
 

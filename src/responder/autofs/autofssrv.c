@@ -128,6 +128,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     struct confdb_ctx *cdb)
 {
+    struct resp_ctx *rctx;
     struct sss_cmd_table *autofs_cmds;
     struct autofs_ctx *autofs_ctx;
     struct be_conn *iter;
@@ -135,20 +136,8 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     int hret;
     int max_retries;
 
-    autofs_ctx = talloc_zero(mem_ctx, struct autofs_ctx);
-    if (!autofs_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing autofs_ctx\n"));
-        return ENOMEM;
-    }
-
-    ret = autofs_get_config(autofs_ctx, cdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot read autofs configuration\n"));
-        goto fail;
-    }
-
     autofs_cmds = get_autofs_cmds();
-    ret = sss_process_init(autofs_ctx, ev, cdb,
+    ret = sss_process_init(mem_ctx, ev, cdb,
                            autofs_cmds,
                            SSS_AUTOFS_SOCKET_NAME, NULL,
                            CONFDB_AUTOFS_CONF_ENTRY,
@@ -157,10 +146,26 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                            &monitor_autofs_interface,
                            "autofs",
                            &autofs_dp_interface,
-                           &autofs_ctx->rctx);
+                           &rctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        return ret;
+    }
+
+    autofs_ctx = talloc_zero(rctx, struct autofs_ctx);
+    if (!autofs_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing autofs_ctx\n"));
+        ret = ENOMEM;
         goto fail;
     }
+
+    ret = autofs_get_config(autofs_ctx, cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot read autofs configuration\n"));
+        goto fail;
+    }
+
+    autofs_ctx->rctx = rctx;
     autofs_ctx->rctx->pvt_ctx = autofs_ctx;
 
     /* Enable automatic reconnection to the Data Provider */
@@ -193,7 +198,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    talloc_free(autofs_ctx);
+    talloc_free(rctx);
     return ret;
 }
 

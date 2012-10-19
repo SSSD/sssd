@@ -86,20 +86,15 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct confdb_ctx *cdb)
 {
+    struct resp_ctx *rctx;
     struct sss_cmd_table *sudo_cmds;
     struct sudo_ctx *sudo_ctx;
     struct be_conn *iter;
     int ret;
     int max_retries;
 
-    sudo_ctx = talloc_zero(mem_ctx, struct sudo_ctx);
-    if (!sudo_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing sudo_ctx\n"));
-        return ENOMEM;
-    }
-
     sudo_cmds = get_sudo_cmds();
-    ret = sss_process_init(sudo_ctx, ev, cdb,
+    ret = sss_process_init(mem_ctx, ev, cdb,
                            sudo_cmds,
                            SSS_SUDO_SOCKET_NAME, NULL,
                            CONFDB_SUDO_CONF_ENTRY,
@@ -108,10 +103,20 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                            &monitor_sudo_interface,
                            "SUDO",
                            &sudo_dp_interface,
-                           &sudo_ctx->rctx);
+                           &rctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        return ret;
+    }
+
+    sudo_ctx = talloc_zero(rctx, struct sudo_ctx);
+    if (!sudo_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing sudo_ctx\n"));
+        ret = ENOMEM;
         goto fail;
     }
+
+    sudo_ctx->rctx = rctx;
     sudo_ctx->rctx->pvt_ctx = sudo_ctx;
 
     /* Enable automatic reconnection to the Data Provider */
@@ -148,7 +153,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    talloc_free(sudo_ctx);
+    talloc_free(rctx);
     return ret;
 }
 

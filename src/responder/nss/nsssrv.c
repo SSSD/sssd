@@ -395,6 +395,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
 {
+    struct resp_ctx *rctx;
     struct sss_cmd_table *nss_cmds;
     struct be_conn *iter;
     struct nss_ctx *nctx;
@@ -403,21 +404,9 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     int hret;
     int fd_limit;
 
-    nctx = talloc_zero(mem_ctx, struct nss_ctx);
-    if (!nctx) {
-        DEBUG(0, ("fatal error initializing nss_ctx\n"));
-        return ENOMEM;
-    }
-
-    ret = sss_ncache_init(nctx, &nctx->ncache);
-    if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing negative cache\n"));
-        goto fail;
-    }
-
     nss_cmds = get_nss_cmds();
 
-    ret = sss_process_init(nctx, ev, cdb,
+    ret = sss_process_init(mem_ctx, ev, cdb,
                            nss_cmds,
                            SSS_NSS_SOCKET_NAME, NULL,
                            CONFDB_NSS_CONF_ENTRY,
@@ -425,10 +414,26 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            NSS_SBUS_SERVICE_VERSION,
                            &monitor_nss_interface,
                            "NSS", &nss_dp_interface,
-                           &nctx->rctx);
+                           &rctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        return ret;
+    }
+
+    nctx = talloc_zero(rctx, struct nss_ctx);
+    if (!nctx) {
+        DEBUG(0, ("fatal error initializing nss_ctx\n"));
+        ret = ENOMEM;
         goto fail;
     }
+
+    ret = sss_ncache_init(rctx, &nctx->ncache);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing negative cache\n"));
+        goto fail;
+    }
+
+    nctx->rctx = rctx;
     nctx->rctx->pvt_ctx = nctx;
 
     ret = nss_get_config(nctx, cdb);
@@ -513,7 +518,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    talloc_free(nctx);
+    talloc_free(rctx);
     return ret;
 }
 

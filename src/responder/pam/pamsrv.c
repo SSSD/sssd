@@ -107,6 +107,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb)
 {
+    struct resp_ctx *rctx;
     struct sss_cmd_table *pam_cmds;
     struct be_conn *iter;
     struct pam_ctx *pctx;
@@ -114,13 +115,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     int id_timeout;
     int fd_limit;
 
-    pctx = talloc_zero(mem_ctx, struct pam_ctx);
-    if (!pctx) {
-        return ENOMEM;
-    }
-
     pam_cmds = get_pam_cmds();
-    ret = sss_process_init(pctx, ev, cdb,
+    ret = sss_process_init(mem_ctx, ev, cdb,
                            pam_cmds,
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
@@ -129,11 +125,19 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            SSS_PAM_SBUS_SERVICE_VERSION,
                            &monitor_pam_interface,
                            "PAM", &pam_dp_interface,
-                           &pctx->rctx);
+                           &rctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        return ret;
+    }
+
+    pctx = talloc_zero(rctx, struct pam_ctx);
+    if (!pctx) {
+        ret = ENOMEM;
         goto done;
     }
 
+    pctx->rctx = rctx;
     pctx->rctx->pvt_ctx = pctx;
 
     /* Enable automatic reconnection to the Data Provider */
@@ -203,7 +207,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        talloc_free(pctx);
+        talloc_free(rctx);
     }
     return ret;
 }

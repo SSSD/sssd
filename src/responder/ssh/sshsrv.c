@@ -85,20 +85,15 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
 {
+    struct resp_ctx *rctx;
     struct sss_cmd_table *ssh_cmds;
     struct ssh_ctx *ssh_ctx;
     struct be_conn *iter;
     int ret;
     int max_retries;
 
-    ssh_ctx = talloc_zero(mem_ctx, struct ssh_ctx);
-    if (!ssh_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing ssh_ctx\n"));
-        return ENOMEM;
-    }
-
     ssh_cmds = get_ssh_cmds();
-    ret = sss_process_init(ssh_ctx, ev, cdb,
+    ret = sss_process_init(mem_ctx, ev, cdb,
                            ssh_cmds,
                            SSS_SSH_SOCKET_NAME, NULL,
                            CONFDB_SSH_CONF_ENTRY,
@@ -107,10 +102,20 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                            &monitor_ssh_interface,
                            "SSH",
                            &ssh_dp_interface,
-                           &ssh_ctx->rctx);
+                           &rctx);
     if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        return ret;
+    }
+
+    ssh_ctx = talloc_zero(rctx, struct ssh_ctx);
+    if (!ssh_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing ssh_ctx\n"));
+        ret = ENOMEM;
         goto fail;
     }
+
+    ssh_ctx->rctx = rctx;
     ssh_ctx->rctx->pvt_ctx = ssh_ctx;
 
     /* Enable automatic reconnection to the Data Provider */
@@ -158,7 +163,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    talloc_free(ssh_ctx);
+    talloc_free(rctx);
     return ret;
 }
 
