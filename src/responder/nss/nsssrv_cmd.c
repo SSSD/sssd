@@ -1869,6 +1869,8 @@ static int fill_members(struct sss_packet *packet,
         memnum++;
     }
 
+    ret = 0;
+
 done:
     *_memnum = memnum;
     *_rzero = rzero;
@@ -2689,7 +2691,7 @@ static void nss_cmd_getgrgid_cb(struct tevent_req *req)
     ret = nss_cmd_getgrgid_search(dctx);
     if (ret == EOK) {
         /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, true);
+        ret = nss_cmd_getgr_send_reply(dctx, true);
     }
 
 done:
