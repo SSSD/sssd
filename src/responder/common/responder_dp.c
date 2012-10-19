@@ -86,7 +86,7 @@ static int sss_dp_req_destructor(void *ptr)
     /* If there are callbacks that haven't been invoked, return
      * an error now.
      */
-    while((cb = sdp_req->cb_list) != NULL) {
+    while ((cb = sdp_req->cb_list) != NULL) {
         state = tevent_req_data(cb->req, struct sss_dp_req_state);
         state->dp_err = DP_ERR_FATAL;
         state->dp_ret = EIO;
