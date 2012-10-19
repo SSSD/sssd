@@ -210,12 +210,6 @@ void ipa_auth(struct be_req *be_req)
 
     state->pd = pd;
 
-    if (strcasecmp(pd->domain, be_req->be_ctx->domain->name) != 0 &&
-        state->pd->cmd != SSS_PAM_ACCT_MGMT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("This operation is not allowed for subdomains!\n"));
-        goto fail;
-    }
-
     switch (state->pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
             state->ipa_auth_ctx = talloc_get_type(

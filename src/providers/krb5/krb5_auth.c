@@ -281,6 +281,7 @@ struct krb5_auth_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
     struct pam_data *pd;
+    struct sysdb_ctx *sysdb;
     struct krb5_ctx *krb5_ctx;
     struct krb5child_req *kr;
 
@@ -318,6 +319,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     int ret;
+    struct sss_domain_info *dom;
 
     req = tevent_req_create(mem_ctx, &state, struct krb5_auth_state);
     if (req == NULL) {
@@ -332,6 +334,14 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     state->kr = NULL;
     state->pam_status = PAM_SYSTEM_ERR;
     state->dp_err = DP_ERR_FATAL;
+
+    ret = get_domain_or_subdomain(state, be_ctx, pd->domain, &dom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("get_domain_or_subdomain failed.\n"));
+        goto done;
+    }
+
+    state->sysdb = dom->sysdb;
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
@@ -386,7 +396,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     }
     kr = state->kr;
 
-    ret = sysdb_get_user_attr(state, be_ctx->sysdb, state->pd->user, attrs,
+    ret = sysdb_get_user_attr(state, state->sysdb, state->pd->user, attrs,
                               &res);
     if (ret) {
         DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
@@ -793,7 +803,7 @@ static void krb5_child_done(struct tevent_req *subreq)
                               "please remove it manually.\n", kr->old_ccname));
                 }
 
-                ret = krb5_delete_ccname(state, state->be_ctx->sysdb,
+                ret = krb5_delete_ccname(state, state->sysdb,
                                          pd->user, kr->old_ccname);
                 if (ret != EOK) {
                     DEBUG(1, ("krb5_delete_ccname failed.\n"));
@@ -882,7 +892,7 @@ static void krb5_child_done(struct tevent_req *subreq)
                "please remove it manually.\n", kr->old_ccname));
     }
 
-    ret = krb5_save_ccname(state, state->be_ctx->sysdb,
+    ret = krb5_save_ccname(state, state->sysdb,
                            pd->user, store_ccname);
     if (ret) {
         DEBUG(1, ("krb5_save_ccname failed.\n"));
@@ -1048,7 +1058,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
 
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        ret = sysdb_cache_password(state->be_ctx->sysdb, pd->user, password);
+        ret = sysdb_cache_password(state->sysdb, pd->user, password);
         if (ret) {
             DEBUG(2, ("Failed to cache password, offline auth may not work."
                       " (%d)[%s]!?\n", ret, strerror(ret)));
@@ -1076,7 +1086,7 @@ static void krb5_pam_handler_cache_auth_step(struct tevent_req *req)
     struct krb5_ctx *krb5_ctx = state->kr->krb5_ctx;
     int ret;
 
-    ret = sysdb_cache_auth(state->be_ctx->sysdb, pd->user, pd->authtok,
+    ret = sysdb_cache_auth(state->sysdb, pd->user, pd->authtok,
                            pd->authtok_size, state->be_ctx->cdb, true, NULL,
                            NULL);
     if (ret != EOK) {
