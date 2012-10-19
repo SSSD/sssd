@@ -109,7 +109,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                            &ssh_dp_interface,
                            &ssh_ctx->rctx);
     if (ret != EOK) {
-        return ret;
+        goto fail;
     }
     ssh_ctx->rctx->pvt_ctx = ssh_ctx;
 
@@ -121,7 +121,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto fail;
     }
 
     for (iter = ssh_ctx->rctx->be_conns; iter; iter = iter->next) {
@@ -139,7 +139,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
               ret, strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     /* Get ssh_known_hosts_timeout option */
@@ -150,12 +150,16 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
               ret, strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("SSH Initialization complete\n"));
 
     return EOK;
+
+fail:
+    talloc_free(ssh_ctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])

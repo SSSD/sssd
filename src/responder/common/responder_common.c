@@ -778,7 +778,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot get the client idle timeout [%d]: %s\n",
                ret, strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     /* Ensure that the client timeout is at least ten seconds */
@@ -793,7 +793,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannnot get the default domain timeout [%d]: %s\n",
                ret, strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     if (rctx->domains_timeout < 0) {
@@ -804,7 +804,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     ret = confdb_get_domains(rctx->cdb, &rctx->domains);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up domain map\n"));
-        return ret;
+        goto fail;
     }
 
     ret = confdb_get_string(rctx->cdb, rctx, CONFDB_MONITOR_CONF_ENTRY,
@@ -814,7 +814,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannnot get the default domain [%d]: %s\n",
                ret, strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
@@ -822,7 +822,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                            &rctx->mon_conn);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up message bus\n"));
-        return ret;
+        goto fail;
     }
 
     for (dom = rctx->domains; dom; dom = get_next_domain(dom, false)) {
@@ -831,7 +831,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("fatal error initializing regex data for domain: %s\n",
                    dom->name));
-            return ret;
+            goto fail;
         }
 
         /* skip local domain, it doesn't have a backend */
@@ -842,7 +842,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         ret = sss_dp_init(rctx, dp_intf, cli_name, dom);
         if (ret != EOK) {
             DEBUG(0, ("fatal error setting up backend connector\n"));
-            return ret;
+            goto fail;
         }
     }
 
@@ -850,14 +850,14 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
         DEBUG(0, ("fatal error initializing resp_ctx\n"));
-        return ret;
+        goto fail;
     }
 
     /* after all initializations we are ready to listen on our socket */
     ret = set_unix_socket(rctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing socket\n"));
-        return ret;
+        goto fail;
     }
 
     /* Create DP request table */
@@ -865,13 +865,17 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Could not create hash table for the request queue\n"));
-        return ret;
+        goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Responder Initialization complete\n"));
 
     *responder_ctx = rctx;
     return EOK;
+
+fail:
+    talloc_free(rctx);
+    return ret;
 }
 
 int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,

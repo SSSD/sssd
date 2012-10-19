@@ -195,7 +195,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to set up file descriptor limit\n"));
-        return ret;
+        goto done;
     }
     responder_set_fd_limit(fd_limit);
 

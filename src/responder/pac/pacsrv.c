@@ -145,7 +145,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                            "PAC", &pac_dp_interface,
                            &pac_ctx->rctx);
     if (ret != EOK) {
-        return ret;
+        goto fail;
     }
     pac_ctx->rctx->pvt_ctx = pac_ctx;
 
@@ -155,7 +155,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                             DEFAULT_ALLOWED_UIDS, &uid_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
-        return ret;
+        goto fail;
     }
 
     ret = csv_string_to_uid_array(pac_ctx->rctx, uid_str, true,
@@ -163,7 +163,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                                   &pac_ctx->rctx->allowed_uids);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set allowed UIDs.\n"));
-        return ret;
+        goto fail;
     }
 
     /* Enable automatic reconnection to the Data Provider */
@@ -173,7 +173,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                          3, &max_retries);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto fail;
     }
 
     for (iter = pac_ctx->rctx->be_conns; iter; iter = iter->next) {
@@ -185,7 +185,8 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                          &pac_ctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));
-        return EFAULT;
+        ret = EFAULT;
+        goto fail;
     }
 
     /* Set up file descriptor limits */
@@ -197,13 +198,17 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to set up file descriptor limit\n"));
-        return ret;
+        goto fail;
     }
     responder_set_fd_limit(fd_limit);
 
     DEBUG(SSSDBG_TRACE_FUNC, ("PAC Initialization complete\n"));
 
     return EOK;
+
+fail:
+    talloc_free(pac_ctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])

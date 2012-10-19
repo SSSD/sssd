@@ -144,7 +144,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     ret = autofs_get_config(autofs_ctx, cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot read autofs configuration\n"));
-        return ret;
+        goto fail;
     }
 
     autofs_cmds = get_autofs_cmds();
@@ -159,7 +159,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                            &autofs_dp_interface,
                            &autofs_ctx->rctx);
     if (ret != EOK) {
-        return ret;
+        goto fail;
     }
     autofs_ctx->rctx->pvt_ctx = autofs_ctx;
 
@@ -171,7 +171,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto fail;
     }
 
     for (iter = autofs_ctx->rctx->be_conns; iter; iter = iter->next) {
@@ -185,11 +185,16 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Unable to initialize automount maps hash table\n"));
-        return EIO;
+        ret = EIO;
+        goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("autofs Initialization complete\n"));
     return EOK;
+
+fail:
+    talloc_free(autofs_ctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])

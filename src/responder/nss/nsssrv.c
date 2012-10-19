@@ -412,7 +412,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     ret = sss_ncache_init(nctx, &nctx->ncache);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing negative cache\n"));
-        return ret;
+        goto fail;
     }
 
     nss_cmds = get_nss_cmds();
@@ -427,14 +427,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            "NSS", &nss_dp_interface,
                            &nctx->rctx);
     if (ret != EOK) {
-        return ret;
+        goto fail;
     }
     nctx->rctx->pvt_ctx = nctx;
 
     ret = nss_get_config(nctx, cdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error getting nss config\n"));
-        return ret;
+        goto fail;
     }
 
     /* Enable automatic reconnection to the Data Provider */
@@ -444,7 +444,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                          3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto fail;
     }
 
     for (iter = nctx->rctx->be_conns; iter; iter = iter->next) {
@@ -456,7 +456,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     hret = sss_hash_create(nctx, 10, &nctx->netgroups);
     if (hret != HASH_SUCCESS) {
         DEBUG(0,("Unable to initialize netgroup hash table\n"));
-        return EIO;
+        ret = EIO;
+        goto fail;
     }
 
     /* create mmap caches */
@@ -476,7 +477,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                          300, &memcache_timeout);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto fail;
     }
 
     /* TODO: read cache sizes from configuration */
@@ -503,13 +504,17 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to set up file descriptor limit\n"));
-        return ret;
+        goto fail;
     }
     responder_set_fd_limit(fd_limit);
 
     DEBUG(SSSDBG_TRACE_FUNC, ("NSS Initialization complete\n"));
 
     return EOK;
+
+fail:
+    talloc_free(nctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])

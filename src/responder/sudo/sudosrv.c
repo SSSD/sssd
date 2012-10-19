@@ -110,7 +110,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                            &sudo_dp_interface,
                            &sudo_ctx->rctx);
     if (ret != EOK) {
-        return ret;
+        goto fail;
     }
     sudo_ctx->rctx->pvt_ctx = sudo_ctx;
 
@@ -122,7 +122,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto fail;
     }
 
     for (iter = sudo_ctx->rctx->be_conns; iter; iter = iter->next) {
@@ -140,12 +140,16 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
               ret, strerror(ret)));
-        return ret;
+        goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("SUDO Initialization complete\n"));
 
     return EOK;
+
+fail:
+    talloc_free(sudo_ctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])
