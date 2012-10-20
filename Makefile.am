@@ -369,6 +369,7 @@ dist_noinst_HEADERS = \
     src/util/mmap_cache.h \
     src/util/atomic_io.h \
     src/util/auth_utils.h \
+    src/util/authtok.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/responder/common/responder.h \
@@ -508,6 +509,7 @@ libsss_util_la_SOURCES = \
     src/util/sss_tc_utf8.c \
     src/util/murmurhash3.c \
     src/util/atomic_io.c \
+    src/util/authtok.c \
     src/util/sss_selinux.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c
