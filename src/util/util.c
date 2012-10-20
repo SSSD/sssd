@@ -679,3 +679,12 @@ bool string_in_list(const char *string, char **list, bool case_sensitive)
 
     return false;
 }
+
+void safezero(void *data, size_t size)
+{
+    volatile uint8_t *p = data;
+
+    while (size--) {
+        *p++ = 0;
+    }
+}

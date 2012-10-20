@@ -541,6 +541,15 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
 
 bool string_in_list(const char *string, char **list, bool case_sensitive);
 
+/**
+ * @brief Safely zero a segment of memory,
+ *        prevents the compiler from optimizing out
+ *
+ * @param data   The address of buffer to wipe
+ * @param s      Size of the buffer
+ */
+void safezero(void *data, size_t size);
+
 /* from sss_tc_utf8.c */
 char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);
