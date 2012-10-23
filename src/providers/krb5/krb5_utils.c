@@ -947,15 +947,15 @@ errno_t
 cc_dir_create(const char *location, pcre *illegal_re,
               uid_t uid, gid_t gid, bool private_path)
 {
-    const char *dirname;
+    const char *dir_name;
 
-    dirname = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_DIR);
-    if (dirname == NULL) {
+    dir_name = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_DIR);
+    if (dir_name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Bad residual type\n"));
         return EINVAL;
     }
 
-    return create_ccache_dir_head(dirname, illegal_re, uid, gid, private_path);
+    return create_ccache_dir_head(dir_name, illegal_re, uid, gid, private_path);
 }
 
 static krb5_error_code
