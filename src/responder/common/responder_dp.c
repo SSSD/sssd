@@ -761,4 +761,12 @@ static void sss_dp_internal_get_done(DBusPendingCall *pending, void *ptr)
      * This will clean up the hash table entry as well
      */
     talloc_zfree(sdp_req);
+
+    /* Free the sidereq to free the rest of the memory allocated with the
+     * internal dp request. */
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
 }
