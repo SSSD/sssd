@@ -29,6 +29,8 @@ struct sdap_sudo_ctx {
     bool include_netgroups;
     bool include_regexp;
     bool use_host_filter;
+
+    bool full_refresh_done;
 };
 
 /* Common functions from ldap_sudo.c */

@@ -31,6 +31,7 @@
 #include "db/sysdb_sudo.h"
 
 struct sdap_sudo_full_refresh_state {
+    struct sdap_sudo_ctx *sudo_ctx;
     struct sdap_id_ctx *id_ctx;
     struct sysdb_ctx *sysdb;
     int dp_error;
@@ -127,6 +128,10 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
     sudo_ctx->id_ctx = id_ctx;
     *ops = &sdap_sudo_ops;
     *pvt_data = sudo_ctx;
+
+    /* we didn't do any full refresh now,
+     * so we don't have current usn values available */
+    sudo_ctx->full_refresh_done = false;
 
     ret = ldap_get_sudo_options(id_ctx, be_ctx->cdb,
                                 be_ctx->conf_path, id_ctx->opts,
@@ -532,6 +537,7 @@ static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    state->sudo_ctx = sudo_ctx;
     state->id_ctx = id_ctx;
     state->sysdb = id_ctx->be->sysdb;
 
@@ -605,6 +611,8 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    state->sudo_ctx->full_refresh_done = true;
 
     /* save the time in the sysdb */
     ret = sysdb_sudo_set_last_full_refresh(state->sysdb, time(NULL));
@@ -810,6 +818,7 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     struct sdap_sudo_smart_refresh_state *state = NULL;
     char *ldap_filter = NULL;
     char *ldap_full_filter = NULL;
+    const char *usn;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_smart_refresh_state);
@@ -818,9 +827,11 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
-        /* Perform full refresh */
-        DEBUG(SSSDBG_TRACE_FUNC, ("USN value is unknown!\n"));
+    if (!sudo_ctx->full_refresh_done
+            && (srv_opts == NULL || srv_opts->max_sudo_value == 0)) {
+        /* Perform full refresh first */
+        DEBUG(SSSDBG_TRACE_FUNC, ("USN value is unknown, "
+                                  "waiting for full refresh!\n"));
         ret = EINVAL;
         goto immediately;
     }
@@ -829,12 +840,11 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     state->sysdb = id_ctx->be->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
+    usn = srv_opts->max_sudo_value == NULL ? "0" : srv_opts->max_sudo_value;
     ldap_filter = talloc_asprintf(state, "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
                                   map[SDAP_OC_SUDORULE].name,
-                                  map[SDAP_AT_SUDO_USN].name,
-                                  srv_opts->max_sudo_value,
-                                  map[SDAP_AT_SUDO_USN].name,
-                                  srv_opts->max_sudo_value);
+                                  map[SDAP_AT_SUDO_USN].name, usn,
+                                  map[SDAP_AT_SUDO_USN].name, usn);
     if (ldap_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
