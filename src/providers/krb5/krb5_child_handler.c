@@ -441,6 +441,8 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     uint32_t *expiration;
     uint32_t *msg_subtype;
     struct krb5_child_response *res;
+    const char *upn = NULL;
+    size_t upn_len;
 
     if ((size_t) len < sizeof(int32_t)) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("message too short.\n"));
@@ -505,6 +507,11 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
                   tgtt.authtime, tgtt.starttime, tgtt.endtime, tgtt.renew_till));
         }
 
+        if (msg_type == SSS_KRB5_INFO_UPN) {
+            upn = (char *) buf + p;
+            upn_len = msg_len;
+        }
+
         if (msg_type == SSS_PAM_USER_INFO) {
             msg_subtype = (uint32_t *)&buf[p];
             if (*msg_subtype == SSS_PAM_USER_INFO_EXPIRE_WARN)
@@ -543,6 +550,15 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     if (ccname) {
         res->ccname = talloc_strndup(res, ccname, ccname_len);
         if (res->ccname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strndup failed.\n"));
+            talloc_free(res);
+            return ENOMEM;
+        }
+    }
+
+    if (upn != NULL) {
+        res->correct_upn = talloc_strndup(res, upn, upn_len);
+        if (res->correct_upn == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strndup failed.\n"));
             talloc_free(res);
             return ENOMEM;

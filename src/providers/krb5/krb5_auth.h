@@ -80,6 +80,7 @@ struct krb5_child_response {
     int32_t msg_status;
     struct tgt_times tgtt;
     char *ccname;
+    char *correct_upn;
 };
 
 errno_t
