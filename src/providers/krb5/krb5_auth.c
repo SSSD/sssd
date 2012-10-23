@@ -145,7 +145,7 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    attrs = sysdb_new_attrs(mem_ctx);
+    attrs = sysdb_new_attrs(tmpctx);
     if (!attrs) {
         ret = ENOMEM;
         goto done;
