@@ -785,10 +785,13 @@ static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
     return EOK;
 }
 
-static errno_t add_ticket_times_to_response(struct krb5_req *kr)
+static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
 {
     int ret;
     int64_t t[4];
+    krb5_error_code kerr;
+    char *upn = NULL;
+    unsigned int upn_len = 0;
 
     t[0] = (int64_t) kr->creds->times.authtime;
     t[1] = (int64_t) kr->creds->times.starttime;
@@ -799,8 +802,24 @@ static errno_t add_ticket_times_to_response(struct krb5_req *kr)
                            4*sizeof(int64_t), (uint8_t *) t);
     if (ret != EOK) {
         DEBUG(1, ("pack_response_packet failed.\n"));
+        goto done;
     }
 
+    kerr = krb5_unparse_name_ext(kr->ctx, kr->creds->client, &upn, &upn_len);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_unparse_name failed.\n"));
+        goto done;
+    }
+
+    ret = pam_add_response(kr->pd, SSS_KRB5_INFO_UPN, upn_len,
+                           (uint8_t *) upn);
+    krb5_free_unparsed_name(kr->ctx, upn);
+    if (ret != EOK) {
+        DEBUG(1, ("pack_response_packet failed.\n"));
+        goto done;
+    }
+
+done:
     return ret;
 }
 
@@ -1054,9 +1073,9 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
-    ret = add_ticket_times_to_response(kr);
+    ret = add_ticket_times_and_upn_to_response(kr);
     if (ret != EOK) {
-        DEBUG(1, ("add_ticket_times_to_response failed.\n"));
+        DEBUG(1, ("add_ticket_times_and_upn_to_response failed.\n"));
     }
 
     kerr = 0;
@@ -1447,9 +1466,9 @@ static errno_t renew_tgt_child(int fd, struct krb5_req *kr)
         goto done;
     }
 
-    ret = add_ticket_times_to_response(kr);
+    ret = add_ticket_times_and_upn_to_response(kr);
     if (ret != EOK) {
-        DEBUG(1, ("add_ticket_times_to_response failed.\n"));
+        DEBUG(1, ("add_ticket_times_and_upn_to_response failed.\n"));
     }
 
     status = PAM_SUCCESS;
