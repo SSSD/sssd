@@ -884,6 +884,42 @@ int get_monitor_config(struct mt_ctx *ctx)
     return EOK;
 }
 
+static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
+                               struct mt_svc *svc)
+{
+    errno_t ret;
+
+    ret = confdb_get_int(ctx->cdb, path,
+                         CONFDB_DOMAIN_TIMEOUT,
+                         MONITOR_DEF_PING_TIME, &svc->ping_time);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+               ("Failed to get ping timeout for '%s'\n", svc->name));
+        return ret;
+    }
+
+    /* 'timeout = 0' should be translated to the default */
+    if (svc->ping_time == 0) {
+        svc->ping_time = MONITOR_DEF_PING_TIME;
+    }
+
+    ret = confdb_get_int(ctx->cdb, path,
+                         CONFDB_SERVICE_FORCE_TIMEOUT,
+                         MONITOR_DEF_FORCE_TIME, &svc->kill_time);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to get kill timeout for %s\n", svc->name));
+        return ret;
+    }
+
+    /* 'force_timeout = 0' should be translated to the default */
+    if (svc->kill_time == 0) {
+        svc->kill_time = MONITOR_DEF_FORCE_TIME;
+    }
+
+    return EOK;
+}
+
 static int get_service_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg)
 {
@@ -981,34 +1017,12 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         }
     }
 
-    ret = confdb_get_int(ctx->cdb, path,
-                         CONFDB_SERVICE_TIMEOUT,
-                         MONITOR_DEF_PING_TIME, &svc->ping_time);
+    ret = get_ping_config(ctx, path, svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to get ping timeout for %s\n", svc->name));
+              ("Failed to get ping timeouts for %s\n", svc->name));
         talloc_free(svc);
         return ret;
-    }
-
-    /* 'timeout = 0' should be translated to the default */
-    if (svc->ping_time == 0) {
-        svc->ping_time = MONITOR_DEF_PING_TIME;
-    }
-
-    ret = confdb_get_int(ctx->cdb, path,
-                         CONFDB_SERVICE_FORCE_TIMEOUT,
-                         MONITOR_DEF_FORCE_TIME, &svc->kill_time);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to get kill timeout for %s\n", svc->name));
-        talloc_free(svc);
-        return ret;
-    }
-
-    /* 'force_timeout = 0' should be translated to the default */
-    if (svc->kill_time == 0) {
-        svc->kill_time = MONITOR_DEF_FORCE_TIME;
     }
 
     svc->last_restart = now;
@@ -1096,18 +1110,12 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         return ret;
     }
 
-    ret = confdb_get_int(ctx->cdb, path,
-                         CONFDB_DOMAIN_TIMEOUT,
-                         MONITOR_DEF_PING_TIME, &svc->ping_time);
+    ret = get_ping_config(ctx, path, svc);
     if (ret != EOK) {
-        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to get ping timeouts for %s\n", svc->name));
         talloc_free(svc);
         return ret;
-    }
-
-    /* 'timeout = 0' should be translated to the default */
-    if (svc->ping_time == 0) {
-        svc->ping_time = MONITOR_DEF_PING_TIME;
     }
 
     talloc_free(path);
