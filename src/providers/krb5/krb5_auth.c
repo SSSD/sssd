@@ -782,6 +782,36 @@ static void krb5_child_done(struct tevent_req *subreq)
         }
     }
 
+    /* Check if the cases of our upn are correct and update it if needed.
+     * Fail if the upn differs by more than just the case. */
+    if (res->correct_upn != NULL &&
+        strcmp(kr->upn, res->correct_upn) != 0) {
+        if (strcasecmp(kr->upn, res->correct_upn) == 0) {
+            talloc_free(kr->upn);
+            kr->upn = talloc_strdup(kr, res->correct_upn);
+            if (kr->upn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = check_if_cached_upn_needs_update(state->sysdb, pd->user,
+                                                   res->correct_upn);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("check_if_cached_upn_needs_update failed.\n"));
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("UPN used in the request [%s] and " \
+                                        "returned UPN [%s] differ by more " \
+                                        "than just the case.\n",
+                                        kr->upn, res->correct_upn));
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
     /* If the child request failed, but did not return an offline error code,
      * return with the status */
     if (res->msg_status != PAM_SUCCESS &&

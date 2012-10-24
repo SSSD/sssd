@@ -57,6 +57,105 @@ errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
     return EOK;
 }
 
+errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
+                                         const char *user,
+                                         const char *upn)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    int sret;
+    const char *attrs[] = {SYSDB_UPN, NULL};
+    struct sysdb_attrs *new_attrs;
+    struct ldb_result *res;
+    bool in_transaction = false;
+    const char *cached_upn;
+
+    if (sysdb == NULL || user == NULL || upn == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sysdb_get_user_attr(tmp_ctx, sysdb, user, attrs, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_user_attr failed.\n"));
+        goto done;
+    }
+
+    if (res->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, ("[%d] user objects for name [%s] found, " \
+                                  "expected 1.\n", res->count, user));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cached_upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
+
+    if (cached_upn != NULL && strcmp(cached_upn, upn) == 0) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Cached UPN and new one match, "
+                                 "nothing to do.\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("Replacing UPN [%s] with [%s] for user [%s].\n",
+                              cached_upn, upn, user));
+
+    new_attrs = sysdb_new_attrs(tmp_ctx);
+    if (new_attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(new_attrs, SYSDB_UPN, upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Error %d starting transaction (%s)\n", ret, strerror(ret)));
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = sysdb_set_entry_attr(sysdb, res->msgs[0]->dn, new_attrs,
+                               SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed [%d][%s].\n",
+                                  ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to commit transaction!\n"));
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
                              bool case_sensitive, bool *private_path)
