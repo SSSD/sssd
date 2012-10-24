@@ -858,19 +858,32 @@ errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
 }
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
-                            const char *username, const char **_upn)
+                            const char *domain_name, const char *username,
+                            const char *user_dom, char **_upn)
 {
-    const char *realm;
+    const char *realm = NULL;
+    char *uc_dom = NULL;
     char *upn;
 
-    realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
-    if (realm == NULL) {
-        DEBUG(1, ("Missing Kerberos realm.\n"));
-        return ENOENT;
+    if (user_dom != NULL && domain_name != NULL &&
+        strcasecmp(domain_name,user_dom) != 0) {
+        uc_dom = get_uppercase_realm(mem_ctx, user_dom);
+        if (uc_dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("get_uppercase_realm failed.\n"));
+            return ENOMEM;
+        }
+    } else {
+        realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+        if (realm == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Missing Kerberos realm.\n"));
+            return ENOENT;
+        }
     }
 
     /* NOTE: this is a hack, works only in some environments */
-    upn = talloc_asprintf(mem_ctx, "%s@%s",  username, realm);
+    upn = talloc_asprintf(mem_ctx, "%s@%s",  username,
+                                             realm != NULL ? realm : uc_dom);
+    talloc_free(uc_dom);
     if (upn == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));
         return ENOMEM;

@@ -32,6 +32,11 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/data_provider.h"
 
+errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
+                          struct krb5_ctx *krb5_ctx,
+                          const char *domain_name, const char *user,
+                          const char *user_dom, char **_upn);
+
 /* Operations on a credential cache */
 typedef errno_t (*cc_be_create_fn)(const char *location, pcre *illegal_re,
                                    uid_t uid, gid_t gid, bool private_path);
