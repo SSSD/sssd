@@ -30,6 +30,33 @@
 #include "src/util/find_uid.h"
 #include "util/util.h"
 
+errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
+                          struct krb5_ctx *krb5_ctx,
+                          const char *domain_name, const char *user,
+                          const char *user_dom, char **_upn)
+{
+    const char *upn;
+    int ret;
+
+    upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    if (upn == NULL) {
+        ret = krb5_get_simple_upn(mem_ctx, krb5_ctx, domain_name, user,
+                                  user_dom, _upn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("krb5_get_simple_upn failed.\n"));
+            return ret;
+        }
+    } else {
+        *_upn = talloc_strdup(mem_ctx, upn);
+        if (*_upn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            return ENOMEM;
+        }
+    }
+
+    return EOK;
+}
+
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
                              bool case_sensitive, bool *private_path)
