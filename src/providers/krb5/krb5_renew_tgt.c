@@ -381,9 +381,11 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     struct ldb_message **msgs = NULL;
     size_t c;
     const char *ccache_file;
-    const char *upn;
+    char *upn;
     const char *user_name;
     struct ldb_dn *base_dn;
+    const struct ldb_val *user_dom_val;
+    char *user_dom;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -421,15 +423,31 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
             continue;
         }
 
-        upn = ldb_msg_find_attr_as_string(msgs[c], SYSDB_UPN, NULL);
-        if (upn == NULL) {
-            ret = krb5_get_simple_upn(tmp_ctx, renew_tgt_ctx->krb5_ctx,
-                                      user_name, &upn);
-            if (ret != EOK) {
-                DEBUG(1, ("krb5_get_simple_upn failed.\n"));
-                continue;
-            }
-            DEBUG(9, ("No upn stored in cache, using [%s].\n", upn));
+        /* The DNs of users in sysdb ends with ...,cn=domain.name,cn=sysdb, so
+         * the value of the component before the last (index 1) is the domain
+         * name. */
+
+        user_dom_val = ldb_dn_get_component_val(msgs[c]->dn, 1);
+        if (user_dom_val == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Invalid user DN [%s].\n",
+                                      ldb_dn_get_linearized(msgs[c]->dn)));
+            ret = EINVAL;
+            goto done;
+        }
+        user_dom = talloc_strndup(tmp_ctx, (char *) user_dom_val->data,
+                                 user_dom_val->length);
+        if (user_dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strndup failed,\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = find_or_guess_upn(tmp_ctx, msgs[c], renew_tgt_ctx->krb5_ctx,
+                                renew_tgt_ctx->be_ctx->domain->name,
+                                user_name, user_dom, &upn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("find_or_guess_upn failed.\n"));
+            goto done;
         }
 
         ccache_file = ldb_msg_find_attr_as_string(msgs[c], SYSDB_CCACHE_FILE,

@@ -45,7 +45,7 @@ struct krb5child_req {
     const char *ccname;
     const char *old_ccname;
     const char *homedir;
-    const char *upn;
+    char *upn;
     uid_t uid;
     gid_t gid;
     bool is_offline;
