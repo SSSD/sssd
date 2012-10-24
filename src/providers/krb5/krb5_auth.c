@@ -420,20 +420,19 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         break;
 
     case 1:
-        kr->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
-        if (kr->upn == NULL) {
-            ret = krb5_get_simple_upn(state, krb5_ctx, pd->user, &kr->upn);
-            if (ret != EOK) {
-                DEBUG(1, ("krb5_get_simple_upn failed.\n"));
-                goto done;
-            }
-        } else {
-            ret = compare_principal_realm(kr->upn, realm,
-                                          &kr->upn_from_different_realm);
-            if (ret != 0) {
-                DEBUG(SSSDBG_OP_FAILURE, ("compare_principal_realm failed.\n"));
-                goto done;
-            }
+        ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx,
+                                be_ctx->domain->name, pd->user, pd->domain,
+                                &kr->upn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("find_or_guess_upn failed.\n"));
+            goto done;
+        }
+
+        ret = compare_principal_realm(kr->upn, realm,
+                                      &kr->upn_from_different_realm);
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, ("compare_principal_realm failed.\n"));
+            goto done;
         }
 
         kr->homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,

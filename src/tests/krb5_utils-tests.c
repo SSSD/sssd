@@ -433,7 +433,7 @@ void setup_talloc_context(void)
 
     pd->user = discard_const(USERNAME);
     kr->uid = atoi(UID);
-    kr->upn = PRINCIPAL_NAME;
+    kr->upn = discard_const(PRINCIPAL_NAME);
     pd->cli_pid = atoi(PID);
 
     krb5_ctx->opts = talloc_zero_array(tmp_ctx, struct dp_option, KRB5_OPTS);

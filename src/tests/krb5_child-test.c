@@ -221,7 +221,8 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     /* PAM Data structure */
     kr->pd = create_dummy_pam_data(kr, user, password);
 
-    ret = krb5_get_simple_upn(kr, kr->krb5_ctx, kr->pd->user, &kr->upn);
+    ret = krb5_get_simple_upn(kr, kr->krb5_ctx, NULL, kr->pd->user, NULL,
+                              &kr->upn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("krb5_get_simple_upn failed.\n"));
         goto fail;

@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
+#include "providers/krb5/krb5_utils.h"
 
 struct krb5_access_state {
     struct tevent_context *ev;
@@ -101,15 +102,12 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         goto done;
         break;
     case 1:
-        state->kr->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN,
-                                                     NULL);
-        if (state->kr->upn == NULL) {
-            ret = krb5_get_simple_upn(state, krb5_ctx, pd->user,
-                                      &state->kr->upn);
-            if (ret != EOK) {
-                DEBUG(1, ("krb5_get_simple_upn failed.\n"));
-                goto done;
-            }
+        ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx,
+                                be_ctx->domain->name, pd->user, pd->domain,
+                                &state->kr->upn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("find_or_guess_upn failed.\n"));
+            goto done;
         }
 
         state->kr->uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM,
