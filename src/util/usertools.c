@@ -355,8 +355,13 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                 if (match != NULL) {
                     DEBUG(SSSDBG_FUNC_DATA, ("name '%s' matched expression for "
                                              "domain '%s', user is %s\n",
-                                             orig, dom->name, nmatch));
-                    rdomain = dmatch;
+                                             orig, match->name, nmatch));
+                    rdomain = talloc_strdup(tmp_ctx, match->name);
+                    if (rdomain == NULL) {
+                        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                        ret = ENOMEM;
+                        goto done;
+                    }
                     rname = nmatch;
                     break;
                 } else if (candidate_name == NULL) {
