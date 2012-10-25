@@ -99,7 +99,7 @@ int main(int argc, const char *argv[])
     struct cache_tool_ctx *tctx = NULL;
     struct sysdb_ctx *sysdb;
     int i;
-    bool skipped;
+    bool skipped = true;
     FILE *clear_mc_flag;
 
     ret = init_context(argc, argv, &tctx);
@@ -117,7 +117,6 @@ int main(int argc, const char *argv[])
             goto done;
         }
 
-        skipped = true;
         skipped &= !invalidate_entries(tctx, sysdb, TYPE_USER,
                                    tctx->user_filter, tctx->user_name);
         skipped &= !invalidate_entries(tctx, sysdb, TYPE_GROUP,
@@ -137,36 +136,36 @@ int main(int argc, const char *argv[])
                 DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
             }
         }
+    }
 
-        if (skipped == true) {
-            ERROR("No cache object matched the specified search\n");
-            ret = ENOENT;
+    if (skipped == true) {
+        ERROR("No cache object matched the specified search\n");
+        ret = ENOENT;
+        goto done;
+    } else {
+        /*Local cache changed -> signal monitor to invalidate fastcache */
+        clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
+        if (clear_mc_flag == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to create clear_mc_flag file. "
+                  "Memory cache will not be cleared.\n"));
             goto done;
-        } else {
-            /*Local cache changed -> signal monitor to invalidate fastcache */
-            clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
-            if (clear_mc_flag == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to create clear_mc_flag file. "
-                      "Memory cache will not be cleared.\n"));
-                goto done;
-            }
-            ret = fclose(clear_mc_flag);
-            if (ret != 0) {
-                ret = errno;
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Unable to close file descriptor: %s\n",
-                       strerror(ret)));
-                goto done;
-            }
+        }
+        ret = fclose(clear_mc_flag);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Unable to close file descriptor: %s\n",
+                   strerror(ret)));
+             goto done;
+        }
 
-            DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
-            ret = signal_sssd(SIGHUP);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to send SIGHUP to monitor.\n"));
-                goto done;
-            }
+        DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
+        ret = signal_sssd(SIGHUP);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to send SIGHUP to monitor.\n"));
+            goto done;
         }
     }
 
@@ -187,22 +186,25 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
     int i;
     const char *c_name;
     bool iret;
+    struct sss_domain_info *dinfo;
 
     if (!filter) return false;
+
+    dinfo = sysdb_ctx_get_domain(sysdb);
 
     type_rec = entry_types[entry_type];
     ret = type_rec.search_fn(ctx, sysdb, filter, attrs,
                                 &msg_count, &msgs);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Searching for %s with filter %s failed\n",
-               type_rec.type_string, filter));
+              ("Searching for %s in domain %s with filter %s failed\n",
+               type_rec.type_string, dinfo->name, filter));
         if (name) {
-            ERROR("No such %1$s named %2$s, skipping\n",
-                    type_rec.type_string, name);
+            ERROR("No such %1$s named %2$s in domain %3$s, skipping\n",
+                  type_rec.type_string, name, dinfo->name);
         } else {
-            ERROR("No objects of type %1$s in the cache, skipping\n",
-                    type_rec.type_string);
+            ERROR("No objects of type %1$s from domain %2$s in the cache, "
+                   "skipping\n", type_rec.type_string, dinfo->name);
         }
         return false;
     }
