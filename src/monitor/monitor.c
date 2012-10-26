@@ -156,7 +156,6 @@ struct mt_ctx {
     struct netlink_ctx *nlctx;
     const char *conf_path;
     struct sss_sigchild_ctx *sigchld_ctx;
-    bool pid_file_created;
     bool is_daemon;
     pid_t parent_pid;
 };
@@ -438,20 +437,7 @@ static int mark_service_as_started(struct mt_svc *svc)
         ctx->started_services++;
     }
 
-    /* create the pid file if all services are alive */
-    if (!ctx->pid_file_created && ctx->started_services == ctx->num_services) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("All services have successfully started, "
-                                  "creating pid file\n"));
-        ret = pidfile(PID_PATH, MONITOR_NAME);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Error creating pidfile: %s/%s.pid! (%d [%s])\n",
-                   PID_PATH, MONITOR_NAME, ret, strerror(ret)));
-            kill(getpid(), SIGTERM);
-        }
-
-        ctx->pid_file_created = true;
-
+    if (ctx->started_services == ctx->num_services) {
         /* Initialization is complete, terminate parent process if in daemon
          * mode. Make sure we send the signal to the right process */
         if (ctx->is_daemon) {
@@ -1473,7 +1459,6 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ctx->pid_file_created = false;
     talloc_set_destructor((TALLOC_CTX *)ctx, monitor_ctx_destructor);
 
     cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
@@ -2592,6 +2577,9 @@ int main(int argc, const char *argv[])
         return 6;
     }
 
+    /* we want a pid file check */
+    flags |= FLAGS_PID_FILE;
+
     /* Open before server_setup() does to have logging
      * during configuration checking */
     if (debug_to_file) {
@@ -2633,15 +2621,6 @@ int main(int argc, const char *argv[])
                 "recommended not to run nscd in parallel with SSSD, unless "
                 "nscd is configured not to cache the passwd, group and "
                 "netgroup nsswitch maps.");
-    }
-
-    /* Check if the SSSD is already running */
-    ret = check_file(SSSD_PIDFILE_PATH, 0, 0, 0600, CHECK_REG, NULL, false);
-    if (ret == EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("pidfile exists at %s\n", SSSD_PIDFILE_PATH));
-        ERROR("SSSD is already running\n");
-        return 2;
     }
 
     /* Parse config file, fail if cannot be done */
