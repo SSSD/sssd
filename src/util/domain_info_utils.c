@@ -79,7 +79,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->id_max = 0xffffffff;
     dom->pwd_expiration_warning = parent->pwd_expiration_warning;
     dom->cache_credentials = parent->cache_credentials;
-    dom->case_sensitive = parent->case_sensitive;
+    dom->case_sensitive = false;
     dom->user_timeout = parent->user_timeout;
     dom->group_timeout = parent->group_timeout;
     dom->netgroup_timeout = parent->netgroup_timeout;
