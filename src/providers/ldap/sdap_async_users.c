@@ -42,6 +42,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     struct ldb_message_element *el;
     int ret;
     const char *name = NULL;
+    const char *fullname = NULL;
     const char *pwd;
     const char *gecos;
     const char *homedir;
@@ -80,6 +81,19 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (ret != EOK) {
         DEBUG(1, ("Failed to save the user - entry has no name attribute\n"));
         goto fail;
+    }
+
+    if (opts->schema_type == SDAP_SCHEMA_AD) {
+        ret = sysdb_attrs_get_string(attrs,
+                    opts->user_map[SDAP_AT_USER_FULLNAME].sys_name, &fullname);
+        if (ret == EOK) {
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_FULLNAME, fullname);
+            if (ret != EOK) {
+                goto fail;
+            }
+        } else if (ret != ENOENT) {
+            goto fail;
+        }
     }
 
     ret = sysdb_attrs_get_el(attrs,
