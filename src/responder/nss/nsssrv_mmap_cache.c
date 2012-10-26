@@ -537,14 +537,21 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
     mode_t old_mask;
     int ofd;
     int ret;
+    useconds_t t = 50000;
+    int retries = 3;
 
     ofd = open(mc_ctx->file, O_RDWR);
     if (ofd != -1) {
+        ret = sss_br_lock_file(ofd, 0, 1, retries, t);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Failed to lock file %s.\n", mc_ctx->file));
+        }
         ret = sss_mc_set_recycled(ofd);
         if (ret) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to mark mmap file %s as"
-                                      " recycled: %d(%s)\n",
-                                      mc_ctx->file, ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to mark mmap file %s as"
+                                         " recycled: %d(%s)\n",
+                                         mc_ctx->file, ret, strerror(ret)));
         }
 
         close(ofd);
@@ -568,10 +575,23 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open mmap file %s: %d(%s)\n",
                                     mc_ctx->file, ret, strerror(ret)));
+        goto done;
     }
 
+    ret = sss_br_lock_file(mc_ctx->fd, 0, 1, retries, t);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to lock file %s.\n", mc_ctx->file));
+        goto done;
+    }
+
+done:
     /* reset mask back */
     umask(old_mask);
+
+    if (ret) {
+        close(mc_ctx->fd);
+    }
 
     return ret;
 }

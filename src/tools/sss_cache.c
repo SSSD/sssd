@@ -92,6 +92,7 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
 bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                         enum sss_cache_entry entry_type, const char *filter,
                         const char *name);
+static int clear_fastcache(bool *sssd_nss_is_off);
 
 int main(int argc, const char *argv[])
 {
@@ -99,6 +100,7 @@ int main(int argc, const char *argv[])
     struct cache_tool_ctx *tctx = NULL;
     struct sysdb_ctx *sysdb;
     int i;
+    bool sssd_nss_is_off;
     bool skipped = true;
     FILE *clear_mc_flag;
 
@@ -143,35 +145,69 @@ int main(int argc, const char *argv[])
         ret = ENOENT;
         goto done;
     } else {
-        /*Local cache changed -> signal monitor to invalidate fastcache */
-        clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
-        if (clear_mc_flag == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to create clear_mc_flag file. "
-                  "Memory cache will not be cleared.\n"));
-            goto done;
-        }
-        ret = fclose(clear_mc_flag);
-        if (ret != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Unable to close file descriptor: %s\n",
-                   strerror(ret)));
-             goto done;
-        }
-
-        DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
-        ret = signal_sssd(SIGHUP);
+        ret = clear_fastcache(&sssd_nss_is_off);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to send SIGHUP to monitor.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to clear caches.\n"));
             goto done;
+        }
+        if (!sssd_nss_is_off) {
+            /* sssd_nss is running -> signal monitor to invalidate fastcache */
+            clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
+            if (clear_mc_flag == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to create clear_mc_flag file. "
+                       "Memory cache will not be cleared.\n"));
+                goto done;
+            }
+            ret = fclose(clear_mc_flag);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Unable to close file descriptor: %s\n",
+                       strerror(ret)));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
+            ret = signal_sssd(SIGHUP);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to send SIGHUP to monitor.\n"));
+                goto done;
+            }
         }
     }
 
 done:
     if (tctx) talloc_free(tctx);
     return ret;
+}
+
+static int clear_fastcache(bool *sssd_nss_is_off)
+{
+    int ret;
+    ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/passwd");
+    if (ret != EOK) {
+        if (ret == EACCES) {
+            *sssd_nss_is_off = false;
+            return EOK;
+        } else {
+            return ret;
+        }
+    }
+
+    ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/group");
+    if (ret != EOK) {
+        if (ret == EACCES) {
+            *sssd_nss_is_off = false;
+            return EOK;
+        } else {
+            return ret;
+        }
+    }
+
+    *sssd_nss_is_off = true;
+    return EOK;
 }
 
 bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
