@@ -104,6 +104,8 @@ int run_userdel_cmd(struct tools_ctx *tctx);
 
 errno_t signal_sssd(int signum);
 
+errno_t sss_memcache_invalidate(const char *mc_filename);
+
 /* from files.c */
 int remove_tree(const char *root);
 

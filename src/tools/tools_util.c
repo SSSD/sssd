@@ -35,6 +35,7 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
+#include "util/mmap_cache.h"
 
 static int setup_db(struct tools_ctx *ctx)
 {
@@ -670,4 +671,97 @@ errno_t signal_sssd(int signum)
     }
 
     return EOK;
+}
+
+static errno_t sss_mc_set_recycled(int fd)
+{
+    uint32_t w = SSS_MC_HEADER_RECYCLED;
+    struct sss_mc_header h;
+    off_t offset;
+    off_t pos;
+    int ret;
+
+
+    offset = MC_PTR_DIFF(&h.status, &h);
+
+    pos = lseek(fd, offset, SEEK_SET);
+    if (pos == -1) {
+        /* What do we do now ? */
+        return errno;
+    }
+
+    errno = 0;
+    ret = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(h.status));
+    if (ret == -1) {
+        return errno;
+    }
+
+    if (ret != sizeof(h.status)) {
+        /* Write error */
+        return EIO;
+    }
+
+    return EOK;
+}
+
+errno_t sss_memcache_invalidate(const char *mc_filename)
+{
+    int mc_fd = -1;
+    errno_t ret;
+    errno_t pret;
+    useconds_t t = 50000;
+    int retries = 2;
+
+    if (!mc_filename) {
+        return EINVAL;
+    }
+
+    mc_fd = open(mc_filename, O_RDWR);
+    if (mc_fd == -1) {
+        ret = errno;
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_FUNC,("Memory cache file %s "
+                  "does not exist.\n", mc_filename));
+            return EOK;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to open file %s: %s\n",
+                  mc_filename, strerror(ret)));
+            return ret;
+        }
+    }
+
+    ret = sss_br_lock_file(mc_fd, 0, 1, retries, t);
+    if (ret == EACCES) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("File %s already locked by someone else.\n", mc_filename));
+        goto done;
+    } else if (ret != EOK) {
+       DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to lock file %s.\n", mc_filename));
+       goto done;
+    }
+    /* Mark the mc file as recycled. */
+    ret = sss_mc_set_recycled(mc_fd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to mark memory cache file %s "
+              "as recycled.\n", mc_filename));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    if (mc_fd != -1) {
+        /* Closing the file also releases the lock */
+        close(mc_fd);
+
+        /* Only unlink the file if invalidation was succesful */
+        if (ret == EOK) {
+            pret = unlink(mc_filename);
+            if (pret == -1) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to unlink file %s. "
+                       "Will be unlinked later by sssd_nss.\n"));
+            }
+        }
+    }
+    return ret;
 }
