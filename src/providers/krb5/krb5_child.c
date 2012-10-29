@@ -101,94 +101,12 @@ struct krb5_req {
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
-static krb5_error_code extract_and_send_pac(struct krb5_req *kr,
-                                            krb5_ccache ccache,
-                                            krb5_principal server_principal,
-                                            krb5_principal client_principal,
-                                            krb5_keytab keytab)
+
+static errno_t sss_send_pac(krb5_authdata **pac_authdata)
 {
-    krb5_error_code kerr;
-    krb5_creds mcred;
-    krb5_creds cred;
-    krb5_authdata **pac_authdata = NULL;
-    krb5_pac pac = NULL;
     struct sss_cli_req_data sss_data;
     int ret;
     int errnop;
-    krb5_ticket *ticket = NULL;
-    krb5_keytab_entry entry;
-
-    memset(&entry, 0, sizeof(entry));
-    memset(&mcred, 0, sizeof(mcred));
-    memset(&cred, 0, sizeof(mcred));
-
-    mcred.server = server_principal;
-    mcred.client = client_principal;
-
-    kerr = krb5_cc_retrieve_cred(kr->ctx, ccache, 0, &mcred, &cred);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_cc_retrieve_cred failed.\n"));
-        goto done;
-    }
-
-    kerr = krb5_decode_ticket(&cred.ticket, &ticket);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_decode_ticket failed.\n"));
-        goto done;
-    }
-
-    kerr = krb5_server_decrypt_ticket_keytab(kr->ctx, keytab, ticket);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_server_decrypt_ticket_keytab failed.\n"));
-        goto done;
-    }
-
-    kerr = sss_krb5_find_authdata(kr->ctx,
-                                  ticket->enc_part2->authorization_data, NULL,
-                                  KRB5_AUTHDATA_WIN2K_PAC, &pac_authdata);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_find_authdata failed.\n"));
-        goto done;
-    }
-
-    if (pac_authdata == NULL || pac_authdata[0] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No PAC authdata available.\n"));
-        kerr = ENOENT;
-        goto done;
-    }
-
-    if (pac_authdata[1] != NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("More than one PAC autdata found.\n"));
-        kerr = EINVAL;
-        goto done;
-    }
-
-    kerr = krb5_pac_parse(kr->ctx, pac_authdata[0]->contents,
-                          pac_authdata[0]->length, &pac);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_pac_parse failed.\n"));
-        goto done;
-    }
-
-    kerr = krb5_kt_get_entry(kr->ctx, keytab, ticket->server,
-                             ticket->enc_part.kvno, ticket->enc_part.enctype,
-                             &entry);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_kt_get_entry failed.\n"));
-        goto done;
-    }
-
-    kerr = krb5_pac_verify(kr->ctx, pac, 0, NULL, &entry.key, NULL);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_pac_verify failed.\n"));
-        goto done;
-    }
-
-    ret = unsetenv("_SSS_LOOPS");
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to unset _SSS_LOOPS, "
-                  "sss_pac_make_request will most certainly fail.\n"));
-    }
 
     sss_data.len = pac_authdata[0]->length;
     sss_data.data = pac_authdata[0]->contents;
@@ -198,25 +116,10 @@ static krb5_error_code extract_and_send_pac(struct krb5_req *kr,
     if (ret != NSS_STATUS_SUCCESS || errnop != 0) {
         DEBUG(SSSDBG_OP_FAILURE, ("sss_pac_make_request failed [%d][%d].\n",
                                   ret, errnop));
-        kerr = EIO;
-        goto done;
+        return EIO;
     }
 
-    kerr = 0;
-
-done:
-    if (entry.magic != 0) {
-        krb5_free_keytab_entry_contents(kr->ctx, &entry);
-    }
-    krb5_pac_free(kr->ctx, pac);
-    krb5_free_authdata(kr->ctx, pac_authdata);
-    if (ticket != NULL) {
-        krb5_free_ticket(kr->ctx, ticket);
-    }
-
-    krb5_free_cred_contents(kr->ctx, &cred);
-
-    return kerr;
+    return EOK;
 }
 
 static void sss_krb5_expire_callback_func(krb5_context context, void *data,
@@ -835,6 +738,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     krb5_principal validation_princ = NULL;
     bool realm_entry_found = false;
     krb5_ccache validation_ccache = NULL;
+    krb5_authdata **pac_authdata = NULL;
 
     memset(&keytab, 0, sizeof(keytab));
     kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
@@ -931,10 +835,20 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     /* Try to find and send the PAC to the PAC responder for principals which
      * do not belong to our realm. Failures are not critical. */
     if (kr->upn_from_different_realm) {
-        kerr = extract_and_send_pac(kr, validation_ccache, validation_princ,
-                                    kr->creds->client, keytab);
+        kerr = sss_extract_pac(kr->ctx, validation_ccache, validation_princ,
+                               kr->creds->client, keytab, &pac_authdata);
         if (kerr != 0) {
-            DEBUG(SSSDBG_OP_FAILURE, ("extract_and_send_pac failed, group " \
+            DEBUG(SSSDBG_OP_FAILURE, ("sss_extract_and_send_pac failed, group " \
+                                      "membership for user with principal [%s] " \
+                                      "might not be correct.\n", kr->name));
+            kerr = 0;
+            goto done;
+        }
+
+        kerr = sss_send_pac(pac_authdata);
+        krb5_free_authdata(kr->ctx, pac_authdata);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sss_send_pac failed, group " \
                                       "membership for user with principal [%s] " \
                                       "might not be correct.\n", kr->name));
             kerr = 0;
