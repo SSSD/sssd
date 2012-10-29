@@ -1004,3 +1004,114 @@ krb5_error_code sss_krb5_find_authdata(krb5_context context,
     return ENOTSUP;
 #endif
 }
+
+krb5_error_code sss_extract_pac(krb5_context ctx,
+                                krb5_ccache ccache,
+                                krb5_principal server_principal,
+                                krb5_principal client_principal,
+                                krb5_keytab keytab,
+                                krb5_authdata ***_pac_authdata)
+{
+#ifdef HAVE_PAC_RESPONDER
+    krb5_error_code kerr;
+    krb5_creds mcred;
+    krb5_creds cred;
+    krb5_authdata **pac_authdata = NULL;
+    krb5_pac pac = NULL;
+    int ret;
+    krb5_ticket *ticket = NULL;
+    krb5_keytab_entry entry;
+
+    memset(&entry, 0, sizeof(entry));
+    memset(&mcred, 0, sizeof(mcred));
+    memset(&cred, 0, sizeof(mcred));
+
+    mcred.server = server_principal;
+    mcred.client = client_principal;
+
+    kerr = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcred, &cred);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_cc_retrieve_cred failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_decode_ticket(&cred.ticket, &ticket);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_decode_ticket failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_server_decrypt_ticket_keytab(ctx, keytab, ticket);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_server_decrypt_ticket_keytab failed.\n"));
+        goto done;
+    }
+
+    kerr = sss_krb5_find_authdata(ctx,
+                                  ticket->enc_part2->authorization_data, NULL,
+                                  KRB5_AUTHDATA_WIN2K_PAC, &pac_authdata);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_find_authdata failed.\n"));
+        goto done;
+    }
+
+    if (pac_authdata == NULL || pac_authdata[0] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("No PAC authdata available.\n"));
+        kerr = ENOENT;
+        goto done;
+    }
+
+    if (pac_authdata[1] != NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("More than one PAC autdata found.\n"));
+        kerr = EINVAL;
+        goto done;
+    }
+
+    kerr = krb5_pac_parse(ctx, pac_authdata[0]->contents,
+                          pac_authdata[0]->length, &pac);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_pac_parse failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_kt_get_entry(ctx, keytab, ticket->server,
+                             ticket->enc_part.kvno, ticket->enc_part.enctype,
+                             &entry);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_kt_get_entry failed.\n"));
+        goto done;
+    }
+
+    kerr = krb5_pac_verify(ctx, pac, 0, NULL, &entry.key, NULL);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_pac_verify failed.\n"));
+        goto done;
+    }
+
+    ret = unsetenv("_SSS_LOOPS");
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to unset _SSS_LOOPS, "
+                  "sss_pac_make_request will most certainly fail.\n"));
+    }
+
+    *_pac_authdata = pac_authdata;
+    kerr = 0;
+
+done:
+    if (kerr != 0) {
+        krb5_free_authdata(ctx, pac_authdata);
+    }
+    if (entry.magic != 0) {
+        krb5_free_keytab_entry_contents(ctx, &entry);
+    }
+    krb5_pac_free(ctx, pac);
+    if (ticket != NULL) {
+        krb5_free_ticket(ctx, ticket);
+    }
+
+    krb5_free_cred_contents(ctx, &cred);
+    return kerr;
+#else
+    return ENOTSUP;
+#endif
+}
