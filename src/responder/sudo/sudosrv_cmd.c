@@ -156,10 +156,12 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
     return EOK;
 }
 
+static void sudosrv_cmd_parse_query_done(struct tevent_req *req);
+
 static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
 {
+    struct tevent_req *req = NULL;
     struct sudo_cmd_ctx *cmd_ctx = NULL;
-    struct sudo_dom_ctx *dom_ctx = NULL;
     uint8_t *query_body = NULL;
     size_t query_len = 0;
     errno_t ret;
@@ -199,11 +201,35 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    ret = sudosrv_parse_query(cmd_ctx, cli_ctx->rctx,
-                              query_body, query_len,
-                              &cmd_ctx->uid, &cmd_ctx->username, &cmd_ctx->domain);
+    req = sudosrv_parse_query_send(cmd_ctx, cli_ctx->rctx,
+                                   query_body, query_len);
+    if (req == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(req, sudosrv_cmd_parse_query_done, cmd_ctx);
+
+    ret = EAGAIN;
+
+done:
+    return sudosrv_cmd_done(cmd_ctx, ret);
+}
+
+static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
+{
+    struct sudo_cmd_ctx *cmd_ctx = NULL;
+    struct sudo_dom_ctx *dom_ctx = NULL;
+    errno_t ret;
+
+    cmd_ctx = tevent_req_callback_data(req, struct sudo_cmd_ctx);
+
+    ret = sudosrv_parse_query_recv(cmd_ctx, req, &cmd_ctx->uid,
+                                   &cmd_ctx->username, &cmd_ctx->domain);
+    talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid query: %s\n", strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid query [%d]: %s\n",
+                                    ret, strerror(ret)));
         goto done;
     }
 
@@ -231,14 +257,13 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     }
     dom_ctx->cmd_ctx = cmd_ctx;
     dom_ctx->domain = cmd_ctx->domain != NULL ? cmd_ctx->domain
-                                              : cli_ctx->rctx->domains;
+                                              : cmd_ctx->cli_ctx->rctx->domains;
 
     ret = sudosrv_get_sudorules(dom_ctx);
 
 done:
-    return sudosrv_cmd_done(cmd_ctx, ret);
+    sudosrv_cmd_done(cmd_ctx, ret);
 }
-
 
 static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
 {

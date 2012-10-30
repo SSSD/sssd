@@ -29,6 +29,22 @@
 #include "db/sysdb_sudo.h"
 #include "responder/sudo/sudosrv_private.h"
 
+static struct sysdb_ctx* sudosrv_get_user_sysdb(struct sss_domain_info *domain)
+{
+    return domain->sysdb;
+}
+
+static struct sysdb_ctx* sudosrv_get_rules_sysdb(struct sss_domain_info *domain)
+{
+    if (domain->parent == NULL) {
+        return domain->sysdb;
+    } else {
+        /* sudo rules are stored under parent domain basedn, so we will return
+         * parent's sysdb context */
+        return domain->parent->sysdb;
+    }
+}
+
 static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx);
 
 errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx)
@@ -112,7 +128,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         DEBUG(SSSDBG_FUNC_DATA, ("Requesting info about [%s@%s]\n",
               name, dom->name));
 
-        sysdb = dctx->domain->sysdb;
+        sysdb = sudosrv_get_user_sysdb(dctx->domain);
         if (sysdb == NULL) {
              DEBUG(SSSDBG_CRIT_FAILURE,
                    ("sysdb context not found for this domain!\n"));
@@ -327,7 +343,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     TALLOC_CTX *tmp_ctx = NULL;
     struct tevent_req *dpreq = NULL;
     struct dp_callback_ctx *cb_ctx = NULL;
-    struct sysdb_ctx *sysdb;
+    struct sysdb_ctx *user_sysdb = NULL;
+    struct sysdb_ctx *rules_sysdb = NULL;
     char **groupnames = NULL;
     size_t expired_rules_num = 0;
     struct sysdb_attrs **expired_rules = NULL;
@@ -341,7 +358,21 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
         return EFAULT;
     }
 
-    sysdb = cmd_ctx->domain->sysdb;
+    user_sysdb = sudosrv_get_user_sysdb(cmd_ctx->domain);
+    if (user_sysdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("user sysdb context not found for this domain!\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    rules_sysdb = sudosrv_get_rules_sysdb(cmd_ctx->domain);
+    if (rules_sysdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("rules sysdb context not found for this domain!\n"));
+        ret = EIO;
+        goto done;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -367,7 +398,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
      * expired rules for this user and defaults at once we will save one
      * provider call
      */
-    ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->orig_username, sysdb,
+    ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->orig_username, user_sysdb,
                                    NULL, &groupnames);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -379,7 +410,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
             | SYSDB_SUDO_FILTER_INCLUDE_DFL
             | SYSDB_SUDO_FILTER_ONLY_EXPIRED
             | SYSDB_SUDO_FILTER_USERINFO;
-    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, sysdb, cmd_ctx->type,
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, rules_sysdb, cmd_ctx->type,
                                             attrs, flags, cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
                                             &expired_rules, &expired_rules_num);
@@ -535,7 +566,8 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
-    struct sysdb_ctx *sysdb;
+    struct sysdb_ctx *user_sysdb = NULL;
+    struct sysdb_ctx *rules_sysdb = NULL;
     char **groupnames = NULL;
     const char *debug_name = NULL;
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
@@ -565,10 +597,18 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    sysdb = cmd_ctx->domain->sysdb;
-    if (sysdb == NULL) {
+    user_sysdb = sudosrv_get_user_sysdb(cmd_ctx->domain);
+    if (user_sysdb == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("sysdb context not found for this domain!\n"));
+              ("user sysdb context not found for this domain!\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    rules_sysdb = sudosrv_get_rules_sysdb(cmd_ctx->domain);
+    if (rules_sysdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("rules sysdb context not found for this domain!\n"));
         ret = EIO;
         goto done;
     }
@@ -576,8 +616,8 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     switch (cmd_ctx->type) {
     case SSS_SUDO_USER:
         debug_name = cmd_ctx->cased_username;
-        ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->orig_username, sysdb,
-                                       NULL, &groupnames);
+        ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->orig_username,
+                                       user_sysdb, NULL, &groupnames);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                  ("Unable to retrieve user info [%d]: %s\n", strerror(ret)));
@@ -591,7 +631,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
         break;
     }
 
-    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, sysdb, cmd_ctx->type,
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, rules_sysdb, cmd_ctx->type,
                                             attrs, flags, cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
                                             &rules, &num_rules);
