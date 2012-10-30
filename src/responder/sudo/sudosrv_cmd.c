@@ -27,6 +27,7 @@
 #include "responder/common/responder_packet.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "db/sysdb_sudo.h"
+#include "sss_client/sss_cli.h"
 
 static errno_t sudosrv_cmd_send_reply(struct sudo_cmd_ctx *cmd_ctx,
                                       uint8_t *response_body,
@@ -182,7 +183,7 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     }
 
     /* if protocol is invalid return */
-    if (cli_ctx->cli_protocol_version->version != 1) {
+    if (cli_ctx->cli_protocol_version->version != SSS_SUDO_PROTOCOL_VERSION) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Invalid protocol! [%d]\n",
               cli_ctx->cli_protocol_version->version));
         ret = EFAULT;
