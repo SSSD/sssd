@@ -90,13 +90,16 @@ errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx);
 
 errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx);
 
-errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
-                            struct resp_ctx *rctx,
-                            uint8_t *query_body,
-                            size_t query_len,
-                            uid_t *_uid,
-                            char **_username,
-                            struct sss_domain_info **_domain);
+struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
+                                            struct resp_ctx *rctx,
+                                            uint8_t *query_body,
+                                            size_t query_len);
+
+errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
+                                 struct tevent_req *req,
+                                 uid_t *_uid,
+                                 char **_username,
+                                 struct sss_domain_info **_domain);
 
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
