@@ -554,6 +554,10 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
 struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *subdomain);
 
+/* from util_lock.c */
+errno_t sss_br_lock_file(int fd, size_t start, size_t len,
+                         int retries, useconds_t wait);
+
 /* Endianness-compatibility for systems running older versions of glibc */
 
 #ifndef le32toh
