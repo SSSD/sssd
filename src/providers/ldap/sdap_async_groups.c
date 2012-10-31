@@ -406,7 +406,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                 ret = ENOMEM;
                 goto fail;
             }
-            el->values[el->num_values].length = strlen(value.ptr)+1;
+            el->values[el->num_values].length = strlen(value.ptr);
             el->num_values++;
         }
     }
