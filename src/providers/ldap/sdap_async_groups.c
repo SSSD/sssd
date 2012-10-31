@@ -216,7 +216,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
     gid_t gid;
-    int ret, cnt, i;
+    errno_t ret;
+    int hret, cnt, i;
     char *usn_value = NULL;
     TALLOC_CTX *tmpctx = NULL;
     bool posix_group;
@@ -255,34 +256,60 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                 tmpctx, opts->idmap_ctx, attrs,
                 opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
                 &sid_str);
-        if (ret != EOK) goto fail;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not identify objectSID: [%s]\n",
+                   strerror(ret)));
+            goto fail;
+        }
 
         /* Add string representation to the cache for easier
          * debugging
          */
         ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR, sid_str);
-        if (ret != EOK) goto fail;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not add SID string: [%s]\n",
+                   strerror(ret)));
+            goto fail;
+        }
 
         /* Convert the SID into a UNIX group ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &gid);
-        if (ret != EOK) goto fail;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not convert SID string: [%s]\n",
+                   strerror(ret)));
+            goto fail;
+        }
 
         /* Store the GID in the ldap_attrs so it doesn't get
          * treated as a missing attribute from LDAP and removed.
          */
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
-        if (ret != EOK) goto fail;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not store GID: [%s]\n",
+                   strerror(ret)));
+            goto fail;
+        }
     } else {
         ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix_group);
         if (ret == ENOENT) {
             posix_group = true;
         } else if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Error reading posix attribute: [%s]\n",
+                   strerror(ret)));
             goto fail;
         }
 
         DEBUG(8, ("This is%s a posix group\n", (posix_group)?"":" not"));
         ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, posix_group);
         if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Error setting posix attribute: [%s]\n",
+                   strerror(ret)));
             goto fail;
         }
 
@@ -311,6 +338,9 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     ret = sdap_attrs_add_string(attrs, SYSDB_ORIG_DN, "original DN",
                                 name, group_attrs);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error setting original DN: [%s]\n",
+               strerror(ret)));
         goto fail;
     }
 
@@ -319,12 +349,18 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                             "original mod-Timestamp",
                             name, group_attrs);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error setting mod timestamp: [%s]\n",
+               strerror(ret)));
         goto fail;
     }
 
     ret = sysdb_attrs_get_el(attrs,
                       opts->group_map[SDAP_AT_GROUP_USN].sys_name, &el);
     if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error looking up group USN: [%s]\n",
+               strerror(ret)));
         goto fail;
     }
     if (el->num_values == 0) {
@@ -335,6 +371,9 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                           opts->group_map[SDAP_AT_GROUP_USN].sys_name,
                           (const char*)el->values[0].data);
         if (ret) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Error setting group USN: [%s]\n",
+                   strerror(ret)));
             goto fail;
         }
         usn_value = talloc_strdup(tmpctx, (const char*)el->values[0].data);
@@ -347,12 +386,18 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     ret = sysdb_attrs_get_el(attrs, opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
                              &el1);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error reading group members from attrs: [%s]\n",
+               strerror(ret)));
         goto fail;
     }
 
     if (populate_members) {
         ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
         if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Error reading group members from group_attrs: [%s]\n",
+                   strerror(ret)));
             goto fail;
         }
         el->values = el1->values;
@@ -361,6 +406,9 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     ret = sysdb_attrs_get_el(attrs, SYSDB_GHOST, &gh);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error reading ghost attributes: [%s]\n",
+               strerror(ret)));
         goto fail;
     }
     if (gh->num_values == 0) {
@@ -368,12 +416,18 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                  opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
                                  &el1);
         if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Error reading members: [%s]\n",
+                   strerror(ret)));
             goto fail;
         }
     }
 
     ret = sysdb_attrs_get_el(group_attrs, SYSDB_GHOST, &el);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Error getting ghost element: [%s]\n",
+               strerror(ret)));
         goto fail;
     }
     el->values = gh->values;
@@ -391,10 +445,13 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         for (i = 0; i < el1->num_values; i++) {
             key.type = HASH_KEY_STRING;
             key.str = (char *)el1->values[i].data;
-            ret = hash_lookup(ghosts, &key, &value);
-            if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+            hret = hash_lookup(ghosts, &key, &value);
+            if (hret == HASH_ERROR_KEY_NOT_FOUND) {
                 continue;
-            } else if (ret != HASH_SUCCESS) {
+            } else if (hret != HASH_SUCCESS) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Error checking hash table: [%s]\n",
+                       hash_error_string(hret)));
                 ret = EFAULT;
                 goto fail;
             }
@@ -423,7 +480,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                     name, gid, group_attrs,
                                     dom->group_timeout,
                                     posix_group, now);
-    if (ret) goto fail;
+    if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not store group with GID: [%s]\n",
+               strerror(ret)));
+        goto fail;
+    }
 
     if (_usn_value) {
         *_usn_value = talloc_steal(memctx, usn_value);
@@ -434,8 +496,10 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     return EOK;
 
 fail:
-    DEBUG(2, ("Failed to save group [%s]\n",
-              name ? name : "Unknown"));
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("Failed to save group [%s]: [%s]\n",
+           name ? name : "Unknown",
+           strerror(ret)));
     talloc_free(tmpctx);
     return ret;
 }
