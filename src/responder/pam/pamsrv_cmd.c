@@ -443,6 +443,7 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     } else {
         ret = EOK;
     }
+    close(fd);
     fd = -1;
 
 done:
