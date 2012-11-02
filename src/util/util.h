@@ -77,6 +77,7 @@ errno_t set_debug_file_from_fd(const int fd);
 #define SSSDBG_TRACE_LIBS     0x1000   /* level 7 */
 #define SSSDBG_TRACE_INTERNAL 0x2000   /* level 8 */
 #define SSSDBG_TRACE_ALL      0x4000   /* level 9 */
+#define SSSDBG_IMPORTANT_INFO SSSDBG_OP_FAILURE
 
 #define SSSDBG_INVALID        -1
 #define SSSDBG_UNRESOLVED     0
