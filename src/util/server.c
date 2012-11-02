@@ -3,11 +3,11 @@
 
    Servers setup routines
 
-   Copyright (C) Andrew Tridgell		1992-2005
-   Copyright (C) Martin Pool			2002
-   Copyright (C) Jelmer Vernooij		2002
-   Copyright (C) James J Myers 			2003 <myersjj@samba.org>
-   Copyright (C) Simo Sorce			2008
+   Copyright (C) Andrew Tridgell        1992-2005
+   Copyright (C) Martin Pool            2002
+   Copyright (C) Jelmer Vernooij        2002
+   Copyright (C) James J Myers          2003 <myersjj@samba.org>
+   Copyright (C) Simo Sorce             2008
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -42,28 +42,28 @@
 static void close_low_fds(void)
 {
 #ifndef VALGRIND
-	int fd;
-	int i;
+    int fd;
+    int i;
 
-	close(0);
-	close(1);
-	close(2);
+    close(0);
+    close(1);
+    close(2);
 
-	/* try and use up these file descriptors, so silly
-		library routines writing to stdout etc won't cause havoc */
-	for (i=0;i<3;i++) {
-		fd = open("/dev/null",O_RDWR,0);
-		if (fd < 0)
-			fd = open("/dev/null",O_WRONLY,0);
-		if (fd < 0) {
-			DEBUG(0,("Can't open /dev/null\n"));
-			return;
-		}
-		if (fd != i) {
-			DEBUG(0,("Didn't get file descriptor %d\n",i));
-			return;
-		}
-	}
+    /* try and use up these file descriptors, so silly
+       library routines writing to stdout etc won't cause havoc */
+    for (i = 0; i < 3; i++) {
+        fd = open("/dev/null", O_RDWR, 0);
+        if (fd < 0)
+            fd = open("/dev/null", O_WRONLY, 0);
+        if (fd < 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Can't open /dev/null\n"));
+            return;
+        }
+        if (fd != i) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Didn't get file descriptor %d\n",i));
+            return;
+        }
+    }
 #endif
 }
 
@@ -73,28 +73,28 @@ static void close_low_fds(void)
 
 void become_daemon(bool Fork)
 {
-        int ret;
+    int ret;
 
-	if (Fork) {
-		if (fork()) {
-			_exit(0);
-		}
-	}
+    if (Fork) {
+        if (fork()) {
+            _exit(0);
+        }
+    }
 
     /* detach from the terminal */
-	setsid();
+    setsid();
 
-        /* chdir to / to be sure we're not on a remote filesystem */
-        errno = 0;
-        if(chdir("/") == -1) {
-            ret = errno;
-            DEBUG(0, ("Cannot change directory (%d [%s])\n",
-                    ret, strerror(ret)));
-            return;
-        }
+    /* chdir to / to be sure we're not on a remote filesystem */
+    errno = 0;
+    if(chdir("/") == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot change directory (%d [%s])\n",
+                                     ret, strerror(ret)));
+        return;
+    }
 
-	/* Close fd's 0,1,2. Needed if started by rsh */
-	close_low_fds();
+    /* Close fd's 0,1,2. Needed if started by rsh */
+    close_low_fds();
 }
 
 int pidfile(const char *path, const char *name)
@@ -196,19 +196,19 @@ int pidfile(const char *path, const char *name)
 
 static void sig_hup(int sig)
 {
-	/* cycle log/debug files */
-	return;
+    /* cycle log/debug files */
+    return;
 }
 
 void sig_term(int sig)
 {
 #if HAVE_GETPGRP
-	static int done_sigterm;
-	if (done_sigterm == 0 && getpgrp() == getpid()) {
-		DEBUG(0,("SIGTERM: killing children\n"));
-		done_sigterm = 1;
-		kill(-getpgrp(), SIGTERM);
-	}
+    static int done_sigterm;
+    if (done_sigterm == 0 && getpgrp() == getpid()) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("SIGTERM: killing children\n"));
+        done_sigterm = 1;
+        kill(-getpgrp(), SIGTERM);
+    }
 #endif
     sss_log(SSS_LOG_INFO, "Shutting down");
     exit(0);
@@ -224,7 +224,7 @@ static void default_quit(struct tevent_context *ev,
 #if HAVE_GETPGRP
     static int done_sigterm;
     if (done_sigterm == 0 && getpgrp() == getpid()) {
-        DEBUG(0,("SIGTERM: killing children\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("SIGTERM: killing children\n"));
         done_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
     }
@@ -237,12 +237,13 @@ static void default_quit(struct tevent_context *ev,
 static void sig_segv_abrt(int sig)
 {
 #if HAVE_GETPGRP
-	static int done;
-	if (done == 0 && getpgrp() == getpid()) {
-		DEBUG(0,("%s: killing children\n", strsignal(sig)));
-		done = 1;
-		kill(-getpgrp(), SIGTERM);
-	}
+    static int done;
+    if (done == 0 && getpgrp() == getpid()) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("%s: killing children\n",
+                                     strsignal(sig)));
+        done = 1;
+        kill(-getpgrp(), SIGTERM);
+    }
 #endif  /* HAVE_GETPGRP */
     exit(1);
 }
@@ -253,37 +254,37 @@ static void sig_segv_abrt(int sig)
 */
 static void setup_signals(void)
 {
-	/* we are never interested in SIGPIPE */
-	BlockSignals(true, SIGPIPE);
+    /* we are never interested in SIGPIPE */
+    BlockSignals(true, SIGPIPE);
 
 #if defined(SIGFPE)
-	/* we are never interested in SIGFPE */
-	BlockSignals(true, SIGFPE);
+    /* we are never interested in SIGFPE */
+    BlockSignals(true, SIGFPE);
 #endif
 
-	/* We are no longer interested in USR1 */
-	BlockSignals(true, SIGUSR1);
+    /* We are no longer interested in USR1 */
+    BlockSignals(true, SIGUSR1);
 
-	/* We are no longer interested in SIGINT except for monitor */
-	BlockSignals(true, SIGINT);
+    /* We are no longer interested in SIGINT except for monitor */
+    BlockSignals(true, SIGINT);
 
 #if defined(SIGUSR2)
-	/* We are no longer interested in USR2 */
-	BlockSignals(true, SIGUSR2);
+    /* We are no longer interested in USR2 */
+    BlockSignals(true, SIGUSR2);
 #endif
 
-	/* POSIX demands that signals are inherited. If the invoking process has
-	 * these signals masked, we will have problems, as we won't recieve them. */
-	BlockSignals(false, SIGHUP);
-	BlockSignals(false, SIGTERM);
+    /* POSIX demands that signals are inherited. If the invoking process has
+     * these signals masked, we will have problems, as we won't recieve them. */
+    BlockSignals(false, SIGHUP);
+    BlockSignals(false, SIGTERM);
 
-	CatchSignal(SIGHUP, sig_hup);
+    CatchSignal(SIGHUP, sig_hup);
 
 #ifndef HAVE_PRCTL
         /* If prctl is not defined on the system, try to handle
          * some common termination signals gracefully */
-	CatchSignal(SIGSEGV, sig_segv_abrt);
-	CatchSignal(SIGABRT, sig_segv_abrt);
+    CatchSignal(SIGSEGV, sig_segv_abrt);
+    CatchSignal(SIGABRT, sig_segv_abrt);
 #endif
 
 }
@@ -295,19 +296,20 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
                                  struct tevent_fd *fde,
                                  uint16_t flags, void *private)
 {
-	const char *binary_name = (const char *)private;
-	uint8_t c;
+    const char *binary_name = (const char *)private;
+    uint8_t c;
 
-        errno = 0;
-        if (sss_atomic_read_s(0, &c, 1) == 0) {
-		DEBUG(SSSDBG_CRIT_FAILURE,("%s: EOF on stdin - terminating\n", binary_name));
+    errno = 0;
+    if (sss_atomic_read_s(0, &c, 1) == 0) {
+    DEBUG(SSSDBG_CRIT_FAILURE, ("%s: EOF on stdin - terminating\n",
+                                binary_name));
 #if HAVE_GETPGRP
-		if (getpgrp() == getpid()) {
-			kill(-getpgrp(), SIGTERM);
-		}
+        if (getpgrp() == getpid()) {
+            kill(-getpgrp(), SIGTERM);
+        }
 #endif
-		exit(0);
-	}
+        exit(0);
+    }
 }
 
 /*
@@ -323,7 +325,8 @@ int die_if_parent_died(void)
     ret = prctl(PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0);
     if (ret != 0) {
         ret = errno;
-        DEBUG(2, ("prctl failed [%d]: %s", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("prctl failed [%d]: %s",
+                                  ret, strerror(ret)));
         return ret;
     }
 #endif
@@ -346,12 +349,12 @@ static void te_server_hup(struct tevent_context *ev,
     struct logrotate_ctx *lctx =
             talloc_get_type(private_data, struct logrotate_ctx);
 
-    DEBUG(1, ("Received SIGHUP. Rotating logfiles.\n"));
+    DEBUG(SSSDBG_CRIT_FAILURE, ("Received SIGHUP. Rotating logfiles.\n"));
 
     ret = monitor_common_rotate_logs(lctx->confdb, lctx->confdb_path);
     if (ret != EOK) {
-        DEBUG(0, ("Could not reopen log file [%s]\n",
-                  strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not reopen log file [%s]\n",
+                                     strerror(ret)));
     }
 }
 
@@ -384,29 +387,30 @@ int server_setup(const char *name, int flags,
     umask(0177);
 
     if (flags & FLAGS_DAEMON) {
-        DEBUG(3,("Becoming a daemon.\n"));
+        DEBUG(SSSDBG_IMPORTANT_INFO, ("Becoming a daemon.\n"));
         become_daemon(true);
     }
 
     if (flags & FLAGS_PID_FILE) {
         ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Error creating pidfile: %s/%s! (%d [%s])\n",
-                                         PID_PATH, name, ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Error creating pidfile: %s/%s! "
+                  "(%d [%s])\n", PID_PATH, name, ret, strerror(ret)));
             return ret;
         }
     }
 
     /* Set up locale */
-    setlocale (LC_ALL, "");
-    bindtextdomain (PACKAGE, LOCALEDIR);
-    textdomain (PACKAGE);
+    setlocale(LC_ALL, "");
+    bindtextdomain(PACKAGE, LOCALEDIR);
+    textdomain(PACKAGE);
 
     /* the event context is the top level structure.
      * Everything else should hang off that */
     event_ctx = tevent_context_init(talloc_autofree_context());
     if (event_ctx == NULL) {
-        DEBUG(0,("The event context initialiaziton failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("The event context initialiaziton failed\n"));
         return 1;
     }
 
@@ -426,7 +430,7 @@ int server_setup(const char *name, int flags,
 
     ctx = talloc(event_ctx, struct main_context);
     if (ctx == NULL) {
-        DEBUG(0,("Out of memory, aborting!\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory, aborting!\n"));
         return ENOMEM;
     }
 
@@ -434,13 +438,13 @@ int server_setup(const char *name, int flags,
 
     conf_db = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (conf_db == NULL) {
-        DEBUG(0,("Out of memory, aborting!\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory, aborting!\n"));
         return ENOMEM;
     }
 
     ret = confdb_init(ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
-        DEBUG(0,("The confdb initialization failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("The confdb initialization failed\n"));
         return ret;
     }
 
@@ -451,8 +455,8 @@ int server_setup(const char *name, int flags,
                              SSSDBG_DEFAULT,
                              &debug_level);
         if (ret != EOK) {
-            DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                      ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) "
+                                         "[%s]\n", ret, strerror(ret)));
             return ret;
         }
 
@@ -466,8 +470,8 @@ int server_setup(const char *name, int flags,
                               SSSDBG_TIMESTAMP_DEFAULT,
                               &dt);
         if (ret != EOK) {
-            DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                      ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) "
+                                         "[%s]\n", ret, strerror(ret)));
             return ret;
         }
         if (dt) debug_timestamps = 1;
@@ -481,8 +485,8 @@ int server_setup(const char *name, int flags,
                               SSSDBG_MICROSECONDS_DEFAULT,
                               &dm);
         if (ret != EOK) {
-            DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                      ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) "
+                                         "[%s]\n", ret, strerror(ret)));
             return ret;
         }
         if (dm) debug_microseconds = 1;
@@ -495,8 +499,8 @@ int server_setup(const char *name, int flags,
                           CONFDB_SERVICE_DEBUG_TO_FILES,
                           dl, &dl);
     if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
+                                     ret, strerror(ret)));
         return ret;
     }
     if (dl) debug_to_file = 1;
@@ -518,8 +522,8 @@ int server_setup(const char *name, int flags,
     if (debug_to_file) {
         ret = open_debug_file();
         if (ret != EOK) {
-            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
-                    ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Error setting up logging (%d) "
+                                         "[%s]\n", ret, strerror(ret)));
             return ret;
         }
     }
