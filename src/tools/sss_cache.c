@@ -71,6 +71,7 @@ struct cache_tool_ctx {
     struct confdb_ctx *confdb;
     struct sss_domain_info *domains;
     struct sysdb_ctx_list *sysdb_list;
+    struct sss_names_ctx *nctx;
 
     char *user_filter;
     char *group_filter;
@@ -83,6 +84,12 @@ struct cache_tool_ctx {
     char *netgroup_name;
     char *service_name;
     char *autofs_name;
+
+    bool update_user_filter;
+    bool update_group_filter;
+    bool update_netgroup_filter;
+    bool update_service_filter;
+    bool update_autofs_filter;
 };
 
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
@@ -92,6 +99,8 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
 bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                         enum sss_cache_entry entry_type, const char *filter,
                         const char *name);
+static errno_t update_all_filters(struct cache_tool_ctx *tctx,
+                                  char *domain_name);
 
 int main(int argc, const char *argv[])
 {
@@ -100,6 +109,7 @@ int main(int argc, const char *argv[])
     struct sysdb_ctx *sysdb;
     int i;
     bool skipped = true;
+    struct sss_domain_info *dinfo;
 
     ret = init_context(argc, argv, &tctx);
     if (ret != EOK) {
@@ -110,6 +120,15 @@ int main(int argc, const char *argv[])
 
     for (i = 0; i < tctx->sysdb_list->num_dbs; i++) {
         sysdb = tctx->sysdb_list->dbs[i];
+        dinfo = sysdb_ctx_get_domain(sysdb);
+
+        /* Update filters for each domain */
+        ret = update_all_filters(tctx, dinfo->name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to update filters.\n"));
+            goto done;
+        }
+
         ret = sysdb_transaction_start(sysdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not start the transaction!\n"));
@@ -154,6 +173,121 @@ done:
     if (tctx) talloc_free(tctx);
     return ret;
 }
+
+static errno_t update_filter(struct cache_tool_ctx *tctx, char *domain_name,
+                             char *name, bool update, const char *fmt,
+                             char **filter)
+{
+    errno_t ret;
+    char *parsed_domain = NULL;
+    char *parsed_name = NULL;
+
+    if (name && update) {
+        ret = sss_parse_name(tctx, tctx->nctx, name,
+                             &parsed_domain, &parsed_name);
+       if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_parse_name failed\n"));
+            goto done;
+        }
+
+        if (parsed_domain) {
+            talloc_free(*filter);
+            if (!strcmp(domain_name, parsed_domain)) {
+                if (fmt) {
+                    *filter = talloc_asprintf(tctx, fmt,
+                                              SYSDB_NAME, parsed_name);
+                } else {
+                    *filter = talloc_strdup(tctx, parsed_name);
+                }
+                if (*filter == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+               /* Set to NULL to indicate that it will not be used
+                * in this domain */
+                *filter = NULL;
+            }
+        } else {
+            if (fmt) {
+                *filter = talloc_asprintf(tctx, fmt, SYSDB_NAME, name);
+            } else {
+                *filter = talloc_strdup(tctx, name);
+            }
+            if (*filter == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(parsed_domain);
+    talloc_free(parsed_name);
+    return ret;
+
+}
+
+/* This function updates all filters for specified domain using this
+ * domains regex to parse string into domain and name (if exists). */
+static errno_t update_all_filters(struct cache_tool_ctx *tctx,
+                                 char *domain_name)
+{
+    errno_t ret;
+
+    ret = sss_names_init(tctx, tctx->confdb, domain_name, &tctx->nctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_names_init() failed\n"));
+        return ret;
+    }
+
+    /* Update user filter */
+    ret = update_filter(tctx, domain_name, tctx->user_name,
+                        tctx->update_user_filter, "(%s=%s)",
+                        &tctx->user_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* Update group filter */
+    ret = update_filter(tctx, domain_name, tctx->group_name,
+                        tctx->update_group_filter, "(%s=%s)",
+                        &tctx->group_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* Update netgroup filter */
+    ret = update_filter(tctx, domain_name, tctx->netgroup_name,
+                        tctx->update_netgroup_filter, "(%s=%s)",
+                        &tctx->netgroup_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* Update service filter */
+    ret = update_filter(tctx, domain_name, tctx->service_name,
+                        tctx->update_service_filter, NULL,
+                        &tctx->service_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* Update autofs filter */
+    ret = update_filter(tctx, domain_name, tctx->autofs_name,
+                        tctx->update_autofs_filter,
+                        "(&(objectclass=%s)(%s=%s))",
+                        &tctx->autofs_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
 
 bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                         enum sss_cache_entry entry_type, const char *filter,
@@ -412,49 +546,50 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     if (idb & INVALIDATE_USERS) {
         ctx->user_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
+        ctx->update_user_filter = false;
     } else if (user) {
-        ctx->user_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME, user);
         ctx->user_name = talloc_strdup(ctx, user);
+        ctx->update_user_filter = true;
     }
 
     if (idb & INVALIDATE_GROUPS) {
         ctx->group_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
+        ctx->update_group_filter = false;
     } else if (group) {
-        ctx->group_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME, group);
         ctx->group_name = talloc_strdup(ctx, group);
+        ctx->update_group_filter = true;
     }
 
     if (idb & INVALIDATE_NETGROUPS) {
         ctx->netgroup_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
+        ctx->update_netgroup_filter = false;
     } else if (netgroup) {
-        ctx->netgroup_filter = talloc_asprintf(ctx, "(%s=%s)", SYSDB_NAME,
-                                               netgroup);
         ctx->netgroup_name = talloc_strdup(ctx, netgroup);
+        ctx->update_netgroup_filter = true;
     }
 
     if (idb & INVALIDATE_SERVICES) {
         ctx->service_filter = talloc_strdup(ctx, "*");
+        ctx->update_service_filter = false;
     } else if (service) {
-        ctx->service_filter = talloc_strdup(ctx, service);
         ctx->service_name = talloc_strdup(ctx, service);
+        ctx->update_service_filter = true;
     }
 
     if (idb & INVALIDATE_AUTOFSMAPS) {
         ctx->autofs_filter = talloc_asprintf(ctx, "(&(objectclass=%s)(%s=*))",
                                              SYSDB_AUTOFS_MAP_OC, SYSDB_NAME);
+        ctx->update_autofs_filter = false;
     } else if (map) {
-        ctx->autofs_filter = talloc_asprintf(ctx, "(&(objectclass=%s)(%s=%s))",
-                                             SYSDB_AUTOFS_MAP_OC,
-                                             SYSDB_NAME, map);
         ctx->autofs_name = talloc_strdup(ctx, map);
+        ctx->update_autofs_filter = true;
     }
 
-
-    if (((idb & INVALIDATE_USERS || user) && !ctx->user_filter) ||
-        ((idb & INVALIDATE_GROUPS || group) && !ctx->group_filter) ||
-        ((idb & INVALIDATE_NETGROUPS || netgroup) && !ctx->netgroup_filter) ||
-        ((idb & INVALIDATE_SERVICES || service) && !ctx->service_filter) ||
-        ((idb & INVALIDATE_AUTOFSMAPS || map) && !ctx->autofs_filter) ||
+    if (((idb & INVALIDATE_USERS) && !ctx->user_filter) ||
+        ((idb & INVALIDATE_GROUPS) && !ctx->group_filter) ||
+        ((idb & INVALIDATE_NETGROUPS) && !ctx->netgroup_filter) ||
+        ((idb & INVALIDATE_SERVICES) && !ctx->service_filter) ||
+        ((idb & INVALIDATE_AUTOFSMAPS) && !ctx->autofs_filter) ||
          (user && !ctx->user_name) || (group && !ctx->group_name) ||
          (netgroup && !ctx->netgroup_name) || (map && !ctx->autofs_name) ||
          (service && !ctx->service_name)) {
