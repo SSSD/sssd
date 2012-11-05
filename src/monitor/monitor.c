@@ -913,6 +913,10 @@ static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
         svc->ping_time = MONITOR_DEF_PING_TIME;
     }
 
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Time between service pings for [%s]: [%d]\n",
+           svc->name, svc->ping_time));
+
     ret = confdb_get_int(ctx->cdb, path,
                          CONFDB_SERVICE_FORCE_TIMEOUT,
                          MONITOR_DEF_FORCE_TIME, &svc->kill_time);
@@ -926,6 +930,10 @@ static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
     if (svc->kill_time == 0) {
         svc->kill_time = MONITOR_DEF_FORCE_TIME;
     }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Time between SIGTERM and SIGKILL for [%s]: [%d]\n",
+           svc->name, svc->kill_time));
 
     return EOK;
 }
