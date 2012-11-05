@@ -222,7 +222,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    DEBUG_INIT(debug);
 
     tests_set_cwd();
 
