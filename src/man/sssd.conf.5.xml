@@ -203,22 +203,6 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
-                        <term>force_timeout (integer)</term>
-                        <listitem>
-                            <para>
-                                If a service is not responding to ping checks (see
-                                the <quote>timeout</quote> option), it is first sent
-                                the SIGTERM signal that instructs it to quit gracefully.
-                                If the service does not terminate after <quote>force_timeout</quote>
-                                seconds, the monitor will forcibly shut it down by
-                                sending a SIGKILL signal.
-                            </para>
-                            <para>
-                                Default: 60
-                            </para>
-                        </listitem>
-                    </varlistentry>
-                    <varlistentry>
                         <term>default_domain_suffix (string)</term>
                         <listitem>
                             <para>
@@ -341,6 +325,22 @@
                             descriptor without communicating on it. This value
                             is limited in order to avoid resource exhaustion
                             on the system.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>force_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            If a service is not responding to ping checks (see
+                            the <quote>timeout</quote> option), it is first sent
+                            the SIGTERM signal that instructs it to quit gracefully.
+                            If the service does not terminate after <quote>force_timeout</quote>
+                            seconds, the monitor will forcibly shut it down by
+                            sending a SIGKILL signal.
                         </para>
                         <para>
                             Default: 60
@@ -972,6 +972,22 @@ override_homedir = /home/%u
                             enumeration lookups are completed successfully.
                             For more information, refer to the man pages for
                             the specific id_provider in use.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>force_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            If a service is not responding to ping checks (see
+                            the <quote>timeout</quote> option), it is first sent
+                            the SIGTERM signal that instructs it to quit gracefully.
+                            If the service does not terminate after <quote>force_timeout</quote>
+                            seconds, the monitor will forcibly shut it down by
+                            sending a SIGKILL signal.
+                        </para>
+                        <para>
+                            Default: 60
                         </para>
                     </listitem>
                 </varlistentry>
