@@ -203,7 +203,8 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
     subreq = get_subdomains_send(req, rctx, state->dom,
                                  state->force, state->hint);
-    if (ret != EAGAIN) {
+    if (subreq == NULL) {
+        ret = ENOMEM;
         goto immediately;
     }
     tevent_req_set_callback(subreq, sss_dp_get_domains_process, req);
