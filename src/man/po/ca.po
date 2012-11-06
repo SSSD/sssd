@@ -5424,7 +5424,7 @@ msgstr ""
 "control d'accés per <citerefentry><refentrytitle>sssd</refentrytitle> "
 "<manvolnum>8</manvolnum></citerefentry>.  Per una referència detallada de la "
 "sintaxi, aneu a la secció de <quote>FORMAT DE FITXER</quote> de la pàgina "
-"del manual <citerefentry>de <refentrytitle>sssd.conf</refentrytitle> "
+"del manual de <citerefentry><refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum></citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -5530,7 +5530,7 @@ msgid ""
 "domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "Consulteu la secció <quote>SECCIONS DE DOMINI</quote> de la pàgina del "
-"manual <citerefentry>d' <refentrytitle>sssd.conf</refentrytitle> "
+"manual d' <citerefentry><refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum></citerefentry> per a més informació sobre la "
 "configuració d'un domini SSSD.  <placeholder type=\"variablelist\" id=\"0\"/>"
 
