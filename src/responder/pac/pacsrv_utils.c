@@ -616,3 +616,159 @@ done:
 
     return ret;
 }
+
+errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
+                       size_t cur_grp_num,
+                       struct grp_info *cur_grp_list,
+                       size_t new_gid_num,
+                       gid_t *new_gid_list,
+                       size_t *_add_gid_num,
+                       gid_t **_add_gid_list,
+                       size_t *_del_grp_num,
+                       struct grp_info ***_del_grp_list)
+{
+    int ret;
+    size_t c;
+    hash_table_t *table;
+    hash_key_t key;
+    hash_value_t value;
+    size_t add_gid_num = 0;
+    gid_t *add_gid_list = NULL;
+    size_t del_grp_num = 0;
+    struct grp_info **del_grp_list = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    unsigned long value_count;
+    hash_value_t *values;
+
+    if ((cur_grp_num != 0 && cur_grp_list == NULL) ||
+        (new_gid_num != 0 && new_gid_list == NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing group array.\n"));
+        return EINVAL;
+    }
+
+    if (cur_grp_num == 0 && new_gid_num == 0) {
+        ret = EOK;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (cur_grp_num == 0 && new_gid_num != 0) {
+        add_gid_num = new_gid_num;
+        add_gid_list = talloc_array(tmp_ctx, gid_t, add_gid_num);
+        if (add_gid_list == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for (c = 0; c < add_gid_num; c++) {
+            add_gid_list[c] = new_gid_list[c];
+        }
+
+        ret = EOK;
+        goto done;
+    }
+
+    if (cur_grp_num != 0 && new_gid_num == 0) {
+        del_grp_num = cur_grp_num;
+        del_grp_list = talloc_array(tmp_ctx, struct grp_info *, del_grp_num);
+        if (del_grp_list == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for (c = 0; c < del_grp_num; c++) {
+            del_grp_list[c] = &cur_grp_list[c];
+        }
+
+        ret = EOK;
+        goto done;
+    }
+
+    /* Add all current GIDs to a hash and then compare with the new ones in a
+     * single loop */
+    ret = sss_hash_create(tmp_ctx, cur_grp_num, &table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_hash_create failed.\n"));
+        goto done;
+    }
+
+    key.type = HASH_KEY_ULONG;
+    value.type = HASH_VALUE_PTR;
+    for (c = 0; c < cur_grp_num; c++) {
+        key.ul = (unsigned long) cur_grp_list[c].gid;
+        value.ptr = &cur_grp_list[c];
+
+        ret = hash_enter(table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed.\n"));
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    for (c = 0; c < new_gid_num; c++) {
+        key.ul = (unsigned long) new_gid_list[c];
+
+        ret = hash_delete(table, &key);
+        if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+            /* gid not found, must be added */
+            add_gid_num++;
+            add_gid_list = talloc_realloc(tmp_ctx, add_gid_list, gid_t, add_gid_num);
+            if (add_gid_list == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_realloc failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            add_gid_list[add_gid_num - 1] = new_gid_list[c];
+        } else if (ret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, ("hash_delete failed.\n"));
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    /* the remaining entries in the hash are not in the new list anymore and
+     * must be deleted */
+    ret = hash_values(table, &value_count, &values);
+    if (ret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("hash_keys failed.\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    del_grp_num = value_count;
+    del_grp_list = talloc_array(tmp_ctx, struct grp_info *, del_grp_num);
+    if (del_grp_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; c < del_grp_num; c++) {
+        del_grp_list[c] = (struct grp_info *) values[c].ptr;
+    }
+
+    ret = EOK;
+
+done:
+
+    if (ret == EOK) {
+        *_add_gid_num = add_gid_num;
+        *_add_gid_list = talloc_steal(mem_ctx, add_gid_list);
+        *_del_grp_num = del_grp_num;
+        *_del_grp_list = talloc_steal(mem_ctx, del_grp_list);
+    }
+
+    talloc_free(tmp_ctx);
+
+    return ret;
+}

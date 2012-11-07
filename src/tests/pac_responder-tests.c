@@ -70,18 +70,123 @@ START_TEST(pac_test_seondary_local_sid_to_id)
 }
 END_TEST
 
+START_TEST(pac_test_get_gids_to_add_and_remove)
+{
+    TALLOC_CTX *mem_ctx;
+    int ret;
+    size_t c;
+    size_t add_gid_count = 0;
+    gid_t *add_gids = NULL;
+    size_t del_gid_count = 0;
+    struct grp_info **del_gids = NULL;
+
+    gid_t gid_list_2[] = {2};
+    gid_t gid_list_3[] = {3};
+    gid_t gid_list_23[] = {2, 3};
+
+    struct grp_info grp_info_1 = {1, NULL, NULL};
+    struct grp_info grp_info_2 = {2, NULL, NULL};
+    struct grp_info  grp_list_1[] = {grp_info_1};
+    struct grp_info  grp_list_12[] = {grp_info_1, grp_info_2};
+
+    struct a_and_r_data {
+        size_t cur_gid_count;
+        struct grp_info *cur_gids;
+        size_t gid_count;
+        gid_t *gids;
+        int exp_ret;
+        size_t exp_add_gid_count;
+        gid_t *exp_add_gids;
+        size_t exp_del_gid_count;
+        struct grp_info *exp_del_gids;
+    } a_and_r_data[] = {
+            {1, grp_list_1, 1, gid_list_2, EOK, 1, gid_list_2, 1, grp_list_1},
+            {1, grp_list_1, 0, NULL, EOK, 0, NULL, 1, grp_list_1},
+            {0, NULL, 1, gid_list_2, EOK, 1, gid_list_2, 0, NULL},
+            {2, grp_list_12, 1, gid_list_2, EOK,  0, NULL, 1, grp_list_1},
+            {2, grp_list_12, 2, gid_list_23, EOK, 1, gid_list_3, 1, grp_list_1},
+            {0, NULL, 0, NULL, 0, 0, NULL, 0, NULL}
+    };
+
+    mem_ctx = talloc_new(NULL);
+    fail_unless(mem_ctx != NULL, "talloc_new failed.");
+
+    ret = diff_gid_lists(mem_ctx, 0, NULL, 0, NULL,
+                         &add_gid_count, &add_gids,
+                         &del_gid_count, &del_gids);
+    fail_unless(ret == EOK, "get_gids_to_add_and_remove failed with empty " \
+                            "groups.");
+
+    ret = diff_gid_lists(mem_ctx, 1, NULL, 0, NULL,
+                         &add_gid_count, &add_gids,
+                         &del_gid_count, &del_gids);
+    fail_unless(ret == EINVAL, "get_gids_to_add_and_remove failed with " \
+                               "invalid current groups.");
+
+    ret = diff_gid_lists(mem_ctx, 0, NULL, 1, NULL,
+                         &add_gid_count, &add_gids,
+                         &del_gid_count, &del_gids);
+    fail_unless(ret == EINVAL, "get_gids_to_add_and_remove failed with " \
+                               "invalid new groups.");
+
+    for (c = 0; a_and_r_data[c].cur_gids != NULL ||
+                a_and_r_data[c].gids != NULL; c++) {
+        ret = diff_gid_lists(mem_ctx,
+                             a_and_r_data[c].cur_gid_count,
+                             a_and_r_data[c].cur_gids,
+                             a_and_r_data[c].gid_count,
+                             a_and_r_data[c].gids,
+                             &add_gid_count, &add_gids,
+                             &del_gid_count, &del_gids);
+        fail_unless(ret == a_and_r_data[c].exp_ret,
+                    "Unexpected return value for test data #%d, " \
+                    "expected [%d], got [%d]",
+                    c, a_and_r_data[c].exp_ret, ret);
+        fail_unless(add_gid_count ==  a_and_r_data[c].exp_add_gid_count,
+                    "Unexpected numer of groups to add for test data #%d, " \
+                    "expected [%d], got [%d]",
+                    c, a_and_r_data[c].exp_add_gid_count, add_gid_count);
+        fail_unless(del_gid_count ==  a_and_r_data[c].exp_del_gid_count,
+                    "Unexpected numer of groups to delete for test data #%d, " \
+                    "expected [%d], got [%d]",
+                    c, a_and_r_data[c].exp_del_gid_count, del_gid_count);
+
+        /* The lists might be returned in any order, to make tests simple we
+         * only look at lists with 1 element. TODO: add code to compare lists
+         * with more than 1 member. */
+        if (add_gid_count == 1) {
+            fail_unless(add_gids[0] ==  a_and_r_data[c].exp_add_gids[0],
+                        "Unexpected gid to add for test data #%d, " \
+                        "expected [%d], got [%d]",
+                        c, a_and_r_data[c].exp_add_gids[0], add_gids[0]);
+        }
+
+        if (del_gid_count == 1) {
+            fail_unless(del_gids[0]->gid == a_and_r_data[c].exp_del_gids[0].gid,
+                        "Unexpected gid to delete for test data #%d, " \
+                        "expected [%d], got [%d]",
+                        c, a_and_r_data[c].exp_del_gids[0].gid,
+                        del_gids[0]->gid);
+        }
+    }
+
+    talloc_free(mem_ctx);
+}
+END_TEST
+
 
 Suite *idmap_test_suite (void)
 {
     Suite *s = suite_create ("PAC responder");
 
     TCase *tc_pac = tcase_create("PAC responder tests");
-    /*tcase_add_checked_fixture(tc_init,
+    tcase_add_checked_fixture(tc_pac,
                               leak_check_setup,
-                              leak_check_teardown);*/
+                              leak_check_teardown);
 
     tcase_add_test(tc_pac, pac_test_local_sid_to_id);
     tcase_add_test(tc_pac, pac_test_seondary_local_sid_to_id);
+    tcase_add_test(tc_pac, pac_test_get_gids_to_add_and_remove);
 
     suite_add_tcase(s, tc_pac);
 
