@@ -301,7 +301,9 @@ done:
     sudosrv_cmd_done(dctx->cmd_ctx, ret);
 }
 
-static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
+static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
+                                                struct sudo_cmd_ctx *cmd_ctx,
+                                                struct sysdb_attrs ***_rules,
                                                 size_t *_num_rules);
 static void
 sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -421,7 +423,9 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     } else {
         /* nothing is expired return what we have in the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, ("About to get sudo rules from cache\n"));
-        ret = sudosrv_get_sudorules_from_cache(cmd_ctx, NULL);
+        ret = sudosrv_get_sudorules_from_cache(cmd_ctx, cmd_ctx,
+                                               &cmd_ctx->rules,
+                                               &cmd_ctx->num_rules);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Failed to make a request to our cache [%d]: %s\n",
@@ -482,7 +486,6 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct sudo_cmd_ctx *cmd_ctx = talloc_get_type(ptr, struct sudo_cmd_ctx);
     struct tevent_req *dpreq = NULL;
     errno_t ret;
-    size_t num_rules;
 
     if (err_maj) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -493,7 +496,8 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL, ("About to get sudo rules from cache\n"));
-    ret = sudosrv_get_sudorules_from_cache(cmd_ctx, &num_rules);
+    ret = sudosrv_get_sudorules_from_cache(cmd_ctx, cmd_ctx, &cmd_ctx->rules,
+                                           &cmd_ctx->num_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Failed to make a request to our cache [%d]: %s\n",
@@ -524,7 +528,9 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
     sudosrv_cmd_done(cmd_ctx, ret);
 }
 
-static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
+static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
+                                                struct sudo_cmd_ctx *cmd_ctx,
+                                                struct sysdb_attrs ***_rules,
                                                 size_t *_num_rules)
 {
     TALLOC_CTX *tmp_ctx;
@@ -533,6 +539,8 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
     char **groupnames = NULL;
     const char *debug_name = NULL;
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
+    struct sysdb_attrs **rules = NULL;
+    size_t num_rules = 0;
     const char *attrs[] = { SYSDB_OBJECTCLASS
                             SYSDB_SUDO_CACHE_AT_CN,
                             SYSDB_SUDO_CACHE_AT_USER,
@@ -583,10 +591,10 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
         break;
     }
 
-    ret = sudosrv_get_sudorules_query_cache(cmd_ctx, sysdb, cmd_ctx->type,
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, sysdb, cmd_ctx->type,
                                             attrs, flags, cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
-                                            &cmd_ctx->rules, &cmd_ctx->num_rules);
+                                            &rules, &num_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
              ("Unable to retrieve sudo rules [%d]: %s\n", strerror(ret)));
@@ -596,8 +604,12 @@ static errno_t sudosrv_get_sudorules_from_cache(struct sudo_cmd_ctx *cmd_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, ("Returning rules for [%s@%s]\n",
           debug_name, cmd_ctx->domain->name));
 
+    if (_rules != NULL) {
+        *_rules = talloc_steal(mem_ctx, rules);
+    }
+
     if (_num_rules != NULL) {
-        *_num_rules = cmd_ctx->num_rules;
+        *_num_rules = num_rules;
     }
 
     ret = EOK;
