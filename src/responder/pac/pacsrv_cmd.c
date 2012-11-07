@@ -466,6 +466,8 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
     size_t c;
     struct pac_req_ctx *pr_ctx;
     bool in_transaction = false;
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs *user_attrs = NULL;
 
     pr_ctx = state->pr_ctx;
 
@@ -476,6 +478,19 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
     if (pr_ctx->del_grp_list == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Missing group list.\n"));
         return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    user_attrs = sysdb_new_attrs(tmp_ctx);
+    if (user_attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = sysdb_transaction_start(state->group_dom->sysdb);
@@ -493,6 +508,20 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));
             goto done;
         }
+
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
+                                     pr_ctx->del_grp_list[c]->orig_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+            goto done;
+        }
+    }
+
+    ret = sysdb_set_entry_attr(pr_ctx->dom->sysdb, state->user_dn, user_attrs,
+                               LDB_FLAG_MOD_DELETE);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
+        goto done;
     }
 
     ret = sysdb_transaction_commit(state->group_dom->sysdb);
@@ -510,6 +539,8 @@ done:
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_cancel failed.\n"));
         }
     }
+
+    talloc_free(tmp_ctx);
 
     return ret;
 }
@@ -613,11 +644,12 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
                       int gid_iter)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *group_name;
-    struct sysdb_attrs *group_attrs;
+    struct sysdb_attrs *user_attrs;
     struct ldb_message *group;
     uint32_t gid;
     errno_t ret;
+    const char *orig_group_dn;
+    const char *group_attrs[] = { SYSDB_ORIG_DN, NULL };
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -627,46 +659,46 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
     gid = pr_ctx->add_gids[gid_iter];
 
     ret = sysdb_search_group_by_gid(tmp_ctx, group_sysdb,
-                                    gid, NULL, &group);
+                                    gid, group_attrs, &group);
     if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("sysdb_search_group_by_gid for gid [%d]" \
+                                      "failed [%d][%s].\n",
+                                      gid, ret, strerror(ret)));
         goto done;
     }
 
-    group_name = ldb_msg_find_attr_as_string(group, SYSDB_NAME, NULL);
-    if (group_name == NULL) {
-        ret = EIO;
+    ret = sysdb_mod_group_member(group_sysdb, user_dn, group->dn,
+                                 LDB_FLAG_MOD_ADD);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));
         goto done;
     }
 
-    group_attrs = talloc_zero(tmp_ctx, struct sysdb_attrs);
-    if (group_attrs == NULL) {
+    orig_group_dn = ldb_msg_find_attr_as_string(group, SYSDB_ORIG_DN, NULL);
+    if (orig_group_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Original DN not found.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    user_attrs = sysdb_new_attrs(tmp_ctx);
+    if (user_attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
         ret = ENOMEM;
         goto done;
     }
-    group_attrs->num = 1;
-    group_attrs->a = ldb_msg_find_element(group, SYSDB_MEMBER);
-    if (group_attrs->a == NULL) {
-        group_attrs->a = talloc_zero(group_attrs, struct ldb_message_element);
-        if (group_attrs->a == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-        group_attrs->a[0].name = talloc_strdup(group_attrs->a, SYSDB_MEMBER);
-        if (group_attrs->a[0].name == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
 
-    ret = sysdb_attrs_add_string(group_attrs, SYSDB_MEMBER,
-                                 ldb_dn_get_linearized(user_dn));
+    ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
+                                 orig_group_dn);
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
         goto done;
     }
 
-    ret = sysdb_store_group(group_sysdb, group_name, gid,
-                            group_attrs, pr_ctx->dom->group_timeout, 0);
+    ret = sysdb_set_entry_attr(pr_ctx->dom->sysdb, user_dn, user_attrs,
+                              LDB_FLAG_MOD_ADD);
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
         goto done;
     }
 
