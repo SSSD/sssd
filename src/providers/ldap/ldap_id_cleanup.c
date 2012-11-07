@@ -395,6 +395,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     int ret;
     int i;
     const char *posix;
+    struct ldb_dn *base_dn;
 
     tmpctx = talloc_new(memctx);
     if (!tmpctx) {
@@ -436,10 +437,12 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         posix = ldb_msg_find_attr_as_string(msgs[i], SYSDB_POSIX, NULL);
         if (!posix || strcmp(posix, "TRUE") == 0) {
             /* Search for users that are members of this group, or
-             * that have this group as their primary GID
+             * that have this group as their primary GID.
+             * Include subdomain users as well.
              */
             gid = (gid_t) ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
-            subfilter = talloc_asprintf(tmpctx, "(|(%s=%s)(%s=%lu))",
+            subfilter = talloc_asprintf(tmpctx, "(&(%s=%s)(|(%s=%s)(%s=%lu)))",
+                                        SYSDB_OBJECTCLASS, SYSDB_USER_CLASS,
                                         SYSDB_MEMBEROF, dn,
                                         SYSDB_GIDNUM, (long unsigned) gid);
         } else {
@@ -451,8 +454,16 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             goto done;
         }
 
-        ret = sysdb_search_users(tmpctx, sysdb,
-                                 subfilter, NULL, &u_count, &u_msgs);
+        base_dn = sysdb_base_dn(sysdb, tmpctx);
+        if (base_dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_search_entry(tmpctx, sysdb, base_dn,
+                                 LDB_SCOPE_SUBTREE, subfilter, NULL,
+                                 &u_count, &u_msgs);
         if (ret == ENOENT) {
             const char *name;
 
