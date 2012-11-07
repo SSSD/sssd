@@ -67,6 +67,12 @@ struct local_mapping_ranges {
     struct range secondary_rids;
 };
 
+struct grp_info {
+    gid_t gid;
+    char *orig_dn;
+    struct ldb_dn *dn;
+};
+
 int pac_cmd_execute(struct cli_ctx *cctx);
 
 struct sss_cmd_table *get_pac_cmds(void);
@@ -106,4 +112,14 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
                          struct PAC_LOGON_INFO *logon_info,
                          struct passwd **_pwd,
                          struct sysdb_attrs **_attrs);
+
+errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
+                       size_t cur_grp_num,
+                       struct grp_info *cur_gid_list,
+                       size_t new_gid_num,
+                       gid_t *new_gid_list,
+                       size_t *_add_gid_num,
+                       gid_t **_add_gid_list,
+                       size_t *_del_gid_num,
+                       struct grp_info ***_del_gid_list);
 #endif /* __PACSRV_H__ */
