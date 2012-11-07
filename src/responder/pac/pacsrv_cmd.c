@@ -63,6 +63,12 @@ struct pac_req_ctx {
 
     size_t current_grp_count;
     struct grp_info *current_grp_list;
+
+    size_t add_gid_count;
+    gid_t *add_gids;
+
+    size_t del_grp_count;
+    struct grp_info **del_grp_list;
 };
 
 static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx);
@@ -222,6 +228,12 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
         DEBUG(SSSDBG_OP_FAILURE, ("get_gids_from_pac failed.\n"));
         goto done;
     }
+
+    ret = diff_gid_lists(pr_ctx,
+                         pr_ctx->current_grp_count, pr_ctx->current_grp_list,
+                         pr_ctx->gid_count, pr_ctx->gids,
+                         &pr_ctx->add_gid_count, &pr_ctx->add_gids,
+                         &pr_ctx->del_grp_count, &pr_ctx->del_grp_list);
 
     req = pac_save_memberships_send(pr_ctx);
     if (req == NULL) {
@@ -395,6 +407,9 @@ struct pac_save_memberships_state {
     struct sss_domain_info *group_dom;
 };
 
+static errno_t
+pac_save_memberships_delete(struct pac_save_memberships_state *state);
+
 struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
 {
     struct pac_save_memberships_state *state;
@@ -422,6 +437,12 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
         state->group_dom = pr_ctx->dom;
     }
 
+    ret = pac_save_memberships_delete(state);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("pac_save_memberships_delete failed.\n"));
+        goto done;
+    }
+
     ret = pac_save_memberships_next(req);
     if (ret == EOK) {
         tevent_req_done(req);
@@ -437,6 +458,62 @@ done:
     return req;
 }
 
+static errno_t
+pac_save_memberships_delete(struct pac_save_memberships_state *state)
+{
+    int ret;
+    int sret;
+    size_t c;
+    struct pac_req_ctx *pr_ctx;
+    bool in_transaction = false;
+
+    pr_ctx = state->pr_ctx;
+
+    if (pr_ctx->del_grp_count == 0) {
+        return EOK;
+    }
+
+    if (pr_ctx->del_grp_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing group list.\n"));
+        return EINVAL;
+    }
+
+    ret = sysdb_transaction_start(state->group_dom->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_start failed.\n"));
+        goto done;
+    }
+    in_transaction = true;
+
+    for (c = 0; c < pr_ctx->del_grp_count; c++) {
+        ret = sysdb_mod_group_member(state->group_dom->sysdb, state->user_dn,
+                                     pr_ctx->del_grp_list[c]->dn,
+                                     LDB_FLAG_MOD_DELETE);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(state->group_dom->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_commit failed.\n"));
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(state->group_dom->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_cancel failed.\n"));
+        }
+    }
+
+    return ret;
+}
+
 static errno_t pac_save_memberships_next(struct tevent_req *req)
 {
     errno_t ret;
@@ -448,8 +525,17 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
     state = tevent_req_data(req, struct pac_save_memberships_state);
     pr_ctx = state->pr_ctx;
 
-    while (state->gid_iter < pr_ctx->gid_count) {
-        gid = pr_ctx->gids[state->gid_iter];
+    if (pr_ctx->add_gid_count == 0) {
+        return EOK;
+    }
+
+    if (pr_ctx->add_gids == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing group list.\n"));
+        return EINVAL;
+    }
+
+    while (state->gid_iter < pr_ctx->add_gid_count) {
+        gid = pr_ctx->add_gids[state->gid_iter];
 
         ret = pac_store_membership(state->pr_ctx, state->group_dom->sysdb,
                                     state->user_dn, state->gid_iter);
@@ -538,7 +624,7 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         return ENOMEM;
     }
 
-    gid = pr_ctx->gids[gid_iter];
+    gid = pr_ctx->add_gids[gid_iter];
 
     ret = sysdb_search_group_by_gid(tmp_ctx, group_sysdb,
                                     gid, NULL, &group);
