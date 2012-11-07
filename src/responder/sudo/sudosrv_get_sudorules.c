@@ -423,7 +423,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     cmd_ctx->expired_rules_num = expired_rules_num;
     if (expired_rules_num > 0) {
         /* refresh expired rules then continue */
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Refreshing expired rules\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Refreshing %d expired rules\n",
+                                      expired_rules_num));
         dpreq = sss_dp_get_sudoers_send(tmp_ctx, cmd_ctx->cli_ctx->rctx,
                                         cmd_ctx->domain, false,
                                         SSS_DP_SUDO_REFRESH_RULES,
@@ -641,8 +642,8 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Returning rules for [%s@%s]\n",
-          debug_name, cmd_ctx->domain->name));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Returning %d rules for [%s@%s]\n",
+                              num_rules, debug_name, cmd_ctx->domain->name));
 
     if (_rules != NULL) {
         *_rules = talloc_steal(mem_ctx, rules);
