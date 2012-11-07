@@ -29,11 +29,15 @@
 #include "util/util.h"
 
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
-                         int retries, useconds_t wait)
+                         int num_tries, useconds_t wait)
 {
     int ret;
     struct flock lock;
     int retries_left;
+
+    if (num_tries <= 0) {
+        return EINVAL;
+    }
 
     lock.l_type = F_WRLCK;
     lock.l_whence = SEEK_SET;
@@ -41,7 +45,7 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
     lock.l_len = len;
     lock.l_pid = 0;
 
-    for (retries_left = retries; retries_left > 0; retries_left--) {
+    for (retries_left = num_tries; retries_left > 0; retries_left--) {
         ret = fcntl(fd, F_SETLK, &lock);
         if (ret == -1) {
             ret = errno;
