@@ -200,6 +200,7 @@
 #define SYSDB_INITGR_ATTR SYSDB_MEMBEROF
 #define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, SYSDB_POSIX, \
                             SYSDB_DEFAULT_ATTRS, \
+                            SYSDB_ORIG_DN, \
                             NULL}
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE

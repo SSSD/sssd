@@ -60,10 +60,17 @@ struct pac_req_ctx {
 
     size_t gid_count;
     gid_t *gids;
+
+    size_t current_grp_count;
+    struct grp_info *current_grp_list;
 };
 
 static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx);
 static void pac_get_domains_done(struct tevent_req *req);
+static errno_t pac_user_get_grp_info(TALLOC_CTX *mem_ctx,
+                                     struct pac_req_ctx *pr_ctx,
+                                     size_t *_current_grp_count,
+                                     struct grp_info **_current_grp_list);
 static errno_t save_pac_user(struct pac_req_ctx *pr_ctx);
 static void pac_get_group_done(struct tevent_req *subreq);
 static errno_t pac_save_memberships_next(struct tevent_req *req);
@@ -194,6 +201,13 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
+    ret = pac_user_get_grp_info(pr_ctx, pr_ctx, &pr_ctx->current_grp_count,
+                                &pr_ctx->current_grp_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("pac_user_get_grp_info failed.\n"));
+        goto done;
+    }
+
     ret = get_my_domain_data(pr_ctx->pac_ctx, pr_ctx->dom,
                              &my_dom_sid, &my_range_map);
     if (ret != EOK) {
@@ -220,6 +234,98 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
     ret = EAGAIN;
 
 done:
+    return ret;
+}
+
+static errno_t pac_user_get_grp_info(TALLOC_CTX *mem_ctx,
+                                     struct pac_req_ctx *pr_ctx,
+                                     size_t *_current_grp_count,
+                                     struct grp_info **_current_grp_list)
+{
+    struct sysdb_ctx *sysdb;
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_result *res = NULL;
+    struct grp_info *current_grp_list = NULL;
+    size_t current_grp_count = 0;
+    size_t c;
+    const char *tmp_str;
+
+    sysdb = pr_ctx->dom->sysdb;
+    if (sysdb == NULL) {
+        ret = EINVAL;
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_initgroups(tmp_ctx, sysdb, pr_ctx->user_name, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_initgroups failed.\n"));
+        goto done;
+    }
+
+    /* First result is the user entry then the groups follow */
+    if (res->count > 1) {
+        current_grp_count = res->count - 1;
+        current_grp_list = talloc_array(tmp_ctx, struct grp_info,
+                                        current_grp_count);
+        if (current_grp_list == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for (c = 0; c < current_grp_count; c++) {
+            current_grp_list[c].gid =
+                                  ldb_msg_find_attr_as_uint64(res->msgs[c + 1],
+                                                              SYSDB_GIDNUM, 0);
+            if (current_grp_list[c].gid == 0) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Missing GID.\n"));
+                ret = EINVAL;
+                goto done;
+            }
+
+            tmp_str = ldb_msg_find_attr_as_string(res->msgs[c + 1],
+                                                  SYSDB_ORIG_DN, NULL);
+            if (tmp_str == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Missing original DN.\n"));
+                ret = EINVAL;
+                goto done;
+            }
+
+            current_grp_list[c].orig_dn = talloc_strdup(current_grp_list,
+                                                        tmp_str);
+            if (current_grp_list[c].orig_dn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            current_grp_list[c].dn = ldb_dn_copy(current_grp_list,
+                                                 res->msgs[c + 1]->dn);
+            if (current_grp_list[c].dn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("ldb_dn_copy failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+
+    *_current_grp_count = current_grp_count;
+    *_current_grp_list = talloc_steal(mem_ctx, current_grp_list);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
     return ret;
 }
 
