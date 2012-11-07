@@ -34,6 +34,7 @@
 
 #include "util/util.h"
 #include "util/find_uid.h"
+#include "util/auth_utils.h"
 #include "db/sysdb.h"
 #include "util/child_common.h"
 #include "providers/krb5/krb5_auth.h"
@@ -1132,7 +1133,7 @@ static void krb5_pam_handler_cache_auth_step(struct tevent_req *req)
                            NULL);
     if (ret != EOK) {
         DEBUG(1, ("Offline authentication failed\n"));
-        state->pam_status = PAM_SYSTEM_ERR;
+        state->pam_status = cached_login_pam_status(ret);
         state->dp_err = DP_ERR_OK;
     } else {
         ret = add_user_to_delayed_online_authentication(krb5_ctx, pd,
