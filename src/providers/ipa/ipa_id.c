@@ -78,12 +78,6 @@ void ipa_account_info_handler(struct be_req *breq)
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
 
     if (strcasecmp(ar->domain, breq->be_ctx->domain->name) != 0) {
-        if (! ((ar->entry_type & BE_REQ_USER) ||
-               (ar->entry_type & BE_REQ_GROUP))) {
-            return sdap_handler_done(breq, DP_ERR_FATAL, EINVAL,
-                                     "Invalid sub-domain request type");
-        }
-
         req = ipa_get_subdomain_account_info_send(breq, breq->be_ctx->ev, ctx,
                                                   ar);
         if (!req) {
