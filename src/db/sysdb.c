@@ -947,6 +947,38 @@ errno_t sysdb_add_to_domain(struct sss_domain_info *domain,
     return EOK;
 }
 
+/* Compare versions of sysdb, returns ERRNO accordingly */
+static errno_t
+sysdb_version_check(const char *expected,
+                    const char *received)
+{
+    int ret;
+    unsigned int exp_major, exp_minor, recv_major, recv_minor;
+
+    ret = sscanf(expected, "%u.%u", &exp_major, &exp_minor);
+    if (ret != 2) {
+        return EINVAL;
+    }
+    ret = sscanf(received, "%u.%u", &recv_major, &recv_minor);
+    if (ret != 2) {
+        return EINVAL;
+    }
+
+    if (recv_major > exp_major) {
+        return EUCLEAN;
+    } else if (recv_major < exp_major) {
+        return EMEDIUMTYPE;
+    }
+
+    if (recv_minor > exp_minor) {
+        return EUCLEAN;
+    } else if (recv_minor < exp_minor) {
+        return EMEDIUMTYPE;
+    }
+
+    return EOK;
+}
+
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
@@ -1037,7 +1069,7 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
             if (!allow_upgrade) {
                 DEBUG(0, ("Wrong DB version (got %s expected %s)\n",
                           version, SYSDB_VERSION));
-                ret = EINVAL;
+                ret = sysdb_version_check(SYSDB_VERSION, version);
                 goto done;
             }
 
@@ -1136,7 +1168,7 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
         DEBUG(0,("Unknown DB version [%s], expected [%s] for domain %s!\n",
                  version?version:"not found", SYSDB_VERSION, domain->name));
-        ret = EINVAL;
+        ret = sysdb_version_check(SYSDB_VERSION, version);
         goto done;
     }
 

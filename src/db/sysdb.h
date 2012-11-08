@@ -214,6 +214,36 @@
 #define SYSDB_MOD_DEL LDB_FLAG_MOD_DELETE
 #define SYSDB_MOD_REP LDB_FLAG_MOD_REPLACE
 
+/* sysdb version check macros */
+#define SYSDB_VERSION_ERROR_HINT \
+    ERROR("Removing cache files in "DB_PATH" should fix the issue, " \
+          "but note that removing cache files will also remove all of your " \
+          "cached credentials.\n")
+
+#define SYSDB_VERSION_LOWER_ERROR(ret) do { \
+    if (ret == EUCLEAN) { \
+        ERROR("Lower version of database is expected!\n"); \
+        SYSDB_VERSION_ERROR_HINT; \
+    } \
+} while(0)
+
+#define SYSDB_VERSION_HIGHER_ERROR(ret) do { \
+    if (ret == EMEDIUMTYPE) { \
+        ERROR("Higher version of database is expected!\n"); \
+        ERROR("In order to upgrade the database, you must run SSSD.\n"); \
+        SYSDB_VERSION_ERROR_HINT; \
+    } \
+} while(0)
+
+/* use this in daemons */
+#define SYSDB_VERSION_ERROR_DAEMON(ret) \
+    SYSDB_VERSION_LOWER_ERROR(ret)
+
+/* use this in tools */
+#define SYSDB_VERSION_ERROR(ret) \
+    SYSDB_VERSION_LOWER_ERROR(ret); \
+    SYSDB_VERSION_HIGHER_ERROR(ret)
+
 struct confdb_ctx;
 struct sysdb_ctx;
 

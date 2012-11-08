@@ -57,6 +57,7 @@ static int setup_db(struct tools_ctx *ctx)
     ret = sysdb_init_domain_and_sysdb(ctx, ctx->confdb, "local", DB_PATH,
                                       &ctx->local, &ctx->sysdb);
     if (ret != EOK) {
+        SYSDB_VERSION_ERROR(ret);
         DEBUG(1, ("Could not initialize connection to the sysdb\n"));
         return ret;
     }

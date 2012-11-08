@@ -339,6 +339,7 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
         ret = sysdb_init_domain_and_sysdb(ctx, ctx->confdb, domain, DB_PATH,
                                           &ctx->domains, &db_ctx);
         if (ret != EOK) {
+            SYSDB_VERSION_ERROR(ret);
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));
             goto fail;
         }
@@ -350,6 +351,7 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
         }
     } else {
         ret = sysdb_init(ctx, ctx->confdb, NULL, false, &ctx->sysdb_list);
+        SYSDB_VERSION_ERROR(ret);
         if (ret != EOK) {
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));
             goto fail;

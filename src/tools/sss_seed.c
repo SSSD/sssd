@@ -631,6 +631,7 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
     ret = sysdb_init_domain_and_sysdb(tmp_ctx, confdb, domain_name,
                                       DB_PATH, &domain, &sysdb);
     if (ret != EOK) {
+        SYSDB_VERSION_ERROR(ret);
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not initialize connection to domain '%s' in sysdb.%s\n",
                domain_name, ret == ENOENT ? " Domain not found." : ""));
