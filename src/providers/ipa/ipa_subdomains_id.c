@@ -99,6 +99,13 @@ struct tevent_req *ipa_get_subdomain_account_info_send(TALLOC_CTX *memctx,
                                        SDAP_OPTS_GROUP, NULL,
                                        &state->attrs, NULL);
             break;
+        case BE_REQ_INITGROUPS:
+            ret = ENOTSUP;
+            DEBUG(SSSDBG_TRACE_FUNC, ("Initgroups requests are not handled " \
+                                      "by the IPA provider but are resolved " \
+                                      "by the responder directly from the " \
+                                      "cache.\n"));
+            break;
         default:
             ret = EINVAL;
             DEBUG(SSSDBG_OP_FAILURE, ("Invalid sub-domain request type.\n"));
