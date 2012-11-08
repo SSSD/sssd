@@ -2185,6 +2185,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     }
     ret = sysdb_init(tmp_ctx, ctx->cdb, NULL, true, &db_list);
     if (ret != EOK) {
+        SYSDB_VERSION_ERROR_DAEMON(ret);
         return ret;
     }
     talloc_zfree(tmp_ctx);
