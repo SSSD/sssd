@@ -369,7 +369,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
                                    NULL, &groupnames);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Unable to retrieve user info [%d]: %s\n", strerror(ret)));
+             ("Unable to retrieve user info [%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
@@ -382,8 +382,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
                                             cmd_ctx->uid, groupnames,
                                             &expired_rules, &expired_rules_num);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Unable to retrieve expired sudo rules [%d]: %s\n", strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve expired sudo rules "
+                                    "[%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
