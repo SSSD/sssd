@@ -1009,8 +1009,8 @@ static void sdap_sudo_periodical_full_refresh_done(struct tevent_req *req)
     struct tevent_req *subreq = NULL; /* req from sdap_sudo_full_refresh_send() */
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     time_t delay;
-    int dp_error;
-    int error;
+    int dp_error = DP_ERR_FATAL;
+    int error = EFAULT;
     int ret;
 
     ret = sdap_sudo_timer_recv(req, req, &subreq);

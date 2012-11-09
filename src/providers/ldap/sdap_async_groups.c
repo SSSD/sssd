@@ -3174,8 +3174,8 @@ static void sdap_nested_group_process_user(struct tevent_req *subreq)
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
     TALLOC_CTX *tmp_ctx;
-    size_t count;
-    struct sysdb_attrs **replies;
+    size_t count = 0;
+    struct sysdb_attrs **replies = NULL;
     int hret;
     hash_key_t key;
     hash_value_t value;
@@ -3383,8 +3383,8 @@ static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq)
     struct sdap_nested_group_ctx *state =
             tevent_req_data(req, struct sdap_nested_group_ctx);
     TALLOC_CTX *tmp_ctx;
-    size_t count;
-    struct sysdb_attrs **replies;
+    size_t count = 0;
+    struct sysdb_attrs **replies = NULL;
     int hret;
     hash_key_t key;
     hash_value_t value;
