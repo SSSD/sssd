@@ -1411,8 +1411,9 @@ override_homedir = /home/%u
                     <term>subdomains_provider (string)</term>
                     <listitem>
                         <para>
-                            The provider which should handle fetching of subdomains.
-                            This value should be always the same as id_provider.
+                            The provider which should handle fetching of
+                            subdomains. This value should be always the same as
+                            id_provider.
                             Supported subdomain providers are:
                         </para>
                         <para>
@@ -1421,13 +1422,16 @@ override_homedir = /home/%u
                             <citerefentry>
                                 <refentrytitle>sssd-ipa</refentrytitle>
                                 <manvolnum>5</manvolnum>
-                            </citerefentry> for more information on configuring IPA.
+                            </citerefentry> for more information on configuring
+                            IPA.
                         </para>
                         <para>
-                            <quote>none</quote> disallows fetching subdomains explicitly.
+                            <quote>none</quote> disallows fetching subdomains
+                            explicitly.
                         </para>
                         <para>
-                            Default: none
+                            Default: The value of <quote>id_provider</quote> is
+                            used if it is set.
                         </para>
                     </listitem>
                 </varlistentry>

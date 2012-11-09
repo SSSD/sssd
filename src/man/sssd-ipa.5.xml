@@ -595,6 +595,29 @@
         </para>
     </refsect1>
 
+    <refsect1 id='subdomains_provider'>
+        <title>SUBDOMAINS PROVIDER</title>
+        <para>
+            The IPA subdomains provider behaves slightly differently
+            if it is configured explicitly or implicitly.
+        </para>
+        <para>
+            If the option 'subdomains_provider = ipa' is found in the
+            domain section of sssd.conf, the IPA subdomains provider is
+            configured explicitly, and all subdomain requests are sent to the
+            IPA server if necessary.
+        </para>
+        <para>
+            If the option 'subdomains_provider' is not set in the domain
+            section of sssd.conf but there is the option 'id_provider = ipa',
+            the IPA subdomains provider is configured implictly. In this case,
+            if a subdomain request fails and indicates that the server does not
+            support subdomains, i.e. is not configured for trusts, the IPA
+            subdomains provider is disabled. After an hour or after the IPA
+            provider goes online, the subdomains provider is enabled again.
+        </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
