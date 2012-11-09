@@ -47,6 +47,7 @@
 
 /* refresh automatically every 4 hours */
 #define IPA_SUBDOMAIN_REFRESH_PERIOD (3600 * 4)
+#define IPA_SUBDOMAIN_DISABLED_PERIOD 3600
 
 /* the directory domain - realm mappings are written to */
 #define IPA_SUBDOMAIN_MAPPING_DIR PUBCONF_PATH"/krb5.include.d"
@@ -74,6 +75,8 @@ struct ipa_subdomains_ctx {
 
     time_t last_refreshed;
     struct tevent_timer *timer_event;
+    bool configured_explicit;
+    time_t disabled_until;
 
     /* subdomain map cache */
     int num_subdoms;
@@ -899,6 +902,12 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
          * and we don't have the master domain record
          */
         DEBUG(SSSDBG_CRIT_FAILURE, ("Master domain record not found!\n"));
+
+        if (!ctx->sd_ctx->configured_explicit) {
+            ctx->sd_ctx->disabled_until = time(NULL) +
+                                          IPA_SUBDOMAIN_DISABLED_PERIOD;
+        }
+
         ret = EIO;
         goto done;
     }
@@ -932,6 +941,7 @@ static void ipa_subdom_online_cb(void *pvt)
         return;
     }
 
+    ctx->disabled_until = 0;
     ipa_subdomains_retrieve(ctx, NULL);
 
     tv = tevent_timeval_current_ofs(IPA_SUBDOMAIN_REFRESH_PERIOD, 0);
@@ -953,9 +963,48 @@ static void ipa_subdom_offline_cb(void *pvt)
     }
 }
 
+static errno_t get_config_status(struct be_ctx *be_ctx,
+                                 bool *configured_explicit)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *tmp_str;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                            CONFDB_DOMAIN_SUBDOMAINS_PROVIDER, NULL,
+                            &tmp_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("confdb_get_string failed.\n"));
+        goto done;
+    }
+
+    if (tmp_str == NULL) {
+        *configured_explicit = false;
+    } else {
+        *configured_explicit = true;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, ("IPA subdomain provider is configured %s.\n",
+                             *configured_explicit ? "explicit" : "implicit"));
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 void ipa_subdomains_handler(struct be_req *be_req)
 {
     struct ipa_subdomains_ctx *ctx;
+    time_t now;
 
     ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
                           struct ipa_subdomains_ctx);
@@ -964,7 +1013,15 @@ void ipa_subdomains_handler(struct be_req *be_req)
         return;
     }
 
-    if (ctx->last_refreshed > time(NULL) - IPA_SUBDOMAIN_REFRESH_LIMIT) {
+    now = time(NULL);
+
+    if (ctx->disabled_until > now) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Subdomain provider disabled.\n"));
+        ipa_subdomains_reply(be_req, DP_ERR_OK, EOK);
+        return;
+    }
+
+    if (ctx->last_refreshed > now - IPA_SUBDOMAIN_REFRESH_LIMIT) {
         ipa_subdomains_reply(be_req, DP_ERR_OK, EOK);
         return;
     }
@@ -984,6 +1041,13 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
 {
     struct ipa_subdomains_ctx *ctx;
     int ret;
+    bool configured_explicit = false;
+
+    ret = get_config_status(be_ctx, &configured_explicit);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("get_config_status failed.\n"));
+        return ret;
+    }
 
     ctx = talloc_zero(id_ctx, struct ipa_subdomains_ctx);
     if (ctx == NULL) {
@@ -996,6 +1060,8 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
     ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
     ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
     ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
+    ctx->configured_explicit = configured_explicit;
+    ctx->disabled_until = 0;
     *ops = &ipa_subdomains_ops;
     *pvt_data = ctx;
 

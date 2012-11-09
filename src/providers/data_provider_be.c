@@ -2317,7 +2317,8 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = load_backend_module(ctx, BET_SUBDOMAINS,
-                              &ctx->bet_info[BET_SUBDOMAINS], NULL);
+                              &ctx->bet_info[BET_SUBDOMAINS],
+                              ctx->bet_info[BET_ID].mod_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Subdomains are not supported for [%s] !!\n", be_domain));
     } else {
