@@ -1254,17 +1254,6 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
                 goto done;
             }
 
-            ret = ldb_msg_add_empty(msg, "member", LDB_FLAG_MOD_DELETE, NULL);
-            if (ret != LDB_SUCCESS) {
-                ret = ENOMEM;
-                goto done;
-            }
-            ret = ldb_msg_add_string(msg, "member", ldb_dn_get_linearized(user->dn));
-            if (ret != LDB_SUCCESS) {
-                ret = ENOMEM;
-                goto done;
-            }
-
             ret = ldb_modify(sysdb->ldb, msg);
             talloc_zfree(msg);
             if (ret != LDB_SUCCESS) {
