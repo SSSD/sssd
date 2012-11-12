@@ -1663,6 +1663,8 @@ static int client_registration(DBusMessage *message,
         becli->bectx->autofs_cli = becli;
     } else if (strcasecmp(cli_name, "SSH") == 0) {
         becli->bectx->ssh_cli = becli;
+    } else if (strcasecmp(cli_name, "PAC") == 0) {
+        /* no need to set becli */
     } else {
         DEBUG(1, ("Unknown client! [%s]\n", cli_name));
     }
