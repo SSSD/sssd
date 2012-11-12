@@ -22,6 +22,16 @@
     %global with_ccache --with-default-ccache-dir='/run/user/%U' --with-default-ccname-template="DIR:%d/krb5cc"
 %endif
 
+%if (0%{?fedora} >= 16)
+    %global use_systemd 1
+%endif
+
+%if (0%{?use_systemd} == 1)
+    %global with_initscript --with-initscript=systemd --with-systemdunitdir=%{_unitdir}
+%else
+    %global with_initscript --with-initscript=sysv
+%endif
+
 %global enable_experimental 1
 
 %if (0%{?enable_experimental} == 1)
@@ -33,7 +43,7 @@
 
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
-Release: 0@PRERELEASE_VERSION@%{?dist}
+Release: 1@PRERELEASE_VERSION@%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 License: GPLv3+
@@ -53,9 +63,15 @@ Requires: libipa_hbac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Requires: cyrus-sasl-gssapi
 Requires: keyutils-libs
+%if (0%{?use_systemd} == 1)
+Requires(post): systemd-units systemd-sysv
+Requires(preun): systemd-units
+Requires(postun): systemd-units
+%else
 Requires(post): initscripts chkconfig
 Requires(preun):  initscripts chkconfig
 Requires(postun): initscripts chkconfig
+%endif
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -250,6 +266,7 @@ autoreconf -ivf
     --disable-static \
     --disable-rpath \
     %{with_ccache} \
+    %{with_initscript} \
     %{experimental}
 
 make %{?_smp_mflags} all
@@ -336,8 +353,12 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc COPYING
 %doc src/examples/sssd-example.conf
-%{_initrddir}/%{name}
 %{_sbindir}/sssd
+%if (0%{?use_systemd} == 1)
+%{_unitdir}/sssd.service
+%else
+%{_initrddir}/%{name}
+%endif
 
 %dir %{_libexecdir}/%{servicename}
 %{_libexecdir}/%{servicename}/krb5_child
@@ -506,6 +527,42 @@ A utility library to allow communication between Autofs and SSSD
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/sssd/modules/libsss_autofs.so*
 
+%if (0%{?use_systemd} == 1)
+# systemd
+%post
+if [ $1 -eq 1 ] ; then
+    # Initial installation
+    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+
+%preun
+if [ $1 -eq 0 ] ; then
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable sssd.service > /dev/null 2>&1 || :
+    /bin/systemctl stop sssd.service > /dev/null 2>&1 || :
+fi
+
+%postun
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart sssd.service >/dev/null 2>&1 || :
+fi
+
+%triggerun -- sssd < 1.9.90-1
+# Save the current service runlevel info
+# User must manually run systemd-sysv-convert --apply sssd
+# to migrate them to systemd targets
+/usr/bin/systemd-sysv-convert --save sssd >/dev/null 2>&1 ||:
+
+# If the package is allowed to autostart:
+/bin/systemctl --no-reload enable sssd.service >/dev/null 2>&1 ||:
+
+# Run these because the SysV package being removed won't do them
+/sbin/chkconfig --del sssd >/dev/null 2>&1 || :
+/bin/systemctl try-restart sssd.service >/dev/null 2>&1 || :
+%else
+# sysv
 %post
 /sbin/chkconfig --add %{servicename}
 
@@ -518,6 +575,7 @@ if [ $1 = 0 ]; then
     /sbin/service %{servicename} stop 2>&1 > /dev/null
     /sbin/chkconfig --del %{servicename}
 fi
+%endif
 
 %post client -p /sbin/ldconfig
 
