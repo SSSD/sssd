@@ -35,7 +35,7 @@
 %global enable_experimental 1
 
 %if (0%{?enable_experimental} == 1)
-%global experimental --enable-all-experimental-features
+    %global experimental --enable-all-experimental-features
 %endif
 
 # Determine the location of the LDB modules directory
@@ -62,7 +62,6 @@ Requires: sssd-client%{?_isa} = %{version}-%{release}
 Requires: libipa_hbac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Requires: cyrus-sasl-gssapi
-Requires: keyutils-libs
 %if (0%{?use_systemd} == 1)
 Requires(post): systemd-units systemd-sysv
 Requires(preun): systemd-units
@@ -265,9 +264,9 @@ autoreconf -ivf
     --enable-pammoddir=/%{_lib}/security \
     --disable-static \
     --disable-rpath \
-    %{with_ccache} \
+    %{?with_ccache} \
     %{with_initscript} \
-    %{experimental}
+    %{?experimental}
 
 make %{?_smp_mflags} all
 
@@ -341,7 +340,7 @@ do
     esac
 done
 
-# Old versions of rpmbuild require %ghost files to be present in the buildroot
+# Old versions of rpmbuild require ghost files to be present in the buildroot
 mkdir -p $RPM_BUILD_ROOT/%{mcpath}
 touch $RPM_BUILD_ROOT/%{mcpath}/passwd
 touch $RPM_BUILD_ROOT/%{mcpath}/group
