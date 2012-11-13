@@ -530,6 +530,12 @@ sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
 errno_t
 remove_ipv6_brackets(char *ipv6addr);
 
+
+errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
+                           char ***list_p);
+
+bool string_in_list(const char *string, char **list, bool case_sensitive);
+
 /* from sss_tc_utf8.c */
 char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);

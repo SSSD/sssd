@@ -634,3 +634,66 @@ remove_ipv6_brackets(char *ipv6addr)
 
     return EOK;
 }
+
+errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
+                           char ***list_p)
+{
+    size_t c;
+    char **old_list = NULL;
+    char **new_list = NULL;
+
+    if (string == NULL || list_p == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing string or list.\n"));
+        return EINVAL;
+    }
+
+    old_list = *list_p;
+
+    if (old_list == NULL) {
+        /* If the input is a NULL list a new one is created with the new
+         * string and the terminating NULL element. */
+        c = 0;
+        new_list = talloc_array(mem_ctx, char *, 2);
+    } else {
+        for (c = 0; old_list[c] != NULL; c++);
+        new_list = talloc_realloc(mem_ctx, old_list, char *, c + 1);
+    }
+
+    if (new_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array/talloc_realloc failed.\n"));
+        return ENOMEM;
+    }
+
+    new_list[c] = talloc_strdup(new_list, string);
+    if (new_list[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        talloc_free(new_list);
+        return ENOMEM;
+    }
+
+    new_list[c + 1] = NULL;
+
+    *list_p = new_list;
+
+    return EOK;
+}
+
+bool string_in_list(const char *string, char **list, bool case_sensitive)
+{
+    size_t c;
+    int(*compare)(const char *s1, const char *s2);
+
+    if (string == NULL || list == NULL || *list == NULL) {
+        return false;
+    }
+
+    compare = case_sensitive ? strcmp : strcasecmp;
+
+    for (c = 0; list[c] != NULL; c++) {
+        if (compare(string, list[c]) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
