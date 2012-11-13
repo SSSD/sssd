@@ -188,7 +188,6 @@ done:
  */
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
-                               const char *domain,
                                int rules_num,
                                struct sysdb_attrs **rules,
                                uint8_t **_response_body,
@@ -217,8 +216,9 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* domain name */
-    ret = sudosrv_response_append_string(tmp_ctx, domain, strlen(domain) + 1,
+    /* domain name - deprecated
+     * TODO: when possible change the protocol */
+    ret = sudosrv_response_append_string(tmp_ctx, "\0", 1,
                                          &response_body, &response_len);
     if (ret != EOK) {
         goto fail;

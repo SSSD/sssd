@@ -85,7 +85,7 @@ static errno_t sudosrv_cmd_send_error(TALLOC_CTX *mem_ctx,
         return EFAULT;
     }
 
-    ret = sudosrv_build_response(mem_ctx, error, NULL, 0, NULL,
+    ret = sudosrv_build_response(mem_ctx, error, 0, NULL,
                                  &response_body, &response_len);
     if (ret != EOK) {
         return ret;
@@ -118,7 +118,7 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
 
         /* send result */
         ret = sudosrv_build_response(cmd_ctx, SSS_SUDO_ERROR_OK,
-                                     cmd_ctx->domain->name, num_rules, rules,
+                                     num_rules, rules,
                                      &response_body, &response_len);
         if (ret != EOK) {
             return EFAULT;
