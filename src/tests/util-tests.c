@@ -37,6 +37,84 @@
 char *filename;
 int atio_fd;
 
+START_TEST(test_add_string_to_list)
+{
+    int ret;
+
+    char **list = NULL;
+
+    ret = add_string_to_list(NULL, NULL, NULL);
+    fail_unless(ret == EINVAL, "NULL input accepted");
+
+    ret = add_string_to_list(global_talloc_context, "ABC", &list);
+    fail_unless(ret == EOK, "Adding string to non-existing list failed.");
+    fail_unless(list != NULL, "No new list created.");
+    fail_unless(list[0] != NULL, "String not added to new list.");
+    fail_unless(strcmp(list[0], "ABC") == 0,
+                "Wrong string added to newly created list.");
+    fail_unless(list[1] == NULL,
+                "Missing terminating NULL in newly created list.");
+
+    ret = add_string_to_list(global_talloc_context, "DEF", &list);
+    fail_unless(ret == EOK, "Adding string to list failed.");
+    fail_unless(list != NULL, "No list returned.");
+    fail_unless(strcmp(list[0], "ABC") == 0, "Wrong first string in new list.");
+    fail_unless(strcmp(list[1], "DEF") == 0, "Wrong string added to list.");
+    fail_unless(list[2] == NULL, "Missing terminating NULL.");
+
+    list[0] = NULL;
+    ret = add_string_to_list(global_talloc_context, "ABC", &list);
+    fail_unless(ret == EOK, "Adding string to empty list failed.");
+    fail_unless(list != NULL, "No list returned.");
+    fail_unless(list[0] != NULL, "String not added to empty list.");
+    fail_unless(strcmp(list[0], "ABC") == 0,
+                "Wrong string added to empty list.");
+    fail_unless(list[1] == NULL,
+                "Missing terminating NULL in newly created list.");
+
+    talloc_free(list);
+}
+END_TEST
+
+START_TEST(test_string_in_list)
+{
+    bool is_in;
+    char *empty_list[] = {NULL};
+    char *list[] = {discard_const("ABC"),
+                    discard_const("DEF"),
+                    discard_const("GHI"),
+                    NULL};
+
+    is_in = string_in_list(NULL, NULL, false);
+    fail_unless(!is_in, "NULL string is in NULL list.");
+
+    is_in = string_in_list(NULL, empty_list, false);
+    fail_unless(!is_in, "NULL string is in empty list.");
+
+    is_in = string_in_list(NULL, list, false);
+    fail_unless(!is_in, "NULL string is in list.");
+
+    is_in = string_in_list("ABC", NULL, false);
+    fail_unless(!is_in, "String is in NULL list.");
+
+    is_in = string_in_list("ABC", empty_list, false);
+    fail_unless(!is_in, "String is in empty list.");
+
+    is_in = string_in_list("ABC", list, false);
+    fail_unless(is_in, "String is not list.");
+
+    is_in = string_in_list("abc", list, false);
+    fail_unless(is_in, "String is not case in-sensitive list.");
+
+    is_in = string_in_list("abc", list, true);
+    fail_unless(!is_in, "Wrong string found in case sensitive list.");
+
+    is_in = string_in_list("123", list, false);
+    fail_unless(!is_in, "Wrong string found in list.");
+
+}
+END_TEST
+
 START_TEST(test_parse_args)
 {
     struct pa_testcase {
@@ -646,10 +724,15 @@ Suite *util_suite(void)
 
     TCase *tc_util = tcase_create("util");
 
+    tcase_add_checked_fixture(tc_util,
+                              leak_check_setup,
+                              leak_check_teardown);
     tcase_add_test (tc_util, test_diff_string_lists);
     tcase_add_test (tc_util, test_sss_filter_sanitize);
     tcase_add_test (tc_util, test_size_t_overflow);
     tcase_add_test (tc_util, test_parse_args);
+    tcase_add_test (tc_util, test_add_string_to_list);
+    tcase_add_test (tc_util, test_string_in_list);
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");
