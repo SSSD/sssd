@@ -58,6 +58,12 @@
             refer to freeipa.org for more information about HBAC. No configuration
             of access provider is required on the client side.
         </para>
+        <para>
+            The IPA provider will use the PAC responder if the Kerberos tickets
+            of users from trusted realms contain a PAC. To make configuration
+            easier the PAC responder is started automatically if the IPA ID
+            provider is configured.
+        </para>
     </refsect1>
 
     <refsect1 id='file-format'>
