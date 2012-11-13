@@ -67,14 +67,17 @@ int sss_sudo_parse_response(const char *message,
         return ret;
     }
 
-    /* domain name */
+    /* domain name - deprecated
+     * it won't be used, but we will read it anyway to ease parsing
+     * TODO: when possible change the protocol */
     ret = sss_sudo_parse_string(message, message_len, &cursor, &domainname);
     if (ret != EOK) {
         return ret;
     }
 
+    free(domainname);
     if (_domainname != NULL) {
-        *_domainname = domainname;
+        *_domainname = NULL;
     }
 
     /* result */

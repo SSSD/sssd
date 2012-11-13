@@ -103,7 +103,6 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
 
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
-                               const char *domain,
                                int rules_num,
                                struct sysdb_attrs **rules,
                                uint8_t **_response_body,
