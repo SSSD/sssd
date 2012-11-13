@@ -164,6 +164,7 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     struct sudo_cmd_ctx *cmd_ctx = NULL;
     uint8_t *query_body = NULL;
     size_t query_len = 0;
+    uint32_t protocol = cli_ctx->cli_protocol_version->version;
     errno_t ret;
 
     /* create cmd_ctx */
@@ -185,9 +186,20 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     }
 
     /* if protocol is invalid return */
-    if (cli_ctx->cli_protocol_version->version != SSS_SUDO_PROTOCOL_VERSION) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Invalid protocol! [%d]\n",
-              cli_ctx->cli_protocol_version->version));
+    switch (protocol) {
+    case 0:
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Protocol [%d] is not secure. "
+              "SSSD does not allow to use this protocol.\n", protocol));
+        ret = EFAULT;
+        goto done;
+        break;
+    case SSS_SUDO_PROTOCOL_VERSION:
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Using protocol version [%d]\n",
+                                      protocol));
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Invalid protocol version [%d]!\n",
+                                     protocol));
         ret = EFAULT;
         goto done;
     }
