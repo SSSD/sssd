@@ -327,6 +327,13 @@ static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* sudoHost is not specified */
+    filter = talloc_asprintf_append_buffer(filter, "(!(%s=*))",
+                                           map[SDAP_AT_SUDO_HOST].name);
+    if (filter == NULL) {
+        goto done;
+    }
+
     /* ALL */
     filter = talloc_asprintf_append_buffer(filter, "(%s=ALL)",
                                            map[SDAP_AT_SUDO_HOST].name);
