@@ -1799,8 +1799,12 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
     if (state->check_count == 0) {
         DEBUG(9, ("All groups processed\n"));
 
+        /* If ignore_group_members is set for the domain, don't update
+         * group memberships in the cache.
+         */
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                               state->groups, state->count, true, NULL,
+                               state->groups, state->count,
+                               !state->dom->ignore_group_members, NULL,
                                &state->higher_usn);
         if (ret) {
             DEBUG(2, ("Failed to store groups.\n"));

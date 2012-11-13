@@ -111,6 +111,7 @@ option_strings = {
     'cache_credentials' : _('Cache credentials for offline login'),
     'store_legacy_passwords' : _('Store password hashes'),
     'use_fully_qualified_names' : _('Display users/groups in fully-qualified form'),
+    'ignore_group_members' : _('Don\'t include group members in group lookups'),
     'entry_cache_timeout' : _('Entry cache timeout length (seconds)'),
     'lookup_family_order' : _('Restrict or prefer a specific address family when performing DNS lookups'),
     'account_cache_expiration' : _('How long to keep cached entries after last successful login (days)'),

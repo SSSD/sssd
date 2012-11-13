@@ -379,6 +379,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     enum idmap_error_code err;
     char *sid;
     bool use_id_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
+    const char *member_filter[2];
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
     if (!req) return NULL;
@@ -477,9 +478,15 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    member_filter[0] = (const char *)ctx->opts->group_map[SDAP_AT_GROUP_MEMBER].name;
+    member_filter[1] = NULL;
+
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->group_map, SDAP_OPTS_GROUP,
-                               NULL, &state->attrs, NULL);
+                               state->domain->ignore_group_members ?
+                                   (const char **)member_filter : NULL,
+                               &state->attrs, NULL);
+
     if (ret != EOK) goto fail;
 
     ret = groups_get_retry(req);

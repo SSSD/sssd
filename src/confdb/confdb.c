@@ -894,6 +894,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    ret = get_entry_as_bool(res->msgs[0], &domain->ignore_group_members,
+                            CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS, 0);
+    if(ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for %s\n",
+               CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS));
+        goto done;
+    }
+
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
                               CONFDB_DOMAIN_MINID,
                               confdb_get_min_id(domain));

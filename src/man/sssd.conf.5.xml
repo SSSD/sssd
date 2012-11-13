@@ -1218,6 +1218,23 @@ override_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>ignore_group_members (bool)</term>
+                    <listitem>
+                        <para>
+                            Do not return group members for group lookups.
+                        </para>
+                        <para>
+                            If set to TRUE, the group membership attribute
+                            is not requested from the ldap server, and
+                            group members are not returned when processing
+                            group lookup calls.
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>auth_provider (string)</term>
                     <listitem>
                         <para>

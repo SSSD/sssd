@@ -2190,24 +2190,27 @@ static int fill_grent(struct sss_packet *packet,
                                             pwfield.str, pwfield.len);
 
         memnum = 0;
-        el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
-        if (el) {
-            ret = fill_members(packet, dom, nctx, el, &rzero, &rsize, &memnum);
-            if (ret != EOK) {
-                num = 0;
-                goto done;
+        if (!dom->ignore_group_members) {
+            el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+            if (el) {
+                ret = fill_members(packet, dom, nctx, el, &rzero, &rsize,
+                                   &memnum);
+                if (ret != EOK) {
+                    num = 0;
+                    goto done;
+                }
+                sss_packet_get_body(packet, &body, &blen);
             }
-            sss_packet_get_body(packet, &body, &blen);
-        }
-
-        el = ldb_msg_find_element(msg, SYSDB_GHOST);
-        if (el) {
-            ret = fill_members(packet, dom, nctx, el, &rzero, &rsize, &memnum);
-            if (ret != EOK) {
-                num = 0;
-                goto done;
+            el = ldb_msg_find_element(msg, SYSDB_GHOST);
+            if (el) {
+                ret = fill_members(packet, dom, nctx, el, &rzero, &rsize,
+                                   &memnum);
+                if (ret != EOK) {
+                    num = 0;
+                    goto done;
+                }
+                sss_packet_get_body(packet, &body, &blen);
             }
-            sss_packet_get_body(packet, &body, &blen);
         }
         if (memnum) {
             /* set num of members */
