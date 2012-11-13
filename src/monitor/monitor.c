@@ -804,6 +804,71 @@ static int check_local_domain_unique(struct sss_domain_info *domains)
     return EOK;
 }
 
+static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
+                                     char ***_services)
+{
+    int ret;
+    char **domain_names;
+    TALLOC_CTX *tmp_ctx;
+    size_t c;
+    char *conf_path;
+    char *id_provider;
+    bool add_pac = false;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string_as_list(cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
+                                    &domain_names);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, ("No domains configured!\n"));
+        goto done;
+    }
+
+    for (c = 0; domain_names[c] != NULL; c++) {
+        conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
+                                    domain_names[c]);
+        if (conf_path == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = confdb_get_string(cdb, tmp_ctx, conf_path,
+                                CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
+        if (ret == EOK) {
+            if (strcasecmp(id_provider, "IPA") == 0) {
+                add_pac = true;
+            }
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get id_provider for " \
+                                      "domain [%s], trying next domain.\n",
+                                      domain_names[c]));
+        }
+    }
+
+    if (BUILD_WITH_PAC_RESPONDER && add_pac &&
+        !string_in_list("pac", *_services, false)) {
+        ret = add_string_to_list(mem_ctx, "pac", _services);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("add_string_to_list failed.\n"));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static char *check_services(char **services)
 {
     const char *known_services[] = { "nss", "pam", "sudo", "autofs", "ssh",
@@ -855,6 +920,13 @@ int get_monitor_config(struct mt_ctx *ctx)
     if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
         return EINVAL;
+    }
+
+    ret = add_implicit_services(ctx->cdb, ctx->service_ctx, &ctx->services);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to add implicit configured " \
+                                  "services. Some functionality might " \
+                                  "be missing"));
     }
 
     badsrv = check_services(ctx->services);

@@ -588,4 +588,10 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
 
 #endif /* le32toh */
 
+#ifdef HAVE_PAC_RESPONDER
+#define BUILD_WITH_PAC_RESPONDER true
+#else
+#define BUILD_WITH_PAC_RESPONDER false
+#endif
+
 #endif /* __SSSD_UTIL_H__ */
