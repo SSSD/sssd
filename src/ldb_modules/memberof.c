@@ -35,10 +35,6 @@
 #define DB_USER_CLASS "user"
 #define DB_OC "objectClass"
 
-#ifndef talloc_zfree
-#define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
-#endif
-
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
