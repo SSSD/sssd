@@ -280,6 +280,15 @@ fail:
     return IDMAP_OUT_OF_MEMORY;
 }
 
+static bool sss_idmap_sid_is_builtin(const char *sid)
+{
+    if (strncmp(sid, "S-1-5-32-", 9) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
 enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                                             const char *sid,
                                             uint32_t *id)
@@ -292,6 +301,10 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
     idmap_domain_info = ctx->idmap_domain_info;
+
+    if (sid && sss_idmap_sid_is_builtin(sid)) {
+        return IDMAP_BUILTIN_SID;
+    }
 
     while (idmap_domain_info != NULL) {
         dom_len = strlen(idmap_domain_info->sid);

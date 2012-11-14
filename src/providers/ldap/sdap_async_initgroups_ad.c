@@ -452,7 +452,11 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
                sid_str));
         ret = sdap_idmap_sid_to_unix(state->opts->idmap_ctx, sid_str,
                                      &gid);
-        if (ret != EOK) {
+        if (ret == ENOTSUP) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Skipping built-in object.\n"));
+            ret = EOK;
+            continue;
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not convert SID to GID: [%s]. Skipping\n",
                    strerror(ret)));
