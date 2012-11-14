@@ -1053,7 +1053,6 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     char *user_error_message = NULL;
     size_t user_resp_len;
     uint8_t *user_resp;
-    char *changepw_princ = NULL;
     krb5_prompter_fct prompter = sss_krb5_prompter;
     const char *realm_name;
     int realm_length;
@@ -1074,16 +1073,6 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
-    changepw_princ = talloc_asprintf(kr, "%s@%s", SSSD_KRB5_CHANGEPW_PRINCIPAL,
-                                                  kr->krb5_ctx->realm);
-    if (changepw_princ == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
-        kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
-    }
-    DEBUG(SSSDBG_FUNC_DATA,
-          ("Created a changepw principal [%s]\n", changepw_princ));
-
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         /* We do not need a password expiration warning here. */
         prompter = NULL;
@@ -1095,7 +1084,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
           ("Attempting kinit for realm [%s]\n",realm_name));
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         pass_str, prompter, kr, 0,
-                                        changepw_princ,
+                                        SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                         kr->options);
     if (kerr != 0) {
         pam_status = kerr_handle_error(kerr);
@@ -1202,7 +1191,6 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     int ret;
     krb5_error_code kerr = 0;
     char *pass_str = NULL;
-    char *changepw_princ = NULL;
     int pam_status = PAM_SYSTEM_ERR;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Attempting to get a TGT\n"));
@@ -1222,16 +1210,6 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
-    changepw_princ = talloc_asprintf(kr, "%s@%s", SSSD_KRB5_CHANGEPW_PRINCIPAL,
-                                                  kr->krb5_ctx->realm);
-    if (changepw_princ == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
-        kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
-    }
-    DEBUG(SSSDBG_FUNC_DATA,
-          ("Created a changepw principal [%s]\n", changepw_princ));
-
     kerr = get_and_save_tgt(kr, pass_str);
 
     /* If the password is expired the KDC will always return
@@ -1249,7 +1227,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         }
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                             pass_str, sss_krb5_prompter, kr, 0,
-                                            changepw_princ,
+                                            SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                             kr->options);
         krb5_free_cred_contents(kr->ctx, kr->creds);
         if (kerr == 0) {
