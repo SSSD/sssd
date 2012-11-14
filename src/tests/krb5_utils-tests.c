@@ -711,6 +711,12 @@ START_TEST(test_compare_principal_realm)
     fail_unless(ret == EOK, "Failure with different realm");
     fail_unless(different_realm == true, "Different realm but " \
                                           "different_realm is not true.");
+
+    ret = compare_principal_realm("user@ABC", "REALMNAMELONGERTHANUPN",
+                                 &different_realm);
+    fail_unless(ret == EOK, "Failure with long realm name.");
+    fail_unless(different_realm == true, "Realm name longer than UPN but "
+                                         "different_realm is not true.");
 }
 END_TEST
 

@@ -898,22 +898,16 @@ errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
 errno_t compare_principal_realm(const char *upn, const char *realm,
                                 bool *different_realm)
 {
-    size_t upn_len;
-    size_t realm_len;
     char *at_sign;
 
-    if (upn == NULL || realm == NULL || different_realm == NULL) {
+    if (upn == NULL || realm == NULL || different_realm == NULL ||
+        *upn == '\0' || *realm == '\0') {
         return EINVAL;
     }
 
-    upn_len = strlen(upn);
-    realm_len = strlen(realm);
     at_sign = strchr(upn, '@');
 
-    /* if coming from the same realm the upn must be at least the size of the
-     * realm plus 1 for the '@' char. */
-    if (upn_len == 0 || realm_len == 0 || upn_len <= realm_len + 1 ||
-        at_sign == NULL) {
+    if (at_sign == NULL) {
         return EINVAL;
     }
 
