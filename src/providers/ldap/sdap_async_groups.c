@@ -334,13 +334,13 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     group_attrs = sysdb_new_attrs(tmpctx);
     if (group_attrs == NULL) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     ret = sysdb_attrs_primary_name(ctx, attrs,
@@ -348,7 +348,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                    &name);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save the group - entry has no name attribute\n"));
-        goto fail;
+        goto done;
     }
     DEBUG(SSSDBG_TRACE_FUNC, ("Processing group %s\n", name));
 
@@ -366,7 +366,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not identify objectSID: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
 
         /* Add string representation to the cache for easier
@@ -377,16 +377,22 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not add SID string: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
 
         /* Convert the SID into a UNIX group ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &gid);
-        if (ret != EOK) {
+        if (ret == ENOTSUP) {
+            /* ENOTSUP is returned if built-in SID was provided
+             * => do not store the group, but return EOK */
+            DEBUG(SSSDBG_TRACE_FUNC, ("Skipping built-in object.\n"));
+            ret = EOK;
+            goto done;
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not convert SID string: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
 
         /* Store the GID in the ldap_attrs so it doesn't get
@@ -397,7 +403,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not store GID: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
     } else {
         ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix_group);
@@ -407,7 +413,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Error reading posix attribute: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
 
         DEBUG(8, ("This is%s a posix group\n", (posix_group)?"":" not"));
@@ -416,7 +422,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Error setting posix attribute: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
 
         ret = sysdb_attrs_get_uint32_t(attrs,
@@ -426,7 +432,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
                       name, dom->name));
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
     }
 
@@ -436,7 +442,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
                       name));
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
         /* Group ID OK */
     }
@@ -447,7 +453,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Error setting original DN: [%s]\n",
                strerror(ret)));
-        goto fail;
+        goto done;
     }
 
     ret = sdap_attrs_add_string(attrs,
@@ -458,7 +464,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Error setting mod timestamp: [%s]\n",
                strerror(ret)));
-        goto fail;
+        goto done;
     }
 
     ret = sysdb_attrs_get_el(attrs,
@@ -467,7 +473,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Error looking up group USN: [%s]\n",
                strerror(ret)));
-        goto fail;
+        goto done;
     }
     if (el->num_values == 0) {
         DEBUG(7, ("Original USN value is not available for [%s].\n",
@@ -480,12 +486,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Error setting group USN: [%s]\n",
                    strerror(ret)));
-            goto fail;
+            goto done;
         }
         usn_value = talloc_strdup(tmpctx, (const char*)el->values[0].data);
         if (!usn_value) {
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
     }
 
@@ -494,13 +500,13 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                      group_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to save ghost members\n"));
-        goto fail;
+        goto done;
     }
 
     ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, group_attrs);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save group names\n"));
-        goto fail;
+        goto done;
     }
 
     DEBUG(6, ("Storing info for group %s\n", name));
@@ -513,7 +519,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not store group with GID: [%s]\n",
                strerror(ret)));
-        goto fail;
+        goto done;
     }
 
     if (_usn_value) {
@@ -521,14 +527,15 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     talloc_steal(memctx, group_attrs);
-    talloc_free(tmpctx);
-    return EOK;
+    ret = EOK;
 
-fail:
-    DEBUG(SSSDBG_MINOR_FAILURE,
-          ("Failed to save group [%s]: [%s]\n",
-           name ? name : "Unknown",
-           strerror(ret)));
+done:
+    if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to save group [%s]: [%s]\n",
+               name ? name : "Unknown",
+               strerror(ret)));
+    }
     talloc_free(tmpctx);
     return ret;
 }

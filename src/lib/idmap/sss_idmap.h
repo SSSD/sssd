@@ -68,7 +68,10 @@ enum idmap_error_code {
     IDMAP_SID_UNKNOWN,
 
     /** The provided UID or GID could not be mapped */
-    IDMAP_NO_RANGE
+    IDMAP_NO_RANGE,
+
+    /** The provided SID is a built-in one */
+    IDMAP_BUILTIN_SID
 };
 
 /**

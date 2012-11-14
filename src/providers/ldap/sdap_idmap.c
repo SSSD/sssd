@@ -380,13 +380,10 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
     err = sss_idmap_sid_to_unix(idmap_ctx->map,
                                 sid_str,
                                 (uint32_t *)id);
-    if (err != IDMAP_SUCCESS && err != IDMAP_NO_DOMAIN) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not convert objectSID [%s] to a UNIX ID\n",
-               sid_str));
-        ret = EIO;
-        goto done;
-    } else if (err == IDMAP_NO_DOMAIN) {
+    switch (err) {
+    case IDMAP_SUCCESS:
+        break;
+    case IDMAP_NO_DOMAIN:
         /* This is the first time we've seen this domain
          * Create a new domain for it. We'll use the dom-sid
          * as the domain name for now, since we don't have
@@ -420,6 +417,20 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
             ret = EIO;
             goto done;
         }
+        break;
+    case IDMAP_BUILTIN_SID:
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Object SID [%s] is a built-in one.\n", sid_str));
+        /* ENOTSUP indicates built-in SID */
+        ret = ENOTSUP;
+        goto done;
+        break;
+    default:
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not convert objectSID [%s] to a UNIX ID\n",
+               sid_str));
+        ret = EIO;
+        goto done;
     }
 
     ret = EOK;
