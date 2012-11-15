@@ -93,7 +93,6 @@ int sss_sudo_send_recv(uid_t uid,
                        uint32_t *_error,
                        struct sss_sudo_result **_result)
 {
-    char *fullname = NULL;
     int ret;
 
     if (username == NULL || strlen(username) == 0) {
