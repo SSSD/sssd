@@ -226,7 +226,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     hash_key_t key;
     hash_value_t value;
 
-    tmpctx = talloc_new(memctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         ret = ENOMEM;
         goto fail;
