@@ -438,7 +438,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     /* Now process RFC2307bis ghost hash table */
     if (ghosts && cnt > 0) {
-        el->values = talloc_realloc(attrs, el->values, struct ldb_val,
+        el->values = talloc_realloc(group_attrs, el->values, struct ldb_val,
                                     cnt);
         if (el->values == NULL) {
             ret = ENOMEM;
