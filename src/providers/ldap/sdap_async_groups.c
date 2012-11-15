@@ -433,9 +433,11 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     el->values = gh->values;
     el->num_values = gh->num_values;
 
+    cnt = el->num_values + el1->num_values;
+    DEBUG(SSSDBG_TRACE_FUNC, ("Group %s has %d members\n", name, cnt));
+
     /* Now process RFC2307bis ghost hash table */
-    if (ghosts != NULL) {
-        cnt = el->num_values + el1->num_values;
+    if (ghosts && cnt > 0) {
         el->values = talloc_realloc(attrs, el->values, struct ldb_val,
                                     cnt);
         if (el->values == NULL) {
