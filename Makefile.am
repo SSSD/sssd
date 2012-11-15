@@ -746,11 +746,11 @@ sss_seed_LDADD = \
 if BUILD_SUDO
 sss_sudo_cli_SOURCES = \
     src/sss_client/common.c \
+    src/sss_client/sudo/sss_sudo.c \
+    src/sss_client/sudo/sss_sudo_response.c \
     src/sss_client/sudo_testcli/sudo_testcli.c
 sss_sudo_cli_CFLAGS = $(AM_CFLAGS)
 sss_sudo_cli_LDFLAGS = $(CLIENT_LIBS)
-sss_sudo_cli_LDADD = \
-    libsss_sudo.la
 endif
 
 if BUILD_SSH
@@ -1186,7 +1186,8 @@ libsss_sudo_la_SOURCES = \
 libsss_sudo_la_LDFLAGS = \
     $(CLIENT_LIBS) \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_sudo.exports \
-    -version-info 2:0:1
+    -module \
+    -avoid-version
 
 sudolib_LTLIBRARIES = libsss_sudo.la
 
