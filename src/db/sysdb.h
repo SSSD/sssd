@@ -26,7 +26,6 @@
 #include "confdb/confdb.h"
 #include <tevent.h>
 
-#define SYSDB_CONF_SECTION "config/sysdb"
 #define CACHE_SYSDB_FILE "cache_%s.ldb"
 #define LOCAL_SYSDB_FILE "sssd.ldb"
 
@@ -79,14 +78,9 @@
 #define SYSDB_USER_CATEGORY "userCategory"
 #define SYSDB_HOST_CATEGORY "hostCategory"
 
-#define SYSDB_DEFAULTGROUP "defaultGroup"
 #define SYSDB_GECOS "gecos"
-#define SYSDB_LOCALE "locale"
-#define SYSDB_KEYBOARD "keyboard"
-#define SYSDB_SESSION "session"
 #define SYSDB_LAST_LOGIN "lastLogin"
 #define SYSDB_LAST_ONLINE_AUTH "lastOnlineAuth"
-#define SYSDB_USERPIC "userPicture"
 #define SYSDB_LAST_FAILED_LOGIN "lastFailedLogin"
 #define SYSDB_FAILED_LOGIN_ATTEMPTS "failedLoginAttempts"
 
@@ -154,7 +148,6 @@
 #define SYSDB_PWENT_FILTER "("SYSDB_UC")"
 
 #define SYSDB_GRNAM_FILTER "(&("SYSDB_GC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
-#define SYSDB_GRNA2_FILTER "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))"
 #define SYSDB_GRGID_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=%lu))"
 #define SYSDB_GRENT_FILTER "("SYSDB_GC")"
 #define SYSDB_GRNAM_MPG_FILTER "(&("SYSDB_MPGC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
@@ -162,8 +155,6 @@
 #define SYSDB_GRENT_MPG_FILTER "("SYSDB_MPGC")"
 
 #define SYSDB_INITGR_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=*))"
-
-#define SYSDB_GETCACHED_FILTER "(&"SYSDB_UC")("SYSDB_LAST_LOGIN">=%lu))"
 
 #define SYSDB_NETGR_FILTER "(&("SYSDB_NC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_NETGR_TRIPLES_FILTER "(|("SYSDB_NAME"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_MEMBEROF"=%s))"
@@ -183,12 +174,6 @@
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_MEMBERUID, \
                            SYSDB_GHOST, \
-                           SYSDB_DEFAULT_ATTRS, \
-                           NULL}
-#define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
-                          SYSDB_DEFAULT_ATTRS, \
-                          NULL}
-#define SYSDB_GRENT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, \
                            SYSDB_DEFAULT_ATTRS, \
                            NULL}
 
