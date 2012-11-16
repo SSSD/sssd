@@ -365,7 +365,9 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_getpwnam(tmp_ctx, sysdb, name, &res);
+    /* if this is a subdomain we need to search for the fully qualified
+     * name in the database */
+    ret = sysdb_subdom_getpwnam(tmp_ctx, sysdb, name, &res);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_getpwnam failed: [%d][%s]\n",
                   ret, strerror(ret)));

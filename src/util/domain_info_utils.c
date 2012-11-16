@@ -73,7 +73,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     }
 
     dom->enumerate = false;
-    dom->fqnames = true;
+    dom->fqnames = false;
     /* FIXME: get ranges from the server */
     dom->id_min = 0;
     dom->id_max = 0xffffffff;

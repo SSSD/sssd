@@ -53,6 +53,7 @@ struct pac_req_ctx {
     struct pac_ctx *pac_ctx;
     const char *domain_name;
     const char *user_name;
+    char *fq_name;
     struct sss_domain_info *dom;
 
     struct PAC_LOGON_INFO *logon_info;
@@ -200,6 +201,16 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
     struct tevent_req *req;
     struct dom_sid *my_dom_sid;
     struct local_mapping_ranges *my_range_map;
+
+    /* this is a subdomain so we need to search for the fully qualified
+     * name in the database */
+    pr_ctx->fq_name = talloc_asprintf(pr_ctx, pr_ctx->dom->names->fq_fmt,
+                                      pr_ctx->user_name, pr_ctx->dom->name);
+    if (!pr_ctx->fq_name) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
+        goto done;
+    }
 
     ret = save_pac_user(pr_ctx);
     if (ret != EOK) {
@@ -365,7 +376,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, pr_ctx->user_name, attrs,
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, pr_ctx->fq_name, attrs,
                                     &msg);
     if (ret == EOK) {
         /* TODO: check id uid and gid are equal. */
@@ -423,7 +434,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     }
 
     state->gid_iter = 0;
-    state->user_dn = sysdb_user_dn(dom->sysdb, state, pr_ctx->user_name);
+    state->user_dn = sysdb_user_dn(dom->sysdb, state, pr_ctx->fq_name);
     if (state->user_dn == NULL) {
         ret = ENOMEM;
         goto done;
