@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_14 "0.14"
 #define SYSDB_VERSION_0_13 "0.13"
 #define SYSDB_VERSION_0_12 "0.12"
 #define SYSDB_VERSION_0_11 "0.11"
@@ -37,7 +38,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_13
+#define SYSDB_VERSION SYSDB_VERSION_0_14
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -111,6 +112,7 @@ int sysdb_upgrade_09(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_12(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver);
 
 int add_string(struct ldb_message *msg, int flags,
                const char *attr, const char *value);

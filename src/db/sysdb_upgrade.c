@@ -1273,6 +1273,94 @@ done:
     return ret;
 }
 
+int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    struct ldb_result *dom_res;
+    struct ldb_result *res;
+    struct ldb_dn *basedn;
+    const char *attrs[] = { "cn", "name", NULL };
+    const char *tmp_str;
+    errno_t ret;
+    int i, j, l, n;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_14, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    basedn = ldb_dn_new(ctx, sysdb->ldb, SYSDB_BASE);
+    if (!basedn) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_search(sysdb->ldb, ctx, &dom_res,
+                     basedn, LDB_SCOPE_ONELEVEL,
+                     attrs, "objectclass=%s", SYSDB_SUBDOMAIN_CLASS);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to search subdomains\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    for (i = 0; i < dom_res->count; i++) {
+
+        tmp_str = ldb_msg_find_attr_as_string(dom_res->msgs[i], "cn", NULL);
+        if (tmp_str == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+            continue;
+        }
+
+        basedn = ldb_dn_new_fmt(ctx, sysdb->ldb, SYSDB_DOM_BASE, tmp_str);
+        if (!basedn) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Failed to build base dn for subdomain %s\n", tmp_str));
+            continue;
+        }
+
+        ret = ldb_search(sysdb->ldb, ctx, &res,
+                         basedn, LDB_SCOPE_SUBTREE, attrs, NULL);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Failed to search subdomain %s\n", tmp_str));
+            talloc_free(basedn);
+            continue;
+        }
+
+        l = ldb_dn_get_comp_num(basedn);
+        for (j = 0; j < res->count; j++) {
+            n = ldb_dn_get_comp_num(res->msgs[j]->dn);
+            if (n <= l + 1) {
+                /* Do not remove subdomain containers, only their contents */
+                continue;
+            }
+            ret = ldb_delete(sysdb->ldb, res->msgs[j]->dn);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Failed to delete %s\n", res->msgs[j]->dn));
+                continue;
+            }
+        }
+
+        talloc_free(basedn);
+        talloc_free(res);
+    }
+
+    talloc_free(dom_res);
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
+
 /*
  * Example template for future upgrades.
  * Copy and change version numbers as appropriate.
