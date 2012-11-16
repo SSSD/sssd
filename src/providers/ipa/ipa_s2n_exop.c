@@ -591,6 +591,9 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
     const char *homedir = NULL;
     struct sysdb_attrs *user_attrs = NULL;
+    char *name;
+    char *realm;
+    char *upn;
 
     ret = ipa_s2n_exop_recv(subreq, state, &result, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -640,21 +643,64 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS,
-                                         attrs->a.user.pw_name);
+            /* we always use the fully qualified name for subdomain users */
+            name = talloc_asprintf(state, state->dom->names->fq_fmt,
+                                   attrs->a.user.pw_name, state->dom->name);
+            if (!name) {
+                DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
                 goto done;
             }
 
-            ret = sysdb_store_domuser(state->dom, attrs->a.user.pw_name, NULL,
+            /* We also have to store a fake UPN here, because otherwise the
+             * krb5 child later won't be able to properly construct one as
+             * the username is fully qualified but the child doesn't have
+             * access to the regex to deconstruct it */
+            /* FIXME: The real UPN is available from the PAC, we should get
+             * it from there. */
+            realm = get_uppercase_realm(state, state->dom->name);
+            if (!realm) {
+                DEBUG(SSSDBG_OP_FAILURE, ("failed to get realm.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+            upn = talloc_asprintf(state, "%s@%s",
+                                  attrs->a.user.pw_name, realm);
+            if (!upn) {
+                DEBUG(SSSDBG_OP_FAILURE, ("failed to format UPN.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+                goto done;
+            }
+
+            ret = sysdb_store_domuser(state->dom, name, NULL,
                                       attrs->a.user.pw_uid,
                                       0, NULL, /* gecos */
                                       homedir, NULL,
                                       user_attrs, NULL, timeout, now);
             break;
         case RESP_GROUP:
-            ret = sysdb_store_domgroup(state->dom, attrs->a.group.gr_name,
+            /* we always use the fully qualified name for subdomain users */
+            name = talloc_asprintf(state, state->dom->names->fq_fmt,
+                                   attrs->a.group.gr_name, state->dom->name);
+            if (!name) {
+                DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_store_domgroup(state->dom, name,
                                        attrs->a.group.gr_gid, NULL, timeout,
                                        now);
             break;

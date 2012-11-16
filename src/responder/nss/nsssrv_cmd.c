@@ -635,7 +635,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_free(name);
-        name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
+        name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
         /* verify this user has not yet been negatively cached,
@@ -666,7 +666,9 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getpwnam(cmdctx, sysdb, name, &dctx->res);
+        /* if this is a subdomain we need to search for the fully qualified
+         * name in the database */
+        ret = sysdb_subdom_getpwnam(cmdctx, sysdb, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -2201,7 +2203,9 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getgrnam(cmdctx, sysdb, name, &dctx->res);
+        /* if this is a subdomain we need to search for the fully qualified
+         * name in the database */
+        ret = sysdb_subdom_getgrnam(cmdctx, sysdb, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;

@@ -2188,6 +2188,17 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    /* We need this for subdomains support, as they have to store fully
+     * qualified user and group names for now */
+    ret = sss_names_init(ctx->domain, cdb,
+                         ctx->domain->name, &ctx->domain->names);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("fatal error setting fully qualified name format for %s\n",
+              ctx->domain->name));
+        goto fail;
+    }
+
     ret = be_srv_init(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error setting up server bus\n"));

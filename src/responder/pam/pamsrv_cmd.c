@@ -1217,7 +1217,10 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             preq->pd->pam_status = PAM_SYSTEM_ERR;
             return EFAULT;
         }
-        ret = sysdb_getpwnam(preq, sysdb, name, &preq->res);
+
+        /* if this is a subdomain we need to search for the fully qualified
+         * name in the database */
+        ret = sysdb_subdom_getpwnam(preq, sysdb, name, &preq->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;

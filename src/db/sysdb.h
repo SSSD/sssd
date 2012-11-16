@@ -452,6 +452,15 @@ errno_t sysdb_store_domgroup(struct sss_domain_info *domain,
 errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
                               const char *name, gid_t gid);
 
+int sysdb_subdom_getpwnam(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *sysdb,
+                          const char *name,
+                          struct ldb_result **res);
+int sysdb_subdom_getgrnam(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *sysdb,
+                          const char *name,
+                          struct ldb_result **res);
+
 errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                              size_t *range_count,
                              struct range_info ***range_list);

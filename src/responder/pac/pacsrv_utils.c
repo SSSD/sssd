@@ -502,6 +502,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     struct sysdb_attrs *attrs = NULL;
     struct netr_SamBaseInfo *base_info;
     int ret;
+    char *lname;
     char *uc_realm;
     char *upn;
 
@@ -513,33 +514,38 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
 
     base_info = &logon_info->info3.base;
 
-    if (base_info->account_name.size != 0) {
-        /* To be compatible with winbind based lookups we have to use lower
-         * case names only, effectively making the domain case-insenvitive. */
-        pwd->pw_name = sss_tc_utf8_str_tolower(pwd,
-                                               base_info->account_name.string);
-        if (pwd->pw_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_utf8_str_tolower failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
+    if (base_info->account_name.size == 0) {
         DEBUG(SSSDBG_OP_FAILURE, ("Missing account name in PAC.\n"));
         ret = EINVAL;
         goto done;
     }
-
-    if (base_info->rid > 0) {
-        ret = domsid_rid_to_uid(pac_ctx, dom->sysdb, dom->name,
-                                base_info->domain_sid,
-                                base_info->rid, &pwd->pw_uid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("domsid_rid_to_uid failed.\n"));
-            goto done;
-        }
-    } else {
+    if (base_info->rid == 0) {
         DEBUG(SSSDBG_OP_FAILURE, ("Missing user RID in PAC.\n"));
         ret = EINVAL;
+        goto done;
+    }
+
+    /* To be compatible with winbind based lookups we have to use lower
+     * case names only, effectively making the domain case-insenvitive. */
+    lname = sss_tc_utf8_str_tolower(pwd, base_info->account_name.string);
+    if (lname == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_utf8_str_tolower failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+    pwd->pw_name = talloc_asprintf(pwd, dom->names->fq_fmt,
+                                   lname, dom->name);
+    if (!pwd->pw_name) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = domsid_rid_to_uid(pac_ctx, dom->sysdb, dom->name,
+                            base_info->domain_sid,
+                            base_info->rid, &pwd->pw_uid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("domsid_rid_to_uid failed.\n"));
         goto done;
     }
 
@@ -559,7 +565,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
 
     if (dom->subdomain_homedir) {
         pwd->pw_dir = expand_homedir_template(pwd, dom->subdomain_homedir,
-                                              pwd->pw_name, pwd->pw_uid,
+                                              lname, pwd->pw_uid,
                                               dom->name);
         if (pwd->pw_dir == NULL) {
             ret = ENOMEM;
@@ -583,7 +589,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    upn = talloc_asprintf(mem_ctx, "%s@%s", pwd->pw_name, uc_realm);
+    upn = talloc_asprintf(mem_ctx, "%s@%s", lname, uc_realm);
     talloc_free(uc_realm);
     if (upn == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
