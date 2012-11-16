@@ -406,7 +406,6 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             }
         }
         break;
-        break;
     default:
         ret = EINVAL;
         goto fail;
