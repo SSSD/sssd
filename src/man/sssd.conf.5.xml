@@ -1147,7 +1147,7 @@ override_homedir = /home/%u
                             Supported ID providers are:
                         </para>
                         <para>
-                            proxy: Support a legacy NSS provider
+                            <quote>proxy</quote>: Support a legacy NSS provider
                         </para>
                         <para>
                             <quote>local</quote>: SSSD internal provider for
