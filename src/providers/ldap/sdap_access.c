@@ -139,6 +139,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct ldb_result *res;
     const char *attrs[] = { "*", NULL };
+    struct sss_domain_info *user_dom;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_access_req_ctx);
     if (req == NULL) {
@@ -162,9 +163,21 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Get original user DN */
-    ret = sysdb_get_user_attr(state, be_req->sysdb,
-                              pd->user, attrs, &res);
+    /* Get original user DN, take care of subdomain users as well */
+    if (strcasecmp(pd->domain, be_req->be_ctx->domain->name) != 0) {
+        user_dom = new_subdomain(state, be_req->be_ctx->domain, pd->domain,
+                                 NULL, NULL);
+        if (user_dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = sysdb_get_user_attr(state, user_dom->sysdb,
+                                  pd->user, attrs, &res);
+    } else {
+        ret = sysdb_get_user_attr(state, be_req->sysdb,
+                                  pd->user, attrs, &res);
+    }
     if (ret != EOK) {
         if (ret == ENOENT) {
             /* If we can't find the user, return permission denied */

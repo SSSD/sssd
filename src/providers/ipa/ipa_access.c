@@ -85,16 +85,6 @@ void ipa_access_handler(struct be_req *be_req)
                               be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                               struct ipa_access_ctx);
 
-    if (strcasecmp(pd->domain, be_req->be_ctx->domain->name) != 0) {
-        be_req->domain = new_subdomain(be_req, be_req->be_ctx->domain, pd->domain, NULL, NULL);
-        if (be_req->domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
-            be_req->fn(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
-            return;
-        }
-        be_req->sysdb = be_req->domain->sysdb;
-    }
-
     /* First, verify that this account isn't locked.
      * We need to do this in case the auth phase was
      * skipped (such as during GSSAPI single-sign-on

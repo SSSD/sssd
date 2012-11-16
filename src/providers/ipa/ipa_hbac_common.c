@@ -440,6 +440,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
     const char *rhost;
     const char *thost;
+    struct sss_domain_info *user_dom;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -452,9 +453,21 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
 
     eval_req->request_time = time(NULL);
 
-    /* Get user the user name and groups */
-    ret = hbac_eval_user_element(eval_req, sysdb,
-                                 pd->user, &eval_req->user);
+    /* Get user the user name and groups,
+     * take care of subdomain users as well */
+    if (strcasecmp(pd->domain, domain->name) != 0) {
+        user_dom = new_subdomain(tmp_ctx, domain, pd->domain, NULL, NULL);
+        if (user_dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = hbac_eval_user_element(eval_req, user_dom->sysdb,
+                                     pd->user, &eval_req->user);
+    } else {
+        ret = hbac_eval_user_element(eval_req, sysdb,
+                                     pd->user, &eval_req->user);
+    }
     if (ret != EOK) goto done;
 
     /* Get the PAM service and service groups */
