@@ -118,6 +118,7 @@
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
 #define SYSDB_ORIG_MEMBEROF "originalMemberOf"
+#define SYSDB_ORIG_MEMBER "orig_member"
 #define SYSDB_ORIG_MEMBER_USER "originalMemberUser"
 #define SYSDB_ORIG_MEMBER_HOST "originalMemberHost"
 
@@ -647,6 +648,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                    const char *gecos,
                    const char *homedir,
                    const char *shell,
+                   const char *orig_dn,
                    struct sysdb_attrs *attrs,
                    int cache_timeout,
                    time_t now);
@@ -693,6 +695,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                      const char *gecos,
                      const char *homedir,
                      const char *shell,
+                     const char *orig_dn,
                      struct sysdb_attrs *attrs,
                      char **remove_attrs,
                      uint64_t cache_timeout,

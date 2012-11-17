@@ -614,7 +614,7 @@ errno_t sysdb_store_domuser(struct sss_domain_info *domain,
     CHECK_DOMAIN_INFO(domain);
 
     return sysdb_store_user(domain->sysdb, name, pwd, uid, gid, gecos, homedir,
-                            shell, attrs, remove_attrs, cache_timeout, now);
+                            shell, NULL, attrs, remove_attrs, cache_timeout, now);
 }
 
 errno_t sysdb_delete_domuser(struct sss_domain_info *domain,

@@ -47,6 +47,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     const char *gecos;
     const char *homedir;
     const char *shell;
+    const char *orig_dn;
     uid_t uid;
     gid_t gid, primary_gid;
     struct sysdb_attrs *user_attrs;
@@ -241,11 +242,22 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sdap_attrs_add_string(attrs, SYSDB_ORIG_DN,
-                                "original DN",
-                                name, user_attrs);
-    if (ret != EOK) {
+    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
+    if (ret) {
         goto fail;
+    }
+    if (!el || el->num_values == 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("originalDN is not available for [%s].\n", name));
+    } else {
+        orig_dn = (const char *) el->values[0].data;
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding originalDN [%s] to attributes "
+                "of [%s].\n", orig_dn, name));
+
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN, orig_dn);
+        if (ret) {
+            goto fail;
+        }
     }
 
     ret = sysdb_attrs_get_el(attrs, SYSDB_MEMBEROF, &el);
@@ -358,7 +370,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     DEBUG(6, ("Storing info for user %s\n", name));
 
     ret = sysdb_store_user(ctx, name, pwd, uid, gid, gecos, homedir, shell,
-                           user_attrs, missing, cache_timeout, now);
+                           orig_dn, user_attrs, missing, cache_timeout, now);
     if (ret) goto fail;
 
     if (_usn_value) {
