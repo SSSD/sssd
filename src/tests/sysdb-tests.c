@@ -191,7 +191,7 @@ static int test_add_user(struct test_data *data)
 
     ret = sysdb_add_user(data->ctx->sysdb, data->username,
                          data->uid, 0, gecos, homedir, "/bin/bash",
-                         NULL, 0, 0);
+                         NULL, NULL, 0, 0);
     return ret;
 }
 
@@ -207,7 +207,7 @@ static int test_store_user(struct test_data *data)
     ret = sysdb_store_user(data->ctx->sysdb, data->username, "x",
                            data->uid, 0, gecos, homedir,
                            data->shell ? data->shell : "/bin/bash",
-                           NULL, NULL, -1, 0);
+                           NULL, NULL, NULL, -1, 0);
     return ret;
 }
 
@@ -2260,7 +2260,8 @@ START_TEST(test_user_rename)
 
     /* Store and verify the first user */
     ret = sysdb_store_user(test_ctx->sysdb, fromname, NULL, userid, 0,
-                           fromname, "/", "/bin/sh", NULL, NULL, 0, 0);
+                           fromname, "/", "/bin/sh",
+                           NULL, NULL, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add first user");
 
     ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, fromname, &res);
@@ -2281,11 +2282,11 @@ START_TEST(test_user_rename)
 
     /* Perform rename and check that GID is the same, but name changed */
     ret = sysdb_add_user(test_ctx->sysdb, toname, userid, 0,
-                         fromname, "/", "/bin/sh", NULL, 0, 0);
+                         fromname, "/", "/bin/sh", NULL, NULL, 0, 0);
     fail_unless(ret == EEXIST, "A second user added with low level call?");
 
     ret = sysdb_store_user(test_ctx->sysdb, toname, NULL, userid, 0,
-                           fromname, "/", "/bin/sh", NULL, NULL, 0, 0);
+                           fromname, "/", "/bin/sh", NULL, NULL, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add second user");
 
     ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, toname, &res);
@@ -3484,7 +3485,7 @@ START_TEST(test_sysdb_subdomain_store_user)
 
     ret = sysdb_store_user(subdomain->sysdb, "subdomuser", NULL, 12345, 0,
                            "Sub Domain User", "/home/subdomuser", "/bin/bash",
-                           NULL, NULL, -1, 0);
+                           NULL, NULL, NULL, -1, 0);
     fail_unless(ret == EOK, "sysdb_store_user failed.");
 
     base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");

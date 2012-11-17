@@ -391,7 +391,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         ret = sysdb_store_user(sysdb, pwd->pw_name, NULL,
                                pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
                                pwd->pw_dir,
-                               pwd->pw_shell, user_attrs, NULL,
+                               pwd->pw_shell, NULL, user_attrs, NULL,
                                pr_ctx->dom->user_timeout, 0);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_user failed [%d][%s].\n",

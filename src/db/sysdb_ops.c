@@ -860,6 +860,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                    const char *gecos,
                    const char *homedir,
                    const char *shell,
+                   const char *orig_dn,
                    struct sysdb_attrs *attrs,
                    int cache_timeout,
                    time_t now)
@@ -868,14 +869,16 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     struct ldb_message *msg;
     struct ldb_message **groups;
     struct ldb_message_element *alias_el;
+    struct ldb_message_element *orig_members;
     size_t group_count = 0;
     struct sysdb_attrs *id_attrs;
-    const char *group_attrs[] = {SYSDB_NAME, SYSDB_GHOST, NULL};
+    const char *group_attrs[] = {SYSDB_NAME, SYSDB_GHOST, SYSDB_ORIG_MEMBER, NULL};
     struct ldb_dn *tmpdn;
     const char *userdn;
     char *filter;
     uint32_t id;
     int ret, i, j;
+    bool add_member = false;
 
     struct sss_domain_info *domain = sysdb->domain;
 
@@ -1029,7 +1032,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     }
 
     /* We need to find all groups that contain this object as a ghost user
-     * and replace the ghost user there by actual member record
+     * and replace the ghost user by actual member record in direct parents.
      * Note that this object can be referred to either by its name or any
      * of its aliases
      */
@@ -1047,8 +1050,33 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
         msg->dn = groups[i]->dn;
 
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_MEMBER, userdn);
-        if (ret) goto done;
+        if (orig_dn == NULL) {
+            /* We have no way of telling which groups this user belongs to.
+             * Add it to all that reference it in the ghost attribute */
+            add_member = true;
+        } else {
+            add_member = false;
+            orig_members = ldb_msg_find_element(groups[i], SYSDB_ORIG_MEMBER);
+            if (orig_members) {
+                for (j = 0; j < orig_members->num_values; j++) {
+                    if (strcmp((const char *) orig_members->values[j].data,
+                                orig_dn) == 0) {
+                        /* This is a direct member. Add the member attribute */
+                        add_member = true;
+                    }
+                }
+            } else {
+                /* Nothing to compare the originalDN with. Let's rely on the
+                 * memberof plugin to do the right thing during initgroups..
+                 */
+                add_member = true;
+            }
+        }
+
+        if (add_member) {
+            ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_MEMBER, userdn);
+            if (ret) goto done;
+        }
 
         ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
         if (ret) goto done;
@@ -1485,6 +1513,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                      const char *gecos,
                      const char *homedir,
                      const char *shell,
+                     const char *orig_dn,
                      struct sysdb_attrs *attrs,
                      char **remove_attrs,
                      uint64_t cache_timeout,
@@ -1535,8 +1564,8 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
 
     if (ret == ENOENT) {
         /* users doesn't exist, turn into adding a user */
-        ret = sysdb_add_user(sysdb, name, uid, gid,
-                             gecos, homedir, shell, attrs, cache_timeout, now);
+        ret = sysdb_add_user(sysdb, name, uid, gid, gecos, homedir,
+                             shell, orig_dn, attrs, cache_timeout, now);
         if (ret == EEXIST) {
             /* This may be a user rename. If there is a user with the
              * same UID, remove it and try to add the basic user again
@@ -1554,8 +1583,8 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A user with the same UID [%llu] was removed from the "
                    "cache\n", (unsigned long long) uid));
-            ret = sysdb_add_user(sysdb, name, uid, gid, gecos,
-                                 homedir, shell, attrs, cache_timeout, now);
+            ret = sysdb_add_user(sysdb, name, uid, gid, gecos, homedir,
+                                 shell, orig_dn, attrs, cache_timeout, now);
         }
 
         /* Handle the result of sysdb_add_user */

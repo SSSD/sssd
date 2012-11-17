@@ -34,7 +34,6 @@
 #define IPA_UNIQUE_ID "ipauniqueid"
 
 #define IPA_MEMBER "member"
-#define SYSDB_ORIG_MEMBER "orig_member"
 #define HBAC_HOSTS_SUBDIR "hbac_hosts"
 #define HBAC_HOSTGROUPS_SUBDIR "hbac_hostgroups"
 

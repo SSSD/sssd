@@ -205,6 +205,7 @@ sdap_process_ghost_members(struct sysdb_attrs *attrs,
                            struct sdap_options *opts,
                            hash_table_t *ghosts,
                            bool populate_members,
+                           bool store_original_member,
                            struct sysdb_attrs *sysdb_attrs)
 {
     errno_t ret;
@@ -233,6 +234,19 @@ sdap_process_ghost_members(struct sysdb_attrs *attrs,
         DEBUG(SSSDBG_MINOR_FAILURE,
                 ("Error reading members: [%s]\n", strerror(ret)));
         return ret;
+    }
+
+    if (store_original_member) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("The group has %d members\n", memberel->num_values));
+        for (i = 0; i < memberel->num_values; i++) {
+            ret = sysdb_attrs_add_string(sysdb_attrs, SYSDB_ORIG_MEMBER,
+                                        (const char *) memberel->values[i].data);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Could not add member [%s]\n",
+                      (const char *) memberel->values[i].data));
+                return ret;
+            }
+        }
     }
 
     if (populate_members) {
@@ -301,6 +315,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                            struct sss_domain_info *dom,
                            struct sysdb_attrs *attrs,
                            bool populate_members,
+                           bool store_original_member,
                            hash_table_t *ghosts,
                            char **_usn_value,
                            time_t now)
@@ -475,7 +490,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     ret = sdap_process_ghost_members(attrs, opts, ghosts,
-                                     populate_members, group_attrs);
+                                     populate_members, store_original_member,
+                                     group_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to save ghost members\n"));
         goto fail;
@@ -598,6 +614,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
     char *higher_usn = NULL;
     char *usn_value;
     bool twopass;
+    bool has_nesting = false;
     int ret;
     errno_t sret;
     int i;
@@ -615,6 +632,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
         twopass = true;
+        has_nesting = true;
         break;
 
     default:
@@ -649,8 +667,8 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         /* if 2 pass savemembers = false */
         ret = sdap_save_group(tmpctx, sysdb,
                               opts, dom, groups[i],
-                              populate_members, ghosts,
-                              &usn_value, now);
+                              populate_members, has_nesting,
+                              ghosts, &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
