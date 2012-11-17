@@ -1046,24 +1046,13 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
         }
 
         msg->dn = groups[i]->dn;
-        ret = ldb_msg_add_empty(msg, SYSDB_MEMBER, SYSDB_MOD_ADD, NULL);
-        if (ret != LDB_SUCCESS) {
-            ERROR_OUT(ret, ENOMEM, done);
-        }
 
-        ret = ldb_msg_add_string(msg, SYSDB_MEMBER, userdn);
-        if (ret != LDB_SUCCESS) {
-            ERROR_OUT(ret, EINVAL, done);
-        }
+        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_MEMBER, userdn);
+        if (ret) goto done;
 
-        ret = ldb_msg_add_empty(msg, SYSDB_GHOST, SYSDB_MOD_DEL, NULL);
-        if (ret != LDB_SUCCESS) {
-            ERROR_OUT(ret, ENOMEM, done);
-        }
-        ret = ldb_msg_add_string(msg, SYSDB_GHOST, name);
-        if (ret != LDB_SUCCESS) {
-            ERROR_OUT(ret, EINVAL, done);
-        }
+        ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
+        if (ret) goto done;
+
         /* Delete aliases from the ghost attribute as well */
         for (j = 0; j < alias_el->num_values; j++) {
             ret = ldb_msg_add_string(msg, SYSDB_GHOST,
@@ -2332,14 +2321,10 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
             }
 
             msg->dn = msgs[i]->dn;
-            ret = ldb_msg_add_empty(msg, SYSDB_GHOST, SYSDB_MOD_DEL, NULL);
-            if (ret != LDB_SUCCESS) {
-                ERROR_OUT(ret, ENOMEM, fail);
-            }
-            ret = ldb_msg_add_string(msg, SYSDB_GHOST, name);
-            if (ret != LDB_SUCCESS) {
-                ERROR_OUT(ret, EINVAL, fail);
-            }
+
+            ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
+            if (ret) goto fail;
+
             ret = ldb_modify(sysdb->ldb, msg);
             ret = sysdb_error_to_errno(ret);
             if (ret != EOK) {
