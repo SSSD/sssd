@@ -1599,22 +1599,25 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     const char *user_dn = dp_opt_get_string(state->opts->basic,
                                             SDAP_DEFAULT_BIND_DN);
 
+    /* Set the LDAP expiration time
+     * If SASL has already set it, use the sooner of the two
+     */
+    now = time(NULL);
+    expire_timeout = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_TIMEOUT);
+    DEBUG(SSSDBG_CONF_SETTINGS, ("expire timeout is %d\n", expire_timeout));
+    if (!state->sh->expire_time
+            || (state->sh->expire_time > (now + expire_timeout))) {
+        state->sh->expire_time = now + expire_timeout;
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("the connection will expire at %d\n", state->sh->expire_time));
+    }
+
     if (!state->do_auth ||
         (sasl_mech == NULL && user_dn == NULL)) {
         DEBUG(SSSDBG_TRACE_LIBS,
               ("No authentication requested or SASL auth forced off\n"));
         tevent_req_done(req);
         return;
-    }
-
-    /* Set the LDAP expiration time
-     * If SASL has already set it, use the sooner of the two
-     */
-    now = time(NULL);
-    expire_timeout = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_TIMEOUT);
-    if (!state->sh->expire_time
-            || (state->sh->expire_time > (now + expire_timeout))) {
-        state->sh->expire_time = now + expire_timeout;
     }
 
     subreq = sdap_auth_send(state,
