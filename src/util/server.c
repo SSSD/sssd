@@ -79,9 +79,9 @@ static void deamon_parent_sigterm(int sig)
 
 void become_daemon(bool Fork)
 {
-    pid_t pid;
+    pid_t pid, cpid;
     int status;
-    int ret;
+    int ret, error;
 
     if (Fork) {
         pid = fork();
@@ -93,15 +93,31 @@ void become_daemon(bool Fork)
             CatchSignal(SIGTERM, deamon_parent_sigterm);
 
             /* or exit when sssd monitor is terminated */
-            waitpid(pid, &status, 0);
+            do {
+                errno = 0;
+                cpid = waitpid(pid, &status, 0);
+                if (cpid == 1) {
+                    /* An error occurred while waiting */
+                    error = errno;
+                    if (error != EINTR) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              ("Error [%d][%s] while waiting for child\n",
+                               error, strerror(error)));
+                        /* Forcibly kill this child */
+                        kill(pid, SIGKILL);
+                        ret = 1;
+                    }
+                }
 
-            /* return error if we didn't exited normally */
-            ret = 1;
+                error = 0;
+                /* return error if we didn't exited normally */
+                ret = 1;
 
-            if (WIFEXITED(status)) {
-                /* but return our exit code otherwise */
-                ret = WEXITSTATUS(status);
-            }
+                if (WIFEXITED(status)) {
+                    /* but return our exit code otherwise */
+                    ret = WEXITSTATUS(status);
+                }
+            } while (error == EINTR);
 
             _exit(ret);
         }
