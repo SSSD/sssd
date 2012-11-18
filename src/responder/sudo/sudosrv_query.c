@@ -326,7 +326,7 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
               "sending subdomain request\n", domainname));
 
         subreq = sss_dp_get_domains_send(state, rctx, true, domainname);
-        if (req == NULL) {
+        if (subreq == NULL) {
             ret = ENOMEM;
         } else {
             tevent_req_set_callback(subreq, sudosrv_parse_query_done, req);
