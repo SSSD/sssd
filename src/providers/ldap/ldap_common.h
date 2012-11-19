@@ -228,4 +228,11 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
                        struct sysdb_attrs *sysdb_attrs,
                        const char *sid_attr,
                        char **_sid_str);
+
+errno_t
+sdap_set_sasl_options(struct sdap_options *id_opts,
+                      char *default_primary,
+                      char *default_realm,
+                      const char *keytab_path);
+
 #endif /* _LDAP_COMMON_H_ */
