@@ -2752,12 +2752,6 @@ int main(int argc, const char *argv[])
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, &monitor);
     if (ret != EOK) {
-        /* if debug level has not been set, set it manually to make these
-         * critical failures visible */
-        if (debug_level == SSSDBG_UNRESOLVED) {
-            debug_level = SSSDBG_MASK_ALL;
-        }
-
         if (ret == EPERM) {
             DEBUG(1, ("Cannot read configuration file %s\n", config_file));
             sss_log(SSS_LOG_ALERT,
