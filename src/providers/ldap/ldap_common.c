@@ -1009,6 +1009,7 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
     TALLOC_CTX *tmp_ctx;
     char *sasl_primary;
     char *desired_primary;
+    char *primary_realm;
     char *sasl_realm;
     char *desired_realm;
     bool primary_requested = true;
@@ -1024,11 +1025,22 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
         desired_primary = default_primary;
     }
 
-    desired_realm = dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM);
-    if (!desired_realm) {
-        realm_requested = false;
-        desired_realm = default_realm;
+    if ((primary_realm = strchr(desired_primary, '@'))) {
+        *primary_realm = '\0';
+        desired_realm = primary_realm+1;
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("authid contains realm [%s]\n", desired_realm));
+    } else {
+        desired_realm = dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM);
+        if (!desired_realm) {
+            realm_requested = false;
+            desired_realm = default_realm;
+        }
     }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Will look for %s@%s in %s\n",
+          desired_primary, desired_realm,
+          keytab_path ? keytab_path : "default keytab"));
 
     ret = select_principal_from_keytab(tmp_ctx,
                                        desired_primary, desired_realm,
