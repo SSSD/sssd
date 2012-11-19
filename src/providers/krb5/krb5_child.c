@@ -38,7 +38,7 @@
 #include "providers/krb5/krb5_utils.h"
 #include "sss_cli.h"
 
-#define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
+#define SSSD_KRB5_CHANGEPW_PRINCIPAL discard_const("kadmin/changepw")
 
 struct krb5_child_ctx {
     /* opts taken from kinit */
