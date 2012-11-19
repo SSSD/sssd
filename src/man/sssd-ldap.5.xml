@@ -1426,6 +1426,19 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_sasl_realm (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the SASL realm to use. When not specified,
+                            this option defaults to the value of krb5_realm.
+                        </para>
+                        <para>
+                            Default: the value of krb5_realm.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_sasl_canonicalize (boolean)</term>
                     <listitem>
                         <para>
