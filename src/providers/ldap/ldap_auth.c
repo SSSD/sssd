@@ -212,7 +212,6 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
     if (ppolicy->grace > 0 || ppolicy->expire > 0) {
         uint32_t *data;
         uint32_t *ptr;
-        time_t now = time(NULL);
         int ret;
 
         if (pwd_exp_warning < 0) {
@@ -231,10 +230,12 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
             ptr++;
             *ptr = ppolicy->grace;
         } else if (ppolicy->expire > 0) {
-            if (pwd_exp_warning == 0 ||
-                difftime(now + pwd_exp_warning, ppolicy->expire) > 0.0) {
+            if (pwd_exp_warning != 0 && ppolicy->expire > pwd_exp_warning) {
+                /* do not warn */
                 goto done;
             }
+
+            /* send warning */
             *ptr = SSS_PAM_USER_INFO_EXPIRE_WARN;
             ptr++;
             *ptr = ppolicy->expire;
