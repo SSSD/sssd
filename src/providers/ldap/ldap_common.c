@@ -1038,12 +1038,16 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
         goto done;
     }
 
-    if ((primary_requested && strcmp(desired_primary, sasl_primary) != 0) ||
-        (realm_requested && strcmp(desired_realm, sasl_realm) != 0)) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-               ("Configured SASL auth ID/realm not found in keytab.\n"));
-        ret = ENOENT;
-        goto done;
+    if (primary_requested && strcmp(desired_primary, sasl_primary) != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+               ("Configured SASL auth ID not found in keytab. "
+                "Requested %s, found %s\n", desired_primary, sasl_primary));
+    }
+
+    if (realm_requested && strcmp(desired_realm, sasl_realm) != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+               ("Configured SASL realm not found in keytab. "
+                "Requested %s, found %s\n", desired_realm, sasl_realm));
     }
 
     ret = dp_opt_set_string(id_opts->basic,
