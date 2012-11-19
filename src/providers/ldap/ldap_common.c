@@ -999,6 +999,78 @@ done:
     return ret;
 }
 
+errno_t
+sdap_set_sasl_options(struct sdap_options *id_opts,
+                      char *default_primary,
+                      char *default_realm,
+                      const char *keytab_path)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    char *sasl_primary;
+    char *desired_primary;
+    char *sasl_realm;
+    char *desired_realm;
+    bool primary_requested = true;
+    bool realm_requested = true;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    /* Configuration of SASL auth ID and realm */
+    desired_primary = dp_opt_get_string(id_opts->basic, SDAP_SASL_AUTHID);
+    if (!desired_primary) {
+        primary_requested = false;
+        desired_primary = default_primary;
+    }
+
+    desired_realm = dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM);
+    if (!desired_realm) {
+        realm_requested = false;
+        desired_realm = default_realm;
+    }
+
+    ret = select_principal_from_keytab(tmp_ctx,
+                                       desired_primary, desired_realm,
+                                       keytab_path,
+                                       NULL, &sasl_primary, &sasl_realm);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if ((primary_requested && strcmp(desired_primary, sasl_primary) != 0) ||
+        (realm_requested && strcmp(desired_realm, sasl_realm) != 0)) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+               ("Configured SASL auth ID/realm not found in keytab.\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = dp_opt_set_string(id_opts->basic,
+                            SDAP_SASL_AUTHID, sasl_primary);
+    if (ret != EOK) {
+        goto done;
+    }
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+          id_opts->basic[SDAP_SASL_AUTHID].opt_name,
+          dp_opt_get_string(id_opts->basic, SDAP_SASL_AUTHID)));
+
+    ret = dp_opt_set_string(id_opts->basic,
+                            SDAP_SASL_REALM, sasl_realm);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+          id_opts->basic[SDAP_SASL_REALM].opt_name,
+          dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM)));
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static const char *
 sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
 {

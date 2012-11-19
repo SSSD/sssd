@@ -422,13 +422,7 @@ ad_get_id_options(struct ad_options *ad_opts,
     TALLOC_CTX *tmp_ctx;
     struct sdap_options *id_opts;
     char *krb5_realm;
-    char *sasl_primary;
-    char *desired_primary;
-    char *sasl_realm;
-    char *desired_realm;
     char *keytab_path;
-    bool primary_requested = true;
-    bool realm_requested = true;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -478,19 +472,6 @@ ad_get_id_options(struct ad_options *ad_opts,
            id_opts->basic[SDAP_KRB5_REALM].opt_name,
            krb5_realm));
 
-    /* Configuration of SASL auth ID and realm */
-    desired_primary = dp_opt_get_string(id_opts->basic, SDAP_SASL_AUTHID);
-    if (!desired_primary) {
-        primary_requested = false;
-        desired_primary = dp_opt_get_string(ad_opts->basic, AD_HOSTNAME);
-    }
-
-    desired_realm = dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM);
-    if (!desired_realm) {
-        realm_requested = false;
-        desired_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
-    }
-
     keytab_path = dp_opt_get_string(ad_opts->basic, AD_KEYTAB);
     if (keytab_path) {
         ret = dp_opt_set_string(id_opts->basic, SDAP_KRB5_KEYTAB,
@@ -502,33 +483,16 @@ ad_get_id_options(struct ad_options *ad_opts,
                keytab_path));
     }
 
-    ret = select_principal_from_keytab(tmp_ctx,
-                                       desired_primary, desired_realm,
-                                       keytab_path, NULL,
-                                       &sasl_primary, &sasl_realm);
-    if (ret != EOK) goto done;
-
-    if ((primary_requested && strcmp(desired_primary, sasl_primary) != 0) ||
-        (realm_requested && strcmp(desired_realm, sasl_realm) != 0)) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Configured SASL auth ID/realm not found in keytab.\n"));
-        ret = ENOENT;
+    ret = sdap_set_sasl_options(id_opts,
+                                dp_opt_get_string(ad_opts->basic,
+                                                  AD_HOSTNAME),
+                                dp_opt_get_string(ad_opts->basic,
+                                                  AD_KRB5_REALM),
+                                keytab_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set the SASL-related options\n"));
         goto done;
     }
-
-    ret = dp_opt_set_string(id_opts->basic, SDAP_SASL_AUTHID, sasl_primary);
-    if (ret != EOK) goto done;
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Option %s set to %s\n",
-           id_opts->basic[SDAP_SASL_AUTHID].opt_name,
-           sasl_primary));
-
-    ret = dp_opt_set_string(id_opts->basic, SDAP_SASL_REALM, sasl_realm);
-    if (ret != EOK) goto done;
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Option %s set to %s\n",
-           id_opts->basic[SDAP_SASL_REALM].opt_name,
-           sasl_realm));
 
     /* fix schema to AD  */
     id_opts->schema_type = SDAP_SCHEMA_AD;
