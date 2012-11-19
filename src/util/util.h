@@ -193,7 +193,10 @@ errno_t set_debug_file_from_fd(const int fd);
 
     \param level the debug level, please use one of the SSSDBG*_ macros
 */
-#define DEBUG_IS_SET(level) (debug_level & (level))
+#define DEBUG_IS_SET(level) (debug_level & (level) || \
+                            (debug_level == SSSDBG_UNRESOLVED && \
+                                            (level & (SSSDBG_FATAL_FAILURE | \
+                                                      SSSDBG_CRIT_FAILURE))))
 
 #define DEBUG_INIT(dbg_lvl) do { \
     if (dbg_lvl != SSSDBG_INVALID) { \
