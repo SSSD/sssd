@@ -2050,8 +2050,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
         if (ret != EOK && ret != ENOENT) {
             DEBUG(1, ("Error checking cache for user entry\n"));
             goto done;
-        }
-        if (ret == EOK) {
+        } else if (ret == EOK) {
             /* The entry is cached but expired. Update the username
              * if needed. */
             if (count != 1) {
@@ -2075,9 +2074,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             if (ret) goto done;
             ret = sysdb_set_user_attr(sysdb, sysdb_name, attrs, SYSDB_MOD_REP);
             if (ret != EOK) goto done;
-        }
-        else
-        {
+        } else {
             key.type = HASH_KEY_STRING;
             key.str = discard_const(original_dn);
             value.type = HASH_VALUE_PTR;
