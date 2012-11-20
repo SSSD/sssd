@@ -84,6 +84,14 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
                                           const char *conf_path,
                                           char **re_pattern)
 {
+#ifdef HAVE_LIBPCRE_LESSER_THAN_7
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          ("The libpcre version on this system is too old. Only "
+           "the user@DOMAIN name fully qualified name format will "
+           "be supported\n"));
+    *re_pattern = NULL;
+    return EOK;
+#else
     int ret;
     size_t c;
     char *id_provider = NULL;
@@ -124,6 +132,7 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(id_provider);
     return ret;
+#endif
 }
 
 int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
