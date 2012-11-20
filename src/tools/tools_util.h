@@ -106,6 +106,8 @@ errno_t signal_sssd(int signum);
 
 errno_t sss_memcache_invalidate(const char *mc_filename);
 
+errno_t sss_memcache_clear_all(void);
+
 /* from files.c */
 int remove_tree(const char *root);
 
