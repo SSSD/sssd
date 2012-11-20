@@ -656,7 +656,10 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
         new_list = talloc_array(mem_ctx, char *, 2);
     } else {
         for (c = 0; old_list[c] != NULL; c++);
-        new_list = talloc_realloc(mem_ctx, old_list, char *, c + 1);
+        /* Allocate one extra space for the new service and one for
+         * the terminating NULL
+         */
+        new_list = talloc_realloc(mem_ctx, old_list, char *, c + 2);
     }
 
     if (new_list == NULL) {
