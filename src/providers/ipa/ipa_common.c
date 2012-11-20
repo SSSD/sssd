@@ -244,7 +244,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
 
     ret = sdap_set_sasl_options(ipa_opts->id,
-                                dp_opt_get_string(ipa_opts->id->basic,
+                                dp_opt_get_string(ipa_opts->basic,
                                                   IPA_HOSTNAME),
                                 dp_opt_get_string(ipa_opts->id->basic,
                                                   SDAP_KRB5_REALM),
