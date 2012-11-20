@@ -766,3 +766,70 @@ done:
     }
     return ret;
 }
+
+static int clear_fastcache(bool *sssd_nss_is_off)
+{
+    int ret;
+    ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/passwd");
+    if (ret != EOK) {
+        if (ret == EACCES) {
+            *sssd_nss_is_off = false;
+            return EOK;
+        } else {
+            return ret;
+        }
+    }
+
+    ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/group");
+    if (ret != EOK) {
+        if (ret == EACCES) {
+            *sssd_nss_is_off = false;
+            return EOK;
+        } else {
+            return ret;
+        }
+    }
+
+    *sssd_nss_is_off = true;
+    return EOK;
+}
+
+errno_t sss_memcache_clear_all(void)
+{
+    errno_t ret;
+    bool sssd_nss_is_off = false;
+    FILE *clear_mc_flag;
+
+    ret = clear_fastcache(&sssd_nss_is_off);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to clear caches.\n"));
+        return EIO;
+    }
+    if (!sssd_nss_is_off) {
+        /* sssd_nss is running -> signal monitor to invalidate fastcache */
+        clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
+        if (clear_mc_flag == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to create clear_mc_flag file. "
+                   "Memory cache will not be cleared.\n"));
+            return EIO;
+        }
+        ret = fclose(clear_mc_flag);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Unable to close file descriptor: %s\n",
+                   strerror(ret)));
+            return EIO;
+        }
+        DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
+        ret = signal_sssd(SIGHUP);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to send SIGHUP to monitor.\n"));
+            return EIO;
+        }
+    }
+
+    return EOK;
+}
