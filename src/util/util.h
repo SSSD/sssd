@@ -44,11 +44,7 @@
 #include <dhash.h>
 
 #include "util/atomic_io.h"
-
-#ifndef HAVE_ERRNO_T
-#define HAVE_ERRNO_T
-typedef int errno_t;
-#endif
+#include "util/util_errors.h"
 
 #define _(STRING) gettext (STRING)
 
@@ -220,8 +216,6 @@ errno_t set_debug_file_from_fd(const int fd);
 #endif
 
 #define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
-
-#define EOK 0
 
 #define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
