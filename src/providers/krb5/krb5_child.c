@@ -1089,7 +1089,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
                   ret, strerror(ret)));
         pam_status = PAM_CRED_INSUFFICIENT;
         kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
+        goto done;
     }
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
@@ -1100,7 +1100,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     kerr = get_changepw_options(kr->ctx, &chagepw_options);
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, ("get_changepw_options failed.\n"));
-        goto sendresponse;
+        goto done;
     }
 
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
@@ -1115,7 +1115,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     sss_krb5_get_init_creds_opt_free(kr->ctx, chagepw_options);
     if (kerr != 0) {
         pam_status = kerr_handle_error(kerr);
-        goto sendresponse;
+        goto done;
     }
 
     sss_authtok_set_empty(&kr->pd->authtok);
@@ -1126,7 +1126,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
                "successful.\n"));
         krb5_free_cred_contents(kr->ctx, kr->creds);
         pam_status = PAM_SUCCESS;
-        goto sendresponse;
+        goto done;
     }
 
     ret = sss_authtok_get_password(&kr->pd->newauthtok, &newpassword, NULL);
@@ -1134,7 +1134,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         DEBUG(1, ("Failed to fetch new password [%d] %s.\n",
                   ret, strerror(ret)));
         kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
+        goto done;
     }
 
     memset(&result_code_string, 0, sizeof(krb5_data));
@@ -1145,7 +1145,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 
     if (kerr == KRB5_KDC_UNREACH) {
         pam_status = PAM_AUTHTOK_LOCK_BUSY;
-        goto sendresponse;
+        goto done;
     }
 
     if (kerr != 0 || result_code != 0) {
@@ -1191,7 +1191,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         }
 
         pam_status = PAM_AUTHTOK_ERR;
-        goto sendresponse;
+        goto done;
     }
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
@@ -1202,7 +1202,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 
     pam_status = kerr_to_status(kerr);
 
-sendresponse:
+done:
     ret = sendresponse(fd, kerr, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
@@ -1226,7 +1226,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         DEBUG(SSSDBG_OP_FAILURE, ("Unknown authtok type\n"));
         pam_status = PAM_CRED_INSUFFICIENT;
         kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
+        goto done;
     }
 
     kerr = get_and_save_tgt(kr, password);
@@ -1248,7 +1248,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         kerr = get_changepw_options(kr->ctx, &chagepw_options);
         if (kerr != 0) {
             DEBUG(SSSDBG_OP_FAILURE, ("get_changepw_options failed.\n"));
-            goto sendresponse;
+            goto done;
         }
 
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
@@ -1269,7 +1269,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
 
     pam_status = kerr_to_status(kerr);
 
-sendresponse:
+done:
     ret = sendresponse(fd, kerr, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
