@@ -263,7 +263,7 @@ errno_t set_debug_file_from_fd(const int fd);
         if (TRROEstate == TEVENT_REQ_USER_ERROR) { \
             return TRROEerr; \
         } \
-        return EIO; \
+        return ERR_INTERNAL; \
     } \
 } while (0)
 
