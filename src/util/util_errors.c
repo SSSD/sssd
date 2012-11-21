@@ -27,6 +27,11 @@ struct err_string {
 struct err_string error_to_str[] = {
     { "Invalid Error" },        /* ERR_INVALID */
     { "Internal Error" },       /* ERR_INTERNAL */
+    { "Account Unknown" },      /* ERR_ACCOUNT_UNKNOWN */
+    { "No cached credentials available" }, /* ERR_NO_CACHED_CREDS */
+    { "Cached credentials are expired" }, /* ERR_CACHED_CREDS_EXPIRED */
+    { "Authentication Denied" }, /* ERR_AUTH_DENIED */
+    { "Authentication Failed" }, /* ERR_AUTH_DENIED */
 };
 
 

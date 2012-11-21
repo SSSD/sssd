@@ -229,8 +229,8 @@ START_TEST(test_failed_login_attempts)
      * failed attempts >= offline_failed_login_attempts */
     do_failed_login_test(0,          0, 2, 0, EOK, 0, -1);
     do_failed_login_test(0, time(NULL), 2, 0, EOK, 0, -1);
-    do_failed_login_test(2,          0, 2, 0, EACCES, 2, -1);
-    do_failed_login_test(2, time(NULL), 2, 0, EACCES, 2, -1);
+    do_failed_login_test(2,          0, 2, 0, ERR_AUTH_DENIED, 2, -1);
+    do_failed_login_test(2, time(NULL), 2, 0, ERR_AUTH_DENIED, 2, -1);
 
     /* if offline_failed_login_attempts != 0 and
      * offline_failed_login_delay != 0 a login is denied only if the number of
@@ -240,7 +240,7 @@ START_TEST(test_failed_login_attempts)
     do_failed_login_test(0, time(NULL), 2, 5, EOK, 0, -1);
     do_failed_login_test(2,          0, 2, 5, EOK, 0, -1);
     now = time(NULL);
-    do_failed_login_test(2, now, 2, 5, EACCES, 2, (now + 5 * 60));
+    do_failed_login_test(2, now, 2, 5, ERR_AUTH_DENIED, 2, (now + 5 * 60));
 
 }
 END_TEST

@@ -28,15 +28,17 @@
 static inline int cached_login_pam_status(int auth_res)
 {
     switch (auth_res) {
-        case EOK:
-            return PAM_SUCCESS;
-        case ENOENT:
-            return PAM_AUTHINFO_UNAVAIL;
-        case EINVAL:
-            return PAM_AUTH_ERR;
-        case EACCES:
-            return PAM_PERM_DENIED;
+    case EOK:
+        return PAM_SUCCESS;
+    case ERR_ACCOUNT_UNKNOWN:
+        return PAM_AUTHINFO_UNAVAIL;
+    case ERR_NO_CACHED_CREDS:
+    case ERR_CACHED_CREDS_EXPIRED:
+    case ERR_AUTH_DENIED:
+        return PAM_PERM_DENIED;
+    case ERR_AUTH_FAILED:
+        return PAM_AUTH_ERR;
+    default:
+        return PAM_SYSTEM_ERR;
     }
-
-    return PAM_SYSTEM_ERR;
 }
