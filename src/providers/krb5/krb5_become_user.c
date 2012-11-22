@@ -34,26 +34,34 @@ errno_t become_user(uid_t uid, gid_t gid)
     DEBUG(SSSDBG_FUNC_DATA, ("Trying to become user [%d][%d].\n", uid, gid));
     ret = setgid(gid);
     if (ret == -1) {
-        DEBUG(1, ("setgid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("setgid failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
     }
 
     ret = setuid(uid);
     if (ret == -1) {
-        DEBUG(1, ("setuid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("setuid failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
     }
 
     ret = setegid(gid);
     if (ret == -1) {
-        DEBUG(1, ("setegid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("setegid failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
     }
 
     ret = seteuid(uid);
     if (ret == -1) {
-        DEBUG(1, ("seteuid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("seteuid failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
     }
 
     return EOK;
