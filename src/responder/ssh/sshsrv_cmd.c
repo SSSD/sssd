@@ -65,6 +65,11 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
           ("Requesting SSH user public keys for [%s] from [%s]\n",
            cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
 
+    if (strcmp(cmd_ctx->name, "root") == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
     if (cmd_ctx->domname) {
         cmd_ctx->domain = responder_get_domain(cmd_ctx, cctx->rctx,
                                                cmd_ctx->domname);
