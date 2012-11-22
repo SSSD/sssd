@@ -2268,7 +2268,7 @@ sdap_nested_get_user_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
             goto immediate;
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Couldn't parse out user information "
-                  "based on DN %s, falling back to an LDAP lookup\n"));
+                  "based on DN %s, falling back to an LDAP lookup\n", user_dn));
         }
     }
 
@@ -3646,7 +3646,17 @@ static void sdap_nested_group_process_deref(struct tevent_req *subreq)
                                  &state->derefctx->num_results,
                                  &state->derefctx->deref_result);
     talloc_zfree(subreq);
-    if (ret != EOK && ret != ENOENT) {
+    if (ret == ENOTSUP) {
+        ret = sdap_nested_group_process_noderef(req);
+        if (ret != EAGAIN) {
+            if (ret == EOK) {
+                tevent_req_done(req);
+            } else {
+                tevent_req_error(req, ret);
+            }
+        }
+        return;
+    } else if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     } else if (ret == ENOENT || state->derefctx->deref_result == NULL) {

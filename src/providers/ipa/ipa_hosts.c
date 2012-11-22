@@ -254,6 +254,12 @@ ipa_host_info_done(struct tevent_req *subreq)
                 return;
             }
 
+            if (!sdap_has_deref_support(state->sh, state->opts)) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Server does not support deref\n"));
+                tevent_req_error(req, EIO);
+                return;
+            }
+
             subreq = sdap_deref_search_send(state, state->ev, state->opts, state->sh,
                                             host_dn,
                                             state->hostgroup_map[IPA_AT_HOSTGROUP_MEMBER_OF].name,

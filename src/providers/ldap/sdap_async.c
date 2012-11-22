@@ -1384,6 +1384,10 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
             ldap_memfree(errmsg);
             tevent_req_error(req, EIO);
             return;
+        } else if (result == LDAP_UNAVAILABLE_CRITICAL_EXTENSION) {
+            ldap_memfree(errmsg);
+            tevent_req_error(req, ENOTSUP);
+            return;
         } else if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Unexpected result from ldap: %s(%d), %s\n",
@@ -2054,6 +2058,7 @@ enum sdap_deref_type {
 };
 
 struct sdap_deref_search_state {
+    struct sdap_handle *sh;
     size_t reply_count;
     struct sdap_deref_attrs **reply;
     enum sdap_deref_type deref_type;
@@ -2080,6 +2085,7 @@ sdap_deref_search_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct sdap_deref_search_state);
     if (!req) return NULL;
 
+    state->sh = sh;
     state->reply_count = 0;
     state->reply = NULL;
 
@@ -2144,7 +2150,16 @@ static void sdap_deref_search_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(2, ("dereference processing failed [%d]: %s\n", ret, strerror(ret)));
-        sss_log(SSS_LOG_WARNING, "dereference processing failed : %s", strerror(ret));
+        if (ret == ENOTSUP) {
+            sss_log(SSS_LOG_WARNING,
+                "LDAP server claims to support deref, but deref search failed. "
+                "Disabling deref for further requests. You can permanently "
+                "disable deref by setting ldap_deref_threshold to 0 in domain "
+                "configuration.");
+            state->sh->disable_deref = true;
+        } else {
+            sss_log(SSS_LOG_WARNING, "dereference processing failed : %s", strerror(ret));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -2175,6 +2190,10 @@ bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
                                   };
     int i;
     int deref_threshold;
+
+    if (sh->disable_deref) {
+        return false;
+    }
 
     deref_threshold = dp_opt_get_int(opts->basic, SDAP_DEREF_THRESHOLD);
     if (deref_threshold == 0) {

@@ -78,6 +78,7 @@ struct sdap_handle {
     /* Authentication ticket expiration time (if any) */
     time_t expire_time;
     ber_int_t page_size;
+    bool disable_deref;
 
     struct sdap_fd_events *sdap_fd_events;
 
