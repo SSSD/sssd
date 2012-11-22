@@ -28,10 +28,15 @@ struct err_string error_to_str[] = {
     { "Invalid Error" },        /* ERR_INVALID */
     { "Internal Error" },       /* ERR_INTERNAL */
     { "Account Unknown" },      /* ERR_ACCOUNT_UNKNOWN */
+    { "Invalid credential type" },  /* ERR_INVALID_CRED_TYPE */
+    { "No credentials available" }, /* ERR_NO_CREDS */
+    { "Credentials are expired" }, /* ERR_CREDS_EXPIRED */
     { "No cached credentials available" }, /* ERR_NO_CACHED_CREDS */
     { "Cached credentials are expired" }, /* ERR_CACHED_CREDS_EXPIRED */
     { "Authentication Denied" }, /* ERR_AUTH_DENIED */
-    { "Authentication Failed" }, /* ERR_AUTH_DENIED */
+    { "Authentication Failed" }, /* ERR_AUTH_FAILED */
+    { "Password Change Failed" }, /* ERR_CHPASS_FAILED */
+    { "Network I/O Error" }, /* ERR_NETWORK_IO */
 };
 
 

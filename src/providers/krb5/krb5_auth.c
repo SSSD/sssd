@@ -927,22 +927,64 @@ static void krb5_auth_done(struct tevent_req *subreq)
 
     /* If the child request failed, but did not return an offline error code,
      * return with the status */
-    if (res->msg_status != PAM_SUCCESS &&
-        res->msg_status != PAM_AUTHINFO_UNAVAIL &&
-        res->msg_status != PAM_AUTHTOK_LOCK_BUSY &&
-        res->msg_status != PAM_NEW_AUTHTOK_REQD) {
-        state->pam_status = res->msg_status;
-        state->dp_err = DP_ERR_OK;
-        ret = EOK;
-        goto done;
-    } else {
-        state->pam_status = res->msg_status;
-    }
+    switch (res->msg_status) {
+    case ERR_OK:
+        /* If the child request was successful and we run the first pass of the
+         * change password request just return success. */
+        if (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+            state->pam_status = PAM_SUCCESS;
+            state->dp_err = DP_ERR_OK;
+            ret = EOK;
+            goto done;
+        }
+        break;
 
-    /* If the password is expired we can safely remove the ccache from the
-     * cache and disk if it is not actively used anymore. This will allow to
-     * create a new random ccache if sshd with privilege separation is used. */
-    if (res->msg_status == PAM_NEW_AUTHTOK_REQD) {
+    case ERR_NETWORK_IO:
+        if (kr->kpasswd_srv != NULL &&
+            (pd->cmd == SSS_PAM_CHAUTHTOK ||
+             pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
+            /* if using a dedicated kpasswd server for a chpass operation... */
+
+            be_fo_set_port_status(state->be_ctx,
+                                  state->krb5_ctx->kpasswd_service->name,
+                                  kr->kpasswd_srv, PORT_NOT_WORKING);
+            /* ..try to resolve next kpasswd server */
+            state->search_kpasswd = true;
+            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
+                                state->krb5_ctx->kpasswd_service->name,
+                                state->kr->kpasswd_srv == NULL ?  true : false);
+            if (subreq == NULL) {
+                DEBUG(1, ("Resolver request failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+            tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
+            return;
+        } else if (kr->srv != NULL) {
+            /* failed to use the KDC... */
+            be_fo_set_port_status(state->be_ctx,
+                                  state->krb5_ctx->service->name,
+                                  kr->srv, PORT_NOT_WORKING);
+            /* ..try to resolve next KDC */
+            state->search_kpasswd = false;
+            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
+                                            state->krb5_ctx->service->name,
+                                            kr->srv == NULL ?  true : false);
+            if (subreq == NULL) {
+                DEBUG(1, ("Resolver request failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+            tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
+            return;
+        }
+        break;
+
+    case ERR_CREDS_EXPIRED:
+        /* If the password is expired we can safely remove the ccache from the
+         * cache and disk if it is not actively used anymore. This will allow
+         * to create a new random ccache if sshd with privilege separation is
+         * used. */
         if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache) {
             if (kr->old_ccname != NULL) {
                 ret = safe_remove_old_ccache_file(kr->cc_be, kr->upn,
@@ -960,70 +1002,39 @@ static void krb5_auth_done(struct tevent_req *subreq)
             }
         }
 
-        state->pam_status = res->msg_status;
+        state->pam_status = PAM_NEW_AUTHTOK_REQD;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+
+    case ERR_NO_CREDS:
+        state->pam_status = PAM_CRED_UNAVAIL;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+
+    case ERR_AUTH_FAILED:
+        state->pam_status = PAM_AUTH_ERR;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+
+    default:
+        state->pam_status = PAM_SYSTEM_ERR;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     }
 
-    /* If the child request was successful and we run the first pass of the
-     * change password request just return success. */
-    if (res->msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
-        state->pam_status = PAM_SUCCESS;
-        state->dp_err = DP_ERR_OK;
-        ret = EOK;
-        goto done;
-    }
-
-    /* if using a dedicated kpasswd server for a chpass operation... */
     if (kr->kpasswd_srv != NULL &&
-        (pd->cmd == SSS_PAM_CHAUTHTOK || pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
-        /* ..which is unreachable by now.. */
-        if (res->msg_status == PAM_AUTHTOK_LOCK_BUSY) {
-            be_fo_set_port_status(state->be_ctx,
-                                  state->krb5_ctx->kpasswd_service->name,
-                                  kr->kpasswd_srv, PORT_NOT_WORKING);
-            /* ..try to resolve next kpasswd server */
-            state->search_kpasswd = true;
-            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
-                                state->krb5_ctx->kpasswd_service->name,
-                                state->kr->kpasswd_srv == NULL ?  true : false);
-            if (subreq == NULL) {
-                DEBUG(1, ("Resolver request failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-            tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
-            return;
-        } else {
-            be_fo_set_port_status(state->be_ctx,
-                                  state->krb5_ctx->kpasswd_service->name,
-                                  kr->kpasswd_srv, PORT_WORKING);
-        }
-    }
-
-    /* if the KDC for auth (PAM_AUTHINFO_UNAVAIL) or
-     * chpass (PAM_AUTHTOK_LOCK_BUSY) was not available while using KDC
-     * also for chpass operation... */
-    if (res->msg_status == PAM_AUTHINFO_UNAVAIL ||
-        (kr->kpasswd_srv == NULL && res->msg_status == PAM_AUTHTOK_LOCK_BUSY)) {
-        if (kr->srv != NULL) {
-            be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
-                                  kr->srv, PORT_NOT_WORKING);
-            /* ..try to resolve next KDC */
-            state->search_kpasswd = false;
-            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
-                                            state->krb5_ctx->service->name,
-                                            kr->srv == NULL ?  true : false);
-            if (subreq == NULL) {
-                DEBUG(1, ("Resolver request failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-            tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
-            return;
-        }
+        (pd->cmd == SSS_PAM_CHAUTHTOK ||
+         pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
+        /* found a dedicated kpasswd server for a chpass operation */
+        be_fo_set_port_status(state->be_ctx,
+                              state->krb5_ctx->service->name,
+                              kr->kpasswd_srv, PORT_WORKING);
     } else if (kr->srv != NULL) {
+        /* found a KDC */
         be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
                               kr->srv, PORT_WORKING);
     }
@@ -1062,11 +1073,13 @@ static void krb5_auth_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (res->msg_status == PAM_SUCCESS &&
-        dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0 &&
-        (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_CMD_RENEW ||
+    if (res->msg_status == ERR_OK &&
+        (dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0) &&
+        (pd->cmd == SSS_PAM_AUTHENTICATE ||
+         pd->cmd == SSS_CMD_RENEW ||
          pd->cmd == SSS_PAM_CHAUTHTOK) &&
-        res->tgtt.renew_till > res->tgtt.endtime && kr->ccname != NULL) {
+        (res->tgtt.renew_till > res->tgtt.endtime) &&
+        (kr->ccname != NULL)) {
         DEBUG(7, ("Adding [%s] for automatic renewal.\n", kr->ccname));
         ret = add_tgt_to_renew_table(kr->krb5_ctx, kr->ccname, &(res->tgtt),
                                      pd, kr->upn);
