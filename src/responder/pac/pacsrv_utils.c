@@ -389,13 +389,13 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
                           struct local_mapping_ranges *range_map,
                           struct dom_sid *domain_sid,
                           struct PAC_LOGON_INFO *logon_info,
-                          size_t *_gid_count, gid_t **_gids)
+                          size_t *_gid_count, struct pac_grp **_gids)
 {
     int ret;
     size_t g = 0;
     size_t s;
     struct netr_SamInfo3 *info3;
-    gid_t *gids = NULL;
+    struct pac_grp *gids = NULL;
 
     info3 = &logon_info->info3;
 
@@ -405,7 +405,7 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    gids = talloc_array(mem_ctx, gid_t, info3->sidcount);
+    gids = talloc_zero_array(mem_ctx, struct pac_grp, info3->sidcount);
     if (gids == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
         ret = ENOMEM;
@@ -414,13 +414,14 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
 
     for(s = 0; s < info3->sidcount; s++) {
         if (dom_sid_in_domain(domain_sid, info3->sids[s].sid)) {
-            ret = local_sid_to_id(range_map, info3->sids[s].sid, &gids[g]);
+            ret = local_sid_to_id(range_map, info3->sids[s].sid,
+                                  &gids[g].gid);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("get_rid failed.\n"));
                 goto done;
             }
             DEBUG(SSSDBG_TRACE_ALL, ("Found extra group "
-                                     "with gid [%d].\n", gids[g]));
+                                     "with gid [%d].\n", gids[g].gid));
             g++;
         }
     }
@@ -627,9 +628,9 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
                        size_t cur_grp_num,
                        struct grp_info *cur_grp_list,
                        size_t new_gid_num,
-                       gid_t *new_gid_list,
+                       struct pac_grp *new_gid_list,
                        size_t *_add_gid_num,
-                       gid_t **_add_gid_list,
+                       struct pac_grp **_add_gid_list,
                        size_t *_del_grp_num,
                        struct grp_info ***_del_grp_list)
 {
@@ -639,7 +640,7 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
     hash_key_t key;
     hash_value_t value;
     size_t add_gid_num = 0;
-    gid_t *add_gid_list = NULL;
+    struct pac_grp *add_gid_list = NULL;
     size_t del_grp_num = 0;
     struct grp_info **del_grp_list = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -666,7 +667,7 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
 
     if (cur_grp_num == 0 && new_gid_num != 0) {
         add_gid_num = new_gid_num;
-        add_gid_list = talloc_array(tmp_ctx, gid_t, add_gid_num);
+        add_gid_list = talloc_array(tmp_ctx, struct pac_grp, add_gid_num);
         if (add_gid_list == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
             ret = ENOMEM;
@@ -721,13 +722,14 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; c < new_gid_num; c++) {
-        key.ul = (unsigned long) new_gid_list[c];
+        key.ul = (unsigned long) new_gid_list[c].gid;
 
         ret = hash_delete(table, &key);
         if (ret == HASH_ERROR_KEY_NOT_FOUND) {
             /* gid not found, must be added */
             add_gid_num++;
-            add_gid_list = talloc_realloc(tmp_ctx, add_gid_list, gid_t, add_gid_num);
+            add_gid_list = talloc_realloc(tmp_ctx, add_gid_list, struct pac_grp,
+                                          add_gid_num);
             if (add_gid_list == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, ("talloc_realloc failed.\n"));
                 ret = ENOMEM;

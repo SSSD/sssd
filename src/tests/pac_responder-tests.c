@@ -76,13 +76,16 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
     int ret;
     size_t c;
     size_t add_gid_count = 0;
-    gid_t *add_gids = NULL;
+    struct pac_grp *add_gids = NULL;
     size_t del_gid_count = 0;
     struct grp_info **del_gids = NULL;
 
-    gid_t gid_list_2[] = {2};
-    gid_t gid_list_3[] = {3};
-    gid_t gid_list_23[] = {2, 3};
+    struct pac_grp pac_grp_2 = {2, NULL};
+    struct pac_grp pac_grp_3 = {3, NULL};
+
+    struct pac_grp gid_list_2[] = {pac_grp_2};
+    struct pac_grp gid_list_3[] = {pac_grp_3};
+    struct pac_grp gid_list_23[] = {pac_grp_2, pac_grp_3};
 
     struct grp_info grp_info_1 = {1, NULL, NULL};
     struct grp_info grp_info_2 = {2, NULL, NULL};
@@ -93,10 +96,10 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
         size_t cur_gid_count;
         struct grp_info *cur_gids;
         size_t gid_count;
-        gid_t *gids;
+        struct pac_grp *gids;
         int exp_ret;
         size_t exp_add_gid_count;
-        gid_t *exp_add_gids;
+        struct pac_grp *exp_add_gids;
         size_t exp_del_gid_count;
         struct grp_info *exp_del_gids;
     } a_and_r_data[] = {
@@ -155,10 +158,10 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
          * only look at lists with 1 element. TODO: add code to compare lists
          * with more than 1 member. */
         if (add_gid_count == 1) {
-            fail_unless(add_gids[0] ==  a_and_r_data[c].exp_add_gids[0],
+            fail_unless(add_gids[0].gid ==  a_and_r_data[c].exp_add_gids[0].gid,
                         "Unexpected gid to add for test data #%d, " \
                         "expected [%d], got [%d]",
-                        c, a_and_r_data[c].exp_add_gids[0], add_gids[0]);
+                        c, a_and_r_data[c].exp_add_gids[0].gid, add_gids[0].gid);
         }
 
         if (del_gid_count == 1) {
