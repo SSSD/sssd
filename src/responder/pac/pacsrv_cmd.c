@@ -60,13 +60,13 @@ struct pac_req_ctx {
     struct dom_sid2 *domain_sid;
 
     size_t gid_count;
-    gid_t *gids;
+    struct pac_grp *gids;
 
     size_t current_grp_count;
     struct grp_info *current_grp_list;
 
     size_t add_gid_count;
-    gid_t *add_gids;
+    struct pac_grp *add_gids;
 
     size_t del_grp_count;
     struct grp_info **del_grp_list;
@@ -581,7 +581,7 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
     }
 
     while (state->gid_iter < pr_ctx->add_gid_count) {
-        gid = pr_ctx->add_gids[state->gid_iter];
+        gid = pr_ctx->add_gids[state->gid_iter].gid;
 
         ret = pac_store_membership(state->pr_ctx, state->group_dom->sysdb,
                                     state->user_dn, state->gid_iter);
@@ -671,7 +671,7 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         return ENOMEM;
     }
 
-    gid = pr_ctx->add_gids[gid_iter];
+    gid = pr_ctx->add_gids[gid_iter].gid;
 
     ret = sysdb_search_group_by_gid(tmp_ctx, group_sysdb,
                                     gid, group_attrs, &group);
