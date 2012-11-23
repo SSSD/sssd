@@ -47,7 +47,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     const char *gecos;
     const char *homedir;
     const char *shell;
-    const char *orig_dn;
+    const char *orig_dn = NULL;
     uid_t uid;
     gid_t gid, primary_gid;
     struct sysdb_attrs *user_attrs;
