@@ -1000,6 +1000,9 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     }
 
     for (i = 0; i < alias_el->num_values; i++) {
+        if (strcmp((const char *)alias_el->values[i].data, name) == 0) {
+            continue;
+        }
         filter = talloc_asprintf_append(filter, "(%s=%s)",
                                         SYSDB_GHOST, alias_el->values[i].data);
         if (filter == NULL) {
@@ -1083,6 +1086,9 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
         /* Delete aliases from the ghost attribute as well */
         for (j = 0; j < alias_el->num_values; j++) {
+            if (strcmp((const char *)alias_el->values[j].data, name) == 0) {
+                continue;
+            }
             ret = ldb_msg_add_string(msg, SYSDB_GHOST,
                                      (char *) alias_el->values[j].data);
             if (ret != LDB_SUCCESS) {
