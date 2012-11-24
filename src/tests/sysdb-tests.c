@@ -174,6 +174,7 @@ struct test_data {
 
     struct sysdb_attrs *attrs;
     const char **attrlist;
+    char **memberlist;
     struct ldb_message *msg;
 
     size_t msgs_count;
@@ -252,7 +253,7 @@ static int test_add_group(struct test_data *data)
     int ret;
 
     ret = sysdb_add_group(data->ctx->sysdb, data->groupname,
-                          data->gid, NULL, 0, 0);
+                          data->gid, data->attrs, 0, 0);
     return ret;
 }
 
@@ -270,7 +271,7 @@ static int test_store_group(struct test_data *data)
     int ret;
 
     ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
-                            data->gid, NULL, -1, 0);
+                            data->gid, data->attrs, -1, 0);
     return ret;
 }
 
@@ -413,6 +414,43 @@ static int test_memberof_store_group(struct test_data *data)
             return ENOMEM;
         }
         ret = sysdb_attrs_steal_string(attrs, SYSDB_MEMBER, member);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
+                            data->gid, attrs, -1, 0);
+    return ret;
+}
+
+static int test_memberof_store_group_with_ghosts(struct test_data *data)
+{
+    int ret;
+    struct sysdb_attrs *attrs = NULL;
+    char *member;
+    int i;
+
+    attrs = sysdb_new_attrs(data);
+    if (!attrs) {
+        return ENOMEM;
+    }
+
+    for (i = 0; data->attrlist && data->attrlist[i]; i++) {
+        member = sysdb_group_strdn(data, data->ctx->domain->name,
+                                   data->attrlist[i]);
+        if (!member) {
+            return ENOMEM;
+        }
+        ret = sysdb_attrs_steal_string(attrs, SYSDB_MEMBER, member);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    for (i = 0; data->memberlist && data->memberlist[i]; i++) {
+        ret = sysdb_attrs_steal_string(attrs, SYSDB_GHOST,
+                                       data->memberlist[i]);
         if (ret != EOK) {
             return ret;
         }
@@ -1866,6 +1904,46 @@ START_TEST (test_sysdb_memberof_store_group)
     }
 
     ret = test_memberof_store_group(data);
+
+    fail_if(ret != EOK, "Could not store POSIX group #%d", data->gid);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_store_group_with_ghosts)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    if (_i == 0) {
+        data->attrlist = NULL;
+    } else {
+        data->attrlist = talloc_array(data, const char *, 2);
+        fail_unless(data->attrlist != NULL, "talloc_array failed.");
+        data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid - 1);
+        data->attrlist[1] = NULL;
+    }
+
+    data->memberlist = talloc_array(data, char *, 2);
+    fail_unless(data->memberlist != NULL, "talloc_array failed.");
+    data->memberlist[0] = talloc_asprintf(data, "testuser%d", data->gid);
+    data->memberlist[1] = NULL;
+
+    ret = test_memberof_store_group_with_ghosts(data);
 
     fail_if(ret != EOK, "Could not store POSIX group #%d", data->gid);
     talloc_free(test_ctx);
@@ -4022,6 +4100,12 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_memberof,
                         test_sysdb_memberof_check_memberuid_loop_without_group_5,
                         0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+
+    /* Ghost users tests */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group_with_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
 

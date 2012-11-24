@@ -813,7 +813,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     el = ldb_msg_find_element(addop->entry, DB_GHOST);
     if (el) {
         for (i = 0; i < el->num_values; i++) {
-            /* add memberuid to all group's parents */
+            /* add ghost to all group's parents */
             for (j = 0; j < parents->num; j++) {
                 ret = mbof_append_muop(add_ctx, &add_ctx->muops,
                                        &add_ctx->num_muops,
@@ -826,16 +826,6 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
                 }
             }
 
-            /* now add memberuid to the group itself */
-            ret = mbof_append_muop(add_ctx, &add_ctx->muops,
-                                   &add_ctx->num_muops,
-                                   LDB_FLAG_MOD_ADD,
-                                   addop->entry_dn,
-                                   (char *)el->values[i].data,
-                                   DB_GHOST);
-            if (ret != LDB_SUCCESS) {
-                return ret;
-            }
         }
     }
 
