@@ -49,6 +49,7 @@
 
 #define MBO_USER_BASE 27500
 #define MBO_GROUP_BASE 28500
+#define NUM_GHOSTS 10
 
 #define TEST_AUTOFS_MAP_BASE 29500
 
@@ -745,6 +746,51 @@ START_TEST (test_sysdb_add_group)
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
 
     ret = test_add_group(data);
+
+    fail_if(ret != EOK, "Could not add group %s", data->groupname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_add_group_with_ghosts)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+    char *membername;
+    int j;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
+    fail_unless(data->groupname != NULL, "Out of memory\n");
+
+    data->attrs = sysdb_new_attrs(data);
+    if (ret != EOK) {
+        fail("Could not create the changeset");
+        return;
+    }
+
+    for (j = MBO_GROUP_BASE; j < _i; j++) {
+        membername = talloc_asprintf(data, "testghost%d", j);
+        fail_unless(membername != NULL, "Out of memory\n");
+        ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, membername);
+        if (ret != EOK) {
+            fail_unless(ret == EOK, "Cannot add attr\n");
+        }
+    }
+
+    ret = test_store_group(data);
 
     fail_if(ret != EOK, "Could not add group %s", data->groupname);
     talloc_free(test_ctx);
@@ -2217,6 +2263,185 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
                     ((_i + 5) % 10), data->msg->elements[0].num_values);
     }
 
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_check_ghost)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret, j;
+    char *expected;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+
+    fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    if (_i > MBO_GROUP_BASE) {
+        /* After the previous test, the first group (gid == MBO_GROUP_BASE)
+         * has no ghost users. That's a legitimate test case we need to account
+         * for now.
+         */
+        fail_unless(data->msg->num_elements == 1,
+                    "Wrong number of results, expected [1] got [%d] for %d",
+                    data->msg->num_elements, data->gid);
+    }
+
+    if (data->msg->num_elements == 0) {
+        talloc_free(test_ctx);
+        return;
+    }
+
+    fail_unless(strcmp(data->msg->elements[0].name, SYSDB_GHOST) == 0,
+                "Wrong attribute name");
+    fail_unless(data->msg->elements[0].num_values == _i - MBO_GROUP_BASE,
+                "Wrong number of attribute values, expected [%d] got [%d]",
+                _i + 1, data->msg->elements[0].num_values);
+
+    for (j = MBO_GROUP_BASE; j < _i; j++) {
+        expected = talloc_asprintf(data, "testghost%d", j);
+        fail_if(expected == NULL, "OOM\n");
+        fail_unless(strcmp(expected,
+                           (const char *) data->msg->elements[0].values[j-MBO_GROUP_BASE].data) == 0);
+        talloc_free(expected);
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_convert_to_real_users)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i * 2;
+    data->gid = _i * 2;
+    data->username = talloc_asprintf(data, "testghost%d", _i);
+
+    ret = test_store_user(data);
+    fail_if(ret != EOK, "Cannot add user %s\n", data->username);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_check_convert)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+    struct ldb_message_element *ghosts;
+    struct ldb_message_element *members;
+    int exp_mem, exp_gh;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+
+    data->attrlist = talloc_array(data, const char *, 3);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = SYSDB_MEMBER;
+    data->attrlist[2] = NULL;
+
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+
+    fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    fail_unless(data->msg->num_elements == (_i == MBO_GROUP_BASE) ? 0 : 1,
+                "Wrong number of results, expected [1] got [%d] for %d",
+                data->msg->num_elements, data->gid);
+
+    if (data->msg->num_elements == 0) {
+        talloc_free(test_ctx);
+        return;
+    }
+
+
+    members = ldb_msg_find_element(data->msg, SYSDB_MEMBER);
+    exp_mem = _i - MBO_GROUP_BASE;
+    if (exp_mem > NUM_GHOSTS/2) {
+        exp_mem = NUM_GHOSTS/2;
+    }
+
+    ghosts = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+    exp_gh = _i - MBO_GROUP_BASE - 5;
+    if (exp_gh < 0) {
+        exp_gh = 0;
+    }
+
+    fail_if(exp_mem != members->num_values,
+            "Expected %d members, found %d\n", exp_mem, members->num_values);
+    if (exp_gh) {
+        fail_if(exp_gh != ghosts->num_values,
+                "Expected %d members, found %d\n", exp_gh, ghosts->num_values);
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_user_cleanup)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i * 2;
+
+    ret = test_remove_user_by_uid(data);
+
+    fail_if(ret != EOK, "Could not remove user with uid %d", _i);
     talloc_free(test_ctx);
 }
 END_TEST
@@ -4108,6 +4333,29 @@ Suite *create_sysdb_suite(void)
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+
+    /* ghost users - RFC2307 */
+    /* Add groups with ghost users */
+    tcase_add_loop_test(tc_memberof, test_sysdb_add_group_with_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    /* Check the ghost user attribute */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_ghost,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    /* Add user entries, converting the ghost attributes to member attributes */
+    /* We only convert half of the users and keep the ghost attributes for the
+     * other half as we also want to test if we don't delete any ghost users
+     * by accident
+     */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_convert_to_real_users,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS/2);
+    /* Check the members and ghosts are there as appropriate */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_convert,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS);
+    /* Remove the real users */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_user_cleanup,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS/2);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS);
 
     suite_add_tcase(s, tc_memberof);
 
