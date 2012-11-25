@@ -33,6 +33,8 @@
 #define DB_MEMBERUID "memberuid"
 #define DB_NAME "name"
 #define DB_USER_CLASS "user"
+#define DB_GROUP_CLASS "group"
+#define DB_CACHE_EXPIRE "dataExpireTimestamp"
 #define DB_OC "objectClass"
 
 #ifndef talloc_zfree
@@ -133,6 +135,10 @@ struct mbof_del_ctx {
     int num_muops;
     int cur_muop;
 
+    struct mbof_memberuid_op *ghops;
+    int num_ghops;
+    int cur_ghop;
+
     struct mbof_mod_ctx *follow_mod;
     bool is_mod;
 };
@@ -165,7 +171,8 @@ static struct mbof_ctx *mbof_init(struct ldb_module *module,
     return ctx;
 }
 
-static int entry_is_user_object(struct ldb_message *entry)
+static int entry_has_objectclass(struct ldb_message *entry,
+                                 const char *objectclass)
 {
     struct ldb_message_element *el;
     struct ldb_val *val;
@@ -179,12 +186,22 @@ static int entry_is_user_object(struct ldb_message *entry)
     /* see if this is a user */
     for (i = 0; i < el->num_values; i++) {
         val = &(el->values[i]);
-        if (strncasecmp(DB_USER_CLASS, (char *)val->data, val->length) == 0) {
+        if (strncasecmp(objectclass, (char *)val->data, val->length) == 0) {
             return LDB_SUCCESS;
         }
     }
 
     return LDB_ERR_NO_SUCH_ATTRIBUTE;
+}
+
+static int entry_is_user_object(struct ldb_message *entry)
+{
+    return entry_has_objectclass(entry, DB_USER_CLASS);
+}
+
+static int entry_is_group_object(struct ldb_message *entry)
+{
+    return entry_has_objectclass(entry, DB_GROUP_CLASS);
 }
 
 static int mbof_append_muop(TALLOC_CTX *memctx,
@@ -289,7 +306,19 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
  * we proceed to store the user name.
  *
  * At the end we will add a memberuid attribute to our new object that
- * includes all direct and indeirect user members names.
+ * includes all direct and indirect user members names.
+ *
+ * Group objects can also contain a "ghost" attribute. A ghost attribute
+ * represents a user that is a member of the group but has not yet been
+ * looked up so there is no real user entry with member/memberof links.
+ *
+ * If an object being added contains a "ghost" attribute, the ghost attribute
+ * is in turn copied to all parents of that object so that retrieving a
+ * group returns both its direct and indirect members. The ghost attribute is
+ * similar to the memberuid attribute in many respects. One difference is that
+ * the memberuid attribute is completely generated and managed by the memberof
+ * plugin - in contrast, the ghost attribute is added to the entry that "owns"
+ * it and only propagated to parent groups.
  */
 
 static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
@@ -1152,7 +1181,14 @@ static int mbof_add_muop_callback(struct ldb_request *req,
  * understand how we proceed to select which new operation to process.
  *
  * As a final operation remove any memberuid corresponding to a removal of
- * a memberof field from a user entry
+ * a memberof field from a user entry. Also if the original entry had a ghost
+ * attribute, we need to remove that attribute from all its parents as well.
+ *
+ * There is one catch though - at the memberof level, we can't know if the
+ * attribute being removed from a parent group is just inherited from the group
+ * being removed or also a direct member of the parent group. To make sure
+ * that the attribute is displayed next time the group is requested, we also
+ * set expire the parent group at the same time.
  */
 
 static int mbof_del_search_callback(struct ldb_request *req,
@@ -1181,8 +1217,13 @@ static int mbof_del_get_next(struct mbof_del_operation *delop,
                              struct mbof_del_operation **nextop);
 static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
                               struct ldb_message *entry);
+static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
+                              struct ldb_message *entry);
 static int mbof_del_muop(struct mbof_del_ctx *ctx);
 static int mbof_del_muop_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares);
+static int mbof_del_ghop(struct mbof_del_ctx *del_ctx);
+static int mbof_del_ghop_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static void free_delop_contents(struct mbof_del_operation *delop);
 
@@ -1190,7 +1231,8 @@ static void free_delop_contents(struct mbof_del_operation *delop);
 static int memberof_del(struct ldb_module *module, struct ldb_request *req)
 {
     static const char *attrs[] = { DB_OC, DB_NAME,
-                                   DB_MEMBER, DB_MEMBEROF, NULL };
+                                   DB_MEMBER, DB_MEMBEROF,
+                                   DB_GHOST, NULL };
     struct ldb_context *ldb = ldb_module_get_ctx(module);
     struct mbof_del_operation *first;
     struct ldb_request *search;
@@ -1415,6 +1457,13 @@ static int mbof_orig_del_callback(struct ldb_request *req,
             return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
 
+        /* ..or ghost attributes to remove */
+        ret = mbof_del_fill_ghop(del_ctx, del_ctx->first->entry);
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+
         /* if there are any parents, fire a removal sequence */
         ret = mbof_del_cleanup_parents(del_ctx);
     }
@@ -1425,6 +1474,10 @@ static int mbof_orig_del_callback(struct ldb_request *req,
     /* see if there are memberuid operations to perform */
     else if (del_ctx->muops) {
         return mbof_del_muop(del_ctx);
+    }
+    /* see if we need to remove some ghost users */
+    else if (del_ctx->ghops) {
+        return mbof_del_ghop(del_ctx);
     }
     else {
         /* no parents nor children, end ops */
@@ -1536,6 +1589,10 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
         /* see if there are memberuid operations to perform */
         else if (del_ctx->muops) {
             return mbof_del_muop(del_ctx);
+        }
+        /* see if we need to remove some ghost users */
+        else if (del_ctx->ghops) {
+            return mbof_del_ghop(del_ctx);
         }
         else {
             /* no children, end ops */
@@ -2217,6 +2274,10 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
     if (del_ctx->muops) {
         return mbof_del_muop(del_ctx);
     }
+    /* see if we need to remove some ghost users */
+    else if (del_ctx->ghops) {
+        return mbof_del_ghop(del_ctx);
+    }
     /* see if there are follow functions to run */
     if (del_ctx->follow_mod) {
         return mbof_mod_add(del_ctx->follow_mod,
@@ -2345,7 +2406,80 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
     return LDB_SUCCESS;
 }
 
-/* del memberuid attributes to parent groups */
+static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
+                              struct ldb_message *entry)
+{
+    struct ldb_message_element *mbof;
+    struct ldb_message_element *ghel;
+    struct ldb_dn *valdn;
+    int ret;
+    int i, j;
+
+    mbof = ldb_msg_find_element(entry, DB_MEMBEROF);
+    if (!mbof || mbof->num_values == 0) {
+        /* no memberof attributes ... */
+        return LDB_SUCCESS;
+    }
+
+    ghel = ldb_msg_find_element(entry, DB_GHOST);
+    if (ghel == NULL || ghel->num_values == 0) {
+        /* No ghel attribute, just return success */
+        return LDB_SUCCESS;
+    }
+
+    ret = entry_is_group_object(entry);
+    switch (ret) {
+    case LDB_SUCCESS:
+        /* it's a group object, continue */
+        break;
+
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
+        /* it is not a group object, just return */
+        return LDB_SUCCESS;
+
+    default:
+        /* an error occured, return */
+        return ret;
+    }
+
+    ldb_debug(ldb_module_get_ctx(del_ctx->ctx->module),
+              LDB_DEBUG_TRACE,
+              "will delete %d ghost users from %d parents\n",
+              ghel->num_values, mbof->num_values);
+
+    for (i = 0; i < mbof->num_values; i++) {
+        valdn = ldb_dn_from_ldb_val(del_ctx->ghops,
+                                    ldb_module_get_ctx(del_ctx->ctx->module),
+                                    &mbof->values[i]);
+        if (!valdn || !ldb_dn_validate(valdn)) {
+            ldb_debug(ldb_module_get_ctx(del_ctx->ctx->module),
+                      LDB_DEBUG_ERROR,
+                      "Invalid dn value: [%s]",
+                      (const char *)mbof->values[i].data);
+        }
+
+        ldb_debug(ldb_module_get_ctx(del_ctx->ctx->module),
+                  LDB_DEBUG_TRACE,
+                  "processing ghosts in parent [%s]\n",
+                  (const char *) mbof->values[i].data);
+
+        for (j = 0; j < ghel->num_values; j++) {
+            ret = mbof_append_muop(del_ctx, &del_ctx->ghops,
+                                   &del_ctx->num_ghops,
+                                   LDB_FLAG_MOD_DELETE,
+                                   valdn,
+                                   (const char *) ghel->values[j].data,
+                                   DB_GHOST);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+    }
+
+    return LDB_SUCCESS;
+}
+
+/* del memberuid attributes from parent groups */
 static int mbof_del_muop(struct mbof_del_ctx *del_ctx)
 {
     struct ldb_context *ldb;
@@ -2410,6 +2544,122 @@ static int mbof_del_muop_callback(struct ldb_request *req,
         del_ctx->cur_muop++;
         if (del_ctx->cur_muop < del_ctx->num_muops) {
             ret = mbof_del_muop(del_ctx);
+        }
+        /* see if we need to remove some ghost users */
+        else if (del_ctx->ghops) {
+            return mbof_del_ghop(del_ctx);
+        }
+        /* see if there are follow functions to run */
+        else if (del_ctx->follow_mod) {
+            return mbof_mod_add(del_ctx->follow_mod,
+                                del_ctx->follow_mod->to_add);
+        }
+        else {
+            return ldb_module_done(ctx->req,
+                                   ctx->ret_ctrls,
+                                   ctx->ret_resp,
+                                   LDB_SUCCESS);
+        }
+
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+/* del ghost attributes from parent groups */
+static int mbof_del_ghop(struct mbof_del_ctx *del_ctx)
+{
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_request *mod_req;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    ctx = del_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    msg = ldb_msg_new(del_ctx);
+    if (!msg) return LDB_ERR_OPERATIONS_ERROR;
+
+    msg->dn = del_ctx->ghops[del_ctx->cur_ghop].dn;
+
+    ret = ldb_msg_add(msg, del_ctx->ghops[del_ctx->cur_ghop].el,
+                      LDB_FLAG_MOD_DELETE);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    /* Also expire any parent groups to force reloading direct members in
+     * case the ghost users we remove now were actually *also* direct members
+     * of the parent groups
+     */
+    ret = ldb_msg_add_empty(msg, DB_CACHE_EXPIRE, LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    ret = ldb_msg_add_string(msg, DB_CACHE_EXPIRE, "1");
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    ret = ldb_build_mod_req(&mod_req, ldb, del_ctx,
+                            msg, NULL,
+                            del_ctx, mbof_del_ghop_callback,
+                            ctx->req);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_next_request(ctx->module, mod_req);
+}
+
+static int mbof_del_ghop_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares)
+{
+    struct mbof_del_ctx *del_ctx;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
+    ctx = del_ctx->ctx;
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    /* We must treat no such attribute as non-fatal b/c the entry
+     * might have been directly nested in the parent as well and
+     * updated with another replace operation.
+     */
+    if (ares->error != LDB_SUCCESS &&  \
+        ares->error != LDB_ERR_NO_SUCH_ATTRIBUTE) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+        /* shouldn't happen */
+        talloc_zfree(ares);
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        del_ctx->cur_ghop++;
+        if (del_ctx->cur_ghop < del_ctx->num_ghops) {
+            ret = mbof_del_ghop(del_ctx);
         }
         /* see if there are follow functions to run */
         else if (del_ctx->follow_mod) {
