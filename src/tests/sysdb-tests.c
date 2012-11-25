@@ -2267,6 +2267,106 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
 }
 END_TEST
 
+START_TEST (test_sysdb_memberof_check_nested_ghosts)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
+
+    fail_unless(strcmp(data->msg->elements[0].name, SYSDB_GHOST) == 0,
+                "Wrong attribute name");
+    fail_unless(data->msg->elements[0].num_values == _i - MBO_GROUP_BASE + 1,
+                "Wrong number of attribute values, expected [%d] got [%d]",
+                _i + 1, data->msg->elements[0].num_values);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+    gid_t delgid;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    delgid = data->gid - 1;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
+
+    fail_unless(strcmp(data->msg->elements[0].name, SYSDB_GHOST) == 0,
+                "Wrong attribute name");
+
+    /* Expect our own and our parent's */
+    fail_unless(data->msg->elements[0].num_values == 2,
+                "Wrong number of attribute values, expected [%d] got [%d]",
+                2, data->msg->elements[0].num_values);
+
+    /* Remove the parent */
+    ret = sysdb_delete_group(data->ctx->sysdb, NULL, delgid);
+    fail_if(ret != EOK, "Cannot delete group %llu [%d]: %s\n",
+            (unsigned long long) data->gid, ret, strerror(ret));
+
+    talloc_free(data->msg);
+
+    /* Check the parent again. The inherited ghost user should be gone. */
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid, data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
+
+    fail_unless(strcmp(data->msg->elements[0].name, SYSDB_GHOST) == 0,
+                "Wrong attribute name");
+
+    /* Expect our own now only */
+    fail_unless(data->msg->elements[0].num_values == 1,
+                "Wrong number of attribute values, expected [%d] got [%d]",
+                1, data->msg->elements[0].num_values);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_memberof_check_ghost)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4331,8 +4431,13 @@ Suite *create_sysdb_suite(void)
     /* Ghost users tests */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group_with_ghosts,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
-    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_nested_ghosts,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_remove_child_group_and_check_ghost,
+                        MBO_GROUP_BASE + 1, MBO_GROUP_BASE + 10);
+    /* Only one group should be left now */
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE + 9 , MBO_GROUP_BASE + 10);
 
     /* ghost users - RFC2307 */
     /* Add groups with ghost users */
