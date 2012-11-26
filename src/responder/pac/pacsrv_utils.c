@@ -71,6 +71,45 @@ errno_t local_sid_to_id(struct local_mapping_ranges *map, struct dom_sid *sid,
     return EOK;
 }
 
+struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
+                                          const char *id_str)
+{
+    struct sss_domain_info *dom;
+    struct sss_domain_info *ret_dom = NULL;
+    size_t c;
+
+    if (id_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing domain id.\n"));
+        return NULL;
+    }
+
+    for (dom = domains; dom; dom = dom->next) {
+        if (dom->domain_id == NULL) {
+            continue;
+        }
+
+        if (strcasecmp(dom->domain_id, id_str) == 0) {
+            ret_dom = dom;
+            break;
+        }
+
+        for (c = 0; c < dom->subdomain_count; c++) {
+            if (strcasecmp(dom->subdomains[c]->domain_id, id_str) == 0) {
+                ret_dom = dom->subdomains[c];
+                break;
+            }
+        }
+
+    }
+
+    if (!ret_dom) {
+        DEBUG(SSSDBG_OP_FAILURE, ("No domain with domain ID [%s] found",
+                                  id_str));
+    }
+
+    return ret_dom;
+}
+
 /**
  * Add a new remote domain and the corresponding ID range to the context of
  * the libsss_idmap. Without this it is not possible to find the Posix UID for
