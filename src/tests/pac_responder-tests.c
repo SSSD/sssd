@@ -177,6 +177,54 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
 }
 END_TEST
 
+#define NUM_DOMAINS 10
+START_TEST(pac_test_find_domain_by_id)
+{
+    struct sss_domain_info *dom;
+    struct sss_domain_info **domains;
+    size_t c;
+    char *id;
+
+    dom = find_domain_by_id(NULL, NULL);
+    fail_unless(dom == NULL, "Domain returned without any input.");
+
+    dom = find_domain_by_id(NULL, "id");
+    fail_unless(dom == NULL, "Domain returned without domain list.");
+
+    domains = talloc_zero_array(global_talloc_context, struct sss_domain_info *,
+                                NUM_DOMAINS);
+    for (c = 0; c < NUM_DOMAINS; c++) {
+        domains[c] = talloc_zero(domains, struct sss_domain_info);
+        fail_unless(domains[c] != NULL, "talloc_zero failed.");
+
+        domains[c]->domain_id = talloc_asprintf(domains[c],
+                                                "ID-of-domains-%zu", c);
+        fail_unless(domains[c]->domain_id != NULL, "talloc_asprintf failed.");
+        if (c > 0) {
+            domains[c-1]->next = domains[c];
+        }
+    }
+
+    dom = find_domain_by_id(domains[0], NULL);
+    fail_unless(dom == NULL, "Domain returned without search domain.");
+
+    dom = find_domain_by_id(domains[0], "DOES-NOT_EXISTS");
+    fail_unless(dom == NULL, "Domain returned with non existing id.");
+
+    for (c = 0; c < NUM_DOMAINS; c++) {
+        id = talloc_asprintf(global_talloc_context, "ID-of-domains-%zu", c);
+        fail_unless(id != NULL, "talloc_asprintf failed.\n");
+
+        dom = find_domain_by_id(domains[0], id);
+        fail_unless(dom == domains[c], "Wrong domain returned for id [%s].",
+                                       id);
+
+        talloc_free(id);
+    }
+
+    talloc_free(domains);
+}
+END_TEST
 
 Suite *idmap_test_suite (void)
 {
@@ -190,6 +238,7 @@ Suite *idmap_test_suite (void)
     tcase_add_test(tc_pac, pac_test_local_sid_to_id);
     tcase_add_test(tc_pac, pac_test_seondary_local_sid_to_id);
     tcase_add_test(tc_pac, pac_test_get_gids_to_add_and_remove);
+    tcase_add_test(tc_pac, pac_test_find_domain_by_id);
 
     suite_add_tcase(s, tc_pac);
 

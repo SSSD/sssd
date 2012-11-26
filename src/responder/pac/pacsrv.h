@@ -125,4 +125,7 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
                        struct pac_grp **_add_gid_list,
                        size_t *_del_gid_num,
                        struct grp_info ***_del_gid_list);
+
+struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
+                                          const char *id_str);
 #endif /* __PACSRV_H__ */
