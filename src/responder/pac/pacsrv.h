@@ -100,6 +100,7 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
                            struct local_mapping_ranges **_range_map);
 
 errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
+                          struct pac_ctx *pac_ctx,
                           struct local_mapping_ranges *range_map,
                           struct dom_sid *domain_sid,
                           struct PAC_LOGON_INFO *logon_info,

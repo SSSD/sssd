@@ -82,9 +82,8 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx);
 static void pac_get_group_done(struct tevent_req *subreq);
 static errno_t pac_save_memberships_next(struct tevent_req *req);
 static errno_t pac_store_membership(struct pac_req_ctx *pr_ctx,
-                                     struct sysdb_ctx *group_sysdb,
-                                     struct ldb_dn *user_dn,
-                                     int gid_iter);
+                                    struct ldb_dn *user_dn,
+                                    int gid_iter);
 struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx);
 static void pac_save_memberships_done(struct tevent_req *req);
 
@@ -232,9 +231,9 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = get_gids_from_pac(pr_ctx, my_range_map, my_dom_sid,
-                            pr_ctx->logon_info, &pr_ctx->gid_count,
-                            &pr_ctx->gids);
+    ret = get_gids_from_pac(pr_ctx, pr_ctx->pac_ctx,
+                            my_range_map, my_dom_sid, pr_ctx->logon_info,
+                            &pr_ctx->gid_count, &pr_ctx->gids);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("get_gids_from_pac failed.\n"));
         goto done;
@@ -564,6 +563,7 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
 {
     errno_t ret;
     uint32_t gid;
+    struct sss_domain_info *grp_dom;
     struct tevent_req *subreq;
     struct pac_save_memberships_state *state;
     struct pac_req_ctx *pr_ctx;
@@ -581,16 +581,18 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
     }
 
     while (state->gid_iter < pr_ctx->add_gid_count) {
-        gid = pr_ctx->add_gids[state->gid_iter].gid;
 
-        ret = pac_store_membership(state->pr_ctx, state->group_dom->sysdb,
-                                    state->user_dn, state->gid_iter);
+        ret = pac_store_membership(state->pr_ctx, state->user_dn,
+                                   state->gid_iter);
         if (ret == EOK) {
             state->gid_iter++;
             continue;
         } else if (ret == ENOENT) {
+            gid = pr_ctx->add_gids[state->gid_iter].gid;
+            grp_dom = pr_ctx->add_gids[state->gid_iter].grp_dom;
+
             subreq = sss_dp_get_account_send(state, pr_ctx->cctx->rctx,
-                                             state->group_dom, true,
+                                             grp_dom, true,
                                              SSS_DP_GROUP, NULL,
                                              gid, NULL);
             if (subreq == NULL) {
@@ -632,8 +634,7 @@ static void pac_get_group_done(struct tevent_req *subreq)
         goto error;
     }
 
-    ret = pac_store_membership(state->pr_ctx, state->group_dom->sysdb,
-                                state->user_dn, state->gid_iter);
+    ret = pac_store_membership(state->pr_ctx, state->user_dn, state->gid_iter);
     if (ret != EOK) {
         goto error;
     }
@@ -654,14 +655,14 @@ error:
 
 static errno_t
 pac_store_membership(struct pac_req_ctx *pr_ctx,
-                      struct sysdb_ctx *group_sysdb,
-                      struct ldb_dn *user_dn,
-                      int gid_iter)
+                     struct ldb_dn *user_dn,
+                     int gid_iter)
 {
     TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs *user_attrs;
     struct ldb_message *group;
     uint32_t gid;
+    struct sss_domain_info *grp_dom;
     errno_t ret;
     const char *orig_group_dn;
     const char *group_attrs[] = { SYSDB_ORIG_DN, NULL };
@@ -672,8 +673,9 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
     }
 
     gid = pr_ctx->add_gids[gid_iter].gid;
+    grp_dom = pr_ctx->add_gids[gid_iter].grp_dom;
 
-    ret = sysdb_search_group_by_gid(tmp_ctx, group_sysdb,
+    ret = sysdb_search_group_by_gid(tmp_ctx, grp_dom->sysdb,
                                     gid, group_attrs, &group);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("sysdb_search_group_by_gid for gid [%d]" \
@@ -682,7 +684,7 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         goto done;
     }
 
-    ret = sysdb_mod_group_member(group_sysdb, user_dn, group->dn,
+    ret = sysdb_mod_group_member(grp_dom->sysdb, user_dn, group->dn,
                                  LDB_FLAG_MOD_ADD);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));

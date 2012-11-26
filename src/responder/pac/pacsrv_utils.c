@@ -425,6 +425,7 @@ bool dom_sid_in_domain(const struct dom_sid *domain_sid,
  * domain and convert them to GIDs.
  */
 errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
+                          struct pac_ctx *pac_ctx,
                           struct local_mapping_ranges *range_map,
                           struct dom_sid *domain_sid,
                           struct PAC_LOGON_INFO *logon_info,
@@ -435,6 +436,15 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
     size_t s;
     struct netr_SamInfo3 *info3;
     struct pac_grp *gids = NULL;
+    struct sss_domain_info *grp_dom;
+    char *sid_str;
+    enum idmap_error_code err;
+
+    if (pac_ctx == NULL || range_map == NULL || domain_sid == NULL ||
+        logon_info == NULL || _gid_count == NULL || _gids == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing parameter.\n"));
+        return EINVAL;
+    }
 
     info3 = &logon_info->info3;
 
@@ -451,6 +461,22 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+
+    err = sss_idmap_smb_sid_to_sid(pac_ctx->idmap_ctx, domain_sid,
+                                   &sid_str);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_smb_sid_to_sid failed.\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    grp_dom =  find_domain_by_id(pac_ctx->rctx->domains, sid_str);
+    if (grp_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("find_domain_by_id failed.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
     for(s = 0; s < info3->sidcount; s++) {
         if (dom_sid_in_domain(domain_sid, info3->sids[s].sid)) {
             ret = local_sid_to_id(range_map, info3->sids[s].sid,
@@ -459,6 +485,7 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_OP_FAILURE, ("get_rid failed.\n"));
                 goto done;
             }
+            gids[g].grp_dom = grp_dom;
             DEBUG(SSSDBG_TRACE_ALL, ("Found extra group "
                                      "with gid [%d].\n", gids[g].gid));
             g++;
