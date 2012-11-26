@@ -149,7 +149,8 @@ struct mbof_mod_ctx {
     const struct ldb_message_element *membel;
     struct ldb_message *entry;
 
-    struct mbof_dn_array *to_add;
+    struct mbof_dn_array *mb_add;
+    struct mbof_dn_array *mb_remove;
 
     struct ldb_message *msg;
     bool terminate;
@@ -2281,7 +2282,7 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
     /* see if there are follow functions to run */
     if (del_ctx->follow_mod) {
         return mbof_mod_add(del_ctx->follow_mod,
-                            del_ctx->follow_mod->to_add);
+                            del_ctx->follow_mod->mb_add);
     }
 
     /* ok, no more ops, this means our job is done */
@@ -2552,7 +2553,7 @@ static int mbof_del_muop_callback(struct ldb_request *req,
         /* see if there are follow functions to run */
         else if (del_ctx->follow_mod) {
             return mbof_mod_add(del_ctx->follow_mod,
-                                del_ctx->follow_mod->to_add);
+                                del_ctx->follow_mod->mb_add);
         }
         else {
             return ldb_module_done(ctx->req,
@@ -2664,7 +2665,7 @@ static int mbof_del_ghop_callback(struct ldb_request *req,
         /* see if there are follow functions to run */
         else if (del_ctx->follow_mod) {
             return mbof_mod_add(del_ctx->follow_mod,
-                                del_ctx->follow_mod->to_add);
+                                del_ctx->follow_mod->mb_add);
         }
         else {
             return ldb_module_done(ctx->req,
@@ -2712,6 +2713,11 @@ static int mbof_orig_mod(struct mbof_mod_ctx *mod_ctx);
 static int mbof_orig_mod_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done);
+static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
+                                   struct ldb_message *entry,
+                                   const struct ldb_message_element *membel,
+                                   struct mbof_dn_array **_added,
+                                   struct mbof_dn_array **_removed);
 static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
                            struct mbof_dn_array *del);
 static int mbof_fill_dn_array(TALLOC_CTX *memctx,
@@ -2935,63 +2941,99 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
 
 static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
 {
-    const struct ldb_message_element *el;
     struct ldb_context *ldb;
     struct mbof_ctx *ctx;
-    struct mbof_dn_array *removed;
-    struct mbof_dn_array *added;
-    int i, j, ret;
+    int ret;
 
     ctx = mod_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
-    switch (mod_ctx->membel->flags) {
+    ret = mbof_mod_process_membel(mod_ctx, ldb, mod_ctx->entry, mod_ctx->membel,
+                                  &mod_ctx->mb_add, &mod_ctx->mb_remove);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    /* Process the operations */
+    /* if we have something to remove do it first */
+    if (mod_ctx->mb_remove && mod_ctx->mb_remove->num) {
+        return mbof_mod_delete(mod_ctx, mod_ctx->mb_remove);
+    }
+
+    /* if there is nothing to remove and we have stuff to add
+     * do it right away */
+    if (mod_ctx->mb_add && mod_ctx->mb_add->num) {
+        return mbof_mod_add(mod_ctx, mod_ctx->mb_add);
+    }
+
+    /* the replacement function resulted in a null op,
+     * nothing to do, return happily */
+    *done = true;
+    return LDB_SUCCESS;
+}
+
+static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx,
+                                   struct ldb_context *ldb,
+                                   struct ldb_message *entry,
+                                   const struct ldb_message_element *membel,
+                                   struct mbof_dn_array **_added,
+                                   struct mbof_dn_array **_removed)
+{
+    const struct ldb_message_element *el;
+    struct mbof_dn_array *removed = NULL;
+    struct mbof_dn_array *added = NULL;
+    int i, j, ret;
+
+    if (!membel) {
+        /* Nothing to do.. */
+        return LDB_SUCCESS;
+    }
+
+    switch (membel->flags) {
     case LDB_FLAG_MOD_ADD:
 
-        ret = mbof_fill_dn_array(mod_ctx, ldb, mod_ctx->membel, &added);
+        ret = mbof_fill_dn_array(mem_ctx, ldb, membel, &added);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
-
-        return mbof_mod_add(mod_ctx, added);
+        break;
 
     case LDB_FLAG_MOD_DELETE:
 
-        if (mod_ctx->membel->num_values == 0) {
-            el = ldb_msg_find_element(mod_ctx->entry, DB_MEMBER);
+        if (membel->num_values == 0) {
+            el = ldb_msg_find_element(entry, DB_MEMBER);
         } else {
-            el = mod_ctx->membel;
+            el = membel;
         }
 
         if (!el) {
             /* nothing to do really */
-            *done = true;
-            return LDB_SUCCESS;
+            break;
         }
 
-        ret = mbof_fill_dn_array(mod_ctx, ldb, el, &removed);
+        ret = mbof_fill_dn_array(mem_ctx, ldb, el, &removed);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
-
-        return mbof_mod_delete(mod_ctx, removed);
+        break;
 
     case LDB_FLAG_MOD_REPLACE:
 
         removed = NULL;
-        el = ldb_msg_find_element(mod_ctx->entry, DB_MEMBER);
+        el = ldb_msg_find_element(entry, DB_MEMBER);
         if (el) {
-            ret = mbof_fill_dn_array(mod_ctx, ldb, el, &removed);
+            ret = mbof_fill_dn_array(mem_ctx, ldb, el, &removed);
             if (ret != LDB_SUCCESS) {
                 return ret;
             }
         }
 
         added = NULL;
-        el = mod_ctx->membel;
+        el = membel;
         if (el) {
-            ret = mbof_fill_dn_array(mod_ctx, ldb, el, &added);
+            ret = mbof_fill_dn_array(mem_ctx, ldb, el, &added);
             if (ret != LDB_SUCCESS) {
+                talloc_free(removed);
                 return ret;
             }
         }
@@ -3018,31 +3060,15 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
                 }
             }
         }
+        break;
 
-        /* if we need to add something put it away so that it
-         * can be done after all delete operations are over */
-        if (added && added->num) {
-            mod_ctx->to_add = added;
-        }
-
-        /* if we have something to remove do it first */
-        if (removed && removed->num) {
-            return mbof_mod_delete(mod_ctx, removed);
-        }
-
-        /* if there is nothing to remove and we have stuff to add
-         * do it right away */
-        if (mod_ctx->to_add) {
-            return mbof_mod_add(mod_ctx, added);
-        }
-
-        /* the replacement function resulted in a null op,
-         * nothing to do, return happily */
-        *done = true;
-        return LDB_SUCCESS;
+    default:
+        return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    return LDB_ERR_OPERATIONS_ERROR;
+    *_added = added;
+    *_removed = removed;
+    return LDB_SUCCESS;
 }
 
 static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
@@ -3130,7 +3156,7 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
     }
 
     /* add followup function if we also have stuff to add */
-    if (mod_ctx->to_add) {
+    if (mod_ctx->mb_add) {
         del_ctx->follow_mod = mod_ctx;
     }
 
