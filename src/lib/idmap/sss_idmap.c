@@ -422,6 +422,28 @@ done:
     return err;
 }
 
+enum idmap_error_code sss_idmap_smb_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                struct dom_sid *smb_sid,
+                                                uint32_t *id)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_smb_sid_to_sid(ctx, smb_sid, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_unix(ctx, sid, id);
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+
+    return err;
+}
+
 enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                 uint32_t id,
                                                 struct sss_dom_sid **_dom_sid)
