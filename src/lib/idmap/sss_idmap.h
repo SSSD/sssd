@@ -200,6 +200,23 @@ enum idmap_error_code sss_idmap_bin_sid_to_unix(struct sss_idmap_ctx *ctx,
                                                 uint32_t *id);
 
 /**
+ * @brief Translate a Samba dom_sid stucture to a unix UID or GID
+ *
+ * @param[in] ctx     Idmap context
+ * @param[in] smb_sid Samba dom_sid structure
+ * @param[out] id     Returned unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ */
+enum idmap_error_code sss_idmap_smb_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                struct dom_sid *smb_sid,
+                                                uint32_t *id);
+
+/**
  * @brief Translate unix UID or GID to a SID
  *
  * @param[in] ctx  Idmap context
