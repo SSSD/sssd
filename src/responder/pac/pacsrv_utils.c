@@ -437,8 +437,9 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
     struct netr_SamInfo3 *info3;
     struct pac_grp *gids = NULL;
     struct sss_domain_info *grp_dom;
-    char *sid_str;
+    char *sid_str = NULL;
     enum idmap_error_code err;
+    struct dom_sid *grp_sid = NULL;
 
     if (pac_ctx == NULL || range_map == NULL || domain_sid == NULL ||
         logon_info == NULL || _gid_count == NULL || _gids == NULL) {
@@ -448,13 +449,14 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
 
     info3 = &logon_info->info3;
 
-    if (info3->sidcount == 0) {
+    if (info3->sidcount == 0 && info3->base.groups.count == 0) {
         DEBUG(SSSDBG_TRACE_ALL, ("No extra groups found.\n"));
         ret = EOK;
         goto done;
     }
 
-    gids = talloc_zero_array(mem_ctx, struct pac_grp, info3->sidcount);
+    gids = talloc_zero_array(mem_ctx, struct pac_grp,
+                             info3->sidcount + info3->base.groups.count);
     if (gids == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
         ret = ENOMEM;
@@ -492,9 +494,56 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
         }
     }
 
+    talloc_zfree(sid_str);
+    err = sss_idmap_smb_sid_to_sid(pac_ctx->idmap_ctx, info3->base.domain_sid,
+                                   &sid_str);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_smb_sid_to_sid failed.\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    grp_dom =  find_domain_by_id(pac_ctx->rctx->domains, sid_str);
+    if (grp_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("find_domain_by_id failed.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_smb_sid(pac_ctx->idmap_ctx, sid_str, &grp_sid);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_sid_to_smb_sid failed.\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    grp_sid->num_auths++;
+
+    for (s = 0; s < info3->base.groups.count; s++) {
+        grp_sid->sub_auths[grp_sid->num_auths - 1] =
+                                                info3->base.groups.rids[s].rid;
+        err = sss_idmap_smb_sid_to_unix(pac_ctx->idmap_ctx, grp_sid,
+                                        &gids[g].gid);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_smb_sid_to_unix failed for"
+                                         "[%s] [%d].\n", sid_str,
+                                         info3->base.groups.rids[s].rid));
+            ret = ENOENT;
+            goto done;
+        }
+
+        gids[g].grp_dom = grp_dom;
+        DEBUG(SSSDBG_TRACE_ALL, ("Found extra group "
+                                 "with gid [%d].\n", gids[g].gid));
+        g++;
+    }
+
     ret = EOK;
 
 done:
+    talloc_free(sid_str);
+    talloc_free(grp_sid);
+
     if (ret == EOK) {
         *_gid_count = g;
         *_gids = gids;
