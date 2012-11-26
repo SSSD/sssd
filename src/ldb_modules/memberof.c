@@ -2407,11 +2407,12 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
     return LDB_SUCCESS;
 }
 
-static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
-                              struct ldb_message *entry)
+static int mbof_del_fill_ghop_ex(struct mbof_del_ctx *del_ctx,
+                                 struct ldb_message *entry,
+                                 struct ldb_val *ghvals,
+                                 unsigned int num_gh_vals)
 {
     struct ldb_message_element *mbof;
-    struct ldb_message_element *ghel;
     struct ldb_dn *valdn;
     int ret;
     int i, j;
@@ -2419,12 +2420,6 @@ static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
     mbof = ldb_msg_find_element(entry, DB_MEMBEROF);
     if (!mbof || mbof->num_values == 0) {
         /* no memberof attributes ... */
-        return LDB_SUCCESS;
-    }
-
-    ghel = ldb_msg_find_element(entry, DB_GHOST);
-    if (ghel == NULL || ghel->num_values == 0) {
-        /* No ghel attribute, just return success */
         return LDB_SUCCESS;
     }
 
@@ -2446,7 +2441,7 @@ static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
     ldb_debug(ldb_module_get_ctx(del_ctx->ctx->module),
               LDB_DEBUG_TRACE,
               "will delete %d ghost users from %d parents\n",
-              ghel->num_values, mbof->num_values);
+              num_gh_vals, mbof->num_values);
 
     for (i = 0; i < mbof->num_values; i++) {
         valdn = ldb_dn_from_ldb_val(del_ctx->ghops,
@@ -2464,12 +2459,12 @@ static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
                   "processing ghosts in parent [%s]\n",
                   (const char *) mbof->values[i].data);
 
-        for (j = 0; j < ghel->num_values; j++) {
+        for (j = 0; j < num_gh_vals; j++) {
             ret = mbof_append_muop(del_ctx, &del_ctx->ghops,
                                    &del_ctx->num_ghops,
                                    LDB_FLAG_MOD_DELETE,
                                    valdn,
-                                   (const char *) ghel->values[j].data,
+                                   (const char *) ghvals[j].data,
                                    DB_GHOST);
             if (ret != LDB_SUCCESS) {
                 return ret;
@@ -2478,6 +2473,21 @@ static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
     }
 
     return LDB_SUCCESS;
+}
+
+static int mbof_del_fill_ghop(struct mbof_del_ctx *del_ctx,
+                              struct ldb_message *entry)
+{
+    struct ldb_message_element *ghel;
+
+    ghel = ldb_msg_find_element(entry, DB_GHOST);
+    if (ghel == NULL || ghel->num_values == 0) {
+        /* No ghel attribute, just return success */
+        return LDB_SUCCESS;
+    }
+
+    return mbof_del_fill_ghop_ex(del_ctx, entry,
+                                 ghel->values, ghel->num_values);
 }
 
 /* del memberuid attributes from parent groups */
