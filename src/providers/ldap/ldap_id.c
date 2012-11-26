@@ -951,11 +951,11 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
 
     case BE_REQ_GROUP: /* group */
 
+        /* skip enumerations on demand */
         if (ar->filter_type == BE_FILTER_ENUM) {
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
-        /* skip enumerations on demand */
         req = groups_get_send(breq, breq->be_ctx->ev, ctx,
                               ar->filter_value,
                               ar->filter_type,
