@@ -329,7 +329,7 @@ process_subdomains(struct sss_domain_info *domain)
         --c;
     }
 
-    if (domain->flat_name == NULL) {
+    if (domain->flat_name == NULL || domain->domain_id == NULL) {
         ret = sysdb_master_domain_get_info(domain, domain->sysdb, &master_info);
         if (ret != EOK) {
                 DEBUG(SSSDBG_FUNC_DATA, ("sysdb_master_domain_get_info " \
@@ -337,7 +337,19 @@ process_subdomains(struct sss_domain_info *domain)
                 goto done;
         }
 
-        domain->flat_name = talloc_strdup(domain, master_info->flat_name);
+        if (domain->flat_name == NULL) {
+            domain->flat_name = talloc_strdup(domain, master_info->flat_name);
+            if (domain->flat_name == NULL) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("talloc_strdup failed, ignoring"));
+            }
+        }
+
+        if (domain->domain_id == NULL) {
+            domain->domain_id = talloc_strdup(domain, master_info->id);
+            if (domain->domain_id == NULL) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("talloc_strdup failed, ignoring"));
+            }
+        }
         talloc_free(master_info);
         DEBUG(SSSDBG_TRACE_LIBS, ("Adding flat name [%s] to domain [%s].\n",
                                   domain->flat_name, domain->name));
