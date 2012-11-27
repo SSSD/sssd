@@ -45,6 +45,11 @@
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
+struct mbof_val_array {
+    struct ldb_val *vals;
+    int num;
+};
+
 struct mbof_dn_array {
     struct ldb_dn **dns;
     int num;
@@ -147,10 +152,14 @@ struct mbof_mod_ctx {
     struct mbof_ctx *ctx;
 
     const struct ldb_message_element *membel;
+    const struct ldb_message_element *ghel;
     struct ldb_message *entry;
 
     struct mbof_dn_array *mb_add;
     struct mbof_dn_array *mb_remove;
+
+    struct mbof_val_array *gh_add;
+    struct mbof_val_array *gh_remove;
 
     struct ldb_message *msg;
     bool terminate;
@@ -2279,7 +2288,8 @@ static int mbof_del_mod_callback(struct ldb_request *req,
 }
 
 static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
-                        struct mbof_dn_array *ael);
+                        struct mbof_dn_array *ael,
+                        struct mbof_val_array *addgh);
 
 static int mbof_del_progeny(struct mbof_del_operation *delop)
 {
@@ -2338,7 +2348,8 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
     /* see if there are follow functions to run */
     if (del_ctx->follow_mod) {
         return mbof_mod_add(del_ctx->follow_mod,
-                            del_ctx->follow_mod->mb_add);
+                            del_ctx->follow_mod->mb_add,
+                            del_ctx->follow_mod->gh_add);
     }
 
     /* ok, no more ops, this means our job is done */
@@ -2619,7 +2630,8 @@ static int mbof_del_muop_callback(struct ldb_request *req,
         /* see if there are follow functions to run */
         else if (del_ctx->follow_mod) {
             return mbof_mod_add(del_ctx->follow_mod,
-                                del_ctx->follow_mod->mb_add);
+                                del_ctx->follow_mod->mb_add,
+                                del_ctx->follow_mod->gh_add);
         }
         else {
             return ldb_module_done(ctx->req,
@@ -2731,7 +2743,8 @@ static int mbof_del_ghop_callback(struct ldb_request *req,
         /* see if there are follow functions to run */
         else if (del_ctx->follow_mod) {
             return mbof_mod_add(del_ctx->follow_mod,
-                                del_ctx->follow_mod->mb_add);
+                                del_ctx->follow_mod->mb_add,
+                                del_ctx->follow_mod->gh_add);
         }
         else {
             return ldb_module_done(ctx->req,
@@ -2784,19 +2797,30 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
                                    const struct ldb_message_element *membel,
                                    struct mbof_dn_array **_added,
                                    struct mbof_dn_array **_removed);
+static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
+                                 struct ldb_message *entry,
+                                 const struct ldb_message_element *membel,
+                                 struct mbof_val_array **_added,
+                                 struct mbof_val_array **_removed);
 static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
-                           struct mbof_dn_array *del);
+                           struct mbof_dn_array *del,
+                           struct mbof_val_array *delgh);
 static int mbof_fill_dn_array(TALLOC_CTX *memctx,
                               struct ldb_context *ldb,
                               const struct ldb_message_element *el,
                               struct mbof_dn_array **dn_array);
+static int mbof_fill_vals_array(TALLOC_CTX *memctx,
+                                struct ldb_context *ldb,
+                                const struct ldb_message_element *el,
+                                struct mbof_val_array **val_array);
 
 static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
 {
     struct ldb_message_element *el;
     struct mbof_mod_ctx *mod_ctx;
     struct mbof_ctx *ctx;
-    static const char *attrs[] = {DB_MEMBER, DB_MEMBEROF, NULL};
+    static const char *attrs[] = { DB_OC, DB_GHOST,
+                                   DB_MEMBER, DB_MEMBEROF, NULL};
     struct ldb_context *ldb = ldb_module_get_ctx(module);
     struct ldb_request *search;
     int ret;
@@ -2839,14 +2863,14 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* continue with normal ops if there are no members */
-    el = ldb_msg_find_element(mod_ctx->msg, DB_MEMBER);
-    if (!el) {
+    mod_ctx->membel = ldb_msg_find_element(mod_ctx->msg, DB_MEMBER);
+    mod_ctx->ghel = ldb_msg_find_element(mod_ctx->msg, DB_GHOST);
+
+    /* continue with normal ops if there are no members and no ghosts */
+    if (mod_ctx->membel == NULL && mod_ctx->ghel == NULL) {
         mod_ctx->terminate = true;
         return mbof_orig_mod(mod_ctx);
     }
-
-    mod_ctx->membel = el;
 
     /* can't do anything,
      * must check first what's on the entry */
@@ -3020,16 +3044,24 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
         return ret;
     }
 
+    ret = mbof_mod_process_ghel(mod_ctx, ldb, mod_ctx->entry, mod_ctx->ghel,
+                                &mod_ctx->gh_add, &mod_ctx->gh_remove);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
     /* Process the operations */
     /* if we have something to remove do it first */
-    if (mod_ctx->mb_remove && mod_ctx->mb_remove->num) {
-        return mbof_mod_delete(mod_ctx, mod_ctx->mb_remove);
+    if ((mod_ctx->mb_remove && mod_ctx->mb_remove->num) ||
+        (mod_ctx->gh_remove && mod_ctx->gh_remove->num)) {
+        return mbof_mod_delete(mod_ctx, mod_ctx->mb_remove, mod_ctx->gh_remove);
     }
 
     /* if there is nothing to remove and we have stuff to add
      * do it right away */
-    if (mod_ctx->mb_add && mod_ctx->mb_add->num) {
-        return mbof_mod_add(mod_ctx, mod_ctx->mb_add);
+    if ((mod_ctx->mb_add && mod_ctx->mb_add->num) ||
+        (mod_ctx->gh_add && mod_ctx->gh_add->num)) {
+        return mbof_mod_add(mod_ctx, mod_ctx->mb_add, mod_ctx->gh_add);
     }
 
     /* the replacement function resulted in a null op,
@@ -3137,8 +3169,109 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx,
     return LDB_SUCCESS;
 }
 
+static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
+                                 struct ldb_message *entry,
+                                 const struct ldb_message_element *ghel,
+                                 struct mbof_val_array **_added,
+                                 struct mbof_val_array **_removed)
+{
+    const struct ldb_message_element *el;
+    struct mbof_val_array *removed = NULL;
+    struct mbof_val_array *added = NULL;
+    int i, j, ret;
+
+    if (!ghel) {
+        /* Nothing to do.. */
+        return LDB_SUCCESS;
+    }
+
+    el = ldb_msg_find_element(entry, DB_MEMBEROF);
+    if (!el || el->num_values == 0) {
+        /* no memberof attributes ... */
+        return LDB_SUCCESS;
+    }
+
+    switch (ghel->flags) {
+    case LDB_FLAG_MOD_ADD:
+        ret = mbof_fill_vals_array(mem_ctx, ldb, ghel, &added);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+        break;
+
+    case LDB_FLAG_MOD_DELETE:
+        if (ghel->num_values == 0) {
+            el = ldb_msg_find_element(entry, DB_GHOST);
+        } else {
+            el = ghel;
+        }
+
+        if (!el) {
+            /* nothing to do really */
+            break;
+        }
+
+        ret = mbof_fill_vals_array(mem_ctx, ldb, ghel, &removed);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+        break;
+
+    case LDB_FLAG_MOD_REPLACE:
+        el = ldb_msg_find_element(entry, DB_GHOST);
+        if (el) {
+            ret = mbof_fill_vals_array(mem_ctx, ldb, el, &removed);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+
+        el = ghel;
+        if (el) {
+            ret = mbof_fill_vals_array(mem_ctx, ldb, el, &added);
+            if (ret != LDB_SUCCESS) {
+                talloc_free(removed);
+                return ret;
+            }
+        }
+
+        /* remove from arrays values that ended up unchanged */
+        if (removed && removed->num && added && added->num) {
+            for (i = 0; i < added->num; i++) {
+                for (j = 0; j < removed->num; j++) {
+                    if (strcmp((const char *) added->vals[i].data,
+                               (const char *) removed->vals[j].data) == 0) {
+                        break;
+                    }
+                }
+                if (j < removed->num) {
+                    /* preexisting one, not removed, nor added */
+                    for (; j+1 < removed->num; j++) {
+                        removed->vals[j] = removed->vals[j+1];
+                    }
+                    removed->num--;
+                    for (j = i; j+1 < added->num; j++) {
+                        added->vals[j] = added->vals[j+1];
+                    }
+                    added->num--;
+                    i--;
+                }
+            }
+        }
+        break;
+
+    default:
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    *_added = added;
+    *_removed = removed;
+    return LDB_SUCCESS;
+}
+
 static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
-                        struct mbof_dn_array *ael)
+                        struct mbof_dn_array *ael,
+                        struct mbof_val_array *addgh)
 {
     const struct ldb_message_element *el;
     struct mbof_dn_array *parents;
@@ -3158,14 +3291,6 @@ static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
         return ret;
     }
 
-    parents->dns = talloc_realloc(parents, parents->dns,
-                                  struct ldb_dn *, parents->num + 1);
-    if (!parents->dns) {
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-    parents->dns[parents->num] = mod_ctx->entry->dn;
-    parents->num++;
-
     add_ctx = talloc_zero(mod_ctx, struct mbof_add_ctx);
     if (!add_ctx) {
         return LDB_ERR_OPERATIONS_ERROR;
@@ -3173,18 +3298,42 @@ static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
     add_ctx->ctx = ctx;
     add_ctx->msg_dn = mod_ctx->msg->dn;
 
-    for (i = 0; i < ael->num; i++) {
-        ret = mbof_append_addop(add_ctx, parents, ael->dns[i]);
+    if (addgh != NULL) {
+        /* Build the memberuid add op */
+        ret =  mbof_add_fill_ghop_ex(add_ctx, mod_ctx->entry,
+                                     parents, addgh->vals, addgh->num);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
     }
 
-    return mbof_next_add(add_ctx->add_list);
+    if (ael != NULL) {
+        /* Add itself to the list of the parents to also get the memberuid */
+        parents->dns = talloc_realloc(parents, parents->dns,
+                                    struct ldb_dn *, parents->num + 1);
+        if (!parents->dns) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        parents->dns[parents->num] = mod_ctx->entry->dn;
+        parents->num++;
+
+        /* Build the member-add array */
+        for (i = 0; i < ael->num; i++) {
+            ret = mbof_append_addop(add_ctx, parents, ael->dns[i]);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+
+        return mbof_next_add(add_ctx->add_list);
+    }
+
+    return mbof_add_muop(add_ctx);
 }
 
 static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
-                           struct mbof_dn_array *del)
+                           struct mbof_dn_array *del,
+                           struct mbof_val_array *delgh)
 {
     struct mbof_del_operation *first;
     struct mbof_del_ctx *del_ctx;
@@ -3209,25 +3358,39 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
     }
     del_ctx->first = first;
 
+    /* add followup function if we also have stuff to add */
+    if ((mod_ctx->mb_add && mod_ctx->mb_add->num > 0) ||
+        (mod_ctx->gh_add && mod_ctx->gh_add->num > 0)) {
+        del_ctx->follow_mod = mod_ctx;
+    }
+
     first->del_ctx = del_ctx;
     first->entry = mod_ctx->entry;
     first->entry_dn = mod_ctx->entry->dn;
 
-    /* prepare del sets */
-    for (i = 0; i < del->num; i++) {
-        ret = mbof_append_delop(first, del->dns[i]);
+    if (delgh != NULL) {
+        ret = mbof_del_fill_ghop_ex(del_ctx, del_ctx->first->entry,
+                                    delgh->vals, delgh->num);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
     }
 
-    /* add followup function if we also have stuff to add */
-    if (mod_ctx->mb_add) {
-        del_ctx->follow_mod = mod_ctx;
+    /* prepare del sets */
+    if (del != NULL) {
+        for (i = 0; i < del->num; i++) {
+            ret = mbof_append_delop(first, del->dns[i]);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+
+        /* now that sets are built, start processing */
+        return mbof_del_execute_op(first->children[0]);
     }
 
-    /* now that sets are built, start processing */
-    return mbof_del_execute_op(first->children[0]);
+    /* No member processing, just delete ghosts */
+    return mbof_del_ghop(del_ctx);
 }
 
 static int mbof_fill_dn_array(TALLOC_CTX *memctx,
@@ -3263,6 +3426,42 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
             return LDB_ERR_INVALID_DN_SYNTAX;
         }
         ar->dns[i] = valdn;
+    }
+
+    return LDB_SUCCESS;
+}
+
+static int mbof_fill_vals_array(TALLOC_CTX *memctx,
+                                struct ldb_context *ldb,
+                                const struct ldb_message_element *el,
+                                struct mbof_val_array **val_array)
+{
+    struct mbof_val_array *var;
+    int i;
+
+    var = talloc_zero(memctx, struct mbof_val_array);
+    if (!var) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    *val_array = var;
+
+    if (!el || el->num_values == 0) {
+        return LDB_SUCCESS;
+    }
+
+    var->vals = talloc_array(var, struct ldb_val, el->num_values);
+    if (!var->vals) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    var->num = el->num_values;
+
+    for (i = 0; i < var->num; i++) {
+        var->vals[i].length = strlen((const char *) el->values[i].data);
+        var->vals[i].data = (uint8_t *) talloc_strdup(var,
+                                          (const char *) el->values[i].data);
+        if (var->vals[i].data == NULL) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
     }
 
     return LDB_SUCCESS;
