@@ -365,6 +365,57 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
     return LDB_SUCCESS;
 }
 
+static int mbof_add_fill_ghop_ex(struct mbof_add_ctx *add_ctx,
+                                 struct ldb_message *entry,
+                                 struct mbof_dn_array *parents,
+                                 struct ldb_val *ghvals,
+                                 unsigned int num_gh_vals)
+{
+    int ret;
+    int i, j;
+
+    if (!parents || parents->num == 0) {
+        /* no parents attributes ... */
+        return LDB_SUCCESS;
+    }
+
+    ret = entry_is_group_object(entry);
+    switch (ret) {
+    case LDB_SUCCESS:
+        /* it's a group object, continue */
+        break;
+
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
+        /* it is not a group object, just return */
+        return LDB_SUCCESS;
+
+    default:
+        /* an error occured, return */
+        return ret;
+    }
+
+    ldb_debug(ldb_module_get_ctx(add_ctx->ctx->module),
+              LDB_DEBUG_TRACE,
+              "will add %d ghost users to %d parents\n",
+              num_gh_vals, parents->num);
+
+    for (i = 0; i < parents->num; i++) {
+        for (j = 0; j < num_gh_vals; j++) {
+            ret = mbof_append_muop(add_ctx, &add_ctx->muops,
+                                   &add_ctx->num_muops,
+                                   LDB_FLAG_MOD_ADD,
+                                   parents->dns[i],
+                                   (const char *) ghvals[j].data,
+                                   DB_GHOST);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+    }
+
+    return LDB_SUCCESS;
+}
+
 static int memberof_recompute_task(struct ldb_module *module,
                                    struct ldb_request *req);
 
@@ -374,6 +425,9 @@ static int mbof_next_add(struct mbof_add_operation *addop);
 static int mbof_next_add_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static int mbof_add_operation(struct mbof_add_operation *addop);
+static int mbof_add_fill_ghop(struct mbof_add_ctx *add_ctx,
+                              struct ldb_message *entry,
+                              struct mbof_dn_array *parents);
 static int mbof_add_missing(struct mbof_add_ctx *add_ctx, struct ldb_dn *dn);
 static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx);
 static int mbof_add_cleanup_callback(struct ldb_request *req,
@@ -840,23 +894,9 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         return ret;
     }
 
-    el = ldb_msg_find_element(addop->entry, DB_GHOST);
-    if (el) {
-        for (i = 0; i < el->num_values; i++) {
-            /* add ghost to all group's parents */
-            for (j = 0; j < parents->num; j++) {
-                ret = mbof_append_muop(add_ctx, &add_ctx->muops,
-                                       &add_ctx->num_muops,
-                                       LDB_FLAG_MOD_ADD,
-                                       parents->dns[j],
-                                       (char *)el->values[i].data,
-                                       DB_GHOST);
-                if (ret != LDB_SUCCESS) {
-                    return ret;
-                }
-            }
-
-        }
+    ret = mbof_add_fill_ghop(add_ctx, addop->entry, parents);
+    if (ret != LDB_SUCCESS) {
+        return ret;
     }
 
     /* we are done with the entry now */
@@ -899,6 +939,22 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     talloc_steal(mod_req, msg);
 
     return ldb_next_request(ctx->module, mod_req);
+}
+
+static int mbof_add_fill_ghop(struct mbof_add_ctx *add_ctx,
+                              struct ldb_message *entry,
+                              struct mbof_dn_array *parents)
+{
+    struct ldb_message_element *ghel;
+
+    ghel = ldb_msg_find_element(entry, DB_GHOST);
+    if (ghel == NULL || ghel->num_values == 0) {
+        /* No ghel attribute, just return success */
+        return LDB_SUCCESS;
+    }
+
+    return mbof_add_fill_ghop_ex(add_ctx, entry, parents,
+                                 ghel->values, ghel->num_values);
 }
 
 static int mbof_add_missing(struct mbof_add_ctx *add_ctx, struct ldb_dn *dn)
