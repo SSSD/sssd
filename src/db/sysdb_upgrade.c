@@ -1311,7 +1311,7 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
         if (tmp_str == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("The object [%s] doesn't have a name\n",
-                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+                   ldb_dn_get_linearized(dom_res->msgs[i]->dn)));
             continue;
         }
 
