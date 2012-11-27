@@ -1996,6 +1996,190 @@ START_TEST (test_sysdb_memberof_store_group_with_ghosts)
 }
 END_TEST
 
+
+START_TEST (test_sysdb_memberof_mod_add)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    char *ghostname;
+    int ret;
+    struct ldb_message_element *el;
+    struct ldb_val gv, *test_gv;
+    gid_t itergid;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    data->attrs = sysdb_new_attrs(data);
+    if (ret != EOK) {
+        fail("Could not create the changeset");
+        return;
+    }
+
+    ghostname = talloc_asprintf(data, "testghost%d", _i);
+    fail_unless(ghostname != NULL, "Out of memory\n");
+    ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname);
+    fail_unless(ret == EOK, "Cannot add attr\n");
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    /* Before the add, the groups should not contain the ghost attribute */
+    for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
+        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                        itergid,
+                                        data->attrlist, &data->msg);
+        fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+                (unsigned long long) data->gid);
+
+        gv.data = (uint8_t *) ghostname;
+        gv.length = strlen(ghostname);
+
+        el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+        if (data->gid > MBO_GROUP_BASE) {
+            /* The first group would have the ghost attribute gone completely */
+            fail_if(el == NULL, "Cannot find ghost element\n");
+            test_gv = ldb_msg_find_val(el, &gv);
+            fail_unless(test_gv == NULL,
+                        "Ghost user %s unexpectedly found\n", ghostname);
+        } else {
+            fail_unless(el == NULL, "Stray values in ghost element?\n");
+        }
+    }
+
+    /* Perform the add operation */
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
+                                data->attrs, SYSDB_MOD_ADD);
+    fail_unless(ret == EOK, "Cannot set group attrs\n");
+
+    /* Before the delete, all groups with gid >= _i have the testuser%_i
+     * as a member
+     */
+    for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
+        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                        itergid,
+                                        data->attrlist, &data->msg);
+        fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+                (unsigned long long) data->gid);
+
+        gv.data = (uint8_t *) ghostname;
+        gv.length = strlen(ghostname);
+
+        el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+        fail_if(el == NULL, "Cannot find ghost element\n");
+
+        test_gv = ldb_msg_find_val(el, &gv);
+        fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname);
+    }
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_mod_replace)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    char *ghostname_del;
+    char *ghostname_add;
+    int ret;
+    struct ldb_message_element *el;
+    struct ldb_val gv, *test_gv;
+    gid_t itergid;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    data->attrs = sysdb_new_attrs(data);
+    if (ret != EOK) {
+        fail("Could not create the changeset");
+        return;
+    }
+
+    /* The test replaces the testuser%i attribute with testghost%i */
+    ghostname_del = talloc_asprintf(data, "testuser%d", _i);
+    fail_unless(ghostname_del != NULL, "Out of memory\n");
+
+    ghostname_add = talloc_asprintf(data, "testghost%d", _i);
+    fail_unless(ghostname_add != NULL, "Out of memory\n");
+    ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_add);
+    fail_unless(ret == EOK, "Cannot add attr\n");
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    /* Before the replace, all groups with gid >= _i have the testuser%_i
+     * as a member
+     */
+    for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
+        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                        itergid,
+                                        data->attrlist, &data->msg);
+        fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+                (unsigned long long) data->gid);
+
+        gv.data = (uint8_t *) ghostname_del;
+        gv.length = strlen(ghostname_del);
+
+        el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+        fail_if(el == NULL, "Cannot find ghost element\n");
+
+        test_gv = ldb_msg_find_val(el, &gv);
+        fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
+    }
+
+    /* Perform the replace operation */
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
+                                data->attrs, SYSDB_MOD_REP);
+    fail_unless(ret == EOK, "Cannot set group attrs\n");
+
+    /* After the replace, all groups with gid >= _i have the testghost%_i
+     * as a member
+     */
+    for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
+        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                        itergid,
+                                        data->attrlist, &data->msg);
+        fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+                (unsigned long long) data->gid);
+
+        gv.data = (uint8_t *) ghostname_add;
+        gv.length = strlen(ghostname_add);
+
+        el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+        fail_if(el == NULL, "Cannot find ghost element\n");
+
+        test_gv = ldb_msg_find_val(el, &gv);
+        fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_add);
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_memberof_close_loop)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -2367,6 +2551,97 @@ START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
 }
 END_TEST
 
+START_TEST (test_sysdb_memberof_mod_del)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    char *ghostname;
+    int ret;
+    struct ldb_message_element *el;
+    struct ldb_val gv, *test_gv;
+    gid_t itergid;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    data->attrs = sysdb_new_attrs(data);
+    if (ret != EOK) {
+        fail("Could not create the changeset");
+        return;
+    }
+
+    ghostname = talloc_asprintf(data, "testuser%d", _i);
+    fail_unless(ghostname != NULL, "Out of memory\n");
+    ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname);
+    fail_unless(ret == EOK, "Cannot add attr\n");
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    /* Before the delete, all groups with gid >= _i have the testuser%_i
+     * as a member
+     */
+    for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
+        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                        itergid,
+                                        data->attrlist, &data->msg);
+        fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+                (unsigned long long) data->gid);
+
+        gv.data = (uint8_t *) ghostname;
+        gv.length = strlen(ghostname);
+
+        el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+        fail_if(el == NULL, "Cannot find ghost element\n");
+
+        test_gv = ldb_msg_find_val(el, &gv);
+        fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname);
+    }
+
+    /* Delete the attribute */
+    ret = sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
+                               data->attrs, SYSDB_MOD_DEL);
+    fail_unless(ret == EOK, "Cannot set group attrs\n");
+
+    /* After the delete, we shouldn't be able to find the ghost attribute */
+    for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
+        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                        itergid,
+                                        data->attrlist, &data->msg);
+        fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+                (unsigned long long) data->gid);
+
+        gv.data = (uint8_t *) ghostname;
+        gv.length = strlen(ghostname);
+
+        el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+        if (itergid > data->gid) {
+            /* The first group would have the ghost attribute gone completely */
+            fail_if(el == NULL, "Cannot find ghost element\n");
+            test_gv = ldb_msg_find_val(el, &gv);
+            fail_unless(test_gv == NULL,
+                        "Ghost user %s unexpectedly found\n", ghostname);
+        } else {
+            fail_unless(el == NULL, "Stray values in ghost element?\n");
+        }
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_memberof_check_ghost)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -2518,6 +2793,170 @@ START_TEST (test_sysdb_memberof_check_convert)
     }
 
     talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_ghost_replace)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    char *ghostname_del;
+    char *ghostname_add;
+    int ret;
+    struct ldb_message_element *el;
+    struct ldb_val gv, *test_gv;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    data->attrs = sysdb_new_attrs(data);
+    if (ret != EOK) {
+        fail("Could not create the changeset");
+        return;
+    }
+
+    /* The test replaces the testghost%i attribute with testuser%i */
+    ghostname_del = talloc_asprintf(data, "testghost%d", _i - 1);
+    fail_unless(ghostname_del != NULL, "Out of memory\n");
+
+    ghostname_add = talloc_asprintf(data, "testuser%d", _i - 1);
+    fail_unless(ghostname_add != NULL, "Out of memory\n");
+    ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_add);
+    fail_unless(ret == EOK, "Cannot add attr\n");
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    /* Before the replace, the group has the testghost%_i as a member */
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+            (unsigned long long) data->gid);
+
+    gv.data = (uint8_t *) ghostname_del;
+    gv.length = strlen(ghostname_del);
+
+    el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+    fail_if(el == NULL, "Cannot find ghost element\n");
+
+    test_gv = ldb_msg_find_val(el, &gv);
+    fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
+
+    /* Perform the replace operation */
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
+                                data->attrs, SYSDB_MOD_REP);
+    fail_unless(ret == EOK, "Cannot set group attrs\n");
+
+    /* After the replace, the group has the testghost%_i as a member */
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+            (unsigned long long) data->gid);
+
+    gv.data = (uint8_t *) ghostname_add;
+    gv.length = strlen(ghostname_add);
+
+    el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+    fail_if(el == NULL, "Cannot find ghost element\n");
+
+    test_gv = ldb_msg_find_val(el, &gv);
+    fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_add);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_ghost_replace_noop)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    char *ghostname_del;
+    char *ghostname_add;
+    int ret;
+    struct ldb_message_element *el;
+    struct ldb_val gv, *test_gv;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    data->attrs = sysdb_new_attrs(data);
+    if (ret != EOK) {
+        fail("Could not create the changeset");
+        return;
+    }
+
+    /* The test replaces the testghost%i attribute with testuser%i */
+    ghostname_del = talloc_asprintf(data, "testuser%d", _i - 1);
+    fail_unless(ghostname_del != NULL, "Out of memory\n");
+
+    ghostname_add = talloc_asprintf(data, "testuser%d", _i - 1);
+    fail_unless(ghostname_add != NULL, "Out of memory\n");
+    ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_add);
+    fail_unless(ret == EOK, "Cannot add attr\n");
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = SYSDB_GHOST;
+    data->attrlist[1] = NULL;
+
+    /* Before the replace, the group has the testghost%_i as a member */
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+            (unsigned long long) data->gid);
+
+    gv.data = (uint8_t *) ghostname_del;
+    gv.length = strlen(ghostname_del);
+
+    el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+    fail_if(el == NULL, "Cannot find ghost element\n");
+
+    test_gv = ldb_msg_find_val(el, &gv);
+    fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
+
+    /* Perform the replace operation */
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
+                                data->attrs, SYSDB_MOD_REP);
+    fail_unless(ret == EOK, "Cannot set group attrs\n");
+
+    /* After the replace, the group has the testghost%_i as a member */
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->gid,
+                                    data->attrlist, &data->msg);
+    fail_if(ret != EOK, "Cannot retrieve group %llu\n",
+            (unsigned long long) data->gid);
+
+    gv.data = (uint8_t *) ghostname_add;
+    gv.length = strlen(ghostname_add);
+
+    el = ldb_msg_find_element(data->msg, SYSDB_GHOST);
+    fail_if(el == NULL, "Cannot find ghost element\n");
+
+    test_gv = ldb_msg_find_val(el, &gv);
+    fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_add);
 }
 END_TEST
 
@@ -4456,11 +4895,52 @@ Suite *create_sysdb_suite(void)
     /* Check the members and ghosts are there as appropriate */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_convert,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS);
+    /* Rename the other half */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_ghost_replace,
+                        MBO_GROUP_BASE + NUM_GHOSTS/2 + 1,
+                        MBO_GROUP_BASE + NUM_GHOSTS);
+    /* Attempt to replace with the same data to check if noop works correctly */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_ghost_replace_noop,
+                        MBO_GROUP_BASE + NUM_GHOSTS/2 + 1,
+                        MBO_GROUP_BASE + NUM_GHOSTS);
     /* Remove the real users */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_user_cleanup,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS/2);
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS);
+
+    /* ghost users - memberof mod_del */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group_with_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_nested_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_mod_del,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS);
+
+    /* ghost users - memberof mod_add */
+    /* Add groups without ghosts first */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group, 0, 10);
+    /* Add ghosts to groups so that they propagate */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_mod_add,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    /* Check if the ghosts in fact propagated */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_nested_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    /* Clean up */
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+
+    /* ghost users - replace */
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group_with_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_nested_ghosts,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_mod_replace,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
 
     suite_add_tcase(s, tc_memberof);
 
