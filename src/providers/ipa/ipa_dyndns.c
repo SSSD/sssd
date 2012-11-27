@@ -733,7 +733,17 @@ ipa_dyndns_update_get_addrs_done(struct tevent_req *subreq)
 
     /* EOK */
 
-    for (count=0; rhostent->addr_list[count]; count++);
+    if (rhostent->addr_list) {
+        for (count=0; rhostent->addr_list[count]; count++);
+    } else {
+        /* The address list is NULL. This is probably a bug in
+         * c-ares, but we need to handle it gracefully.
+         */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Lookup of [%s] returned no addresses. Skipping.\n",
+               rhostent->name));
+        count = 0;
+    }
 
     state->addrlist = talloc_realloc(state, state->addrlist, char *,
                                         state->count + count + 1);
