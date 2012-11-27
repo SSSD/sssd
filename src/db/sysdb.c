@@ -737,6 +737,7 @@ int sysdb_error_to_errno(int ldberr)
         return ENOENT;
     case LDB_ERR_BUSY:
         return EBUSY;
+    case LDB_ERR_ATTRIBUTE_OR_VALUE_EXISTS:
     case LDB_ERR_ENTRY_ALREADY_EXISTS:
         return EEXIST;
     case LDB_ERR_INVALID_ATTRIBUTE_SYNTAX:
