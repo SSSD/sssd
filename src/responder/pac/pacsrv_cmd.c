@@ -380,18 +380,18 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
+    ret = get_pwd_from_pac(tmp_ctx, pr_ctx->pac_ctx, pr_ctx->dom,
+                           pr_ctx->logon_info, &pwd, &user_attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("get_pwd_from_pac failed.\n"));
+        goto done;
+    }
+
     ret = sysdb_search_user_by_name(tmp_ctx, sysdb, pr_ctx->fq_name, attrs,
                                     &msg);
     if (ret == EOK) {
         /* TODO: check id uid and gid are equal. */
     } else if (ret == ENOENT) {
-        ret = get_pwd_from_pac(tmp_ctx, pr_ctx->pac_ctx, pr_ctx->dom,
-                               pr_ctx->logon_info, &pwd, &user_attrs);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("get_pwd_from_pac failed.\n"));
-            goto done;
-        }
-
         ret = sysdb_store_user(sysdb, pwd->pw_name, NULL,
                                pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
                                pwd->pw_dir,
