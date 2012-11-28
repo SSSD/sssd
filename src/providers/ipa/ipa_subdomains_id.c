@@ -32,7 +32,7 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_subdomains.h"
 
-struct ipa_user_get_state {
+struct ipa_get_subdom_acct {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     struct sdap_id_op *op;
@@ -48,19 +48,20 @@ struct ipa_user_get_state {
     int dp_error;
 };
 
-static int ipa_get_subdomain_account_info_retry(struct tevent_req *req);
-static void ipa_get_subdomain_account_info_connect_done(struct tevent_req *subreq);
-static void ipa_get_subdomain_account_info_done(struct tevent_req *subreq);
-struct tevent_req *ipa_get_subdomain_account_info_send(TALLOC_CTX *memctx,
-                                                      struct tevent_context *ev,
-                                                      struct sdap_id_ctx *ctx,
-                                                      struct be_acct_req *ar)
+static void ipa_get_subdom_acct_connected(struct tevent_req *subreq);
+static void ipa_get_subdom_acct_done(struct tevent_req *subreq);
+
+struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
+                                            struct tevent_context *ev,
+                                            struct sdap_id_ctx *ctx,
+                                            struct be_acct_req *ar)
 {
     struct tevent_req *req;
-    struct ipa_user_get_state *state;
+    struct ipa_get_subdom_acct *state;
+    struct tevent_req *subreq;
     int ret;
 
-    req = tevent_req_create(memctx, &state, struct ipa_user_get_state);
+    req = tevent_req_create(memctx, &state, struct ipa_get_subdom_acct);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -112,10 +113,11 @@ struct tevent_req *ipa_get_subdomain_account_info_send(TALLOC_CTX *memctx,
     }
     if (ret != EOK) goto fail;
 
-    ret = ipa_get_subdomain_account_info_retry(req);
-    if (ret != EOK) {
+    subreq = sdap_id_op_connect_send(state->op, state, &ret);
+    if (!subreq) {
         goto fail;
     }
+    tevent_req_set_callback(subreq, ipa_get_subdom_acct_connected, req);
 
     return req;
 
@@ -125,29 +127,12 @@ fail:
     return req;
 }
 
-static int ipa_get_subdomain_account_info_retry(struct tevent_req *req)
-{
-    struct ipa_user_get_state *state = tevent_req_data(req,
-                                                    struct ipa_user_get_state);
-    struct tevent_req *subreq;
-    int ret = EOK;
-
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, ipa_get_subdomain_account_info_connect_done,
-                            req);
-    return EOK;
-}
-
-static void ipa_get_subdomain_account_info_connect_done(struct tevent_req *subreq)
+static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ipa_user_get_state *state = tevent_req_data(req,
-                                                     struct ipa_user_get_state);
+                                                struct tevent_req);
+    struct ipa_get_subdom_acct *state = tevent_req_data(req,
+                                                struct ipa_get_subdom_acct);
     int dp_error = DP_ERR_FATAL;
     int ret;
     const char *name;
@@ -194,17 +179,17 @@ static void ipa_get_subdomain_account_info_connect_done(struct tevent_req *subre
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, ipa_get_subdomain_account_info_done, req);
+    tevent_req_set_callback(subreq, ipa_get_subdom_acct_done, req);
 
     return;
 }
 
-static void ipa_get_subdomain_account_info_done(struct tevent_req *subreq)
+static void ipa_get_subdom_acct_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ipa_user_get_state *state = tevent_req_data(req,
-                                                     struct ipa_user_get_state);
+                                                struct tevent_req);
+    struct ipa_get_subdom_acct *state = tevent_req_data(req,
+                                                struct ipa_get_subdom_acct);
     int dp_error = DP_ERR_FATAL;
     int ret;
 
@@ -214,12 +199,12 @@ static void ipa_get_subdomain_account_info_done(struct tevent_req *subreq)
     ret = sdap_id_op_done(state->op, ret, &dp_error);
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
-        ret = ipa_get_subdomain_account_info_retry(req);
-        if (ret != EOK) {
+        subreq = sdap_id_op_connect_send(state->op, state, &ret);
+        if (!subreq) {
             tevent_req_error(req, ret);
             return;
         }
-
+        tevent_req_set_callback(subreq, ipa_get_subdom_acct_connected, req);
         return;
     }
 
@@ -235,10 +220,10 @@ static void ipa_get_subdomain_account_info_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int ipa_user_get_recv(struct tevent_req *req, int *dp_error_out)
+int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out)
 {
-    struct ipa_user_get_state *state = tevent_req_data(req,
-                                                    struct ipa_user_get_state);
+    struct ipa_get_subdom_acct *state = tevent_req_data(req,
+                                                struct ipa_get_subdom_acct);
 
     if (dp_error_out) {
         *dp_error_out = state->dp_error;

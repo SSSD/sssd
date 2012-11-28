@@ -78,8 +78,7 @@ void ipa_account_info_handler(struct be_req *breq)
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
 
     if (strcasecmp(ar->domain, breq->be_ctx->domain->name) != 0) {
-        req = ipa_get_subdomain_account_info_send(breq, breq->be_ctx->ev, ctx,
-                                                  ar);
+        req = ipa_get_subdom_acct_send(breq, breq->be_ctx->ev, ctx, ar);
         if (!req) {
             return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
@@ -148,7 +147,7 @@ static void ipa_account_info_users_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     int ret, dp_error;
 
-    ret = ipa_user_get_recv(req, &dp_error);
+    ret = ipa_get_subdom_acct_recv(req, &dp_error);
     talloc_zfree(req);
 
     ipa_account_info_complete(breq, dp_error, ret, "User lookup failed");
