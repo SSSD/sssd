@@ -259,7 +259,7 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
         return ENOMEM;
     }
     kr->is_offline = false;
-    kr->active_ccache_present = true;
+    kr->active_ccache = true;
     kr->run_as_user = true;
     talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
@@ -271,12 +271,165 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
     return EOK;
 }
 
-static void krb5_resolve_kdc_done(struct tevent_req *subreq);
-static void krb5_resolve_kpasswd_done(struct tevent_req *subreq);
-static void krb5_find_ccache_step(struct tevent_req *req);
-static void krb5_save_ccname_done(struct tevent_req *req);
-static void krb5_child_done(struct tevent_req *req);
-static void krb5_pam_handler_cache_auth_step(struct tevent_req *req);
+
+static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  struct confdb_ctx *cdb,
+                                  struct pam_data *pd, uid_t uid,
+                                  int *pam_status, int *dp_err)
+{
+    errno_t ret;
+
+    ret = sysdb_cache_auth(sysdb, pd->user, pd->authtok,
+                           pd->authtok_size, cdb, true, NULL,
+                           NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("Offline authentication failed\n"));
+        *pam_status = cached_login_pam_status(ret);
+        *dp_err = DP_ERR_OK;
+        return;
+    }
+
+    ret = add_user_to_delayed_online_authentication(krb5_ctx, pd, uid);
+    if (ret != EOK) {
+        /* This error is not fatal */
+        DEBUG(1, ("add_user_to_delayed_online_authentication failed.\n"));
+    }
+    *pam_status = PAM_AUTHINFO_UNAVAIL;
+    *dp_err = DP_ERR_OFFLINE;
+}
+
+static errno_t krb5_auth_prepare_ccache_file(struct krb5child_req *kr,
+                                             struct be_ctx *be_ctx,
+                                             int *pam_status, int *dp_err)
+{
+    const char *ccname_template;
+    bool private_path = false;
+    errno_t ret;
+
+    if (!kr->is_offline) {
+        kr->is_offline = be_is_offline(be_ctx);
+    }
+
+    /* The ccache file should be (re)created if one of the following conditions
+     * is true:
+     * - it doesn't exist (kr->ccname == NULL)
+     * - the backend is online and the current ccache file is not used, i.e
+     *   the related user is currently not logged in and it is not a renewal
+     *   request
+     *   (!kr->is_offline && !kr->active_ccache && kr->pd->cmd != SSS_CMD_RENEW)
+     * - the backend is offline and the current cache file not used and
+     *   it does not contain a valid tgt
+     *   (kr->is_offline && !kr->active_ccache && !kr->valid_tgt)
+     */
+    if (kr->ccname == NULL ||
+        (kr->is_offline && !kr->active_ccache && !kr->valid_tgt) ||
+        (!kr->is_offline && !kr->active_ccache && kr->pd->cmd != SSS_CMD_RENEW)) {
+            DEBUG(9, ("Recreating  ccache file.\n"));
+            ccname_template = dp_opt_get_cstring(kr->krb5_ctx->opts,
+                                                 KRB5_CCNAME_TMPL);
+            kr->ccname = expand_ccname_template(kr, kr, ccname_template, true,
+                                                be_ctx->domain->case_sensitive,
+                                                &private_path);
+            if (kr->ccname == NULL) {
+                DEBUG(1, ("expand_ccname_template failed.\n"));
+                return ENOMEM;
+            }
+
+            if (kr->cc_be == NULL) {
+                kr->cc_be = get_cc_be_ops_ccache(kr->ccname);
+            }
+            if (kr->cc_be == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Cannot get operations on new ccache %s\n", kr->ccname));
+                return EINVAL;
+            }
+
+            ret = kr->cc_be->create(kr->ccname,
+                                    kr->krb5_ctx->illegal_path_re,
+                                    kr->uid, kr->gid, private_path);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("ccache creation failed.\n"));
+                return ret;
+            }
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Saved ccache %s if of different type than ccache in "
+               "configuration file, reusing the old ccache\n",
+               kr->old_ccname));
+
+        kr->cc_be = get_cc_be_ops_ccache(kr->old_ccname);
+        if (kr->cc_be == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot get operations on saved ccache %s\n",
+                   kr->old_ccname));
+            return EINVAL;
+        }
+    }
+
+    return EOK;
+}
+
+static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *password = NULL;
+    int ret = EOK;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        DEBUG(0, ("Out of memory when trying to store credentials\n"));
+        return;
+    }
+
+    switch(pd->cmd) {
+        case SSS_CMD_RENEW:
+            /* The authtok is set to the credential cache
+             * during renewal. We don't want to save this
+             * as the cached password.
+             */
+            break;
+        case SSS_PAM_AUTHENTICATE:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+            password = talloc_size(tmp_ctx, pd->authtok_size + 1);
+            if (password != NULL) {
+                memcpy(password, pd->authtok, pd->authtok_size);
+                password[pd->authtok_size] = '\0';
+            }
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            password = talloc_size(tmp_ctx, pd->newauthtok_size + 1);
+            if (password != NULL) {
+                memcpy(password, pd->newauthtok, pd->newauthtok_size);
+                password[pd->newauthtok_size] = '\0';
+            }
+            break;
+        default:
+            DEBUG(0, ("unsupported PAM command [%d].\n", pd->cmd));
+    }
+
+    if (password == NULL) {
+        if (pd->cmd != SSS_CMD_RENEW) {
+            DEBUG(0, ("password not available, offline auth may not work.\n"));
+            /* password caching failures are not fatal errors */
+        }
+        talloc_zfree(tmp_ctx);
+        return;
+    }
+
+    talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
+
+    ret = sysdb_cache_password(sysdb, pd->user, password);
+    if (ret) {
+        DEBUG(2, ("Failed to cache password, offline auth may not work."
+                  " (%d)[%s]!?\n", ret, strerror(ret)));
+        /* password caching failures are not fatal errors */
+    }
+
+    talloc_zfree(tmp_ctx);
+}
+
+/* krb5_auth request */
 
 struct krb5_auth_state {
     struct tevent_context *ev;
@@ -286,24 +439,14 @@ struct krb5_auth_state {
     struct krb5_ctx *krb5_ctx;
     struct krb5child_req *kr;
 
+    bool search_kpasswd;
+
     int pam_status;
     int dp_err;
 };
 
-int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
-{
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-
-    *pam_status = state->pam_status;
-    *dp_err = state->dp_err;
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
-static struct tevent_req *krb5_next_kdc(struct tevent_req *req);
-static struct tevent_req *krb5_next_kpasswd(struct tevent_req *req);
+static void krb5_auth_resolve_done(struct tevent_req *subreq);
+static void krb5_auth_done(struct tevent_req *subreq);
 
 struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
@@ -465,22 +608,22 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                                   NULL);
         if (ccache_file != NULL) {
             ret = check_old_ccache(ccache_file, kr, realm,
-                                   &kr->active_ccache_present,
-                                   &kr->valid_tgt_present);
+                                   &kr->active_ccache,
+                                   &kr->valid_tgt);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("check_if_ccache_file_is_used failed.\n"));
                 goto done;
             }
         } else {
-            kr->active_ccache_present = false;
-            kr->valid_tgt_present = false;
+            kr->active_ccache = false;
+            kr->valid_tgt = false;
             DEBUG(4, ("No ccache file for user [%s] found.\n", pd->user));
         }
         DEBUG(9, ("Ccache_file is [%s] and is %s active and TGT is %s valid.\n",
                   ccache_file ? ccache_file : "not set",
-                  kr->active_ccache_present ? "" : "not",
-                  kr->valid_tgt_present ? "" : "not"));
+                  kr->active_ccache ? "" : "not",
+                  kr->valid_tgt ? "" : "not"));
         if (ccache_file != NULL) {
             kr->ccname = ccache_file;
             kr->old_ccname = talloc_strdup(kr, ccache_file);
@@ -505,12 +648,16 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     kr->srv = NULL;
     kr->kpasswd_srv = NULL;
 
-    subreq = krb5_next_kdc(req);
+    state->search_kpasswd = false;
+    subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
+                                    state->krb5_ctx->service->name,
+                                    state->kr->srv == NULL ? true : false);
     if (!subreq) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_next_kdc failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed resolver request.\n"));
         ret = EIO;
         goto done;
     }
+    tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
 
     return req;
 
@@ -524,168 +671,86 @@ done:
     return req;
 }
 
-static void krb5_resolve_kdc_done(struct tevent_req *subreq)
+static void krb5_auth_resolve_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
     struct krb5child_req *kr = state->kr;
+    char *msg;
     int ret;
 
     ret = be_resolve_server_recv(subreq, &kr->srv);
     talloc_zfree(subreq);
-    if (ret) {
-        /* all servers have been tried and none
-         * was found good, setting offline,
-         * but we still have to call the child to setup
-         * the ccache file if we are performing auth */
-        be_mark_offline(state->be_ctx);
-        kr->is_offline = true;
 
-        if (kr->pd->cmd == SSS_PAM_CHAUTHTOK ||
-            kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  ("No KDC suitable for password change is available\n"));
+    if (state->search_kpasswd) {
+        if ((ret != EOK) &&
+            (kr->pd->cmd == SSS_PAM_CHAUTHTOK ||
+             kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
+            /* all kpasswd servers have been tried and none was found good,
+             * but the kdc seems ok. Password changes are not possible but
+             * authentication is. We return an PAM error here, but do not
+             * mark the backend offline. */
             state->pam_status = PAM_AUTHTOK_LOCK_BUSY;
             state->dp_err = DP_ERR_OK;
-            tevent_req_done(req);
-            return;
-        }
-    } else {
-        if (kr->krb5_ctx->kpasswd_service != NULL) {
-            subreq = krb5_next_kpasswd(req);
-            if (subreq == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_next_kpasswd failed.\n"));
-                ret = EIO;
-                goto failed;
-            }
-            return;
-        }
-    }
-
-    krb5_find_ccache_step(req);
-    return;
-
-failed:
-    tevent_req_error(req, ret);
-}
-
-static void krb5_resolve_kpasswd_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-    int ret;
-
-    ret = be_resolve_server_recv(subreq, &state->kr->kpasswd_srv);
-    talloc_zfree(subreq);
-    if (ret != EOK &&
-        (state->kr->pd->cmd == SSS_PAM_CHAUTHTOK ||
-         state->kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
-        /* all kpasswd servers have been tried and none was found good, but the
-         * kdc seems ok. Password changes are not possible but
-         * authentication is. We return an PAM error here, but do not mark the
-         * backend offline. */
-        state->pam_status = PAM_AUTHTOK_LOCK_BUSY;
-        state->dp_err = DP_ERR_OK;
-        tevent_req_done(req);
-        return;
-    }
-
-    krb5_find_ccache_step(req);
-}
-
-static void krb5_find_ccache_step(struct tevent_req *req)
-{
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-    int ret;
-    struct krb5child_req *kr = state->kr;
-    struct pam_data *pd = kr->pd;
-    char *msg;
-    bool private_path = false;
-    struct tevent_req *subreq = NULL;
-
-    if (!kr->is_offline) {
-        kr->is_offline = be_is_offline(state->be_ctx);
-    }
-
-    /* The ccache file should be (re)created if one of the following conditions
-     * is true:
-     * - it doesn't exist (kr->ccname == NULL)
-     * - the backend is online and the current ccache file is not used, i.e
-     *   the related user is currently not logged in and it is not a renewal
-     *   request
-     *   (!kr->is_offline && !kr->active_ccache_present &&
-     *    pd->cmd != SSS_CMD_RENEW)
-     * - the backend is offline and the current cache file not used and
-     *   it does not contain a valid tgt
-     *   (kr->is_offline &&
-     *    !kr->active_ccache_present && !kr->valid_tgt_present)
-     */
-    if (kr->ccname == NULL ||
-        (kr->is_offline && !kr->active_ccache_present &&
-            !kr->valid_tgt_present) ||
-        (!kr->is_offline && !kr->active_ccache_present &&
-         pd->cmd != SSS_CMD_RENEW)) {
-            DEBUG(9, ("Recreating  ccache file.\n"));
-            kr->ccname = expand_ccname_template(kr, kr,
-                                          dp_opt_get_cstring(kr->krb5_ctx->opts,
-                                                             KRB5_CCNAME_TMPL),
-                                                true,
-                                                state->be_ctx->domain->case_sensitive,
-                                                &private_path);
-            if (kr->ccname == NULL) {
-                DEBUG(1, ("expand_ccname_template failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-
-            if (!kr->cc_be) {
-                kr->cc_be = get_cc_be_ops_ccache(kr->ccname);
-                if (kr->cc_be == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("Cannot get operations on new ccache %s\n",
-                           kr->ccname));
-                    ret = EINVAL;
-                    goto done;
-                }
-            }
-
-            ret = kr->cc_be->create(kr->ccname,
-                                    kr->krb5_ctx->illegal_path_re,
-                                    kr->uid, kr->gid, private_path);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("ccache creation failed.\n"));
-                goto done;
-            }
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Saved ccache %s if of different type than ccache in "
-               "configuration file, reusing the old ccache\n",
-               kr->old_ccname));
-
-        kr->cc_be = get_cc_be_ops_ccache(kr->old_ccname);
-        if (kr->cc_be == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Cannot get operations on saved ccache %s\n",
-                   kr->old_ccname));
-            ret = EINVAL;
+            ret = EOK;
             goto done;
         }
+    } else {
+        if (ret != EOK) {
+            /* all servers have been tried and none
+             * was found good, setting offline,
+             * but we still have to call the child to setup
+             * the ccache file if we are performing auth */
+            be_mark_offline(state->be_ctx);
+            kr->is_offline = true;
 
+            if (kr->pd->cmd == SSS_PAM_CHAUTHTOK ||
+                kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      ("No KDC suitable for password change is available\n"));
+                state->pam_status = PAM_AUTHTOK_LOCK_BUSY;
+                state->dp_err = DP_ERR_OK;
+                ret = EOK;
+                goto done;
+            }
+        } else {
+            if (kr->krb5_ctx->kpasswd_service != NULL) {
+                state->search_kpasswd = true;
+                subreq = be_resolve_server_send(state,
+                                    state->ev, state->be_ctx,
+                                    state->krb5_ctx->kpasswd_service->name,
+                                    kr->kpasswd_srv == NULL ? true : false);
+                if (subreq == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Resolver request failed.\n"));
+                    ret = EIO;
+                    goto done;
+                }
+                tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
+                return;
+            }
+        }
+    }
+
+    ret = krb5_auth_prepare_ccache_file(kr, state->be_ctx,
+                                        &state->pam_status, &state->dp_err);
+    if (ret) {
+        goto done;
     }
 
     if (kr->is_offline) {
         DEBUG(9, ("Preparing for offline operation.\n"));
 
-        if (kr->valid_tgt_present || kr->active_ccache_present) {
+        if (kr->valid_tgt || kr->active_ccache) {
             DEBUG(9, ("Valid TGT available or "
                       "ccache file is already in use.\n"));
             kr->ccname = kr->old_ccname;
-            msg = talloc_asprintf(pd, "%s=%s", CCACHE_ENV_NAME, kr->ccname);
+            msg = talloc_asprintf(kr->pd,
+                                  "%s=%s", CCACHE_ENV_NAME, kr->ccname);
             if (msg == NULL) {
                 DEBUG(1, ("talloc_asprintf failed.\n"));
             } else {
-                ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(msg) + 1,
-                                       (uint8_t *) msg);
+                ret = pam_add_response(kr->pd, SSS_PAM_ENV_ITEM,
+                                       strlen(msg) + 1, (uint8_t *) msg);
                 if (ret != EOK) {
                     DEBUG(1, ("pam_add_response failed.\n"));
                 }
@@ -693,12 +758,15 @@ static void krb5_find_ccache_step(struct tevent_req *req)
 
             if (dp_opt_get_bool(kr->krb5_ctx->opts,
                                 KRB5_STORE_PASSWORD_IF_OFFLINE)) {
-                krb5_pam_handler_cache_auth_step(req);
-                return;
+                krb5_auth_cache_creds(state->kr->krb5_ctx,
+                                      state->be_ctx->sysdb,
+                                      state->be_ctx->cdb,
+                                      kr->pd, kr->uid,
+                                      &state->pam_status, &state->dp_err);
+            } else {
+                state->pam_status = PAM_AUTHINFO_UNAVAIL;
+                state->dp_err = DP_ERR_OFFLINE;
             }
-
-            state->pam_status = PAM_AUTHINFO_UNAVAIL;
-            state->dp_err = DP_ERR_OFFLINE;
             ret = EOK;
             goto done;
 
@@ -712,7 +780,7 @@ static void krb5_find_ccache_step(struct tevent_req *req)
      * case we can drop the privileges, too. */
     if ((dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ||
          kr->krb5_ctx->use_fast) &&
-        !kr->is_offline) {
+        (!kr->is_offline)) {
         kr->run_as_user = false;
     } else {
         kr->run_as_user = true;
@@ -724,8 +792,7 @@ static void krb5_find_ccache_step(struct tevent_req *req)
         ret = ENOMEM;
         goto done;
     }
-
-    tevent_req_set_callback(subreq, krb5_child_done, req);
+    tevent_req_set_callback(subreq, krb5_auth_done, req);
     return;
 
 done:
@@ -736,14 +803,10 @@ done:
     }
 }
 
-static struct tevent_req *krb5_next_server(struct tevent_req *req);
-static struct tevent_req *krb5_next_kpasswd(struct tevent_req *req);
-
-static void krb5_child_done(struct tevent_req *subreq)
+static void krb5_auth_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-
     struct krb5child_req *kr = state->kr;
     struct pam_data *pd = state->pd;
     int ret;
@@ -751,20 +814,57 @@ static void krb5_child_done(struct tevent_req *subreq)
     ssize_t len = -1;
     struct krb5_child_response *res;
     const char *store_ccname;
+    struct fo_server *search_srv;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
-        if (ret == ETIMEDOUT) {
-            if (krb5_next_server(req) == NULL) {
-                tevent_req_error(req, ENOMEM);
+    if (ret == ETIMEDOUT) {
+
+        DEBUG(1, ("child timed out!\n"));
+
+        switch (pd->cmd) {
+        case SSS_PAM_AUTHENTICATE:
+        case SSS_CMD_RENEW:
+            state->search_kpasswd = false;
+            search_srv = kr->srv;
+            break;
+        case SSS_PAM_CHAUTHTOK:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+            if (state->kr->kpasswd_srv) {
+                state->search_kpasswd = true;
+                search_srv = kr->kpasswd_srv;
+                break;
+            } else {
+                state->search_kpasswd = false;
+                search_srv = kr->srv;
+                break;
             }
-        } else {
-            tevent_req_error(req, ret);
+        default:
+            DEBUG(1, ("Unexpected PAM task\n"));
+            ret = EINVAL;
+            goto done;
         }
+
+        be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
+                              search_srv, PORT_NOT_WORKING);
+        subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
+                                        state->krb5_ctx->kpasswd_service->name,
+                                        search_srv == NULL ? true : false);
+        if (subreq == NULL) {
+            DEBUG(1, ("Failed resolved request.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
         return;
+
+    } else if (ret != EOK) {
+
+        DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
+        goto done;
     }
+
+    /* EOK */
 
     ret = parse_krb5_child_response(state, buf, len, pd,
                         state->be_ctx->domain->pwd_expiration_warning,
@@ -831,7 +931,7 @@ static void krb5_child_done(struct tevent_req *subreq)
      * cache and disk if it is not actively used anymore. This will allow to
      * create a new random ccache if sshd with privilege separation is used. */
     if (res->msg_status == PAM_NEW_AUTHTOK_REQD) {
-        if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache_present) {
+        if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache) {
             if (kr->old_ccname != NULL) {
                 ret = safe_remove_old_ccache_file(kr->cc_be, kr->upn,
                                                   kr->old_ccname, "dummy");
@@ -872,9 +972,16 @@ static void krb5_child_done(struct tevent_req *subreq)
                                   state->krb5_ctx->service->name,
                                   kr->kpasswd_srv, PORT_NOT_WORKING);
             /* ..try to resolve next kpasswd server */
-            if (krb5_next_kpasswd(req) == NULL) {
-                tevent_req_error(req, ENOMEM);
+            state->search_kpasswd = true;
+            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
+                                state->krb5_ctx->kpasswd_service->name,
+                                state->kr->kpasswd_srv == NULL ?  true : false);
+            if (subreq == NULL) {
+                DEBUG(1, ("Resolver request failed.\n"));
+                ret = ENOMEM;
+                goto done;
             }
+            tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
             return;
         } else {
             be_fo_set_port_status(state->be_ctx,
@@ -892,9 +999,16 @@ static void krb5_child_done(struct tevent_req *subreq)
             be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
                                   kr->srv, PORT_NOT_WORKING);
             /* ..try to resolve next KDC */
-            if (krb5_next_kdc(req) == NULL) {
-                tevent_req_error(req, ENOMEM);
+            state->search_kpasswd = false;
+            subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
+                                            state->krb5_ctx->service->name,
+                                            kr->srv == NULL ?  true : false);
+            if (subreq == NULL) {
+                DEBUG(1, ("Resolver request failed.\n"));
+                ret = ENOMEM;
+                goto done;
             }
+            tevent_req_set_callback(subreq, krb5_auth_resolve_done, req);
             return;
         }
     } else if (kr->srv != NULL) {
@@ -950,157 +1064,25 @@ static void krb5_child_done(struct tevent_req *subreq)
         }
     }
 
-    krb5_save_ccname_done(req);
-
-    return;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-}
-
-static struct tevent_req *krb5_next_server(struct tevent_req *req)
-{
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-    struct pam_data *pd = state->pd;
-    struct tevent_req *next_req = NULL;
-
-    switch (pd->cmd) {
-        case SSS_PAM_AUTHENTICATE:
-        case SSS_CMD_RENEW:
-            be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
-                                  state->kr->srv, PORT_NOT_WORKING);
-            next_req = krb5_next_kdc(req);
-            break;
-        case SSS_PAM_CHAUTHTOK:
-        case SSS_PAM_CHAUTHTOK_PRELIM:
-            if (state->kr->kpasswd_srv) {
-                be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
-                                      state->kr->kpasswd_srv, PORT_NOT_WORKING);
-                next_req = krb5_next_kpasswd(req);
-                break;
-            } else {
-                be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
-                                      state->kr->srv, PORT_NOT_WORKING);
-                next_req = krb5_next_kdc(req);
-                break;
-            }
-        default:
-            DEBUG(1, ("Unexpected PAM task\n"));
-    }
-
-    return next_req;
-}
-
-static struct tevent_req *krb5_next_kdc(struct tevent_req *req)
-{
-    struct tevent_req *next_req;
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-
-    next_req = be_resolve_server_send(state, state->ev,
-                                      state->be_ctx,
-                                      state->krb5_ctx->service->name,
-                                      state->kr->srv == NULL ? true : false);
-    if (next_req == NULL) {
-        DEBUG(1, ("be_resolve_server_send failed.\n"));
-        return NULL;
-    }
-    tevent_req_set_callback(next_req, krb5_resolve_kdc_done, req);
-
-    return next_req;
-}
-
-static struct tevent_req *krb5_next_kpasswd(struct tevent_req *req)
-{
-    struct tevent_req *next_req;
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-
-    next_req = be_resolve_server_send(state, state->ev,
-                                state->be_ctx,
-                                state->krb5_ctx->kpasswd_service->name,
-                                state->kr->kpasswd_srv == NULL ? true : false);
-    if (next_req == NULL) {
-        DEBUG(1, ("be_resolve_server_send failed.\n"));
-        return NULL;
-    }
-    tevent_req_set_callback(next_req, krb5_resolve_kpasswd_done, req);
-
-    return next_req;
-}
-
-static void krb5_save_ccname_done(struct tevent_req *req)
-{
-    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-    struct krb5child_req *kr = state->kr;
-    struct pam_data *pd = state->pd;
-    int ret;
-    char *password = NULL;
-
     if (kr->is_offline) {
-        if (dp_opt_get_bool(kr->krb5_ctx->opts,KRB5_STORE_PASSWORD_IF_OFFLINE)) {
-            krb5_pam_handler_cache_auth_step(req);
-            return;
+        if (dp_opt_get_bool(kr->krb5_ctx->opts,
+                            KRB5_STORE_PASSWORD_IF_OFFLINE)) {
+            krb5_auth_cache_creds(state->kr->krb5_ctx,
+                                  state->be_ctx->sysdb,
+                                  state->be_ctx->cdb,
+                                  state->pd, state->kr->uid,
+                                  &state->pam_status, &state->dp_err);
+        } else {
+            DEBUG(4, ("Backend is marked offline, retry later!\n"));
+            state->pam_status = PAM_AUTHINFO_UNAVAIL;
+            state->dp_err = DP_ERR_OFFLINE;
         }
-
-        DEBUG(4, ("Backend is marked offline, retry later!\n"));
-        state->pam_status = PAM_AUTHINFO_UNAVAIL;
-        state->dp_err = DP_ERR_OFFLINE;
         ret = EOK;
         goto done;
     }
 
     if (state->be_ctx->domain->cache_credentials == TRUE) {
-
-        /* password caching failures are not fatal errors */
-        state->pam_status = PAM_SUCCESS;
-        state->dp_err = DP_ERR_OK;
-
-        switch(pd->cmd) {
-            case SSS_CMD_RENEW:
-                /* The authtok is set to the credential cache
-                 * during renewal. We don't want to save this
-                 * as the cached password.
-                 */
-                break;
-            case SSS_PAM_AUTHENTICATE:
-            case SSS_PAM_CHAUTHTOK_PRELIM:
-                password = talloc_size(state, pd->authtok_size + 1);
-                if (password != NULL) {
-                    memcpy(password, pd->authtok, pd->authtok_size);
-                    password[pd->authtok_size] = '\0';
-                }
-                break;
-            case SSS_PAM_CHAUTHTOK:
-                password = talloc_size(state, pd->newauthtok_size + 1);
-                if (password != NULL) {
-                    memcpy(password, pd->newauthtok, pd->newauthtok_size);
-                    password[pd->newauthtok_size] = '\0';
-                }
-                break;
-            default:
-                DEBUG(0, ("unsupported PAM command [%d].\n", pd->cmd));
-        }
-
-        if (password == NULL) {
-            if (pd->cmd != SSS_CMD_RENEW) {
-                DEBUG(0, ("password not available, offline auth may not work.\n"));
-                /* password caching failures are not fatal errors */
-            }
-            ret = EOK;
-            goto done;
-        }
-
-        talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
-
-        ret = sysdb_cache_password(state->sysdb, pd->user, password);
-        if (ret) {
-            DEBUG(2, ("Failed to cache password, offline auth may not work."
-                      " (%d)[%s]!?\n", ret, strerror(ret)));
-            /* password caching failures are not fatal errors */
-        }
+        krb5_auth_store_creds(state->sysdb, pd);
     }
 
     state->pam_status = PAM_SUCCESS;
@@ -1116,32 +1098,15 @@ done:
 
 }
 
-static void krb5_pam_handler_cache_auth_step(struct tevent_req *req)
+int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
 {
     struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
-    struct pam_data *pd = state->pd;
-    struct krb5_ctx *krb5_ctx = state->kr->krb5_ctx;
-    int ret;
+    *pam_status = state->pam_status;
+    *dp_err = state->dp_err;
 
-    ret = sysdb_cache_auth(state->sysdb, pd->user, pd->authtok,
-                           pd->authtok_size, state->be_ctx->cdb, true, NULL,
-                           NULL);
-    if (ret != EOK) {
-        DEBUG(1, ("Offline authentication failed\n"));
-        state->pam_status = cached_login_pam_status(ret);
-        state->dp_err = DP_ERR_OK;
-    } else {
-        ret = add_user_to_delayed_online_authentication(krb5_ctx, pd,
-                                                       state->kr->uid);
-        if (ret != EOK) {
-            /* This error is not fatal */
-            DEBUG(1, ("add_user_to_delayed_online_authentication failed.\n"));
-        }
-        state->pam_status = PAM_AUTHINFO_UNAVAIL;
-        state->dp_err = DP_ERR_OFFLINE;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    tevent_req_done(req);
+    return EOK;
 }
 
 static void krb_reply(struct be_req *req, int dp_err, int result)
@@ -1149,8 +1114,8 @@ static void krb_reply(struct be_req *req, int dp_err, int result)
     req->fn(req, dp_err, result, NULL);
 }
 
-void krb5_auth_done(struct tevent_req *req);
-static void krb5_access_done(struct tevent_req *req);
+void krb5_pam_handler_auth_done(struct tevent_req *req);
+static void krb5_pam_handler_access_done(struct tevent_req *req);
 
 void krb5_pam_handler(struct be_req *be_req)
 {
@@ -1194,7 +1159,7 @@ void krb5_pam_handler(struct be_req *be_req)
                 goto done;
             }
 
-            tevent_req_set_callback(req, krb5_auth_done, be_req);
+            tevent_req_set_callback(req, krb5_pam_handler_auth_done, be_req);
             break;
         case SSS_PAM_ACCT_MGMT:
             req = krb5_access_send(be_req, be_req->be_ctx->ev, be_req->be_ctx,
@@ -1204,7 +1169,7 @@ void krb5_pam_handler(struct be_req *be_req)
                 goto done;
             }
 
-            tevent_req_set_callback(req, krb5_access_done, be_req);
+            tevent_req_set_callback(req, krb5_pam_handler_access_done, be_req);
             break;
         case SSS_PAM_SETCRED:
         case SSS_PAM_OPEN_SESSION:
@@ -1226,7 +1191,7 @@ done:
     krb_reply(be_req, dp_err, pd->pam_status);
 }
 
-void krb5_auth_done(struct tevent_req *req)
+void krb5_pam_handler_auth_done(struct tevent_req *req)
 {
     int ret;
     struct be_req *be_req = tevent_req_callback_data(req, struct be_req);
@@ -1256,7 +1221,7 @@ void krb5_auth_done(struct tevent_req *req)
     krb_reply(be_req, dp_err, pd->pam_status);
 }
 
-static void krb5_access_done(struct tevent_req *req)
+static void krb5_pam_handler_access_done(struct tevent_req *req)
 {
     int ret;
     struct be_req *be_req = tevent_req_callback_data(req, struct be_req);

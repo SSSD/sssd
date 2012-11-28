@@ -38,7 +38,7 @@ struct krb5_access_state {
     bool access_allowed;
 };
 
-static void krb5_access_child_done(struct tevent_req *subreq);
+static void krb5_access_done(struct tevent_req *subreq);
 struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct be_ctx *be_ctx,
@@ -141,7 +141,7 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    tevent_req_set_callback(subreq, krb5_access_child_done, req);
+    tevent_req_set_callback(subreq, krb5_access_done, req);
     return req;
 
 done:
@@ -154,7 +154,7 @@ done:
     return req;
 }
 
-static void krb5_access_child_done(struct tevent_req *subreq)
+static void krb5_access_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct krb5_access_state *state = tevent_req_data(req,

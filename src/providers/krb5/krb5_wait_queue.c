@@ -41,20 +41,18 @@ struct queue_entry {
 static void wait_queue_auth(struct tevent_context *ev, struct tevent_timer *te,
                              struct timeval current_time, void *private_data)
 {
-    struct queue_entry *queue_entry = talloc_get_type(private_data,
-                                                      struct queue_entry);
+    struct queue_entry *qe = talloc_get_type(private_data, struct queue_entry);
     struct tevent_req *req;
 
-    req = krb5_auth_send(queue_entry->be_req, queue_entry->be_req->be_ctx->ev,
-                         queue_entry->be_req->be_ctx, queue_entry->pd,
-                         queue_entry->krb5_ctx);
+    req = krb5_auth_send(qe->be_req, qe->be_req->be_ctx->ev,
+                         qe->be_req->be_ctx, qe->pd, qe->krb5_ctx);
     if (req == NULL) {
         DEBUG(1, ("krb5_auth_send failed.\n"));
     } else {
-        tevent_req_set_callback(req, krb5_auth_done, queue_entry->be_req);
+        tevent_req_set_callback(req, krb5_pam_handler_auth_done, qe->be_req);
     }
 
-    talloc_zfree(queue_entry);
+    talloc_zfree(qe);
 }
 
 static void wait_queue_del_cb(hash_entry_t *entry, hash_destroy_enum type,

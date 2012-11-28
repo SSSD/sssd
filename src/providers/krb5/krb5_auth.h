@@ -51,8 +51,8 @@ struct krb5child_req {
     bool is_offline;
     struct fo_server *srv;
     struct fo_server *kpasswd_srv;
-    bool active_ccache_present;
-    bool valid_tgt_present;
+    bool active_ccache;
+    bool valid_tgt;
     bool run_as_user;
     bool upn_from_different_realm;
 };
@@ -61,6 +61,7 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
                    struct krb5_ctx *krb5_ctx, struct krb5child_req **krb5_req);
 
 void krb5_pam_handler(struct be_req *be_req);
+void krb5_pam_handler_auth_done(struct tevent_req *req);
 
 struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
@@ -68,7 +69,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct pam_data *pd,
                                   struct krb5_ctx *krb5_ctx);
 int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err);
-void krb5_auth_done(struct tevent_req *req);
 
 struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
                                      struct tevent_context *ev,
