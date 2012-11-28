@@ -1347,7 +1347,7 @@ void proxy_get_account_info(struct be_req *breq)
         return proxy_reply(breq, DP_ERR_FATAL, EINVAL, "Invalid attr type");
     }
 
-    switch (ar->entry_type & 0xFFF) {
+    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
         switch (ar->filter_type) {
         case BE_FILTER_ENUM:

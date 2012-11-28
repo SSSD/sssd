@@ -85,7 +85,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     }
     state->sysdb = state->domain->sysdb;
 
-    state->entry_type = (ar->entry_type & 0xFFF);
+    state->entry_type = (ar->entry_type & BE_REQ_TYPE_MASK);
     state->filter = ar->filter_value;
     state->filter_type = ar->filter_type;
 

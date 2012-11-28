@@ -84,7 +84,7 @@ void ipa_account_info_handler(struct be_req *breq)
         /* if domain names do not match, this is a subdomain case */
         req = ipa_get_subdom_acct_send(breq, breq->be_ctx->ev, ctx, ar);
 
-    } else if ((ar->entry_type & 0xFFF) == BE_REQ_NETGROUP) {
+    } else if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         /* netgroups are handled by a separate request function */
         if (ar->filter_type != BE_FILTER_NAME) {
             return sdap_handler_done(breq, DP_ERR_FATAL,
@@ -113,7 +113,7 @@ static void ipa_account_info_done(struct tevent_req *req)
     const char *error_text;
     int ret, dp_error;
 
-    if ((ar->entry_type & 0xFFF) == BE_REQ_NETGROUP) {
+    if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         ret = ipa_id_get_netgroup_recv(req, &dp_error);
     } else {
         ret = ipa_get_subdom_acct_recv(req, &dp_error);

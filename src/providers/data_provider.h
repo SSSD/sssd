@@ -142,6 +142,7 @@
 #define BE_REQ_SUDO_RULES    0x0007
 #define BE_REQ_AUTOFS        0x0009
 #define BE_REQ_HOST          0x0010
+#define BE_REQ_TYPE_MASK     0x00FF
 #define BE_REQ_FAST          0x1000
 
 /* AUTH related common data and functions */
