@@ -30,32 +30,12 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
 
-struct ipa_netgroup_get_state {
-    struct tevent_context *ev;
-    struct ipa_id_ctx *ctx;
-    struct sdap_id_op *op;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
+static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
+                                                   struct tevent_context *ev,
+                                                   struct ipa_id_ctx *ipa_ctx,
+                                                   const char *name);
+static int ipa_id_get_netgroup_recv(struct tevent_req *req, int *dp_error);
 
-    const char *name;
-    int timeout;
-
-    char *filter;
-    const char **attrs;
-
-    size_t count;
-    struct sysdb_attrs **netgroups;
-
-    int dp_error;
-};
-
-struct tevent_req *ipa_netgroup_get_send(TALLOC_CTX *memctx,
-                                     struct tevent_context *ev,
-                                     struct ipa_id_ctx *ctx,
-                                     const char *name);
-static int ipa_netgroup_get_retry(struct tevent_req *req);
-static void ipa_netgroup_get_connect_done(struct tevent_req *subreq);
-static void ipa_netgroup_get_done(struct tevent_req *subreq);
 static void ipa_account_info_netgroups_done(struct tevent_req *req);
 static void ipa_account_info_users_done(struct tevent_req *req);
 
@@ -102,7 +82,7 @@ void ipa_account_info_handler(struct be_req *breq)
             break;
         }
 
-        req = ipa_netgroup_get_send(breq, breq->be_ctx->ev, ipa_ctx, ar->filter_value);
+        req = ipa_id_get_netgroup_send(breq, breq->be_ctx->ev, ipa_ctx, ar->filter_value);
         if (!req) {
             return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
@@ -153,23 +133,58 @@ static void ipa_account_info_users_done(struct tevent_req *req)
     ipa_account_info_complete(breq, dp_error, ret, "User lookup failed");
 }
 
+static void ipa_account_info_netgroups_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    const char *error_text;
+    int ret, dp_error;
+
+    ret = ipa_id_get_netgroup_recv(req, &dp_error);
+    talloc_zfree(req);
+
+    ipa_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");
+}
+
 /* Request for netgroups
  * - first start here and then go to ipa_netgroups.c
  */
-struct tevent_req *ipa_netgroup_get_send(TALLOC_CTX *memctx,
-                                     struct tevent_context *ev,
-                                     struct ipa_id_ctx *ipa_ctx,
-                                     const char *name)
+struct ipa_id_get_netgroup_state {
+    struct tevent_context *ev;
+    struct ipa_id_ctx *ctx;
+    struct sdap_id_op *op;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    int timeout;
+
+    char *filter;
+    const char **attrs;
+
+    size_t count;
+    struct sysdb_attrs **netgroups;
+
+    int dp_error;
+};
+
+static void ipa_id_get_netgroup_connected(struct tevent_req *subreq);
+static void ipa_id_get_netgroup_done(struct tevent_req *subreq);
+
+static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
+                                                   struct tevent_context *ev,
+                                                   struct ipa_id_ctx *ipa_ctx,
+                                                   const char *name)
 {
     struct tevent_req *req;
-    struct ipa_netgroup_get_state *state;
+    struct ipa_id_get_netgroup_state *state;
+    struct tevent_req *subreq;
     struct sdap_id_ctx *ctx;
     char *clean_name;
     int ret;
 
     ctx = ipa_ctx->sdap_id_ctx;
 
-    req = tevent_req_create(memctx, &state, struct ipa_netgroup_get_state);
+    req = tevent_req_create(memctx, &state, struct ipa_id_get_netgroup_state);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -209,10 +224,11 @@ struct tevent_req *ipa_netgroup_get_send(TALLOC_CTX *memctx,
                                &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
-    ret = ipa_netgroup_get_retry(req);
-    if (ret != EOK) {
+    subreq = sdap_id_op_connect_send(state->op, state, &ret);
+    if (!subreq) {
         goto fail;
     }
+    tevent_req_set_callback(subreq, ipa_id_get_netgroup_connected, req);
 
     return req;
 
@@ -222,28 +238,12 @@ fail:
     return req;
 }
 
-static int ipa_netgroup_get_retry(struct tevent_req *req)
+static void ipa_id_get_netgroup_connected(struct tevent_req *subreq)
 {
-    struct ipa_netgroup_get_state *state = tevent_req_data(req,
-                                                    struct ipa_netgroup_get_state);
-    struct tevent_req *subreq;
-    int ret = EOK;
-
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, ipa_netgroup_get_connect_done, req);
-    return EOK;
-}
-
-static void ipa_netgroup_get_connect_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ipa_netgroup_get_state *state = tevent_req_data(req,
-                                                    struct ipa_netgroup_get_state);
+    struct tevent_req *req =
+                    tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_id_get_netgroup_state *state =
+                    tevent_req_data(req, struct ipa_id_get_netgroup_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
     struct sdap_id_ctx *sdap_ctx = state->ctx->sdap_id_ctx;
@@ -267,32 +267,33 @@ static void ipa_netgroup_get_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, ipa_netgroup_get_done, req);
+    tevent_req_set_callback(subreq, ipa_id_get_netgroup_done, req);
 
     return;
 }
 
-static void ipa_netgroup_get_done(struct tevent_req *subreq)
+static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ipa_netgroup_get_state *state = tevent_req_data(req,
-                                                    struct ipa_netgroup_get_state);
+    struct tevent_req *req =
+                    tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_id_get_netgroup_state *state =
+                    tevent_req_data(req, struct ipa_id_get_netgroup_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = ipa_get_netgroups_recv(subreq, state, &state->count, &state->netgroups);
+    ret = ipa_get_netgroups_recv(subreq, state,
+                                 &state->count, &state->netgroups);
     talloc_zfree(subreq);
     ret = sdap_id_op_done(state->op, ret, &dp_error);
 
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
-        ret = ipa_netgroup_get_retry(req);
-        if (ret != EOK) {
+        subreq = sdap_id_op_connect_send(state->op, state, &ret);
+        if (!subreq) {
             tevent_req_error(req, ret);
             return;
         }
-
+        tevent_req_set_callback(subreq, ipa_id_get_netgroup_connected, req);
         return;
     }
 
@@ -322,13 +323,13 @@ static void ipa_netgroup_get_done(struct tevent_req *subreq)
     return;
 }
 
-int ipa_netgroup_get_recv(struct tevent_req *req, int *dp_error_out)
+static int ipa_id_get_netgroup_recv(struct tevent_req *req, int *dp_error)
 {
-    struct ipa_netgroup_get_state *state = tevent_req_data(req,
-                                                    struct ipa_netgroup_get_state);
+    struct ipa_id_get_netgroup_state *state =
+                    tevent_req_data(req, struct ipa_id_get_netgroup_state);
 
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
+    if (dp_error) {
+        *dp_error = state->dp_error;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -336,16 +337,6 @@ int ipa_netgroup_get_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
-static void ipa_account_info_netgroups_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = ipa_netgroup_get_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    ipa_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");
-}
 
 void ipa_check_online(struct be_req *be_req)
 {
