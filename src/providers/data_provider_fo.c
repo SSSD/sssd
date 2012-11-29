@@ -722,7 +722,8 @@ void be_fo_set_port_status(struct be_ctx *ctx,
 
     if (!fo_svc_has_server(be_svc->fo_service, server)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("The server %p is not valid anymore, cannot set its status\n"));
+              ("The server %p is not valid anymore, cannot set its status\n",
+               server));
         return;
     }
 
