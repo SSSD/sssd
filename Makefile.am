@@ -663,6 +663,7 @@ sss_ssh_authorizedkeys_SOURCES = \
 sss_ssh_authorizedkeys_CFLAGS = $(AM_CFLAGS)
 sss_ssh_authorizedkeys_LDADD = \
     libsss_util.la
+sss_ssh_authorizedkeys_LDFLAGS = $(CLIENT_LIBS)
 
 sss_ssh_knownhostsproxy_SOURCES = \
     src/sss_client/common.c \
@@ -671,6 +672,7 @@ sss_ssh_knownhostsproxy_SOURCES = \
 sss_ssh_knownhostsproxy_CFLAGS = $(AM_CFLAGS)
 sss_ssh_knownhostsproxy_LDADD = \
     libsss_util.la
+sss_ssh_knownhostsproxy_LDFLAGS = $(CLIENT_LIBS)
 endif
 
 #################
