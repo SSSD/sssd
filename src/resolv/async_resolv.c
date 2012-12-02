@@ -1046,6 +1046,14 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
             ret = ENOMEM;
             goto fail;
         }
+
+        /* The address list is NULL. This is probably a bug in
+         * c-ares, but we need to handle it gracefully.
+         */
+        if (state->rhostent->addr_list == NULL) {
+            talloc_free(state->rhostent);
+            return ENOENT;
+        }
     }
 
     talloc_free(tmp_ctx);
