@@ -325,7 +325,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
          midpoint_refresh = 0;
          if(nctx->cache_refresh_percent) {
              midpoint_refresh = lastUpdate +
-               (cacheExpire - lastUpdate)*nctx->cache_refresh_percent/100;
+               (cacheExpire - lastUpdate)*nctx->cache_refresh_percent/100.0;
              if (midpoint_refresh - lastUpdate < 10) {
                  /* If the percentage results in an expiration
                   * less than ten seconds after the lastUpdate time,
