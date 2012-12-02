@@ -535,7 +535,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         netgr->found = true;
         if (step_ctx->nctx->cache_refresh_percent) {
             lifetime = dom->netgroup_timeout *
-                (step_ctx->nctx->cache_refresh_percent / 100);
+                (step_ctx->nctx->cache_refresh_percent / 100.0);
         } else {
             lifetime = dom->netgroup_timeout;
         }

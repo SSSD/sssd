@@ -257,7 +257,7 @@ sss_cmd_check_cache(struct ldb_message *msg,
 
     if(cache_refresh_percent) {
         midpoint_refresh = lastUpdate +
-            (cache_expire - lastUpdate)*cache_refresh_percent/100;
+            (cache_expire - lastUpdate)*cache_refresh_percent/100.0;
         if (midpoint_refresh - lastUpdate < 10) {
             /* If the percentage results in an expiration
              * less than ten seconds after the lastUpdate time,
