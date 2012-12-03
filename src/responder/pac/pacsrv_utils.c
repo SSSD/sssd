@@ -432,7 +432,8 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
                           size_t *_gid_count, struct pac_grp **_gids)
 {
     int ret;
-    size_t g = 0;
+    size_t g;
+    size_t gid_count = 0;
     size_t s;
     struct netr_SamInfo3 *info3;
     struct pac_grp *gids = NULL;
@@ -440,6 +441,13 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
     char *sid_str = NULL;
     enum idmap_error_code err;
     struct dom_sid *grp_sid = NULL;
+    uint32_t id;
+    hash_table_t *gid_table;
+    hash_key_t key;
+    hash_value_t value;
+    struct hash_iter_context_t *iter;
+    hash_entry_t *entry;
+    TALLOC_CTX *tmp_ctx = NULL;
 
     if (pac_ctx == NULL || range_map == NULL || domain_sid == NULL ||
         logon_info == NULL || _gid_count == NULL || _gids == NULL) {
@@ -455,14 +463,22 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    gids = talloc_zero_array(mem_ctx, struct pac_grp,
-                             info3->sidcount + info3->base.groups.count);
-    if (gids == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
         ret = ENOMEM;
         goto done;
     }
 
+    ret = sss_hash_create(tmp_ctx, info3->sidcount + info3->base.groups.count,
+                          &gid_table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_hash_create failed.\n"));
+        goto done;
+    }
+
+    key.type = HASH_KEY_ULONG;
+    value.type = HASH_VALUE_PTR;
 
     err = sss_idmap_smb_sid_to_sid(pac_ctx->idmap_ctx, domain_sid,
                                    &sid_str);
@@ -482,15 +498,24 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
     for(s = 0; s < info3->sidcount; s++) {
         if (dom_sid_in_domain(domain_sid, info3->sids[s].sid)) {
             ret = local_sid_to_id(range_map, info3->sids[s].sid,
-                                  &gids[g].gid);
+                                  &id);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("get_rid failed.\n"));
                 goto done;
             }
-            gids[g].grp_dom = grp_dom;
-            DEBUG(SSSDBG_TRACE_ALL, ("Found extra group "
-                                     "with gid [%d].\n", gids[g].gid));
-            g++;
+
+            key.ul = id;
+            value.ptr = grp_dom;
+
+            ret = hash_enter(gid_table, &key, &value);
+            if (ret != HASH_SUCCESS) {
+                DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed [%d][%s].\n",
+                                          ret, hash_error_string(ret)));
+                ret = EIO;
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_ALL, ("Found extra group with gid [%d].\n", id));
         }
     }
 
@@ -523,7 +548,7 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
         grp_sid->sub_auths[grp_sid->num_auths - 1] =
                                                 info3->base.groups.rids[s].rid;
         err = sss_idmap_smb_sid_to_unix(pac_ctx->idmap_ctx, grp_sid,
-                                        &gids[g].gid);
+                                        &id);
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_smb_sid_to_unix failed for"
                                          "[%s] [%d].\n", sid_str,
@@ -532,10 +557,53 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        gids[g].grp_dom = grp_dom;
-        DEBUG(SSSDBG_TRACE_ALL, ("Found extra group "
-                                 "with gid [%d].\n", gids[g].gid));
+        key.ul = id;
+        value.ptr = grp_dom;
+
+        ret = hash_enter(gid_table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed [%d][%s].\n",
+                                      ret, hash_error_string(ret)));
+            ret = EIO;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL, ("Found extra group with gid [%d].\n", id));
+    }
+
+    gid_count = hash_count(gid_table);
+    if (gid_count == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No groups found.\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    gids = talloc_zero_array(tmp_ctx, struct pac_grp, gid_count);
+    if (gids == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    iter = new_hash_iter_context(gid_table);
+    if (iter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("new_hash_iter_context failed.\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    g = 0;
+    while ((entry = iter->next(iter)) != NULL) {
+        gids[g].gid = entry->key.ul;
+        gids[g].grp_dom = entry->value.ptr;
         g++;
+    }
+
+    if (gid_count != g) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Number of hash entries and groups do not "
+                                  "match.\n"));
+        ret = EINVAL;
+        goto done;
     }
 
     ret = EOK;
@@ -545,11 +613,11 @@ done:
     talloc_free(grp_sid);
 
     if (ret == EOK) {
-        *_gid_count = g;
-        *_gids = gids;
-    } else {
-        talloc_free(gids);
+        *_gid_count = gid_count;
+        *_gids = talloc_steal(mem_ctx, gids);
     }
+
+    talloc_free(tmp_ctx);
 
     return ret;
 }
