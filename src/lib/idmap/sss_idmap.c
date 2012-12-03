@@ -298,11 +298,15 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
     long long rid;
     char *endptr;
 
+    if (sid == NULL || id == NULL) {
+        return IDMAP_ERROR;
+    }
+
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
     idmap_domain_info = ctx->idmap_domain_info;
 
-    if (sid && sss_idmap_sid_is_builtin(sid)) {
+    if (sss_idmap_sid_is_builtin(sid)) {
         return IDMAP_BUILTIN_SID;
     }
 
