@@ -30,23 +30,46 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
 
+static const char *ipa_account_info_error_text(int ret, int *dp_error,
+                                               const char *default_text)
+{
+    switch (*dp_error) {
+    case DP_ERR_OK:
+        if (ret == EOK) {
+            return NULL;
+        }
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Bug: dp_error is OK on failed request\n"));
+        *dp_error = DP_ERR_FATAL;
+        break;
+    case DP_ERR_OFFLINE:
+        return "Offline";
+    case DP_ERR_FATAL:
+        if (ret == ENOMEM) {
+            return "Out of memory";
+        }
+        break;
+    default:
+        break;
+    }
+
+    return default_text;
+}
+
 static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
                                                    struct tevent_context *ev,
                                                    struct ipa_id_ctx *ipa_ctx,
                                                    const char *name);
 static int ipa_id_get_netgroup_recv(struct tevent_req *req, int *dp_error);
 
-static void ipa_account_info_netgroups_done(struct tevent_req *req);
-static void ipa_account_info_users_done(struct tevent_req *req);
+static void ipa_account_info_done(struct tevent_req *req);
 
 void ipa_account_info_handler(struct be_req *breq)
 {
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *ctx;
     struct be_acct_req *ar;
-    struct tevent_req *req;
-    const char *err = "Unknown Error";
-    int ret = EOK;
+    struct tevent_req *req = NULL;
 
     ipa_ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct ipa_id_ctx);
     ctx = ipa_ctx->sdap_id_ctx;
@@ -58,92 +81,50 @@ void ipa_account_info_handler(struct be_req *breq)
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
 
     if (strcasecmp(ar->domain, breq->be_ctx->domain->name) != 0) {
+        /* if domain names do not match, this is a subdomain case */
         req = ipa_get_subdom_acct_send(breq, breq->be_ctx->ev, ctx, ar);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
-        }
 
-        tevent_req_set_callback(req, ipa_account_info_users_done, breq);
-
-        return;
-    }
-
-    switch (ar->entry_type & 0xFFF) {
-    case BE_REQ_USER: /* user */
-    case BE_REQ_GROUP: /* group */
-    case BE_REQ_INITGROUPS: /* init groups for user */
-    case BE_REQ_SERVICES: /* Services. Not natively supported by IPA */
-        return sdap_handle_account_info(breq, ctx);
-
-    case BE_REQ_NETGROUP:
+    } else if ((ar->entry_type & 0xFFF) == BE_REQ_NETGROUP) {
+        /* netgroups are handled by a separate request function */
         if (ar->filter_type != BE_FILTER_NAME) {
-            ret = EINVAL;
-            err = "Invalid filter type";
-            break;
+            return sdap_handler_done(breq, DP_ERR_FATAL,
+                                     EINVAL, "Invalid filter type");
         }
-
-        req = ipa_id_get_netgroup_send(breq, breq->be_ctx->ev, ipa_ctx, ar->filter_value);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
-        }
-
-        tevent_req_set_callback(req, ipa_account_info_netgroups_done, breq);
-        break;
-
-    default: /*fail*/
-        ret = EINVAL;
-        err = "Invalid request type";
-    }
-
-    if (ret != EOK) return sdap_handler_done(breq, DP_ERR_FATAL, ret, err);
-}
-
-static void ipa_account_info_complete(struct be_req *breq, int dp_error,
-                                       int ret, const char *default_error_text)
-{
-    const char* error_text;
-
-    if (dp_error == DP_ERR_OK) {
-        if (ret == EOK) {
-            error_text = NULL;
-        } else {
-            DEBUG(1, ("Bug: dp_error is OK on failed request"));
-            dp_error = DP_ERR_FATAL;
-            error_text = default_error_text;
-        }
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        error_text = "Offline";
-    } else if (dp_error == DP_ERR_FATAL && ret == ENOMEM) {
-        error_text = "Out of memory";
+        req = ipa_id_get_netgroup_send(breq, breq->be_ctx->ev,
+                                       ipa_ctx, ar->filter_value);
     } else {
-        error_text = default_error_text;
+        /* any account request is handled by sdap,
+         * any invalid request is caught there. */
+        return sdap_handle_account_info(breq, ctx);
     }
 
-    sdap_handler_done(breq, dp_error, ret, error_text);
+    if (!req) {
+        return sdap_handler_done(breq, DP_ERR_FATAL,
+                                 ENOMEM, "Out of memory");
+    }
+    tevent_req_set_callback(req, ipa_account_info_done, breq);
 }
 
-static void ipa_account_info_users_done(struct tevent_req *req)
+static void ipa_account_info_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = ipa_get_subdom_acct_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    ipa_account_info_complete(breq, dp_error, ret, "User lookup failed");
-}
-
-static void ipa_account_info_netgroups_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct be_acct_req *ar = talloc_get_type(breq->req_data,
+                                             struct be_acct_req);
     const char *error_text;
     int ret, dp_error;
 
-    ret = ipa_id_get_netgroup_recv(req, &dp_error);
+    if ((ar->entry_type & 0xFFF) == BE_REQ_NETGROUP) {
+        ret = ipa_id_get_netgroup_recv(req, &dp_error);
+    } else {
+        ret = ipa_get_subdom_acct_recv(req, &dp_error);
+    }
     talloc_zfree(req);
 
-    ipa_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");
+    error_text = ipa_account_info_error_text(ret, &dp_error,
+                                             "Account info lookup failed");
+    sdap_handler_done(breq, dp_error, ret, error_text);
 }
+
 
 /* Request for netgroups
  * - first start here and then go to ipa_netgroups.c
