@@ -1076,6 +1076,7 @@ pac_responder_tests_LDADD = \
     $(TALLOC_LIBS) \
     $(NDR_KRB5PAC_LIBS) \
     $(SSSD_LIBS) \
+    -lm \
     libsss_idmap.la \
     libsss_debug.la \
     libsss_util.la \
