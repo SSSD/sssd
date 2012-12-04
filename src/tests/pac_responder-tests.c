@@ -23,11 +23,23 @@
 #include <check.h>
 
 #include <stdbool.h>
+#include <math.h>
 #include <util/data_blob.h>
 #include <gen_ndr/security.h>
 
 #include "tests/common.h"
 #include "responder/pac/pacsrv.h"
+#include "lib/idmap/sss_idmap.h"
+
+struct dom_sid test_dom_sid = {1, 4, {0, 0, 0, 0, 0, 5},
+                               {21, 2127521184, 1604012920, 1887927527, 0,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+const char *test_dom_sid_str = "S-1-5-21-2127521184-1604012920-1887927527";
+
+struct dom_sid test_remote_dom_sid = {1, 4, {0, 0, 0, 0, 0, 5},
+                                      {21, 123, 456, 789, 0,
+                                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+const char *test_remote_dom_sid_str = "S-1-5-21-123-456-789";
 
 struct dom_sid test_smb_sid = {1, 5, {0, 0, 0, 0, 0, 5},
                                {21, 2127521184, 1604012920, 1887927527, 1123,
@@ -42,6 +54,90 @@ const uint32_t test_id_2nd = 1200456;
 struct local_mapping_ranges test_map = {{1200000, 1399999},
                                         {1000, 200999},
                                         {201000, 400999}};
+
+static void *idmap_talloc(size_t size, void *pvt)
+{
+    return talloc_size(pvt, size);
+}
+
+static void idmap_talloc_free(void *ptr, void *pvt)
+{
+    talloc_free(ptr);
+}
+
+struct pac_ctx *pac_ctx;
+
+#define IDMAP_RANGE_MIN 1234
+#define IDMAP_RANGE_MAX 9876543
+
+void pac_setup(void) {
+    enum idmap_error_code err;
+    struct sss_idmap_range remote_range = {IDMAP_RANGE_MIN, IDMAP_RANGE_MAX};
+    struct sss_domain_info *sd;
+
+    pac_ctx = talloc_zero(global_talloc_context, struct pac_ctx);
+    fail_unless(pac_ctx != NULL, "talloc_zero failed.\n");
+
+    pac_ctx->rctx = talloc_zero(pac_ctx, struct resp_ctx);
+    fail_unless(pac_ctx->rctx != NULL, "talloc_zero failed.");
+
+    pac_ctx->rctx->domains = talloc_zero(pac_ctx->rctx, struct sss_domain_info);
+    fail_unless(pac_ctx->rctx->domains != NULL, "talloc_zero failed.");
+
+    pac_ctx->rctx->domains->name = talloc_strdup(pac_ctx->rctx->domains,
+                                                 "TEST.DOM");
+    fail_unless(pac_ctx->rctx->domains->name != NULL, "talloc_strdup failed.");
+
+    pac_ctx->rctx->domains->flat_name = talloc_strdup(pac_ctx->rctx->domains,
+                                                      "TESTDOM");
+    fail_unless(pac_ctx->rctx->domains->flat_name != NULL,
+                "talloc_strdup failed.");
+
+    pac_ctx->rctx->domains->domain_id = talloc_strdup(pac_ctx->rctx->domains,
+                                                      test_dom_sid_str);
+    fail_unless(pac_ctx->rctx->domains->domain_id != NULL,
+                "talloc_strdup failed.");
+
+    pac_ctx->rctx->domains->subdomain_count = 1;
+    pac_ctx->rctx->domains->subdomains = talloc_zero_array(pac_ctx->rctx->domains,
+                                                       struct sss_domain_info *,
+                                       pac_ctx->rctx->domains->subdomain_count);
+    fail_unless(pac_ctx->rctx->domains->subdomains != NULL,
+                "talloc_array_zero failed");
+
+    sd = talloc_zero(pac_ctx->rctx->domains->subdomains,
+                     struct sss_domain_info);
+    fail_unless(sd != NULL, "talloc_zero failed.");
+
+    sd->name = talloc_strdup(sd, "remote.dom");
+    fail_unless(sd->name != NULL, "talloc_strdup failed");
+
+    sd->flat_name = talloc_strdup(sd, "REMOTEDOM");
+    fail_unless(sd->flat_name != NULL, "talloc_strdup failed");
+
+    sd->domain_id = talloc_strdup(sd, test_remote_dom_sid_str);
+    fail_unless(sd->domain_id != NULL, "talloc_strdup failed");
+
+    pac_ctx->rctx->domains->subdomains[0] = sd;
+
+    err = sss_idmap_init(idmap_talloc, pac_ctx, idmap_talloc_free,
+                         &pac_ctx->idmap_ctx);
+
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
+    fail_unless(pac_ctx->idmap_ctx != NULL, "sss_idmap_init returned NULL.");
+
+    err = sss_idmap_add_domain(pac_ctx->idmap_ctx, "remote.dom",
+                               test_remote_dom_sid_str, &remote_range);
+
+    pac_ctx->my_dom_sid = &test_dom_sid;
+
+    pac_ctx->range_map = &test_map;
+}
+
+void pac_teardown(void)
+{
+    talloc_free(pac_ctx);
+}
 
 
 START_TEST(pac_test_local_sid_to_id)
@@ -226,6 +322,161 @@ START_TEST(pac_test_find_domain_by_id)
 }
 END_TEST
 
+START_TEST(pac_test_get_gids_from_pac)
+{
+    int ret;
+    size_t c;
+    size_t g;
+    size_t t;
+    size_t gid_count;
+    struct pac_grp *gids;
+    struct PAC_LOGON_INFO *logon_info;
+    bool found;
+    gid_t exp_gid;
+    struct timeval start_time;
+    struct timeval end_time;
+    struct timeval diff_time;
+
+    ret = get_gids_from_pac(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    fail_unless(ret == EINVAL, "Unexpected return value for NULL parameters");
+
+    logon_info = talloc_zero(global_talloc_context, struct PAC_LOGON_INFO);
+    fail_unless(logon_info != NULL, "talloc_zero failed.\n");
+
+    ret = get_gids_from_pac(global_talloc_context, pac_ctx, pac_ctx->range_map,
+                            pac_ctx->my_dom_sid, logon_info, &gid_count, &gids);
+    fail_unless(ret == EOK, "Failed with empty PAC");
+    fail_unless(gid_count == 0, "O groups expected, got [%d]", gid_count);
+    fail_unless(gids == NULL, "Expected NULL gid array.");
+
+    logon_info->info3.base.domain_sid = &test_smb_sid_2nd; /* unknown SID */
+    logon_info->info3.base.groups.count = 10;
+    logon_info->info3.base.groups.rids = talloc_array(logon_info,
+                                           struct samr_RidWithAttribute,
+                                           logon_info->info3.base.groups.count);
+    fail_unless(logon_info->info3.base.groups.rids != NULL, "talloc_array failed.");
+
+    for (c = 0; c < logon_info->info3.base.groups.count; c++) {
+        logon_info->info3.base.groups.rids[c].rid = 500 + c;
+    }
+
+    ret = get_gids_from_pac(global_talloc_context, pac_ctx, pac_ctx->range_map,
+                            pac_ctx->my_dom_sid, logon_info, &gid_count, &gids);
+    fail_unless(ret == EINVAL, "Unexpected return code [%d] with unknown SID.",
+                               ret);
+
+    /* change SID to a known one */
+    logon_info->info3.base.domain_sid = &test_remote_dom_sid;
+
+    ret = get_gids_from_pac(global_talloc_context, pac_ctx, pac_ctx->range_map,
+                            pac_ctx->my_dom_sid, logon_info, &gid_count, &gids);
+    fail_unless(ret == EOK, "Failed with 10 RIDs in PAC");
+    fail_unless(gid_count == logon_info->info3.base.groups.count,
+                "[%d] groups expected, got [%d]",
+                logon_info->info3.base.groups.count, gid_count);
+    fail_unless(gids != NULL, "Expected gid array.");
+
+    for (c = 0; c < logon_info->info3.base.groups.count; c++) {
+        found = false;
+        exp_gid = IDMAP_RANGE_MIN + 500 + c;
+        for (g = 0; g < gid_count; g++) {
+            if (gids[g].gid == exp_gid) {
+                found = true;
+                break;
+            }
+        }
+        fail_unless(found, "[%d] not found in group list", exp_gid);
+    }
+
+    talloc_free(gids);
+    gids = NULL;
+
+    /* duplicated RIDs */
+    for (c = 0; c < logon_info->info3.base.groups.count; c++) {
+        logon_info->info3.base.groups.rids[c].rid = 500;
+    }
+
+    ret = get_gids_from_pac(global_talloc_context, pac_ctx, pac_ctx->range_map,
+                            pac_ctx->my_dom_sid, logon_info, &gid_count, &gids);
+    fail_unless(ret == EOK, "Failed with 10 duplicated RIDs in PAC");
+    fail_unless(gid_count == 1, "[%d] groups expected, got [%d]", 1, gid_count);
+    fail_unless(gids != NULL, "Expected gid array.");
+    fail_unless(gids[0].gid == IDMAP_RANGE_MIN + 500,
+                "Wrong gid returned, got [%d], expected [%d].", gids[0].gid,
+                                                         IDMAP_RANGE_MIN + 500);
+    talloc_free(gids);
+    gids = NULL;
+
+    logon_info->info3.sidcount = 2;
+    logon_info->info3.sids = talloc_zero_array(logon_info, struct netr_SidAttr,
+                                               logon_info->info3.sidcount);
+    fail_unless(logon_info->info3.sids != NULL, "talloc_zero_array failed.");
+
+    logon_info->info3.sids[0].sid = &test_smb_sid;
+    logon_info->info3.sids[1].sid = &test_smb_sid_2nd;
+
+    ret = get_gids_from_pac(global_talloc_context, pac_ctx, pac_ctx->range_map,
+                            pac_ctx->my_dom_sid, logon_info, &gid_count, &gids);
+    fail_unless(ret == EOK, "Failed with 10 duplicated RIDs and local SIDS in PAC");
+    fail_unless(gid_count == 3, "[%d] groups expected, got [%d]", 3, gid_count);
+    fail_unless(gids != NULL, "Expected gid array.");
+
+    gid_t exp_gids[] = {IDMAP_RANGE_MIN + 500, test_id, test_id_2nd, 0};
+
+    for (c = 0; exp_gids[c] != 0; c++) {
+        found = false;
+        for (g = 0; g < gid_count; g++) {
+            if (gids[g].gid == exp_gids[c]) {
+                found = true;
+                break;
+            }
+        }
+        fail_unless(found, "[%d] not found in group list", exp_gids[c]);
+    }
+
+    talloc_free(gids);
+    gids = NULL;
+
+    talloc_free(logon_info->info3.base.groups.rids);
+
+    for (t = 0; t < 7; t++) {
+        logon_info->info3.base.groups.count = powl(10, t);
+        logon_info->info3.base.groups.rids = talloc_array(logon_info,
+                                               struct samr_RidWithAttribute,
+                                               logon_info->info3.base.groups.count);
+        fail_unless(logon_info->info3.base.groups.rids != NULL, "talloc_array failed.");
+
+        for (c = 0; c < logon_info->info3.base.groups.count; c++) {
+            logon_info->info3.base.groups.rids[c].rid = 500 + c;
+        }
+
+        ret = gettimeofday(&start_time, NULL);
+        fail_unless(ret == 0, "gettimeofday failed.");
+
+        ret = get_gids_from_pac(global_talloc_context, pac_ctx, pac_ctx->range_map,
+                                pac_ctx->my_dom_sid, logon_info, &gid_count, &gids);
+        fail_unless(ret == EOK, "Unexpected return code [%d].", ret);
+
+        ret = gettimeofday(&end_time, NULL);
+        fail_unless(ret == 0, "gettimeofday failed.");
+
+        timersub(&end_time, &start_time, &diff_time);
+        fprintf(stderr, "Testcase [%zu], number of groups [%u], " \
+                        "duration [%ds %dus]\n", t,
+                        logon_info->info3.base.groups.count,
+                        (int) diff_time.tv_sec,
+                        (int) diff_time.tv_usec);
+
+        talloc_free(gids);
+        gids = NULL;
+
+        talloc_free(logon_info->info3.base.groups.rids);
+    }
+
+    talloc_free(logon_info);
+}
+END_TEST
+
 Suite *idmap_test_suite (void)
 {
     Suite *s = suite_create ("PAC responder");
@@ -235,10 +486,15 @@ Suite *idmap_test_suite (void)
                               leak_check_setup,
                               leak_check_teardown);
 
+    tcase_add_checked_fixture(tc_pac,
+                              pac_setup,
+                              pac_teardown);
+
     tcase_add_test(tc_pac, pac_test_local_sid_to_id);
     tcase_add_test(tc_pac, pac_test_seondary_local_sid_to_id);
     tcase_add_test(tc_pac, pac_test_get_gids_to_add_and_remove);
     tcase_add_test(tc_pac, pac_test_find_domain_by_id);
+    tcase_add_test(tc_pac, pac_test_get_gids_from_pac);
 
     suite_add_tcase(s, tc_pac);
 
