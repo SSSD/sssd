@@ -782,8 +782,7 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
                                  &highest_usn, &downloaded_rules_num);
     talloc_zfree(subreq);
     if (ret != EOK || state->dp_error != DP_ERR_OK || state->error != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     /* set highest usn */
@@ -793,6 +792,12 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
 
     if (downloaded_rules_num != state->num_rules) {
         state->error = ENOENT;
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
@@ -912,8 +917,7 @@ static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
     ret = sdap_sudo_refresh_recv(state, subreq, &dp_error, &error,
                                  &highest_usn, NULL);
     if (ret != EOK || dp_error != DP_ERR_OK || error != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Successful smart refresh of sudo rules\n"));
@@ -921,6 +925,12 @@ static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
     /* set highest usn */
     if (highest_usn != NULL) {
         sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
