@@ -855,6 +855,12 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
         ret = confdb_get_string(cdb, tmp_ctx, conf_path,
                                 CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
         if (ret == EOK) {
+            if (id_provider == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("id_provider is not set for "
+                      "domain [%s], trying next domain.\n", domain_names[c]));
+                continue;
+            }
+
             if (strcasecmp(id_provider, "IPA") == 0) {
                 add_pac = true;
             }
