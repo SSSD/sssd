@@ -574,7 +574,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
     struct sysdb_attrs **rules = NULL;
     size_t num_rules = 0;
-    const char *attrs[] = { SYSDB_OBJECTCLASS
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
                             SYSDB_SUDO_CACHE_AT_CN,
                             SYSDB_SUDO_CACHE_AT_USER,
                             SYSDB_SUDO_CACHE_AT_HOST,
