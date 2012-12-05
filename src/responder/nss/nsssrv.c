@@ -294,8 +294,61 @@ static int nss_update_memcache(DBusMessage *message,
     return EOK;
 }
 
+static int nss_memcache_initgr_check(DBusMessage *message,
+                                     struct sbus_connection *conn)
+{
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+    DBusError dbus_error;
+    dbus_bool_t dbret;
+    DBusMessage *reply;
+    char *user;
+    char *domain;
+    uint32_t *groups;
+    int gnum;
+
+    dbus_error_init(&dbus_error);
+
+    dbret = dbus_message_get_args(message, &dbus_error,
+                                  DBUS_TYPE_STRING, &user,
+                                  DBUS_TYPE_STRING, &domain,
+                                  DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32,
+                                  &groups, &gnum,
+                                  DBUS_TYPE_INVALID);
+
+    if (!dbret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse message!\n"));
+        if (dbus_error_is_set(&dbus_error)) {
+            dbus_error_free(&dbus_error);
+        }
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          ("Got request for [%s@%s]\n", user, domain));
+
+    nss_update_initgr_memcache(nctx, user, domain, gnum, groups);
+
+    reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
+
+    dbret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
+    if (!dbret) {
+        dbus_message_unref(reply);
+        return EIO;
+    }
+
+    /* send reply back */
+    sbus_conn_send_reply(conn, reply);
+    dbus_message_unref(reply);
+
+    return EOK;
+}
+
 static struct sbus_method nss_dp_methods[] = {
     { DP_REV_METHOD_UPDATE_CACHE, nss_update_memcache },
+    { DP_REV_METHOD_INITGR_CHECK, nss_memcache_initgr_check },
     { NULL, NULL }
 };
 

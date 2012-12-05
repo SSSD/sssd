@@ -125,5 +125,8 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
 
 void nss_update_pw_memcache(struct nss_ctx *nctx);
 void nss_update_gr_memcache(struct nss_ctx *nctx);
+void nss_update_initgr_memcache(struct nss_ctx *nctx,
+                                const char *name, const char *domain,
+                                int gnum, uint32_t *groups);
 
 #endif /* NSSSRV_PRIVATE_H_ */

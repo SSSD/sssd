@@ -59,6 +59,7 @@
  * the nss responder to tell it to update the mmap
  * cache */
 #define DP_REV_METHOD_UPDATE_CACHE "updateCache"
+#define DP_REV_METHOD_INITGR_CHECK "initgrCheck"
 
 /**
  * @defgroup pamHandler PAM DBUS request
