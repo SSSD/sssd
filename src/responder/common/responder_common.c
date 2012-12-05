@@ -538,7 +538,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     ret = sbus_client_init(rctx, rctx->ev,
                            be_conn->sbus_address,
                            intf, &be_conn->conn,
-                           NULL, NULL);
+                           NULL, rctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
