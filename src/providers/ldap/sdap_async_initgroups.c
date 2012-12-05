@@ -1859,8 +1859,7 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
         grp_count ^= grp_count_old;
 
         if (num_added == 0) {
-            /* Nothing to add. Skip. */
-            continue;
+            add = NULL;
         } else {
             add[num_added] = NULL;
         }
