@@ -46,6 +46,9 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
     /* retry barrier protected reading max 5 times then give up */
     for (count = 5; count > 0; count--) {
         memcpy(&h, ctx->mmap_base, sizeof(struct sss_mc_header));
+        /* we need a barrier here to make sure the compiler does not optimize
+         * too much and avoids updating the register for the next check */
+        __sync_synchronize();
         if (MC_VALID_BARRIER(h.b1) && h.b1 == h.b2) {
             /* record is consistent so we can proceed */
             break;
