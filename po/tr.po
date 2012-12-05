@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-10-12 21:15+0200\n"
+"POT-Creation-Date: 2012-12-06 00:31+0100\n"
 "PO-Revision-Date: 2012-10-05 17:31+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Turkish (http://www.transifex.com/projects/p/fedora/language/"
@@ -1013,70 +1013,66 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
-#: src/monitor/monitor.c:2476
+#: src/monitor/monitor.c:2639
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2478
+#: src/monitor/monitor.c:2641
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2480 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2643 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2482
+#: src/monitor/monitor.c:2645
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2599
-msgid "SSSD is already running\n"
-msgstr ""
-
-#: src/providers/krb5/krb5_child.c:1894 src/providers/ldap/ldap_child.c:432
-#: src/util/util.h:94
+#: src/providers/krb5/krb5_child.c:1988 src/providers/ldap/ldap_child.c:435
+#: src/util/util.h:95
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1896 src/providers/ldap/ldap_child.c:434
-#: src/util/util.h:98
+#: src/providers/krb5/krb5_child.c:1990 src/providers/ldap/ldap_child.c:437
+#: src/util/util.h:99
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1898 src/providers/ldap/ldap_child.c:436
-#: src/util/util.h:100
+#: src/providers/krb5/krb5_child.c:1992 src/providers/ldap/ldap_child.c:439
+#: src/util/util.h:101
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:1900 src/providers/ldap/ldap_child.c:438
+#: src/providers/krb5/krb5_child.c:1994 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:2365
+#: src/providers/data_provider_be.c:2544
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: src/sss_client/common.c:947
+#: src/sss_client/common.c:946
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:950
+#: src/sss_client/common.c:949
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:953
+#: src/sss_client/common.c:952
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:956
+#: src/sss_client/common.c:955
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:961
+#: src/sss_client/common.c:960
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:967
+#: src/sss_client/common.c:966
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
@@ -1147,7 +1143,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:350 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:335 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr ""
 
@@ -1160,7 +1156,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
 #: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:381
+#: src/tools/sss_cache.c:366
 msgid "Error setting the locale\n"
 msgstr ""
 
@@ -1564,84 +1560,84 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:142
+#: src/tools/sss_cache.c:141
 msgid "No cache object matched the specified search\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:201
+#: src/tools/sss_cache.c:184
 #, c-format
-msgid "No such %1$s named %2$s, skipping\n"
+msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:204
+#: src/tools/sss_cache.c:187
 #, c-format
-msgid "No objects of type %1$s in the cache, skipping\n"
+msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:216
+#: src/tools/sss_cache.c:199
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:223
+#: src/tools/sss_cache.c:206
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:352
+#: src/tools/sss_cache.c:337
 msgid "Invalidate particular user"
 msgstr ""
 
-#: src/tools/sss_cache.c:354
+#: src/tools/sss_cache.c:339
 msgid "Invalidate all users"
 msgstr ""
 
-#: src/tools/sss_cache.c:356
+#: src/tools/sss_cache.c:341
 msgid "Invalidate particular group"
 msgstr ""
 
-#: src/tools/sss_cache.c:358
+#: src/tools/sss_cache.c:343
 msgid "Invalidate all groups"
 msgstr ""
 
-#: src/tools/sss_cache.c:360
+#: src/tools/sss_cache.c:345
 msgid "Invalidate particular netgroup"
 msgstr ""
 
-#: src/tools/sss_cache.c:362
+#: src/tools/sss_cache.c:347
 msgid "Invalidate all netgroups"
 msgstr ""
 
-#: src/tools/sss_cache.c:364
+#: src/tools/sss_cache.c:349
 msgid "Invalidate particular service"
 msgstr ""
 
-#: src/tools/sss_cache.c:366
+#: src/tools/sss_cache.c:351
 msgid "Invalidate all services"
 msgstr ""
 
-#: src/tools/sss_cache.c:369
+#: src/tools/sss_cache.c:354
 msgid "Invalidate particular autofs map"
 msgstr ""
 
-#: src/tools/sss_cache.c:371
+#: src/tools/sss_cache.c:356
 msgid "Invalidate all autofs maps"
 msgstr ""
 
-#: src/tools/sss_cache.c:374
+#: src/tools/sss_cache.c:359
 msgid "Only invalidate entries from a particular domain"
 msgstr ""
 
-#: src/tools/sss_cache.c:413
+#: src/tools/sss_cache.c:398
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:484
+#: src/tools/sss_cache.c:469
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:486
+#: src/tools/sss_cache.c:471
 msgid "Could not open available domains\n"
 msgstr ""
 
@@ -1653,7 +1649,7 @@ msgstr ""
 msgid "Specify debug level you want to set\n"
 msgstr ""
 
-#: src/tools/tools_util.c:280
+#: src/tools/tools_util.c:282
 msgid "Out of memory\n"
 msgstr ""
 
@@ -1662,6 +1658,6 @@ msgstr ""
 msgid "%1$s must be run as root\n"
 msgstr ""
 
-#: src/util/util.h:96
+#: src/util/util.h:97
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
