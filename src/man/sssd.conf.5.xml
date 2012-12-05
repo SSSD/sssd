@@ -813,18 +813,6 @@ override_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
-                <varlistentry>
-                    <term>ssh_known_hosts_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            How many seconds to keep a host in the managed
-                            known_hosts file after its host keys were requested.
-                        </para>
-                        <para>
-                            Default: 180
-                        </para>
-                    </listitem>
-                </varlistentry>
             </variablelist>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_restart.xml" />
         </refsect2>
@@ -844,6 +832,18 @@ override_homedir = /home/%u
                         </para>
                         <para>
                             Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>ssh_known_hosts_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds to keep a host in the managed
+                            known_hosts file after its host keys were requested.
+                        </para>
+                        <para>
+                            Default: 180
                         </para>
                     </listitem>
                 </varlistentry>
