@@ -123,4 +123,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
                     sss_dp_callback_t callback,
                     void *pvt);
 
+void nss_update_pw_memcache(struct nss_ctx *nctx);
+void nss_update_gr_memcache(struct nss_ctx *nctx);
+
 #endif /* NSSSRV_PRIVATE_H_ */

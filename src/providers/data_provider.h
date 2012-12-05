@@ -54,6 +54,12 @@
 #define DP_METHOD_AUTOFSHANDLER "autofsHandler"
 #define DP_METHOD_HOSTHANDLER "hostHandler"
 #define DP_METHOD_GETDOMAINS "getDomains"
+
+/* this is a reverse method sent from providers to
+ * the nss responder to tell it to update the mmap
+ * cache */
+#define DP_REV_METHOD_UPDATE_CACHE "updateCache"
+
 /**
  * @defgroup pamHandler PAM DBUS request
  * @ingroup sss_pam
