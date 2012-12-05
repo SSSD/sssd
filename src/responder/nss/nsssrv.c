@@ -33,6 +33,7 @@
 #include "popt.h"
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/common/negcache.h"
 #include "db/sysdb.h"
@@ -280,7 +281,21 @@ done:
     return ret;
 }
 
+static int nss_update_memcache(DBusMessage *message,
+                               struct sbus_connection *conn)
+{
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+
+    nss_update_pw_memcache(nctx);
+    nss_update_gr_memcache(nctx);
+
+    return EOK;
+}
+
 static struct sbus_method nss_dp_methods[] = {
+    { DP_REV_METHOD_UPDATE_CACHE, nss_update_memcache },
     { NULL, NULL }
 };
 
