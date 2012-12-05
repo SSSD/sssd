@@ -560,6 +560,160 @@ static void acctinfo_callback(struct be_req *req,
     talloc_free(req);
 }
 
+struct be_initgr_prereq {
+    char *user;
+    char *domain;
+    uint32_t gnum;
+    uint32_t *groups;
+
+    void *orig_pvt_data;
+    int orig_dp_err_type;
+    int orig_errnum;
+    const char *orig_errstr;
+};
+
+static void acctinfo_callback_initgr_wrap(struct be_req *be_req)
+{
+    struct be_initgr_prereq *pr = talloc_get_type(be_req->pvt,
+                                                  struct be_initgr_prereq);
+
+    be_req->pvt = pr->orig_pvt_data;
+    acctinfo_callback(be_req, pr->orig_dp_err_type,
+                      pr->orig_errnum, pr->orig_errstr);
+}
+
+static void acctinfo_callback_initgr_sbus(DBusPendingCall *pending, void *ptr)
+{
+    struct be_req *be_req = talloc_get_type(ptr, struct be_req);
+
+    dbus_pending_call_unref(pending);
+
+    acctinfo_callback_initgr_wrap(be_req);
+}
+
+static void acctinfo_initgroups_callback(struct be_req *be_req,
+                                         int dp_err_type,
+                                         int errnum,
+                                         const char *errstr)
+{
+    struct be_initgr_prereq *pr = talloc_get_type(be_req->pvt,
+                                                  struct be_initgr_prereq);
+    DBusMessage *msg = NULL;
+    dbus_bool_t dbret;
+    int ret;
+
+    pr->orig_dp_err_type = dp_err_type;
+    pr->orig_errnum = errnum;
+    pr->orig_errstr = errstr;
+
+    if (!be_req->be_ctx->nss_cli || !be_req->be_ctx->nss_cli->conn) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("NSS Service not conected\n"));
+        ret = EACCES;
+        goto done;
+    }
+
+    /* Set up null request */
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_PATH,
+                                       DP_INTERFACE,
+                                       DP_REV_METHOD_INITGR_CHECK);
+    if (!msg) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dbret = dbus_message_append_args(msg,
+                                     DBUS_TYPE_STRING, &pr->user,
+                                     DBUS_TYPE_STRING, &pr->domain,
+                                     DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32,
+                                     &pr->groups, pr->gnum,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* ping the NSS service, no reply expected */
+    ret = sbus_conn_send(be_req->be_ctx->nss_cli->conn, msg, -1,
+                         acctinfo_callback_initgr_sbus, be_req, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Error contacting NSS responder: %d [%s]\n",
+               ret, strerror(ret)));
+    }
+
+done:
+    if (msg) {
+        dbus_message_unref(msg);
+    }
+    if (ret != EOK) {
+        /* return immediately if we cannot contact nss provider */
+        acctinfo_callback_initgr_wrap(be_req);
+    }
+}
+
+static errno_t be_initgroups_prereq(struct be_req *be_req)
+{
+    struct be_acct_req *ar = talloc_get_type(be_req->req_data,
+                                             struct be_acct_req);
+    struct be_initgr_prereq *pr;
+    struct ldb_result *res;
+    errno_t ret;
+    const char *tmpstr;
+    int i;
+
+    ret = sysdb_initgroups(be_req, be_req->be_ctx->sysdb,
+                           ar->filter_value, &res);
+    if (ret && ret != ENOENT) {
+        return ret;
+    }
+    /* if the user is completely missing or has no group memberships
+     * at all there is no need to contact NSS, it would be a noop */
+    if (ret == ENOENT || res->count == 0 || res->count == 1) {
+        /* yet unknown, ignore */
+        return EOK;
+    }
+
+    pr = talloc(be_req, struct be_initgr_prereq);
+    if (!pr) {
+        return ENOMEM;
+    }
+    pr->groups = talloc_array(pr, gid_t, res->count - 1);
+    if (!pr->groups) {
+        return ENOMEM;
+    }
+    tmpstr = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    if (!tmpstr) {
+        return EINVAL;
+    }
+    pr->user = talloc_strdup(pr, tmpstr);
+    if (!pr->user) {
+        return ENOMEM;
+    }
+    pr->domain = talloc_strdup(pr, be_req->be_ctx->domain->name);
+    if (!pr->domain) {
+        return ENOMEM;
+    }
+    for (pr->gnum = 0, i = 1; i < res->count; i++) {
+        pr->groups[pr->gnum] = ldb_msg_find_attr_as_uint(res->msgs[i],
+                                                         SYSDB_GIDNUM, 0);
+        /* if 0 it may be a non-posix group, so we skip it */
+        if (pr->groups[pr->gnum] != 0) {
+            pr->gnum++;
+        }
+    }
+
+    talloc_zfree(res);
+
+    pr->orig_pvt_data = be_req->pvt;
+    be_req->pvt = pr;
+    be_req->fn = acctinfo_initgroups_callback;
+
+    return EOK;
+}
+
 static errno_t
 split_name_extended(TALLOC_CTX *mem_ctx,
                     const char *filter,
@@ -735,6 +889,17 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         err_min = EINVAL;
         err_msg = "Missing Filter Parameter";
         goto done;
+    }
+
+    /* see if we need a pre request call, only done for initgroups for now */
+    if ((type & 0xFF) == BE_REQ_INITGROUPS) {
+        ret = be_initgroups_prereq(be_req);
+        if (ret) {
+            err_maj = DP_ERR_FATAL;
+            err_min = ret;
+            err_msg = "Prerequest failed";
+            goto done;
+        }
     }
 
     /* process request */
