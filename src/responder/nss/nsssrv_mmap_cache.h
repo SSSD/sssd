@@ -50,6 +50,16 @@ errno_t sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
                                 gid_t gid, size_t memnum,
                                 char *membuf, size_t memsize);
 
+errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
+                                     struct sized_string *name);
+
+errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid);
+
+errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
+                                     struct sized_string *name);
+
+errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid);
+
 errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
                               time_t timeout, struct sss_mc_ctx **mc_ctx);
 
