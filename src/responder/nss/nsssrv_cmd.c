@@ -3346,6 +3346,97 @@ done:
     return EOK;
 }
 
+void nss_update_initgr_memcache(struct nss_ctx *nctx,
+                                const char *name, const char *domain,
+                                int gnum, uint32_t *groups)
+{
+    struct sss_domain_info *dom;
+    struct ldb_result *res;
+    bool changed = false;
+    uint32_t id;
+    uint32_t gids[gnum];
+    int ret;
+    int i, j;
+
+    if (gnum == 0) {
+        /* there are no groups to invalidate in any case, just return */
+        return;
+    }
+
+    for (dom = nctx->rctx->domains; dom != NULL; dom = dom->next) {
+        if (strcasecmp(dom->name, domain) == 0) {
+            break;
+        }
+    }
+
+    if (dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Unknown domain (%s) requested by provider\n", domain));
+        return;
+    }
+
+    ret = sysdb_initgroups(NULL, dom->sysdb, name, &res);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to make request to our cache! [%d][%s]\n",
+               ret, strerror(ret)));
+        return;
+    }
+
+    /* copy, we need the original intact in case we need to invalidate
+     * all the original groups */
+    memcpy(gids, groups, gnum * sizeof(uint32_t));
+
+    if (ret == ENOENT || res->count == 0) {
+        changed = true;
+    } else {
+        /* we skip the first entry, it's the user itself */
+        for (i = 1; i < res->count; i++) {
+            id = ldb_msg_find_attr_as_uint(res->msgs[i], SYSDB_GIDNUM, 0);
+            if (id == 0) {
+                /* probably non-posix group, skip */
+                continue;
+            }
+            for (j = 0; j < gnum; j++) {
+                if (gids[j] == id) {
+                    gids[j] = 0;
+                    break;
+                }
+            }
+            if (j >= gnum) {
+                /* we couldn't find a match, this means the groups have
+                 * changed after the refresh */
+                changed = true;
+                break;
+            }
+        }
+
+        if (!changed) {
+            for (j = 0; j < gnum; j++) {
+                if (gids[j] != 0) {
+                    /* we found an un-cleared groups, this means the groups
+                     * have changed after the refresh (some got deleted) */
+                    changed = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (changed) {
+        for (i = 0; i < gnum; i++) {
+            id = groups[i];
+
+            ret = sss_mmap_cache_gr_invalidate_gid(nctx->grp_mc_ctx, id);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Internal failure in memory cache code: %d [%s]\n",
+                       ret, strerror(ret)));
+            }
+        }
+    }
+}
+
 /* FIXME: what about mpg, should we return the user's GID ? */
 /* FIXME: should we filter out GIDs ? */
 static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
