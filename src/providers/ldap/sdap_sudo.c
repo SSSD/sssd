@@ -415,7 +415,7 @@ static char *sdap_sudo_get_filter(TALLOC_CTX *mem_ctx,
     char *filter = NULL;
 
     if (!sudo_ctx->use_host_filter) {
-        return talloc_strdup(mem_ctx, filter);
+        return talloc_strdup(mem_ctx, rule_filter);
     }
 
     tmp_ctx = talloc_new(NULL);
