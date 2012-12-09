@@ -2084,7 +2084,7 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     <listitem>
                         <para>
                             If true then SSSD will download every rule that
-                            contains a regular expression in sudoHost attribute.
+                            contains a wildcard in sudoHost attribute.
                         </para>
                         <para>
                             If <emphasis>ldap_sudo_use_host_filter</emphasis>
