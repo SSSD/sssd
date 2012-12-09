@@ -661,7 +661,7 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
 {
     mode_t old_mask;
     int ofd;
-    int ret;
+    int ret, uret;
     useconds_t t = 50000;
     int retries = 3;
 
@@ -694,28 +694,34 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
      * by everyone for now */
     old_mask = umask(0022);
 
-    ret = 0;
+    errno = 0;
     mc_ctx->fd = open(mc_ctx->file, O_CREAT | O_EXCL | O_RDWR, 0644);
+    umask(old_mask);
     if (mc_ctx->fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open mmap file %s: %d(%s)\n",
                                     mc_ctx->file, ret, strerror(ret)));
-        goto done;
+        return ret;
     }
 
     ret = sss_br_lock_file(mc_ctx->fd, 0, 1, retries, t);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to lock file %s.\n", mc_ctx->file));
-        goto done;
-    }
-
-done:
-    /* reset mask back */
-    umask(old_mask);
-
-    if (ret) {
         close(mc_ctx->fd);
+
+        /* Report on unlink failures but don't overwrite the errno
+         * from sss_br_lock_file
+         */
+        errno = 0;
+        uret = unlink(mc_ctx->file);
+        if (uret == -1) {
+            uret = errno;
+            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to rm mmap file %s: %d(%s)\n",
+                                    mc_ctx->file, uret, strerror(uret)));
+        }
+
+        return ret;
     }
 
     return ret;
