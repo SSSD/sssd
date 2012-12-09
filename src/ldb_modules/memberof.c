@@ -3014,7 +3014,7 @@ static int mbof_collect_child_ghosts(struct mbof_mod_ctx *mod_ctx)
     }
 
     mod_ctx->igh = talloc_zero(mod_ctx, struct mbof_mod_del_op);
-    if (mod_ctx == NULL) {
+    if (mod_ctx->igh == NULL) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
     mod_ctx->igh->mod_ctx = mod_ctx;
