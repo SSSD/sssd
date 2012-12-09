@@ -165,7 +165,7 @@ krb5_server = ipa.example.com
             </listitem>
             <listitem>
                 <para>
-                    regular expression
+                    wildcard
                 </para>
             </listitem>
             <listitem>
