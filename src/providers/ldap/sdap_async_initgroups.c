@@ -1826,7 +1826,6 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
     }
     in_transaction = true;
 
-    iter_tmp = membership_state->memberships;
     iter_start = membership_state->memberships;
 
     DLIST_FOR_EACH(iter, membership_state->memberships) {
