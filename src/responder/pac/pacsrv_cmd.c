@@ -245,6 +245,10 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
                          pr_ctx->gid_count, pr_ctx->gids,
                          &pr_ctx->add_gid_count, &pr_ctx->add_gids,
                          &pr_ctx->del_grp_count, &pr_ctx->del_grp_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("diff_gid_lists failed.\n"));
+        goto done;
+    }
 
     req = pac_save_memberships_send(pr_ctx);
     if (req == NULL) {
