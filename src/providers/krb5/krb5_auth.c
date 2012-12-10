@@ -679,7 +679,11 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
     char *msg;
     int ret;
 
-    ret = be_resolve_server_recv(subreq, &kr->srv);
+    if (!state->search_kpasswd) {
+        ret = be_resolve_server_recv(subreq, &kr->srv);
+    } else {
+        ret = be_resolve_server_recv(subreq, &kr->kpasswd_srv);
+    }
     talloc_zfree(subreq);
 
     if (state->search_kpasswd) {
@@ -969,7 +973,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
         /* ..which is unreachable by now.. */
         if (res->msg_status == PAM_AUTHTOK_LOCK_BUSY) {
             be_fo_set_port_status(state->be_ctx,
-                                  state->krb5_ctx->service->name,
+                                  state->krb5_ctx->kpasswd_service->name,
                                   kr->kpasswd_srv, PORT_NOT_WORKING);
             /* ..try to resolve next kpasswd server */
             state->search_kpasswd = true;
@@ -985,7 +989,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
             return;
         } else {
             be_fo_set_port_status(state->be_ctx,
-                                  state->krb5_ctx->service->name,
+                                  state->krb5_ctx->kpasswd_service->name,
                                   kr->kpasswd_srv, PORT_WORKING);
         }
     }
