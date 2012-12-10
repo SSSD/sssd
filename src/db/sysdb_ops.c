@@ -3153,8 +3153,6 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
         ldb_msg_remove_attr(msg, remove_attrs[i]);
     }
 
-    ret = EOK;
-
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
@@ -3163,6 +3161,7 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
 
     in_transaction = false;
 
+    ret = EOK;
 done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
