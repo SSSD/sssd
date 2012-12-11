@@ -14,7 +14,7 @@
 
     <refnamediv id='name'>
         <refname>sssd-sudo</refname>
-        <refpurpose>the configuration file for SSSD</refpurpose>
+        <refpurpose>Configuring sudo with the SSSD back end</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>
