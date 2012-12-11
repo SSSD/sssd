@@ -1059,6 +1059,9 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
             goto done;
         }
 
+        DEBUG(SSSDBG_TRACE_LIBS, ("User [%s] is a member of %d groups\n",
+              name, memberof_el->num_values));
+
         for (j = 0; j < memberof_el->num_values; j++) {
             msg = ldb_msg_new(tmp_ctx);
             if (msg == NULL) {
@@ -1091,6 +1094,9 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
                 goto done;
             }
 
+            DEBUG(SSSDBG_TRACE_FUNC, ("Adding ghost [%s] to entry [%s]\n",
+                  name, ldb_dn_get_linearized(msg->dn)));
+
             ret = ldb_modify(sysdb->ldb, msg);
             talloc_zfree(msg);
             if (ret != LDB_SUCCESS) {
@@ -1098,6 +1104,9 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
                 goto done;
             }
         }
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Removing fake user [%s]\n",
+              ldb_dn_get_linearized(user->dn)));
 
         ret = ldb_delete(sysdb->ldb, user->dn);
         if (ret != LDB_SUCCESS) {
