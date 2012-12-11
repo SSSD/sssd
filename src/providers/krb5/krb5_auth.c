@@ -869,7 +869,7 @@ static void krb5_child_done(struct tevent_req *subreq)
         /* ..which is unreachable by now.. */
         if (res->msg_status == PAM_AUTHTOK_LOCK_BUSY) {
             be_fo_set_port_status(state->be_ctx,
-                                  state->krb5_ctx->service->name,
+                                  state->krb5_ctx->kpasswd_service->name,
                                   kr->kpasswd_srv, PORT_NOT_WORKING);
             /* ..try to resolve next kpasswd server */
             if (krb5_next_kpasswd(req) == NULL) {
@@ -878,7 +878,7 @@ static void krb5_child_done(struct tevent_req *subreq)
             return;
         } else {
             be_fo_set_port_status(state->be_ctx,
-                                  state->krb5_ctx->service->name,
+                                  state->krb5_ctx->kpasswd_service->name,
                                   kr->kpasswd_srv, PORT_WORKING);
         }
     }
@@ -978,7 +978,8 @@ static struct tevent_req *krb5_next_server(struct tevent_req *req)
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
             if (state->kr->kpasswd_srv) {
-                be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
+                be_fo_set_port_status(state->be_ctx,
+                                      state->krb5_ctx->kpasswd_service->name,
                                       state->kr->kpasswd_srv, PORT_NOT_WORKING);
                 next_req = krb5_next_kpasswd(req);
                 break;
