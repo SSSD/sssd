@@ -38,18 +38,33 @@
 /* FIXME: handle name upper/lower casing ? Maybe a flag passed down by
  * sssd or a flag in sss_mc_header ? per domain ? */
 
+#define MEMCPY_WITH_BARRIERS(res, dest, src, len) \
+do { \
+    uint32_t _b1; \
+    res = false; \
+    _b1 = (src)->b1; \
+    if (MC_VALID_BARRIER(_b1)) { \
+        __sync_synchronize(); \
+        memcpy(dest, src, len); \
+        __sync_synchronize(); \
+        if ((src)->b2 == _b1) { \
+            res = true; \
+        } \
+    } \
+} while(0)
+
 errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
 {
     struct sss_mc_header h;
+    bool copy_ok;
     int count;
 
     /* retry barrier protected reading max 5 times then give up */
     for (count = 5; count > 0; count--) {
-        memcpy(&h, ctx->mmap_base, sizeof(struct sss_mc_header));
-        /* we need a barrier here to make sure the compiler does not optimize
-         * too much and avoids updating the register for the next check */
-        __sync_synchronize();
-        if (MC_VALID_BARRIER(h.b1) && h.b1 == h.b2) {
+        MEMCPY_WITH_BARRIERS(copy_ok, &h,
+                             (struct sss_mc_header *)ctx->mmap_base,
+                             sizeof(struct sss_mc_header));
+        if (copy_ok) {
             /* record is consistent so we can proceed */
             break;
         }
@@ -181,11 +196,12 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
                               uint32_t slot, struct sss_mc_rec **_rec)
 {
     struct sss_mc_rec *rec;
-    void *rec_buf = NULL;
+    struct sss_mc_rec *copy_rec = NULL;
     size_t buf_size = 0;
     size_t rec_len;
     uint32_t b1;
     uint32_t b2;
+    bool copy_ok;
     int count;
     int ret;
 
@@ -198,16 +214,16 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
         __sync_synchronize();
         rec_len = rec->len;
         __sync_synchronize();
-        b2 = rec->b1;
+        b2 = rec->b2;
         if (!MC_VALID_BARRIER(b1) || b1 != b2) {
             /* record is inconsistent, retry */
             continue;
         }
 
         if (rec_len > buf_size) {
-            free(rec_buf);
-            rec_buf = malloc(rec_len);
-            if (!rec_buf) {
+            free(copy_rec);
+            copy_rec = malloc(rec_len);
+            if (!copy_rec) {
                 ret = ENOMEM;
                 goto done;
             }
@@ -215,13 +231,10 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
         }
         /* we cannot access data directly, we must copy data and then
          * access the copy */
-        memcpy(rec_buf, rec, rec_len);
-        rec = (struct sss_mc_rec *)rec_buf;
+        MEMCPY_WITH_BARRIERS(copy_ok, copy_rec, rec, rec_len);
 
         /* we must check data is consistent again after the copy */
-        if (MC_VALID_BARRIER(rec->b1) &&
-            rec->b1 == rec->b2 &&
-            rec->len == rec_len) {
+        if (copy_ok && b1 == copy_rec->b2) {
             /* record is consistent, use it */
             break;
         }
@@ -232,12 +245,12 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
         goto done;
     }
 
-    *_rec = rec;
+    *_rec = copy_rec;
     ret = 0;
 
 done:
     if (ret) {
-        free(rec_buf);
+        free(copy_rec);
         *_rec = NULL;
     }
     return ret;
