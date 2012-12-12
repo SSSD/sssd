@@ -78,8 +78,9 @@ struct copy_ctx {
 /* wrapper in order not to create a temporary context in
  * every iteration */
 static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
-                                dev_t parent_dev,
-                                const char *root);
+                                int parent_fd,
+                                const char *dir_name,
+                                dev_t parent_dev);
 
 int remove_tree(const char *root)
 {
@@ -91,7 +92,7 @@ int remove_tree(const char *root)
         return ENOMEM;
     }
 
-    ret = remove_tree_with_ctx(tmp_ctx, 0, root);
+    ret = remove_tree_with_ctx(tmp_ctx, AT_FDCWD, root, 0);
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -102,75 +103,75 @@ int remove_tree(const char *root)
  * reach the top level remove_tree() again
  */
 static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
-                                dev_t parent_dev,
-                                const char *root)
+                                int parent_fd,
+                                const char *dir_name,
+                                dev_t parent_dev)
 {
-    char *fullpath = NULL;
     struct dirent *result;
-    struct dirent direntp;
     struct stat statres;
     DIR *rootdir = NULL;
     int ret, err;
+    int dir_fd;
 
-    rootdir = opendir(root);
+    dir_fd = openat(parent_fd, dir_name,
+                    O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
+    if (dir_fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot open %s: [%d]: %s\n",
+              dir_name, ret, strerror(ret)));
+        return ret;
+    }
+
+    rootdir = fdopendir(dir_fd);
     if (rootdir == NULL) {
         ret = errno;
-        DEBUG(1, ("Cannot open directory %s [%d][%s]\n",
-                  root, ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Cannot open directory: [%d][%s]\n", ret, strerror(ret)));
+        close(dir_fd);
         goto fail;
     }
 
-    while (readdir_r(rootdir, &direntp, &result) == 0) {
-        if (result == NULL) {
-            /* End of directory */
-            break;
-        }
-
-        if (strcmp (direntp.d_name, ".") == 0 ||
-            strcmp (direntp.d_name, "..") == 0) {
+    while ((result = readdir(rootdir)) != NULL) {
+        if (strcmp(result->d_name, ".") == 0 ||
+            strcmp(result->d_name, "..") == 0) {
             continue;
         }
 
-        fullpath = talloc_asprintf(mem_ctx, "%s/%s", root, direntp.d_name);
-        if (fullpath == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        ret = lstat(fullpath, &statres);
+        ret = fstatat(dir_fd, result->d_name,
+                      &statres, AT_SYMLINK_NOFOLLOW);
         if (ret != 0) {
             ret = errno;
-            DEBUG(1, ("Cannot stat %s: [%d][%s]\n",
-                      fullpath, ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("stat failed: [%d][%s]\n", ret, strerror(ret)));
             goto fail;
         }
 
         if (S_ISDIR(statres.st_mode)) {
             /* if directory, recursively descend, but check if on the same FS */
             if (parent_dev && parent_dev != statres.st_dev) {
-                DEBUG(1, ("Directory %s is on different filesystem, "
-                          "will not follow\n", fullpath));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Directory %s is on different filesystem, "
+                       "will not follow\n"));
                 ret = EFAULT;
                 goto fail;
             }
 
-            ret = remove_tree_with_ctx(mem_ctx, statres.st_dev, fullpath);
+            ret = remove_tree_with_ctx(mem_ctx, dir_fd, result->d_name, statres.st_dev);
             if (ret != EOK) {
-                DEBUG(1, ("Removing subdirectory %s failed: [%d][%s]\n",
-                            fullpath, ret, strerror(ret)));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Removing subdirectory failed: [%d][%s]\n",
+                       ret, strerror(ret)));
                 goto fail;
             }
         } else {
-            ret = unlink(fullpath);
+            ret = unlinkat(dir_fd, result->d_name, 0);
             if (ret != 0) {
                 ret = errno;
-                DEBUG(1, ("Removing file %s failed: [%d][%s]\n",
-                          fullpath, ret, strerror(ret)));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                        ("Removing file failed: [%d][%s]\n", ret, strerror(ret)));
                 goto fail;
             }
         }
-
-        talloc_free(fullpath);
     }
 
     ret = closedir(rootdir);
@@ -180,19 +181,17 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = rmdir(root);
-    if (ret != 0) {
+    ret = unlinkat(parent_fd, dir_name, AT_REMOVEDIR);
+    if (ret == -1) {
         ret = errno;
-        goto fail;
     }
 
     ret = EOK;
-
 fail:
     if (rootdir) {  /* clean up on abnormal exit but retain return code */
         err = closedir(rootdir);
         if (err) {
-            DEBUG(1, ("closedir failed, bad dirp?\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("closedir failed, bad dirp?\n"));
         }
     }
     return ret;
