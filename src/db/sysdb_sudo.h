@@ -45,8 +45,6 @@
 #define SYSDB_SUDO_CACHE_AT_NOTAFTER   "sudoNotAfter"
 #define SYSDB_SUDO_CACHE_AT_ORDER      "sudoOrder"
 
-#define SYSDB_SUDO_TIME_FORMAT "%Y%m%d%H%M%SZ"
-
 /* When constructing a sysdb filter, OR these values to include..   */
 #define SYSDB_SUDO_FILTER_NONE           0x00       /* no additional filter */
 #define SYSDB_SUDO_FILTER_USERNAME       0x01       /* username             */

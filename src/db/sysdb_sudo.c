@@ -36,6 +36,36 @@
 
 /* ====================  Utility functions ==================== */
 
+static errno_t sysdb_sudo_convert_time(const char *str, time_t *time)
+{
+    struct tm tm;
+    char *tret = NULL;
+
+    /* SUDO requires times to be in generalized time format:
+     * YYYYMMDDHHMMSS[.|,fraction][(+|-HHMM)|Z]
+     *
+     * We need to use more format strings to parse this with strptime().
+     */
+    const char **format = NULL;
+    const char *formats[] = {"%Y%m%d%H%M%SZ",    /* 201212121300Z */
+                             "%Y%m%d%H%M%S%z",   /* 201212121300+-0200 */
+                             "%Y%m%d%H%M%S.0Z",
+                             "%Y%m%d%H%M%S.0%z",
+                             "%Y%m%d%H%M%S,0Z",
+                             "%Y%m%d%H%M%S,0%z",
+                             NULL};
+
+    for (format = formats; *format != NULL; format++) {
+        tret = strptime(str, *format, &tm);
+        if (tret != NULL && *tret == '\0') {
+            *time = mktime(&tm);
+            return EOK;
+        }
+    }
+
+    return EINVAL;
+}
+
 static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
                                      time_t now,
                                      bool *result)
@@ -43,11 +73,9 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     TALLOC_CTX *tmp_ctx = NULL;
     const char **values = NULL;
     const char *name = NULL;
-    char *tret = NULL;
     time_t notBefore = 0;
     time_t notAfter = 0;
     time_t converted;
-    struct tm tm;
     errno_t ret;
     int i;
 
@@ -67,7 +95,6 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     /*
      * From man sudoers.ldap:
      *
-     * A timestamp is in the form yyyymmddHHMMSSZ.
      * If multiple sudoNotBefore entries are present, the *earliest* is used.
      * If multiple sudoNotAfter entries are present, the *last one* is used.
      *
@@ -91,14 +118,12 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     }
 
     for (i=0; values[i] ; i++) {
-        tret = strptime(values[i], SYSDB_SUDO_TIME_FORMAT, &tm);
-        if (tret == NULL || *tret != '\0') {
+        ret = sysdb_sudo_convert_time(values[i], &converted);
+        if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format in rule [%s]!\n",
                   name));
-            ret = EINVAL;
             goto done;
         }
-        converted = mktime(&tm);
 
         /* Grab the earliest */
         if (!notBefore) {
@@ -123,14 +148,12 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     }
 
     for (i=0; values[i] ; i++) {
-        tret = strptime(values[i], SYSDB_SUDO_TIME_FORMAT, &tm);
-        if (tret == NULL || *tret != '\0') {
+        ret = sysdb_sudo_convert_time(values[i], &converted);
+        if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format in rule [%s]!\n",
                   name));
-            ret = EINVAL;
             goto done;
         }
-        converted = mktime(&tm);
 
         /* Grab the latest */
         if (!notAfter) {
