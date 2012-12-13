@@ -91,7 +91,10 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
                                 DATA_PROVIDER_VERSION,
                                 "PAM");
         /* all fine */
-        if (ret == EOK) return;
+        if (ret == EOK) {
+            handle_requests_after_reconnect(be_conn->rctx);
+            return;
+        }
     }
 
     /* Handle failure */
