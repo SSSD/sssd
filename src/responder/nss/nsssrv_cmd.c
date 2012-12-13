@@ -660,6 +660,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
+    struct sized_string delete_usrname;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -743,6 +744,17 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             }
 
             DEBUG(2, ("No results for getpwnam call\n"));
+
+            /* User not found in ldb -> delete user from memory cache. */
+            to_sized_string(&delete_usrname, name);
+            ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx,
+                                               &delete_usrname);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Internal failure in memory cache code: %d [%s]\n",
+                       ret, strerror(ret)));
+            }
+
 
             return ENOENT;
         }
@@ -2250,6 +2262,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
+    struct sized_string delete_grpname;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -2333,6 +2346,16 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             }
 
             DEBUG(2, ("No results for getgrnam call\n"));
+
+            /* Group not found in ldb -> delete group from memory cache. */
+            to_sized_string(&delete_grpname, name);
+            ret = sss_mmap_cache_gr_invalidate(nctx->grp_mc_ctx,
+                                               &delete_grpname);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Internal failure in memory cache code: %d [%s]\n",
+                       ret, strerror(ret)));
+            }
 
             return ENOENT;
         }
