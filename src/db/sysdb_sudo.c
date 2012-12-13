@@ -290,19 +290,18 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
-    const char *attrs[3];
     struct ldb_message *msg;
     char **sysdb_groupnames = NULL;
     struct ldb_message_element *groups;
     uid_t uid = 0;
     int i;
+    const char *attrs[] = { SYSDB_MEMBEROF,
+                            SYSDB_UIDNUM,
+                            NULL };
 
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    attrs[0] = SYSDB_MEMBEROF;
-    attrs[1] = SYSDB_UIDNUM;
-    attrs[2] = NULL;
     ret = sysdb_search_user_by_name(tmp_ctx, sysdb, username,
                                     attrs, &msg);
     if (ret != EOK) {
