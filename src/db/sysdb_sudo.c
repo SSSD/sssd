@@ -291,13 +291,20 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
     struct ldb_message *msg;
+    struct ldb_message *group_msg = NULL;
     char **sysdb_groupnames = NULL;
+    const char *primary_group = NULL;
     struct ldb_message_element *groups;
     uid_t uid = 0;
+    gid_t gid = 0;
+    size_t num_groups = 0;
     int i;
     const char *attrs[] = { SYSDB_MEMBEROF,
+                            SYSDB_GIDNUM,
                             SYSDB_UIDNUM,
                             NULL };
+    const char *group_attrs[] = { SYSDB_NAME,
+                                  NULL };
 
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
@@ -318,13 +325,16 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
         }
     }
 
+    /* resolve secondary groups */
     if (groupnames != NULL) {
         groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
         if (!groups || groups->num_values == 0) {
             /* No groups for this user in sysdb currently */
             sysdb_groupnames = NULL;
+            num_groups = 0;
         } else {
-            sysdb_groupnames = talloc_array(tmp_ctx, char *, groups->num_values+1);
+            num_groups = groups->num_values;
+            sysdb_groupnames = talloc_array(tmp_ctx, char *, num_groups + 1);
             NULL_CHECK(sysdb_groupnames, ret, done);
 
             /* Get a list of the groups by groupname only */
@@ -339,6 +349,36 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
                 }
             }
             sysdb_groupnames[groups->num_values] = NULL;
+        }
+    }
+
+    /* resolve primary group */
+    gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+    if (gid != 0) {
+        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, gid,
+                                        group_attrs, &group_msg);
+        if (ret == EOK) {
+            primary_group = ldb_msg_find_attr_as_string(group_msg, SYSDB_NAME,
+                                                        NULL);
+            if (primary_group == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            num_groups++;
+            sysdb_groupnames = talloc_realloc(tmp_ctx, sysdb_groupnames,
+                                              char *, num_groups + 1);
+            NULL_CHECK(sysdb_groupnames, ret, done);
+
+            sysdb_groupnames[num_groups - 1] = talloc_strdup(sysdb_groupnames,
+                                                             primary_group);
+            NULL_CHECK(sysdb_groupnames[num_groups - 1], ret, done);
+
+            sysdb_groupnames[num_groups] = NULL;
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up group [%d]: %s\n",
+                                        ret, strerror(ret)));
+            goto done;
         }
     }
 
