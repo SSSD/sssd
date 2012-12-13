@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <nss.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <talloc.h>
@@ -28,6 +29,7 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
+#include "sss_client/sss_cli.h"
 
 int main(int argc, const char **argv)
 {
@@ -35,6 +37,10 @@ int main(int argc, const char **argv)
     int pc_debug = SSSDBG_DEFAULT;
     const char *pc_groupname = NULL;
     struct tools_ctx *tctx = NULL;
+    struct sss_cli_req_data rd;
+    uint8_t *repbuf = NULL;
+    size_t replen;
+    enum nss_status nret;
 
     poptContext pc = NULL;
     struct poptOption long_options[] = {
@@ -106,6 +112,24 @@ int main(int argc, const char **argv)
 
     /* groupdel */
     ret = groupdel(tctx, tctx->sysdb, tctx->octx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    rd.data = pc_groupname;
+    rd.len = strlen(pc_groupname) + 1;
+
+    sss_nss_lock();
+    nret = sss_nss_make_request(SSS_NSS_GETGRNAM, &rd,
+                                &repbuf, &replen, &ret);
+    sss_nss_unlock();
+    free(repbuf);
+    if (nret != NSS_STATUS_SUCCESS && nret != NSS_STATUS_NOTFOUND) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory"
+               " cache.\n",nret);
+    }
+
+    ret = EOK;
 
 done:
     if (ret) {

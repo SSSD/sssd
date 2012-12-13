@@ -680,12 +680,16 @@ sss_useradd_LDADD = \
     $(TOOLS_LIBS)
 
 sss_userdel_SOURCES = \
+    src/sss_client/common.c \
     src/tools/sss_userdel.c \
     src/util/find_uid.c \
     $(SSSD_TOOLS_OBJ)
 sss_userdel_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
+sss_userdel_CFLAGS = $(AM_CFLAGS)
+sss_userdel_LDFLAGS = \
+    $(CLIENT_LIBS)
 
 sss_groupadd_SOURCES = \
     src/tools/sss_groupadd.c \
@@ -695,11 +699,15 @@ sss_groupadd_LDADD = \
     $(TOOLS_LIBS)
 
 sss_groupdel_SOURCES = \
+    src/sss_client/common.c \
     src/tools/sss_groupdel.c \
     $(SSSD_TOOLS_OBJ)
 sss_groupdel_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
+sss_groupdel_CFLAGS = $(AM_CFLAGS)
+sss_groupdel_LDFLAGS = \
+    $(CLIENT_LIBS)
 
 sss_usermod_SOURCES = \
     src/tools/sss_usermod.c \

@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <nss.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <talloc.h>
@@ -31,6 +32,7 @@
 #include "util/find_uid.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
+#include "sss_client/sss_cli.h"
 
 #ifndef KILL_CMD
 #define KILL_CMD "killall"
@@ -119,6 +121,10 @@ int main(int argc, const char **argv)
     int ret = EXIT_SUCCESS;
     struct tools_ctx *tctx = NULL;
     const char *pc_username = NULL;
+    struct sss_cli_req_data rd;
+    uint8_t *repbuf = NULL;
+    size_t replen;
+    enum nss_status nret;
 
     int pc_debug = SSSDBG_DEFAULT;
     int pc_remove = 0;
@@ -285,6 +291,21 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    /* Delete user from memory cache */
+    rd.data = pc_username;
+    rd.len = strlen(pc_username) + 1;
+
+    sss_nss_lock();
+    nret = sss_nss_make_request(SSS_NSS_GETPWNAM, &rd,
+                                &repbuf, &replen, &ret);
+
+    sss_nss_unlock();
+    free(repbuf);
+    if (nret != NSS_STATUS_SUCCESS && nret != NSS_STATUS_NOTFOUND) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n",nret);
+    }
+
     if (tctx->octx->remove_homedir) {
         ret = remove_homedir(tctx,
                              tctx->octx->home,
@@ -300,6 +321,8 @@ int main(int argc, const char **argv)
             goto fini;
         }
     }
+
+    ret = EOK;
 
 done:
     if (ret) {
