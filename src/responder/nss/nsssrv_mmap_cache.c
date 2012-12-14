@@ -376,6 +376,11 @@ static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
 {
     struct sss_mc_rec *rec;
 
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
+
     rec = sss_mc_find_record(mcc, key);
     if (rec == NULL) {
         /* nothing to invalidate */
@@ -407,6 +412,11 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
     size_t rec_len;
     size_t pos;
     int ret;
+
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
 
     ret = snprintf(uidstr, 11, "%ld", (long)uid);
     if (ret > 10) {
@@ -472,6 +482,11 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
     char *uidstr;
     errno_t ret;
 
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
+
     uidstr = talloc_asprintf(NULL, "%ld", (long)uid);
     if (!uidstr) {
         return ENOMEM;
@@ -528,6 +543,11 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
     size_t rec_len;
     size_t pos;
     int ret;
+
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
 
     ret = snprintf(gidstr, 11, "%ld", (long)gid);
     if (ret > 10) {
@@ -588,6 +608,11 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
     uint32_t slot;
     char *gidstr;
     errno_t ret;
+
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
 
     gidstr = talloc_asprintf(NULL, "%ld", (long)gid);
     if (!gidstr) {
