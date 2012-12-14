@@ -867,6 +867,9 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
                " deleting!\n", name));
 
         ret = sysdb_delete_group(sysdb, NULL, gid);
+        if (ret == ENOENT) {
+            ret = EOK;
+        }
         goto done;
     }
 
@@ -936,6 +939,9 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
                " deleting!\n", gid));
 
         ret = sysdb_delete_group(sysdb, NULL, gid);
+        if (ret == ENOENT) {
+            ret = EOK;
+        }
         goto done;
     }
 
