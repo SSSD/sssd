@@ -609,14 +609,10 @@ static void auth_connect_done(struct tevent_req *subreq)
                                   state->sdap_service->name,
                                   state->srv, PORT_NOT_WORKING);
         }
-        if (ret == ETIMEDOUT) {
-            if (auth_get_server(req) == NULL) {
-                tevent_req_error(req, ENOMEM);
-            }
-            return;
-        }
 
-        tevent_req_error(req, ret);
+        if (auth_get_server(req) == NULL) {
+            tevent_req_error(req, ENOMEM);
+        }
         return;
     } else if (state->srv) {
         be_fo_set_port_status(state->ctx->be, state->sdap_service->name,
@@ -659,13 +655,10 @@ static void auth_bind_user_done(struct tevent_req *subreq)
         state->pw_expire_data = ppolicy;
     }
     talloc_zfree(subreq);
-    if (ret == ETIMEDOUT) {
+    if (ret != EOK) {
         if (auth_get_server(req) == NULL) {
             tevent_req_error(req, ENOMEM);
         }
-        return;
-    } else if (ret != EOK) {
-        tevent_req_error(req, ret);
         return;
     }
 
