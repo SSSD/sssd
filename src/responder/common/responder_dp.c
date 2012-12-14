@@ -45,7 +45,6 @@ struct sss_dp_req {
 
     hash_key_t *key;
 
-    struct tevent_timer *tev;
     struct sss_dp_callback *cb_list;
 
     dbus_uint16_t dp_err;
@@ -124,6 +123,15 @@ static int sss_dp_req_destructor(void *ptr)
     }
 
     return 0;
+}
+
+static void sss_dp_req_timeout(struct tevent_context *ev,
+                               struct tevent_timer *te,
+                               struct timeval t, void *ptr)
+{
+    /* ptr is a pointer to sidereq */
+    /* Just free it to kill all waiting requests when the timeout fires */
+    talloc_zfree(ptr);
 }
 
 void handle_requests_after_reconnect(struct resp_ctx *rctx)
@@ -252,6 +260,8 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     struct tevent_req *sidereq;
     struct sss_dp_req *sdp_req;
     struct sss_dp_callback *cb;
+    struct tevent_timer *te;
+    struct timeval tv;
     DBusMessage *msg;
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
@@ -305,6 +315,20 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
             goto fail;
         }
         tevent_req_set_callback(sidereq, sss_dp_req_done, NULL);
+
+        /* add timeout handling so we do not hang forever should something
+         * go worng in the provider. Use 2 sec less than the idle timeout to
+         * give it a chance to reply to the client before closing the
+         * connection. */
+        tv = tevent_timeval_current_ofs(rctx->client_idle_timeout - 2, 0);
+        te = tevent_add_timer(rctx->ev, sidereq, tv,
+                              sss_dp_req_timeout, sidereq);
+        if (!te) {
+            /* Nothing much we can do */
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
 
         /* We should now be able to find the sdp_req in the hash table */
         hret = hash_lookup(rctx->dp_request_table, key, &value);
