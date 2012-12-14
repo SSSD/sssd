@@ -33,6 +33,12 @@ struct sdap_sudo_ctx {
     bool full_refresh_done;
 };
 
+enum sdap_sudo_refresh_type {
+    SDAP_SUDO_REFRESH_FULL,
+    SDAP_SUDO_REFRESH_SMART,
+    SDAP_SUDO_REFRESH_RULES
+};
+
 /* Common functions from ldap_sudo.c */
 void sdap_sudo_handler(struct be_req *breq);
 int sdap_sudo_init(struct be_ctx *be_ctx,
