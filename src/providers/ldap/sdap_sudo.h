@@ -31,6 +31,7 @@ struct sdap_sudo_ctx {
     bool use_host_filter;
 
     bool full_refresh_done;
+    int full_refresh_attempts;
 };
 
 enum sdap_sudo_refresh_type {

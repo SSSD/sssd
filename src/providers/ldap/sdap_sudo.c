@@ -30,6 +30,8 @@
 #include "providers/ldap/sdap_sudo_cache.h"
 #include "db/sysdb_sudo.h"
 
+#define SUDO_MAX_FIRST_REFRESH_DELAY 16
+
 struct sdap_sudo_full_refresh_state {
     struct sdap_sudo_ctx *sudo_ctx;
     struct sdap_id_ctx *id_ctx;
@@ -960,6 +962,7 @@ static void sdap_sudo_periodical_first_refresh_done(struct tevent_req *req)
     struct tevent_req *subreq = NULL; /* req from sdap_sudo_full_refresh_send() */
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     time_t delay;
+    time_t timeout;
     int dp_error = DP_ERR_OK;
     int error = EOK;
     int ret;
@@ -996,6 +999,30 @@ schedule:
         /* runtime configuration change? */
         DEBUG(SSSDBG_TRACE_FUNC, ("Periodical full refresh of sudo rules "
                                   "is disabled\n"));
+        return;
+    }
+
+    /* if we are offline, we will try to perform another full refresh */
+    if (dp_error == DP_ERR_OFFLINE) {
+        sudo_ctx->full_refresh_attempts++;
+        timeout = delay;
+        delay = sudo_ctx->full_refresh_attempts << 1;
+        if (delay > SUDO_MAX_FIRST_REFRESH_DELAY) {
+            delay = SUDO_MAX_FIRST_REFRESH_DELAY;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Data provider is offline. "
+              "Scheduling another full refresh in %l minutes.\n", delay));
+
+        ret = sdap_sudo_schedule_refresh(sudo_ctx, sudo_ctx,
+                                         SDAP_SUDO_REFRESH_FULL,
+                                         sdap_sudo_periodical_first_refresh_done,
+                                         delay * 60, timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Unable to schedule full refresh of sudo "
+                  "rules! Periodical updates will not work!\n"));
+        }
+
         return;
     }
 
