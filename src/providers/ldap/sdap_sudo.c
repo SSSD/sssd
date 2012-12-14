@@ -615,9 +615,8 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
                                  &state->error, &highest_usn, NULL);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    if (ret != EOK || state->dp_error != DP_ERR_OK || state->error != EOK) {
+        goto done;
     }
 
     state->sudo_ctx->full_refresh_done = true;
@@ -637,6 +636,12 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     /* set highest usn */
     if (highest_usn != NULL) {
         sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
