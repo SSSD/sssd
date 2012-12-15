@@ -118,6 +118,27 @@ get_autofs_map(struct autofs_ctx *actx,
 
 static int autofs_map_hash_remove (TALLOC_CTX *ctx);
 
+void
+autofs_map_hash_delete_cb(hash_entry_t *item,
+                          hash_destroy_enum deltype, void *pvt)
+{
+    struct autofs_map_ctx *map;
+
+    if (deltype != HASH_ENTRY_DESTROY) {
+        return;
+    }
+
+    map = talloc_get_type(item->value.ptr, struct autofs_map_ctx);
+    if (!map) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid autofs map\n"));
+        return;
+    }
+
+    /* So that the destructor wouldn't attempt to remove the map from hash
+     * table */
+    map->map_table = NULL;
+}
+
 static errno_t
 set_autofs_map(struct autofs_ctx *actx,
                struct autofs_map_ctx *map)
@@ -157,6 +178,12 @@ autofs_map_hash_remove(TALLOC_CTX *ctx)
     hash_key_t key;
     struct autofs_map_ctx *map =
             talloc_get_type(ctx, struct autofs_map_ctx);
+
+    if (map->map_table == NULL) {
+        DEBUG(SSSDBG_TRACE_LIBS, ("autofs map [%s] was already removed\n",
+              map->mapname));
+        return 0;
+    }
 
     key.type = HASH_KEY_STRING;
     key.str = map->mapname;
