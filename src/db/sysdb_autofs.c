@@ -195,7 +195,7 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
     filter = talloc_asprintf(tmp_ctx, "(&(objectclass=%s)(%s=%s))",
                              SYSDB_AUTOFS_MAP_OC, SYSDB_NAME, safe_map_name);
     if (!filter) {
-        ret = EOK;
+        ret = ENOMEM;
         goto done;
     }
 
