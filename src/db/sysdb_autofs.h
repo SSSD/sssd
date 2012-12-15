@@ -78,4 +78,7 @@ sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,
                          struct sysdb_attrs *attrs,
                          int mod_op);
 
+errno_t
+sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb);
+
 #endif /* _SYSDB_AUTOFS_H_ */
