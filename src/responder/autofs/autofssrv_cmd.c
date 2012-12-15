@@ -90,6 +90,34 @@ autofs_setent_notify(struct autofs_map_ctx *map_ctx, errno_t ret)
     setent_notify(&map_ctx->reqs, ret);
 }
 
+errno_t
+autofs_orphan_maps(struct autofs_ctx *actx)
+{
+    int hret;
+    unsigned long mcount;
+    unsigned long i;
+    hash_key_t *maps;
+
+    if (!actx || !actx->maps) {
+        return EINVAL;
+    }
+
+    hret = hash_keys(actx->maps, &mcount, &maps);
+    if (hret != HASH_SUCCESS) {
+        return EIO;
+    }
+
+    for (i = 0; i < mcount; i++) {
+        hret = hash_delete(actx->maps, &maps[i]);
+        if (hret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not delete key from hash\n"));
+            continue;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t
 get_autofs_map(struct autofs_ctx *actx,
                char *mapname,
@@ -369,6 +397,11 @@ set_autofs_map_lifetime(uint32_t lifetime,
     }
 }
 
+static errno_t
+setautomntent_get_autofs_map(struct autofs_ctx *actx,
+                             char *mapname,
+                             struct autofs_map_ctx **map);
+
 static struct tevent_req *
 setautomntent_send(TALLOC_CTX *mem_ctx,
                    const char *rawname,
@@ -442,7 +475,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     /* Is the result context already available?
      * Check for existing lookups for this map
      */
-    ret = get_autofs_map(actx, state->mapname, &state->map);
+    ret = setautomntent_get_autofs_map(actx, state->mapname, &state->map);
     if (ret == EOK) {
         /* Another process already requested this map
          * Check whether it's ready for processing.
@@ -556,6 +589,25 @@ fail:
     tevent_req_error(req, ret);
     tevent_req_post(req, actx->rctx->ev);
     return req;
+}
+
+static errno_t
+setautomntent_get_autofs_map(struct autofs_ctx *actx,
+                             char *mapname,
+                             struct autofs_map_ctx **map)
+{
+    errno_t ret;
+
+    if (strcmp(mapname, "auto.master") == 0) {
+        /* Iterate over the hash and remove all maps */
+        ret = autofs_orphan_maps(actx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not remove existing maps from hash\n"));
+        }
+        return ENOENT;
+    }
+
+    return get_autofs_map(actx, mapname, map);
 }
 
 static errno_t
@@ -718,8 +770,10 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
     struct dp_callback_ctx *cb_ctx = NULL;
 
     if (dctx->map != NULL) {
-        cache_expire = ldb_msg_find_attr_as_uint64(dctx->map,
-                                                   SYSDB_CACHE_EXPIRE, 0);
+        if (strcmp(lookup_ctx->mapname, "auto.master") != 0) {
+            cache_expire = ldb_msg_find_attr_as_uint64(dctx->map,
+                                                       SYSDB_CACHE_EXPIRE, 0);
+        }
 
         /* if we have any reply let's check cache validity */
         ret = sss_cmd_check_cache(dctx->map, 0, cache_expire);
