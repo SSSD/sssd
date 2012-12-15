@@ -761,6 +761,10 @@ static int service_signal_clear_memcache(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_METHOD_CLEAR_MEMCACHE);
 }
+static int service_signal_clear_enum_cache(struct mt_svc *svc)
+{
+    return service_signal(svc, MON_CLI_METHOD_CLEAR_ENUM_CACHE);
+}
 
 static int check_domain_ranges(struct sss_domain_info *domains)
 {
@@ -1345,6 +1349,10 @@ static void monitor_hup(struct tevent_context *ev,
         service_signal_rotate(cur_svc);
         if (!strcmp(NSS_SBUS_SERVICE_NAME, cur_svc->name)) {
             service_signal_clear_memcache(cur_svc);
+        }
+
+        if (!strcmp(SSS_AUTOFS_SBUS_SERVICE_NAME, cur_svc->name)) {
+            service_signal_clear_enum_cache(cur_svc);
         }
     }
 

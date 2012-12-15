@@ -29,10 +29,14 @@
 #include "providers/data_provider.h"
 #include "responder/autofs/autofs_private.h"
 
+static int autofs_clean_hash_table(DBusMessage *message,
+                                   struct sbus_connection *conn);
+
 struct sbus_method monitor_autofs_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { MON_CLI_METHOD_ROTATE, responder_logrotate },
+    { MON_CLI_METHOD_CLEAR_ENUM_CACHE, autofs_clean_hash_table },
     { NULL, NULL }
 };
 
@@ -99,6 +103,24 @@ autofs_dp_reconnect_init(struct sbus_connection *conn,
     /* Failed to reconnect */
     DEBUG(SSSDBG_FATAL_FAILURE, ("Could not reconnect to %s provider.\n",
                                  be_conn->domain->name));
+}
+
+static int autofs_clean_hash_table(DBusMessage *message,
+                                   struct sbus_connection *conn)
+{
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct resp_ctx);
+    struct autofs_ctx *actx =
+            talloc_get_type(rctx->pvt_ctx, struct autofs_ctx);
+    errno_t ret;
+
+    ret = autofs_orphan_maps(actx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not invalidate maps\n"));
+        return ret;
+    }
+
+    return monitor_common_pong(message, conn);
 }
 
 static int
