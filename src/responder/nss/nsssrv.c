@@ -42,6 +42,7 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
+#include "responder/common/responder_sbus.h"
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"

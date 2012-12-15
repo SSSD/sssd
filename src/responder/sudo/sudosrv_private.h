@@ -29,8 +29,6 @@
 #include "responder/common/responder.h"
 
 #define SSS_SUDO_ERROR_OK 0
-#define SSS_SUDO_SBUS_SERVICE_VERSION 0x0001
-#define SSS_SUDO_SBUS_SERVICE_NAME "sudo"
 
 enum sss_dp_sudo_type {
     SSS_DP_SUDO_REFRESH_RULES,

@@ -24,6 +24,7 @@
 #include "confdb/confdb.h"
 #include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
+#include "responder/common/responder_sbus.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "providers/data_provider.h"
 

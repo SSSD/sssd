@@ -33,9 +33,6 @@
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
 
-#define NSS_SBUS_SERVICE_VERSION 0x0001
-#define NSS_SBUS_SERVICE_NAME "nss"
-
 #define NSS_PACKET_MAX_RECV_SIZE 1024
 
 struct getent_ctx;

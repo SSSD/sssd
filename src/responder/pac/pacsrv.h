@@ -37,12 +37,10 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
+#include "responder/common/responder_sbus.h"
 #include "lib/idmap/sss_idmap.h"
 #include "util/sss_nss.h"
 #include "db/sysdb.h"
-
-#define PAC_SBUS_SERVICE_VERSION 0x0001
-#define PAC_SBUS_SERVICE_NAME "pac"
 
 #define PAC_PACKET_MAX_RECV_SIZE 1024
 
