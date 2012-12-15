@@ -169,6 +169,7 @@ struct be_sudo_req {
 
 struct be_autofs_req {
     char *mapname;
+    bool invalidate;
 };
 
 struct be_subdom_req {

@@ -97,6 +97,14 @@ void sdap_autofs_handler(struct be_req *be_req)
     DEBUG(SSSDBG_FUNC_DATA, ("Requested refresh for: %s\n",
           autofs_req->mapname ? autofs_req->mapname : "<ALL>\n"));
 
+    if (autofs_req->invalidate) {
+        ret = sysdb_invalidate_autofs_maps(id_ctx->be->sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not invalidate autofs maps, "
+                  "backend might return stale entries\n"));
+        }
+    }
+
     req = sdap_autofs_get_map_send(be_req, be_req->be_ctx->ev,
                                    id_ctx, autofs_req->mapname);
     if (!req) {
