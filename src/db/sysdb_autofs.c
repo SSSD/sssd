@@ -417,3 +417,94 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t
+sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    const char *filter;
+    struct sysdb_attrs *sys_attrs = NULL;
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_NAME,
+                            SYSDB_CACHE_EXPIRE,
+                            NULL };
+    size_t count;
+    struct ldb_message **msgs;
+    const char *name;
+    bool in_transaction = false;
+    int sret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    filter = talloc_asprintf(tmp_ctx, "(&(objectclass=%s)(%s=*))",
+                             SYSDB_AUTOFS_MAP_OC, SYSDB_NAME);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
+                              AUTOFS_MAP_SUBDIR, attrs,
+                              &count, &msgs);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error looking up autofs maps"));
+        goto done;
+    } else if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    }
+
+    sys_attrs = sysdb_new_attrs(tmp_ctx);
+    if (!sys_attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(sys_attrs, SYSDB_CACHE_EXPIRE, 1);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
+    in_transaction = true;
+
+    for (i = 0; i < count; i++) {
+        name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        if (!name) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("A map with no name?\n"));
+            continue;
+        }
+
+        ret = sysdb_set_autofsmap_attr(sysdb, name, sys_attrs, SYSDB_MOD_REP);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not expire map %s\n", name));
+            continue;
+        }
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not commit transaction\n"));
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+        }
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
