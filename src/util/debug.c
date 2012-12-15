@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -179,6 +180,8 @@ int open_debug_file_ex(const char *filename, FILE **filep)
     const char *log_file;
     mode_t old_umask;
     int ret;
+    int debug_fd;
+    int flags;
 
     if (filename == NULL) {
         log_file = debug_log_file;
@@ -203,6 +206,14 @@ int open_debug_file_ex(const char *filename, FILE **filep)
         return EIO;
     }
     umask(old_umask);
+
+    debug_fd = fileno(f);
+    if (debug_fd == -1) {
+        return EIO;
+    }
+
+    flags = fcntl(debug_fd, F_GETFD, 0);
+    (void) fcntl(debug_fd, F_SETFD, flags | FD_CLOEXEC);
 
     if (filep == NULL) {
         debug_file = f;
