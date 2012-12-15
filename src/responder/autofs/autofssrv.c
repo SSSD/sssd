@@ -158,7 +158,8 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Create the lookup table for setautomntent results */
-    hret = sss_hash_create(autofs_ctx, 10, &autofs_ctx->maps);
+    hret = sss_hash_create_ex(autofs_ctx, 10, &autofs_ctx->maps, 0, 0, 0, 0,
+                              autofs_map_hash_delete_cb, NULL);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Unable to initialize automount maps hash table\n"));

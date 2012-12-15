@@ -76,6 +76,9 @@ struct autofs_map_ctx {
 
 struct sss_cmd_table *get_autofs_cmds(void);
 
+void autofs_map_hash_delete_cb(hash_entry_t *item,
+                               hash_destroy_enum deltype, void *pvt);
+
 enum sss_dp_autofs_type {
     SSS_DP_AUTOFS
 };
