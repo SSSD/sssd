@@ -23,9 +23,6 @@
 
 #include "responder/common/responder.h"
 
-#define SSS_SSH_SBUS_SERVICE_VERSION 0x0001
-#define SSS_SSH_SBUS_SERVICE_NAME    "ssh"
-
 #define SSS_SSH_KNOWN_HOSTS_PATH PUBCONF_PATH"/known_hosts"
 #define SSS_SSH_KNOWN_HOSTS_TEMP_TMPL PUBCONF_PATH"/.known_hosts.XXXXXX"
 

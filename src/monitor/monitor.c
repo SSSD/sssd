@@ -51,7 +51,7 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
-#include "responder/nss/nsssrv.h"
+#include "responder/common/responder_sbus.h"
 
 #ifdef USE_KEYRING
 #include <keyutils.h>

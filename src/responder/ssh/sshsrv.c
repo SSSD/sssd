@@ -24,6 +24,7 @@
 #include "confdb/confdb.h"
 #include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
+#include "responder/common/responder_sbus.h"
 #include "responder/ssh/sshsrv_private.h"
 #include "providers/data_provider.h"
 

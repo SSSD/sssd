@@ -21,8 +21,7 @@
 #ifndef _AUTOFSSRV_PRIVATE_H_
 #define _AUTOFSSRV_PRIVATE_H_
 
-#define SSS_AUTOFS_SBUS_SERVICE_VERSION 0x0001
-#define SSS_AUTOFS_SBUS_SERVICE_NAME    "autofs"
+#include "responder/common/responder_sbus.h"
 
 #define SSS_AUTOFS_PROTO_VERSION        0x001
 
