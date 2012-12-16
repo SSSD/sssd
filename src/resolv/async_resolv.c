@@ -1080,11 +1080,12 @@ resolv_gethostbyname_dns_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     if (timeouts) {
         *timeouts = state->timeouts;
     }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
     if (rhostent) {
         *rhostent = talloc_steal(mem_ctx, state->rhostent);
     }
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
