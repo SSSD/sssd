@@ -51,15 +51,15 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
      * Priority of lookup:
      * - our.hostname@REALM or host/our.hostname@REALM depending on the input
      * - our.hostname$@REALM (AD domain)
-     * - foobar$@REALM (AD domain)
      * - host/our.hostname@REALM
+     * - foobar$@REALM (AD domain)
      * - host/foobar@REALM
      * - host/foo@BAR
      * - pick the first principal in the keytab
      */
-    const char *primary_patterns[] = {"%s", "%s$", "*$", "host/%s", "host/*",
+    const char *primary_patterns[] = {"%s", "%s$", "host/%s", "*$", "host/*",
                                       "host/*", NULL};
-    const char *realm_patterns[] =   {"%s", "%s",  "%s", "%s",      "%s",
+    const char *realm_patterns[] =   {"%s", "%s",  "%s",      "%s", "%s",
                                       NULL,     NULL};
 
     DEBUG(5, ("trying to select the most appropriate principal from keytab\n"));
