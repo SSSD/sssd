@@ -192,6 +192,8 @@ time_t fo_get_server_hostname_last_change(struct fo_server *server);
 
 int fo_is_srv_lookup(struct fo_server *s);
 
+time_t fo_get_service_retry_timeout(struct fo_service *svc);
+
 void fo_reset_services(struct fo_ctx *fo_ctx);
 
 bool fo_svc_has_server(struct fo_service *service, struct fo_server *server);

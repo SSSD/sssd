@@ -17,7 +17,7 @@
             <emphasis>primary</emphasis> and <emphasis>backup</emphasis>.
             The idea is that servers in the primary list are preferred and
             backup servers are only searched if no primary servers can be
-            reached. If a backup server is selected, a timeout of 30 seconds
+            reached. If a backup server is selected, a timeout of 31 seconds
             is set. After this timeout SSSD will periodically try to reconnect
             to one of the primary servers. If it succeeds, it will replace
             the current active (backup) server.
