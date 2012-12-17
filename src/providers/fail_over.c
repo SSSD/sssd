@@ -1555,6 +1555,15 @@ fo_get_server_hostname_last_change(struct fo_server *server)
     return server->common->last_status_change.tv_sec;
 }
 
+time_t fo_get_service_retry_timeout(struct fo_service *svc)
+{
+    if (svc == NULL || svc->ctx == NULL || svc->ctx->opts == NULL) {
+        return 0;
+    }
+
+    return svc->ctx->opts->retry_timeout;
+}
+
 void fo_reset_services(struct fo_ctx *fo_ctx)
 {
     struct fo_service *service;

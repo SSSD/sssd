@@ -531,6 +531,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct be_resolve_server_state *state = tevent_req_data(req,
                                              struct be_resolve_server_state);
+    time_t timeout = fo_get_service_retry_timeout(state->svc->fo_service) + 1;
     int ret;
 
     ret = be_resolve_server_process(subreq, state, &new_subreq);
@@ -546,7 +547,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
         /* FIXME: make the timeout configurable */
         ret = be_primary_server_timeout_activate(state->ctx, state->ev,
                                                  state->ctx, state->svc,
-                                                 30);
+                                                 timeout);
         if (ret != EOK) {
             goto fail;
         }
