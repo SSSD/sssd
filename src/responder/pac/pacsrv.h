@@ -129,4 +129,6 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
 
 struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
                                           const char *id_str);
+
+bool new_and_cached_user_differs(struct passwd *pwd, struct ldb_message *msg);
 #endif /* __PACSRV_H__ */
