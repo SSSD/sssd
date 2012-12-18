@@ -209,6 +209,8 @@ int open_debug_file_ex(const char *filename, FILE **filep)
 
     debug_fd = fileno(f);
     if (debug_fd == -1) {
+        fclose(f);
+        free(logpath);
         return EIO;
     }
 
