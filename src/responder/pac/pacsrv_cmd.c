@@ -382,23 +382,30 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, pr_ctx->fq_name, attrs,
-                                    &msg);
+    ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, pwd->pw_uid, attrs, &msg);
     if (ret == EOK) {
-        /* TODO: check id uid and gid are equal. */
-    } else if (ret == ENOENT) {
-        ret = sysdb_store_user(sysdb, pwd->pw_name, NULL,
-                               pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
-                               pwd->pw_dir,
-                               pwd->pw_shell, NULL, user_attrs, NULL,
-                               pr_ctx->dom->user_timeout, 0);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_user failed [%d][%s].\n",
-                                      ret, strerror(ret)));
+        if (new_and_cached_user_differs(pwd, msg)) {
+            ret = sysdb_delete_user(sysdb, NULL, pwd->pw_uid);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_user failed.\n"));
+                goto done;
+            }
+        } else {
             goto done;
         }
-    } else {
+    } else if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_store_user(sysdb, pwd->pw_name, NULL,
+                           pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
+                           pwd->pw_dir,
+                           pwd->pw_shell, NULL, user_attrs, NULL,
+                           pr_ctx->dom->user_timeout, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_user failed [%d][%s].\n",
+                                  ret, strerror(ret)));
         goto done;
     }
 
