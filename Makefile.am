@@ -373,6 +373,7 @@ dist_noinst_HEADERS = \
     src/monitor/monitor_interfaces.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
+    src/responder/common/responder_sbus.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
     src/responder/nss/nsssrv.h \
