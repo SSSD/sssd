@@ -1229,6 +1229,9 @@ static int sdap_sudo_schedule_refresh(TALLOC_CTX *mem_ctx,
     case SDAP_SUDO_REFRESH_RULES:
         DEBUG(SSSDBG_OP_FAILURE, ("Rules refresh can't be scheduled!\n"));
         return EINVAL;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown refresh type [%d].\n", refresh));
+        return EINVAL;
     }
 
 
