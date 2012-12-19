@@ -1051,7 +1051,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
          * c-ares, but we need to handle it gracefully.
          */
         if (state->rhostent->addr_list == NULL) {
-            talloc_free(state->rhostent);
+            talloc_zfree(state->rhostent);
             return ENOENT;
         }
     }
