@@ -423,11 +423,11 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
             continue;
         }
 
-        /* The DNs of users in sysdb ends with ...,cn=domain.name,cn=sysdb, so
-         * the value of the component before the last (index 1) is the domain
-         * name. */
+        /* The DNs of users in sysdb looks like
+         * name=username,cn=users,cn=domain.name,cn=sysdb
+         * the value of the third component (index 2) is the domain name. */
 
-        user_dom_val = ldb_dn_get_component_val(msgs[c]->dn, 1);
+        user_dom_val = ldb_dn_get_component_val(msgs[c]->dn, 2);
         if (user_dom_val == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("Invalid user DN [%s].\n",
                                       ldb_dn_get_linearized(msgs[c]->dn)));
