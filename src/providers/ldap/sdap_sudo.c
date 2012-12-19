@@ -1211,7 +1211,7 @@ static int sdap_sudo_schedule_refresh(TALLOC_CTX *mem_ctx,
                                       struct tevent_req **_req)
 {
     struct tevent_req *req = NULL;
-    sdap_sudo_timer_fn_t send_fn;
+    sdap_sudo_timer_fn_t send_fn = NULL;
     const char *name = NULL;
     struct timeval when;
 
