@@ -2621,7 +2621,12 @@ static int mbof_del_muop_callback(struct ldb_request *req,
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
     }
-    if (ares->error != LDB_SUCCESS) {
+    /* if the attribute was not present it means the db is not
+     * perfectly consistent but failing here is not useful
+     * anyway and missing entries cause no harm if we are trying
+     * to remove them anyway */
+    if (ares->error != LDB_SUCCESS &&
+        ares->error != LDB_ERR_NO_SUCH_ATTRIBUTE) {
         return ldb_module_done(ctx->req,
                                ares->controls,
                                ares->response,
@@ -2737,7 +2742,7 @@ static int mbof_del_ghop_callback(struct ldb_request *req,
      * might have been directly nested in the parent as well and
      * updated with another replace operation.
      */
-    if (ares->error != LDB_SUCCESS &&  \
+    if (ares->error != LDB_SUCCESS &&
         ares->error != LDB_ERR_NO_SUCH_ATTRIBUTE) {
         return ldb_module_done(ctx->req,
                                ares->controls,
