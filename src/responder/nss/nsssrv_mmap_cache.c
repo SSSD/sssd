@@ -106,6 +106,12 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
     struct sss_mc_rec *cur;
     uint32_t slot;
 
+    if (hash > mcc->ht_size) {
+        /* Invalid hash. This should never happen, but better
+         * return than trying to access out of bounds memory */
+        return;
+    }
+
     slot = mcc->hash_table[hash];
     if (slot == MC_INVALID_VAL) {
         /* no previous record/collision, just add to hash table */
@@ -135,6 +141,12 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
     struct sss_mc_rec *prev = NULL;
     struct sss_mc_rec *cur = NULL;
     uint32_t slot;
+
+    if (hash > mcc->ht_size) {
+        /* Invalid hash. This should never happen, but better
+         * return than trying to access out of bounds memory */
+        return;
+    }
 
     slot = mcc->hash_table[hash];
     cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
