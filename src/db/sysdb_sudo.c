@@ -36,7 +36,7 @@
 
 /* ====================  Utility functions ==================== */
 
-static errno_t sysdb_sudo_convert_time(const char *str, time_t *time)
+static errno_t sysdb_sudo_convert_time(const char *str, time_t *unix_time)
 {
     struct tm tm;
     char *tret = NULL;
@@ -58,7 +58,7 @@ static errno_t sysdb_sudo_convert_time(const char *str, time_t *time)
     for (format = formats; *format != NULL; format++) {
         tret = strptime(str, *format, &tm);
         if (tret != NULL && *tret == '\0') {
-            *time = mktime(&tm);
+            *unix_time = mktime(&tm);
             return EOK;
         }
     }
