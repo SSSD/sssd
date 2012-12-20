@@ -60,13 +60,13 @@ struct pac_req_ctx {
     struct dom_sid2 *domain_sid;
 
     size_t gid_count;
-    struct pac_grp *gids;
+    struct pac_dom_grps *gids;
 
     size_t current_grp_count;
     struct grp_info *current_grp_list;
 
     size_t add_gid_count;
-    struct pac_grp *add_gids;
+    struct pac_dom_grps *add_gids;
 
     size_t del_grp_count;
     struct grp_info **del_grp_list;
@@ -83,7 +83,8 @@ static void pac_get_group_done(struct tevent_req *subreq);
 static errno_t pac_save_memberships_next(struct tevent_req *req);
 static errno_t pac_store_membership(struct pac_req_ctx *pr_ctx,
                                     struct ldb_dn *user_dn,
-                                    int gid_iter);
+                                    gid_t gid,
+                                    struct sss_domain_info *grp_dom);
 struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx);
 static void pac_save_memberships_done(struct tevent_req *req);
 
@@ -417,7 +418,8 @@ done:
 }
 
 struct pac_save_memberships_state {
-    int gid_iter;
+    size_t gid_iter;
+    size_t dom_iter;
     struct ldb_dn *user_dn;
 
     struct pac_req_ctx *pr_ctx;
@@ -440,6 +442,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     }
 
     state->gid_iter = 0;
+    state->dom_iter = 0;
     state->user_dn = sysdb_user_dn(dom->sysdb, state, pr_ctx->fq_name);
     if (state->user_dn == NULL) {
         ret = ENOMEM;
@@ -585,17 +588,28 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
         return EINVAL;
     }
 
-    while (state->gid_iter < pr_ctx->add_gid_count) {
+    while (pr_ctx->add_gids[state->dom_iter].grp_dom != NULL) {
 
-        ret = pac_store_membership(state->pr_ctx, state->user_dn,
-                                   state->gid_iter);
+        if (pr_ctx->add_gids[state->dom_iter].gids == NULL ||
+            pr_ctx->add_gids[state->dom_iter].gid_count == 0) {
+            state->dom_iter++;
+            state->gid_iter = 0;
+            continue;
+        }
+
+
+        gid = pr_ctx->add_gids[state->dom_iter].gids[state->gid_iter];
+        grp_dom = pr_ctx->add_gids[state->dom_iter].grp_dom;
+
+        ret = pac_store_membership(state->pr_ctx, state->user_dn, gid, grp_dom);
         if (ret == EOK) {
             state->gid_iter++;
+            if (state->gid_iter >= pr_ctx->add_gids[state->dom_iter].gid_count) {
+                state->dom_iter++;
+                state->gid_iter = 0;
+            }
             continue;
         } else if (ret == ENOENT) {
-            gid = pr_ctx->add_gids[state->gid_iter].gid;
-            grp_dom = pr_ctx->add_gids[state->gid_iter].grp_dom;
-
             subreq = sss_dp_get_account_send(state, pr_ctx->cctx->rctx,
                                              grp_dom, true,
                                              SSS_DP_GROUP, NULL,
@@ -629,6 +643,9 @@ static void pac_get_group_done(struct tevent_req *subreq)
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
     char *err_msg;
+    gid_t gid;
+    struct sss_domain_info *grp_dom;
+    struct pac_req_ctx *pr_ctx = state->pr_ctx;
 
     ret = sss_dp_get_account_recv(req, subreq,
                                   &err_maj, &err_min,
@@ -639,11 +656,17 @@ static void pac_get_group_done(struct tevent_req *subreq)
         goto error;
     }
 
-    ret = pac_store_membership(state->pr_ctx, state->user_dn, state->gid_iter);
+    gid = pr_ctx->add_gids[state->dom_iter].gids[state->gid_iter];
+    grp_dom = pr_ctx->add_gids[state->dom_iter].grp_dom;
+    ret = pac_store_membership(state->pr_ctx, state->user_dn, gid, grp_dom);
     if (ret != EOK) {
         goto error;
     }
     state->gid_iter++;
+    if (state->gid_iter >= pr_ctx->add_gids[state->dom_iter].gid_count) {
+        state->dom_iter++;
+        state->gid_iter = 0;
+    }
 
     ret = pac_save_memberships_next(req);
     if (ret == EOK) {
@@ -661,13 +684,11 @@ error:
 static errno_t
 pac_store_membership(struct pac_req_ctx *pr_ctx,
                      struct ldb_dn *user_dn,
-                     int gid_iter)
+                     gid_t gid, struct sss_domain_info *grp_dom)
 {
     TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs *user_attrs;
     struct ldb_message *group;
-    uint32_t gid;
-    struct sss_domain_info *grp_dom;
     errno_t ret;
     const char *orig_group_dn;
     const char *group_attrs[] = { SYSDB_ORIG_DN, NULL };
@@ -676,9 +697,6 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
-
-    gid = pr_ctx->add_gids[gid_iter].gid;
-    grp_dom = pr_ctx->add_gids[gid_iter].grp_dom;
 
     ret = sysdb_search_group_by_gid(tmp_ctx, grp_dom->sysdb,
                                     gid, group_attrs, &group);

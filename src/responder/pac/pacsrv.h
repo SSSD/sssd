@@ -71,9 +71,10 @@ struct grp_info {
     struct ldb_dn *dn;
 };
 
-struct pac_grp {
-    gid_t gid;
+struct pac_dom_grps {
     struct sss_domain_info *grp_dom;
+    size_t gid_count;
+    gid_t *gids;
 };
 
 int pac_cmd_execute(struct cli_ctx *cctx);
@@ -104,7 +105,7 @@ errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
                           struct local_mapping_ranges *range_map,
                           struct dom_sid *domain_sid,
                           struct PAC_LOGON_INFO *logon_info,
-                          size_t *_gid_count, struct pac_grp **_gids);
+                          size_t *_gid_count, struct pac_dom_grps **_gids);
 
 errno_t get_data_from_pac(TALLOC_CTX *mem_ctx,
                           uint8_t *pac_blob, size_t pac_len,
@@ -121,9 +122,9 @@ errno_t diff_gid_lists(TALLOC_CTX *mem_ctx,
                        size_t cur_grp_num,
                        struct grp_info *cur_gid_list,
                        size_t new_gid_num,
-                       struct pac_grp *new_gid_list,
+                       struct pac_dom_grps *new_gid_list,
                        size_t *_add_gid_num,
-                       struct pac_grp **_add_gid_list,
+                       struct pac_dom_grps **_add_gid_list,
                        size_t *_del_gid_num,
                        struct grp_info ***_del_gid_list);
 

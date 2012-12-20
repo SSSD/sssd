@@ -172,16 +172,25 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
     int ret;
     size_t c;
     size_t add_gid_count = 0;
-    struct pac_grp *add_gids = NULL;
+    struct pac_dom_grps *add_gids = NULL;
     size_t del_gid_count = 0;
     struct grp_info **del_gids = NULL;
+    struct sss_domain_info grp_dom;
 
-    struct pac_grp pac_grp_2 = {2, NULL};
-    struct pac_grp pac_grp_3 = {3, NULL};
+    memset(&grp_dom, 0, sizeof(grp_dom));
 
-    struct pac_grp gid_list_2[] = {pac_grp_2};
-    struct pac_grp gid_list_3[] = {pac_grp_3};
-    struct pac_grp gid_list_23[] = {pac_grp_2, pac_grp_3};
+    gid_t gid_list_2[] = {2};
+    gid_t gid_list_3[] = {3};
+    gid_t gid_list_23[] = {2, 3};
+    struct pac_dom_grps empty_dom = {NULL, 0, NULL};
+
+    struct pac_dom_grps pac_grp_2 = {&grp_dom, 1, gid_list_2};
+    struct pac_dom_grps pac_grp_3 = {&grp_dom, 1, gid_list_3};
+    struct pac_dom_grps pac_grp_23 = {&grp_dom, 2, gid_list_23};
+
+    struct pac_dom_grps dom_grp_list_2[] = {pac_grp_2, empty_dom};
+    struct pac_dom_grps dom_grp_list_3[] = {pac_grp_3, empty_dom};
+    struct pac_dom_grps dom_grp_list_23[] = {pac_grp_23, empty_dom};
 
     struct grp_info grp_info_1 = {1, NULL, NULL};
     struct grp_info grp_info_2 = {2, NULL, NULL};
@@ -192,18 +201,18 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
         size_t cur_gid_count;
         struct grp_info *cur_gids;
         size_t gid_count;
-        struct pac_grp *gids;
+        struct pac_dom_grps *gids;
         int exp_ret;
         size_t exp_add_gid_count;
-        struct pac_grp *exp_add_gids;
+        struct pac_dom_grps *exp_add_gids;
         size_t exp_del_gid_count;
         struct grp_info *exp_del_gids;
     } a_and_r_data[] = {
-            {1, grp_list_1, 1, gid_list_2, EOK, 1, gid_list_2, 1, grp_list_1},
+            {1, grp_list_1, 1, dom_grp_list_2, EOK, 1, dom_grp_list_2, 1, grp_list_1},
             {1, grp_list_1, 0, NULL, EOK, 0, NULL, 1, grp_list_1},
-            {0, NULL, 1, gid_list_2, EOK, 1, gid_list_2, 0, NULL},
-            {2, grp_list_12, 1, gid_list_2, EOK,  0, NULL, 1, grp_list_1},
-            {2, grp_list_12, 2, gid_list_23, EOK, 1, gid_list_3, 1, grp_list_1},
+            {0, NULL, 1, dom_grp_list_2, EOK, 1, dom_grp_list_2, 0, NULL},
+            {2, grp_list_12, 1, dom_grp_list_2, EOK,  0, NULL, 1, grp_list_1},
+            {2, grp_list_12, 2, dom_grp_list_23, EOK, 1, dom_grp_list_3, 1, grp_list_1},
             {0, NULL, 0, NULL, 0, 0, NULL, 0, NULL}
     };
 
@@ -254,10 +263,10 @@ START_TEST(pac_test_get_gids_to_add_and_remove)
          * only look at lists with 1 element. TODO: add code to compare lists
          * with more than 1 member. */
         if (add_gid_count == 1) {
-            fail_unless(add_gids[0].gid ==  a_and_r_data[c].exp_add_gids[0].gid,
+            fail_unless(add_gids[0].gids[0] ==  a_and_r_data[c].exp_add_gids[0].gids[0],
                         "Unexpected gid to add for test data #%d, " \
                         "expected [%d], got [%d]",
-                        c, a_and_r_data[c].exp_add_gids[0].gid, add_gids[0].gid);
+                        c, a_and_r_data[c].exp_add_gids[0].gids[0], add_gids[0].gids[0]);
         }
 
         if (del_gid_count == 1) {
@@ -326,10 +335,11 @@ START_TEST(pac_test_get_gids_from_pac)
 {
     int ret;
     size_t c;
+    size_t d;
     size_t g;
     size_t t;
     size_t gid_count;
-    struct pac_grp *gids;
+    struct pac_dom_grps *gids;
     struct PAC_LOGON_INFO *logon_info;
     bool found;
     gid_t exp_gid;
@@ -380,7 +390,7 @@ START_TEST(pac_test_get_gids_from_pac)
         found = false;
         exp_gid = IDMAP_RANGE_MIN + 500 + c;
         for (g = 0; g < gid_count; g++) {
-            if (gids[g].gid == exp_gid) {
+            if (gids[1].gids[g] == exp_gid) {
                 found = true;
                 break;
             }
@@ -401,8 +411,8 @@ START_TEST(pac_test_get_gids_from_pac)
     fail_unless(ret == EOK, "Failed with 10 duplicated RIDs in PAC");
     fail_unless(gid_count == 1, "[%d] groups expected, got [%d]", 1, gid_count);
     fail_unless(gids != NULL, "Expected gid array.");
-    fail_unless(gids[0].gid == IDMAP_RANGE_MIN + 500,
-                "Wrong gid returned, got [%d], expected [%d].", gids[0].gid,
+    fail_unless(gids[1].gids[0] == IDMAP_RANGE_MIN + 500,
+                "Wrong gid returned, got [%d], expected [%d].", gids[1].gids[0],
                                                          IDMAP_RANGE_MIN + 500);
     talloc_free(gids);
     gids = NULL;
@@ -425,9 +435,14 @@ START_TEST(pac_test_get_gids_from_pac)
 
     for (c = 0; exp_gids[c] != 0; c++) {
         found = false;
-        for (g = 0; g < gid_count; g++) {
-            if (gids[g].gid == exp_gids[c]) {
-                found = true;
+        for (d = 0; d < 2; d++) {
+            for (g = 0; g < gids[d].gid_count; g++) {
+                if (gids[d].gids[g] == exp_gids[c]) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
                 break;
             }
         }
