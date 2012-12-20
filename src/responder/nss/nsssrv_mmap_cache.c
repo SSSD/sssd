@@ -392,11 +392,12 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     return rec;
 }
 
-static errno_t sss_mc_get_record(struct sss_mc_ctx *mcc,
+static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
                                  size_t rec_len,
                                  struct sized_string *key,
                                  struct sss_mc_rec **_rec)
 {
+    struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *old_rec = NULL;
     struct sss_mc_rec *rec;
     int old_slots;
@@ -424,6 +425,11 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx *mcc,
     /* we are going to use more space, find enough free slots */
     ret = sss_mc_find_free_slots(mcc, num_slots, &base_slot);
     if (ret != EOK) {
+        if (ret == EFAULT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Fatal internal mmap cache error, invalidating cache!\n"));
+            (void)sss_mmap_cache_reinit(talloc_parent(mcc), -1, -1, _mcc);
+        }
         return ret;
     }
 
@@ -474,7 +480,7 @@ static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
  * passwd map
  ***************************************************************************/
 
-errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
+errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 struct sized_string *name,
                                 struct sized_string *pw,
                                 uid_t uid, gid_t gid,
@@ -482,6 +488,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
                                 struct sized_string *homedir,
                                 struct sized_string *shell)
 {
+    struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
     struct sss_mc_pwd_data *data;
     struct sized_string uidkey;
@@ -510,7 +517,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx *mcc,
         return ENOMEM;
     }
 
-    ret = sss_mc_get_record(mcc, rec_len, name, &rec);
+    ret = sss_mc_get_record(_mcc, rec_len, name, &rec);
     if (ret != EOK) {
         return ret;
     }
@@ -615,12 +622,13 @@ done:
  * group map
  ***************************************************************************/
 
-int sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
+int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
                             struct sized_string *name,
                             struct sized_string *pw,
                             gid_t gid, size_t memnum,
                             char *membuf, size_t memsize)
 {
+    struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
     struct sss_mc_grp_data *data;
     struct sized_string gidkey;
@@ -649,7 +657,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx *mcc,
         return ENOMEM;
     }
 
-    ret = sss_mc_get_record(mcc, rec_len, name, &rec);
+    ret = sss_mc_get_record(_mcc, rec_len, name, &rec);
     if (ret != EOK) {
         return ret;
     }
@@ -906,7 +914,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
     }
     mc_ctx->fd = -1;
 
-    mc_ctx->name = talloc_strdup(mem_ctx, name);
+    mc_ctx->name = talloc_strdup(mc_ctx, name);
     if (!mc_ctx->name) {
         ret = ENOMEM;
         goto done;
@@ -1033,6 +1041,15 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
     }
 
     type = (*mc_ctx)->type;
+
+    if (n_elem == (size_t)-1) {
+        n_elem = (*mc_ctx)->ft_size * 8;
+    }
+
+    if (timeout == (time_t)-1) {
+        timeout = (*mc_ctx)->valid_time_slot;
+    }
+
     ret = talloc_free(*mc_ctx);
     if (ret != 0) {
         /* This can happen only if destructor is associated with this
@@ -1040,6 +1057,9 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
         DEBUG(SSSDBG_MINOR_FAILURE, ("Destructor asociated with memory"
                                     " context failed.\n"));
     }
+
+    /* make sure we do not leave a potentially freed pointer around */
+    *mc_ctx = NULL;
 
     ret = sss_mmap_cache_init(mem_ctx, name, type, n_elem, timeout, mc_ctx);
     if (ret != EOK) {
