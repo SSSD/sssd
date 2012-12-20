@@ -169,6 +169,19 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
     }
 }
 
+static void sss_mc_free_slots(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
+{
+    uint32_t slot;
+    uint32_t num;
+    uint32_t i;
+
+    slot = MC_PTR_TO_SLOT(mcc->data_table, rec);
+    num = MC_SIZE_TO_SLOTS(rec->len);
+    for (i = 0; i < num; i++) {
+        MC_CLEAR_BIT(mcc->free_table, slot + i);
+    }
+}
+
 static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
                                   struct sss_mc_rec *rec)
 {
@@ -177,13 +190,18 @@ static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
         return;
     }
 
+    /* Remove from hash chains */
     /* hash chain 1 */
     sss_mc_rm_rec_from_chain(mcc, rec, rec->hash1);
     /* hash chain 2 */
     sss_mc_rm_rec_from_chain(mcc, rec, rec->hash2);
 
+    /* Clear from free_table */
+    sss_mc_free_slots(mcc, rec);
+
+    /* Invalidate record fields */
     MC_RAISE_INVALID_BARRIER(rec);
-    memset(rec->data, 'X', rec->len - sizeof(struct sss_mc_rec));
+    memset(rec->data, 0xff, rec->len - sizeof(struct sss_mc_rec));
     rec->len = MC_INVALID_VAL;
     rec->expire = (uint64_t)-1;
     rec->next = MC_INVALID_VAL;
@@ -206,7 +224,7 @@ static int sss_mc_find_free_slots(struct sss_mc_ctx *mcc, int num_slots)
 
     tot_slots = mcc->ft_size * 8;
 
-    /* Try to find a free slot w/o removing a nything first */
+    /* Try to find a free slot w/o removing anything first */
     /* FIXME: is it really worth it ? May be it is easier to
      * just recycle the next set of slots ? */
     if ((mcc->next_slot + num_slots) > tot_slots) {
@@ -259,13 +277,10 @@ static int sss_mc_find_free_slots(struct sss_mc_ctx *mcc, int num_slots)
     }
     for (i = 0; i < num_slots; i++) {
         MC_PROBE_BIT(mcc->free_table, cur + i, used);
-        if (!used) continue;
-
-        rec = MC_SLOT_TO_PTR(mcc->data_table, cur + i, struct sss_mc_rec);
-        for (t = i + MC_SIZE_TO_SLOTS(rec->len); i < t; i++) {
-            MC_CLEAR_BIT(mcc->free_table, cur + i);
+        if (used) {
+            rec = MC_SLOT_TO_PTR(mcc->data_table, cur + i, struct sss_mc_rec);
+            sss_mc_invalidate_rec(mcc, rec);
         }
-        sss_mc_invalidate_rec(mcc, rec);
     }
 
     mcc->next_slot = cur + num_slots;
@@ -330,13 +345,7 @@ static struct sss_mc_rec *sss_mc_get_record(struct sss_mc_ctx *mcc,
 
         /* slot size changed, invalidate record and fall through to get a
         * fully new record */
-        base_slot = MC_PTR_TO_SLOT(mcc->data_table, old_rec);
         sss_mc_invalidate_rec(mcc, old_rec);
-
-        /* and now free slots */
-        for (i = 0; i < old_slots; i++) {
-            MC_CLEAR_BIT(mcc->free_table, base_slot + i);
-        }
     }
 
     /* we are going to use more space, find enough free slots */
