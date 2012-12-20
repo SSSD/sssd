@@ -47,8 +47,10 @@ typedef uint32_t rel_ptr_t;
 #define MC_PTR_ADD(ptr, bytes) (void *)((uint8_t *)(ptr) + (bytes))
 #define MC_PTR_DIFF(ptr, base) ((uint8_t *)(ptr) - (uint8_t *)(base))
 
-#define MC_INVALID_PTR (void *)0xffffffff
-#define MC_INVALID_VAL 0xffffffff
+#define MC_INVALID_VAL64 ((uint64_t)-1)
+#define MC_INVALID_VAL32 ((uint32_t)-1)
+#define MC_INVALID_VAL8 ((uint8_t)-1)
+#define MC_INVALID_VAL MC_INVALID_VAL32
 
 /*
  * 32 seem a good compromise for slot size
