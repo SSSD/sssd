@@ -131,8 +131,8 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         ctx->kpasswd_service = NULL;
     } else {
         ret = krb5_service_init(ctx, bectx, SSS_KRB5KPASSWD_FO_SRV,
-                                krb5_kpasswd_servers, NULL, krb5_realm,
-                                &ctx->kpasswd_service);
+                            krb5_kpasswd_servers, krb5_backup_kpasswd_servers,
+                            krb5_realm, &ctx->kpasswd_service);
         if (ret != EOK) {
             DEBUG(0, ("Failed to init KRB5KPASSWD failover service!\n"));
             return ret;
