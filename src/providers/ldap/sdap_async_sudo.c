@@ -566,6 +566,8 @@ static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
                 continue;
             }
         }
+
+        ret = EOK;
     } else {
         /* purge cache by provided filter */
         ret = sysdb_sudo_purge_byfilter(sysdb_ctx, filter);
