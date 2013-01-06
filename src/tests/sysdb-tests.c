@@ -960,6 +960,7 @@ START_TEST (test_sysdb_getgrgid)
 
     ret = sysdb_getgrgid(test_ctx,
                          test_ctx->sysdb,
+                         test_ctx->domain,
                          _i, &res);
     if (ret) {
         fail("sysdb_getgrgid failed for gid %d (%d: %s)",
@@ -1000,6 +1001,7 @@ START_TEST (test_sysdb_getpwuid)
 
     ret = sysdb_getpwuid(test_ctx,
                          test_ctx->sysdb,
+                         test_ctx->domain,
                          _i, &res);
     if (ret) {
         fail("sysdb_getpwuid failed for uid %d (%d: %s)",

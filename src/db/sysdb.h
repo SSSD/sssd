@@ -461,6 +461,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    uid_t uid,
                    struct ldb_result **res);
 
@@ -476,6 +477,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    gid_t gid,
                    struct ldb_result **res);
 

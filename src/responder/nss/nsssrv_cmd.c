@@ -1095,7 +1095,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getpwuid(cmdctx, sysdb, cmdctx->id, &dctx->res);
+        ret = sysdb_getpwuid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -2670,7 +2670,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getgrgid(cmdctx, sysdb, cmdctx->id, &dctx->res);
+        ret = sysdb_getgrgid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;

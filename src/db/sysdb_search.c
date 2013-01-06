@@ -89,6 +89,7 @@ done:
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    uid_t uid,
                    struct ldb_result **_res)
 {
@@ -105,7 +106,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
     }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -280,6 +281,7 @@ done:
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    gid_t gid,
                    struct ldb_result **_res)
 {
@@ -299,11 +301,11 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
     if (sysdb->mpg) {
         fmt_filter = SYSDB_GRGID_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_DOM_BASE, sysdb->domain->name);
+                                 SYSDB_DOM_BASE, domain->name);
     } else {
         fmt_filter = SYSDB_GRGID_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                                 SYSDB_TMPL_GROUP_BASE, domain->name);
     }
     if (!base_dn) {
         ret = ENOMEM;
