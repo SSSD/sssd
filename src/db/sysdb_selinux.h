@@ -34,6 +34,7 @@
 #define SYSDB_SELINUX_ENABLED "enabled"
 #define SYSDB_SELINUX_DEFAULT_USER "user"
 #define SYSDB_SELINUX_DEFAULT_ORDER "order"
+#define SYSDB_SELINUX_HOST_PRIORITY "hostPriority"
 
 enum selinux_entity_type {
     SELINUX_CONFIG,
