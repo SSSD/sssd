@@ -53,6 +53,7 @@ static errno_t ipa_get_selinux_recv(struct tevent_req *req,
 
 static struct ipa_selinux_op_ctx *
 ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           struct be_req *be_req, const char *username,
                           const char *hostname);
 static void ipa_selinux_handler_done(struct tevent_req *subreq);
@@ -98,8 +99,8 @@ void ipa_selinux_handler(struct be_req *be_req)
         goto fail;
     }
 
-    op_ctx = ipa_selinux_create_op_ctx(be_req, be_req->sysdb, be_req,
-                                       pd->user, hostname);
+    op_ctx = ipa_selinux_create_op_ctx(be_req, be_req->sysdb, be_req->domain,
+                                       be_req, pd->user, hostname);
     if (op_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot create op context\n"));
         goto fail;
@@ -120,6 +121,7 @@ fail:
 
 static struct ipa_selinux_op_ctx *
 ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           struct be_req *be_req, const char *username,
                           const char *hostname)
 {
@@ -144,7 +146,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto fail;
     }
 
-    host_dn = sysdb_custom_dn(sysdb, op_ctx, hostname, HBAC_HOSTS_SUBDIR);
+    host_dn = sysdb_custom_dn(sysdb, op_ctx, domain, hostname, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         goto fail;
     }

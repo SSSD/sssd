@@ -2037,7 +2037,8 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_custom_dn(sysdb, tmp_ctx, object_name, subtree_name);
+    basedn = sysdb_custom_dn(sysdb, tmp_ctx,
+                             sysdb->domain, object_name, subtree_name);
     if (basedn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
@@ -2119,7 +2120,8 @@ int sysdb_store_custom(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    msg->dn = sysdb_custom_dn(sysdb, tmp_ctx, object_name, subtree_name);
+    msg->dn = sysdb_custom_dn(sysdb, tmp_ctx,
+                              sysdb->domain, object_name, subtree_name);
     if (!msg->dn) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
@@ -2189,7 +2191,8 @@ int sysdb_delete_custom(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_custom_dn(sysdb, tmp_ctx, object_name, subtree_name);
+    dn = sysdb_custom_dn(sysdb, tmp_ctx,
+                         sysdb->domain, object_name, subtree_name);
     if (dn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;

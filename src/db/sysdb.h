@@ -337,6 +337,7 @@ struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *dom);
 struct ldb_dn *sysdb_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *dom,
                                const char *object_name,
                                const char *subtree_name);
 struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,

@@ -120,6 +120,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
 }
 
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *dom,
                                const char *object_name,
                                const char *subtree_name)
 {
@@ -145,7 +146,7 @@ struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM, clean_name,
-                        clean_subtree, sysdb->domain->name);
+                        clean_subtree, dom->name);
 
 done:
     talloc_free(tmp_ctx);
