@@ -75,7 +75,7 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     }
     ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
                      basedn, LDB_SCOPE_ONELEVEL,
-                     attrs, "objectclass=%s", SYSDB_RANGE_CLASS);
+                     attrs, "objectclass=%s", SYSDB_ID_RANGE_CLASS);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;

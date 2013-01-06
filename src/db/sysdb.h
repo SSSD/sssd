@@ -43,7 +43,6 @@
 #define SYSDB_TMPL_RANGE_BASE SYSDB_RANGE_CONTAINER",cn=%s,"SYSDB_BASE
 
 #define SYSDB_SUBDOMAIN_CLASS "subdomain"
-#define SYSDB_RANGE_CLASS "idrange"
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
 #define SYSDB_NETGROUP_CLASS "netgroup"
