@@ -4402,7 +4402,8 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_search_domuser_by_uid(test_ctx, subdomain, 12345, NULL, &msg);
+    ret = sysdb_search_user_by_uid(test_ctx, subdomain->sysdb, subdomain,
+                                   12345, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_domuser_by_uid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,

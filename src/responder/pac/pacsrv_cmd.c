@@ -384,7 +384,8 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, pwd->pw_uid, attrs, &msg);
+    ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, pr_ctx->dom,
+                                   pwd->pw_uid, attrs, &msg);
     if (ret == EOK) {
         if (new_and_cached_user_differs(pwd, msg)) {
             ret = sysdb_delete_user(sysdb, NULL, pwd->pw_uid);

@@ -577,17 +577,6 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
     } \
 } while(0)
 
-errno_t sysdb_search_domuser_by_uid(TALLOC_CTX *mem_ctx,
-                                    struct sss_domain_info *domain,
-                                    uid_t uid,
-                                    const char **attrs,
-                                    struct ldb_message **msg)
-{
-    CHECK_DOMAIN_INFO(domain);
-
-    return sysdb_search_user_by_uid(mem_ctx, domain->sysdb, uid, attrs, msg);
-}
-
 errno_t sysdb_store_domuser(struct sss_domain_info *domain,
                             const char *name,
                             const char *pwd,

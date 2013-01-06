@@ -277,6 +277,7 @@ done:
 
 int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
                              struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              uid_t uid,
                              const char **attrs,
                              struct ldb_message **msg)
@@ -295,7 +296,7 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                            SYSDB_TMPL_USER_BASE, domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -1129,7 +1130,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
     /* check no other user with the same uid exist */
     if (uid != 0) {
-        ret = sysdb_search_user_by_uid(tmp_ctx, sysdb,
+        ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, domain,
                                        uid, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
@@ -2397,7 +2398,7 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
         ret = sysdb_search_user_by_name(tmp_ctx, sysdb, sysdb->domain,
                                         name, NULL, &msg);
     } else {
-        ret = sysdb_search_user_by_uid(tmp_ctx, sysdb,
+        ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, sysdb->domain,
                                        uid, NULL, &msg);
     }
     if (ret == EOK) {
