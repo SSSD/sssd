@@ -292,12 +292,53 @@ done:
     return ret;
 }
 
+errno_t
+sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *sysdb,
+                           const char **attrs,
+                           size_t *count,
+                           struct ldb_message ***messages)
+{
+    errno_t ret;
+    char *filter;
+    struct ldb_dn *basedn;
+    struct sss_domain_info *domain;
+
+    domain = sysdb_ctx_get_domain(sysdb);
+    basedn = ldb_dn_new_fmt(mem_ctx, sysdb_ctx_get_ldb(sysdb),
+                            SYSDB_TMPL_SELINUX_BASE, domain->name);
+    if (!basedn) {
+        return ENOMEM;
+    }
+
+    filter = talloc_asprintf(mem_ctx, "(%s=%s)",
+                             SYSDB_OBJECTCLASS, SYSDB_SELINUX_USERMAP_CLASS);
+    if (filter == NULL) {
+        talloc_free(basedn);
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_entry(mem_ctx, sysdb, basedn, LDB_SCOPE_SUBTREE, filter,
+                             attrs, count, messages);
+    talloc_free(basedn);
+    talloc_free(filter);
+    if (ret == ENOENT) {
+        *count = 0;
+        *messages = NULL;
+    } else if (ret) {
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
                                                  const char *username,
                                                  struct ldb_message ***_usermaps)
 {
     TALLOC_CTX *tmp_ctx;
+    struct ldb_message **msgs = NULL;
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_USER_CATEGORY,
                             SYSDB_HOST_CATEGORY,
@@ -306,18 +347,14 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
                             SYSDB_SELINUX_HOST_PRIORITY,
                             SYSDB_SELINUX_USER,
                             NULL };
-    struct ldb_message **msgs = NULL;
     struct sysdb_attrs *user;
     struct sysdb_attrs *tmp_attrs;
     struct ldb_message **usermaps = NULL;
-    struct sss_domain_info *domain;
-    struct ldb_dn *basedn;
     size_t msgs_count = 0;
     size_t usermaps_cnt;
     uint32_t priority = 0;
     uint32_t host_priority = 0;
     uint32_t top_priority = 0;
-    char *filter;
     errno_t ret;
     int i;
 
@@ -333,25 +370,8 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
     }
 
     /* Now extract all SELinux user maps */
-    domain = sysdb_ctx_get_domain(sysdb);
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb_ctx_get_ldb(sysdb),
-                            SYSDB_TMPL_SELINUX_BASE, domain->name);
-    if (!basedn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    filter = talloc_asprintf(tmp_ctx, "(objectclass=%s)", SYSDB_SELINUX_USERMAP_CLASS);
-    if (filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_SUBTREE, filter,
-                             attrs, &msgs_count, &msgs);
-    if (ret == ENOENT) {
-        msgs_count = 0;
-    } else if (ret) {
+    ret = sysdb_get_selinux_usermaps(tmp_ctx, sysdb, attrs, &msgs_count, &msgs);
+    if (ret) {
         goto done;
     }
 
