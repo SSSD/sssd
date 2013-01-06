@@ -27,7 +27,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
-#include "db/sysdb_private.h"
 
 struct sdap_reinit_cleanup_state {
     struct sysdb_ctx *sysdb;
@@ -61,21 +60,23 @@ struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    state->sysdb = be_ctx->domain->sysdb;
+
     if (!be_ctx->domain->enumerate) {
         /* enumeration is disabled, this whole process is meaningless */
         ret = EOK;
         goto immediately;
     }
 
-    ret = sdap_reinit_clear_usn(be_ctx->domain->sysdb);
+    ret = sdap_reinit_clear_usn(state->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to clear USN attributes [%d]: %s\n",
                                     ret, strerror(ret)));
         goto immediately;
     }
 
-    req = ldap_id_enumerate_send(be_ctx->ev, id_ctx);
-    if (req == NULL) {
+    subreq = ldap_id_enumerate_send(be_ctx->ev, id_ctx);
+    if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to issue enumeration request\n"));
         ret = ENOMEM;
         goto immediately;
@@ -96,23 +97,32 @@ immediately:
     return req;
 }
 
+static void sdap_delete_msgs_usn(struct sysdb_ctx *sysdb,
+                                 struct ldb_message **msgs,
+                                 size_t msgs_num)
+{
+    struct ldb_message_element el = { 0, SYSDB_USN, 0, NULL };
+    struct sysdb_attrs usn_el = { 1, &el };
+    errno_t ret;
+    int i;
+
+    for (i = 0; i < msgs_num; i++) {
+        ret = sysdb_set_entry_attr(sysdb, msgs[i]->dn, &usn_el, SYSDB_MOD_DEL);
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to clean USN on entry: [%s]\n",
+                                      ldb_dn_get_linearized(msgs[i]->dn)));
+        }
+    }
+}
+
 static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     bool in_transaction = false;
-    struct ldb_result *result = NULL;
-    struct ldb_message **messages = NULL;
-    struct ldb_message *msg = NULL;
-    int messages_num = 0;
-    struct ldb_dn *base_dn = NULL;
-    const char *base[] = { SYSDB_TMPL_USER_BASE,
-                           SYSDB_TMPL_GROUP_BASE,
-                           SYSDB_TMPL_SVC_BASE,
-                           NULL };
+    struct ldb_message **msgs = NULL;
+    size_t msgs_num = 0;
     const char *attrs[] = { "dn", NULL };
-    int i, j;
     int sret;
-    int lret;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -121,56 +131,35 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb)
         return ENOMEM;
     }
 
-    for (i = 0; base[i] != NULL; i++) {
-        lret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
-                          LDB_SCOPE_SUBTREE, attrs, NULL);
-        if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
-            goto done;
-        }
-
-        if (result->count == 0) {
-            talloc_zfree(result);
-            continue;
-        }
-
-        messages = talloc_realloc(tmp_ctx, messages, struct ldb_message*,
-                                  messages_num + result->count);
-
-        for (j = 0; j < result->count; j++) {
-            msg = ldb_msg_new(messages);
-            if (msg == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            msg->dn = talloc_move(tmp_ctx, &result->msgs[j]->dn);
-
-            lret = ldb_msg_add_empty(msg, SYSDB_USN, LDB_FLAG_MOD_DELETE, NULL);
-            if (lret != LDB_SUCCESS) {
-                ret = sysdb_error_to_errno(lret);
-                goto done;
-            }
-
-            messages[messages_num + j] = msg;
-        }
-
-        messages_num += result->count;
-        talloc_zfree(result);
-    }
-
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         goto done;
     }
     in_transaction = true;
 
-    for (i = 0; i < messages_num; i++) {
-        lret = ldb_modify(sysdb->ldb, messages[i]);
-        if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
-            goto done;
-        }
+    /* reset users' usn */
+    ret = sysdb_search_users(tmp_ctx, sysdb, "", attrs, &msgs_num, &msgs);
+    if (ret != EOK) {
+        goto done;
     }
+    sdap_delete_msgs_usn(sysdb, msgs, msgs_num);
+    talloc_zfree(msgs);
+    msgs_num = 0;
+
+    /* reset groups' usn */
+    ret = sysdb_search_groups(tmp_ctx, sysdb, "", attrs, &msgs_num, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+    sdap_delete_msgs_usn(sysdb, msgs, msgs_num);
+    talloc_zfree(msgs);
+    msgs_num = 0;
+
+    /* reset services' usn */
+    ret = sysdb_search_services(tmp_ctx, sysdb, "", attrs, &msgs_num, &msgs);
+    sdap_delete_msgs_usn(sysdb, msgs, msgs_num);
+    talloc_zfree(msgs);
+    msgs_num = 0;
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret == EOK) {
@@ -234,20 +223,30 @@ fail:
     tevent_req_error(req, ret);
 }
 
+static void sdap_delete_msgs_dn(struct sysdb_ctx *sysdb,
+                                struct ldb_message **msgs,
+                                size_t msgs_num)
+{
+    errno_t ret;
+    int i;
+
+    for (i = 0; i < msgs_num; i++) {
+        ret = sysdb_delete_entry(sysdb, msgs[i]->dn, true);
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to delete entry: [%s]\n",
+                                      ldb_dn_get_linearized(msgs[i]->dn)));
+        }
+    }
+}
+
 static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     bool in_transaction = false;
-    struct ldb_result *result = NULL;
-    struct ldb_dn *base_dn = NULL;
-    const char *base[] = { SYSDB_TMPL_USER_BASE,
-                           SYSDB_TMPL_GROUP_BASE,
-                           SYSDB_TMPL_SVC_BASE,
-                           NULL };
+    struct ldb_message **msgs = NULL;
+    size_t msgs_num = 0;
     const char *attrs[] = { "dn", NULL };
-    int i, j;
     int sret;
-    int lret;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -262,24 +261,32 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb)
     }
     in_transaction = true;
 
-    for (i = 0; base[i] != NULL; i++) {
-        lret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
-                          LDB_SCOPE_SUBTREE, attrs, "(!("SYSDB_USN"=*))");
-        if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
-            goto done;
-        }
-
-        for (j = 0; j < result->count; j++) {
-            ret = ldb_delete(sysdb->ldb, result->msgs[i]->dn);
-            if (ret != LDB_SUCCESS) {
-                ret = sysdb_error_to_errno(ret);
-                goto done;
-            }
-        }
-
-        talloc_zfree(result);
+    /* purge untouched users */
+    ret = sysdb_search_users(tmp_ctx, sysdb, "(!("SYSDB_USN"=*))",
+                             attrs, &msgs_num, &msgs);
+    if (ret != EOK) {
+        goto done;
     }
+    sdap_delete_msgs_dn(sysdb, msgs, msgs_num);
+    talloc_zfree(msgs);
+    msgs_num = 0;
+
+    /* purge untouched groups */
+    ret = sysdb_search_groups(tmp_ctx, sysdb, "(!("SYSDB_USN"=*))",
+                              attrs, &msgs_num, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+    sdap_delete_msgs_dn(sysdb, msgs, msgs_num);
+    talloc_zfree(msgs);
+    msgs_num = 0;
+
+    /* purge untouched services */
+    ret = sysdb_search_services(tmp_ctx, sysdb, "(!("SYSDB_USN"=*))",
+                                attrs, &msgs_num, &msgs);
+    sdap_delete_msgs_dn(sysdb, msgs, msgs_num);
+    talloc_zfree(msgs);
+    msgs_num = 0;
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret == EOK) {
