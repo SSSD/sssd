@@ -92,13 +92,95 @@ done:
     return ret;
 }
 
+static errno_t
+sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                                  gid_t gid, char ***_localdn, size_t *_ndn)
+{
+    static const char *search_attrs[] = { SYSDB_NAME, NULL };
+    char *filter;
+    struct ldb_message **msgs;
+    size_t count;
+    size_t i;
+    errno_t ret;
+    char **localdn;
+
+    /* Don't search if the group is non-posix */
+    if (!gid) return EOK;
+
+    filter = talloc_asprintf(mem_ctx, "(%s=%llu)", SYSDB_GIDNUM,
+                             (unsigned long long) gid);
+    if (!filter) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_users(mem_ctx, sysdb, filter,
+                             search_attrs, &count, &msgs);
+    talloc_free(filter);
+    if (ret == ENOENT) {
+        *_localdn = NULL;
+        *_ndn = 0;
+        return EOK;
+    } else if (ret != EOK) {
+        return ret;
+    }
+
+    localdn = talloc_array(mem_ctx, char *, count);
+    if (!localdn) {
+        talloc_free(msgs);
+        return ENOMEM;
+    }
+
+    for (i=0; i < count; i++) {
+        localdn[i] = talloc_strdup(localdn,
+                                   ldb_dn_get_linearized(msgs[i]->dn));
+        if (!localdn[i]) {
+            talloc_free(localdn);
+            talloc_free(msgs);
+            return ENOMEM;
+        }
+    }
+
+    talloc_free(msgs);
+    *_localdn = localdn;
+    *_ndn = count;
+    return EOK;
+}
+
+static errno_t
+sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
+                       struct sysdb_ctx *sysdb, struct sdap_options *opts,
+                       char ***_dn_list, size_t *_count)
+{
+    gid_t gid;
+    errno_t ret;
+
+    ret = sysdb_attrs_get_uint32_t(ldap_attrs,
+                                   opts->group_map[SDAP_AT_GROUP_GID].sys_name,
+                                   &gid);
+    if (ret == ENOENT) {
+        /* Non-posix AD group. Skip. */
+        *_dn_list = NULL;
+        *_count = 0;
+        return EOK;
+    } else if (ret && ret != ENOENT) {
+        return ret;
+    }
+
+    ret = sdap_get_members_with_primary_gid(mem_ctx, sysdb, gid,
+                                            _dn_list, _count);
+    if (ret) return ret;
+
+    return EOK;
+}
+
 static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
                                  struct sysdb_ctx *ctx,
-                                 struct sdap_options *opts,
                                  struct sss_domain_info *domain,
                                  hash_table_t *ghosts,
                                  struct ldb_val *values,
-                                 int num_values)
+                                 int num_values,
+                                 char **userdns,
+                                 size_t nuserdns)
 {
     struct ldb_message_element *el;
     int i, j;
@@ -114,13 +196,12 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
 
     /* Just allocate both big enough to contain all members for now */
     el->values = talloc_realloc(group_attrs, el->values, struct ldb_val,
-                                el->num_values + num_values);
+                                el->num_values + num_values + nuserdns);
     if (!el->values) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* Just allocate both big enough to contain all members for now */
     j = el->num_values;
     for (i = 0; i < num_values; i++) {
         if (ghosts == NULL) {
@@ -158,6 +239,13 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
          * already been processed - just skip it */
     }
     el->num_values = j;
+
+    for (i=0; i < nuserdns; i++) {
+        el->values[el->num_values + i].data = (uint8_t *) \
+                                          talloc_steal(group_attrs, userdns[i]);
+        el->values[el->num_values + i].length = strlen(userdns[i]);
+    }
+    el->num_values += nuserdns;
 
     ret = EOK;
 
@@ -555,6 +643,8 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs = NULL;
     const char *name;
+    char **userdns = NULL;
+    size_t nuserdns = 0;
     int ret;
 
     ret = sysdb_attrs_primary_name(ctx, attrs,
@@ -564,12 +654,23 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    /* With AD we also want to merge in parent groups of primary GID as they
+     * are reported with tokenGroups, too
+     */
+    if (opts->schema_type == SDAP_SCHEMA_AD) {
+        ret = sdap_dn_by_primary_gid(memctx, attrs, ctx, opts,
+                                     &userdns, &nuserdns);
+        if (ret != EOK) {
+            goto fail;
+        }
+    }
+
     ret = sysdb_attrs_get_el(attrs,
                     opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
     if (ret != EOK) {
         goto fail;
     }
-    if (el->num_values == 0) {
+    if (el->num_values == 0 && nuserdns == 0) {
         DEBUG(7, ("No members for group [%s]\n", name));
 
     } else {
@@ -581,9 +682,9 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
             goto fail;
         }
 
-        ret = sdap_fill_memberships(group_attrs, ctx, opts, dom,
-                                    ghosts,
-                                    el->values, el->num_values);
+        ret = sdap_fill_memberships(group_attrs, ctx, dom, ghosts,
+                                    el->values, el->num_values,
+                                    userdns, nuserdns);
         if (ret) {
             goto fail;
         }
