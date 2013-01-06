@@ -88,7 +88,6 @@ struct resp_ctx {
     struct sss_domain_info *domains;
     int domains_timeout;
     int client_idle_timeout;
-    struct sysdb_ctx_list *db_list;
 
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;

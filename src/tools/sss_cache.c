@@ -53,7 +53,6 @@ static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 struct cache_tool_ctx {
     struct confdb_ctx *confdb;
     struct sss_domain_info *domains;
-    struct sysdb_ctx_list *sysdb_list;
     struct sss_names_ctx *nctx;
 
     char *user_filter;
@@ -90,7 +89,6 @@ int main(int argc, const char *argv[])
     errno_t ret;
     struct cache_tool_ctx *tctx = NULL;
     struct sysdb_ctx *sysdb;
-    int i;
     bool skipped = true;
     struct sss_domain_info *dinfo;
 
@@ -101,9 +99,8 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    for (i = 0; i < tctx->sysdb_list->num_dbs; i++) {
-        sysdb = tctx->sysdb_list->dbs[i];
-        dinfo = sysdb_ctx_get_domain(sysdb);
+    for (dinfo = tctx->domains; dinfo; dinfo = dinfo->next) {
+        sysdb = dinfo->sysdb;
 
         /* Update filters for each domain */
         ret = update_all_filters(tctx, dinfo->name);
@@ -422,33 +419,25 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
         if (ret != EOK) {
             SYSDB_VERSION_ERROR(ret);
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));
-            goto fail;
+            return ret;
         }
 
-        ret = sysdb_list_init(ctx, DB_PATH, db_ctx, &ctx->sysdb_list);
-        if (ret != EOK) {
-            DEBUG(1, ("Could not initialize the list of connections\n"));
-            goto fail;
-        }
     } else {
-        ret = sysdb_init(ctx, ctx->confdb, NULL, false, &ctx->sysdb_list);
+        ret = confdb_get_domains(ctx->confdb, &ctx->domains);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not initialize domains\n"));
+            return ret;
+        }
+
+        ret = sysdb_init(ctx, ctx->domains, NULL, false);
         SYSDB_VERSION_ERROR(ret);
         if (ret != EOK) {
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));
-            goto fail;
+            return ret;
         }
     }
 
     return EOK;
-fail:
-    if (ctx->confdb) talloc_zfree(ctx->confdb);
-    if (ctx->domains) talloc_zfree(ctx->domains);
-    if (ctx->sysdb_list) {
-        talloc_zfree(ctx->sysdb_list);
-    } else {
-        if (db_ctx) talloc_free(db_ctx);
-    }
-    return ret;
 }
 
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)

@@ -227,13 +227,6 @@
 struct confdb_ctx;
 struct sysdb_ctx;
 
-struct sysdb_ctx_list {
-    struct sysdb_ctx **dbs;
-    size_t num_dbs;
-
-    char *db_path;
-};
-
 struct sysdb_attrs {
     int num;
     struct ldb_message_element *a;
@@ -452,10 +445,9 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
  * call this function *only* once to initialize the database and get
  * the sysdb ctx */
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct confdb_ctx *cdb,
+               struct sss_domain_info *domains,
                const char *alt_db_path,
-               bool allow_upgrade,
-               struct sysdb_ctx_list **_ctx_list);
+               bool allow_upgrade);
 /* used to initialize only one domain database.
  * Do NOT use if sysdb_init has already been called */
 int sysdb_domain_init(TALLOC_CTX *mem_ctx,
@@ -470,13 +462,6 @@ errno_t sysdb_init_domain_and_sysdb(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info **_domain,
                                     struct sysdb_ctx **_ctx);
 
-int sysdb_list_init(TALLOC_CTX *mem_ctx,
-                    const char *path,
-                    struct sysdb_ctx *sysdb,
-                    struct sysdb_ctx_list **_list);
-
-errno_t sysdb_add_to_domain(struct sss_domain_info *domain,
-                            struct sysdb_ctx *ctx);
 /* functions to retrieve information from sysdb
  * These functions automatically starts an operation
  * therefore they cannot be called within a transaction */

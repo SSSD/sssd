@@ -2110,7 +2110,6 @@ int monitor_process_init(struct mt_ctx *ctx,
                          const char *config_file)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sysdb_ctx_list *db_list;
     struct tevent_signal *tes;
     struct sss_domain_info *dom;
     char *rcachedir;
@@ -2212,7 +2211,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     if (!tmp_ctx) {
         return ENOMEM;
     }
-    ret = sysdb_init(tmp_ctx, ctx->cdb, NULL, true, &db_list);
+    ret = sysdb_init(tmp_ctx, ctx->domains, NULL, true);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
         return ret;

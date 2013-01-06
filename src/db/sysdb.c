@@ -917,37 +917,6 @@ done:
     return ret;
 }
 
-static int remove_sysdb_from_domain(void *mem)
-{
-    struct sysdb_ctx *ctx = talloc_get_type(mem, struct sysdb_ctx);
-
-    if (ctx->domain != NULL && ctx->domain->sysdb == ctx) {
-        ctx->domain->sysdb = NULL;
-    }
-
-    return 0;
-}
-
-errno_t sysdb_add_to_domain(struct sss_domain_info *domain,
-                            struct sysdb_ctx *ctx)
-{
-    if (domain == NULL || ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing domain or sysdb context.\n"));
-        return EINVAL;
-    }
-
-    if (domain->sysdb != NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Sysdb context already set.\n"));
-        return EINVAL;
-    }
-
-    domain->sysdb = ctx;
-
-    talloc_set_destructor((TALLOC_CTX *) ctx, remove_sysdb_from_domain);
-
-    return EOK;
-}
-
 /* Compare versions of sysdb, returns ERRNO accordingly */
 static errno_t
 sysdb_version_check(const char *expected,
@@ -1226,81 +1195,40 @@ done:
 }
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct confdb_ctx *cdb,
+               struct sss_domain_info *domains,
                const char *alt_db_path,
-               bool allow_upgrade,
-               struct sysdb_ctx_list **_ctx_list)
+               bool allow_upgrade)
 {
-    struct sysdb_ctx_list *ctx_list;
-    struct sss_domain_info *domains, *dom;
+    struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
+    const char *db_path;
     int ret;
 
-    ctx_list = talloc_zero(mem_ctx, struct sysdb_ctx_list);
-    if (!ctx_list) {
-        return ENOMEM;
-    }
-
     if (alt_db_path) {
-        ctx_list->db_path = talloc_strdup(ctx_list, alt_db_path);
+        db_path = alt_db_path;
     } else {
-        ctx_list->db_path = talloc_strdup(ctx_list, DB_PATH);
-    }
-    if (!ctx_list->db_path) {
-        talloc_zfree(ctx_list);
-        return ENOMEM;
-    }
-
-    /* open a db for each backend */
-    ret = confdb_get_domains(cdb, &domains);
-    if (ret != EOK) {
-        talloc_zfree(ctx_list);
-        return ret;
+        db_path = DB_PATH;
     }
 
     if (allow_upgrade) {
         /* check if we have an old sssd.ldb to upgrade */
-        ret = sysdb_check_upgrade_02(domains, ctx_list->db_path);
+        ret = sysdb_check_upgrade_02(domains, db_path);
         if (ret != EOK) {
-            talloc_zfree(ctx_list);
             return ret;
         }
     }
 
+    /* open a db for each domain */
     for (dom = domains; dom; dom = dom->next) {
 
-        ctx_list->dbs = talloc_realloc(ctx_list, ctx_list->dbs,
-                                       struct sysdb_ctx *,
-                                       ctx_list->num_dbs + 1);
-        if (!ctx_list->dbs) {
-            talloc_zfree(ctx_list);
-            return ENOMEM;
-        }
-
-        ret = sysdb_domain_init_internal(ctx_list, dom,
-                                         ctx_list->db_path,
+        ret = sysdb_domain_init_internal(mem_ctx, dom, db_path,
                                          allow_upgrade, &sysdb);
         if (ret != EOK) {
-            talloc_zfree(ctx_list);
             return ret;
         }
 
-        ret = sysdb_add_to_domain(dom, sysdb);
-        if (ret != EOK) {
-            talloc_zfree(ctx_list);
-            return ret;
-        }
-
-        ctx_list->dbs[ctx_list->num_dbs] = sysdb;
-        ctx_list->num_dbs++;
+        dom->sysdb = talloc_move(dom, &sysdb);
     }
-    if (ctx_list->num_dbs == 0) {
-        /* what? .. */
-        talloc_zfree(ctx_list);
-        return ENOENT;
-    }
-
-    *_ctx_list = ctx_list;
 
     return EOK;
 }
@@ -1337,57 +1265,12 @@ errno_t sysdb_init_domain_and_sysdb(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sysdb_add_to_domain(dom, ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error storing cache database context.\n"));
-        return ret;
-    }
+    dom->sysdb = talloc_steal(dom, ctx);
 
     *_domain = dom;
     *_ctx = ctx;
 
     return EOK;
-}
-
-int sysdb_list_init(TALLOC_CTX *mem_ctx,
-                    const char *path,
-                    struct sysdb_ctx *sysdb,
-                    struct sysdb_ctx_list **_list)
-{
-    struct sysdb_ctx_list *list;
-    int ret;
-
-    list = talloc_zero(mem_ctx, struct sysdb_ctx_list);
-    if (!list) {
-        DEBUG(1, ("talloc_zero failed\n"));
-        return ENOMEM;
-    }
-
-    list->db_path = talloc_strdup(list, path);
-    if (!list->db_path) {
-        DEBUG(1, ("talloc_strdup failed\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (sysdb) {
-        list->num_dbs = 1;
-        list->dbs = talloc_array(list, struct sysdb_ctx *, list->num_dbs);
-        if (!list->dbs) {
-            DEBUG(1, ("talloc_array failed\n"));
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        list->dbs[0] = talloc_steal(list, sysdb);
-    }
-
-    *_list = list;
-    return EOK;
-
-fail:
-    talloc_free(list);
-    return ret;
 }
 
 int compare_ldb_dn_comp_num(const void *m1, const void *m2)
