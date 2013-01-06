@@ -513,6 +513,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *name,
                         const char **attributes,
                         struct ldb_result **res);

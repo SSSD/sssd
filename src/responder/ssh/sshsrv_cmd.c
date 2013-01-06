@@ -232,7 +232,7 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         return EFAULT;
     }
 
-    ret = sysdb_get_user_attr(cmd_ctx, sysdb,
+    ret = sysdb_get_user_attr(cmd_ctx, sysdb, cmd_ctx->domain,
                               cmd_ctx->name, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,

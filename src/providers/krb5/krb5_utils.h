@@ -38,6 +38,7 @@ errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
                           const char *user_dom, char **_upn);
 
 errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
+                                         struct sss_domain_info *domain,
                                          const char *user,
                                          const char *upn);
 

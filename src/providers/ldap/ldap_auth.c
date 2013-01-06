@@ -357,6 +357,7 @@ shadow_fail:
 
 static int get_user_dn(TALLOC_CTX *memctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        struct sdap_options *opts,
                        const char *username,
                        char **user_dn,
@@ -394,7 +395,7 @@ static int get_user_dn(TALLOC_CTX *memctx,
     attrs[9] = SYSDB_PWD_ATTRIBUTE;
     attrs[10] = NULL;
 
-    ret = sysdb_get_user_attr(tmpctx, sysdb, username, attrs, &res);
+    ret = sysdb_get_user_attr(tmpctx, sysdb, domain, username, attrs, &res);
     if (ret) {
         goto done;
     }
@@ -619,8 +620,8 @@ static void auth_connect_done(struct tevent_req *subreq)
                               state->srv, PORT_WORKING);
     }
 
-    ret = get_user_dn(state, state->ctx->be->sysdb, state->ctx->opts,
-                      state->username, &state->dn,
+    ret = get_user_dn(state, state->ctx->be->sysdb, state->ctx->be->domain,
+                      state->ctx->opts, state->username, &state->dn,
                       &state->pw_expire_type, &state->pw_expire_data);
     if (ret) {
         tevent_req_error(req, ret);

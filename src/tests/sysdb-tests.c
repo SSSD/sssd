@@ -1143,7 +1143,7 @@ START_TEST (test_sysdb_get_user_attr)
     username = talloc_asprintf(test_ctx, "testuser%d", _i);
 
     ret = sysdb_get_user_attr(test_ctx, test_ctx->sysdb,
-                              username, attrs, &res);
+                              test_ctx->domain, username, attrs, &res);
     if (ret) {
         fail("Could not get attributes for user %s", username);
         goto done;
@@ -3751,7 +3751,7 @@ START_TEST(test_odd_characters)
     talloc_zfree(res);
 
     /* Attributes */
-    ret = sysdb_get_user_attr(test_ctx, test_ctx->sysdb,
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->sysdb, test_ctx->domain,
                               odd_username, user_attrs, &res);
     fail_unless(ret == EOK, "sysdb_get_user_attr error [%d][%s]",
                             ret, strerror(ret));

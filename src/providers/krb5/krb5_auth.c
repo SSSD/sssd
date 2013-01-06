@@ -429,6 +429,7 @@ struct krb5_auth_state {
     struct be_ctx *be_ctx;
     struct pam_data *pd;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     struct krb5_ctx *krb5_ctx;
     struct krb5child_req *kr;
 
@@ -456,7 +457,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     int ret;
-    struct sss_domain_info *dom;
 
     req = tevent_req_create(mem_ctx, &state, struct krb5_auth_state);
     if (req == NULL) {
@@ -472,13 +472,13 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     state->pam_status = PAM_SYSTEM_ERR;
     state->dp_err = DP_ERR_FATAL;
 
-    ret = get_domain_or_subdomain(state, be_ctx, pd->domain, &dom);
+    ret = get_domain_or_subdomain(state, be_ctx, pd->domain, &state->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("get_domain_or_subdomain failed.\n"));
         goto done;
     }
 
-    state->sysdb = dom->sysdb;
+    state->sysdb = state->domain->sysdb;
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
@@ -541,8 +541,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     }
     kr = state->kr;
 
-    ret = sysdb_get_user_attr(state, state->sysdb, state->pd->user, attrs,
-                              &res);
+    ret = sysdb_get_user_attr(state, state->sysdb, state->domain,
+                              state->pd->user, attrs, &res);
     if (ret) {
         DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
         state->pam_status = PAM_SYSTEM_ERR;
@@ -901,8 +901,8 @@ static void krb5_auth_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = check_if_cached_upn_needs_update(state->sysdb, pd->user,
-                                                   res->correct_upn);
+            ret = check_if_cached_upn_needs_update(state->sysdb, state->domain,
+                                                   pd->user, res->correct_upn);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       ("check_if_cached_upn_needs_update failed.\n"));

@@ -172,10 +172,10 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = sysdb_get_user_attr(state, user_dom->sysdb,
+        ret = sysdb_get_user_attr(state, user_dom->sysdb, user_dom,
                                   pd->user, attrs, &res);
     } else {
-        ret = sysdb_get_user_attr(state, be_req->sysdb,
+        ret = sysdb_get_user_attr(state, be_req->sysdb, be_req->domain,
                                   pd->user, attrs, &res);
     }
     if (ret != EOK) {

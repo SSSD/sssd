@@ -484,6 +484,7 @@ done:
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *name,
                         const char **attributes,
                         struct ldb_result **_res)
@@ -500,7 +501,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;

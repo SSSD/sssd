@@ -58,6 +58,7 @@ errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
 }
 
 errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
+                                         struct sss_domain_info *domain,
                                          const char *user,
                                          const char *upn)
 {
@@ -80,7 +81,7 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_get_user_attr(tmp_ctx, sysdb, user, attrs, &res);
+    ret = sysdb_get_user_attr(tmp_ctx, sysdb, domain, user, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_user_attr failed.\n"));
         goto done;
