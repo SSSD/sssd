@@ -209,10 +209,12 @@ struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     return dn;
 }
 
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *dom)
 {
-    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_NETGROUP_BASE,
-                          sysdb->domain->name);
+    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb,
+                          SYSDB_TMPL_NETGROUP_BASE, dom->name);
 }
 
 errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
