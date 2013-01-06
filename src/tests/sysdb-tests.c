@@ -3648,7 +3648,7 @@ START_TEST (test_sysdb_get_netgroup_attr)
     netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
 
     ret = sysdb_get_netgroup_attr(test_ctx, test_ctx->sysdb,
-                                  netgrname, attrs, &res);
+                                  test_ctx->domain, netgrname, attrs, &res);
 
     fail_if(ret != EOK, "Could not get netgroup attributes");
     fail_if(res->count != 1,
@@ -3778,14 +3778,14 @@ START_TEST(test_odd_characters)
 
     /* Retrieve */
     ret = sysdb_getnetgr(test_ctx, test_ctx->sysdb,
-                         odd_netgroupname, &res);
+                         test_ctx->domain, odd_netgroupname, &res);
     fail_unless(ret == EOK, "sysdb_getnetgr error [%d][%s]",
                             ret, strerror(ret));
     fail_unless(res->count == 1, "Received [%d] responses",
                                  res->count);
     talloc_zfree(res);
 
-    ret = sysdb_get_netgroup_attr(test_ctx, test_ctx->sysdb,
+    ret = sysdb_get_netgroup_attr(test_ctx, test_ctx->sysdb, test_ctx->domain,
                                   odd_netgroupname, netgr_attrs, &res);
     fail_unless(ret == EOK, "sysdb_get_netgroup_attr error [%d][%s]",
                             ret, strerror(ret));

@@ -782,6 +782,7 @@ done:
 
 errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *netgroup,
                        struct ldb_result **res)
 {
@@ -801,7 +802,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_NETGROUP_BASE,
-                             sysdb->domain->name);
+                             domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -813,7 +814,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
     }
 
     netgroup_dn = talloc_asprintf(tmp_ctx, SYSDB_TMPL_NETGROUP,
-                                  sanitized_netgroup, sysdb->domain->name);
+                                  sanitized_netgroup, domain->name);
     if (!netgroup_dn) {
         ret = ENOMEM;
         goto done;
@@ -839,6 +840,7 @@ done:
 
 int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *netgrname,
                             const char **attributes,
                             struct ldb_result **res)
@@ -855,7 +857,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
     }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_NETGROUP_BASE, sysdb->domain->name);
+                             SYSDB_TMPL_NETGROUP_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
