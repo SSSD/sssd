@@ -79,7 +79,7 @@
 #include "db/sysdb.h"
 
 struct sysdb_ctx {
-    struct sss_domain_info *domain;
+    struct sss_domain_info *domain; /* *DEPRECATED*, do not use! */
     bool mpg;
 
     struct ldb_context *ldb;
