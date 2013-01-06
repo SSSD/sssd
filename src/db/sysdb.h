@@ -323,7 +323,7 @@ int sysdb_error_to_errno(int ldberr);
 errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                       const char *_dn, char **_name, char **_val);
 struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                             const char *name);
+                             struct sss_domain_info *dom, const char *name);
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                               const char *name);
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,

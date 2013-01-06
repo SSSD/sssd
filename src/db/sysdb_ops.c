@@ -249,7 +249,7 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_user_dn(sysdb, tmp_ctx, name);
+    basedn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -557,7 +557,7 @@ int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_user_dn(sysdb, tmp_ctx, name);
+    dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -829,7 +829,7 @@ int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
     }
 
     /* user dn */
-    msg->dn = sysdb_user_dn(sysdb, msg, name);
+    msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1018,7 +1018,7 @@ sysdb_remove_ghostattr_from_groups(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, name);
+    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain, name);
     if (!tmpdn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1874,7 +1874,7 @@ sysdb_group_membership_mod(struct sysdb_ctx *sysdb,
     }
 
     if (type == SYSDB_MEMBER_USER) {
-        member_dn = sysdb_user_dn(sysdb, tmp_ctx, member);
+        member_dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain, member);
     } else if (type == SYSDB_MEMBER_GROUP) {
         member_dn = sysdb_group_dn(sysdb, tmp_ctx, member);
     } else {
@@ -3045,7 +3045,7 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
 
     switch(type) {
     case SYSDB_MEMBER_USER:
-        msg->dn = sysdb_user_dn(sysdb, msg, name);
+        msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain, name);
         break;
 
     case SYSDB_MEMBER_GROUP:

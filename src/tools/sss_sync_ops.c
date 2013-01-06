@@ -199,7 +199,7 @@ int usermod(TALLOC_CTX *mem_ctx,
     int ret;
 
     if (data->addgroups || data->rmgroups) {
-        member_dn = sysdb_user_dn(sysdb, mem_ctx, data->name);
+        member_dn = sysdb_user_dn(sysdb, mem_ctx, data->domain, data->name);
         if (!member_dn) {
             return ENOMEM;
         }
@@ -476,7 +476,7 @@ int useradd(TALLOC_CTX *mem_ctx,
     if (data->addgroups) {
         struct ldb_dn *member_dn;
 
-        member_dn = sysdb_user_dn(sysdb, mem_ctx, data->name);
+        member_dn = sysdb_user_dn(sysdb, mem_ctx, data->domain, data->name);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
@@ -505,7 +505,7 @@ int userdel(TALLOC_CTX *mem_ctx,
     struct ldb_dn *user_dn;
     int ret;
 
-    user_dn = sysdb_user_dn(sysdb, mem_ctx, data->name);
+    user_dn = sysdb_user_dn(sysdb, mem_ctx, data->domain, data->name);
     if (!user_dn) {
         DEBUG(1, ("Could not construct a user DN\n"));
         return ENOMEM;

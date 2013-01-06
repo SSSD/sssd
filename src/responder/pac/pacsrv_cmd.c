@@ -443,7 +443,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
 
     state->gid_iter = 0;
     state->dom_iter = 0;
-    state->user_dn = sysdb_user_dn(dom->sysdb, state, pr_ctx->fq_name);
+    state->user_dn = sysdb_user_dn(dom->sysdb, state, dom, pr_ctx->fq_name);
     if (state->user_dn == NULL) {
         ret = ENOMEM;
         goto done;

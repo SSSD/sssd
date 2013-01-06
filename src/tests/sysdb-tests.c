@@ -218,7 +218,8 @@ static int test_remove_user(struct test_data *data)
     struct ldb_dn *user_dn;
     int ret;
 
-    user_dn = sysdb_user_dn(data->ctx->sysdb, data, data->username);
+    user_dn = sysdb_user_dn(data->ctx->sysdb, data,
+                            data->ctx->domain, data->username);
     if (!user_dn) return ENOMEM;
 
     ret = sysdb_delete_entry(data->ctx->sysdb, user_dn, true);
@@ -1762,7 +1763,8 @@ START_TEST (test_sysdb_asq_search)
     data->attrlist[0] = "gidNumber";
     data->attrlist[1] = NULL;
 
-    user_dn = sysdb_user_dn(data->ctx->sysdb, data, ASQ_TEST_USER);
+    user_dn = sysdb_user_dn(data->ctx->sysdb, data,
+                            data->ctx->domain, ASQ_TEST_USER);
     fail_unless(user_dn != NULL, "sysdb_user_dn failed");
 
     ret = sysdb_asq_search(data, test_ctx->sysdb,
