@@ -293,11 +293,6 @@ struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *sysdb)
     return sysdb->ldb;
 }
 
-struct sss_domain_info *sysdb_ctx_get_domain(struct sysdb_ctx *sysdb)
-{
-    return sysdb->domain;
-}
-
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx)
 {
     return talloc_zero(mem_ctx, struct sysdb_attrs);

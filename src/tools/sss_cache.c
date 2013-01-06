@@ -78,7 +78,9 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
 errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                          const char *name, int entry_type);
-static bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+static bool invalidate_entries(TALLOC_CTX *ctx,
+                               struct sss_domain_info *dinfo,
+                               struct sysdb_ctx *sysdb,
                                enum sss_cache_entry entry_type,
                                const char *filter, const char *name);
 static errno_t update_all_filters(struct cache_tool_ctx *tctx,
@@ -115,15 +117,15 @@ int main(int argc, const char *argv[])
             goto done;
         }
 
-        skipped &= !invalidate_entries(tctx, sysdb, TYPE_USER,
+        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_USER,
                                    tctx->user_filter, tctx->user_name);
-        skipped &= !invalidate_entries(tctx, sysdb, TYPE_GROUP,
+        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_GROUP,
                                    tctx->group_filter, tctx->group_name);
-        skipped &= !invalidate_entries(tctx, sysdb, TYPE_NETGROUP,
+        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_NETGROUP,
                                    tctx->netgroup_filter, tctx->netgroup_name);
-        skipped &= !invalidate_entries(tctx, sysdb, TYPE_SERVICE,
+        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_SERVICE,
                                    tctx->service_filter, tctx->service_name);
-        skipped &= !invalidate_entries(tctx, sysdb, TYPE_AUTOFSMAP,
+        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_AUTOFSMAP,
                                    tctx->autofs_filter, tctx->autofs_name);
 
         ret = sysdb_transaction_commit(sysdb);
@@ -268,7 +270,9 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
     return EOK;
 }
 
-static bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+static bool invalidate_entries(TALLOC_CTX *ctx,
+                               struct sss_domain_info *dinfo,
+                               struct sysdb_ctx *sysdb,
                                enum sss_cache_entry entry_type,
                                const char *filter, const char *name)
 {
@@ -280,11 +284,8 @@ static bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
     int i;
     const char *c_name;
     bool iret;
-    struct sss_domain_info *dinfo;
 
     if (!filter) return false;
-
-    dinfo = sysdb_ctx_get_domain(sysdb);
 
     switch (entry_type) {
     case TYPE_USER:

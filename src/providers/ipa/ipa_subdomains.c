@@ -688,14 +688,17 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     struct ipa_subdomains_req_ctx *ctx;
     struct be_req *be_req;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     bool refresh_has_changes = false;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     be_req = ctx->be_req;
     if (be_req && be_req->sysdb) {
         sysdb = be_req->sysdb;
+        domain = be_req->domain;
     } else {
         sysdb = ctx->sd_ctx->be_ctx->sysdb;
+        domain = ctx->sd_ctx->be_ctx->domain;
     }
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
@@ -740,7 +743,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = ipa_subdomains_write_mappings(sysdb_ctx_get_domain(sysdb),
+        ret = ipa_subdomains_write_mappings(domain,
                                             ctx->sd_ctx->num_subdoms,
                                             ctx->sd_ctx->subdoms);
         if (ret != EOK) {

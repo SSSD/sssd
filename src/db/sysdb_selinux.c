@@ -304,7 +304,7 @@ sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
     struct ldb_dn *basedn;
     struct sss_domain_info *domain;
 
-    domain = sysdb_ctx_get_domain(sysdb);
+    domain = sysdb->domain;
     basedn = ldb_dn_new_fmt(mem_ctx, sysdb_ctx_get_ldb(sysdb),
                             SYSDB_TMPL_SELINUX_BASE, domain->name);
     if (!basedn) {
