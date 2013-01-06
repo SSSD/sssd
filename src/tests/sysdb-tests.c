@@ -282,7 +282,8 @@ static int test_remove_group(struct test_data *data)
     struct ldb_dn *group_dn;
     int ret;
 
-    group_dn = sysdb_group_dn(data->ctx->sysdb, data, data->groupname);
+    group_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->ctx->domain, data->groupname);
     if (!group_dn) return ENOMEM;
 
     ret = sysdb_delete_entry(data->ctx->sysdb, group_dn, true);
@@ -3463,7 +3464,8 @@ START_TEST (test_sysdb_group_dn_name)
     }
 
     groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
-    group_dn = sysdb_group_dn(test_ctx->sysdb, test_ctx, groupname);
+    group_dn = sysdb_group_dn(test_ctx->sysdb, test_ctx,
+                              test_ctx->domain, groupname);
     if (!group_dn || !groupname) {
         fail("Out of memory");
         return;

@@ -53,6 +53,7 @@ struct sync_op_res {
  * Generic modify groups member
  */
 static int mod_groups_member(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *dom,
                              char **grouplist,
                              struct ldb_dn *member_dn,
                              int optype)
@@ -70,8 +71,7 @@ static int mod_groups_member(struct sysdb_ctx *sysdb,
 /* FIXME: add transaction around loop */
     for (i = 0; grouplist[i]; i++) {
 
-        parent_dn = sysdb_group_dn(sysdb, tmpctx,
-                                   grouplist[i]);
+        parent_dn = sysdb_group_dn(sysdb, tmpctx, dom, grouplist[i]);
         if (!parent_dn) {
             ret = ENOMEM;
             goto done;
@@ -91,10 +91,10 @@ done:
 }
 
 #define add_to_groups(sysdb, data, member_dn) \
-    mod_groups_member(sysdb, data->addgroups, member_dn, \
+    mod_groups_member(sysdb, data->domain, data->addgroups, member_dn, \
                       LDB_FLAG_MOD_ADD)
 #define remove_from_groups(sysdb, data, member_dn) \
-    mod_groups_member(sysdb, data->rmgroups, member_dn, \
+    mod_groups_member(sysdb, data->domain, data->rmgroups, member_dn, \
                       LDB_FLAG_MOD_DELETE)
 
 /*
@@ -256,7 +256,7 @@ int groupmod(TALLOC_CTX *mem_ctx,
     int ret;
 
     if (data->addgroups || data->rmgroups) {
-        member_dn = sysdb_group_dn(sysdb, mem_ctx, data->name);
+        member_dn = sysdb_group_dn(sysdb, mem_ctx, data->domain, data->name);
         if (!member_dn) {
             return ENOMEM;
         }
@@ -547,7 +547,7 @@ int groupdel(TALLOC_CTX *mem_ctx,
     struct ldb_dn *group_dn;
     int ret;
 
-    group_dn = sysdb_group_dn(sysdb, mem_ctx, data->name);
+    group_dn = sysdb_group_dn(sysdb, mem_ctx, data->domain, data->name);
     if (group_dn == NULL) {
         DEBUG(1, ("Could not construct a group DN\n"));
         return ENOMEM;
