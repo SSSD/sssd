@@ -1158,3 +1158,34 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
 
     return ret;
 }
+
+int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val)
+{
+    char *str;
+    errno_t ret;
+    struct ldb_message_element *el;
+
+    ret = sysdb_attrs_get_el_ext(entry, attr, false, &el);
+    if (ret == ENOENT) {
+        return sysdb_attrs_add_uint32(entry, attr, val);
+    } else if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get attribute [%s]\n", attr));
+        return ret;
+    }
+
+    if (el->num_values != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Expected 1 value for %s, got %d\n", attr, el->num_values));
+        return EINVAL;
+    }
+
+    str = talloc_asprintf(entry, "%llu", (unsigned long long) val);
+    if (!str) {
+        return ENOMEM;
+    }
+
+    el->values[0].data = (uint8_t *) str;
+    el->values[0].length = strlen(str);
+
+    return EOK;
+}

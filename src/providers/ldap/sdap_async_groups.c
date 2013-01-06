@@ -398,11 +398,9 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         /* Store the GID in the ldap_attrs so it doesn't get
          * treated as a missing attribute from LDAP and removed.
          */
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not store GID: [%s]\n",
-                   strerror(ret)));
+        ret = sdap_replace_id(attrs, SYSDB_GIDNUM, gid);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set the id-mapped GID\n"));
             goto done;
         }
     } else {
