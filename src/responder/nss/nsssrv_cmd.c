@@ -121,7 +121,7 @@ void nss_update_pw_memcache(struct nss_ctx *nctx)
     now = time(NULL);
 
     for (dom = nctx->rctx->domains; dom != NULL; dom = dom->next) {
-        ret = sysdb_enumpwent(nctx, dom->sysdb, &res);
+        ret = sysdb_enumpwent(nctx, dom->sysdb, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Failed to enumerate users for domain [%s]\n", dom->name));
@@ -1533,7 +1533,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumpwent(dctx, sysdb, &res);
+        ret = sysdb_enumpwent(dctx, sysdb, dom, &res);
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
@@ -1859,7 +1859,7 @@ void nss_update_gr_memcache(struct nss_ctx *nctx)
     now = time(NULL);
 
     for (dom = nctx->rctx->domains; dom != NULL; dom = dom->next) {
-        ret = sysdb_enumgrent(nctx, dom->sysdb, &res);
+        ret = sysdb_enumgrent(nctx, dom->sysdb, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Failed to enumerate users for domain [%s]\n", dom->name));
@@ -3101,7 +3101,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumgrent(dctx, sysdb, &res);
+        ret = sysdb_enumgrent(dctx, sysdb, dom, &res);
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));

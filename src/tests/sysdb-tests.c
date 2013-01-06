@@ -1043,6 +1043,7 @@ START_TEST (test_sysdb_enumgrent)
 
     ret = sysdb_enumgrent(test_ctx,
                           test_ctx->sysdb,
+                          test_ctx->domain,
                           &res);
     fail_unless(ret == EOK,
                 "sysdb_enumgrent failed (%d: %s)",
@@ -1070,6 +1071,7 @@ START_TEST (test_sysdb_enumpwent)
 
     ret = sysdb_enumpwent(test_ctx,
                           test_ctx->sysdb,
+                          test_ctx->domain,
                           &res);
     fail_unless(ret == EOK,
                 "sysdb_enumpwent failed (%d: %s)",

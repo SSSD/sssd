@@ -467,6 +467,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     struct ldb_result **res);
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
@@ -483,6 +484,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     struct ldb_result **res);
 
 struct sysdb_netgroup_ctx {

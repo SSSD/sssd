@@ -128,6 +128,7 @@ done:
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
@@ -142,7 +143,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
     }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -333,6 +334,7 @@ done:
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
@@ -350,11 +352,11 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     if (sysdb->mpg) {
         fmt_filter = SYSDB_GRENT_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_DOM_BASE, sysdb->domain->name);
+                                 SYSDB_DOM_BASE, domain->name);
     } else {
         fmt_filter = SYSDB_GRENT_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                                 SYSDB_TMPL_GROUP_BASE, domain->name);
     }
     if (!base_dn) {
         ret = ENOMEM;
