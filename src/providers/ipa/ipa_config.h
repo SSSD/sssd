@@ -31,7 +31,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "db/sysdb.h"
 
-#define IPA_CONFIG_SELINUX_DEFAULT_MAP "ipaSELinuxUserMapDefault"
+#define IPA_CONFIG_SELINUX_DEFAULT_USER_CTX "ipaSELinuxUserMapDefault"
 #define IPA_CONFIG_SELINUX_MAP_ORDER "ipaSELinuxUserMapOrder"
 #define IPA_CONFIG_MIGRATION_ENABLED "ipaMigrationEnabled"
 #define IPA_CONFIG_SEARCH_BASE_TEMPLATE "cn=etc,%s"

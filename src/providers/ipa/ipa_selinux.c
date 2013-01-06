@@ -612,7 +612,8 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     }
 
     ret = sysdb_attrs_add_string(state->defaults,
-                                 IPA_CONFIG_SELINUX_DEFAULT_MAP, default_user);
+                                 IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
+                                 default_user);
     if (ret != EOK) {
         return ret;
     }
@@ -856,7 +857,8 @@ ipa_get_selinux_recv(struct tevent_req *req,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->defaults != NULL) {
-        ret = sysdb_attrs_get_string(state->defaults, IPA_CONFIG_SELINUX_DEFAULT_MAP,
+        ret = sysdb_attrs_get_string(state->defaults,
+                                     IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
                                      &tmp_str);
         if (ret != EOK && ret != ENOENT) {
             return ret;
