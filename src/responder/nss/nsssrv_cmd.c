@@ -3435,7 +3435,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
 
     tmp_ctx = talloc_new(NULL);
 
-    ret = sysdb_initgroups(tmp_ctx, dom->sysdb, name, &res);
+    ret = sysdb_initgroups(tmp_ctx, dom->sysdb, dom, name, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Failed to make request to our cache! [%d][%s]\n",
@@ -3635,7 +3635,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_initgroups(cmdctx, sysdb, name, &dctx->res);
+        ret = sysdb_initgroups(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache! [%d][%s]\n",
                       ret, strerror(ret)));

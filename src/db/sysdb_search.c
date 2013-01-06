@@ -384,6 +384,7 @@ done:
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      struct ldb_result **_res)
 {
@@ -401,7 +402,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_getpwnam(tmp_ctx, sysdb, sysdb->domain, name, &res);
+    ret = sysdb_getpwnam(tmp_ctx, sysdb, domain, name, &res);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_getpwnam failed: [%d][%s]\n",
                   ret, strerror(ret)));

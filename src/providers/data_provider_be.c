@@ -665,7 +665,7 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
     int i;
 
     ret = sysdb_initgroups(be_req, be_req->be_ctx->sysdb,
-                           ar->filter_value, &res);
+                           be_req->be_ctx->domain, ar->filter_value, &res);
     if (ret && ret != ENOENT) {
         return ret;
     }

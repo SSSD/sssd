@@ -507,6 +507,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      struct ldb_result **res);
 

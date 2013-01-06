@@ -292,7 +292,8 @@ static errno_t pac_user_get_grp_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_initgroups(tmp_ctx, sysdb, pr_ctx->user_name, &res);
+    ret = sysdb_initgroups(tmp_ctx, sysdb,
+                           pr_ctx->dom, pr_ctx->user_name, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_initgroups failed.\n"));
         goto done;
