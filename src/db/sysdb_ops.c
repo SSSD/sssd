@@ -663,7 +663,7 @@ int sysdb_get_new_id(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    base_dn = sysdb_domain_dn(sysdb, tmp_ctx);
+    base_dn = sysdb_domain_dn(sysdb, tmp_ctx, sysdb->domain);
     if (!base_dn) {
         talloc_zfree(tmp_ctx);
         return ENOMEM;

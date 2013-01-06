@@ -283,7 +283,7 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
             goto done;
         }
 
-        basedn = sysdb_domain_dn(sysdb, tmp_ctx);
+        basedn = sysdb_domain_dn(sysdb, tmp_ctx, dom);
         if (basedn == NULL) {
             ret = ENOMEM;
             goto done;

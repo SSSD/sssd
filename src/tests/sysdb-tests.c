@@ -4213,7 +4213,7 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
                              "cn=case_sensitive_group1,cn=example,cn=com");
     fail_if(filter == NULL, "Cannot construct filter\n");
 
-    base_dn = sysdb_domain_dn(test_ctx->sysdb, test_ctx);
+    base_dn = sysdb_domain_dn(test_ctx->sysdb, test_ctx, test_ctx->domain);
     fail_if(base_dn == NULL, "Cannot construct basedn\n");
 
     ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,

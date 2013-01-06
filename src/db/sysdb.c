@@ -281,10 +281,12 @@ errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     return sysdb_get_rdn(sysdb, mem_ctx, _dn, NULL, _name);
 }
 
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *dom)
 {
-    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_DOM_BASE, sysdb->domain->name);
+    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_DOM_BASE, dom->name);
 }
+
 struct ldb_dn *sysdb_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
 {
     return ldb_dn_new(mem_ctx, sysdb->ldb, SYSDB_BASE);
