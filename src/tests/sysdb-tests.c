@@ -481,7 +481,8 @@ static int test_remove_netgroup_entry(struct test_data *data)
     struct ldb_dn *netgroup_dn;
     int ret;
 
-    netgroup_dn = sysdb_netgroup_dn(data->ctx->sysdb, data, data->netgrname);
+    netgroup_dn = sysdb_netgroup_dn(data->ctx->sysdb, data,
+                                    data->ctx->domain, data->netgrname);
     if (!netgroup_dn) return ENOMEM;
 
     ret = sysdb_delete_entry(data->ctx->sysdb, netgroup_dn, true);
@@ -3528,7 +3529,8 @@ START_TEST (test_sysdb_search_netgroup_by_name)
                                         netgrname, NULL, &msg);
     fail_if(ret != EOK, "Could not find netgroup with name %s", netgrname);
 
-    netgroup_dn = sysdb_netgroup_dn(test_ctx->sysdb, test_ctx, netgrname);
+    netgroup_dn = sysdb_netgroup_dn(test_ctx->sysdb, test_ctx,
+                                    test_ctx->domain, netgrname);
     fail_if(netgroup_dn == NULL);
     fail_if(ldb_dn_compare(msg->dn, netgroup_dn) != 0, "Found wrong netgroup!\n");
     talloc_free(test_ctx);

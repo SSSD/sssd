@@ -453,7 +453,7 @@ int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_netgroup_dn(sysdb, tmp_ctx, name);
+    basedn = sysdb_netgroup_dn(sysdb, tmp_ctx, sysdb->domain, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -625,7 +625,7 @@ int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_netgroup_dn(sysdb, tmp_ctx, name);
+    dn = sysdb_netgroup_dn(sysdb, tmp_ctx, sysdb->domain, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -1481,7 +1481,7 @@ int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
     }
 
     /* netgroup dn */
-    msg->dn = sysdb_netgroup_dn(sysdb, msg, name);
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -3053,7 +3053,7 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
         break;
 
     case SYSDB_MEMBER_NETGROUP:
-        msg->dn = sysdb_netgroup_dn(sysdb, msg, name);
+        msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain, name);
         break;
 
     case SYSDB_MEMBER_SERVICE:

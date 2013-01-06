@@ -191,7 +191,7 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
 }
 
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                                 const char *name)
+                                 struct sss_domain_info *dom, const char *name)
 {
     errno_t ret;
     char *clean_name;
@@ -203,7 +203,7 @@ struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_NETGROUP,
-                        clean_name, sysdb->domain->name);
+                        clean_name, dom->name);
     talloc_free(clean_name);
 
     return dn;

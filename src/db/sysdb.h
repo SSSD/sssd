@@ -327,7 +327,7 @@ struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *dom, const char *name);
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                                 const char *name);
+                                 struct sss_domain_info *dom, const char *name);
 struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
 errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                             const char *dn_str, char **name);
