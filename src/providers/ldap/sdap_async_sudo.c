@@ -84,7 +84,7 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
                                        size_t *rules_count,
                                        struct sysdb_attrs ***rules);
 
-static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq);
+static void sdap_sudo_refresh_load_done(struct tevent_req *subreq);
 
 static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
                                    const char *filter,
@@ -108,8 +108,8 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           const char *ldap_filter,
                                           const char *sysdb_filter)
 {
-    struct tevent_req *req = NULL;
-    struct sdap_sudo_refresh_state *state = NULL;
+    struct tevent_req *req;
+    struct sdap_sudo_refresh_state *state;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_refresh_state);
@@ -169,7 +169,7 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            char **usn,
                            size_t *num_rules)
 {
-    struct sdap_sudo_refresh_state *state = NULL;
+    struct sdap_sudo_refresh_state *state;
 
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
 
@@ -191,8 +191,8 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
 
 static int sdap_sudo_refresh_retry(struct tevent_req *req)
 {
-    struct tevent_req *subreq = NULL;
-    struct sdap_sudo_refresh_state *state = NULL;
+    struct sdap_sudo_refresh_state *state;
+    struct tevent_req *subreq;
     int ret;
 
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
@@ -230,8 +230,8 @@ static int sdap_sudo_refresh_retry(struct tevent_req *req)
 
 static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = NULL; /* req from sdap_sudo_refresh_send() */
-    struct sdap_sudo_refresh_state *state = NULL;
+    struct tevent_req *req; /* req from sdap_sudo_refresh_send() */
+    struct sdap_sudo_refresh_state *state;
     int dp_error;
     int ret;
 
@@ -264,7 +264,7 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    tevent_req_set_callback(subreq, sdap_sudo_load_sudoers_done, req);
+    tevent_req_set_callback(subreq, sdap_sudo_refresh_load_done, req);
 
     return;
 
@@ -283,8 +283,8 @@ static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
 
 
 {
-    struct tevent_req *req = NULL;
-    struct sdap_sudo_load_sudoers_state *state = NULL;
+    struct tevent_req *req;
+    struct sdap_sudo_load_sudoers_state *state;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_load_sudoers_state);
@@ -334,10 +334,10 @@ fail:
 
 static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
 {
-    struct tevent_req *subreq = NULL;
-    struct sdap_sudo_load_sudoers_state *state = NULL;
-    struct sdap_search_base *search_base = NULL;
-    char *filter = NULL;
+    struct sdap_sudo_load_sudoers_state *state;
+    struct sdap_search_base *search_base;
+    struct tevent_req *subreq;
+    char *filter;
 
     state = tevent_req_data(req, struct sdap_sudo_load_sudoers_state);
     search_base = state->search_bases[state->base_iter];
@@ -382,9 +382,9 @@ static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
 
 static void sdap_sudo_load_sudoers_process(struct tevent_req *subreq)
 {
-    struct tevent_req *req = NULL;
-    struct sdap_sudo_load_sudoers_state *state = NULL;
-    struct sdap_search_base *search_base = NULL;
+    struct tevent_req *req;
+    struct sdap_sudo_load_sudoers_state *state;
+    struct sdap_search_base *search_base;
     struct sysdb_attrs **attrs = NULL;
     size_t count;
     int ret;
@@ -443,7 +443,7 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
                                        size_t *rules_count,
                                        struct sysdb_attrs ***rules)
 {
-    struct sdap_sudo_load_sudoers_state *state = NULL;
+    struct sdap_sudo_load_sudoers_state *state;
 
     state = tevent_req_data(req, struct sdap_sudo_load_sudoers_state);
 
@@ -455,10 +455,10 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
     return EOK;
 }
 
-static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
+static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = NULL; /* req from sdap_sudo_refresh_send() */
-    struct sdap_sudo_refresh_state *state = NULL;
+    struct tevent_req *req; /* req from sdap_sudo_refresh_send() */
+    struct sdap_sudo_refresh_state *state;
     struct sysdb_attrs **rules = NULL;
     size_t rules_count = 0;
     int ret;
