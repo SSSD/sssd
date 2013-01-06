@@ -112,3 +112,37 @@ struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
     return new_subdomain(mem_ctx, subdomain->parent, subdomain->name,
                          subdomain->flat_name, subdomain->domain_id);
 }
+
+errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
+                         struct confdb_ctx *cdb,
+                         const char *domain_name,
+                         const char *db_path,
+                         struct sss_domain_info **_domain)
+{
+    int ret;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+
+    ret = confdb_get_domain(cdb, domain_name, &dom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error retrieving domain configuration.\n"));
+        return ret;
+    }
+
+    if (dom->sysdb != NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Sysdb context already initialized.\n"));
+        return EEXIST;
+    }
+
+    ret = sysdb_domain_init(mem_ctx, dom, db_path, &sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error opening cache database.\n"));
+        return ret;
+    }
+
+    dom->sysdb = talloc_steal(dom, sysdb);
+
+    *_domain = dom;
+
+    return EOK;
+}

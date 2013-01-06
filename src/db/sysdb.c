@@ -1242,37 +1242,6 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                                       db_path, false, _ctx);
 }
 
-errno_t sysdb_init_domain_and_sysdb(TALLOC_CTX *mem_ctx,
-                                    struct confdb_ctx *cdb,
-                                    const char *domain_name,
-                                    const char *db_path,
-                                    struct sss_domain_info **_domain,
-                                    struct sysdb_ctx **_ctx)
-{
-    int ret;
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *ctx;
-
-    ret = confdb_get_domain(cdb, domain_name, &dom);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error retrieving domain configuration.\n"));
-        return ret;
-    }
-
-    ret = sysdb_domain_init(mem_ctx, dom, db_path, &ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error opening cache database.\n"));
-        return ret;
-    }
-
-    dom->sysdb = talloc_steal(dom, ctx);
-
-    *_domain = dom;
-    *_ctx = ctx;
-
-    return EOK;
-}
-
 int compare_ldb_dn_comp_num(const void *m1, const void *m2)
 {
     struct ldb_message *msg1 = talloc_get_type(*(void **) discard_const(m1),

@@ -398,7 +398,6 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
 {
     char *confdb_path;
     int ret;
-    struct sysdb_ctx *db_ctx = NULL;
 
     confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
@@ -414,8 +413,8 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
     }
 
     if (domain) {
-        ret = sysdb_init_domain_and_sysdb(ctx, ctx->confdb, domain, DB_PATH,
-                                          &ctx->domains, &db_ctx);
+        ret = sssd_domain_init(ctx, ctx->confdb,
+                               domain, DB_PATH, &ctx->domains);
         if (ret != EOK) {
             SYSDB_VERSION_ERROR(ret);
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));

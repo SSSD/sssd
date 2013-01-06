@@ -603,7 +603,6 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx = NULL;
     char *confdb_path = NULL;
     struct confdb_ctx *confdb = NULL;
-    struct sysdb_ctx *sysdb = NULL;
     struct sss_domain_info *domain = NULL;
     int ret = EOK;
 
@@ -628,8 +627,7 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_init_domain_and_sysdb(tmp_ctx, confdb, domain_name,
-                                      DB_PATH, &domain, &sysdb);
+    ret = sssd_domain_init(tmp_ctx, confdb, domain_name, DB_PATH, &domain);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR(ret);
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -641,8 +639,8 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    *_sysdb = talloc_steal(mem_ctx, sysdb);
     *_confdb = talloc_steal(mem_ctx, confdb);
+    *_sysdb = domain->sysdb;
 
 done:
     talloc_free(tmp_ctx);

@@ -574,6 +574,12 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
 struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *subdomain);
 
+errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
+                         struct confdb_ctx *cdb,
+                         const char *domain_name,
+                         const char *db_path,
+                         struct sss_domain_info **_domain);
+
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);

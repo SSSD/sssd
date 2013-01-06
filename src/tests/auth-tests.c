@@ -134,14 +134,14 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
-    ret = sysdb_init_domain_and_sysdb(test_ctx, test_ctx->confdb, "local",
-                                      TESTS_PATH,
-                                      &test_ctx->domain,  &test_ctx->sysdb);
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "local",
+                           TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
         fail("Could not initialize connection to the sysdb (%d)", ret);
         talloc_free(test_ctx);
         return ret;
     }
+    test_ctx->sysdb = test_ctx->domain->sysdb;
 
     *ctx = test_ctx;
     return EOK;

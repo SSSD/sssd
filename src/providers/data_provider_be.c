@@ -2344,12 +2344,12 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sysdb_init_domain_and_sysdb(ctx, cdb, be_domain, DB_PATH,
-                                      &ctx->domain, &ctx->sysdb);
+    ret = sssd_domain_init(ctx, cdb, be_domain, DB_PATH, &ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error opening cache database\n"));
         goto fail;
     }
+    ctx->sysdb = ctx->domain->sysdb;
 
     ret = sss_monitor_init(ctx, ctx->ev, &monitor_be_interface,
                            ctx->identity, DATA_PROVIDER_VERSION,

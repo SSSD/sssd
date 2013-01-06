@@ -455,13 +455,6 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
                       const char *db_path,
                       struct sysdb_ctx **_ctx);
 
-errno_t sysdb_init_domain_and_sysdb(TALLOC_CTX *mem_ctx,
-                                    struct confdb_ctx *cdb,
-                                    const char *domain_name,
-                                    const char *db_path,
-                                    struct sss_domain_info **_domain,
-                                    struct sysdb_ctx **_ctx);
-
 /* functions to retrieve information from sysdb
  * These functions automatically starts an operation
  * therefore they cannot be called within a transaction */

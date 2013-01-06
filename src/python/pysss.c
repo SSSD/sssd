@@ -800,14 +800,15 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
         return NULL;
     }
 
-    ret = sysdb_init_domain_and_sysdb(self->mem_ctx, self->confdb, "local",
-                                      DB_PATH, &self->local, &self->sysdb);
+    ret = sssd_domain_init(self->mem_ctx, self->confdb, "local",
+                           DB_PATH, &self->local);
     if (ret != EOK) {
         talloc_free(mem_ctx);
         PyErr_SetSssErrorWithMessage(ret,
                 "Could not initialize connection to the sysdb\n");
         return NULL;
     }
+    self->sysdb = self->local->sysdb;
 
     self->lock = DO_LOCK;
     self->unlock = DO_UNLOCK;
