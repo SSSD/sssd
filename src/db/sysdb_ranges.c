@@ -64,11 +64,7 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    /* Ranges are stored in the tree of the parent domain */
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_RANGE_BASE,
-                            sysdb->domain->parent != NULL ?
-                                sysdb->domain->parent->name :
-                                sysdb->domain->name);
+    basedn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_TMPL_RANGE_BASE);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
@@ -173,8 +169,8 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
         goto done;
     }
 
-    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_RANGE,
-                             range->name, sysdb->domain->name);
+    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                             SYSDB_TMPL_RANGE, range->name);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -315,8 +311,8 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
         if (!keep_range[d]) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Removing range [%s].\n",
                                       cur_ranges[d]->name));
-            dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_RANGE,
-                                cur_ranges[d]->name, sysdb->domain->name);
+            dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                                SYSDB_TMPL_RANGE, cur_ranges[d]->name);
             if (dn == NULL) {
                 ret = ENOMEM;
                 goto done;
