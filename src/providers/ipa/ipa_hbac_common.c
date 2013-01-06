@@ -44,7 +44,7 @@ ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
     }
 
     if (delete_subdir) {
-        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, subdir);
+        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain, subdir);
         if (base_dn == NULL) {
             ret = ENOMEM;
             goto done;

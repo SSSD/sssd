@@ -1998,7 +1998,8 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    basedn = sysdb_custom_subtree_dn(sysdb, mem_ctx, subtree_name);
+    basedn = sysdb_custom_subtree_dn(sysdb, mem_ctx,
+                                     sysdb->domain, subtree_name);
     if (basedn == NULL) {
         DEBUG(1, ("sysdb_custom_subtree_dn failed.\n"));
         return ENOMEM;

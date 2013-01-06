@@ -84,12 +84,11 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
 errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb, time_t value);
 errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb, time_t *value);
 
-errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb);
-
 errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
                                 const char *name);
 
 errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   const char *filter);
 
 #endif /* _SYSDB_SUDO_H_ */

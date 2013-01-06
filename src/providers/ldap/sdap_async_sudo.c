@@ -87,6 +87,7 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
 static void sdap_sudo_refresh_load_done(struct tevent_req *subreq);
 
 static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
+                                   struct sss_domain_info *dom,
                                    const char *filter,
                                    struct sdap_attr_map *map,
                                    size_t rules_count,
@@ -486,7 +487,7 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
     in_transaction = true;
 
     /* purge cache */
-    ret = sdap_sudo_purge_sudoers(state->sysdb, state->sysdb_filter,
+    ret = sdap_sudo_purge_sudoers(state->sysdb, state->domain, state->sysdb_filter,
                                   state->opts->sudorule_map, rules_count, rules);
     if (ret != EOK) {
         goto done;
@@ -533,6 +534,7 @@ done:
 }
 
 static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
+                                   struct sss_domain_info *dom,
                                    const char *filter,
                                    struct sdap_attr_map *map,
                                    size_t rules_count,
@@ -570,7 +572,7 @@ static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
         ret = EOK;
     } else {
         /* purge cache by provided filter */
-        ret = sysdb_sudo_purge_byfilter(sysdb_ctx, filter);
+        ret = sysdb_sudo_purge_byfilter(sysdb_ctx, dom, filter);
         if (ret != EOK) {
             goto done;
         }

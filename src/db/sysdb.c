@@ -93,6 +93,7 @@ errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
 
 struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
                                        TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *dom,
                                        const char *subtree_name)
 {
     errno_t ret;
@@ -110,7 +111,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
     }
 
     dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
-                        clean_subtree, sysdb->domain->name);
+                        clean_subtree, dom->name);
     if (dn) {
         talloc_steal(mem_ctx, dn);
     }

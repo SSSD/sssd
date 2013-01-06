@@ -598,7 +598,8 @@ errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb, time_t *value)
 
 /* ====================  Purge functions ==================== */
 
-errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb)
+static errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain)
 {
     struct ldb_dn *base_dn = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -607,7 +608,7 @@ errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb)
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, SUDORULE_SUBDIR);
+    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain, SUDORULE_SUBDIR);
     NULL_CHECK(base_dn, ret, done);
 
     ret = sysdb_delete_recursive(sysdb, base_dn, true);
@@ -630,6 +631,7 @@ errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
 }
 
 errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
@@ -647,7 +649,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
 
     /* just purge all if there's no filter */
     if (!filter) {
-        return sysdb_sudo_purge_all(sysdb);
+        return sysdb_sudo_purge_all(sysdb, domain);
     }
 
     tmp_ctx = talloc_new(NULL);
