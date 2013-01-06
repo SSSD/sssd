@@ -300,6 +300,7 @@ done:
 struct sdap_initgr_rfc2307_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     struct sdap_options *opts;
     struct sdap_handle *sh;
     const char **attrs;
@@ -324,6 +325,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
                                             struct sdap_options *opts,
                                             struct sysdb_ctx *sysdb,
+                                            struct sss_domain_info *domain,
                                             struct sdap_handle *sh,
                                             const char *name)
 {
@@ -339,6 +341,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->opts = opts;
     state->sysdb = sysdb;
+    state->domain = domain;
     state->sh = sh;
     state->op = NULL;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
@@ -502,8 +505,8 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     }
 
     /* Search for all groups for which this user is a member */
-    ret = get_sysdb_grouplist(state, state->sysdb, state->name,
-                              &sysdb_grouplist);
+    ret = get_sysdb_grouplist(state, state->sysdb, state->domain,
+                              state->name, &sysdb_grouplist);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -2712,7 +2715,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     switch (state->opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
         subreq = sdap_initgr_rfc2307_send(state, state->ev, state->opts,
-                                          state->sysdb, state->sh,
+                                          state->sysdb, state->dom, state->sh,
                                           cname);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
@@ -2736,18 +2739,26 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             /* Take advantage of AD's tokenGroups mechanism to look up all
              * parent groups in a single request.
              */
-            subreq = sdap_get_ad_tokengroups_initgroups_send(
-                    state, state->ev, state->opts, state->sysdb,
-                    state->sh, cname, orig_dn, state->timeout);
+            subreq = sdap_get_ad_tokengroups_initgroups_send(state, state->ev,
+                                                             state->opts,
+                                                             state->sysdb,
+                                                             state->dom,
+                                                             state->sh,
+                                                             cname, orig_dn,
+                                                             state->timeout);
         } else if (state->opts->support_matching_rule
                     && dp_opt_get_bool(state->opts->basic,
                                        SDAP_AD_MATCHING_RULE_INITGROUPS)) {
             /* Take advantage of AD's extensibleMatch filter to look up
              * all parent groups in a single request.
              */
-            subreq = sdap_get_ad_match_rule_initgroups_send(
-                    state, state->ev, state->opts, state->sysdb,
-                    state->sh, cname, orig_dn, state->timeout);
+            subreq = sdap_get_ad_match_rule_initgroups_send(state, state->ev,
+                                                            state->opts,
+                                                            state->sysdb,
+                                                            state->dom,
+                                                            state->sh,
+                                                            cname, orig_dn,
+                                                            state->timeout);
         } else {
             subreq = sdap_initgr_rfc2307bis_send(
                     state, state->ev, state->opts, state->sysdb,
@@ -2965,6 +2976,7 @@ int sdap_get_initgr_recv(struct tevent_req *req)
 
 errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *name,
                             char ***grouplist)
 {
@@ -2982,7 +2994,7 @@ errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, name,
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain, name,
                                     attrs, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,

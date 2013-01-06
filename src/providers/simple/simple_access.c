@@ -107,7 +107,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(tmp_ctx, ctx->sysdb,
+    ret = sysdb_search_user_by_name(tmp_ctx, ctx->sysdb, ctx->domain,
                                     username, user_attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not look up username [%s]: [%d][%s]\n",

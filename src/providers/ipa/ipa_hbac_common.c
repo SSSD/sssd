@@ -410,6 +410,7 @@ done:
 static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *username,
                        struct hbac_request_element **user_element);
 
@@ -462,10 +463,10 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = hbac_eval_user_element(eval_req, user_dom->sysdb,
+        ret = hbac_eval_user_element(eval_req, user_dom->sysdb, user_dom,
                                      pd->user, &eval_req->user);
     } else {
-        ret = hbac_eval_user_element(eval_req, sysdb,
+        ret = hbac_eval_user_element(eval_req, sysdb, domain,
                                      pd->user, &eval_req->user);
     }
     if (ret != EOK) goto done;
@@ -515,6 +516,7 @@ done:
 static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *username,
                        struct hbac_request_element **user_element)
 {
@@ -543,7 +545,8 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
      * This will give us the list of both POSIX and
      * non-POSIX groups that this user belongs to.
      */
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, users->name, attrs, &msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
+                                    users->name, attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not determine user memberships for [%s]\n",
                   users->name));

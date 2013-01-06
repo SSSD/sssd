@@ -332,8 +332,8 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, username,
-                                    attrs, &msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, sysdb->domain,
+                                    username, attrs, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up user %s\n", username));
         goto done;

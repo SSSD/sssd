@@ -141,7 +141,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     }
     op_ctx->be_req = be_req;
 
-    ret = sss_selinux_extract_user(op_ctx, sysdb, username, &op_ctx->user);
+    ret = sss_selinux_extract_user(op_ctx, sysdb, domain, username, &op_ctx->user);
     if (ret != EOK) {
         goto fail;
     }

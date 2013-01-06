@@ -3722,7 +3722,8 @@ START_TEST(test_odd_characters)
                             ret, strerror(ret));
 
     /* Retrieve */
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->sysdb,
+    ret = sysdb_search_user_by_name(test_ctx,
+                                    test_ctx->sysdb, test_ctx->domain,
                                     odd_username, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_name error [%d][%s]",
                             ret, strerror(ret));
@@ -4394,8 +4395,8 @@ START_TEST(test_sysdb_subdomain_user_ops)
                           "name=subdomuser,cn=users,cn=test.sub,cn=sysdb");
     fail_unless(check_dn != NULL);
 
-    ret = sysdb_search_domuser_by_name(test_ctx, subdomain, "subdomuser", NULL,
-                                       &msg);
+    ret = sysdb_search_user_by_name(test_ctx, subdomain->sysdb, subdomain,
+                                    "subdomuser", NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_domuser_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,

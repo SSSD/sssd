@@ -363,8 +363,10 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    domain = sysdb->domain;
+
     /* Now extract user attributes */
-    ret = sss_selinux_extract_user(tmp_ctx, sysdb, username, &user);
+    ret = sss_selinux_extract_user(tmp_ctx, sysdb, domain, username, &user);
     if (ret != EOK) {
         goto done;
     }

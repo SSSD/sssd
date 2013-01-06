@@ -31,6 +31,7 @@ struct sdap_ad_match_rule_initgr_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     struct sdap_handle *sh;
     const char *name;
     const char *orig_dn;
@@ -57,6 +58,7 @@ sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
                                        struct sdap_options *opts,
                                        struct sysdb_ctx *sysdb,
+                                       struct sss_domain_info *domain,
                                        struct sdap_handle *sh,
                                        const char *name,
                                        const char *orig_dn,
@@ -75,6 +77,7 @@ sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->opts = opts;
     state->sysdb = sysdb;
+    state->domain = domain;
     state->sh = sh;
     state->name = name;
     state->orig_dn = orig_dn;
@@ -252,8 +255,8 @@ sdap_get_ad_match_rule_initgroups_step(struct tevent_req *subreq)
     /* Get the current sysdb group list for this user
      * so we can update it.
      */
-    ret = get_sysdb_grouplist(state, state->sysdb, state->name,
-                              &sysdb_grouplist);
+    ret = get_sysdb_grouplist(state, state->sysdb, state->domain,
+                              state->name, &sysdb_grouplist);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not get the list of groups for [%s] in the sysdb: "
@@ -297,6 +300,7 @@ struct sdap_ad_tokengroups_initgr_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     struct sdap_handle *sh;
     const char *username;
 };
@@ -309,6 +313,7 @@ sdap_get_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
                                         struct sdap_options *opts,
                                         struct sysdb_ctx *sysdb,
+                                        struct sss_domain_info *domain,
                                         struct sdap_handle *sh,
                                         const char *name,
                                         const char *orig_dn,
@@ -326,6 +331,7 @@ sdap_get_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->opts = opts;
     state->sysdb = sysdb;
+    state->domain = domain;
     state->sh = sh;
     state->username = name;
 
@@ -515,8 +521,8 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
     /* Get the current sysdb group list for this user
      * so we can update it.
      */
-    ret = get_sysdb_grouplist(state, state->sysdb, state->username,
-                              &sysdb_grouplist);
+    ret = get_sysdb_grouplist(state, state->sysdb, state->domain,
+                              state->username, &sysdb_grouplist);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not get the list of groups for [%s] in the sysdb: "

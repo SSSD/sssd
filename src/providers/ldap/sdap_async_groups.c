@@ -1262,7 +1262,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
         /* We need to skip over zero-length usernames */
         if (member_name[0] == '\0') continue;
 
-        ret = sysdb_search_user_by_name(state, state->sysdb,
+        ret = sysdb_search_user_by_name(state, state->sysdb, state->dom,
                                         member_name, NULL, &msg);
         if (ret == EOK) {
             /*

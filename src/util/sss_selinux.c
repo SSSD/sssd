@@ -189,6 +189,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
 
 errno_t sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
                                  struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
                                  const char *username,
                                  struct sysdb_attrs **_user_attrs)
 {
@@ -215,7 +216,7 @@ errno_t sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
     attrs[1] = SYSDB_ORIG_MEMBEROF;
     attrs[2] = NULL;
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, username,
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain, username,
                                     attrs, &user_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));

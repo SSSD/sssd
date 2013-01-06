@@ -515,6 +515,7 @@ done:
 
 
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
+                                           struct sss_domain_info *domain,
                                            struct sysdb_attrs *group_attrs,
                                            struct group *grp,
                                            time_t now);
@@ -561,7 +562,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         }
 
         /* Create ghost users */
-        ret = proxy_process_missing_users(sysdb, attrs, grp, now);
+        ret = proxy_process_missing_users(sysdb, dom, attrs, grp, now);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add missing members\n"));
             goto done;
@@ -642,6 +643,7 @@ done:
 }
 
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
+                                           struct sss_domain_info *domain,
                                            struct sysdb_attrs *group_attrs,
                                            struct group *grp,
                                            time_t now)
@@ -657,8 +659,8 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
     if (!tmp_ctx) return ENOMEM;
 
     for (i = 0; grp->gr_mem[i]; i++) {
-        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, grp->gr_mem[i],
-                                        NULL, &msg);
+        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
+                                        grp->gr_mem[i], NULL, &msg);
         if (ret == EOK) {
             /* Member already exists in the cache */
             DEBUG(SSSDBG_TRACE_INTERNAL,

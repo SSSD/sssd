@@ -559,7 +559,7 @@ static int group_show_mpg(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sysdb_search_user_by_name(info, sysdb, name, attrs, &msg);
+    ret = sysdb_search_user_by_name(info, sysdb, domain, name, attrs, &msg);
     if (ret) {
         DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
         goto fail;

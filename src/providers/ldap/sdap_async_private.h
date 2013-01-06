@@ -116,6 +116,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
 
 errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *name,
                             char ***grouplist);
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */
