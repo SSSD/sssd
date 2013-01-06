@@ -575,7 +575,7 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
     const char *str;
     int ret;
 
-    ret = sysdb_getpwnam(mem_ctx, sysdb, name, &res);
+    ret = sysdb_getpwnam(mem_ctx, sysdb, out->domain, name, &res);
     if (ret) {
         return ret;
     }
@@ -648,7 +648,7 @@ int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
     const char *str;
     int ret;
 
-    ret = sysdb_getgrnam(mem_ctx, sysdb, name, &res);
+    ret = sysdb_getgrnam(mem_ctx, sysdb, out->domain, name, &res);
     if (ret) {
         return ret;
     }

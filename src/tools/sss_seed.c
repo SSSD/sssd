@@ -47,6 +47,7 @@ struct user_ctx {
 
 struct seed_ctx {
     struct confdb_ctx *confdb;
+    struct sss_domain_info *domain;
     struct sysdb_ctx *sysdb;
 
     struct user_ctx *uctx;
@@ -598,6 +599,7 @@ fini:
 static int seed_init_db(TALLOC_CTX *mem_ctx,
                         const char *domain_name,
                         struct confdb_ctx **_confdb,
+                        struct sss_domain_info **_domain,
                         struct sysdb_ctx **_sysdb)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -640,6 +642,7 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
     }
 
     *_confdb = talloc_steal(mem_ctx, confdb);
+    *_domain = domain;
     *_sysdb = domain->sysdb;
 
 done:
@@ -650,6 +653,7 @@ done:
 static int seed_domain_user_info(const char *name,
                                  const char *domain_name,
                                  struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
                                  bool *is_cached)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -680,7 +684,7 @@ static int seed_domain_user_info(const char *name,
     }
 
     /* look for user in cache */
-    ret = sysdb_getpwnam(tmp_ctx, sysdb, name, &res);
+    ret = sysdb_getpwnam(tmp_ctx, sysdb, domain, name, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Couldn't lookup user (%s) in the cache\n", name));
@@ -792,7 +796,7 @@ int main(int argc, const char **argv)
 
     /* set up confdb,sysdb and domain */
     ret = seed_init_db(sctx, sctx->uctx->domain_name, &sctx->confdb,
-                       &sctx->sysdb);
+                       &sctx->domain, &sctx->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to initialize db and domain\n"));
         goto done;
@@ -800,7 +804,7 @@ int main(int argc, const char **argv)
 
     /* get user info from domain */
     ret = seed_domain_user_info(sctx->uctx->name, sctx->uctx->domain_name,
-                                sctx->sysdb, &sctx->user_cached);
+                                sctx->sysdb, sctx->domain, &sctx->user_cached);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed lookup of user [%s] in domain [%s]\n",
                                   sctx->uctx->name, sctx->uctx->domain_name));

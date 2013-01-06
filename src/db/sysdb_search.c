@@ -29,6 +29,7 @@
 
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    const char *name,
                    struct ldb_result **_res)
 {
@@ -37,6 +38,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     char *sanitized_name;
+    const char *src_name;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -45,13 +47,27 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+    /* If this is a subomain we need to use fully qualified names for the
+     * search as well by default */
+    if (domain->parent && domain->fqnames) {
+        ret = ENOMEM;
+        src_name = talloc_asprintf(tmp_ctx, domain->names->fq_fmt,
+                                   name, domain->name);
+    } else {
+        ret = EINVAL;
+        src_name = name;
+    }
+    if (!src_name) {
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, src_name, &sanitized_name);
     if (ret != EOK) {
         goto done;
     }
@@ -191,6 +207,7 @@ static int mpg_res_convert(struct ldb_result *res)
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    const char *name,
                    struct ldb_result **_res)
 {
@@ -200,6 +217,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     char *sanitized_name;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
+    const char *src_name;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -210,18 +228,32 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     if (sysdb->mpg) {
         fmt_filter = SYSDB_GRNAM_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_DOM_BASE, sysdb->domain->name);
+                                 SYSDB_DOM_BASE, domain->name);
     } else {
         fmt_filter = SYSDB_GRNAM_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                                 SYSDB_TMPL_GROUP_BASE, domain->name);
     }
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+    /* If this is a subomain we need to use fully qualified names for the
+     * search as well by default */
+    if (domain->parent && domain->fqnames) {
+        ret = ENOMEM;
+        src_name = talloc_asprintf(tmp_ctx, domain->names->fq_fmt,
+                                   name, domain->name);
+    } else {
+        ret = EINVAL;
+        src_name = name;
+    }
+    if (!src_name) {
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, src_name, &sanitized_name);
     if (ret != EOK) {
         goto done;
     }
@@ -365,9 +397,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    /* if this is a subdomain we need to search for the fully qualified
-     * name in the database */
-    ret = sysdb_subdom_getpwnam(tmp_ctx, sysdb, name, &res);
+    ret = sysdb_getpwnam(tmp_ctx, sysdb, sysdb->domain, name, &res);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_getpwnam failed: [%d][%s]\n",
                   ret, strerror(ret)));

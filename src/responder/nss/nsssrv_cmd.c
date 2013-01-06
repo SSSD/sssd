@@ -297,7 +297,7 @@ static int fill_pwent(struct sss_packet *packet,
     size_t dom_len = 0;
     int delim = 1;
     int i, ret, num, t;
-    bool add_domain = dom->fqnames;
+    bool add_domain = (dom->fqnames && (dom->parent == NULL));
     const char *domain = dom->name;
     const char *namefmt;
     bool packet_initialized = false;
@@ -759,9 +759,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        /* if this is a subdomain we need to search for the fully qualified
-         * name in the database */
-        ret = sysdb_subdom_getpwnam(cmdctx, sysdb, name, &dctx->res);
+        ret = sysdb_getpwnam(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -1926,7 +1924,7 @@ static int fill_members(struct sss_packet *packet,
     size_t blen;
 
     const char *domain = dom->name;
-    bool add_domain = dom->fqnames;
+    bool add_domain = (dom->fqnames && (dom->parent == NULL));
 
     if (add_domain) {
         delim = 1;
@@ -2055,7 +2053,7 @@ static int fill_grent(struct sss_packet *packet,
     int i = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
-    bool add_domain = dom->fqnames;
+    bool add_domain = (dom->fqnames && (dom->parent == NULL));
     const char *domain = dom->name;
     const char *namefmt;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -2358,9 +2356,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        /* if this is a subdomain we need to search for the fully qualified
-         * name in the database */
-        ret = sysdb_subdom_getgrnam(cmdctx, sysdb, name, &dctx->res);
+        ret = sysdb_getgrnam(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;

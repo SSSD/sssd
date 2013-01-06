@@ -846,6 +846,7 @@ START_TEST (test_sysdb_getpwnam)
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->sysdb,
+                         test_ctx->domain,
                          username, &res);
     if (ret) {
         fail("sysdb_getpwnam failed for username %s (%d: %s)",
@@ -866,6 +867,7 @@ START_TEST (test_sysdb_getpwnam)
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->sysdb,
+                         test_ctx->domain,
                          username, &res);
     if (ret) {
         fail("sysdb_getpwnam failed for username %s (%d: %s)",
@@ -901,6 +903,7 @@ START_TEST (test_sysdb_getgrnam)
 
     ret = sysdb_getgrnam(test_ctx,
                          test_ctx->sysdb,
+                         test_ctx->domain,
                          groupname, &res);
     if (ret) {
         fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
@@ -923,6 +926,7 @@ START_TEST (test_sysdb_getgrnam)
 
     ret = sysdb_getgrnam(test_ctx,
                          test_ctx->sysdb,
+                         test_ctx->domain,
                          groupname, &res);
     if (ret) {
         fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
@@ -3275,7 +3279,8 @@ START_TEST(test_group_rename)
     ret = sysdb_store_group(test_ctx->sysdb, fromname, grgid, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add first group");
 
-    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, fromname, &res);
     fail_unless(ret == EOK, "Could not retrieve the group from cache\n");
     if (res->count != 1) {
         fail("Invalid number of replies. Expected 1, got %d", res->count);
@@ -3298,7 +3303,8 @@ START_TEST(test_group_rename)
     ret = sysdb_store_group(test_ctx->sysdb, toname, grgid, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add first group");
 
-    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, toname, &res);
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, toname, &res);
     fail_unless(ret == EOK, "Could not retrieve the group from cache\n");
     if (res->count != 1) {
         fail("Invalid number of replies. Expected 1, got %d", res->count);
@@ -3315,7 +3321,8 @@ START_TEST(test_group_rename)
                 name, toname);
 
     /* Verify the first name is gone */
-    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, fromname, &res);
     fail_unless(ret == EOK, "Could not retrieve the group from cache\n");
     fail_unless(res->count == 0, "Unexpectedly found the original user\n");
 
@@ -3345,7 +3352,8 @@ START_TEST(test_user_rename)
                            NULL, NULL, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add first user");
 
-    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, fromname, &res);
     fail_unless(ret == EOK, "Could not retrieve the user from cache\n");
     if (res->count != 1) {
         fail("Invalid number of replies. Expected 1, got %d", res->count);
@@ -3370,7 +3378,8 @@ START_TEST(test_user_rename)
                            fromname, "/", "/bin/sh", NULL, NULL, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add second user");
 
-    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, toname, &res);
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, toname, &res);
     fail_unless(ret == EOK, "Could not retrieve the user from cache\n");
     if (res->count != 1) {
         fail("Invalid number of replies. Expected 1, got %d", res->count);
@@ -3387,7 +3396,8 @@ START_TEST(test_user_rename)
                 name, fromname);
 
     /* Verify the first name is gone */
-    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, fromname, &res);
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, fromname, &res);
     fail_unless(ret == EOK, "Could not retrieve the user from cache\n");
     fail_unless(res->count == 0, "Unexpectedly found the original user\n");
 
@@ -3684,7 +3694,8 @@ START_TEST(test_odd_characters)
                             ret, strerror(ret));
     talloc_zfree(msg);
 
-    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb, odd_groupname, &res);
+    ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, odd_groupname, &res);
     fail_unless(ret == EOK, "sysdb_getgrnam error [%d][%s]",
                             ret, strerror(ret));
     fail_unless(res->count == 1, "Received [%d] responses",
@@ -3723,7 +3734,8 @@ START_TEST(test_odd_characters)
     fail_unless(ret == EOK, "sysdb_add_group_member error [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb, odd_username, &res);
+    ret = sysdb_getpwnam(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, odd_username, &res);
     fail_unless(ret == EOK, "sysdb_getpwnam error [%d][%s]",
                             ret, strerror(ret));
     fail_unless(res->count == 1, "Received [%d] responses",
