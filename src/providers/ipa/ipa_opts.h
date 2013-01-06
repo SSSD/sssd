@@ -28,6 +28,7 @@
 #include "db/sysdb_sudo.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_services.h"
+#include "db/sysdb_selinux.h"
 
 struct dp_option ipa_basic_opts[] = {
     { "ipa_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
