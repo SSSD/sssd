@@ -222,6 +222,7 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
 
         if (!MC_CHECK_RECORD_LENGTH(ctx, rec)) {
             /* record has invalid length */
+            free(copy_rec);
             return EINVAL;
         }
 
