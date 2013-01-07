@@ -883,6 +883,179 @@ done:
     return ret;
 }
 
+static errno_t
+sysdb_remove_ghost_from_group(struct sysdb_ctx *sysdb,
+                              struct ldb_message *group,
+                              struct ldb_message_element *alias_el,
+                              const char *name,
+                              const char *orig_dn,
+                              const char *userdn)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct ldb_message_element *orig_members;
+    bool add_member = false;
+    errno_t ret = EOK;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOENT;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    msg->dn = group->dn;
+
+    if (orig_dn == NULL) {
+        /* We have no way of telling which groups this user belongs to.
+         * Add it to all that reference it in the ghost attribute */
+        add_member = true;
+    } else {
+        add_member = false;
+        orig_members = ldb_msg_find_element(group, SYSDB_ORIG_MEMBER);
+        if (orig_members) {
+            for (i = 0; i < orig_members->num_values; i++) {
+                if (strcmp((const char *) orig_members->values[i].data,
+                            orig_dn) == 0) {
+                    /* This is a direct member. Add the member attribute */
+                    add_member = true;
+                }
+            }
+        } else {
+            /* Nothing to compare the originalDN with. Let's rely on the
+             * memberof plugin to do the right thing during initgroups..
+             */
+            add_member = true;
+        }
+    }
+
+    if (add_member) {
+        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_MEMBER, userdn);
+        if (ret) goto done;
+    }
+
+    ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
+    if (ret) goto done;
+
+    /* Delete aliases from the ghost attribute as well */
+    for (i = 0; i < alias_el->num_values; i++) {
+        if (strcmp((const char *)alias_el->values[i].data, name) == 0) {
+            continue;
+        }
+        ret = ldb_msg_add_string(msg, SYSDB_GHOST,
+                (char *) alias_el->values[i].data);
+        if (ret != LDB_SUCCESS) {
+            ERROR_OUT(ret, EINVAL, done);
+        }
+    }
+
+
+    ret = sss_ldb_modify_permissive(sysdb->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    talloc_zfree(msg);
+
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+sysdb_remove_ghostattr_from_groups(struct sysdb_ctx *sysdb,
+                                   const char *orig_dn,
+                                   struct sysdb_attrs *attrs,
+                                   const char *name)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message **groups;
+    struct ldb_message_element *alias_el;
+    struct ldb_dn *tmpdn;
+    const char *group_attrs[] = {SYSDB_NAME, SYSDB_GHOST, SYSDB_ORIG_MEMBER, NULL};
+    const char *userdn;
+    char *filter;
+    errno_t ret = EOK;
+    size_t group_count = 0;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOENT;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)", SYSDB_GHOST, name);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = sysdb_attrs_get_el(attrs, SYSDB_NAME_ALIAS, &alias_el);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (i = 0; i < alias_el->num_values; i++) {
+        if (strcmp((const char *)alias_el->values[i].data, name) == 0) {
+            continue;
+        }
+        filter = talloc_asprintf_append(filter, "(%s=%s)",
+                                        SYSDB_GHOST, alias_el->values[i].data);
+        if (filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    filter = talloc_asprintf_append(filter, ")");
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, name);
+    if (!tmpdn) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    userdn = ldb_dn_get_linearized(tmpdn);
+    if (!userdn) {
+        ERROR_OUT(ret, EINVAL, done);
+    }
+
+    tmpdn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+    if (!tmpdn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* We need to find all groups that contain this object as a ghost user
+     * and replace the ghost user by actual member record in direct parents.
+     * Note that this object can be referred to either by its name or any
+     * of its aliases
+     */
+    ret = sysdb_search_entry(tmp_ctx, sysdb, tmpdn, LDB_SCOPE_SUBTREE, filter,
+                             group_attrs, &group_count, &groups);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    for (i = 0; i < group_count; i++) {
+        sysdb_remove_ghost_from_group(sysdb, groups[i], alias_el, name, orig_dn, userdn);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 /* =Add-User-Function===================================================== */
 
@@ -899,18 +1072,9 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
-    struct ldb_message **groups;
-    struct ldb_message_element *alias_el;
-    struct ldb_message_element *orig_members;
-    size_t group_count = 0;
     struct sysdb_attrs *id_attrs;
-    const char *group_attrs[] = {SYSDB_NAME, SYSDB_GHOST, SYSDB_ORIG_MEMBER, NULL};
-    struct ldb_dn *tmpdn;
-    const char *userdn;
-    char *filter;
     uint32_t id;
-    int ret, i, j;
-    bool add_member = false;
+    int ret;
 
     struct sss_domain_info *domain = sysdb->domain;
 
@@ -1021,121 +1185,8 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     if (ret) goto done;
 
     /* remove all ghost users */
-    filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)", SYSDB_GHOST, name);
-    if (!filter) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = sysdb_attrs_get_el(attrs, SYSDB_NAME_ALIAS, &alias_el);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    for (i = 0; i < alias_el->num_values; i++) {
-        if (strcmp((const char *)alias_el->values[i].data, name) == 0) {
-            continue;
-        }
-        filter = talloc_asprintf_append(filter, "(%s=%s)",
-                                        SYSDB_GHOST, alias_el->values[i].data);
-        if (filter == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    filter = talloc_asprintf_append(filter, ")");
-    if (filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, name);
-    if (!tmpdn) {
-        ERROR_OUT(ret, ENOMEM, done);
-    }
-
-    userdn = ldb_dn_get_linearized(tmpdn);
-    if (!userdn) {
-        ERROR_OUT(ret, EINVAL, done);
-    }
-
-    tmpdn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
-    if (!tmpdn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* We need to find all groups that contain this object as a ghost user
-     * and replace the ghost user by actual member record in direct parents.
-     * Note that this object can be referred to either by its name or any
-     * of its aliases
-     */
-    ret = sysdb_search_entry(tmp_ctx, sysdb, tmpdn, LDB_SCOPE_SUBTREE, filter,
-                             group_attrs, &group_count, &groups);
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
-    }
-
-    for (i = 0; i < group_count; i++) {
-        msg = ldb_msg_new(tmp_ctx);
-        if (!msg) {
-            ERROR_OUT(ret, ENOMEM, done);
-        }
-
-        msg->dn = groups[i]->dn;
-
-        if (orig_dn == NULL) {
-            /* We have no way of telling which groups this user belongs to.
-             * Add it to all that reference it in the ghost attribute */
-            add_member = true;
-        } else {
-            add_member = false;
-            orig_members = ldb_msg_find_element(groups[i], SYSDB_ORIG_MEMBER);
-            if (orig_members) {
-                for (j = 0; j < orig_members->num_values; j++) {
-                    if (strcmp((const char *) orig_members->values[j].data,
-                                orig_dn) == 0) {
-                        /* This is a direct member. Add the member attribute */
-                        add_member = true;
-                    }
-                }
-            } else {
-                /* Nothing to compare the originalDN with. Let's rely on the
-                 * memberof plugin to do the right thing during initgroups..
-                 */
-                add_member = true;
-            }
-        }
-
-        if (add_member) {
-            ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_MEMBER, userdn);
-            if (ret) goto done;
-        }
-
-        ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
-        if (ret) goto done;
-
-        /* Delete aliases from the ghost attribute as well */
-        for (j = 0; j < alias_el->num_values; j++) {
-            if (strcmp((const char *)alias_el->values[j].data, name) == 0) {
-                continue;
-            }
-            ret = ldb_msg_add_string(msg, SYSDB_GHOST,
-                                     (char *) alias_el->values[j].data);
-            if (ret != LDB_SUCCESS) {
-                ERROR_OUT(ret, EINVAL, done);
-            }
-        }
-
-        ret = sss_ldb_modify_permissive(sysdb->ldb, msg);
-        ret = sysdb_error_to_errno(ret);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        talloc_zfree(msg);
-    }
+    ret = sysdb_remove_ghostattr_from_groups(sysdb, orig_dn, attrs, name);
+    if (ret) goto done;
 
     ret = EOK;
 
