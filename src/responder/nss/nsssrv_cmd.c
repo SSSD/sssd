@@ -648,6 +648,47 @@ static void nsssrv_dp_send_acct_req_done(struct tevent_req *req)
 static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                                          const char *err_msg, void *ptr);
 
+static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
+                                      struct sss_mc_ctx *mc_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sized_string delete_name;
+    char *fqdn = NULL;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        return ENOMEM;
+    }
+
+    if (dom->fqnames) {
+        fqdn = talloc_asprintf(tmp_ctx, dom->names->fq_fmt, name, dom->name);
+        if (fqdn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        to_sized_string(&delete_name, fqdn);
+    } else {
+        to_sized_string(&delete_name, name);
+    }
+
+    ret = sss_mmap_cache_pw_invalidate(mc_ctx, &delete_name);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Internal failure in memory cache code: %d [%s]\n",
+               ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+
+}
+
 /* search for a user.
  * Returns:
  *   ENOENT, if user is definitely not found
@@ -662,7 +703,6 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
-    struct sized_string delete_usrname;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -748,15 +788,12 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for getpwnam call\n"));
 
             /* User not found in ldb -> delete user from memory cache. */
-            to_sized_string(&delete_usrname, name);
-            ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx,
-                                               &delete_usrname);
-            if (ret != EOK && ret != ENOENT) {
+            ret = delete_entry_from_memcache(dctx->domain, name,
+                                             nctx->pwd_mc_ctx);
+            if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Internal failure in memory cache code: %d [%s]\n",
-                       ret, strerror(ret)));
+                      ("Deleting user from memcache failed.\n"));
             }
-
 
             return ENOENT;
         }
@@ -2262,7 +2299,6 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
-    struct sized_string delete_grpname;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
@@ -2348,14 +2384,13 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for getgrnam call\n"));
 
             /* Group not found in ldb -> delete group from memory cache. */
-            to_sized_string(&delete_grpname, name);
-            ret = sss_mmap_cache_gr_invalidate(nctx->grp_mc_ctx,
-                                               &delete_grpname);
-            if (ret != EOK && ret != ENOENT) {
+            ret = delete_entry_from_memcache(dctx->domain, name,
+                                             nctx->grp_mc_ctx);
+            if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Internal failure in memory cache code: %d [%s]\n",
-                       ret, strerror(ret)));
+                      ("Deleting user from memcache failed.\n"));
             }
+
 
             return ENOENT;
         }
