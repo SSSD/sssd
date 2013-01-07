@@ -441,6 +441,7 @@ done:
 
 int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
                                   struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   const char *name,
                                   const char **attrs,
                                   struct ldb_message **msg)
@@ -457,7 +458,7 @@ int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_netgroup_dn(sysdb, tmp_ctx, sysdb->domain, name);
+    basedn = sysdb_netgroup_dn(sysdb, tmp_ctx, domain, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -2662,7 +2663,7 @@ int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb,
+    ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb, sysdb->domain,
                                         name, NULL, &msg);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(6, ("sysdb_search_netgroup_by_name failed: %d (%s)\n",

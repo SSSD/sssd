@@ -3562,6 +3562,7 @@ START_TEST (test_sysdb_search_netgroup_by_name)
     netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
 
     ret = sysdb_search_netgroup_by_name(test_ctx, test_ctx->sysdb,
+                                        test_ctx->domain,
                                         netgrname, NULL, &msg);
     fail_if(ret != EOK, "Could not find netgroup with name %s", netgrname);
 

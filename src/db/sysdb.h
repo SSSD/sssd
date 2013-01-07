@@ -562,6 +562,7 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
 /* Search Netgroup (by name) */
 int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
                                   struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   const char *name,
                                   const char **attrs,
                                   struct ldb_message **msg);
