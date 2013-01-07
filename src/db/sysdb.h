@@ -601,6 +601,7 @@ int sysdb_get_new_id(struct sysdb_ctx *sysdb,
 
 /* Add user (only basic attrs and w/o checks) */
 int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *name,
                          uid_t uid, gid_t gid,
                          const char *gecos,

@@ -814,6 +814,7 @@ done:
 /* =Add-Basic-User-NO-CHECKS============================================== */
 
 int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *name,
                          uid_t uid, gid_t gid,
                          const char *gecos,
@@ -836,7 +837,7 @@ int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
     }
 
     /* user dn */
-    msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain, name);
+    msg->dn = sysdb_user_dn(sysdb, msg, domain, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1144,7 +1145,8 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     }
 
     /* try to add the user */
-    ret = sysdb_add_basic_user(sysdb, name, uid, gid, gecos, homedir, shell);
+    ret = sysdb_add_basic_user(sysdb, domain, name,
+                               uid, gid, gecos, homedir, shell);
     if (ret) goto done;
 
     if (uid == 0) {

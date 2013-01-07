@@ -3740,6 +3740,7 @@ START_TEST(test_odd_characters)
 
     /* Add */
     ret = sysdb_add_basic_user(test_ctx->sysdb,
+                               test_ctx->domain,
                                odd_username,
                                10000, 10000,
                                "","","");
