@@ -865,11 +865,18 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     state->sysdb = id_ctx->be->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
-    usn = srv_opts->max_sudo_value == NULL ? "0" : srv_opts->max_sudo_value;
-    ldap_filter = talloc_asprintf(state, "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
-                                  map[SDAP_OC_SUDORULE].name,
-                                  map[SDAP_AT_SUDO_USN].name, usn,
-                                  map[SDAP_AT_SUDO_USN].name, usn);
+    usn = srv_opts->max_sudo_value;
+    if (usn != NULL) {
+        ldap_filter = talloc_asprintf(state,
+                                      "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
+                                      map[SDAP_OC_SUDORULE].name,
+                                      map[SDAP_AT_SUDO_USN].name, usn,
+                                      map[SDAP_AT_SUDO_USN].name, usn);
+    } else {
+        /* no valid USN value known */
+        ldap_filter = talloc_asprintf(state, SDAP_SUDO_FILTER_CLASS,
+                                      map[SDAP_OC_SUDORULE].name);
+    }
     if (ldap_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
