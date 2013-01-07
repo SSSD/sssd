@@ -2112,8 +2112,8 @@ START_TEST (test_sysdb_memberof_mod_add)
     }
 
     /* Perform the add operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
-                                data->attrs, SYSDB_MOD_ADD);
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+                                data->groupname, data->attrs, SYSDB_MOD_ADD);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* Before the delete, all groups with gid >= _i have the testuser%_i
@@ -2206,8 +2206,8 @@ START_TEST (test_sysdb_memberof_mod_replace)
     }
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
-                                data->attrs, SYSDB_MOD_REP);
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+                                data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, all groups with gid >= _i have the testghost%_i
@@ -2335,8 +2335,8 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
     }
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
-                                data->attrs, SYSDB_MOD_REP);
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+                                data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, testusera should still be there, but we also need
@@ -2874,8 +2874,8 @@ START_TEST (test_sysdb_memberof_mod_del)
     }
 
     /* Delete the attribute */
-    ret = sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
-                               data->attrs, SYSDB_MOD_DEL);
+    ret = sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+                               data->groupname, data->attrs, SYSDB_MOD_DEL);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the delete, we shouldn't be able to find the ghost attribute */
@@ -3123,8 +3123,8 @@ START_TEST (test_sysdb_memberof_ghost_replace)
     fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
-                                data->attrs, SYSDB_MOD_REP);
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+                                data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, the group has the testghost%_i as a member */
@@ -3207,8 +3207,8 @@ START_TEST (test_sysdb_memberof_ghost_replace_noop)
     fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, data->groupname,
-                                data->attrs, SYSDB_MOD_REP);
+    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+                                data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, the group has the testghost%_i as a member */

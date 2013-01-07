@@ -584,6 +584,7 @@ done:
 /* =Replace-Attributes-On-Group=========================================== */
 
 int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op)
@@ -598,7 +599,7 @@ int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    dn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain, name);
+    dn = sysdb_group_dn(sysdb, tmp_ctx, domain, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -1361,7 +1362,7 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_group_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_group_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret == EOK) {
@@ -1420,7 +1421,7 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
         if (ret) goto done;
     }
 
-    ret = sysdb_set_group_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_group_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret != EOK) {
@@ -1853,7 +1854,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_group_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_group_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret) {

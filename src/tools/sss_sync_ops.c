@@ -273,7 +273,8 @@ int groupmod(TALLOC_CTX *mem_ctx,
             return ret;
         }
 
-        ret = sysdb_set_group_attr(sysdb, data->name, attrs, SYSDB_MOD_REP);
+        ret = sysdb_set_group_attr(sysdb, data->domain, data->name,
+                                   attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
         }

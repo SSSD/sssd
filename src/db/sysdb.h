@@ -582,6 +582,7 @@ int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
 
 /* Replace group attrs */
 int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op);
