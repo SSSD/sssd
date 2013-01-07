@@ -169,8 +169,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                 }
 
                 DEBUG(8, ("Adding fake group %s to sysdb\n", name));
-                ret = sysdb_add_incomplete_group(sysdb, name, gid, original_dn,
-                                                 posix, now);
+                ret = sysdb_add_incomplete_group(sysdb, domain, name, gid,
+                                                 original_dn, posix, now);
                 if (ret != EOK) {
                     goto done;
                 }

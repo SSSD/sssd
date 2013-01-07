@@ -1216,6 +1216,7 @@ done:
 /* =Add-Basic-Group-NO-CHECKS============================================= */
 
 int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           const char *name, gid_t gid)
 {
     struct ldb_message *msg;
@@ -1234,7 +1235,7 @@ int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
     }
 
     /* group dn */
-    msg->dn = sysdb_group_dn(sysdb, msg, sysdb->domain, name);
+    msg->dn = sysdb_group_dn(sysdb, msg, domain, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1268,6 +1269,7 @@ done:
 /* =Add-Group-Function==================================================== */
 
 int sysdb_add_group(struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
                     int cache_timeout,
@@ -1278,8 +1280,6 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
     uint32_t id;
     int ret;
     bool posix;
-
-    struct sss_domain_info *domain = sysdb->domain;
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
@@ -1325,7 +1325,7 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(sysdb, name, gid);
+    ret = sysdb_add_basic_group(sysdb, domain, name, gid);
     if (ret) goto done;
 
     if (!attrs) {
@@ -1380,6 +1380,7 @@ done:
 }
 
 int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
+                               struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
                                const char *original_dn,
@@ -1396,7 +1397,7 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
     }
 
     /* try to add the group */
-    ret = sysdb_add_basic_group(sysdb, name, gid);
+    ret = sysdb_add_basic_group(sysdb, domain, name, gid);
     if (ret) goto done;
 
     attrs = sysdb_new_attrs(tmp_ctx);
@@ -1424,7 +1425,7 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
         if (ret) goto done;
     }
 
-    ret = sysdb_set_group_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_group_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret != EOK) {
@@ -1821,7 +1822,8 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
 
     if (new_group) {
         /* group doesn't exist, turn into adding a group */
-        ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout, now);
+        ret = sysdb_add_group(sysdb, sysdb->domain, name, gid,
+                              attrs, cache_timeout, now);
         if (ret == EEXIST) {
             /* This may be a group rename. If there is a group with the
              * same GID, remove it and try to add the basic group again
@@ -1838,7 +1840,8 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A group with the same GID [%llu] was removed from the "
                    "cache\n", (unsigned long long) gid));
-            ret = sysdb_add_group(sysdb, name, gid, attrs, cache_timeout, now);
+            ret = sysdb_add_group(sysdb, sysdb->domain, name, gid,
+                                  attrs, cache_timeout, now);
         }
         goto done;
     }

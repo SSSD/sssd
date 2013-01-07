@@ -623,16 +623,19 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
 /* Add group (only basic attrs and w/o checks) */
 int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           const char *name, gid_t gid);
 
 /* Add group (all checks) */
 int sysdb_add_group(struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
                     int cache_timeout,
                     time_t now);
 
 int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
+                               struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
                                const char *original_dn, bool posix,

@@ -533,7 +533,8 @@ int groupadd(struct sysdb_ctx *sysdb,
 {
     int ret;
 
-    ret = sysdb_add_group(sysdb, data->name, data->gid, NULL, 0, 0);
+    ret = sysdb_add_group(sysdb, data->domain,
+                          data->name, data->gid, NULL, 0, 0);
     if (ret == EOK) {
         flush_nscd_cache(NSCD_DB_GROUP);
     }
