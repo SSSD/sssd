@@ -226,8 +226,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         return false;
     }
 
-    if ((rec->len == MC_INVALID_VAL32) ||
-        (rec->len > (mcc->dt_size - ((uint8_t *)rec - mcc->data_table)))) {
+    if (!MC_CHECK_RECORD_LENGTH(mcc, rec)) {
         return false;
     }
 

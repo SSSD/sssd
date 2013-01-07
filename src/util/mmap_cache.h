@@ -70,6 +70,12 @@ typedef uint32_t rel_ptr_t;
 
 #define MC_VALID_BARRIER(val) (((val) & 0xff000000) == 0xf0000000)
 
+#define MC_CHECK_RECORD_LENGTH(mc_ctx, rec) \
+        ((rec)->len >= MC_HEADER_SIZE && (rec)->len != MC_INVALID_VAL32 \
+         && ((rec)->len <= ((mc_ctx)->dt_size \
+                            - MC_PTR_DIFF(rec, (mc_ctx)->data_table))))
+
+
 #define SSS_MC_MAJOR_VNO    0
 #define SSS_MC_MINOR_VNO    4
 
