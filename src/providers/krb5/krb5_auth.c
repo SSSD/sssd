@@ -118,6 +118,7 @@ check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
 
 static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            const char *name,
                            const char *ccname,
                            int mod_op)
@@ -166,7 +167,7 @@ static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
     }
     in_transaction = true;
 
-    ret = sysdb_set_user_attr(sysdb, name, attrs, mod_op);
+    ret = sysdb_set_user_attr(sysdb, domain, name, attrs, mod_op);
     if (ret != EOK) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         goto done;
@@ -192,19 +193,21 @@ done:
 
 static int krb5_save_ccname(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *name,
                             const char *ccname)
 {
-    return krb5_mod_ccname(mem_ctx, sysdb, name, ccname,
+    return krb5_mod_ccname(mem_ctx, sysdb, domain, name, ccname,
                            SYSDB_MOD_REP);
 }
 
 static int krb5_delete_ccname(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain,
                               const char *name,
                               const char *ccname)
 {
-    return krb5_mod_ccname(mem_ctx, sysdb, name, ccname,
+    return krb5_mod_ccname(mem_ctx, sysdb, domain, name, ccname,
                            SYSDB_MOD_DEL);
 }
 
@@ -945,7 +948,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
                               "please remove it manually.\n", kr->old_ccname));
                 }
 
-                ret = krb5_delete_ccname(state, state->sysdb,
+                ret = krb5_delete_ccname(state, state->sysdb, state->domain,
                                          pd->user, kr->old_ccname);
                 if (ret != EOK) {
                     DEBUG(1, ("krb5_delete_ccname failed.\n"));
@@ -1048,7 +1051,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
                "please remove it manually.\n", kr->old_ccname));
     }
 
-    ret = krb5_save_ccname(state, state->sysdb,
+    ret = krb5_save_ccname(state, state->sysdb, state->domain,
                            pd->user, store_ccname);
     if (ret) {
         DEBUG(1, ("krb5_save_ccname failed.\n"));

@@ -305,7 +305,8 @@ static int test_set_user_attr(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_set_user_attr(data->ctx->sysdb, data->username,
+    ret = sysdb_set_user_attr(data->ctx->sysdb,
+                              data->ctx->domain, data->username,
                               data->attrs, SYSDB_MOD_REP);
     return ret;
 }
@@ -1642,8 +1643,8 @@ static void cached_authentication_with_expiration(const char *username,
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
 
-    ret = sysdb_set_user_attr(data->ctx->sysdb, data->username,
-                              data->attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(data->ctx->sysdb, data->ctx->domain,
+                              data->username, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Could not modify user %s", data->username);
 
     ret = sysdb_cache_auth(test_ctx->sysdb, data->username, password,

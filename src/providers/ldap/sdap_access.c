@@ -1061,6 +1061,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
     }
 
     ret = sysdb_set_user_attr(state->be_req->sysdb,
+                              state->be_req->domain,
                               state->username,
                               attrs, SYSDB_MOD_REP);
     if (ret != EOK) {

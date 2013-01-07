@@ -218,7 +218,8 @@ int usermod(TALLOC_CTX *mem_ctx,
     }
 
     if (attrs->num != 0) {
-        ret = sysdb_set_user_attr(sysdb, data->name, attrs, SYSDB_MOD_REP);
+        ret = sysdb_set_user_attr(sysdb, data->domain, data->name,
+                                  attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
         }

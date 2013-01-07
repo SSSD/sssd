@@ -549,6 +549,7 @@ done:
 /* =Replace-Attributes-On-User============================================ */
 
 int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attrs,
                         int mod_op)
@@ -562,7 +563,7 @@ int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain, name);
+    dn = sysdb_user_dn(sysdb, tmp_ctx, domain, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -1162,7 +1163,8 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
             if (ret) goto done;
         }
 
-        ret = sysdb_set_user_attr(sysdb, name, id_attrs, SYSDB_MOD_REP);
+        ret = sysdb_set_user_attr(sysdb, domain, name,
+                                  id_attrs, SYSDB_MOD_REP);
         goto done;
     }
 
@@ -1186,7 +1188,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_user_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
     if (ret) goto done;
 
     /* remove all ghost users */
@@ -1729,7 +1731,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto fail;
 
-    ret = sysdb_set_user_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
     if (ret != EOK) goto fail;
 
     if (remove_attrs) {
@@ -1971,7 +1973,8 @@ int sysdb_cache_password(struct sysdb_ctx *sysdb,
     if (ret) goto fail;
 
 
-    ret = sysdb_set_user_attr(sysdb, username, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(sysdb, sysdb->domain,
+                              username, attrs, SYSDB_MOD_REP);
     if (ret) {
         goto fail;
     }
@@ -2936,7 +2939,8 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
         }
     }
 
-    ret = sysdb_set_user_attr(sysdb, name, update_attrs, LDB_FLAG_MOD_REPLACE);
+    ret = sysdb_set_user_attr(sysdb, sysdb->domain,
+                              name, update_attrs, LDB_FLAG_MOD_REPLACE);
     if (ret) {
         DEBUG(1, ("Failed to update Login attempt information!\n"));
     }

@@ -1810,6 +1810,7 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
 
 static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
                                                 struct sysdb_ctx *sysdb,
+                                                struct sss_domain_info *domain,
                                                 struct sdap_options *opts,
                                                 struct sysdb_attrs **users,
                                                 int num_users,
@@ -1866,7 +1867,7 @@ static void sdap_ad_match_rule_members_process(struct tevent_req *subreq)
     /* Figure out which users are already cached in the sysdb and
      * which ones need to be added as ghost users.
      */
-    ret = sdap_nested_group_populate_users(tmp_ctx, state->sysdb,
+    ret = sdap_nested_group_populate_users(tmp_ctx, state->sysdb, state->dom,
                                            state->opts, users, count,
                                            &ghosts);
     if (ret != EOK) {
@@ -2022,7 +2023,8 @@ static void sdap_nested_done(struct tevent_req *subreq)
     }
     in_transaction = true;
 
-    ret = sdap_nested_group_populate_users(state, state->sysdb, state->opts,
+    ret = sdap_nested_group_populate_users(state, state->sysdb,
+                                           state->dom, state->opts,
                                            users, user_count, &ghosts);
     if (ret != EOK) {
         goto fail;
@@ -2058,6 +2060,7 @@ fail:
 
 static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
                                                 struct sysdb_ctx *sysdb,
+                                                struct sss_domain_info *domain,
                                                 struct sdap_options *opts,
                                                 struct sysdb_attrs **users,
                                                 int num_users,
@@ -2171,7 +2174,8 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
 
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, username);
             if (ret) goto done;
-            ret = sysdb_set_user_attr(sysdb, sysdb_name, attrs, SYSDB_MOD_REP);
+            ret = sysdb_set_user_attr(sysdb, domain, sysdb_name,
+                                      attrs, SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         } else {
             key.type = HASH_KEY_STRING;

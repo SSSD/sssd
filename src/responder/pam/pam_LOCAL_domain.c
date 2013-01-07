@@ -49,6 +49,7 @@
 struct LOCAL_request {
     struct tevent_context *ev;
     struct sysdb_ctx *dbctx;
+    struct sss_domain_info *domain;
     struct sysdb_attrs *mod_attrs;
 
     struct ldb_result *res;
@@ -86,7 +87,8 @@ static void do_successful_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_set_user_attr(lreq->dbctx, lreq->preq->pd->user,
+    ret = sysdb_set_user_attr(lreq->dbctx, lreq->domain,
+                              lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
                       lreq->error, ret, done);
@@ -126,7 +128,8 @@ static void do_failed_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_set_user_attr(lreq->dbctx, lreq->preq->pd->user,
+    ret = sysdb_set_user_attr(lreq->dbctx, lreq->domain,
+                              lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
                       lreq->error, ret, done);
@@ -194,7 +197,8 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_set_user_attr(lreq->dbctx, lreq->preq->pd->user,
+    ret = sysdb_set_user_attr(lreq->dbctx, lreq->domain,
+                              lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
                       lreq->error, ret, done);
@@ -238,6 +242,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
         talloc_free(lreq);
         return ENOENT;
     }
+    lreq->domain = preq->domain;
     lreq->ev = preq->cctx->ev;
     lreq->preq = preq;
 

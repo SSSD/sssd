@@ -76,8 +76,9 @@ struct cache_tool_ctx {
 
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
-errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                         const char *name, int entry_type);
+static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+                                struct sss_domain_info *domain,
+                                const char *name, int entry_type);
 static bool invalidate_entries(TALLOC_CTX *ctx,
                                struct sss_domain_info *dinfo,
                                struct sysdb_ctx *sysdb,
@@ -333,7 +334,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
             ERROR("Couldn't invalidate %1$s", type_string);
             iret = false;
         } else {
-            ret = invalidate_entry(ctx, sysdb, c_name, entry_type);
+            ret = invalidate_entry(ctx, sysdb, dinfo, c_name, entry_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Couldn't invalidate %s %s", type_string, c_name));
@@ -346,8 +347,9 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     return iret;
 }
 
-errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                         const char *name, int entry_type)
+static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+                                struct sss_domain_info *domain,
+                                const char *name, int entry_type)
 {
     struct sysdb_attrs *sys_attrs = NULL;
     errno_t ret;
@@ -359,7 +361,7 @@ errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (ret == EOK) {
             switch (entry_type) {
                 case TYPE_USER:
-                    ret = sysdb_set_user_attr(sysdb, name, sys_attrs,
+                    ret = sysdb_set_user_attr(sysdb, domain, name, sys_attrs,
                                               SYSDB_MOD_REP);
                     break;
                 case TYPE_GROUP:

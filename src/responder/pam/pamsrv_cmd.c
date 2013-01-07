@@ -335,7 +335,6 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
 
 static errno_t set_last_login(struct pam_auth_req *preq)
 {
-    struct sysdb_ctx *dbctx;
     struct sysdb_attrs *attrs;
     errno_t ret;
 
@@ -355,14 +354,8 @@ static errno_t set_last_login(struct pam_auth_req *preq)
         goto fail;
     }
 
-    dbctx = preq->domain->sysdb;
-    if (dbctx == NULL) {
-        DEBUG(0, ("Fatal: Sysdb context not found for this domain!\n"));
-        ret = EINVAL;
-        goto fail;
-    }
-
-    ret = sysdb_set_user_attr(dbctx, preq->pd->user, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(preq->domain->sysdb, preq->domain,
+                              preq->pd->user, attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(2, ("set_last_login failed.\n"));
         preq->pd->pam_status = PAM_SYSTEM_ERR;
