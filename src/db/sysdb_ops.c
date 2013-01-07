@@ -978,6 +978,7 @@ done:
 
 static errno_t
 sysdb_remove_ghostattr_from_groups(struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
                                    const char *orig_dn,
                                    struct sysdb_attrs *attrs,
                                    const char *name)
@@ -1026,7 +1027,7 @@ sysdb_remove_ghostattr_from_groups(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, sysdb->domain, name);
+    tmpdn = sysdb_user_dn(sysdb, tmp_ctx, domain, name);
     if (!tmpdn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1037,7 +1038,7 @@ sysdb_remove_ghostattr_from_groups(struct sysdb_ctx *sysdb,
     }
 
     tmpdn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                            SYSDB_TMPL_GROUP_BASE, domain->name);
     if (!tmpdn) {
         ret = ENOMEM;
         goto done;
@@ -1068,6 +1069,7 @@ done:
 /* =Add-User-Function===================================================== */
 
 int sysdb_add_user(struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    const char *name,
                    uid_t uid, gid_t gid,
                    const char *gecos,
@@ -1083,8 +1085,6 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     struct sysdb_attrs *id_attrs;
     uint32_t id;
     int ret;
-
-    struct sss_domain_info *domain = sysdb->domain;
 
     if (sysdb->mpg) {
         if (gid != 0) {
@@ -1195,7 +1195,8 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     if (ret) goto done;
 
     /* remove all ghost users */
-    ret = sysdb_remove_ghostattr_from_groups(sysdb, orig_dn, attrs, name);
+    ret = sysdb_remove_ghostattr_from_groups(sysdb, domain,
+                                             orig_dn, attrs, name);
     if (ret) goto done;
 
     ret = EOK;
@@ -1663,7 +1664,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
 
     if (ret == ENOENT) {
         /* users doesn't exist, turn into adding a user */
-        ret = sysdb_add_user(sysdb, name, uid, gid, gecos, homedir,
+        ret = sysdb_add_user(sysdb, sysdb->domain, name, uid, gid, gecos, homedir,
                              shell, orig_dn, attrs, cache_timeout, now);
         if (ret == EEXIST) {
             /* This may be a user rename. If there is a user with the
@@ -1682,7 +1683,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A user with the same UID [%llu] was removed from the "
                    "cache\n", (unsigned long long) uid));
-            ret = sysdb_add_user(sysdb, name, uid, gid, gecos, homedir,
+            ret = sysdb_add_user(sysdb, sysdb->domain, name, uid, gid, gecos, homedir,
                                  shell, orig_dn, attrs, cache_timeout, now);
         }
 

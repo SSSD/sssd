@@ -739,7 +739,7 @@ static int seed_cache_user(struct seed_ctx *sctx)
     in_transaction = true;
 
     if (sctx->user_cached == false) {
-        ret = sysdb_add_user(sctx->sysdb, sctx->uctx->name,
+        ret = sysdb_add_user(sctx->sysdb, sctx->domain, sctx->uctx->name,
                              sctx->uctx->uid, sctx->uctx->gid,
                              sctx->uctx->gecos, sctx->uctx->home,
                              sctx->uctx->shell, NULL, NULL, 0, 0);

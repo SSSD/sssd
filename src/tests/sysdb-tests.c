@@ -191,7 +191,7 @@ static int test_add_user(struct test_data *data)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    ret = sysdb_add_user(data->ctx->sysdb, data->username,
+    ret = sysdb_add_user(data->ctx->sysdb, data->ctx->domain, data->username,
                          data->uid, 0, gecos, homedir, "/bin/bash",
                          NULL, NULL, 0, 0);
     return ret;
@@ -3397,7 +3397,7 @@ START_TEST(test_user_rename)
                 name, fromname);
 
     /* Perform rename and check that GID is the same, but name changed */
-    ret = sysdb_add_user(test_ctx->sysdb, toname, userid, 0,
+    ret = sysdb_add_user(test_ctx->sysdb, test_ctx->domain, toname, userid, 0,
                          fromname, "/", "/bin/sh", NULL, NULL, 0, 0);
     fail_unless(ret == EEXIST, "A second user added with low level call?");
 

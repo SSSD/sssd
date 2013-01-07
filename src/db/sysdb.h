@@ -610,6 +610,7 @@ int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
 
 /* Add user (all checks) */
 int sysdb_add_user(struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    const char *name,
                    uid_t uid, gid_t gid,
                    const char *gecos,

@@ -468,7 +468,8 @@ int useradd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_user(sysdb, data->name, data->uid, data->gid,
+    ret = sysdb_add_user(sysdb,
+                         data->domain, data->name, data->uid, data->gid,
                          data->gecos, data->home, data->shell,
                          NULL, NULL, 0, 0);
     if (ret) {
