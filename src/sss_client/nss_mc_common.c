@@ -220,6 +220,11 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
             continue;
         }
 
+        if (!MC_CHECK_RECORD_LENGTH(ctx, rec)) {
+            /* record has invalid length */
+            return EINVAL;
+        }
+
         if (rec_len > buf_size) {
             free(copy_rec);
             copy_rec = malloc(rec_len);
