@@ -649,6 +649,7 @@ done:
 /* =Get-New-ID============================================================ */
 
 int sysdb_get_new_id(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      uint32_t *_id)
 {
     TALLOC_CTX *tmp_ctx;
@@ -664,14 +665,12 @@ int sysdb_get_new_id(struct sysdb_ctx *sysdb,
     int ret;
     int i;
 
-    struct sss_domain_info *domain = sysdb->domain;
-
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = sysdb_domain_dn(sysdb, tmp_ctx, sysdb->domain);
+    base_dn = sysdb_domain_dn(sysdb, tmp_ctx, domain);
     if (!base_dn) {
         talloc_zfree(tmp_ctx);
         return ENOMEM;
@@ -1149,7 +1148,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     if (ret) goto done;
 
     if (uid == 0) {
-        ret = sysdb_get_new_id(sysdb, &id);
+        ret = sysdb_get_new_id(sysdb, domain, &id);
         if (ret) goto done;
 
         id_attrs = sysdb_new_attrs(tmp_ctx);
@@ -1344,7 +1343,7 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
     }
 
     if (posix && gid == 0) {
-        ret = sysdb_get_new_id(sysdb, &id);
+        ret = sysdb_get_new_id(sysdb, domain, &id);
         if (ret) goto done;
 
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, id);

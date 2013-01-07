@@ -596,6 +596,7 @@ int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
 
 /* Allocate a new id */
 int sysdb_get_new_id(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      uint32_t *id);
 
 /* Add user (only basic attrs and w/o checks) */
