@@ -892,7 +892,7 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
      * sysdb_filter = NULL; */
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a smart refresh of sudo rules "
-                              "(USN >= %s)\n", srv_opts->max_sudo_value));
+                              "(USN > %s)\n", (usn == NULL ? "0" : usn)));
 
     subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
                                     id_ctx->conn_cache,
