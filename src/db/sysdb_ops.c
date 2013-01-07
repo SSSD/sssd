@@ -619,6 +619,7 @@ done:
 /* =Replace-Attributes-On-Netgroup=========================================== */
 
 int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *name,
                             struct sysdb_attrs *attrs,
                             int mod_op)
@@ -632,7 +633,7 @@ int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_netgroup_dn(sysdb, tmp_ctx, sysdb->domain, name);
+    dn = sysdb_netgroup_dn(sysdb, tmp_ctx, domain, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -1573,7 +1574,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_netgroup_attr(sysdb, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_netgroup_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
 
     if (missing) {
         ret = sysdb_remove_attrs(sysdb, name,

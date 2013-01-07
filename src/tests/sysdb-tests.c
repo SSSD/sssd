@@ -516,7 +516,7 @@ static int test_set_netgroup_attr(struct test_data *data)
         return ret;
     }
 
-    ret = sysdb_set_netgroup_attr(data->ctx->sysdb,
+    ret = sysdb_set_netgroup_attr(data->ctx->sysdb, data->ctx->domain,
                                   data->netgrname, attrs, SYSDB_MOD_REP);
     return ret;
 }

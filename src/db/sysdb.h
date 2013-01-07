@@ -589,6 +589,7 @@ int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
 
 /* Replace netgroup attrs */
 int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *name,
                             struct sysdb_attrs *attrs,
                             int mod_op);

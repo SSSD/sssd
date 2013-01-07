@@ -369,7 +369,7 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                                                SYSDB_MOD_REP);
                     break;
                 case TYPE_NETGROUP:
-                    ret = sysdb_set_netgroup_attr(sysdb, name,
+                    ret = sysdb_set_netgroup_attr(sysdb, domain, name,
                             sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_SERVICE:
