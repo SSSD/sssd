@@ -378,7 +378,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
     /* resolve primary group */
     gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
     if (gid != 0) {
-        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, gid,
+        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, sysdb->domain, gid,
                                         group_attrs, &group_msg);
         if (ret == EOK) {
             primary_group = ldb_msg_find_attr_as_string(group_msg, SYSDB_NAME,

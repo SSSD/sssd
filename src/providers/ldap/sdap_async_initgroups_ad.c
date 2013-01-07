@@ -476,7 +476,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
                gid));
 
         /* Check whether this GID already exists in the sysdb */
-        ret = sysdb_search_group_by_gid(tmp_ctx, state->sysdb,
+        ret = sysdb_search_group_by_gid(tmp_ctx, state->sysdb, state->domain,
                                         gid, attrs, &msg);
         if (ret == EOK) {
             group_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);

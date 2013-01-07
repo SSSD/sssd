@@ -381,6 +381,7 @@ done:
 
 int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain,
                               gid_t gid,
                               const char **attrs,
                               struct ldb_message **msg)
@@ -399,7 +400,7 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                            SYSDB_TMPL_GROUP_BASE, domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -1308,7 +1309,7 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
 
     /* check no other groups with the same gid exist */
     if (gid != 0) {
-        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb,
+        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, domain,
                                         gid, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
@@ -2549,7 +2550,7 @@ int sysdb_delete_group(struct sysdb_ctx *sysdb,
         ret = sysdb_search_group_by_name(tmp_ctx, sysdb, sysdb->domain,
                                          name, NULL, &msg);
     } else {
-        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb,
+        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, sysdb->domain,
                                         gid, NULL, &msg);
     }
     if (ret) {

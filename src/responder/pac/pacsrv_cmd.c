@@ -700,7 +700,7 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_group_by_gid(tmp_ctx, grp_dom->sysdb,
+    ret = sysdb_search_group_by_gid(tmp_ctx, grp_dom->sysdb, grp_dom,
                                     gid, group_attrs, &group);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("sysdb_search_group_by_gid for gid [%d]" \
