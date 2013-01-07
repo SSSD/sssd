@@ -269,7 +269,9 @@ sdap_get_ad_match_rule_initgroups_step(struct tevent_req *subreq)
      * nested group searches, so we can just update the
      * memberships now.
      */
-    ret = sdap_initgr_common_store(state->sysdb, state->opts,
+    ret = sdap_initgr_common_store(state->sysdb,
+                                   state->domain,
+                                   state->opts,
                                    state->name,
                                    SYSDB_MEMBER_USER,
                                    sysdb_grouplist,

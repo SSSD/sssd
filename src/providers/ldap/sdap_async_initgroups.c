@@ -29,6 +29,7 @@
 
 /* ==Save-fake-group-list=====================================*/
 static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *domain,
                                           struct sdap_options *opts,
                                           char **groupnames,
                                           struct sysdb_attrs **ldap_groups,
@@ -63,7 +64,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     mi = 0;
 
     for (i=0; groupnames[i]; i++) {
-        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, groupnames[i], NULL, &msg);
+        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, domain,
+                                         groupnames[i], NULL, &msg);
         if (ret == EOK) {
             continue;
         } else if (ret == ENOENT) {
@@ -203,6 +205,7 @@ done:
 }
 
 int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              struct sdap_options *opts,
                              const char *name,
                              enum sysdb_member_type type,
@@ -257,7 +260,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
      * member of but that are not cached in sysdb
      */
     if (add_groups && add_groups[0]) {
-        ret = sdap_add_incomplete_groups(sysdb, opts,
+        ret = sdap_add_incomplete_groups(sysdb, domain, opts,
                                          add_groups, ldap_groups,
                                          ldap_groups_count);
         if (ret != EOK) {
@@ -514,7 +517,9 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
 
     /* There are no nested groups here so we can just update the
      * memberships */
-    ret = sdap_initgr_common_store(state->sysdb, state->opts,
+    ret = sdap_initgr_common_store(state->sysdb,
+                                   state->domain,
+                                   state->opts,
                                    state->name,
                                    SYSDB_MEMBER_USER,
                                    sysdb_grouplist,
@@ -538,6 +543,7 @@ static int sdap_initgr_rfc2307_recv(struct tevent_req *req)
 /* ==Common code for pure RFC2307bis and IPA/AD========================= */
 static errno_t
 sdap_nested_groups_store(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          struct sdap_options *opts,
                          struct sysdb_attrs **groups,
                          unsigned long count)
@@ -569,7 +575,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     }
     in_transaction = true;
 
-    ret = sdap_add_incomplete_groups(sysdb, opts, groupnamelist,
+    ret = sdap_add_incomplete_groups(sysdb, domain, opts, groupnamelist,
                                      groups, count);
     if (ret != EOK) {
         DEBUG(6, ("Could not add incomplete groups [%d]: %s\n",
@@ -1014,7 +1020,7 @@ fail:
 static errno_t
 sdap_initgr_store_groups(struct sdap_initgr_nested_state *state)
 {
-    return sdap_nested_groups_store(state->sysdb,
+    return sdap_nested_groups_store(state->sysdb, state->dom,
                                     state->opts, state->groups,
                                     state->groups_cur);
 }
@@ -1766,7 +1772,7 @@ save_rfc2307bis_groups(struct sdap_initgr_rfc2307bis_state *state)
     }
     talloc_zfree(values);
 
-    ret = sdap_nested_groups_store(state->sysdb, state->opts,
+    ret = sdap_nested_groups_store(state->sysdb, state->dom, state->opts,
                                    groups, count);
     if (ret != EOK) {
         DEBUG(3, ("Could not save groups [%d]: %s\n",

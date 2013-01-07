@@ -3693,7 +3693,8 @@ START_TEST(test_odd_characters)
 
     /* Retrieve */
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->sysdb,
-                                    odd_groupname, NULL, &msg);
+                                     test_ctx->domain,
+                                     odd_groupname, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_group_by_name error [%d][%s]",
                             ret, strerror(ret));
     talloc_zfree(msg);
@@ -4444,8 +4445,8 @@ START_TEST(test_sysdb_subdomain_group_ops)
                           "name=subdomgroup,cn=groups,cn=test.sub,cn=sysdb");
     fail_unless(check_dn != NULL);
 
-    ret = sysdb_search_domgroup_by_name(test_ctx, subdomain, "subdomgroup", NULL,
-                                        &msg);
+    ret = sysdb_search_group_by_name(test_ctx, subdomain->sysdb, subdomain,
+                                     "subdomgroup", NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_domgroup_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,

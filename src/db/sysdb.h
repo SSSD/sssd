@@ -400,11 +400,6 @@ errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
                              const char *name, uid_t uid);
 
 
-errno_t sysdb_search_domgroup_by_name(TALLOC_CTX *mem_ctx,
-                                      struct sss_domain_info *domain,
-                                      const char *name,
-                                      const char **attrs,
-                                      struct ldb_message **msg);
 errno_t sysdb_search_domgroup_by_gid(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
                                      gid_t gid,
@@ -557,6 +552,7 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
 /* Search Group (by gid or name) */
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *sysdb,
+                               struct sss_domain_info *domain,
                                const char *name,
                                const char **attrs,
                                struct ldb_message **msg);

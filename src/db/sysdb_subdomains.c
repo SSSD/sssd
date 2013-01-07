@@ -603,18 +603,6 @@ errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
     return sysdb_delete_user(domain->sysdb, name, uid);
 }
 
-errno_t sysdb_search_domgroup_by_name(TALLOC_CTX *mem_ctx,
-                                      struct sss_domain_info *domain,
-                                      const char *name,
-                                      const char **attrs,
-                                      struct ldb_message **msg)
-{
-    CHECK_DOMAIN_INFO(domain);
-
-    return sysdb_search_group_by_name(mem_ctx, domain->sysdb,
-                                      name, attrs, msg);
-}
-
 errno_t sysdb_search_domgroup_by_gid(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
                                      gid_t gid,

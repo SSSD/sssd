@@ -337,6 +337,7 @@ done:
 
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *sysdb,
+                               struct sss_domain_info *domain,
                                const char *name,
                                const char **attrs,
                                struct ldb_message **msg)
@@ -353,7 +354,7 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_group_dn(sysdb, tmp_ctx, sysdb->domain, name);
+    basedn = sysdb_group_dn(sysdb, tmp_ctx, domain, name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -1120,7 +1121,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
          * Don't worry about users, if we try to add a user with the same
          * name the operation will fail */
 
-        ret = sysdb_search_group_by_name(tmp_ctx, sysdb,
+        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, domain,
                                          name, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
@@ -1785,7 +1786,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_search_group_by_name(tmp_ctx, sysdb,
+    ret = sysdb_search_group_by_name(tmp_ctx, sysdb, sysdb->domain,
                                      name, src_attrs, &msg);
     if (ret && ret != ENOENT) {
         goto done;
@@ -2545,7 +2546,7 @@ int sysdb_delete_group(struct sysdb_ctx *sysdb,
     }
 
     if (name) {
-        ret = sysdb_search_group_by_name(tmp_ctx, sysdb,
+        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, sysdb->domain,
                                          name, NULL, &msg);
     } else {
         ret = sysdb_search_group_by_gid(tmp_ctx, sysdb,
