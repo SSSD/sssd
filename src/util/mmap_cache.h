@@ -63,8 +63,7 @@ typedef uint32_t rel_ptr_t;
  */
 #define MC_SLOT_SIZE 32
 #define MC_SIZE_TO_SLOTS(len) (((len) + (MC_SLOT_SIZE - 1)) / MC_SLOT_SIZE)
-#define MC_PTR_TO_SLOT(base, ptr) \
-                    (((uint8_t *)(ptr) - (uint8_t *)(base)) / MC_SLOT_SIZE)
+#define MC_PTR_TO_SLOT(base, ptr) (MC_PTR_DIFF(ptr, base) / MC_SLOT_SIZE)
 #define MC_SLOT_TO_PTR(base, slot, type) \
                                 (type *)((base) + ((slot) * MC_SLOT_SIZE))
 
