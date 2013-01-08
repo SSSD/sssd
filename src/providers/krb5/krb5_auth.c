@@ -277,6 +277,7 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
 
 static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
                                   struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   struct confdb_ctx *cdb,
                                   struct pam_data *pd, uid_t uid,
                                   int *pam_status, int *dp_err)
@@ -292,7 +293,8 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
         return;
     }
 
-    ret = sysdb_cache_auth(sysdb, pd->user, password, cdb, true, NULL, NULL);
+    ret = sysdb_cache_auth(sysdb, domain, pd->user,
+                           password, cdb, true, NULL, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Offline authentication failed\n"));
         *pam_status = cached_login_pam_status(ret);
@@ -770,6 +772,7 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
                                 KRB5_STORE_PASSWORD_IF_OFFLINE)) {
                 krb5_auth_cache_creds(state->kr->krb5_ctx,
                                       state->be_ctx->sysdb,
+                                      state->be_ctx->domain,
                                       state->be_ctx->cdb,
                                       kr->pd, kr->uid,
                                       &state->pam_status, &state->dp_err);
@@ -1079,6 +1082,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
                             KRB5_STORE_PASSWORD_IF_OFFLINE)) {
             krb5_auth_cache_creds(state->kr->krb5_ctx,
                                   state->be_ctx->sysdb,
+                                  state->be_ctx->domain,
                                   state->be_ctx->cdb,
                                   state->pd, state->kr->uid,
                                   &state->pam_status, &state->dp_err);

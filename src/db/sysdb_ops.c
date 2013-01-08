@@ -2784,6 +2784,7 @@ done:
 }
 
 int sysdb_cache_auth(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      const char *password,
                      struct confdb_ctx *cdb,
@@ -2824,7 +2825,7 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
         return EINVAL;
     }
 
-    if (!sysdb->domain->cache_credentials) {
+    if (!domain->cache_credentials) {
         DEBUG(3, ("Cached credentials not available.\n"));
         return EINVAL;
     }
@@ -2841,7 +2842,7 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
         return ret;
     }
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, sysdb->domain,
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
                                     name, attrs, &ldb_msg);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_search_user_by_name failed [%d][%s].\n",
@@ -2955,7 +2956,7 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
         }
     }
 
-    ret = sysdb_set_user_attr(sysdb, sysdb->domain,
+    ret = sysdb_set_user_attr(sysdb, domain,
                               name, update_attrs, LDB_FLAG_MOD_REPLACE);
     if (ret) {
         DEBUG(1, ("Failed to update Login attempt information!\n"));

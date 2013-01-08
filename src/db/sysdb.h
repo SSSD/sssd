@@ -707,6 +707,7 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                                     uint32_t *failed_login_attempts,
                                     time_t *delayed_until);
 int sysdb_cache_auth(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      const char *password,
                      struct confdb_ctx *cdb,
