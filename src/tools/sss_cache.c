@@ -46,26 +46,12 @@ enum sss_cache_entry {
     TYPE_AUTOFSMAP
 };
 
-struct entry_type_t {
-    const char *type_string;
-    int (* search_fn)(TALLOC_CTX *, struct sysdb_ctx *,
-               const char *, const char **, size_t *, struct ldb_message ***);
-};
-
 static errno_t search_services(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                               const char *sub_filter, const char **attrs,
                               size_t *msgs_count, struct ldb_message ***msgs);
 static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                                  const char *sub_filter, const char **attrs,
                                  size_t *msgs_count, struct ldb_message ***msgs);
-
-static struct entry_type_t entry_types[] = {
-    {"user", sysdb_search_users},
-    {"group", sysdb_search_groups},
-    {"netgroup", sysdb_search_netgroups},
-    {"service", search_services},
-    {"autofs map", search_autofsmaps}
-};
 
 struct cache_tool_ctx {
     struct confdb_ctx *confdb;
@@ -296,7 +282,7 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
     const char *attrs[] = {SYSDB_NAME, NULL};
     size_t msg_count;
     struct ldb_message **msgs;
-    struct entry_type_t type_rec;
+    const char *type_string = NULL;
     errno_t ret;
     int i;
     const char *c_name;
@@ -307,19 +293,39 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
 
     dinfo = sysdb_ctx_get_domain(sysdb);
 
-    type_rec = entry_types[entry_type];
-    ret = type_rec.search_fn(ctx, sysdb, filter, attrs,
-                                &msg_count, &msgs);
+    switch (entry_type) {
+    case TYPE_USER:
+        type_string = "user";
+        ret = sysdb_search_users(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        break;
+    case TYPE_GROUP:
+        type_string = "group";
+        ret = sysdb_search_groups(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        break;
+    case TYPE_NETGROUP:
+        type_string = "netgroup";
+        ret = sysdb_search_netgroups(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        break;
+    case TYPE_SERVICE:
+        type_string = "service";
+        ret = search_services(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        break;
+    case TYPE_AUTOFSMAP:
+        type_string = "autofs map";
+        ret = search_autofsmaps(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        break;
+    }
+
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Searching for %s in domain %s with filter %s failed\n",
-               type_rec.type_string, dinfo->name, filter));
+               type_string, dinfo->name, filter));
         if (name) {
             ERROR("No such %1$s named %2$s in domain %3$s, skipping\n",
-                  type_rec.type_string, name, dinfo->name);
+                  type_string, name, dinfo->name);
         } else {
             ERROR("No objects of type %1$s from domain %2$s in the cache, "
-                   "skipping\n", type_rec.type_string, dinfo->name);
+                   "skipping\n", type_string, dinfo->name);
         }
         return false;
     }
@@ -330,14 +336,14 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (c_name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Something bad happened, can't find attribute %s", SYSDB_NAME));
-            ERROR("Couldn't invalidate %1$s", type_rec.type_string);
+            ERROR("Couldn't invalidate %1$s", type_string);
             iret = false;
         } else {
             ret = invalidate_entry(ctx, sysdb, c_name, entry_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Couldn't invalidate %s %s", type_rec.type_string, c_name));
-                ERROR("Couldn't invalidate %1$s %2$s", type_rec.type_string, c_name);
+                      ("Couldn't invalidate %s %s", type_string, c_name));
+                ERROR("Couldn't invalidate %1$s %2$s", type_string, c_name);
                 iret = false;
             }
         }
