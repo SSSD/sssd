@@ -1192,7 +1192,8 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver)
                     continue;
                 }
 
-                ret = sysdb_save_autofsentry(sysdb, (const char *) val->data,
+                ret = sysdb_save_autofsentry(sysdb, sysdb->domain,
+                                             (const char *) val->data,
                                              key, value, NULL);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,

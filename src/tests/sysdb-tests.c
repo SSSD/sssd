@@ -4529,7 +4529,8 @@ START_TEST(test_autofs_create_map)
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
-    ret = sysdb_save_autofsmap(test_ctx->sysdb, autofsmapname,
+    ret = sysdb_save_autofsmap(test_ctx->sysdb,
+                               test_ctx->domain, autofsmapname,
                                autofsmapname, NULL, 0, 0);
     fail_if(ret != EOK, "Could not store autofs map %s", autofsmapname);
     talloc_free(test_ctx);
@@ -4549,7 +4550,7 @@ START_TEST(test_autofs_retrieve_map)
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
-    ret = sysdb_get_map_byname(test_ctx, test_ctx->sysdb,
+    ret = sysdb_get_map_byname(test_ctx, test_ctx->sysdb, test_ctx->domain,
                                autofsmapname, &map);
     fail_if(ret != EOK, "Could not retrieve autofs map %s", autofsmapname);
     fail_if(map == NULL, "No map retrieved?\n");
@@ -4569,7 +4570,8 @@ START_TEST(test_autofs_delete_map)
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
-    ret = sysdb_delete_autofsmap(test_ctx->sysdb, autofsmapname);
+    ret = sysdb_delete_autofsmap(test_ctx->sysdb,
+                                 test_ctx->domain, autofsmapname);
     fail_if(ret != EOK, "Could not retrieve autofs map %s", autofsmapname);
     talloc_free(test_ctx);
 }
@@ -4588,7 +4590,7 @@ START_TEST(test_autofs_retrieve_map_neg)
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
-    ret = sysdb_get_map_byname(test_ctx, test_ctx->sysdb,
+    ret = sysdb_get_map_byname(test_ctx, test_ctx->sysdb, test_ctx->domain,
                                autofsmapname, &map);
     fail_if(ret != ENOENT, "Expected ENOENT, got %d instead\n", ret);
     fail_if(map != NULL, "Unexpected map found\n");
@@ -4620,7 +4622,8 @@ START_TEST(test_autofs_store_entry_in_map)
         autofsval = talloc_asprintf(test_ctx, "testserver:/testval%d", ii);
         fail_if(autofsval == NULL, "Out of memory\n");
 
-        ret = sysdb_save_autofsentry(test_ctx->sysdb, autofsmapname, autofskey,
+        ret = sysdb_save_autofsentry(test_ctx->sysdb, test_ctx->domain,
+                                     autofsmapname, autofskey,
                                      autofsval, NULL);
         fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
     }
@@ -4644,7 +4647,8 @@ START_TEST(test_autofs_retrieve_keys_by_map)
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
-    ret = sysdb_autofs_entries_by_map(test_ctx, test_ctx->sysdb,
+    ret = sysdb_autofs_entries_by_map(test_ctx,
+                                      test_ctx->sysdb, test_ctx->domain,
                                       autofsmapname, &count, &entries);
     fail_if(ret != EOK, "Cannot get autofs entries for map %s\n",
             autofsmapname);
@@ -4674,7 +4678,8 @@ START_TEST(test_autofs_key_duplicate)
     autofsval = talloc_asprintf(test_ctx, "testserver:/testval%d", _i);
     fail_if(autofsval == NULL, "Out of memory\n");
 
-    ret = sysdb_save_autofsentry(test_ctx->sysdb, autofsmapname, autofskey,
+    ret = sysdb_save_autofsentry(test_ctx->sysdb, test_ctx->domain,
+                                 autofsmapname, autofskey,
                                  autofsval, NULL);
     fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
     talloc_free(test_ctx);
@@ -4706,7 +4711,7 @@ START_TEST(test_autofs_get_duplicate_keys)
     fail_if(filter == NULL, "Out of memory\n");
 
     dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
-                        AUTOFS_MAP_SUBDIR, test_ctx->sysdb->domain->name);
+                        AUTOFS_MAP_SUBDIR, test_ctx->domain->name);
     fail_if(dn == NULL, "Out of memory\n");
 
     ret = sysdb_search_entry(test_ctx, test_ctx->sysdb, dn, LDB_SCOPE_SUBTREE,

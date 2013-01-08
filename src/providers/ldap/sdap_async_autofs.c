@@ -66,6 +66,7 @@ get_autofs_entry_key(struct sysdb_attrs *entry, struct sdap_options *opts)
 
 static errno_t
 mod_autofs_entry(struct sysdb_ctx *sysdb,
+                 struct sss_domain_info *domain,
                  const char *map,
                  struct sdap_options *opts,
                  struct sysdb_attrs *entry,
@@ -88,10 +89,10 @@ mod_autofs_entry(struct sysdb_ctx *sysdb,
 
     switch (mod_op) {
     case AUTOFS_MAP_OP_ADD:
-        ret = sysdb_save_autofsentry(sysdb, map, key, value, NULL);
+        ret = sysdb_save_autofsentry(sysdb, domain, map, key, value, NULL);
         break;
     case AUTOFS_MAP_OP_DEL:
-        ret = sysdb_del_autofsentry(sysdb, map, key, value);
+        ret = sysdb_del_autofsentry(sysdb, domain, map, key, value);
         break;
     }
 
@@ -100,6 +101,7 @@ mod_autofs_entry(struct sysdb_ctx *sysdb,
 
 static errno_t
 mod_autofs_entries(struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    struct sdap_options *opts,
                    const char *map,
                    char **mod_entries,
@@ -139,7 +141,7 @@ mod_autofs_entries(struct sysdb_ctx *sysdb,
                 continue;
             }
 
-            ret = mod_autofs_entry(sysdb, map, opts, entries[j], mod_op);
+            ret = mod_autofs_entry(sysdb, domain, map, opts, entries[j], mod_op);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                     ("Cannot modify autofs entry [%d]: %s. Ignoring.\n",
@@ -173,25 +175,27 @@ done:
 
 static errno_t
 save_autofs_entries(struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     struct sdap_options *opts,
                     const char *map,
                     char **add_entries,
                     struct sysdb_attrs **entries,
                     size_t num_entries)
 {
-    return mod_autofs_entries(sysdb, opts, map, add_entries,
+    return mod_autofs_entries(sysdb, domain, opts, map, add_entries,
                               entries, num_entries, AUTOFS_MAP_OP_ADD);
 }
 
 static errno_t
 del_autofs_entries(struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    struct sdap_options *opts,
                    const char *map,
                    char **add_entries,
                    struct sysdb_attrs **entries,
                    size_t num_entries)
 {
-    return mod_autofs_entries(sysdb, opts, map, add_entries,
+    return mod_autofs_entries(sysdb, domain, opts, map, add_entries,
                               entries, num_entries, AUTOFS_MAP_OP_DEL);
 }
 
@@ -210,7 +214,7 @@ save_autofs_map(struct sysdb_ctx *sysdb,
 
     now = time(NULL);
 
-    ret = sysdb_save_autofsmap(sysdb, mapname, mapname,
+    ret = sysdb_save_autofsmap(sysdb, dom, mapname, mapname,
                                NULL, dom->autofsmap_timeout, now);
     if (ret != EOK) {
         return ret;
@@ -826,7 +830,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         }
     }
 
-    ret = sysdb_autofs_entries_by_map(tmp_ctx, state->sysdb, state->mapname,
+    ret = sysdb_autofs_entries_by_map(tmp_ctx, state->sysdb,
+                                      state->dom, state->mapname,
                                       &count, &entries);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -890,7 +895,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
 
     /* Create entries that don't exist yet */
     if (add_entries && add_entries[0]) {
-        ret = save_autofs_entries(state->sysdb, state->opts,
+        ret = save_autofs_entries(state->sysdb, state->dom, state->opts,
                                   state->mapname, add_entries,
                                   state->entries, state->entries_count);
         if (ret != EOK) {
@@ -910,7 +915,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
             goto done;
         }
 
-        ret = del_autofs_entries(state->sysdb, state->opts,
+        ret = del_autofs_entries(state->sysdb, state->dom, state->opts,
                                  state->mapname, del_entries,
                                  entries_attrs, count);
         if (ret != EOK) {

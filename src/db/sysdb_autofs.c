@@ -29,15 +29,16 @@
 static struct ldb_dn *
 sysdb_autofsmap_dn(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    const char *map_name)
 {
-    return sysdb_custom_dn(sysdb, mem_ctx,
-                           sysdb->domain, map_name, AUTOFS_MAP_SUBDIR);
+    return sysdb_custom_dn(sysdb, mem_ctx, domain, map_name, AUTOFS_MAP_SUBDIR);
 }
 
 static struct ldb_dn *
 sysdb_autofsentry_dn(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *map_name,
                      const char *entry_name,
                      const char *entry_value)
@@ -70,8 +71,7 @@ sysdb_autofsentry_dn(TALLOC_CTX *mem_ctx,
     }
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_AUTOFS_ENTRY,
-                        rdn, map_name, AUTOFS_MAP_SUBDIR,
-                        sysdb->domain->name);
+                        rdn, map_name, AUTOFS_MAP_SUBDIR, domain->name);
 
 done:
     talloc_free(tmp_ctx);
@@ -80,6 +80,7 @@ done:
 
 errno_t
 sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
+                     struct sss_domain_info *domain,
                      const char *name,
                      const char *autofsmapname,
                      struct sysdb_attrs *attrs,
@@ -142,7 +143,7 @@ sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
         goto done;
     }
 
-    ret = sysdb_store_custom(sysdb_ctx, sysdb_ctx->domain, name, AUTOFS_MAP_SUBDIR, attrs);
+    ret = sysdb_store_custom(sysdb_ctx, domain, name, AUTOFS_MAP_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
               ret, strerror(ret)));
@@ -157,15 +158,17 @@ done:
 
 errno_t
 sysdb_delete_autofsmap(struct sysdb_ctx *sysdb_ctx,
+                       struct sss_domain_info *domain,
                        const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting autofs map %s\n", name));
-    return sysdb_delete_custom(sysdb_ctx, sysdb_ctx->domain, name, AUTOFS_MAP_SUBDIR);
+    return sysdb_delete_custom(sysdb_ctx, domain, name, AUTOFS_MAP_SUBDIR);
 }
 
 errno_t
 sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *map_name,
                      struct ldb_message **_map)
 {
@@ -200,7 +203,7 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, sysdb->domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
                               AUTOFS_MAP_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
@@ -228,6 +231,7 @@ done:
 
 errno_t
 sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
+                       struct sss_domain_info *domain,
                        const char *map,
                        const char *key,
                        const char *value,
@@ -290,7 +294,7 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
         goto done;
     }
 
-    dn = sysdb_autofsentry_dn(tmp_ctx, sysdb_ctx, map, key, value);
+    dn = sysdb_autofsentry_dn(tmp_ctx, sysdb_ctx, domain, map, key, value);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -315,6 +319,7 @@ done:
 
 errno_t
 sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
+                      struct sss_domain_info *domain,
                       const char *map,
                       const char *key,
                       const char *value)
@@ -322,7 +327,7 @@ sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
     struct ldb_dn *dn;
     errno_t ret;
 
-    dn = sysdb_autofsentry_dn(sysdb_ctx, sysdb_ctx, map, key, value);
+    dn = sysdb_autofsentry_dn(sysdb_ctx, sysdb_ctx, domain, map, key, value);
     if (!dn) {
         return ENOMEM;
     }
@@ -335,6 +340,7 @@ sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
 errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain,
                             const char *mapname,
                             size_t *_count,
                             struct ldb_message ***_entries)
@@ -356,7 +362,7 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    mapdn = sysdb_autofsmap_dn(tmp_ctx, sysdb, mapname);
+    mapdn = sysdb_autofsmap_dn(tmp_ctx, sysdb, domain, mapname);
     if (!mapdn) {
         ret = ENOMEM;
         goto done;
@@ -393,6 +399,7 @@ done:
 
 errno_t
 sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op)
@@ -406,7 +413,7 @@ sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_autofsmap_dn(tmp_ctx, sysdb, name);
+    dn = sysdb_autofsmap_dn(tmp_ctx, sysdb, domain, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -420,7 +427,8 @@ done:
 }
 
 errno_t
-sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb)
+sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
@@ -447,7 +455,7 @@ sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb)
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, sysdb->domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
                               AUTOFS_MAP_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
@@ -484,7 +492,8 @@ sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb)
             continue;
         }
 
-        ret = sysdb_set_autofsmap_attr(sysdb, name, sys_attrs, SYSDB_MOD_REP);
+        ret = sysdb_set_autofsmap_attr(sysdb, domain, name,
+                                       sys_attrs, SYSDB_MOD_REP);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Could not expire map %s\n", name));
             continue;
