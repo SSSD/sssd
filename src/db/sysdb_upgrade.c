@@ -424,7 +424,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
          * then remove them from local */
 
         domain_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                   SYSDB_DOM_BASE, sysdb->domain->name);
+                                   SYSDB_DOM_BASE, dom->name);
         if (!domain_dn) {
             ret = ENOMEM;
             goto done;
@@ -439,13 +439,13 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
         }
 
         users_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                 SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                                 SYSDB_TMPL_USER_BASE, dom->name);
         if (!users_dn) {
             ret = ENOMEM;
             goto done;
         }
         groups_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                   SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                                   SYSDB_TMPL_GROUP_BASE, dom->name);
         if (!groups_dn) {
             ret = ENOMEM;
             goto done;
@@ -1010,7 +1010,8 @@ done:
     return ret;
 }
 
-int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
+int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                     const char **ver)
 {
 
     TALLOC_CTX *tmp_ctx;
@@ -1036,8 +1037,8 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver)
         return ret;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_USER_BASE,
-                            sysdb->domain->name);
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            SYSDB_TMPL_USER_BASE, domain->name);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
@@ -1124,7 +1125,8 @@ done:
     return ret;
 }
 
-int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver)
+int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                     const char **ver)
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
@@ -1154,7 +1156,7 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver)
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
-                            AUTOFS_ENTRY_SUBDIR, sysdb->domain->name);
+                            AUTOFS_ENTRY_SUBDIR, domain->name);
     if (basedn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1192,7 +1194,7 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver)
                     continue;
                 }
 
-                ret = sysdb_save_autofsentry(sysdb, sysdb->domain,
+                ret = sysdb_save_autofsentry(sysdb, domain,
                                              (const char *) val->data,
                                              key, value, NULL);
                 if (ret != EOK) {

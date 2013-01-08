@@ -1102,14 +1102,14 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         }
 
         if (strcmp(version, SYSDB_VERSION_0_10) == 0) {
-            ret = sysdb_upgrade_10(sysdb, &version);
+            ret = sysdb_upgrade_10(sysdb, domain, &version);
             if (ret != EOK) {
                 goto done;
             }
         }
 
         if (strcmp(version, SYSDB_VERSION_0_11) == 0) {
-            ret = sysdb_upgrade_11(sysdb, &version);
+            ret = sysdb_upgrade_11(sysdb, domain, &version);
             if (ret != EOK) {
                 goto done;
             }

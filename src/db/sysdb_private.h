@@ -113,8 +113,10 @@ int sysdb_upgrade_06(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_07(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_08(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_09(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_10(struct sysdb_ctx *sysdb, const char **ver);
-int sysdb_upgrade_11(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                     const char **ver);
+int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                     const char **ver);
 int sysdb_upgrade_12(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver);
