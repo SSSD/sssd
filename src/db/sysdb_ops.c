@@ -2460,7 +2460,8 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
             goto fail;
         }
 
-        ret = sysdb_search_groups(tmp_ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
+                                  filter, attrs, &msg_count, &msgs);
         if (ret != EOK) {
             goto fail;
         }
@@ -2503,6 +2504,7 @@ fail:
 
 int sysdb_search_groups(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *sub_filter,
                         const char **attrs,
                         size_t *msgs_count,
@@ -2519,7 +2521,7 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, sysdb->domain->name);
+                            SYSDB_TMPL_GROUP_BASE, domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
         ret = ENOMEM;

@@ -171,7 +171,8 @@ struct global_cleanup_state {
 
 static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx);
 static int cleanup_groups(TALLOC_CTX *memctx,
-                          struct sysdb_ctx *sysdb);
+                          struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain);
 
 struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
@@ -203,7 +204,8 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
     }
 
     ret = cleanup_groups(state,
-                         state->ctx->be->sysdb);
+                         state->ctx->be->sysdb,
+                         state->ctx->be->domain);
     if (ret) {
         goto fail;
     }
@@ -380,7 +382,8 @@ static int cleanup_users_logged_in(hash_table_t *table,
 /* ==Group-Cleanup-Process================================================ */
 
 static int cleanup_groups(TALLOC_CTX *memctx,
-                          struct sysdb_ctx *sysdb)
+                          struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmpctx;
     const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
@@ -411,7 +414,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sysdb_search_groups(tmpctx, sysdb,
+    ret = sysdb_search_groups(tmpctx, sysdb, domain,
                               subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {

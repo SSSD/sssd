@@ -153,7 +153,8 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* reset groups' usn */
-    ret = sysdb_search_groups(tmp_ctx, sysdb, "", attrs, &msgs_num, &msgs);
+    ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
+                              "", attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -279,7 +280,7 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* purge untouched groups */
-    ret = sysdb_search_groups(tmp_ctx, sysdb, "(!("SYSDB_USN"=*))",
+    ret = sysdb_search_groups(tmp_ctx, sysdb, domain, "(!("SYSDB_USN"=*))",
                               attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;

@@ -3025,7 +3025,8 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
     /* It wasn't a user. Check whether it's a group */
     if (ret == EOK) talloc_zfree(msgs);
 
-    ret = sysdb_search_groups(tmp_ctx, sysdb, filter, attrs, &count, &msgs);
+    ret = sysdb_search_groups(tmp_ctx, sysdb, dom,
+                              filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         ret = EIO;
         goto fail;

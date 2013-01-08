@@ -762,6 +762,7 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
 
 int sysdb_search_groups(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *sub_filter,
                         const char **attrs,
                         size_t *msgs_count,

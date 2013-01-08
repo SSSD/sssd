@@ -265,7 +265,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
             num_users++;
         } else {
             /* Check if it is a group instead */
-            ret = sysdb_search_groups(tmp_ctx, sysdb,
+            ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
                                       filter, attrs, &count, &msgs);
             if (ret != EOK && ret != ENOENT) goto done;
             if (ret == EOK && count == 0) {

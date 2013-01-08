@@ -437,7 +437,8 @@ static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
             return ENOMEM;
         }
 
-        ret = sysdb_search_groups(mem_ctx, sysdb, filter, NULL, &count, &msgs);
+        ret = sysdb_search_groups(mem_ctx, sysdb, domain,
+                                  filter, NULL, &count, &msgs);
         /* ENOENT is OK, the group is just not a direct parent */
         if (ret != EOK && ret != ENOENT) {
             return ret;
