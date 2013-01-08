@@ -380,9 +380,11 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
                                      struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain,
                                      struct sysdb_subdom **info);
 
 errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain,
                                      struct sysdb_subdom *domain_info);
 
 errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,

@@ -130,6 +130,7 @@ done:
 
 errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
                                      struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain,
                                      struct sysdb_subdom **_info)
 {
     errno_t ret;
@@ -155,8 +156,7 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE,
-                            sysdb->domain->name);
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
@@ -217,6 +217,7 @@ done:
 }
 
 errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain,
                                      struct sysdb_subdom *domain_info)
 {
     TALLOC_CTX *tmp_ctx;
@@ -230,7 +231,7 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_master_domain_get_info(tmp_ctx, sysdb, &current_info);
+    ret = sysdb_master_domain_get_info(tmp_ctx, sysdb, domain, &current_info);
     if (ret != EOK) {
         goto done;
     }
@@ -241,8 +242,8 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE,
-                             sysdb->domain->name);
+    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                             SYSDB_DOM_BASE, domain->name);
     if (msg->dn == NULL) {
         ret = EIO;
         goto done;

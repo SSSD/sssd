@@ -782,13 +782,16 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     struct sysdb_subdom *domain_info;
     struct range_info **range_list = NULL;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     be_req = ctx->be_req;
     if (be_req && be_req->sysdb) {
         sysdb = be_req->sysdb;
+        domain = be_req->domain;
     } else {
         sysdb = ctx->sd_ctx->be_ctx->sysdb;
+        domain = ctx->sd_ctx->be_ctx->domain;
     }
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
@@ -813,7 +816,7 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     }
 
 
-    ret = sysdb_master_domain_get_info(ctx, sysdb, &domain_info);
+    ret = sysdb_master_domain_get_info(ctx, sysdb, domain, &domain_info);
     if (ret != EOK) {
         goto done;
     }
@@ -890,7 +893,9 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->sysdb, domain_info);
+        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->sysdb,
+                                           ctx->sd_ctx->be_ctx->domain,
+                                           domain_info);
         goto done;
     } else {
         ctx->search_base_iter++;

@@ -330,7 +330,8 @@ process_subdomains(struct sss_domain_info *domain)
     }
 
     if (domain->flat_name == NULL || domain->domain_id == NULL) {
-        ret = sysdb_master_domain_get_info(domain, domain->sysdb, &master_info);
+        ret = sysdb_master_domain_get_info(domain, domain->sysdb,
+                                           domain, &master_info);
         if (ret != EOK) {
                 DEBUG(SSSDBG_FUNC_DATA, ("sysdb_master_domain_get_info " \
                                          "failed.\n"));
