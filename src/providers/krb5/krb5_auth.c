@@ -380,7 +380,9 @@ static errno_t krb5_auth_prepare_ccache_file(struct krb5child_req *kr,
     return EOK;
 }
 
-static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
+static void krb5_auth_store_creds(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  struct pam_data *pd)
 {
     const char *password = NULL;
     int ret = EOK;
@@ -417,7 +419,7 @@ static void krb5_auth_store_creds(struct sysdb_ctx *sysdb, struct pam_data *pd)
         return;
     }
 
-    ret = sysdb_cache_password(sysdb, pd->user, password);
+    ret = sysdb_cache_password(sysdb, domain, pd->user, password);
     if (ret) {
         DEBUG(2, ("Failed to cache password, offline auth may not work."
                   " (%d)[%s]!?\n", ret, strerror(ret)));
@@ -1090,7 +1092,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     }
 
     if (state->be_ctx->domain->cache_credentials == TRUE) {
-        krb5_auth_store_creds(state->sysdb, pd);
+        krb5_auth_store_creds(state->sysdb, state->domain, pd);
     }
 
     state->pam_status = PAM_SUCCESS;

@@ -698,6 +698,7 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
  * in this case a transaction will be automatically started and the
  * function will be completely wrapped in it's own sysdb transaction */
 int sysdb_cache_password(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *username,
                          const char *password);
 

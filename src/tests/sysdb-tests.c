@@ -1551,7 +1551,7 @@ START_TEST (test_sysdb_cache_password)
     data->ev = test_ctx->ev;
     data->username = talloc_asprintf(data, "testuser%d", _i);
 
-    ret = sysdb_cache_password(test_ctx->sysdb,
+    ret = sysdb_cache_password(test_ctx->sysdb, test_ctx->domain,
                                data->username, data->username);
 
     fail_unless(ret == EOK, "sysdb_cache_password request failed [%d].", ret);

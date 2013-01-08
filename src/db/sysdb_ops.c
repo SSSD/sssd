@@ -1945,6 +1945,7 @@ int sysdb_remove_group_member(struct sysdb_ctx *sysdb,
 /* =Password-Caching====================================================== */
 
 int sysdb_cache_password(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *username,
                          const char *password)
 {
@@ -1988,7 +1989,7 @@ int sysdb_cache_password(struct sysdb_ctx *sysdb,
     if (ret) goto fail;
 
 
-    ret = sysdb_set_user_attr(sysdb, sysdb->domain,
+    ret = sysdb_set_user_attr(sysdb, domain,
                               username, attrs, SYSDB_MOD_REP);
     if (ret) {
         goto fail;

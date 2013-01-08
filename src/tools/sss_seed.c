@@ -752,7 +752,7 @@ static int seed_cache_user(struct seed_ctx *sctx)
         }
     }
 
-    ret = sysdb_cache_password(sctx->sysdb, sctx->uctx->name,
+    ret = sysdb_cache_password(sctx->sysdb, sctx->domain, sctx->uctx->name,
                                sctx->uctx->password);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to cache password. (%d)[%s]\n",

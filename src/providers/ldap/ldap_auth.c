@@ -1157,6 +1157,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         ret = sss_authtok_get_password(&state->pd->authtok, &password, NULL);
         if (ret == EOK) {
             ret = sysdb_cache_password(state->breq->be_ctx->sysdb,
+                                       state->breq->be_ctx->domain,
                                        state->pd->user, password);
         }
 
