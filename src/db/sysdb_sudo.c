@@ -627,7 +627,7 @@ errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
                                 const char *name)
 {
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Deleting sudo rule %s\n", name));
-    return sysdb_delete_custom(sysdb, name, SUDORULE_SUBDIR);
+    return sysdb_delete_custom(sysdb, sysdb->domain, name, SUDORULE_SUBDIR);
 }
 
 errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,

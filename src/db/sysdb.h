@@ -740,6 +740,7 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
                                 struct ldb_message ***_msgs);
 
 int sysdb_delete_custom(struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *object_name,
                         const char *subtree_name);
 

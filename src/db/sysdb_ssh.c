@@ -225,7 +225,7 @@ sysdb_delete_ssh_host(struct sysdb_ctx *sysdb,
                       const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting host %s\n", name));
-    return sysdb_delete_custom(sysdb, name, SSH_HOSTS_SUBDIR);
+    return sysdb_delete_custom(sysdb, sysdb->domain, name, SSH_HOSTS_SUBDIR);
 }
 
 static errno_t

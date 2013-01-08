@@ -364,7 +364,7 @@ static int test_delete_custom(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_custom(data->ctx->sysdb,
+    ret = sysdb_delete_custom(data->ctx->sysdb, data->ctx->domain,
                               CUSTOM_TEST_OBJECT, CUSTOM_TEST_CONTAINER);
     return ret;
 }

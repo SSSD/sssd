@@ -2202,6 +2202,7 @@ done:
 /* = Custom Delete======================================= */
 
 int sysdb_delete_custom(struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *object_name,
                         const char *subtree_name)
 {
@@ -2219,7 +2220,7 @@ int sysdb_delete_custom(struct sysdb_ctx *sysdb,
     }
 
     dn = sysdb_custom_dn(sysdb, tmp_ctx,
-                         sysdb->domain, object_name, subtree_name);
+                         domain, object_name, subtree_name);
     if (dn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;

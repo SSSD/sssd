@@ -160,7 +160,7 @@ sysdb_delete_autofsmap(struct sysdb_ctx *sysdb_ctx,
                        const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting autofs map %s\n", name));
-    return sysdb_delete_custom(sysdb_ctx, name, AUTOFS_MAP_SUBDIR);
+    return sysdb_delete_custom(sysdb_ctx, sysdb_ctx->domain, name, AUTOFS_MAP_SUBDIR);
 }
 
 errno_t
