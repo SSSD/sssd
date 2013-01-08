@@ -46,9 +46,6 @@ enum sss_cache_entry {
     TYPE_AUTOFSMAP
 };
 
-static errno_t search_services(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                              const char *sub_filter, const char **attrs,
-                              size_t *msgs_count, struct ldb_message ***msgs);
 static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                                  const char *sub_filter, const char **attrs,
                                  size_t *msgs_count, struct ldb_message ***msgs);
@@ -256,7 +253,7 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update service filter */
     ret = update_filter(tctx, domain_name, tctx->service_name,
-                        tctx->update_service_filter, NULL,
+                        tctx->update_service_filter, "(%s=%s)",
                         &tctx->service_filter);
     if (ret != EOK) {
         return ret;
@@ -265,7 +262,7 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
     /* Update autofs filter */
     ret = update_filter(tctx, domain_name, tctx->autofs_name,
                         tctx->update_autofs_filter,
-                        "(&(objectclass=%s)(%s=%s))",
+                        "(&(objectclass="SYSDB_AUTOFS_MAP_OC")(%s=%s))",
                         &tctx->autofs_filter);
     if (ret != EOK) {
         return ret;
@@ -307,7 +304,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         break;
     case TYPE_SERVICE:
         type_string = "service";
-        ret = search_services(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        ret = sysdb_search_services(ctx, sysdb, filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_AUTOFSMAP:
         type_string = "autofs map";
@@ -574,7 +571,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     }
 
     if (idb & INVALIDATE_SERVICES) {
-        ctx->service_filter = talloc_strdup(ctx, "*");
+        ctx->service_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
         ctx->update_service_filter = false;
     } else if (service) {
         ctx->service_name = talloc_strdup(ctx, service);
@@ -630,34 +627,6 @@ fini:
         *tctx = ctx;
     }
     return ret;
-}
-
-static errno_t
-search_services(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                const char *sub_filter, const char **attrs,
-                size_t *msgs_count, struct ldb_message ***msgs)
-{
-    errno_t ret;
-    struct ldb_result *res;
-
-    if (strcmp(sub_filter, "*") == 0) {
-        /* All services */
-        ret = sysdb_enumservent(mem_ctx, sysdb, &res);
-    } else {
-        /* Get service by name */
-        ret = sysdb_getservbyname(mem_ctx, sysdb, sub_filter,
-                                  NULL, &res);
-    }
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get service from sysdb: "
-              "[%d]: %s\n", ret, strerror(ret)));
-        return ret;
-    }
-
-    *msgs_count = res->count;
-    *msgs = res->msgs;
-    return EOK;
 }
 
 static errno_t
