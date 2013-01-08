@@ -544,8 +544,8 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_LIBS,
           ("Updating memberships for [%s]\n", state->username));
-    ret = sysdb_update_members(state->sysdb, state->username,
-                               SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(state->sysdb, state->domain,
+                               state->username, SYSDB_MEMBER_USER,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {

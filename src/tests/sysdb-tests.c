@@ -323,7 +323,7 @@ static int test_add_group_member(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_add_group_member(data->ctx->sysdb,
+    ret = sysdb_add_group_member(data->ctx->sysdb, data->ctx->domain,
                                  data->groupname, username,
                                  SYSDB_MEMBER_USER);
     return ret;
@@ -339,7 +339,7 @@ static int test_remove_group_member(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_remove_group_member(data->ctx->sysdb,
+    ret = sysdb_remove_group_member(data->ctx->sysdb, data->ctx->domain,
                                     data->groupname, username,
                                     SYSDB_MEMBER_USER);
     return ret;
@@ -3458,7 +3458,8 @@ START_TEST (test_sysdb_update_members)
     add_groups[1] = talloc_strdup(add_groups, "testgroup28002");
     add_groups[2] = NULL;
 
-    ret = sysdb_update_members(test_ctx->sysdb, user, SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain,
+                               user, SYSDB_MEMBER_USER,
                                (const char *const *)add_groups, NULL);
     fail_unless(ret == EOK, "Could not add groups");
     talloc_zfree(add_groups);
@@ -3471,7 +3472,8 @@ START_TEST (test_sysdb_update_members)
     add_groups[0] = talloc_strdup(add_groups, "testgroup28003");
     add_groups[1] = NULL;
 
-    ret = sysdb_update_members(test_ctx->sysdb, user, SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain,
+                               user, SYSDB_MEMBER_USER,
                                (const char *const *)add_groups,
                                (const char *const *)del_groups);
     fail_unless(ret == EOK, "Group replace failed");
@@ -3484,7 +3486,8 @@ START_TEST (test_sysdb_update_members)
     del_groups[1] = talloc_strdup(del_groups, "testgroup28003");
     del_groups[2] = NULL;
 
-    ret = sysdb_update_members(test_ctx->sysdb, user, SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain,
+                               user, SYSDB_MEMBER_USER,
                                NULL, (const char *const *)del_groups);
     fail_unless(ret == EOK, "Could not remove groups");
 
@@ -3767,7 +3770,8 @@ START_TEST(test_odd_characters)
     talloc_zfree(msg);
 
     /* Add to the group */
-    ret = sysdb_add_group_member(test_ctx->sysdb, odd_groupname, odd_username,
+    ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->domain,
+                                 odd_groupname, odd_username,
                                  SYSDB_MEMBER_USER);
     fail_unless(ret == EOK, "sysdb_add_group_member error [%d][%s]",
                             ret, strerror(ret));
