@@ -142,7 +142,7 @@ sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
         goto done;
     }
 
-    ret = sysdb_store_custom(sysdb_ctx, name, AUTOFS_MAP_SUBDIR, attrs);
+    ret = sysdb_store_custom(sysdb_ctx, sysdb_ctx->domain, name, AUTOFS_MAP_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
               ret, strerror(ret)));

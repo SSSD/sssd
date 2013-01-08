@@ -716,6 +716,7 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
                      time_t *_delayed_until);
 
 int sysdb_store_custom(struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *object_name,
                        const char *subtree_name,
                        struct sysdb_attrs *attrs);

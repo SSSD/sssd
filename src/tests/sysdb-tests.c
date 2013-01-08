@@ -355,7 +355,7 @@ static int test_store_custom(struct test_data *data)
         return ENOMEM;
     }
 
-    ret = sysdb_store_custom(data->ctx->sysdb, object_name,
+    ret = sysdb_store_custom(data->ctx->sysdb, data->ctx->domain, object_name,
                              CUSTOM_TEST_CONTAINER, data->attrs);
     return ret;
 }

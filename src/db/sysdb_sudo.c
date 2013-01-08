@@ -443,7 +443,7 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
         return ret;
     }
 
-    ret = sysdb_store_custom(sysdb_ctx, rule_name, SUDORULE_SUBDIR, attrs);
+    ret = sysdb_store_custom(sysdb_ctx, sysdb_ctx->domain, rule_name, SUDORULE_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
               ret, strerror(ret)));

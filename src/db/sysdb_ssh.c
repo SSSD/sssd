@@ -30,7 +30,7 @@ sysdb_update_ssh_host(struct sysdb_ctx *sysdb,
 {
     errno_t ret;
 
-    ret = sysdb_store_custom(sysdb, name, SSH_HOSTS_SUBDIR, attrs);
+    ret = sysdb_store_custom(sysdb, sysdb->domain, name, SSH_HOSTS_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Error storing host %s [%d]: %s\n", name, ret, strerror(ret)));

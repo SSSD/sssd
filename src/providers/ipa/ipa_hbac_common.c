@@ -77,7 +77,7 @@ ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
         }
         DEBUG(9, ("Object name: [%s].\n", object_name));
 
-        ret = sysdb_store_custom(sysdb, object_name, subdir, list[c]);
+        ret = sysdb_store_custom(sysdb, domain, object_name, subdir, list[c]);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_store_custom failed.\n"));
             goto done;

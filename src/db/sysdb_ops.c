@@ -2099,6 +2099,7 @@ done:
 /* =Custom Store (replaces-existing-data)================== */
 
 int sysdb_store_custom(struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *object_name,
                        const char *subtree_name,
                        struct sysdb_attrs *attrs)
@@ -2146,7 +2147,7 @@ int sysdb_store_custom(struct sysdb_ctx *sysdb,
     }
 
     msg->dn = sysdb_custom_dn(sysdb, tmp_ctx,
-                              sysdb->domain, object_name, subtree_name);
+                              domain, object_name, subtree_name);
     if (!msg->dn) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
