@@ -802,3 +802,59 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *sysdb,
+                              const char *sub_filter,
+                              const char **attrs,
+                              size_t *msgs_count,
+                              struct ldb_message ***msgs)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *basedn;
+    char *filter;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            SYSDB_TMPL_SVC_BASE, sysdb->domain->name);
+    if (!basedn) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(&(%s)%s)", SYSDB_SC, sub_filter);
+    if (!filter) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Search services with filter: %s\n", filter));
+
+    ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
+                             LDB_SCOPE_SUBTREE, filter, attrs,
+                             msgs_count, msgs);
+    if (ret) {
+        goto fail;
+    }
+
+    talloc_zfree(tmp_ctx);
+    return EOK;
+
+fail:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_zfree(tmp_ctx);
+    return ret;
+}

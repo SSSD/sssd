@@ -91,4 +91,11 @@ sysdb_set_service_attr(struct sysdb_ctx *sysdb,
                        struct sysdb_attrs *attrs,
                        int mod_op);
 
+errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *sysdb,
+                              const char *sub_filter,
+                              const char **attrs,
+                              size_t *msgs_count,
+                              struct ldb_message ***msgs);
+
 #endif /* SYSDB_SERVICES_H_ */
