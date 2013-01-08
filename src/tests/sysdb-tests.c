@@ -4050,7 +4050,7 @@ START_TEST(test_sysdb_store_services)
     fail_if(ret != EOK);
 
     /* Store this group (which will add it) */
-    ret = sysdb_store_service(test_ctx->sysdb,
+    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
                               primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
@@ -4067,7 +4067,7 @@ START_TEST(test_sysdb_store_services)
                               aliases, protocols);
 
     /* Change the service name */
-    ret = sysdb_store_service(test_ctx->sysdb,
+    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
                               alt_primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
@@ -4084,14 +4084,14 @@ START_TEST(test_sysdb_store_services)
 
 
     /* Change it back */
-    ret = sysdb_store_service(test_ctx->sysdb,
+    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
                               primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
     fail_if (ret != EOK, "[%s]", strerror(ret));
 
     /* Change the port number */
-    ret = sysdb_store_service(test_ctx->sysdb,
+    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
                               primary_name, altport,
                               aliases, protocols,
                               NULL, NULL, 1, 1);

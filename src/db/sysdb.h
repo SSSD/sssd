@@ -814,6 +814,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
                              bool enumerated);
 
 errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            const char *name,
                            enum sysdb_member_type type,
                            char **remove_attrs);

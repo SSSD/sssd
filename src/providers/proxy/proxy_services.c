@@ -29,6 +29,7 @@
 
 errno_t
 proxy_save_service(struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    struct servent *svc,
                    bool lowercase,
                    uint64_t cache_timeout)
@@ -71,7 +72,7 @@ proxy_save_service(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_store_service(sysdb,
+    ret = sysdb_store_service(sysdb, domain,
                               cased_name,
                               ntohs(svc->s_port),
                               cased_aliases,
@@ -120,7 +121,7 @@ get_serv_byname(struct proxy_id_ctx *ctx,
     } else {
 
         /* Results found. Save them into the cache */
-        ret = proxy_save_service(sysdb, result,
+        ret = proxy_save_service(sysdb, dom, result,
                                  !dom->case_sensitive,
                                  dom->service_timeout);
     }
@@ -173,7 +174,7 @@ get_serv_byport(struct proxy_id_ctx *ctx,
         ret = sysdb_svc_delete(sysdb, NULL, port, protocol);
     } else {
         /* Results found. Save them into the cache */
-        ret = proxy_save_service(sysdb, result,
+        ret = proxy_save_service(sysdb, dom, result,
                                  !dom->case_sensitive,
                                  dom->service_timeout);
     }
@@ -302,7 +303,7 @@ enum_services(struct proxy_id_ctx *ctx,
                     break;
                 }
 
-                ret = sysdb_store_service(sysdb,
+                ret = sysdb_store_service(sysdb, dom,
                         svc->s_name,
                         svc->s_port,
                         cased_aliases,

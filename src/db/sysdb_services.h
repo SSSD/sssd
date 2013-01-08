@@ -66,6 +66,7 @@ sysdb_enumservent(TALLOC_CTX *mem_ctx,
 
 errno_t
 sysdb_store_service(struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
                     const char *primary_name,
                     int port,
                     const char **aliases,

@@ -1582,7 +1582,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
     ret = sysdb_set_netgroup_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
 
     if (missing) {
-        ret = sysdb_remove_attrs(sysdb, name,
+        ret = sysdb_remove_attrs(sysdb, domain, name,
                                  SYSDB_MEMBER_NETGROUP,
                                  missing);
         if (ret != EOK) {
@@ -1742,7 +1742,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
     if (ret != EOK) goto fail;
 
     if (remove_attrs) {
-        ret = sysdb_remove_attrs(sysdb, name,
+        ret = sysdb_remove_attrs(sysdb, domain, name,
                                     SYSDB_MEMBER_USER,
                                     remove_attrs);
         if (ret != EOK) {
@@ -3070,6 +3070,7 @@ done:
 }
 
 errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            const char *name,
                            enum sysdb_member_type type,
                            char **remove_attrs)
@@ -3086,19 +3087,19 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
 
     switch(type) {
     case SYSDB_MEMBER_USER:
-        msg->dn = sysdb_user_dn(sysdb, msg, sysdb->domain, name);
+        msg->dn = sysdb_user_dn(sysdb, msg, domain, name);
         break;
 
     case SYSDB_MEMBER_GROUP:
-        msg->dn = sysdb_group_dn(sysdb, msg, sysdb->domain, name);
+        msg->dn = sysdb_group_dn(sysdb, msg, domain, name);
         break;
 
     case SYSDB_MEMBER_NETGROUP:
-        msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain, name);
+        msg->dn = sysdb_netgroup_dn(sysdb, msg, domain, name);
         break;
 
     case SYSDB_MEMBER_SERVICE:
-        msg->dn = sysdb_svc_dn(sysdb, msg, sysdb->domain->name, name);
+        msg->dn = sysdb_svc_dn(sysdb, msg, domain->name, name);
         break;
     }
     if (!msg->dn) {
