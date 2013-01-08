@@ -29,6 +29,7 @@ errno_t ipa_save_host(struct sysdb_ctx *sysdb,
                       struct sysdb_attrs *host);
 
 errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            size_t map_count,
                            struct sysdb_attrs **maps);
 

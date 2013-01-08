@@ -28,6 +28,7 @@
 
 
 errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            size_t map_count,
                            struct sysdb_attrs **maps)
 {
@@ -44,7 +45,7 @@ errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     for (i = 0; i < map_count; i++) {
-        ret = sysdb_store_selinux_usermap(sysdb, maps[i]);
+        ret = sysdb_store_selinux_usermap(sysdb, domain, maps[i]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user map %d. "
                                       "Ignoring.\n", i));

@@ -42,34 +42,41 @@ enum selinux_entity_type {
 };
 
 errno_t sysdb_store_selinux_usermap(struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
                                     struct sysdb_attrs *attrs);
 
 errno_t sysdb_store_selinux_config(struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
                                    const char *default_map,
                                    const char *order);
 
 errno_t sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
                                    struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
                                    const char **attrs,
                                    size_t *count,
                                    struct ldb_message ***messages);
 
 errno_t sysdb_search_selinux_usermap_by_mapname(TALLOC_CTX *mem_ctx,
                                                 struct sysdb_ctx *sysdb,
+                                                struct sss_domain_info *domain,
                                                 const char *name,
                                                 const char **attrs,
                                                 struct ldb_message **_usermap);
 
 errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
+                                                 struct sss_domain_info *domain,
                                                  const char *username,
                                                  struct ldb_message ***_usermaps);
 
 errno_t sysdb_search_selinux_config(TALLOC_CTX *mem_ctx,
                                     struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
                                     const char **attrs,
                                     struct ldb_message **_config);
 
-errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb);
+errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain);
 
 #endif

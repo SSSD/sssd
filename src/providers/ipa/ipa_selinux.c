@@ -215,20 +215,21 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     }
     in_transaction = true;
 
-    ret = sysdb_delete_usermaps(breq->sysdb);
+    ret = sysdb_delete_usermaps(breq->sysdb, breq->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Cannot delete existing maps from sysdb\n"));
         goto fail;
     }
 
-    ret = sysdb_store_selinux_config(sysdb, default_user, map_order);
+    ret = sysdb_store_selinux_config(sysdb, breq->be_ctx->domain,
+                                     default_user, map_order);
     if (ret != EOK) {
         goto fail;
     }
 
     if (map_count > 0 && maps != NULL) {
-        ret = ipa_save_user_maps(sysdb, map_count, maps);
+        ret = ipa_save_user_maps(sysdb, breq->be_ctx->domain, map_count, maps);
         if (ret != EOK) {
             goto fail;
         }
@@ -595,6 +596,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
 
     /* read the config entry */
     ret = sysdb_search_selinux_config(state, state->be_req->be_ctx->sysdb,
+                                      state->be_req->be_ctx->domain,
                                       NULL, &defaults);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_selinux_config failed [%d]: %s\n",
@@ -628,6 +630,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
 
     /* read all the SELinux rules */
     ret = sysdb_get_selinux_usermaps(state, state->be_req->be_ctx->sysdb,
+                                     state->be_req->be_ctx->domain,
                                      attrs, &nmaps, &maps);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_selinux_usermaps failed [%d]: %s\n",

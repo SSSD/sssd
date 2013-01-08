@@ -526,7 +526,8 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
         goto done;
     }
 
-    ret = sysdb_search_selinux_config(tmp_ctx, sysdb, NULL, &config);
+    ret = sysdb_search_selinux_config(tmp_ctx, sysdb,
+                                      preq->domain, NULL, &config);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("No SELinux support found for the domain\n"));
         ret = EOK;
@@ -592,7 +593,8 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
     }
 
     /* Fetch all maps applicable to the user who is currently logging in */
-    ret = sysdb_search_selinux_usermap_by_username(tmp_ctx, sysdb, pd->user,
+    ret = sysdb_search_selinux_usermap_by_username(tmp_ctx, sysdb,
+                                                   preq->domain, pd->user,
                                                    &usermaps);
     if (ret != EOK && ret != ENOENT) {
         goto done;
