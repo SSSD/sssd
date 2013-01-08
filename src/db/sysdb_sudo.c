@@ -656,7 +656,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
     NULL_CHECK(tmp_ctx, ret, done);
 
     /* match entries based on the filter and remove them one by one */
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
     if (ret == ENOENT) {

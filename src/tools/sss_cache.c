@@ -47,6 +47,7 @@ enum sss_cache_entry {
 };
 
 static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
                                  const char *sub_filter, const char **attrs,
                                  size_t *msgs_count, struct ldb_message ***msgs);
 
@@ -307,7 +308,8 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         break;
     case TYPE_AUTOFSMAP:
         type_string = "autofs map";
-        ret = search_autofsmaps(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        ret = search_autofsmaps(ctx, sysdb, dinfo,
+                                filter, attrs, &msg_count, &msgs);
         break;
     }
 
@@ -622,11 +624,12 @@ fini:
 
 static errno_t
 search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                  struct sss_domain_info *domain,
                   const char *sub_filter, const char **attrs,
                   size_t *msgs_count, struct ldb_message ***msgs)
 {
 #ifdef BUILD_AUTOFS
-    return sysdb_search_custom(mem_ctx, sysdb, sub_filter,
+    return sysdb_search_custom(mem_ctx, sysdb, domain, sub_filter,
                                AUTOFS_MAP_SUBDIR, attrs,
                                msgs_count, msgs);
 #else

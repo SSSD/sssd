@@ -119,6 +119,7 @@ void ipa_access_handler(struct be_req *be_req);
 
 errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain,
                               size_t *_rule_count,
                               struct sysdb_attrs ***_rules);
 

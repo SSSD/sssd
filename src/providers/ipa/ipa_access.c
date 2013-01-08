@@ -600,6 +600,7 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
 
     /* Get HBAC rules from the sysdb */
     ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx_sysdb(hbac_ctx),
+                                hbac_ctx->be_req->domain,
                                 &hbac_ctx->rule_count, &hbac_ctx->rules);
     if (ret != EOK) {
         DEBUG(1, ("Could not retrieve rules from the cache\n"));
@@ -645,6 +646,7 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
 
 errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
+                              struct sss_domain_info *domain,
                               size_t *_rule_count,
                               struct sysdb_attrs ***_rules)
 {
@@ -680,7 +682,7 @@ errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
                               HBAC_RULES_SUBDIR, attrs,
                               &rule_count, &msgs);
     if (ret != EOK && ret != ENOENT) {

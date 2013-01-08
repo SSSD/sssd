@@ -246,7 +246,8 @@ sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter, SSH_HOSTS_SUBDIR, attrs,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, sysdb->domain, filter,
+                              SSH_HOSTS_SUBDIR, attrs,
                               &num_results, &results);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,

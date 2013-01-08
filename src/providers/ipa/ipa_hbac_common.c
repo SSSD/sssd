@@ -326,6 +326,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the services */
     ret = hbac_service_attrs_to_rule(new_rule,
                                      hbac_ctx_sysdb(hbac_ctx),
+                                     hbac_ctx->be_req->domain,
                                      new_rule->name,
                                      hbac_ctx->rules[idx],
                                      &new_rule->services);
@@ -338,6 +339,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the target hosts */
     ret = hbac_thost_attrs_to_rule(new_rule,
                                    hbac_ctx_sysdb(hbac_ctx),
+                                   hbac_ctx->be_req->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    &new_rule->targethosts);
@@ -351,6 +353,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     ret = hbac_shost_attrs_to_rule(new_rule,
                                    hbac_ctx_sysdb(hbac_ctx),
+                                   hbac_ctx->be_req->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    dp_opt_get_bool(hbac_ctx->ipa_options,

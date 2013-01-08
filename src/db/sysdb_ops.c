@@ -2009,6 +2009,7 @@ fail:
 
 int sysdb_search_custom(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *filter,
                         const char *subtree_name,
                         const char **attrs,
@@ -2022,8 +2023,7 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    basedn = sysdb_custom_subtree_dn(sysdb, mem_ctx,
-                                     sysdb->domain, subtree_name);
+    basedn = sysdb_custom_subtree_dn(sysdb, mem_ctx, domain, subtree_name);
     if (basedn == NULL) {
         DEBUG(1, ("sysdb_custom_subtree_dn failed.\n"));
         return ENOMEM;
@@ -2041,6 +2041,7 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
 
 int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
                                 struct sysdb_ctx *sysdb,
+                                struct sss_domain_info *domain,
                                 const char *object_name,
                                 const char *subtree_name,
                                 const char **attrs,
@@ -2063,7 +2064,7 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
     }
 
     basedn = sysdb_custom_dn(sysdb, tmp_ctx,
-                             sysdb->domain, object_name, subtree_name);
+                             domain, object_name, subtree_name);
     if (basedn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
@@ -2129,7 +2130,7 @@ int sysdb_store_custom(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_search_custom_by_name(tmp_ctx, sysdb,
+    ret = sysdb_search_custom_by_name(tmp_ctx, sysdb, domain,
                                       object_name, subtree_name,
                                       search_attrs, &resp_count, &resp);
     if (ret != EOK && ret != ENOENT) {

@@ -1329,6 +1329,7 @@ START_TEST (test_sysdb_search_custom_by_name)
     fail_unless(object_name != NULL, "talloc_asprintf failed");
 
     ret = sysdb_search_custom_by_name(data, data->ctx->sysdb,
+                                      data->ctx->domain,
                                       object_name,
                                       CUSTOM_TEST_CONTAINER,
                                       data->attrlist,
@@ -1431,6 +1432,7 @@ START_TEST (test_sysdb_search_custom_update)
     fail_unless(object_name != NULL, "talloc_asprintf failed");
 
     ret = sysdb_search_custom_by_name(data, data->ctx->sysdb,
+                                      data->ctx->domain,
                                       object_name,
                                       CUSTOM_TEST_CONTAINER,
                                       data->attrlist,
@@ -1496,7 +1498,7 @@ START_TEST (test_sysdb_search_custom)
     data->attrlist[2] = NULL;
 
     ret = sysdb_search_custom(data, data->ctx->sysdb,
-                              filter,
+                              data->ctx->domain, filter,
                               CUSTOM_TEST_CONTAINER,
                               data->attrlist,
                               &data->msgs_count,

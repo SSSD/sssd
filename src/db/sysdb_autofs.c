@@ -200,7 +200,7 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, sysdb->domain, filter,
                               AUTOFS_MAP_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
@@ -447,7 +447,7 @@ sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb)
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, sysdb->domain, filter,
                               AUTOFS_MAP_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {

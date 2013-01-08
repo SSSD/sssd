@@ -94,6 +94,7 @@ hbac_get_category(struct sysdb_attrs *attrs,
 errno_t
 hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
                          struct hbac_rule_element **thosts);
@@ -101,6 +102,7 @@ hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
 errno_t
 hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
                          bool support_srchost,
@@ -131,6 +133,7 @@ ipa_hbac_service_info_recv(struct tevent_req *req,
 errno_t
 hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            const char *rule_name,
                            struct sysdb_attrs *rule_attrs,
                            struct hbac_rule_element **services);
