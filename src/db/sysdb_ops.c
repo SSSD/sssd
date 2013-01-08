@@ -1831,7 +1831,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
             /* This may be a group rename. If there is a group with the
              * same GID, remove it and try to add the basic group again
              */
-            ret = sysdb_delete_group(sysdb, NULL, gid);
+            ret = sysdb_delete_group(sysdb, domain, NULL, gid);
             if (ret == ENOENT) {
                 /* Not found by GID, return the original EEXIST,
                  * this may be a conflict in MPG domain or something
@@ -2562,6 +2562,7 @@ fail:
 /* =Delete-Group-by-Name-OR-gid=========================================== */
 
 int sysdb_delete_group(struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *name, gid_t gid)
 {
     TALLOC_CTX *tmp_ctx;
@@ -2574,10 +2575,10 @@ int sysdb_delete_group(struct sysdb_ctx *sysdb,
     }
 
     if (name) {
-        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, sysdb->domain,
+        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, domain,
                                          name, NULL, &msg);
     } else {
-        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, sysdb->domain,
+        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, domain,
                                         gid, NULL, &msg);
     }
     if (ret) {

@@ -569,18 +569,3 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
-
-#define CHECK_DOMAIN_INFO(dom_info) do { \
-    if (dom_info == NULL || dom_info->sysdb == NULL) { \
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid domain info.\n")); \
-        return EINVAL; \
-    } \
-} while(0)
-
-errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
-                              const char *name, gid_t gid)
-{
-    CHECK_DOMAIN_INFO(domain);
-
-    return sysdb_delete_group(domain->sysdb, name, gid);
-}

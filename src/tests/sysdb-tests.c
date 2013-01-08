@@ -240,7 +240,8 @@ static int test_remove_nonexistent_group(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_group(data->ctx->sysdb, NULL, data->uid);
+    ret = sysdb_delete_group(data->ctx->sysdb,
+                             data->ctx->domain, NULL, data->uid);
     return ret;
 }
 
@@ -298,7 +299,8 @@ static int test_remove_group_by_gid(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_group(data->ctx->sysdb, NULL, data->gid);
+    ret = sysdb_delete_group(data->ctx->sysdb,
+                             data->ctx->domain, NULL, data->gid);
     if (ret == ENOENT) {
         ret = EOK;
     }
@@ -2799,7 +2801,7 @@ START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
                 2, data->msg->elements[0].num_values);
 
     /* Remove the parent */
-    ret = sysdb_delete_group(data->ctx->sysdb, NULL, delgid);
+    ret = sysdb_delete_group(data->ctx->sysdb, data->ctx->domain, NULL, delgid);
     fail_if(ret != EOK, "Cannot delete group %llu [%d]: %s\n",
             (unsigned long long) data->gid, ret, strerror(ret));
 
@@ -3811,7 +3813,8 @@ START_TEST(test_odd_characters)
 
 
     /* Delete Group */
-    ret = sysdb_delete_group(test_ctx->sysdb, odd_groupname, 20000);
+    ret = sysdb_delete_group(test_ctx->sysdb, test_ctx->domain,
+                             odd_groupname, 20000);
     fail_unless(ret == EOK, "sysdb_delete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -4507,7 +4510,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_delete_domgroup(subdomain, "subdomgroup", 12345);
+    ret = sysdb_delete_group(subdomain->sysdb, subdomain, "subdomgroup", 12345);
     fail_unless(ret == EOK, "sysdb_delete_domgroup failed with [%d][%s].",
                             ret, strerror(ret));
 

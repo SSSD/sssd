@@ -551,7 +551,8 @@ static void groups_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         case BE_FILTER_NAME:
-            ret = sysdb_delete_group(state->sysdb, state->name, 0);
+            ret = sysdb_delete_group(state->sysdb,
+                                     state->domain, state->name, 0);
             if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
@@ -565,7 +566,8 @@ static void groups_get_done(struct tevent_req *subreq)
                 return;
             }
 
-            ret = sysdb_delete_group(state->sysdb, NULL, gid);
+            ret = sysdb_delete_group(state->sysdb,
+                                     state->domain, NULL, gid);
             if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;

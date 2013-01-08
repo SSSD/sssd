@@ -479,7 +479,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             }
 
             DEBUG(8, ("About to delete group %s\n", name));
-            ret = sysdb_delete_group(sysdb, name, 0);
+            ret = sysdb_delete_group(sysdb, domain, name, 0);
             if (ret) {
                 DEBUG(2, ("Group delete returned %d (%s)\n",
                           ret, strerror(ret)));

@@ -872,7 +872,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
               ("Group %s does not exist (or is invalid) on remote server,"
                " deleting!\n", name));
 
-        ret = sysdb_delete_group(sysdb, NULL, gid);
+        ret = sysdb_delete_group(sysdb, dom, NULL, gid);
         if (ret == ENOENT) {
             ret = EOK;
         }
@@ -944,7 +944,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
               ("Group %d does not exist (or is invalid) on remote server,"
                " deleting!\n", gid));
 
-        ret = sysdb_delete_group(sysdb, NULL, gid);
+        ret = sysdb_delete_group(sysdb, dom, NULL, gid);
         if (ret == ENOENT) {
             ret = EOK;
         }

@@ -384,9 +384,6 @@ errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
 errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
                                      struct sysdb_subdom *domain_info);
 
-errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
-                              const char *name, gid_t gid);
-
 errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                              size_t *range_count,
                              struct range_info ***range_list);
@@ -769,6 +766,7 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
                         struct ldb_message ***msgs);
 
 int sysdb_delete_group(struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *name, gid_t gid);
 
 int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
