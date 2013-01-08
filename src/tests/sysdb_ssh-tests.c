@@ -173,6 +173,7 @@ static int test_sysdb_store_ssh_host(struct test_data *data)
     time_t now = time(NULL);
 
     ret = sysdb_store_ssh_host(data->ctx->sysdb,
+                               data->ctx->domain,
                                data->hostname,
                                data->alias,
                                now,
@@ -184,7 +185,8 @@ static int test_sysdb_delete_ssh_host(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_ssh_host(data->ctx->sysdb, data->hostname);
+    ret = sysdb_delete_ssh_host(data->ctx->sysdb,
+                                data->ctx->domain, data->hostname);
     return ret;
 }
 
@@ -194,7 +196,7 @@ static int test_sysdb_get_ssh_host(struct test_data *data)
     const char *attrs[] = { SYSDB_NAME, NULL };
 
     ret = sysdb_get_ssh_host(data->ctx, data->ctx->sysdb,
-                             data->hostname, attrs,
+                             data->ctx->domain, data->hostname, attrs,
                              &data->host);
 
     return ret;

@@ -25,12 +25,13 @@
 
 static errno_t
 sysdb_update_ssh_host(struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *domain,
                       const char *name,
                       struct sysdb_attrs *attrs)
 {
     errno_t ret;
 
-    ret = sysdb_store_custom(sysdb, sysdb->domain, name, SSH_HOSTS_SUBDIR, attrs);
+    ret = sysdb_store_custom(sysdb, domain, name, SSH_HOSTS_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Error storing host %s [%d]: %s\n", name, ret, strerror(ret)));
@@ -42,6 +43,7 @@ sysdb_update_ssh_host(struct sysdb_ctx *sysdb,
 
 errno_t
 sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      const char *alias,
                      time_t now,
@@ -71,7 +73,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
     in_transaction = true;
 
-    ret = sysdb_get_ssh_host(tmp_ctx, sysdb, name, search_attrs, &host);
+    ret = sysdb_get_ssh_host(tmp_ctx, sysdb, domain, name, search_attrs, &host);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
@@ -146,7 +148,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_update_ssh_host(sysdb, name, attrs);
+    ret = sysdb_update_ssh_host(sysdb, domain, name, attrs);
     if (ret != EOK) {
         goto done;
     }
@@ -176,6 +178,7 @@ done:
 
 errno_t
 sysdb_update_ssh_known_host_expire(struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
                                    const char *name,
                                    time_t now,
                                    int known_hosts_timeout)
@@ -207,7 +210,7 @@ sysdb_update_ssh_known_host_expire(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_update_ssh_host(sysdb, name, attrs);
+    ret = sysdb_update_ssh_host(sysdb, domain, name, attrs);
     if (ret != EOK) {
         goto done;
     }
@@ -222,15 +225,17 @@ done:
 
 errno_t
 sysdb_delete_ssh_host(struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *domain,
                       const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting host %s\n", name));
-    return sysdb_delete_custom(sysdb, sysdb->domain, name, SSH_HOSTS_SUBDIR);
+    return sysdb_delete_custom(sysdb, domain, name, SSH_HOSTS_SUBDIR);
 }
 
 static errno_t
 sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *filter,
                        const char **attrs,
                        struct ldb_message ***hosts,
@@ -246,7 +251,7 @@ sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, sysdb->domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
                               SSH_HOSTS_SUBDIR, attrs,
                               &num_results, &results);
     if (ret != EOK && ret != ENOENT) {
@@ -274,6 +279,7 @@ done:
 errno_t
 sysdb_get_ssh_host(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
                    const char *name,
                    const char **attrs,
                    struct ldb_message **host)
@@ -295,7 +301,7 @@ sysdb_get_ssh_host(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, filter, attrs,
+    ret = sysdb_search_ssh_hosts(tmp_ctx, sysdb, domain, filter, attrs,
                                  &hosts, &num_hosts);
     if (ret != EOK) {
         goto done;
@@ -320,6 +326,7 @@ done:
 errno_t
 sysdb_get_ssh_known_hosts(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           time_t now,
                           const char **attrs,
                           struct ldb_message ***hosts,
@@ -341,7 +348,7 @@ sysdb_get_ssh_known_hosts(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_ssh_hosts(mem_ctx, sysdb, filter, attrs,
+    ret = sysdb_search_ssh_hosts(mem_ctx, sysdb, domain, filter, attrs,
                                  hosts, num_hosts);
 
 done:
