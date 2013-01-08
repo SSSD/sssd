@@ -28,8 +28,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *flat_name,
                                       const char *id)
 {
-    int ret;
-    struct sss_domain_info *dom = NULL;
+    struct sss_domain_info *dom;
 
     dom = talloc_zero(mem_ctx, struct sss_domain_info);
     if (dom == NULL) {
@@ -94,11 +93,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE, ("Missing sysdb context in parent domain.\n"));
         goto fail;
     }
-    ret = sysdb_get_subdomain_context(dom, parent->sysdb, dom, &dom->sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_subdomain_context failed.\n"));
-        goto fail;
-    }
+    dom->sysdb = parent->sysdb;
 
     return dom;
 

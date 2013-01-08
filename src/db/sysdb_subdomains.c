@@ -547,23 +547,3 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
-
-errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
-                                    struct sysdb_ctx *sysdb,
-                                    struct sss_domain_info *subdomain,
-                                    struct sysdb_ctx **subdomain_ctx)
-{
-    struct sysdb_ctx *new_ctx;
-
-    new_ctx = talloc_zero(mem_ctx, struct sysdb_ctx);
-    if (new_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    new_ctx->ldb = sysdb->ldb;
-    new_ctx->ldb_file = sysdb->ldb_file;
-
-    *subdomain_ctx = new_ctx;
-
-    return EOK;
-}
