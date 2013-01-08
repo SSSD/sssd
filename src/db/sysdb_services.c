@@ -55,27 +55,18 @@ sysdb_getservbyname(TALLOC_CTX *mem_ctx,
                     struct ldb_result **_res)
 {
     errno_t ret;
-    int lret;
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_SVC_ATTRS;
-    struct ldb_dn *base_dn;
-    struct ldb_result *res;
     char *sanitized_name;
     char *sanitized_proto;
-
-    *_res = NULL;
+    char *subfilter;
+    struct ldb_result *res = NULL;
+    struct ldb_message **msgs;
+    size_t msgs_count;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
-    }
-
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_SVC_BASE,
-                             sysdb->domain->name);
-    if (!base_dn) {
-        ret = ENOMEM;
-        goto done;
     }
 
     ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
@@ -90,24 +81,27 @@ sysdb_getservbyname(TALLOC_CTX *mem_ctx,
         }
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, attrs,
-                      SYSDB_SVC_BYNAME_FILTER,
-                      proto?sanitized_proto:"*",
-                      sanitized_name, sanitized_name);
-    if (lret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(lret);
+    subfilter = talloc_asprintf(tmp_ctx, SYSDB_SVC_BYNAME_FILTER,
+                                proto ? sanitized_proto : "*",
+                                sanitized_name, sanitized_name);
+    if (!subfilter) {
+        ret = ENOMEM;
         goto done;
     }
 
-    if (res->count == 0) {
-        ret = ENOENT;
-        goto done;
+    ret = sysdb_search_services(mem_ctx, sysdb, subfilter,
+                                attrs, &msgs_count, &msgs);
+    if (ret == EOK) {
+        res = talloc_zero(mem_ctx, struct ldb_result);
+        if (!res) {
+            ret = ENOMEM;
+            goto done;
+        }
+        res->count = msgs_count;
+        res->msgs = talloc_steal(res, msgs);
     }
 
-    *_res = talloc_steal(mem_ctx, res);
-
-    ret = EOK;
+    *_res = res;
 
 done:
     talloc_free(tmp_ctx);
@@ -122,12 +116,13 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
                     struct ldb_result **_res)
 {
     errno_t ret;
-    int lret;
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_SVC_ATTRS;
-    struct ldb_dn *base_dn;
-    struct ldb_result *res;
     char *sanitized_proto = NULL;
+    char *subfilter;
+    struct ldb_result *res = NULL;
+    struct ldb_message **msgs;
+    size_t msgs_count;
 
     if (port <= 0) {
         return EINVAL;
@@ -138,14 +133,6 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_SVC_BASE,
-                             sysdb->domain->name);
-    if (!base_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     if (proto) {
         ret = sss_filter_sanitize(tmp_ctx, proto, &sanitized_proto);
         if (ret != EOK) {
@@ -153,24 +140,28 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         }
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, attrs,
-                      SYSDB_SVC_BYPORT_FILTER,
-                      sanitized_proto?sanitized_proto:"*",
-                      (unsigned int) port);
-    if (lret) {
-        ret = sysdb_error_to_errno(lret);
+    subfilter = talloc_asprintf(tmp_ctx, SYSDB_SVC_BYPORT_FILTER,
+                                proto ? sanitized_proto : "*",
+                                (unsigned int) port);
+    if (!subfilter) {
+        ret = ENOMEM;
         goto done;
     }
 
-    if (res->count == 0) {
-        ret = ENOENT;
-        goto done;
+    ret = sysdb_search_services(mem_ctx, sysdb, subfilter,
+                                attrs, &msgs_count, &msgs);
+    if (ret == EOK) {
+        res = talloc_zero(mem_ctx, struct ldb_result);
+        if (!res) {
+            ret = ENOMEM;
+            goto done;
+        }
+        res->count = msgs_count;
+        res->msgs = talloc_steal(res, msgs);
     }
 
-    *_res = talloc_steal(mem_ctx, res);
+    *_res = res;
 
-    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);
@@ -732,43 +723,30 @@ sysdb_enumservent(TALLOC_CTX *mem_ctx,
                   struct ldb_result **_res)
 {
     errno_t ret;
-    int lret;
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_SVC_ATTRS;
-    struct ldb_dn *base_dn;
-    struct ldb_result *res;
-
-    *_res = NULL;
+    struct ldb_result *res = NULL;
+    struct ldb_message **msgs;
+    size_t msgs_count;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_SVC_BASE,
-                             sysdb->domain->name);
-    if (!base_dn) {
-        ret = ENOMEM;
-        goto done;
+    ret = sysdb_search_services(mem_ctx, sysdb, "",
+                                attrs, &msgs_count, &msgs);
+    if (ret == EOK) {
+        res = talloc_zero(mem_ctx, struct ldb_result);
+        if (!res) {
+            ret = ENOMEM;
+            goto done;
+        }
+        res->count = msgs_count;
+        res->msgs = talloc_steal(res, msgs);
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, attrs,
-                      SYSDB_SC);
-    if (lret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(lret);
-        goto done;
-    }
-
-    if (res->count == 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    *_res = talloc_steal(mem_ctx, res);
-
-    ret = EOK;
+    *_res = res;
 
 done:
     talloc_free(tmp_ctx);
