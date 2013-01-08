@@ -845,16 +845,15 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
 #define SYSDB_TMPL_IDMAP_BASE SYSDB_IDMAP_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_IDMAP SYSDB_IDMAP_SID_ATTR"=%s,"SYSDB_TMPL_IDMAP_BASE
 
-struct ldb_dn *sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                              const char *object_sid);
-
 errno_t sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   const char *dom_name,
                                   const char *dom_sid,
                                   id_t slice_num);
 
 errno_t sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                                  struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
                                  struct ldb_result **_result);
 
 #endif /* __SYS_DB_H__ */

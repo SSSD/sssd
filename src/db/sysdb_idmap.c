@@ -24,9 +24,9 @@
 #include "db/sysdb.h"
 #include "db/sysdb_private.h"
 
-struct ldb_dn *
+static struct ldb_dn *
 sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-               const char *object_sid)
+               struct sss_domain_info *domain, const char *object_sid)
 {
     errno_t ret;
     char *clean_sid;
@@ -37,11 +37,10 @@ sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         return NULL;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL,
-          (SYSDB_TMPL_IDMAP"\n", clean_sid, sysdb->domain->name));
+    DEBUG(SSSDBG_TRACE_ALL, (SYSDB_TMPL_IDMAP"\n", clean_sid, domain->name));
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_IDMAP,
-                        clean_sid, sysdb->domain->name);
+                        clean_sid, domain->name);
     talloc_free(clean_sid);
 
     return dn;
@@ -49,6 +48,7 @@ sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
 errno_t
 sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           const char *dom_name,
                           const char *dom_sid,
                           id_t slice_num)
@@ -68,7 +68,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    dn = sysdb_idmap_dn(tmp_ctx, sysdb, dom_sid);
+    dn = sysdb_idmap_dn(tmp_ctx, sysdb, domain, dom_sid);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -277,6 +277,7 @@ done:
 errno_t
 sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                          struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
                          struct ldb_result **_result)
 {
     errno_t ret;
@@ -289,12 +290,10 @@ sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    DEBUG(SSSDBG_TRACE_ALL,
-          (SYSDB_TMPL_IDMAP_BASE"\n", sysdb->domain->name));
+    DEBUG(SSSDBG_TRACE_ALL, (SYSDB_TMPL_IDMAP_BASE"\n", domain->name));
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_IDMAP_BASE,
-                             sysdb->domain->name);
+                             SYSDB_TMPL_IDMAP_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;

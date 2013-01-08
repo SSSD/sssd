@@ -80,7 +80,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Read in any existing mappings from the cache */
-    ret = sysdb_idmap_get_mappings(tmp_ctx, sysdb, &res);
+    ret = sysdb_idmap_get_mappings(tmp_ctx, sysdb, id_ctx->be->domain, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Could not read ID mappings from the cache: [%s]\n",
@@ -314,6 +314,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
 
     /* Add this domain to the SYSDB cache so it will survive reboot */
     ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->sysdb,
+                                    idmap_ctx->id_ctx->be->domain,
                                     dom_name, dom_sid,
                                     new_slice->slice_num);
 done:
