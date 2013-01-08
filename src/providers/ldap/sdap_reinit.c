@@ -211,7 +211,7 @@ static void sdap_reinit_cleanup_done(struct tevent_req *subreq)
      * process on the next SSSD service restart (to avoid
      * slowing down system boot-up
      */
-    ret = sysdb_set_enumerated(state->sysdb, true);
+    ret = sysdb_set_enumerated(state->sysdb, state->domain, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not mark domain as having "
                                      "enumerated.\n"));

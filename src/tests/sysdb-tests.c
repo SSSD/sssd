@@ -4224,20 +4224,18 @@ START_TEST(test_sysdb_has_enumerated)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_has_enumerated(test_ctx->sysdb, &enumerated);
+    ret = sysdb_has_enumerated(test_ctx->sysdb, test_ctx->domain, &enumerated);
     fail_if(ret != EOK, "Error [%d][%s] checking enumeration",
                         ret, strerror(ret));
 
     fail_if(enumerated, "Enumeration should default to false");
 
-    ret = sysdb_set_enumerated(test_ctx->sysdb,
-                               true);
+    ret = sysdb_set_enumerated(test_ctx->sysdb, test_ctx->domain, true);
     fail_if(ret != EOK, "Error [%d][%s] setting enumeration",
                         ret, strerror(ret));
 
     /* Recheck enumeration status */
-    ret = sysdb_has_enumerated(test_ctx->sysdb,
-                               &enumerated);
+    ret = sysdb_has_enumerated(test_ctx->sysdb, test_ctx->domain, &enumerated);
     fail_if(ret != EOK, "Error [%d][%s] checking enumeration",
                         ret, strerror(ret));
 

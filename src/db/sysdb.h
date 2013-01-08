@@ -806,9 +806,11 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
                        bool value);
 
 errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              bool *has_enumerated);
 
 errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              bool enumerated);
 
 errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,

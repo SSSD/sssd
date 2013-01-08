@@ -1492,6 +1492,7 @@ done:
 }
 
 errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              bool *has_enumerated)
 {
     errno_t ret;
@@ -1505,9 +1506,7 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                        SYSDB_DOM_BASE,
-                        sysdb->domain->name);
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -1521,6 +1520,7 @@ done:
 }
 
 errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              bool enumerated)
 {
     errno_t ret;
@@ -1533,15 +1533,13 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                        SYSDB_DOM_BASE,
-                        sysdb->domain->name);
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_set_bool(sysdb, dn, sysdb->domain->name,
+    ret = sysdb_set_bool(sysdb, dn, domain->name,
                          SYSDB_HAS_ENUMERATED, enumerated);
 
 done:
