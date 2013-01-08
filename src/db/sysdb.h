@@ -725,38 +725,6 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              const char *const *add_groups,
                              const char *const *del_groups);
 
-errno_t sysdb_add_netgroup_tuple(struct sysdb_ctx *sysdb,
-                                 const char *netgroup,
-                                 const char *hostname,
-                                 const char *username,
-                                 const char *domainname);
-
-errno_t sysdb_remove_netgroup_tuple(struct sysdb_ctx *sysdb,
-                                    const char *netgroup,
-                                    const char *hostname,
-                                    const char *username,
-                                    const char *domainname);
-
-errno_t sysdb_mod_netgroup_tuple(struct sysdb_ctx *sysdb,
-                                 const char *netgroup,
-                                 const char *hostname,
-                                 const char *username,
-                                 const char *domainname,
-                                 int mod_op);
-
-errno_t sysdb_add_netgroup_member(struct sysdb_ctx *sysdb,
-                                  const char *netgroup,
-                                  const char *member_netgroup);
-
-errno_t sysdb_remove_netgroup_member(struct sysdb_ctx *sysdb,
-                                     const char *netgroup,
-                                     const char *member_netgroup);
-
-errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
-                                  const char *netgroup,
-                                  const char *member_netgroup,
-                                  int mod_op);
-
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
  * If you are not in a transaction pass NULL in handle and provide sysdb,
