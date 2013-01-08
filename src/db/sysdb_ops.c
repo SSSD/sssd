@@ -2346,6 +2346,7 @@ fail:
 
 int sysdb_search_users(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *sub_filter,
                        const char **attrs,
                        size_t *msgs_count,
@@ -2362,7 +2363,7 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, sysdb->domain->name);
+                            SYSDB_TMPL_USER_BASE, domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
         ret = ENOMEM;

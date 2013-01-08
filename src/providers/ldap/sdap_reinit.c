@@ -29,12 +29,15 @@
 #include "db/sysdb_services.h"
 
 struct sdap_reinit_cleanup_state {
+    struct sss_domain_info *domain;
     struct sysdb_ctx *sysdb;
 };
 
-static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb);
+static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain);
 static void sdap_reinit_cleanup_done(struct tevent_req *subreq);
-static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb);
+static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *domain);
 
 struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
                                             struct be_ctx *be_ctx,
@@ -61,6 +64,7 @@ struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
     }
 
     state->sysdb = be_ctx->domain->sysdb;
+    state->domain = be_ctx->domain;
 
     if (!be_ctx->domain->enumerate) {
         /* enumeration is disabled, this whole process is meaningless */
@@ -68,7 +72,7 @@ struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = sdap_reinit_clear_usn(state->sysdb);
+    ret = sdap_reinit_clear_usn(state->sysdb, state->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to clear USN attributes [%d]: %s\n",
                                     ret, strerror(ret)));
@@ -115,7 +119,8 @@ static void sdap_delete_msgs_usn(struct sysdb_ctx *sysdb,
     }
 }
 
-static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb)
+static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     bool in_transaction = false;
@@ -138,7 +143,8 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb)
     in_transaction = true;
 
     /* reset users' usn */
-    ret = sysdb_search_users(tmp_ctx, sysdb, "", attrs, &msgs_num, &msgs);
+    ret = sysdb_search_users(tmp_ctx, sysdb, domain,
+                             "", attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -211,7 +217,7 @@ static void sdap_reinit_cleanup_done(struct tevent_req *subreq)
         /* This error is non-fatal, so continue */
     }
 
-    ret = sdap_reinit_delete_records(state->sysdb);
+    ret = sdap_reinit_delete_records(state->sysdb, state->domain);
     if (ret != EOK) {
         goto fail;
     }
@@ -239,7 +245,8 @@ static void sdap_delete_msgs_dn(struct sysdb_ctx *sysdb,
     }
 }
 
-static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb)
+static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     bool in_transaction = false;
@@ -262,7 +269,7 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb)
     in_transaction = true;
 
     /* purge untouched users */
-    ret = sysdb_search_users(tmp_ctx, sysdb, "(!("SYSDB_USN"=*))",
+    ret = sysdb_search_users(tmp_ctx, sysdb, domain, "(!("SYSDB_USN"=*))",
                              attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;

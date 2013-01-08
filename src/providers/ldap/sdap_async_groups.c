@@ -94,6 +94,7 @@ done:
 
 static errno_t
 sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
                                   gid_t gid, char ***_localdn, size_t *_ndn)
 {
     static const char *search_attrs[] = { SYSDB_NAME, NULL };
@@ -113,7 +114,7 @@ sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_search_users(mem_ctx, sysdb, filter,
+    ret = sysdb_search_users(mem_ctx, sysdb, domain, filter,
                              search_attrs, &count, &msgs);
     talloc_free(filter);
     if (ret == ENOENT) {
@@ -148,7 +149,8 @@ sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
 static errno_t
 sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
-                       struct sysdb_ctx *sysdb, struct sdap_options *opts,
+                       struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                       struct sdap_options *opts,
                        char ***_dn_list, size_t *_count)
 {
     gid_t gid;
@@ -166,7 +168,7 @@ sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
         return ret;
     }
 
-    ret = sdap_get_members_with_primary_gid(mem_ctx, sysdb, gid,
+    ret = sdap_get_members_with_primary_gid(mem_ctx, sysdb, domain, gid,
                                             _dn_list, _count);
     if (ret) return ret;
 
@@ -660,7 +662,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
      * are reported with tokenGroups, too
      */
     if (opts->schema_type == SDAP_SCHEMA_AD) {
-        ret = sdap_dn_by_primary_gid(memctx, attrs, ctx, opts,
+        ret = sdap_dn_by_primary_gid(memctx, attrs, ctx, dom, opts,
                                      &userdns, &nuserdns);
         if (ret != EOK) {
             goto fail;
@@ -1201,7 +1203,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         goto done;
     }
 
-    ret = sysdb_search_users(tmp_ctx, state->sysdb, filter,
+    ret = sysdb_search_users(tmp_ctx, state->sysdb, state->dom, filter,
                              attrs, &count, &msgs);
     if (ret == EOK && count > 0) {
         /* Entry exists but the group references it with an alias. */
@@ -2147,7 +2149,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = sysdb_search_users(tmp_ctx, sysdb, filter,
+        ret = sysdb_search_users(tmp_ctx, sysdb, domain, filter,
                                  search_attrs, &count, &msgs);
         talloc_zfree(filter);
         talloc_zfree(clean_orig_dn);
@@ -2981,7 +2983,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
     }
 
     /* Try users first */
-    ret = sysdb_search_users(tmp_ctx, sysdb, filter, attrs, &count, &msgs);
+    ret = sysdb_search_users(tmp_ctx, sysdb, dom, filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         ret = EIO;
         goto fail;

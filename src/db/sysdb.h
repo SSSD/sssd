@@ -755,6 +755,7 @@ int sysdb_asq_search(TALLOC_CTX *mem_ctx,
 
 int sysdb_search_users(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *sub_filter,
                        const char **attrs,
                        size_t *msgs_count,

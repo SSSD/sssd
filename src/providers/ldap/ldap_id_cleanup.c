@@ -290,7 +290,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
         goto done;
     }
 
-    ret = sysdb_search_users(tmpctx, sysdb,
+    ret = sysdb_search_users(tmpctx, sysdb, ctx->be->domain,
                              subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {

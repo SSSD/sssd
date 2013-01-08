@@ -292,7 +292,8 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     switch (entry_type) {
     case TYPE_USER:
         type_string = "user";
-        ret = sysdb_search_users(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        ret = sysdb_search_users(ctx, sysdb, dinfo,
+                                 filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_GROUP:
         type_string = "group";

@@ -149,6 +149,7 @@ done:
 errno_t
 hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
                         const char *rule_name,
                         struct sysdb_attrs *rule_attrs,
                         struct hbac_rule_element **users)
@@ -231,7 +232,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
         }
 
         /* First check if this is a user */
-        ret = sysdb_search_users(tmp_ctx, sysdb, filter, attrs, &count, &msgs);
+        ret = sysdb_search_users(tmp_ctx, sysdb, domain,
+                                 filter, attrs, &count, &msgs);
         if (ret != EOK && ret != ENOENT) goto done;
         if (ret == EOK && count == 0) {
             ret = ENOENT;
