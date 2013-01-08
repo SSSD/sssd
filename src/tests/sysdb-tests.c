@@ -473,7 +473,7 @@ static int test_add_basic_netgroup(struct test_data *data)
 
     description = talloc_asprintf(data, "Test Netgroup %d", data->uid);
 
-    ret = sysdb_add_basic_netgroup(data->ctx->sysdb,
+    ret = sysdb_add_basic_netgroup(data->ctx->sysdb, data->ctx->domain,
                                    data->netgrname, description);
     return ret;
 }
@@ -3799,7 +3799,7 @@ START_TEST(test_odd_characters)
 
     /* ===== Netgroups ===== */
     /* Add */
-    ret = sysdb_add_netgroup(test_ctx->sysdb,
+    ret = sysdb_add_netgroup(test_ctx->sysdb, test_ctx->domain,
                              odd_netgroupname, "No description",
                              NULL, NULL, 30, 0);
     fail_unless(ret == EOK, "sysdb_add_netgroup error [%d][%s]",

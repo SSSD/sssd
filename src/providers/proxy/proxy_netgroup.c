@@ -67,6 +67,7 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
 }
 
 static errno_t save_netgroup(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              const char *name,
                              struct sysdb_attrs *attrs,
                              bool lowercase,
@@ -90,7 +91,8 @@ static errno_t save_netgroup(struct sysdb_ctx *sysdb,
         }
     }
 
-    ret = sysdb_add_netgroup(sysdb, name, NULL, attrs, NULL, cache_timeout, 0);
+    ret = sysdb_add_netgroup(sysdb, domain, name, NULL,
+                             attrs, NULL, cache_timeout, 0);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_add_netgroup failed.\n"));
         return ret;
@@ -197,7 +199,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-    ret = save_netgroup(sysdb, name, attrs,
+    ret = save_netgroup(sysdb, dom, name, attrs,
                         !dom->case_sensitive,
                         dom->netgroup_timeout);
     if (ret != EOK) {

@@ -1482,6 +1482,7 @@ fail:
 /* =Add-Basic-Netgroup-NO-CHECKS============================================= */
 
 int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              const char *name, const char *description)
 {
     struct ldb_message *msg;
@@ -1493,7 +1494,7 @@ int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
     }
 
     /* netgroup dn */
-    msg->dn = sysdb_netgroup_dn(sysdb, msg, sysdb->domain, name);
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, domain, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
     }
@@ -1531,6 +1532,7 @@ done:
 /* =Add-Netgroup-Function==================================================== */
 
 int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
@@ -1554,7 +1556,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
     }
 
     /* try to add the netgroup */
-    ret = sysdb_add_basic_netgroup(sysdb, name, description);
+    ret = sysdb_add_basic_netgroup(sysdb, domain, name, description);
     if (ret && ret != EEXIST) goto done;
 
     if (!attrs) {
@@ -1577,7 +1579,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_netgroup_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_netgroup_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
 
     if (missing) {
         ret = sysdb_remove_attrs(sysdb, name,

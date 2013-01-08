@@ -643,9 +643,11 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
 
 /* Add netgroup (only basic attrs and w/o checks) */
 int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              const char *name, const char *description);
 
 int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
