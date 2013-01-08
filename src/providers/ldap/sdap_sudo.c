@@ -36,6 +36,7 @@ struct sdap_sudo_full_refresh_state {
     struct sdap_sudo_ctx *sudo_ctx;
     struct sdap_id_ctx *id_ctx;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     int dp_error;
     int error;
 };
@@ -250,7 +251,9 @@ static int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx)
         }
     }
 
-    ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->sysdb, &last_full);
+    ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->sysdb,
+                                           id_ctx->be->domain,
+                                           &last_full);
     if (ret != EOK) {
         return ret;
     }
@@ -553,6 +556,7 @@ static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     state->sudo_ctx = sudo_ctx;
     state->id_ctx = id_ctx;
     state->sysdb = id_ctx->be->sysdb;
+    state->domain = id_ctx->be->domain;
 
     /* Download all rules from LDAP */
     ldap_filter = talloc_asprintf(state, SDAP_SUDO_FILTER_CLASS,
@@ -627,7 +631,8 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     state->sudo_ctx->full_refresh_done = true;
 
     /* save the time in the sysdb */
-    ret = sysdb_sudo_set_last_full_refresh(state->sysdb, time(NULL));
+    ret = sysdb_sudo_set_last_full_refresh(state->sysdb, state->domain,
+                                           time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to save time of "
                                      "a successful full refresh\n"));

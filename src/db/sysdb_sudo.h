@@ -72,19 +72,26 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
                       char **_filter);
 
 errno_t
-sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, const char *username,
-                         struct sysdb_ctx *sysdb, uid_t *_uid,
+sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
+                         const char *username, uid_t *_uid,
                          char ***groupnames);
 
 errno_t
-sysdb_save_sudorule(struct sysdb_ctx *sysdb_ctx,
-                   const char *rule_name,
-                   struct sysdb_attrs *attrs);
+sysdb_save_sudorule(struct sysdb_ctx *sysdb,
+                    struct sss_domain_info *domain,
+                    const char *rule_name,
+                    struct sysdb_attrs *attrs);
 
-errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb, time_t value);
-errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb, time_t *value);
+errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb,
+                                         struct sss_domain_info *domain,
+                                         time_t value);
+errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb,
+                                         struct sss_domain_info *domain,
+                                         time_t *value);
 
 errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
+                                struct sss_domain_info *domain,
                                 const char *name);
 
 errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,

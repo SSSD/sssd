@@ -57,6 +57,7 @@ static errno_t sdap_sudo_get_usn(TALLOC_CTX *mem_ctx,
 static errno_t
 sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *sysdb_ctx,
+                          struct sss_domain_info *domain,
                           struct sdap_attr_map *map,
                           struct sysdb_attrs *attrs,
                           int cache_timeout,
@@ -88,7 +89,7 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sysdb_save_sudorule(sysdb_ctx, rule_name, attrs);
+    ret = sysdb_save_sudorule(sysdb_ctx, domain, rule_name, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not save sudorule %s\n", rule_name));
         return ret;
@@ -100,6 +101,7 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
 errno_t
 sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *sysdb_ctx,
+                               struct sss_domain_info *domain,
                                struct sdap_attr_map *map,
                                struct sysdb_attrs **replies,
                                size_t replies_count,
@@ -129,7 +131,8 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
 
     for (i=0; i<replies_count; i++) {
         usn_value = NULL;
-        ret = sdap_save_native_sudorule(tmp_ctx, sysdb_ctx, map, replies[i],
+        ret = sdap_save_native_sudorule(tmp_ctx, sysdb_ctx,
+                                        domain, map, replies[i],
                                         cache_timeout, now, &usn_value);
         if (ret != EOK) {
             goto fail;

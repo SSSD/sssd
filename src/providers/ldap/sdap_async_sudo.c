@@ -95,6 +95,7 @@ static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
 
 static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
                                    struct sysdb_ctx *sysdb_ctx,
+                                   struct sss_domain_info *domain,
                                    struct sdap_options *opts,
                                    size_t rules_count,
                                    struct sysdb_attrs **rules,
@@ -495,8 +496,9 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
 
     /* store rules */
     now = time(NULL);
-    ret = sdap_sudo_store_sudoers(state, state->sysdb, state->opts, rules_count,
-                                  rules, state->domain->sudo_timeout, now,
+    ret = sdap_sudo_store_sudoers(state, state->sysdb, state->domain,
+                                  state->opts, rules_count, rules,
+                                  state->domain->sudo_timeout, now,
                                   &state->highest_usn);
     if (ret != EOK) {
         goto done;
@@ -560,7 +562,7 @@ static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
                 continue;
             }
 
-            ret = sysdb_sudo_purge_byname(sysdb_ctx, name);
+            ret = sysdb_sudo_purge_byname(sysdb_ctx, dom, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Failed to delete rule %s: [%s]\n",
@@ -589,6 +591,7 @@ done:
 
 static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
                                    struct sysdb_ctx *sysdb_ctx,
+                                   struct sss_domain_info *domain,
                                    struct sdap_options *opts,
                                    size_t rules_count,
                                    struct sysdb_attrs **rules,
@@ -603,8 +606,9 @@ static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
         return EOK;
     }
 
-    ret = sdap_save_native_sudorule_list(mem_ctx, sysdb_ctx, opts->sudorule_map,
-                                         rules, rules_count, cache_timeout, now,
+    ret = sdap_save_native_sudorule_list(mem_ctx, sysdb_ctx, domain,
+                                         opts->sudorule_map, rules,
+                                         rules_count, cache_timeout, now,
                                          _usn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("failed to save sudo rules [%d]: %s\n",
