@@ -201,6 +201,7 @@ struct sss_domain_info {
     int timeout;
     bool enumerate;
     bool fqnames;
+    bool mpg;
     bool ignore_group_members;
     uint32_t id_min;
     uint32_t id_max;

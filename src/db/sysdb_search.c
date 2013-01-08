@@ -227,7 +227,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (sysdb->mpg) {
+    if (domain->mpg) {
         fmt_filter = SYSDB_GRNAM_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_DOM_BASE, domain->name);
@@ -299,7 +299,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (sysdb->mpg) {
+    if (domain->mpg) {
         fmt_filter = SYSDB_GRGID_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_DOM_BASE, domain->name);
@@ -349,7 +349,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (sysdb->mpg) {
+    if (domain->mpg) {
         fmt_filter = SYSDB_GRENT_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                  SYSDB_DOM_BASE, domain->name);

@@ -972,12 +972,6 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     }
     sysdb->domain = domain;
 
-    /* The local provider s the only true MPG,
-     * for the other domains, the provider actually unrolls MPGs */
-    if (strcasecmp(domain->provider, "local") == 0) {
-        sysdb->mpg = true;
-    }
-
     ret = sysdb_get_db_file(sysdb, domain->provider,
                             domain->name, db_path,
                             &sysdb->ldb_file);

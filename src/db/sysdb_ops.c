@@ -1086,7 +1086,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     uint32_t id;
     int ret;
 
-    if (sysdb->mpg) {
+    if (domain->mpg) {
         if (gid != 0) {
             DEBUG(0, ("Cannot add user with arbitrary GID in MPG domain!\n"));
             return EINVAL;
@@ -1120,7 +1120,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
         return ret;
     }
 
-    if (sysdb->mpg) {
+    if (domain->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
@@ -1161,7 +1161,7 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
         ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_UIDNUM, id);
         if (ret) goto done;
 
-        if (sysdb->mpg) {
+        if (domain->mpg) {
             ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_GIDNUM, id);
             if (ret) goto done;
         }
@@ -1300,7 +1300,7 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
         return ret;
     }
 
-    if (sysdb->mpg) {
+    if (domain->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
@@ -1710,7 +1710,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         if (ret) goto fail;
     }
 
-    if (uid && !gid && sysdb->mpg) {
+    if (uid && !gid && domain->mpg) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, uid);
         if (ret) goto fail;
     }

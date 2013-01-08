@@ -84,7 +84,6 @@
 
 struct sysdb_ctx {
     struct sss_domain_info *domain; /* *DEPRECATED*, do not use! */
-    bool mpg;
 
     struct ldb_context *ldb;
     char *ldb_file;

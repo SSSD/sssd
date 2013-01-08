@@ -859,6 +859,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             ret = EINVAL;
             goto done;
         }
+
+        /* The LOCAL provider use always Magic Private Groups */
+        domain->mpg = true;
     }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
