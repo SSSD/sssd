@@ -560,8 +560,6 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    new_ctx->domain = subdomain;
-
     new_ctx->ldb = sysdb->ldb;
     new_ctx->ldb_file = sysdb->ldb_file;
 

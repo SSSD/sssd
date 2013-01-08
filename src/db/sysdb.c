@@ -970,7 +970,6 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     if (!sysdb) {
         return ENOMEM;
     }
-    sysdb->domain = domain;
 
     ret = sysdb_get_db_file(sysdb, domain->provider,
                             domain->name, db_path,

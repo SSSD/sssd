@@ -83,8 +83,6 @@
 #include "db/sysdb.h"
 
 struct sysdb_ctx {
-    struct sss_domain_info *domain; /* *DEPRECATED*, do not use! */
-
     struct ldb_context *ldb;
     char *ldb_file;
 };
