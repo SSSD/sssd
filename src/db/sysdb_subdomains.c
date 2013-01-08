@@ -577,14 +577,6 @@ errno_t sysdb_get_subdomain_context(TALLOC_CTX *mem_ctx,
     } \
 } while(0)
 
-errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
-                             const char *name, uid_t uid)
-{
-    CHECK_DOMAIN_INFO(domain);
-
-    return sysdb_delete_user(domain->sysdb, name, uid);
-}
-
 errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
                               const char *name, gid_t gid)
 {

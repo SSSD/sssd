@@ -388,7 +388,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
                                    pwd->pw_uid, attrs, &msg);
     if (ret == EOK) {
         if (new_and_cached_user_differs(pwd, msg)) {
-            ret = sysdb_delete_user(sysdb, NULL, pwd->pw_uid);
+            ret = sysdb_delete_user(sysdb, pr_ctx->dom, NULL, pwd->pw_uid);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_user failed.\n"));
                 goto done;

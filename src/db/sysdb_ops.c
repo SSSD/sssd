@@ -1673,7 +1673,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
             /* This may be a user rename. If there is a user with the
              * same UID, remove it and try to add the basic user again
              */
-            ret = sysdb_delete_user(sysdb, NULL, uid);
+            ret = sysdb_delete_user(sysdb, domain, NULL, uid);
             if (ret == ENOENT) {
                 /* Not found by UID, return the original EEXIST,
                  * this may be a conflict in MPG domain or something
@@ -2404,6 +2404,7 @@ fail:
 /* =Delete-User-by-Name-OR-uid============================================ */
 
 int sysdb_delete_user(struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *domain,
                       const char *name, uid_t uid)
 {
     TALLOC_CTX *tmp_ctx;
@@ -2421,10 +2422,10 @@ int sysdb_delete_user(struct sysdb_ctx *sysdb,
     }
 
     if (name) {
-        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, sysdb->domain,
+        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
                                         name, NULL, &msg);
     } else {
-        ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, sysdb->domain,
+        ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, domain,
                                        uid, NULL, &msg);
     }
     if (ret == EOK) {

@@ -36,7 +36,9 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
                     struct sss_domain_info *dom, bool *del_user);
 
 static int
-delete_user(struct sysdb_ctx *sysdb, const char *name, uid_t uid);
+delete_user(struct sysdb_ctx *sysdb,
+            struct sss_domain_info *domain,
+            const char *name, uid_t uid);
 
 static int get_pw_name(TALLOC_CTX *mem_ctx,
                        struct proxy_id_ctx *ctx,
@@ -86,7 +88,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, name, 0);
+        ret = delete_user(sysdb, dom, name, 0);
         goto done;
     }
 
@@ -126,7 +128,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, name, uid);
+        ret = delete_user(sysdb, dom, name, uid);
         goto done;
     }
 
@@ -195,14 +197,16 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
 }
 
 static int
-delete_user(struct sysdb_ctx *sysdb, const char *name, uid_t uid)
+delete_user(struct sysdb_ctx *sysdb,
+            struct sss_domain_info *domain,
+            const char *name, uid_t uid)
 {
     int ret = EOK;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("User %s does not exist (or is invalid) on remote server,"
            " deleting!\n", name));
-    ret = sysdb_delete_user(sysdb, name, uid);
+    ret = sysdb_delete_user(sysdb, domain, name, uid);
     if (ret == ENOENT) {
         ret = EOK;
     }
@@ -332,7 +336,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, NULL, uid);
+        ret = delete_user(sysdb, dom, NULL, uid);
         goto done;
     }
 
@@ -1172,7 +1176,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, name, 0);
+        ret = delete_user(sysdb, dom, name, 0);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
             goto fail;
@@ -1216,7 +1220,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, name, uid);
+        ret = delete_user(sysdb, dom, name, uid);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
             goto fail;

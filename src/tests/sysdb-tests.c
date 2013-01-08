@@ -231,7 +231,8 @@ static int test_remove_user_by_uid(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_user(data->ctx->sysdb, NULL, data->uid);
+    ret = sysdb_delete_user(data->ctx->sysdb,
+                            data->ctx->domain, NULL, data->uid);
     return ret;
 }
 
@@ -247,7 +248,8 @@ static int test_remove_nonexistent_user(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_user(data->ctx->sysdb, NULL, data->uid);
+    ret = sysdb_delete_user(data->ctx->sysdb,
+                            data->ctx->domain, NULL, data->uid);
     return ret;
 }
 
@@ -3802,7 +3804,8 @@ START_TEST(test_odd_characters)
     talloc_free(res);
 
     /* Delete User */
-    ret = sysdb_delete_user(test_ctx->sysdb, odd_username, 10000);
+    ret = sysdb_delete_user(test_ctx->sysdb, test_ctx->domain,
+                            odd_username, 10000);
     fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
                             ret, strerror(ret));
 
@@ -4396,7 +4399,7 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_unless(ldb_dn_compare(results->msgs[0]->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_delete_user(subdomain->sysdb, "subdomuser", 0);
+    ret = sysdb_delete_user(subdomain->sysdb, subdomain, "subdomuser", 0);
     fail_unless(ret == EOK, "sysdb_delete_user failed [%d][%s].",
                             ret, strerror(ret));
 
@@ -4454,7 +4457,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_delete_domuser(subdomain, "subdomuser", 12345);
+    ret = sysdb_delete_user(subdomain->sysdb, subdomain, "subdomuser", 12345);
     fail_unless(ret == EOK, "sysdb_delete_domuser failed with [%d][%s].",
                             ret, strerror(ret));
 

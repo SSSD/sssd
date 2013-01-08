@@ -337,7 +337,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
 
         /* If not logged in or cannot check the table, delete him */
         DEBUG(9, ("About to delete user %s\n", name));
-        ret = sysdb_delete_user(sysdb, name, 0);
+        ret = sysdb_delete_user(sysdb, ctx->be->domain, name, 0);
         if (ret) {
             goto done;
         }
