@@ -1610,6 +1610,7 @@ done:
  * this will just remove it */
 
 int sysdb_store_user(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      const char *pwd,
                      uid_t uid, gid_t gid,
@@ -1641,7 +1642,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
         }
     }
 
-    if (pwd && (sysdb->domain->legacy_passwords || !*pwd)) {
+    if (pwd && (domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
         if (ret) goto fail;
     }
@@ -1654,8 +1655,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
 
     in_transaction = true;
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, sysdb->domain,
-                                    name, NULL, &msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain, name, NULL, &msg);
     if (ret && ret != ENOENT) {
         goto fail;
     }
@@ -1667,7 +1667,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
 
     if (ret == ENOENT) {
         /* users doesn't exist, turn into adding a user */
-        ret = sysdb_add_user(sysdb, sysdb->domain, name, uid, gid, gecos, homedir,
+        ret = sysdb_add_user(sysdb, domain, name, uid, gid, gecos, homedir,
                              shell, orig_dn, attrs, cache_timeout, now);
         if (ret == EEXIST) {
             /* This may be a user rename. If there is a user with the
@@ -1686,7 +1686,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A user with the same UID [%llu] was removed from the "
                    "cache\n", (unsigned long long) uid));
-            ret = sysdb_add_user(sysdb, sysdb->domain, name, uid, gid, gecos, homedir,
+            ret = sysdb_add_user(sysdb, domain, name, uid, gid, gecos, homedir,
                                  shell, orig_dn, attrs, cache_timeout, now);
         }
 
@@ -1738,7 +1738,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto fail;
 
-    ret = sysdb_set_user_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
     if (ret != EOK) goto fail;
 
     if (remove_attrs) {

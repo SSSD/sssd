@@ -684,11 +684,10 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = sysdb_store_domuser(state->dom, name, NULL,
-                                      attrs->a.user.pw_uid,
-                                      0, NULL, /* gecos */
-                                      homedir, NULL,
-                                      user_attrs, NULL, timeout, now);
+            ret = sysdb_store_user(state->dom->sysdb, state->dom, name, NULL,
+                                   attrs->a.user.pw_uid, 0, NULL, /* gecos */
+                                   homedir, NULL, NULL, user_attrs, NULL,
+                                   timeout, now);
             break;
         case RESP_GROUP:
             /* we always use the fully qualified name for subdomain users */

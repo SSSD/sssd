@@ -401,7 +401,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = sysdb_store_user(sysdb, pwd->pw_name, NULL,
+    ret = sysdb_store_user(sysdb, pr_ctx->dom, pwd->pw_name, NULL,
                            pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
                            pwd->pw_dir,
                            pwd->pw_shell, NULL, user_attrs, NULL,

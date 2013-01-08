@@ -385,17 +385,6 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
                                      struct sysdb_subdom *domain_info);
 
 
-errno_t sysdb_store_domuser(struct sss_domain_info *domain,
-                            const char *name,
-                            const char *pwd,
-                            uid_t uid, gid_t gid,
-                            const char *gecos,
-                            const char *homedir,
-                            const char *shell,
-                            struct sysdb_attrs *attrs,
-                            char **remove_attrs,
-                            uint64_t cache_timeout,
-                            time_t now);
 errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
                              const char *name, uid_t uid);
 
@@ -662,6 +651,7 @@ int sysdb_mod_group_member(struct sysdb_ctx *sysdb,
                            int mod_op);
 
 int sysdb_store_user(struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      const char *name,
                      const char *pwd,
                      uid_t uid, gid_t gid,

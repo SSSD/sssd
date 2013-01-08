@@ -27,8 +27,8 @@
 
 /* =Getpwnam-wrapper======================================================*/
 
-static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
-                     struct passwd *pwd, const char *real_name,
+static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                     bool lowercase, struct passwd *pwd, const char *real_name,
                      const char *alias, uint64_t cache_timeout);
 
 static int
@@ -131,7 +131,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     }
 
     /* Both lookups went fine, we can save the user now */
-    ret = save_user(sysdb, !dom->case_sensitive, pwd,
+    ret = save_user(sysdb, dom, !dom->case_sensitive, pwd,
                     real_name, name, dom->user_timeout);
 
 done:
@@ -210,8 +210,8 @@ delete_user(struct sysdb_ctx *sysdb, const char *name, uid_t uid)
     return ret;
 }
 
-static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
-                     struct passwd *pwd, const char *real_name,
+static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                     bool lowercase, struct passwd *pwd, const char *real_name,
                      const char *alias, uint64_t cache_timeout)
 {
     const char *shell;
@@ -265,7 +265,7 @@ static int save_user(struct sysdb_ctx *sysdb, bool lowercase,
         }
     }
 
-    ret = sysdb_store_user(sysdb,
+    ret = sysdb_store_user(sysdb, domain,
                            real_name,
                            pwd->pw_passwd,
                            pwd->pw_uid,
@@ -336,7 +336,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_user(sysdb, !dom->case_sensitive, pwd,
+    ret = save_user(sysdb, dom, !dom->case_sensitive, pwd,
                     pwd->pw_name, NULL, dom->user_timeout);
 
 done:
@@ -458,7 +458,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                     break;
                 }
 
-                ret = save_user(sysdb, !dom->case_sensitive, pwd,
+                ret = save_user(sysdb, dom, !dom->case_sensitive, pwd,
                         pwd->pw_name, NULL, dom->user_timeout);
                 if (ret) {
                     /* Do not fail completely on errors.
@@ -1224,7 +1224,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_user(sysdb, !dom->case_sensitive, pwd,
+    ret = save_user(sysdb, dom, !dom->case_sensitive, pwd,
                     real_name, name, dom->user_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not save user\n"));
