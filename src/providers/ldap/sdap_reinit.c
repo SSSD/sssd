@@ -163,7 +163,8 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* reset services' usn */
-    ret = sysdb_search_services(tmp_ctx, sysdb, "", attrs, &msgs_num, &msgs);
+    ret = sysdb_search_services(tmp_ctx, sysdb, domain,
+                                "", attrs, &msgs_num, &msgs);
     sdap_delete_msgs_usn(sysdb, msgs, msgs_num);
     talloc_zfree(msgs);
     msgs_num = 0;
@@ -290,7 +291,7 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* purge untouched services */
-    ret = sysdb_search_services(tmp_ctx, sysdb, "(!("SYSDB_USN"=*))",
+    ret = sysdb_search_services(tmp_ctx, sysdb, domain, "(!("SYSDB_USN"=*))",
                                 attrs, &msgs_num, &msgs);
     sdap_delete_msgs_dn(sysdb, msgs, msgs_num);
     talloc_zfree(msgs);

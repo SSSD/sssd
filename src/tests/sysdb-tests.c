@@ -3869,14 +3869,15 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
 
     if (by_name) {
         /* Look up the service by name */
-        ret = sysdb_getservbyname(test_ctx, test_ctx->sysdb, primary_name,
+        ret = sysdb_getservbyname(test_ctx, test_ctx->sysdb,
+                                  test_ctx->domain, primary_name,
                                   NULL, &res);
         fail_if(ret != EOK, "sysdb_getservbyname error [%s]\n",
                              strerror(ret));
     } else {
         /* Look up the newly-added service by port */
         ret = sysdb_getservbyport(test_ctx, test_ctx->sysdb,
-                                  port, NULL, &res);
+                                  test_ctx->domain, port, NULL, &res);
         fail_if(ret != EOK, "sysdb_getservbyport error [%s]\n",
                              strerror(ret));
     }
@@ -3927,15 +3928,6 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
         services_check_match(test_ctx, false, primary_name, port, aliases, protocols); \
     } while(0);
 
-errno_t
-sysdb_svc_add(TALLOC_CTX *mem_ctx,
-              struct sysdb_ctx *sysdb,
-              const char *primary_name,
-              int port,
-              const char **aliases,
-              const char **protocols,
-              struct ldb_dn **dn);
-
 START_TEST(test_sysdb_add_services)
 {
     errno_t ret;
@@ -3977,7 +3969,7 @@ START_TEST(test_sysdb_add_services)
     ret = sysdb_transaction_start(test_ctx->sysdb);
     fail_if(ret != EOK);
 
-    ret = sysdb_svc_add(NULL, test_ctx->sysdb,
+    ret = sysdb_svc_add(NULL, test_ctx->sysdb, test_ctx->domain,
                         primary_name, port,
                         aliases, protocols,
                         NULL);
@@ -4002,7 +3994,8 @@ START_TEST(test_sysdb_add_services)
      * doesn't like adding and deleting the same entry in a
      * single transaction.
      */
-    ret = sysdb_svc_delete(test_ctx->sysdb, primary_name, 0, NULL);
+    ret = sysdb_svc_delete(test_ctx->sysdb, test_ctx->domain,
+                           primary_name, 0, NULL);
     fail_if(ret != EOK);
 
     talloc_free(test_ctx);
@@ -4118,7 +4111,8 @@ START_TEST(test_sysdb_store_services)
      * doesn't like adding and deleting the same entry in a
      * single transaction.
      */
-    ret = sysdb_svc_delete(test_ctx->sysdb, NULL, altport, NULL);
+    ret = sysdb_svc_delete(test_ctx->sysdb, test_ctx->domain,
+                           NULL, altport, NULL);
     fail_if(ret != EOK);
 
     talloc_free(test_ctx);
@@ -4169,7 +4163,7 @@ START_TEST(test_sysdb_svc_remove_alias)
     ret = sysdb_transaction_start(test_ctx->sysdb);
     fail_if(ret != EOK);
 
-    ret = sysdb_svc_add(NULL, test_ctx->sysdb,
+    ret = sysdb_svc_add(NULL, test_ctx->sysdb, test_ctx->domain,
                         primary_name, port,
                         aliases, protocols,
                         NULL);

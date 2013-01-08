@@ -243,7 +243,7 @@ services_get_done(struct tevent_req *subreq)
         /* Ensure that this entry is removed from the sysdb */
         switch(state->filter_type) {
         case BE_FILTER_NAME:
-            ret = sysdb_svc_delete(state->sysdb, state->name,
+            ret = sysdb_svc_delete(state->sysdb, state->domain, state->name,
                                    0, state->protocol);
             if (ret != EOK) {
                 tevent_req_error(req, ret);
@@ -258,7 +258,7 @@ services_get_done(struct tevent_req *subreq)
                 return;
             }
 
-            ret = sysdb_svc_delete(state->sysdb, NULL,
+            ret = sysdb_svc_delete(state->sysdb, state->domain, NULL,
                                    port, state->protocol);
             if (ret != EOK) {
                 tevent_req_error(req, ret);

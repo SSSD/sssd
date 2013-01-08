@@ -211,7 +211,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                     dom->name));
 
-             ret = sysdb_getservbyname(state, sysdb,
+             ret = sysdb_getservbyname(state, sysdb, dom,
                                        SVC_NAME_CASED,
                                        SVC_PROTO_CASED,
                                        &state->res);
@@ -252,7 +252,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                     dom->name));
 
-             ret = sysdb_getservbyport(state, sysdb, port,
+             ret = sysdb_getservbyport(state, sysdb, dom, port,
                                        SVC_PROTO_CASED,
                                        &state->res);
          }
@@ -495,7 +495,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
 
-        ret = sysdb_getservbyname(state, sysdb,
+        ret = sysdb_getservbyname(state, sysdb, dom,
                                   SVC_NAME_CASED,
                                   SVC_PROTO_CASED,
                                   &state->res);
@@ -506,7 +506,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
 
-        ret = sysdb_getservbyport(state, sysdb,
+        ret = sysdb_getservbyport(state, sysdb, dom,
                                   state->port,
                                   SVC_PROTO_CASED,
                                   &state->res);
@@ -1384,7 +1384,7 @@ lookup_servent_send(TALLOC_CTX *mem_ctx,
             goto immediate;
         }
 
-        ret = sysdb_enumservent(state, sysdb, &state->res);
+        ret = sysdb_enumservent(state, sysdb, dom, &state->res);
         /* Whatever the result, we're done, so report it */
         goto immediate;
     }
@@ -1446,7 +1446,7 @@ lookup_servent_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_enumservent(state, sysdb, &state->res);
+    ret = sysdb_enumservent(state, sysdb, state->dom, &state->res);
     /* Whatever the result, we're done, so report it */
 
 done:

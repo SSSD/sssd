@@ -117,7 +117,7 @@ get_serv_byname(struct proxy_id_ctx *ctx,
 
     if (status == NSS_STATUS_NOTFOUND) {
         /* Make sure we remove it from the cache */
-        ret = sysdb_svc_delete(sysdb, name, 0, protocol);
+        ret = sysdb_svc_delete(sysdb, dom, name, 0, protocol);
     } else {
 
         /* Results found. Save them into the cache */
@@ -171,7 +171,7 @@ get_serv_byport(struct proxy_id_ctx *ctx,
 
     if (status == NSS_STATUS_NOTFOUND) {
         /* Make sure we remove it from the cache */
-        ret = sysdb_svc_delete(sysdb, NULL, port, protocol);
+        ret = sysdb_svc_delete(sysdb, dom, NULL, port, protocol);
     } else {
         /* Results found. Save them into the cache */
         ret = proxy_save_service(sysdb, dom, result,
