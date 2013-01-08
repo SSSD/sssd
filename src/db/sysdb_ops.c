@@ -2622,6 +2622,7 @@ fail:
 
 int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            const char *sub_filter,
                            const char **attrs,
                            size_t *msgs_count,
@@ -2638,7 +2639,7 @@ int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                            SYSDB_TMPL_NETGROUP_BASE, sysdb->domain->name);
+                            SYSDB_TMPL_NETGROUP_BASE, domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
         ret = ENOMEM;
@@ -2677,6 +2678,7 @@ fail:
 /* =Delete-Netgroup-by-Name============================================== */
 
 int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           const char *name)
 {
     TALLOC_CTX *tmp_ctx;
@@ -2690,7 +2692,7 @@ int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb, sysdb->domain,
+    ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb, domain,
                                         name, NULL, &msg);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(6, ("sysdb_search_netgroup_by_name failed: %d (%s)\n",

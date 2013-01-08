@@ -771,12 +771,14 @@ int sysdb_delete_group(struct sysdb_ctx *sysdb,
 
 int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
+                           struct sss_domain_info *domain,
                            const char *sub_filter,
                            const char **attrs,
                            size_t *msgs_count,
                            struct ldb_message ***msgs);
 
 int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
                           const char *name);
 
 errno_t sysdb_attrs_to_list(TALLOC_CTX *mem_ctx,

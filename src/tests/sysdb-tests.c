@@ -500,7 +500,8 @@ static int test_remove_netgroup_by_name(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_delete_netgroup(data->ctx->sysdb, data->netgrname);
+    ret = sysdb_delete_netgroup(data->ctx->sysdb,
+                                data->ctx->domain, data->netgrname);
     return ret;
 }
 

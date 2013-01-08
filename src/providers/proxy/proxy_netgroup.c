@@ -101,8 +101,8 @@ static errno_t save_netgroup(struct sysdb_ctx *sysdb,
     return EOK;
 }
 
-static errno_t handle_error(enum nss_status status,
-                            struct sysdb_ctx *sysdb, const char *name)
+static errno_t handle_error(enum nss_status status, struct sysdb_ctx *sysdb,
+                            struct sss_domain_info *domain, const char *name)
 {
     errno_t ret;
 
@@ -114,7 +114,7 @@ static errno_t handle_error(enum nss_status status,
 
     case NSS_STATUS_NOTFOUND:
         DEBUG(SSSDBG_MINOR_FAILURE, ("The netgroup was not found\n"));
-        ret = sysdb_delete_netgroup(sysdb, name);
+        ret = sysdb_delete_netgroup(sysdb, domain, name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot delete netgroup: %d\n", ret));
             ret = EIO;
@@ -153,7 +153,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
     if (status != NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("setnetgrent failed for netgroup [%s].\n", name));
-        ret = handle_error(status, sysdb, name);
+        ret = handle_error(status, sysdb, dom, name);
         goto done;
     }
 
@@ -176,7 +176,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
         if (status != NSS_STATUS_SUCCESS &&
             status != NSS_STATUS_RETURN &&
             status != NSS_STATUS_NOTFOUND) {
-            ret = handle_error(status, sysdb, name);
+            ret = handle_error(status, sysdb, dom, name);
             DEBUG(SSSDBG_OP_FAILURE,
                   ("getnetgrent_r failed for netgroup [%s]: [%d][%s].\n",
                    name, ret, strerror(ret)));
@@ -195,7 +195,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
     status = ctx->ops.endnetgrent(&result);
     if (status != NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, ("endnetgrent failed.\n"));
-        ret = handle_error(status, sysdb, name);
+        ret = handle_error(status, sysdb, dom, name);
         goto done;
     }
 

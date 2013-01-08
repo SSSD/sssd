@@ -302,7 +302,8 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         break;
     case TYPE_NETGROUP:
         type_string = "netgroup";
-        ret = sysdb_search_netgroups(ctx, sysdb, filter, attrs, &msg_count, &msgs);
+        ret = sysdb_search_netgroups(ctx, sysdb, dinfo,
+                                     filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_SERVICE:
         type_string = "service";
