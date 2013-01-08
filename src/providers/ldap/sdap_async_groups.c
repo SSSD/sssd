@@ -260,6 +260,7 @@ done:
 
 static errno_t
 sdap_store_group_with_gid(struct sysdb_ctx *ctx,
+                          struct sss_domain_info *domain,
                           const char *name,
                           gid_t gid,
                           struct sysdb_attrs *group_attrs,
@@ -279,7 +280,8 @@ sdap_store_group_with_gid(struct sysdb_ctx *ctx,
         }
     }
 
-    ret = sysdb_store_group(ctx, name, gid, group_attrs, cache_timeout, now);
+    ret = sysdb_store_group(ctx, domain, name, gid,
+                            group_attrs, cache_timeout, now);
     if (ret) {
         DEBUG(2, ("Could not store group %s\n", name));
         return ret;
@@ -597,7 +599,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for group %s\n", name));
 
-    ret = sdap_store_group_with_gid(ctx,
+    ret = sdap_store_group_with_gid(ctx, dom,
                                     name, gid, group_attrs,
                                     dom->group_timeout,
                                     posix_group, now);
@@ -692,7 +694,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing members for group %s\n", name));
 
-    ret = sysdb_store_group(ctx, name, 0, group_attrs,
+    ret = sysdb_store_group(ctx, dom, name, 0, group_attrs,
                             dom->group_timeout, now);
     if (ret) goto fail;
 

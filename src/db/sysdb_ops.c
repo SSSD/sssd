@@ -1779,6 +1779,7 @@ fail:
 /* this function does not check that all user members are actually present */
 
 int sysdb_store_group(struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *domain,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,
@@ -1797,7 +1798,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_search_group_by_name(tmp_ctx, sysdb, sysdb->domain,
+    ret = sysdb_search_group_by_name(tmp_ctx, sysdb, domain,
                                      name, src_attrs, &msg);
     if (ret && ret != ENOENT) {
         goto done;
@@ -1824,7 +1825,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
 
     if (new_group) {
         /* group doesn't exist, turn into adding a group */
-        ret = sysdb_add_group(sysdb, sysdb->domain, name, gid,
+        ret = sysdb_add_group(sysdb, domain, name, gid,
                               attrs, cache_timeout, now);
         if (ret == EEXIST) {
             /* This may be a group rename. If there is a group with the
@@ -1842,7 +1843,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("A group with the same GID [%llu] was removed from the "
                    "cache\n", (unsigned long long) gid));
-            ret = sysdb_add_group(sysdb, sysdb->domain, name, gid,
+            ret = sysdb_add_group(sysdb, domain, name, gid,
                                   attrs, cache_timeout, now);
         }
         goto done;
@@ -1862,7 +1863,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
 
-    ret = sysdb_set_group_attr(sysdb, sysdb->domain, name, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_group_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
 
 done:
     if (ret) {

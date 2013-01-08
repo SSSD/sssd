@@ -585,19 +585,6 @@ errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
     return sysdb_delete_user(domain->sysdb, name, uid);
 }
 
-errno_t sysdb_store_domgroup(struct sss_domain_info *domain,
-                             const char *name,
-                             gid_t gid,
-                             struct sysdb_attrs *attrs,
-                             uint64_t cache_timeout,
-                             time_t now)
-{
-    CHECK_DOMAIN_INFO(domain);
-
-    return sysdb_store_group(domain->sysdb, name, gid, attrs, cache_timeout,
-                             now);
-}
-
 errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
                               const char *name, gid_t gid)
 {

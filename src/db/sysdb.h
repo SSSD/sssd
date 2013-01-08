@@ -389,12 +389,6 @@ errno_t sysdb_delete_domuser(struct sss_domain_info *domain,
                              const char *name, uid_t uid);
 
 
-errno_t sysdb_store_domgroup(struct sss_domain_info *domain,
-                             const char *name,
-                             gid_t gid,
-                             struct sysdb_attrs *attrs,
-                             uint64_t cache_timeout,
-                             time_t now);
 errno_t sysdb_delete_domgroup(struct sss_domain_info *domain,
                               const char *name, gid_t gid);
 
@@ -665,6 +659,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                      time_t now);
 
 int sysdb_store_group(struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *domain,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,

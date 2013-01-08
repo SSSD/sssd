@@ -611,7 +611,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         }
     }
 
-    ret = sysdb_store_group(sysdb,
+    ret = sysdb_store_group(sysdb, dom,
                             real_name,
                             grp->gr_gid,
                             attrs,

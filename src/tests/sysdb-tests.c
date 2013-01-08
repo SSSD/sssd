@@ -274,8 +274,8 @@ static int test_store_group(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
-                            data->gid, data->attrs, -1, 0);
+    ret = sysdb_store_group(data->ctx->sysdb, data->ctx->domain,
+                            data->groupname, data->gid, data->attrs, -1, 0);
     return ret;
 }
 
@@ -425,8 +425,8 @@ static int test_memberof_store_group(struct test_data *data)
         }
     }
 
-    ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
-                            data->gid, attrs, -1, 0);
+    ret = sysdb_store_group(data->ctx->sysdb, data->ctx->domain,
+                            data->groupname, data->gid, attrs, -1, 0);
     return ret;
 }
 
@@ -462,8 +462,8 @@ static int test_memberof_store_group_with_ghosts(struct test_data *data)
         }
     }
 
-    ret = sysdb_store_group(data->ctx->sysdb, data->groupname,
-                            data->gid, attrs, -1, 0);
+    ret = sysdb_store_group(data->ctx->sysdb, data->ctx->domain,
+                            data->groupname, data->gid, attrs, -1, 0);
     return ret;
 }
 
@@ -3305,7 +3305,8 @@ START_TEST(test_group_rename)
     fail_unless(ret == EOK, "Could not set up the test");
 
     /* Store and verify the first group */
-    ret = sysdb_store_group(test_ctx->sysdb, fromname, grgid, NULL, 0, 0);
+    ret = sysdb_store_group(test_ctx->sysdb, test_ctx->domain,
+                            fromname, grgid, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add first group");
 
     ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb,
@@ -3330,7 +3331,8 @@ START_TEST(test_group_rename)
                           toname, grgid, NULL, 0, 0);
     fail_unless(ret == EEXIST, "Group renamed with a low level call?");
 
-    ret = sysdb_store_group(test_ctx->sysdb, toname, grgid, NULL, 0, 0);
+    ret = sysdb_store_group(test_ctx->sysdb, test_ctx->domain,
+                            toname, grgid, NULL, 0, 0);
     fail_unless(ret == EOK, "Could not add first group");
 
     ret = sysdb_getgrnam(test_ctx, test_ctx->sysdb,
@@ -4470,7 +4472,8 @@ START_TEST(test_sysdb_subdomain_group_ops)
                               NULL, NULL);
     fail_unless(subdomain != NULL, "new_subdomain failed.");
 
-    ret = sysdb_store_domgroup(subdomain, "subdomgroup", 12345, NULL, -1, 0);
+    ret = sysdb_store_group(subdomain->sysdb, subdomain,
+                            "subdomgroup", 12345, NULL, -1, 0);
     fail_unless(ret == EOK, "sysdb_store_domgroup failed.");
 
     check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,

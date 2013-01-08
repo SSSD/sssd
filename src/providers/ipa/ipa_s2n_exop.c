@@ -699,9 +699,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = sysdb_store_domgroup(state->dom, name,
-                                       attrs->a.group.gr_gid, NULL, timeout,
-                                       now);
+            ret = sysdb_store_group(state->dom->sysdb, state->dom, name,
+                                    attrs->a.group.gr_gid, NULL, timeout, now);
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, ("Unexpected response type [%d].\n",
