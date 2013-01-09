@@ -251,7 +251,7 @@ static int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx)
         }
     }
 
-    ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->sysdb,
+    ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->domain->sysdb,
                                            id_ctx->be->domain,
                                            &last_full);
     if (ret != EOK) {
@@ -555,7 +555,7 @@ static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->sudo_ctx = sudo_ctx;
     state->id_ctx = id_ctx;
-    state->sysdb = id_ctx->be->sysdb;
+    state->sysdb = id_ctx->be->domain->sysdb;
     state->domain = id_ctx->be->domain;
 
     /* Download all rules from LDAP */
@@ -867,7 +867,7 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     state->id_ctx = id_ctx;
-    state->sysdb = id_ctx->be->sysdb;
+    state->sysdb = id_ctx->be->domain->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
     usn = srv_opts->max_sudo_value;

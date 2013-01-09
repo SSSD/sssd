@@ -145,7 +145,7 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
          * process on the next SSSD service restart (to avoid
          * slowing down system boot-up
          */
-        ret = sysdb_set_enumerated(ctx->be->sysdb, ctx->be->domain, true);
+        ret = sysdb_set_enumerated(ctx->be->domain->sysdb, ctx->be->domain, true);
         if (ret != EOK) {
             DEBUG(1, ("Could not mark domain as having enumerated.\n"));
             /* This error is non-fatal, so continue */
@@ -565,7 +565,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_users_send(state, state->ev,
                                  state->ctx->be->domain,
-                                 state->ctx->be->sysdb,
+                                 state->ctx->be->domain->sysdb,
                                  state->ctx->opts,
                                  state->ctx->opts->user_search_bases,
                                  sdap_id_op_handle(state->op),
@@ -724,7 +724,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_groups_send(state, state->ev,
                                  state->ctx->be->domain,
-                                 state->ctx->be->sysdb,
+                                 state->ctx->be->domain->sysdb,
                                  state->ctx->opts,
                                  state->ctx->opts->group_search_bases,
                                  sdap_id_op_handle(state->op),

@@ -76,7 +76,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->id_ctx = id_ctx;
     state->dp_error = DP_ERR_FATAL;
-    state->sysdb = id_ctx->be->sysdb;
+    state->sysdb = id_ctx->be->domain->sysdb;
     state->domain = state->id_ctx->be->domain;
     state->name = name;
     state->protocol = protocol;

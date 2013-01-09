@@ -2535,7 +2535,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = id_ctx->opts;
-    state->sysdb = id_ctx->be->sysdb;
+    state->sysdb = id_ctx->be->domain->sysdb;
     state->dom = id_ctx->be->domain;
     state->sh = sh;
     state->id_ctx = id_ctx;

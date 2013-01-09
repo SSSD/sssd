@@ -77,7 +77,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->sysdb;
+    state->sysdb = ctx->be->domain->sysdb;
     state->domain = state->ctx->be->domain;
     state->name = name;
     state->timeout = dp_opt_get_int(ctx->opts->basic, SDAP_SEARCH_TIMEOUT);

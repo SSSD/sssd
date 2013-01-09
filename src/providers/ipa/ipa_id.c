@@ -179,7 +179,7 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->sysdb;
+    state->sysdb = ctx->be->domain->sysdb;
     state->domain = ctx->be->domain;
     state->name = name;
     state->timeout = dp_opt_get_int(ctx->opts->basic, SDAP_SEARCH_TIMEOUT);

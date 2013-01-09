@@ -94,7 +94,6 @@ struct be_cb;
 struct be_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
-    struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     const char *identity;
     const char *conf_path;

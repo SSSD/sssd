@@ -697,7 +697,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         sysdb = be_req->sysdb;
         domain = be_req->domain;
     } else {
-        sysdb = ctx->sd_ctx->be_ctx->sysdb;
+        sysdb = ctx->sd_ctx->be_ctx->domain->sysdb;
         domain = ctx->sd_ctx->be_ctx->domain;
     }
 
@@ -790,7 +790,7 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
         sysdb = be_req->sysdb;
         domain = be_req->domain;
     } else {
-        sysdb = ctx->sd_ctx->be_ctx->sysdb;
+        sysdb = ctx->sd_ctx->be_ctx->domain->sysdb;
         domain = ctx->sd_ctx->be_ctx->domain;
     }
 
@@ -893,7 +893,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->sysdb,
+        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain->sysdb,
                                            ctx->sd_ctx->be_ctx->domain,
                                            domain_info);
         goto done;

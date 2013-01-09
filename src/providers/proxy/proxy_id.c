@@ -1351,7 +1351,7 @@ void proxy_get_account_info(struct be_req *breq)
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                           struct proxy_id_ctx);
-    sysdb = breq->be_ctx->sysdb;
+    sysdb = breq->be_ctx->domain->sysdb;
     domain = breq->be_ctx->domain;
 
     if (be_is_offline(breq->be_ctx)) {

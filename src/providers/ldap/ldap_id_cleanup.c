@@ -191,7 +191,7 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
 
     ctx->last_purge = tevent_timeval_current();
 
-    ret = sysdb_transaction_start(state->ctx->be->sysdb);
+    ret = sysdb_transaction_start(state->ctx->be->domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto fail;
@@ -204,13 +204,13 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
     }
 
     ret = cleanup_groups(state,
-                         state->ctx->be->sysdb,
+                         state->ctx->be->domain->sysdb,
                          state->ctx->be->domain);
     if (ret) {
         goto fail;
     }
 
-    ret = sysdb_transaction_commit(state->ctx->be->sysdb);
+    ret = sysdb_transaction_commit(state->ctx->be->domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto fail;
@@ -225,7 +225,7 @@ fail:
     DEBUG(1, ("Failed to cleanup caches (%d [%s]), retrying later!\n",
               (int)ret, strerror(ret)));
     if (in_transaction) {
-        ret = sysdb_transaction_cancel(state->ctx->be->sysdb);
+        ret = sysdb_transaction_cancel(state->ctx->be->domain->sysdb);
         if (ret != EOK) {
             DEBUG(1, ("Could not cancel transaction\n"));
             tevent_req_error(req, ret);
@@ -247,7 +247,7 @@ static int cleanup_users_logged_in(hash_table_t *table,
 static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
 {
     TALLOC_CTX *tmpctx;
-    struct sysdb_ctx *sysdb = ctx->be->sysdb;
+    struct sysdb_ctx *sysdb = ctx->be->domain->sysdb;
     const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;

@@ -27,7 +27,6 @@
 #include "util/util.h"
 
 struct simple_ctx {
-    struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
     char **allow_users;

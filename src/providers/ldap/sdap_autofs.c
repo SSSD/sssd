@@ -98,7 +98,7 @@ void sdap_autofs_handler(struct be_req *be_req)
           autofs_req->mapname ? autofs_req->mapname : "<ALL>\n"));
 
     if (autofs_req->invalidate) {
-        ret = sysdb_invalidate_autofs_maps(id_ctx->be->sysdb,
+        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain->sysdb,
                                            id_ctx->be->domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Could not invalidate autofs maps, "
@@ -211,7 +211,7 @@ sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
 
     subreq = sdap_autofs_setautomntent_send(state, state->ev,
                                             state->ctx->be->domain,
-                                            state->ctx->be->sysdb,
+                                            state->ctx->be->domain->sysdb,
                                             sdap_id_op_handle(state->op),
                                             state->op,
                                             state->ctx->opts,
@@ -257,7 +257,7 @@ sdap_autofs_get_map_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT) {
-        ret = sysdb_delete_autofsmap(state->ctx->be->sysdb,
+        ret = sysdb_delete_autofsmap(state->ctx->be->domain->sysdb,
                                      state->ctx->be->domain, state->map_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,

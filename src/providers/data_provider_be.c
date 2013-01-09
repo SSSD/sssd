@@ -664,7 +664,7 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
     const char *tmpstr;
     int i;
 
-    ret = sysdb_initgroups(be_req, be_req->be_ctx->sysdb,
+    ret = sysdb_initgroups(be_req, be_req->be_ctx->domain->sysdb,
                            be_req->be_ctx->domain, ar->filter_value, &res);
     if (ret && ret != ENOENT) {
         return ret;
@@ -1041,7 +1041,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->fn = be_pam_handler_callback;
     be_req->pvt = reply;
     be_req->domain = be_req->be_ctx->domain;
-    be_req->sysdb = be_req->be_ctx->sysdb;
+    be_req->sysdb = be_req->be_ctx->domain->sysdb;
 
     dbus_error_init(&dbus_error);
 
@@ -2352,7 +2352,6 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error opening cache database\n"));
         goto fail;
     }
-    ctx->sysdb = ctx->domain->sysdb;
 
     ret = sss_monitor_init(ctx, ctx->ev, &monitor_be_interface,
                            ctx->identity, DATA_PROVIDER_VERSION,

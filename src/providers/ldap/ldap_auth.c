@@ -620,7 +620,7 @@ static void auth_connect_done(struct tevent_req *subreq)
                               state->srv, PORT_WORKING);
     }
 
-    ret = get_user_dn(state, state->ctx->be->sysdb, state->ctx->be->domain,
+    ret = get_user_dn(state, state->ctx->be->domain->sysdb, state->ctx->be->domain,
                       state->ctx->opts, state->username, &state->dn,
                       &state->pw_expire_type, &state->pw_expire_data);
     if (ret) {
@@ -1156,7 +1156,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
 
         ret = sss_authtok_get_password(&state->pd->authtok, &password, NULL);
         if (ret == EOK) {
-            ret = sysdb_cache_password(state->breq->be_ctx->sysdb,
+            ret = sysdb_cache_password(state->breq->be_ctx->domain->sysdb,
                                        state->breq->be_ctx->domain,
                                        state->pd->user, password);
         }

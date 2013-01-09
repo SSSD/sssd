@@ -393,14 +393,14 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
         return ENOMEM;
     }
 
-    base_dn = sysdb_base_dn(renew_tgt_ctx->be_ctx->sysdb, tmp_ctx);
+    base_dn = sysdb_base_dn(renew_tgt_ctx->be_ctx->domain->sysdb, tmp_ctx);
     if (base_dn == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_base_dn failed.\n"));
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, renew_tgt_ctx->be_ctx->sysdb, base_dn,
+    ret = sysdb_search_entry(tmp_ctx, renew_tgt_ctx->be_ctx->domain->sysdb, base_dn,
                              LDB_SCOPE_SUBTREE, ccache_filter, ccache_attrs,
                              &msgs_count, &msgs);
     if (ret != EOK) {

@@ -183,7 +183,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
 {
     struct ipa_selinux_op_ctx *op_ctx = tevent_req_callback_data(req, struct ipa_selinux_op_ctx);
     struct be_req *breq = op_ctx->be_req;
-    struct sysdb_ctx *sysdb = breq->be_ctx->sysdb;
+    struct sysdb_ctx *sysdb = breq->be_ctx->domain->sysdb;
     errno_t ret, sret;
     size_t map_count = 0;
     struct sysdb_attrs **maps = NULL;
@@ -554,7 +554,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    subreq = ipa_host_info_send(state, bctx->ev, bctx->sysdb,
+    subreq = ipa_host_info_send(state, bctx->ev, bctx->domain->sysdb,
                                 sdap_id_op_handle(state->op),
                                 id_ctx->sdap_id_ctx->opts,
                                 hostname,
@@ -595,7 +595,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
                                                   struct ipa_get_selinux_state);
 
     /* read the config entry */
-    ret = sysdb_search_selinux_config(state, state->be_req->be_ctx->sysdb,
+    ret = sysdb_search_selinux_config(state, state->be_req->be_ctx->domain->sysdb,
                                       state->be_req->be_ctx->domain,
                                       NULL, &defaults);
     if (ret != EOK) {
@@ -629,7 +629,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     }
 
     /* read all the SELinux rules */
-    ret = sysdb_get_selinux_usermaps(state, state->be_req->be_ctx->sysdb,
+    ret = sysdb_get_selinux_usermaps(state, state->be_req->be_ctx->domain->sysdb,
                                      state->be_req->be_ctx->domain,
                                      attrs, &nmaps, &maps);
     if (ret != EOK) {
@@ -645,7 +645,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     state->nmaps = nmaps;
 
     /* read all the HBAC rules */
-    ret = hbac_get_cached_rules(state, state->be_req->be_ctx->sysdb,
+    ret = hbac_get_cached_rules(state, state->be_req->be_ctx->domain->sysdb,
                                 state->be_req->be_ctx->domain,
                                 &state->hbac_rule_count, &state->hbac_rules);
     if (ret != EOK) {
@@ -722,7 +722,7 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
         goto done;
     }
 
-    subreq = ipa_selinux_get_maps_send(state, bctx->ev, bctx->sysdb,
+    subreq = ipa_selinux_get_maps_send(state, bctx->ev, bctx->domain->sysdb,
                                      sdap_id_op_handle(state->op),
                                      id_ctx->opts,
                                      state->selinux_ctx->id_ctx->ipa_options,
@@ -793,7 +793,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         access_name = state->be_req->be_ctx->bet_info[BET_ACCESS].mod_name;
         selinux_name = state->be_req->be_ctx->bet_info[BET_SELINUX].mod_name;
         if (strcasecmp(access_name, selinux_name) == 0) {
-            ret = hbac_get_cached_rules(state, bctx->sysdb, bctx->domain,
+            ret = hbac_get_cached_rules(state, bctx->domain->sysdb, bctx->domain,
                                         &state->hbac_rule_count, &state->hbac_rules);
             /* Terminates the request */
             goto done;

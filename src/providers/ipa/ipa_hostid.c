@@ -171,7 +171,7 @@ hosts_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->sysdb;
+    state->sysdb = ctx->be->domain->sysdb;
     state->domain = ctx->be->domain;
     state->name = name;
     state->alias = alias;

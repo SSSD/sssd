@@ -543,7 +543,7 @@ enum_services_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->id_ctx = id_ctx;
     state->domain = id_ctx->be->domain;
-    state->sysdb = id_ctx->be->sysdb;
+    state->sysdb = id_ctx->be->domain->sysdb;
     state->op = op;
 
     if (id_ctx->srv_opts && id_ctx->srv_opts->max_service_value && !purge) {

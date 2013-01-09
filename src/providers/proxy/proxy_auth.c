@@ -757,7 +757,7 @@ static void proxy_child_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sysdb_cache_password(client_ctx->be_req->be_ctx->sysdb,
+        ret = sysdb_cache_password(client_ctx->be_req->be_ctx->domain->sysdb,
                                    client_ctx->be_req->be_ctx->domain,
                                    pd->user, password);
 

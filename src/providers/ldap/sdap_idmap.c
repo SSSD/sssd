@@ -51,7 +51,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     const char *sid_str;
     id_t slice_num;
     struct sdap_idmap_ctx *idmap_ctx = NULL;
-    struct sysdb_ctx *sysdb = id_ctx->be->sysdb;
+    struct sysdb_ctx *sysdb = id_ctx->be->domain->sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -313,7 +313,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     }
 
     /* Add this domain to the SYSDB cache so it will survive reboot */
-    ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->sysdb,
+    ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->domain->sysdb,
                                     idmap_ctx->id_ctx->be->domain,
                                     dom_name, dom_sid,
                                     new_slice->slice_num);

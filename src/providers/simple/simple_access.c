@@ -107,7 +107,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(tmp_ctx, ctx->sysdb, ctx->domain,
+    ret = sysdb_search_user_by_name(tmp_ctx, ctx->domain->sysdb, ctx->domain,
                                     username, user_attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not look up username [%s]: [%d][%s]\n",
@@ -130,7 +130,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
 
         for (j = 0; j < el->num_values; j++) {
             ret = sysdb_group_dn_name(
-                    ctx->sysdb, tmp_ctx,
+                    ctx->domain->sysdb, tmp_ctx,
                     (char *)el->values[j].data,
                     &groups[j]);
             if (ret != EOK) {
@@ -155,7 +155,7 @@ errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
     }
     talloc_zfree(msg);
 
-    ret = sysdb_search_group_by_gid(tmp_ctx, ctx->sysdb, ctx->domain,
+    ret = sysdb_search_group_by_gid(tmp_ctx, ctx->domain->sysdb, ctx->domain,
                                     gid, group_attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not look up primary group [%lu]: [%d][%s]\n",
@@ -288,7 +288,6 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
         return ENOMEM;
     }
 
-    ctx->sysdb = bectx->sysdb;
     ctx->domain = bectx->domain;
 
     /* Users */

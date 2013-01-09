@@ -129,7 +129,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->sdap_op = NULL;
     state->sdap_conn_cache = conn_cache;
-    state->sysdb = be_ctx->sysdb;
+    state->sysdb = be_ctx->domain->sysdb;
     state->domain = be_ctx->domain;
     state->ldap_filter = talloc_strdup(state, ldap_filter);
     state->sysdb_filter = talloc_strdup(state, sysdb_filter);

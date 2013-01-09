@@ -86,7 +86,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->sysdb;
+    state->sysdb = ctx->be->domain->sysdb;
     state->domain = state->ctx->be->domain;
     state->name = name;
     state->filter_type = filter_type;
@@ -357,7 +357,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->sysdb;
+    state->sysdb = ctx->be->domain->sysdb;
     state->domain = state->ctx->be->domain;
     state->name = name;
     state->filter_type = filter_type;
@@ -735,7 +735,7 @@ static void groups_by_user_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT) {
-        ret = sysdb_delete_user(state->ctx->be->sysdb,
+        ret = sysdb_delete_user(state->ctx->be->domain->sysdb,
                                 state->ctx->be->domain, state->name, 0);
         if (ret != EOK && ret != ENOENT) {
             tevent_req_error(req, ret);
