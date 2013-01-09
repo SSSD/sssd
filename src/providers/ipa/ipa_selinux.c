@@ -99,7 +99,7 @@ void ipa_selinux_handler(struct be_req *be_req)
         goto fail;
     }
 
-    op_ctx = ipa_selinux_create_op_ctx(be_req, be_req->sysdb, be_req->domain,
+    op_ctx = ipa_selinux_create_op_ctx(be_req, be_req->domain->sysdb, be_req->domain,
                                        be_req, pd->user, hostname);
     if (op_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot create op context\n"));
@@ -215,7 +215,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     }
     in_transaction = true;
 
-    ret = sysdb_delete_usermaps(breq->sysdb, breq->domain);
+    ret = sysdb_delete_usermaps(breq->domain->sysdb, breq->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Cannot delete existing maps from sysdb\n"));

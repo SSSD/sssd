@@ -149,7 +149,6 @@ struct be_req {
     int phase;
 
     struct sss_domain_info *domain;
-    struct sysdb_ctx *sysdb;
 };
 
 struct be_acct_req {

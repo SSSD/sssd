@@ -133,7 +133,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         ret = sysdb_get_user_attr(state, user_dom->sysdb, user_dom,
                                   pd->user, attrs, &res);
     } else {
-        ret = sysdb_get_user_attr(state, be_req->sysdb, be_req->domain,
+        ret = sysdb_get_user_attr(state, be_req->domain->sysdb, be_req->domain,
                                   pd->user, attrs, &res);
     }
     if (ret != EOK) {
@@ -1018,7 +1018,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_set_user_attr(state->be_req->sysdb,
+    ret = sysdb_set_user_attr(state->be_req->domain->sysdb,
                               state->be_req->domain,
                               state->username,
                               attrs, SYSDB_MOD_REP);

@@ -49,7 +49,6 @@ ad_access_handler(struct be_req *breq)
             breq->fn(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
             return;
         }
-        breq->sysdb = breq->domain->sysdb;
     }
 
     /* Verify that the account is not locked */

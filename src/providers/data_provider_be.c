@@ -1041,7 +1041,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->fn = be_pam_handler_callback;
     be_req->pvt = reply;
     be_req->domain = be_req->be_ctx->domain;
-    be_req->sysdb = be_req->be_ctx->domain->sysdb;
 
     dbus_error_init(&dbus_error);
 

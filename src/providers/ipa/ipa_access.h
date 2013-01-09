@@ -86,7 +86,7 @@ static inline struct be_ctx *hbac_ctx_be(struct hbac_ctx *hbac_ctx)
 static inline struct sysdb_ctx *hbac_ctx_sysdb(struct hbac_ctx *hbac_ctx)
 {
     struct be_req *be_req = hbac_ctx->be_req;
-    return be_req != NULL ? be_req->sysdb : NULL;
+    return be_req != NULL ? be_req->domain->sysdb : NULL;
 }
 
 /* Get tevent context associated with HBAC context */
