@@ -24,12 +24,6 @@
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ldap/sdap_async.h"
 
-struct hbac_update_groups_state {
-    struct hbac_ctx *hbac_ctx;
-    struct sysdb_ctx *sysdb;
-};
-
-
 /* Returns EOK and populates groupname if
  * the group_dn is actually a group.
  * Returns ENOENT if group_dn does not point
