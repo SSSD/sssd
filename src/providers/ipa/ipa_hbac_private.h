@@ -132,7 +132,6 @@ ipa_hbac_service_info_recv(struct tevent_req *req,
 
 errno_t
 hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
                            struct sss_domain_info *domain,
                            const char *rule_name,
                            struct sysdb_attrs *rule_attrs,
