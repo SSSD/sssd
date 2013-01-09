@@ -341,7 +341,6 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
 
     req = ipa_host_info_send(hbac_ctx,
                              hbac_ctx_ev(hbac_ctx),
-                             hbac_ctx_sysdb(hbac_ctx),
                              sdap_id_op_handle(hbac_ctx->sdap_op),
                              hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
                              hostname,

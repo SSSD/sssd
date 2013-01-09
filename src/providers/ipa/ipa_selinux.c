@@ -554,7 +554,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    subreq = ipa_host_info_send(state, bctx->ev, bctx->domain->sysdb,
+    subreq = ipa_host_info_send(state, bctx->ev,
                                 sdap_id_op_handle(state->op),
                                 id_ctx->sdap_id_ctx->opts,
                                 hostname,

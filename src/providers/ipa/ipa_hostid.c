@@ -30,7 +30,6 @@ struct hosts_get_state {
     struct tevent_context *ev;
     struct ipa_hostid_ctx *ctx;
     struct sdap_id_op *op;
-    struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     const char *name;
     const char *alias;
@@ -171,7 +170,6 @@ hosts_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->domain->sysdb;
     state->domain = ctx->be->domain;
     state->name = name;
     state->alias = alias;
@@ -225,7 +223,7 @@ hosts_get_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = ipa_host_info_send(state, state->ev, state->sysdb,
+    subreq = ipa_host_info_send(state, state->ev,
                                 sdap_id_op_handle(state->op),
                                 state->ctx->sdap_id_ctx->opts, state->name,
                                 state->ctx->ipa_opts->host_map, NULL,
@@ -294,7 +292,7 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_store_ssh_host(state->sysdb, state->domain,
+    ret = sysdb_store_ssh_host(state->domain->sysdb, state->domain,
                                state->name, state->alias, now,
                                attrs);
     if (ret != EOK) {

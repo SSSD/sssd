@@ -74,7 +74,6 @@ ipa_hostgroup_info_next(struct tevent_req *req,
 struct tevent_req *
 ipa_host_info_send(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
-                   struct sysdb_ctx *sysdb,
                    struct sdap_handle *sh,
                    struct sdap_options *opts,
                    const char *hostname,
@@ -92,7 +91,6 @@ ipa_host_info_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->sysdb = sysdb;
     state->sh = sh;
     state->opts = opts;
     state->hostname = hostname;
