@@ -180,6 +180,15 @@ int parse_name_domain(struct tools_ctx *tctx,
             DEBUG(1, ("Invalid domain %s specified in FQDN\n", domain));
             return EINVAL;
         }
+    } else {
+        if (tctx->local->fqnames) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Name '%s' does not seem to be FQDN "
+                   "('%s = TRUE' is set)\n", fullname, CONFDB_DOMAIN_FQ));
+            ERROR("Name '%1$s' does not seem to be FQDN "
+                  "('%2$s = TRUE' is set)\n", fullname, CONFDB_DOMAIN_FQ);
+            return EINVAL;
+        }
     }
 
     return EOK;
