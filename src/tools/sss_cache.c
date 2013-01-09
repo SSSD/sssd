@@ -82,9 +82,9 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
 errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                          const char *name, int entry_type);
-bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                        enum sss_cache_entry entry_type, const char *filter,
-                        const char *name);
+static bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+                               enum sss_cache_entry entry_type,
+                               const char *filter, const char *name);
 static errno_t update_all_filters(struct cache_tool_ctx *tctx,
                                   char *domain_name);
 
@@ -274,16 +274,15 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
     return EOK;
 }
 
-
-bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
-                        enum sss_cache_entry entry_type, const char *filter,
-                        const char *name)
+static bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+                               enum sss_cache_entry entry_type,
+                               const char *filter, const char *name)
 {
     const char *attrs[] = {SYSDB_NAME, NULL};
     size_t msg_count;
     struct ldb_message **msgs;
-    const char *type_string = NULL;
-    errno_t ret;
+    const char *type_string = "unknown";
+    errno_t ret = EINVAL;
     int i;
     const char *c_name;
     bool iret;
@@ -314,9 +313,6 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         type_string = "autofs map";
         ret = search_autofsmaps(ctx, sysdb, filter, attrs, &msg_count, &msgs);
         break;
-    default:
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown entry type [%d].\n", entry_type));
-        return false;
     }
 
     if (ret != EOK) {
