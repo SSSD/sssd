@@ -337,7 +337,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     /* Get the target hosts */
     ret = hbac_thost_attrs_to_rule(new_rule,
-                                   hbac_ctx_sysdb(hbac_ctx),
                                    hbac_ctx->be_req->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
@@ -351,7 +350,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the source hosts */
 
     ret = hbac_shost_attrs_to_rule(new_rule,
-                                   hbac_ctx_sysdb(hbac_ctx),
                                    hbac_ctx->be_req->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],

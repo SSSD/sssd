@@ -29,7 +29,6 @@
  * Functions to convert sysdb_attrs to the hbac_rule format
  */
 static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
-                                       struct sysdb_ctx *sysdb,
                                        struct sss_domain_info *domain,
                                        const char *rule_name,
                                        struct sysdb_attrs *rule_attrs,
@@ -115,7 +114,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
         }
 
         /* First check if this is a specific host */
-        ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
+        ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
                                   HBAC_HOSTS_SUBDIR, attrs,
                                   &count, &msgs);
         if (ret != EOK && ret != ENOENT) goto done;
@@ -151,7 +150,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
             num_hosts++;
         } else { /* ret == ENOENT */
             /* Check if this is a hostgroup */
-            ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
+            ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
                                       HBAC_HOSTGROUPS_SUBDIR, attrs,
                                       &count, &msgs);
             if (ret != EOK && ret != ENOENT) goto done;
@@ -225,7 +224,6 @@ done:
 
 errno_t
 hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
                          struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
@@ -233,7 +231,7 @@ hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
 {
     DEBUG(7, ("Processing target hosts for rule [%s]\n", rule_name));
 
-    return hbac_host_attrs_to_rule(mem_ctx, sysdb, domain,
+    return hbac_host_attrs_to_rule(mem_ctx, domain,
                                    rule_name, rule_attrs,
                                    IPA_HOST_CATEGORY, IPA_MEMBER_HOST,
                                    NULL, thosts);
@@ -241,7 +239,6 @@ hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
 errno_t
 hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
                          struct sss_domain_info *domain,
                          const char *rule_name,
                          struct sysdb_attrs *rule_attrs,
@@ -273,7 +270,7 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = hbac_host_attrs_to_rule(tmp_ctx, sysdb, domain,
+    ret = hbac_host_attrs_to_rule(tmp_ctx, domain,
                                   rule_name, rule_attrs,
                                   IPA_SOURCE_HOST_CATEGORY, IPA_SOURCE_HOST,
                                   &host_count, &shosts);
