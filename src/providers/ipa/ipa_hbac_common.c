@@ -313,7 +313,6 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     /* Get the users */
     ret = hbac_user_attrs_to_rule(new_rule,
-                                  hbac_ctx_sysdb(hbac_ctx),
                                   hbac_ctx->be_req->domain,
                                   new_rule->name,
                                   hbac_ctx->rules[idx],

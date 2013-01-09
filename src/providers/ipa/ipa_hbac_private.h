@@ -146,7 +146,6 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
 /* From ipa_hbac_users.c */
 errno_t
 hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *domain,
                         const char *rule_name,
                         struct sysdb_attrs *rule_attrs,

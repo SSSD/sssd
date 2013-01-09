@@ -142,7 +142,6 @@ done:
 
 errno_t
 hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *domain,
                         const char *rule_name,
                         struct sysdb_attrs *rule_attrs,
@@ -226,7 +225,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
         }
 
         /* First check if this is a user */
-        ret = sysdb_search_users(tmp_ctx, sysdb, domain,
+        ret = sysdb_search_users(tmp_ctx, domain->sysdb, domain,
                                  filter, attrs, &count, &msgs);
         if (ret != EOK && ret != ENOENT) goto done;
         if (ret == EOK && count == 0) {
@@ -259,7 +258,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
             num_users++;
         } else {
             /* Check if it is a group instead */
-            ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
+            ret = sysdb_search_groups(tmp_ctx, domain->sysdb, domain,
                                       filter, attrs, &count, &msgs);
             if (ret != EOK && ret != ENOENT) goto done;
             if (ret == EOK && count == 0) {
@@ -295,7 +294,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 /* If the group still matches the group pattern,
                  * we can assume it is a non-POSIX group.
                  */
-                ret = get_ipa_groupname(new_users->groups, sysdb, member_user,
+                ret = get_ipa_groupname(new_users->groups, domain->sysdb,
+                                        member_user,
                                         &new_users->groups[num_groups]);
                 if (ret == EOK) {
                     DEBUG(8, ("Added non-POSIX group [%s] to rule [%s]\n",
