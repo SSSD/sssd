@@ -314,6 +314,9 @@ bool invalidate_entries(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         type_string = "autofs map";
         ret = search_autofsmaps(ctx, sysdb, filter, attrs, &msg_count, &msgs);
         break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown entry type [%d].\n", entry_type));
+        return false;
     }
 
     if (ret != EOK) {
