@@ -115,7 +115,6 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
 struct tevent_req *
 ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
-                           struct sysdb_ctx *sysdb,
                            struct sdap_handle *sh,
                            struct sdap_options *opts,
                            struct sdap_search_base **search_bases);

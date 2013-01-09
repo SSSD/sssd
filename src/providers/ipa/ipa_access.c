@@ -375,7 +375,6 @@ static void hbac_get_service_info_step(struct tevent_req *req)
     /* Get services and service groups */
     req = ipa_hbac_service_info_send(hbac_ctx,
                                     hbac_ctx_ev(hbac_ctx),
-                                    hbac_ctx_sysdb(hbac_ctx),
                                     sdap_id_op_handle(hbac_ctx->sdap_op),
                                     hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
                                     hbac_ctx->search_bases);
