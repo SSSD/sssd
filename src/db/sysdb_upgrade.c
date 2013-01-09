@@ -1369,6 +1369,117 @@ done:
     return ret;
 }
 
+int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    struct ldb_message *msg;
+    struct ldb_result *res;
+    struct ldb_dn *basedn;
+    struct ldb_dn *newdn;
+    const char *attrs[] = { SYSDB_NAME, NULL };
+    const char *tmp_str;
+    errno_t ret;
+    int i;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_15, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    basedn = ldb_dn_new(ctx, sysdb->ldb, SYSDB_BASE);
+    if (!basedn) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    /* create base ranges container */
+    msg = ldb_msg_new(ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(msg, sysdb->ldb, SYSDB_TMPL_RANGE_BASE);
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "cn", "ranges");
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+    /* do a synchronous add */
+    ret = ldb_add(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to upgrade DB (%d, [%s])!\n",
+               ret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+    talloc_zfree(msg);
+
+    ret = ldb_search(sysdb->ldb, ctx, &res,
+                     basedn, LDB_SCOPE_SUBTREE, attrs,
+                     "objectclass=%s", SYSDB_ID_RANGE_CLASS);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to search range objects\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    /* Failure to convert any range is not fatal. As long as there are no
+     * left-over objects we can fail to move them around, as they will be
+     * recreated on the next online access */
+    for (i = 0; i < res->count; i++) {
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_NAME, NULL);
+        if (tmp_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+            ret = ldb_delete(sysdb->ldb, res->msgs[i]->dn);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Failed to delete %s\n", res->msgs[i]->dn));
+                ret = EIO;
+                goto done;
+            }
+            continue;
+        }
+
+        newdn = ldb_dn_new_fmt(ctx, sysdb->ldb, SYSDB_TMPL_RANGE, tmp_str);
+        if (!newdn) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to create new DN to move [%s]\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = ldb_rename(sysdb->ldb, res->msgs[i]->dn, newdn);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to move [%s] to [%s]\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn),
+                   ldb_dn_get_linearized(newdn)));
+            ret = ldb_delete(sysdb->ldb, res->msgs[i]->dn);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Failed to delete %s\n", res->msgs[i]->dn));
+                ret = EIO;
+                goto done;
+            }
+        }
+        talloc_zfree(newdn);
+    }
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
 
 /*
  * Example template for future upgrades.
