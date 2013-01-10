@@ -431,7 +431,6 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     struct pam_data *pd = hbac_ctx->pd;
     TALLOC_CTX *tmp_ctx;
     struct hbac_eval_req *eval_req;
-    struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
     struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
     const char *rhost;
     const char *thost;
@@ -460,13 +459,13 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
         ret = hbac_eval_user_element(eval_req, user_dom->sysdb, user_dom,
                                      pd->user, &eval_req->user);
     } else {
-        ret = hbac_eval_user_element(eval_req, sysdb, domain,
+        ret = hbac_eval_user_element(eval_req, domain->sysdb, domain,
                                      pd->user, &eval_req->user);
     }
     if (ret != EOK) goto done;
 
     /* Get the PAM service and service groups */
-    ret = hbac_eval_service_element(eval_req, sysdb, domain,
+    ret = hbac_eval_service_element(eval_req, domain->sysdb, domain,
                                     pd->service, &eval_req->service);
     if (ret != EOK) goto done;
 
@@ -482,7 +481,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
         rhost = pd->rhost;
     }
 
-    ret = hbac_eval_host_element(eval_req, sysdb, domain,
+    ret = hbac_eval_host_element(eval_req, domain->sysdb, domain,
                                  rhost, &eval_req->srchost);
     if (ret != EOK) goto done;
 
@@ -494,7 +493,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = hbac_eval_host_element(eval_req, sysdb, domain,
+    ret = hbac_eval_host_element(eval_req, domain->sysdb, domain,
                                  thost, &eval_req->targethost);
     if (ret != EOK) goto done;
 
