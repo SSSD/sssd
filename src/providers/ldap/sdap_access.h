@@ -59,7 +59,8 @@ struct sdap_access_ctx {
 struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct tevent_context *ev,
-                 struct be_req *be_req,
+                 struct be_ctx *be_ctx,
+                 struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
                  struct pam_data *pd);
 errno_t

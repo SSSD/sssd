@@ -42,7 +42,8 @@
 
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
-                                             struct be_req *be_req,
+                                             struct be_ctx *be_ctx,
+                                             struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry);
@@ -78,7 +79,8 @@ struct sdap_access_req_ctx {
     struct pam_data *pd;
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
-    struct be_req *be_req;
+    struct be_ctx *be_ctx;
+    struct sss_domain_info *domain;
     int pam_status;
     struct ldb_message *user_entry;
     size_t current_rule;
@@ -88,7 +90,8 @@ static errno_t select_next_rule(struct tevent_req *req);
 struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct tevent_context *ev,
-                 struct be_req *be_req,
+                 struct be_ctx *be_ctx,
+                 struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
                  struct pam_data *pd)
 {
@@ -105,7 +108,8 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->be_req = be_req;
+    state->be_ctx = be_ctx;
+    state->domain = domain;
     state->pd = pd;
     state->pam_status = PAM_SYSTEM_ERR;
     state->ev = ev;
@@ -122,8 +126,8 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Get original user DN, take care of subdomain users as well */
-    if (strcasecmp(pd->domain, be_req->be_ctx->domain->name) != 0) {
-        user_dom = new_subdomain(state, be_req->be_ctx->domain, pd->domain,
+    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
+        user_dom = new_subdomain(state, be_ctx->domain, pd->domain,
                                  NULL, NULL);
         if (user_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
@@ -133,7 +137,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         ret = sysdb_get_user_attr(state, user_dom->sysdb, user_dom,
                                   pd->user, attrs, &res);
     } else {
-        ret = sysdb_get_user_attr(state, be_req->domain->sysdb, be_req->domain,
+        ret = sysdb_get_user_attr(state, domain->sysdb, domain,
                                   pd->user, attrs, &res);
     }
     if (ret != EOK) {
@@ -197,7 +201,8 @@ static errno_t select_next_rule(struct tevent_req *req)
             break;
 
         case LDAP_ACCESS_FILTER:
-            subreq = sdap_access_filter_send(state, state->ev, state->be_req,
+            subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
+                                             state->domain,
                                              state->access_ctx,
                                              state->pd->user,
                                              state->user_entry);
@@ -724,7 +729,7 @@ struct sdap_access_filter_req_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct sdap_id_op *sdap_op;
     struct sysdb_handle *handle;
-    struct be_req *be_req;
+    struct sss_domain_info *domain;
     int pam_status;
     bool cached_access;
     char *basedn;
@@ -736,7 +741,8 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq);
 static void sdap_access_filter_get_access_done(struct tevent_req *req);
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
-                                             struct be_req *be_req,
+                                             struct be_ctx *be_ctx,
+                                             struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry)
@@ -757,17 +763,17 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
         DEBUG(6, ("No filter set. Access is denied.\n"));
         state->pam_status = PAM_PERM_DENIED;
         tevent_req_done(req);
-        tevent_req_post(req, be_req->be_ctx->ev);
+        tevent_req_post(req, ev);
         return req;
     }
 
     state->filter = NULL;
-    state->be_req = be_req;
     state->username = username;
     state->pam_status = PAM_SYSTEM_ERR;
     state->sdap_ctx = access_ctx->id_ctx;
     state->ev = ev;
     state->access_ctx = access_ctx;
+    state->domain = domain;
 
     DEBUG(6, ("Performing access filter check for user [%s]\n", username));
 
@@ -775,7 +781,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                                      SYSDB_LDAP_ACCESS_FILTER,
                                                      false);
     /* Ok, we have one result, check if we are online or offline */
-    if (be_is_offline(state->be_req->be_ctx)) {
+    if (be_is_offline(be_ctx)) {
         /* Ok, we're offline. Return from the cache */
         sdap_access_filter_decide_offline(req);
         goto finished;
@@ -1018,8 +1024,8 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_set_user_attr(state->be_req->domain->sysdb,
-                              state->be_req->domain,
+    ret = sysdb_set_user_attr(state->domain->sysdb,
+                              state->domain,
                               state->username,
                               attrs, SYSDB_MOD_REP);
     if (ret != EOK) {

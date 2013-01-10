@@ -92,7 +92,7 @@ void ipa_access_handler(struct be_req *be_req)
      */
     req = sdap_access_send(be_req,
                            be_req->be_ctx->ev,
-                           be_req,
+                           be_req->be_ctx, be_req->be_ctx->domain,
                            ipa_access_ctx->sdap_access_ctx,
                            pd);
     if (!req) {

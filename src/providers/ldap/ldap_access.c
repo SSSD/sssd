@@ -56,7 +56,8 @@ void sdap_pam_access_handler(struct be_req *breq)
 
     req = sdap_access_send(breq,
                            breq->be_ctx->ev,
-                           breq,
+                           breq->be_ctx,
+                           breq->be_ctx->domain,
                            access_ctx,
                            pd);
     if (req == NULL) {

@@ -39,22 +39,25 @@ ad_access_handler(struct be_req *breq)
                             struct ad_access_ctx);
 
     struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
+    struct sss_domain_info *domain;
 
     /* Handle subdomains */
     if (strcasecmp(pd->domain, breq->be_ctx->domain->name) != 0) {
-        breq->domain = new_subdomain(breq, breq->be_ctx->domain, pd->domain,
-                                     NULL, NULL);
-        if (breq->domain == NULL) {
+        domain = new_subdomain(breq, breq->be_ctx->domain,
+                               pd->domain, NULL, NULL);
+        if (domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
             breq->fn(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
             return;
         }
+    } else {
+        domain = breq->be_ctx->domain;
     }
 
     /* Verify that the account is not locked */
     req = sdap_access_send(breq,
                            breq->be_ctx->ev,
-                           breq,
+                           breq->be_ctx, domain,
                            access_ctx->sdap_access_ctx,
                            pd);
     if (!req) {
