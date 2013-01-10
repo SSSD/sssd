@@ -462,11 +462,10 @@ static void hbac_sysdb_save(struct tevent_req *req)
     bool in_transaction = false;
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
-    struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
+    struct sss_domain_info *domain = hbac_ctx->be_req->domain;
     struct ldb_dn *base_dn;
-    struct be_ctx *be_ctx = hbac_ctx_be(hbac_ctx);
     struct ipa_access_ctx *access_ctx =
-            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+            talloc_get_type(hbac_ctx->be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                             struct ipa_access_ctx);
     TALLOC_CTX *tmp_ctx;
 

@@ -75,17 +75,10 @@ struct hbac_ctx {
     struct sysdb_attrs **servicegroups;
 };
 
-/* Get BE context associated with HBAC context */
-static inline struct be_ctx *hbac_ctx_be(struct hbac_ctx *hbac_ctx)
-{
-    struct be_req *req = hbac_ctx != NULL ? hbac_ctx->be_req : NULL;
-    return req != NULL ? req->be_ctx : NULL;
-}
-
 /* Get tevent context associated with HBAC context */
 static inline struct tevent_context *hbac_ctx_ev(struct hbac_ctx *hbac_ctx)
 {
-    struct be_ctx *be_ctx = hbac_ctx_be(hbac_ctx);
+    struct be_ctx *be_ctx = hbac_ctx->be_req->be_ctx;
     return be_ctx != NULL ? be_ctx->ev : NULL;
 }
 

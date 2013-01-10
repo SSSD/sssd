@@ -431,7 +431,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     struct pam_data *pd = hbac_ctx->pd;
     TALLOC_CTX *tmp_ctx;
     struct hbac_eval_req *eval_req;
-    struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
+    struct sss_domain_info *domain = hbac_ctx->be_req->domain;
     const char *rhost;
     const char *thost;
     struct sss_domain_info *user_dom;
