@@ -521,6 +521,9 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         }
     }
 
+    DEBUG_INIT(debug);
+    debug_prg_name = argv[0];
+
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
@@ -532,8 +535,6 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
                 ret, fini);
     }
 
-    DEBUG_INIT(debug);
-    debug_prg_name = argv[0];
     CHECK_ROOT(ret, debug_prg_name);
 
     ctx = talloc_zero(NULL, struct cache_tool_ctx);
