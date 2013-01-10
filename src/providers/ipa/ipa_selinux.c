@@ -645,8 +645,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     state->nmaps = nmaps;
 
     /* read all the HBAC rules */
-    ret = hbac_get_cached_rules(state, state->be_req->be_ctx->domain->sysdb,
-                                state->be_req->be_ctx->domain,
+    ret = hbac_get_cached_rules(state, state->be_req->be_ctx->domain,
                                 &state->hbac_rule_count, &state->hbac_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("hbac_get_cached_rules failed [%d]: %s\n",
@@ -793,8 +792,9 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         access_name = state->be_req->be_ctx->bet_info[BET_ACCESS].mod_name;
         selinux_name = state->be_req->be_ctx->bet_info[BET_SELINUX].mod_name;
         if (strcasecmp(access_name, selinux_name) == 0) {
-            ret = hbac_get_cached_rules(state, bctx->domain->sysdb, bctx->domain,
-                                        &state->hbac_rule_count, &state->hbac_rules);
+            ret = hbac_get_cached_rules(state, bctx->domain,
+                                        &state->hbac_rule_count,
+                                        &state->hbac_rules);
             /* Terminates the request */
             goto done;
         }
