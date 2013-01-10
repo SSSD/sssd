@@ -75,18 +75,6 @@ struct hbac_ctx {
     struct sysdb_attrs **servicegroups;
 };
 
-/* Get sdap_id_ctx associated with HBAC context */
-static inline struct sdap_id_ctx *hbac_ctx_sdap_id_ctx(struct hbac_ctx *hbac_ctx)
-{
-    return hbac_ctx != NULL ? hbac_ctx->sdap_ctx : NULL;
-}
-
-/* Get struct sdap_id_op associated with HBAC context */
-static inline struct sdap_id_op *hbac_ctx_sdap_id_op(struct hbac_ctx *hbac_ctx)
-{
-    return hbac_ctx != NULL ? hbac_ctx->sdap_op : NULL;
-}
-
 /* Check whether the current HBAC request is processed in off-line mode */
 static inline bool hbac_ctx_is_offline(struct hbac_ctx *ctx)
 {

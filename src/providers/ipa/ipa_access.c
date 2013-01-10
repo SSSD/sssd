@@ -208,14 +208,14 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
     if (!offline) {
         if (hbac_ctx->sdap_op == NULL) {
             hbac_ctx->sdap_op = sdap_id_op_create(hbac_ctx,
-                                        hbac_ctx_sdap_id_ctx(hbac_ctx)->conn_cache);
+                                            hbac_ctx->sdap_ctx->conn_cache);
             if (hbac_ctx->sdap_op == NULL) {
                 DEBUG(1, ("sdap_id_op_create failed.\n"));
                 return EIO;
             }
         }
 
-        subreq = sdap_id_op_connect_send(hbac_ctx_sdap_id_op(hbac_ctx), hbac_ctx, &ret);
+        subreq = sdap_id_op_connect_send(hbac_ctx->sdap_op, hbac_ctx, &ret);
         if (!subreq) {
             DEBUG(1, ("sdap_id_op_connect_send failed: %d(%s).\n", ret, strerror(ret)));
             talloc_zfree(hbac_ctx->sdap_op);
@@ -295,7 +295,7 @@ static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret)
         return false;
     }
 
-    ret = sdap_id_op_done(hbac_ctx_sdap_id_op(hbac_ctx), ret, &dp_error);
+    ret = sdap_id_op_done(hbac_ctx->sdap_op, ret, &dp_error);
     if (ret != EOK) {
         if (dp_error == DP_ERR_OFFLINE) {
             /* switching to offline mode */
@@ -342,7 +342,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
     req = ipa_host_info_send(hbac_ctx,
                              hbac_ctx->be_req->be_ctx->ev,
                              sdap_id_op_handle(hbac_ctx->sdap_op),
-                             hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                             hbac_ctx->sdap_ctx->opts,
                              hostname,
                              hbac_ctx->access_ctx->host_map,
                              hbac_ctx->access_ctx->hostgroup_map,
@@ -376,7 +376,7 @@ static void hbac_get_service_info_step(struct tevent_req *req)
     req = ipa_hbac_service_info_send(hbac_ctx,
                                      hbac_ctx->be_req->be_ctx->ev,
                                     sdap_id_op_handle(hbac_ctx->sdap_op),
-                                    hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                                     hbac_ctx->sdap_ctx->opts,
                                     hbac_ctx->search_bases);
     if (req == NULL) {
         DEBUG(1,("Could not get service info\n"));
@@ -441,7 +441,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
                                   hbac_ctx->get_deny_rules,
                                   hbac_ctx->be_req->be_ctx->ev,
                                   sdap_id_op_handle(hbac_ctx->sdap_op),
-                                  hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
+                                  hbac_ctx->sdap_ctx->opts,
                                   hbac_ctx->search_bases,
                                   hbac_ctx->ipa_host);
     if (req == NULL) {
