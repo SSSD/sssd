@@ -65,12 +65,8 @@
 #define HBAC_SERVICEGROUPS_SUBDIR "hbac_servicegroups"
 
 /* From ipa_hbac_common.c */
-errno_t ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
-                           const char *subdir, struct sss_domain_info *domain,
-                           const char *naming_attribute, size_t count,
-                           struct sysdb_attrs **list);
 errno_t
-ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+ipa_hbac_sysdb_save(struct sss_domain_info *domain,
                     const char *primary_subdir, const char *attr_name,
                     size_t primary_count, struct sysdb_attrs **primary,
                     const char *group_subdir, const char *groupattr_name,

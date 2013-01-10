@@ -24,9 +24,9 @@
 #include "providers/ipa/ipa_hbac.h"
 #include "providers/ipa/ipa_common.h"
 
-errno_t
-ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
-                   const char *subdir, struct sss_domain_info *domain,
+static errno_t
+ipa_hbac_save_list(struct sss_domain_info *domain,
+                   bool delete_subdir, const char *subdir,
                    const char *naming_attribute, size_t count,
                    struct sysdb_attrs **list)
 {
@@ -44,13 +44,14 @@ ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
     }
 
     if (delete_subdir) {
-        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain, subdir);
+        base_dn = sysdb_custom_subtree_dn(domain->sysdb, tmp_ctx,
+                                          domain, subdir);
         if (base_dn == NULL) {
             ret = ENOMEM;
             goto done;
         }
 
-        ret = sysdb_delete_recursive(sysdb, base_dn, true);
+        ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_delete_recursive failed.\n"));
             goto done;
@@ -77,7 +78,8 @@ ipa_hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
         }
         DEBUG(9, ("Object name: [%s].\n", object_name));
 
-        ret = sysdb_store_custom(sysdb, domain, object_name, subdir, list[c]);
+        ret = sysdb_store_custom(domain->sysdb, domain,
+                                 object_name, subdir, list[c]);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_store_custom failed.\n"));
             goto done;
@@ -92,7 +94,7 @@ done:
 }
 
 errno_t
-ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+ipa_hbac_sysdb_save(struct sss_domain_info *domain,
                     const char *primary_subdir, const char *attr_name,
                     size_t primary_count, struct sysdb_attrs **primary,
                     const char *group_subdir, const char *groupattr_name,
@@ -110,7 +112,7 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     }
 
     /* Save the entries and groups to the cache */
-    ret = sysdb_transaction_start(sysdb);
+    ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
@@ -118,12 +120,8 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     in_transaction = true;
 
     /* First, save the specific entries */
-    ret = ipa_hbac_save_list(sysdb, true,
-                             primary_subdir,
-                             domain,
-                             attr_name,
-                             primary_count,
-                             primary);
+    ret = ipa_hbac_save_list(domain, true, primary_subdir,
+                             attr_name, primary_count, primary);
     if (ret != EOK) {
         DEBUG(1, ("Could not save %s. [%d][%s]\n",
                   primary_subdir, ret, strerror(ret)));
@@ -132,12 +130,8 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
 
     /* Second, save the groups */
     if (group_count > 0) {
-        ret = ipa_hbac_save_list(sysdb, true,
-                                 group_subdir,
-                                 domain,
-                                 groupattr_name,
-                                 group_count,
-                                 groups);
+        ret = ipa_hbac_save_list(domain, true, group_subdir,
+                                 groupattr_name, group_count, groups);
         if (ret != EOK) {
             DEBUG(1, ("Could not save %s. [%d][%s]\n",
                       group_subdir, ret, strerror(ret)));
@@ -145,7 +139,7 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
         }
     }
 
-    ret = sysdb_transaction_commit(sysdb);
+    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto done;
@@ -154,7 +148,7 @@ ipa_hbac_sysdb_save(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
 
 done:
     if (in_transaction) {
-        sret = sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(domain->sysdb);
         if (sret != EOK) {
             DEBUG(0, ("Could not cancel sysdb transaction\n"));
         }

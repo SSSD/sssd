@@ -463,7 +463,6 @@ static void hbac_sysdb_save(struct tevent_req *req)
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
     struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
-    struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
     struct ldb_dn *base_dn;
     struct be_ctx *be_ctx = hbac_ctx_be(hbac_ctx);
     struct ipa_access_ctx *access_ctx =
@@ -488,7 +487,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
         /* Delete any rules in the sysdb so offline logins
          * are also denied.
          */
-        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx,
+        base_dn = sysdb_custom_subtree_dn(domain->sysdb, tmp_ctx,
                                           domain, HBAC_RULES_SUBDIR);
         if (base_dn == NULL) {
             talloc_free(tmp_ctx);
@@ -496,7 +495,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
             return;
         }
 
-        ret = sysdb_delete_recursive(sysdb, base_dn, true);
+        ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
         talloc_free(tmp_ctx);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_delete_recursive failed.\n"));
@@ -513,7 +512,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
         return;
     }
 
-    ret = sysdb_transaction_start(sysdb);
+    ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(0, ("Could not start transaction\n"));
         goto fail;
@@ -521,7 +520,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
     in_transaction = true;
 
     /* Save the hosts */
-    ret = ipa_hbac_sysdb_save(sysdb, domain,
+    ret = ipa_hbac_sysdb_save(domain,
                               HBAC_HOSTS_SUBDIR, SYSDB_FQDN,
                               hbac_ctx->host_count, hbac_ctx->hosts,
                               HBAC_HOSTGROUPS_SUBDIR, SYSDB_NAME,
@@ -534,7 +533,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
     }
 
     /* Save the services */
-    ret = ipa_hbac_sysdb_save(sysdb, domain,
+    ret = ipa_hbac_sysdb_save(domain,
                               HBAC_SERVICES_SUBDIR, IPA_CN,
                               hbac_ctx->service_count, hbac_ctx->services,
                               HBAC_SERVICEGROUPS_SUBDIR, IPA_CN,
@@ -546,7 +545,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
         goto fail;
     }
     /* Save the rules */
-    ret = ipa_hbac_sysdb_save(sysdb, domain,
+    ret = ipa_hbac_sysdb_save(domain,
                               HBAC_RULES_SUBDIR, IPA_UNIQUE_ID,
                               hbac_ctx->rule_count,
                               hbac_ctx->rules,
@@ -557,7 +556,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
         goto fail;
     }
 
-    ret = sysdb_transaction_commit(sysdb);
+    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto fail;
@@ -580,7 +579,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
 
 fail:
     if (in_transaction) {
-        ret = sysdb_transaction_cancel(sysdb);
+        ret = sysdb_transaction_cancel(domain->sysdb);
         if (ret != EOK) {
             DEBUG(0, ("Could not cancel transaction\n"));
         }
