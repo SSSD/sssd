@@ -280,6 +280,12 @@ static void hbac_clear_rule_data(struct hbac_ctx *hbac_ctx)
     talloc_zfree(hbac_ctx->rules);
 }
 
+/* Check whether the current HBAC request is processed in off-line mode */
+static inline bool hbac_ctx_is_offline(struct hbac_ctx *ctx)
+{
+    return ctx == NULL || ctx->sdap_op == NULL;
+}
+
 /* Check the step result code and continue, retry, get offline result or abort accordingly */
 static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret)
 {
