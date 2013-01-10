@@ -340,7 +340,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
     }
 
     req = ipa_host_info_send(hbac_ctx,
-                             hbac_ctx_ev(hbac_ctx),
+                             hbac_ctx->be_req->be_ctx->ev,
                              sdap_id_op_handle(hbac_ctx->sdap_op),
                              hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
                              hostname,
@@ -374,7 +374,7 @@ static void hbac_get_service_info_step(struct tevent_req *req)
 
     /* Get services and service groups */
     req = ipa_hbac_service_info_send(hbac_ctx,
-                                    hbac_ctx_ev(hbac_ctx),
+                                     hbac_ctx->be_req->be_ctx->ev,
                                     sdap_id_op_handle(hbac_ctx->sdap_op),
                                     hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
                                     hbac_ctx->search_bases);
@@ -439,7 +439,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
     /* Get the list of applicable rules */
     req = ipa_hbac_rule_info_send(hbac_ctx,
                                   hbac_ctx->get_deny_rules,
-                                  hbac_ctx_ev(hbac_ctx),
+                                  hbac_ctx->be_req->be_ctx->ev,
                                   sdap_id_op_handle(hbac_ctx->sdap_op),
                                   hbac_ctx_sdap_id_ctx(hbac_ctx)->opts,
                                   hbac_ctx->search_bases,
