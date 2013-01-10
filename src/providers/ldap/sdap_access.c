@@ -40,21 +40,6 @@
 #include "providers/data_provider.h"
 #include "providers/dp_backend.h"
 
-static void sdap_access_reply(struct be_req *be_req, int pam_status)
-{
-    struct pam_data *pd;
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
-    pd->pam_status = pam_status;
-
-    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
-        be_req->fn(be_req, DP_ERR_OK, pam_status, NULL);
-    }
-
-    else {
-        be_req->fn(be_req, DP_ERR_FATAL, pam_status, NULL);
-    }
-}
-
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_req *be_req,
@@ -88,33 +73,6 @@ static struct tevent_req *sdap_access_host_send(
         TALLOC_CTX *mem_ctx,
         struct tevent_context *ev,
         struct ldb_message *user_entry);
-
-static void sdap_access_done(struct tevent_req *req);
-void sdap_pam_access_handler(struct be_req *breq)
-{
-    struct pam_data *pd;
-    struct tevent_req *req;
-    struct sdap_access_ctx *access_ctx;
-
-    pd = talloc_get_type(breq->req_data, struct pam_data);
-
-    access_ctx =
-            talloc_get_type(breq->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                            struct sdap_access_ctx);
-
-    req = sdap_access_send(breq,
-                           breq->be_ctx->ev,
-                           breq,
-                           access_ctx,
-                           pd);
-    if (req == NULL) {
-        DEBUG(1, ("Unable to start sdap_access request\n"));
-        sdap_access_reply(breq, PAM_SYSTEM_ERR);
-        return;
-    }
-
-    tevent_req_set_callback(req, sdap_access_done, breq);
-}
 
 struct sdap_access_req_ctx {
     struct pam_data *pd;
@@ -1387,21 +1345,4 @@ sdap_access_recv(struct tevent_req *req, int *pam_status)
     *pam_status = state->pam_status;
 
     return EOK;
-}
-
-static void sdap_access_done(struct tevent_req *req)
-{
-    errno_t ret;
-    int pam_status = PAM_SYSTEM_ERR;
-    struct be_req *breq =
-            tevent_req_callback_data(req, struct be_req);
-
-    ret = sdap_access_recv(req, &pam_status);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(1, ("Error retrieving access check result.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-    }
-
-    sdap_access_reply(breq, pam_status);
 }

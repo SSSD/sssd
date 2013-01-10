@@ -1311,6 +1311,7 @@ libsss_krb5_common_la_SOURCES = \
 libsss_ldap_la_SOURCES = \
     src/util/find_uid.c \
     src/providers/ldap/ldap_init.c \
+    src/providers/ldap/ldap_access.c \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_utils.c \
     src/util/user_info_msg.c \
