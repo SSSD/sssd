@@ -109,9 +109,7 @@ const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
 
 static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
 {
-    if (be_req) {
-        be_req->fn(be_req, dp_err, result, NULL);
-    }
+    be_req->fn(be_req, dp_err, result, NULL);
 }
 
 static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
@@ -546,8 +544,6 @@ static struct ipa_subdomains_req_params subdomain_requests[] = {
     }
 };
 
-/* NOTE: be_req can be NULL, this is used by the online callback to refresh
- * subdomains without any request coming from a frontend */
 static void ipa_subdomains_retrieve(struct ipa_subdomains_ctx *ctx, struct be_req *be_req)
 {
     struct ipa_subdomains_req_ctx *req_ctx = NULL;
@@ -600,7 +596,6 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
 {
     int ret;
     int dp_error = DP_ERR_FATAL;
-    struct be_req *be_req;
     struct ipa_subdomains_req_ctx *ctx;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
@@ -631,9 +626,7 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
     return;
 
 fail:
-    be_req = ctx->be_req;
-    talloc_free(ctx);
-    ipa_subdomains_reply(be_req, dp_error, ret);
+    ipa_subdomains_reply(ctx->be_req, dp_error, ret);
 }
 
 static errno_t
@@ -766,8 +759,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     ret = EINVAL;
 
 done:
-    talloc_free(ctx);
-    ipa_subdomains_reply(be_req, DP_ERR_FATAL, ret);
+    ipa_subdomains_reply(ctx->be_req, DP_ERR_FATAL, ret);
 }
 
 
@@ -838,11 +830,10 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     }
 
 done:
-    talloc_free(ctx);
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
     }
-    ipa_subdomains_reply(be_req, dp_error, ret);
+    ipa_subdomains_reply(ctx->be_req, dp_error, ret);
 }
 
 static void ipa_subdomains_handler_master_done(struct tevent_req *req)
@@ -852,12 +843,10 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
-    struct be_req *be_req;
     struct sysdb_subdom *domain_info;
     const char *tmp_str;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-    be_req = ctx->be_req;
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
@@ -921,11 +910,10 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     }
 
 done:
-    talloc_free(ctx);
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
     }
-    ipa_subdomains_reply(be_req, dp_error, ret);
+    ipa_subdomains_reply(ctx->be_req, dp_error, ret);
 }
 
 static void ipa_subdom_online_cb(void *pvt);
@@ -938,9 +926,17 @@ static void ipa_subdom_timer_refresh(struct tevent_context *ev,
     ipa_subdom_online_cb(pvt);
 }
 
+static void ipa_subdom_be_req_callback(struct be_req *be_req,
+                                       int dp_err, int dp_ret,
+                                       const char *errstr)
+{
+    talloc_free(be_req);
+}
+
 static void ipa_subdom_online_cb(void *pvt)
 {
     struct ipa_subdomains_ctx *ctx;
+    struct be_req *be_req;
     struct timeval tv;
 
     ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
@@ -950,7 +946,13 @@ static void ipa_subdom_online_cb(void *pvt)
     }
 
     ctx->disabled_until = 0;
-    ipa_subdomains_retrieve(ctx, NULL);
+
+    be_req = talloc_zero(NULL, struct be_req);
+    be_req->be_ctx = ctx->be_ctx;
+    be_req->fn = ipa_subdom_be_req_callback;
+    be_req->domain = ctx->be_ctx->domain;
+
+    ipa_subdomains_retrieve(ctx, be_req);
 
     tv = tevent_timeval_current_ofs(IPA_SUBDOMAIN_REFRESH_PERIOD, 0);
     ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
