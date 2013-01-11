@@ -35,9 +35,9 @@ static void sdap_access_reply(struct be_req *be_req, int pam_status)
     pd->pam_status = pam_status;
 
     if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
-        be_req->fn(be_req, DP_ERR_OK, pam_status, NULL);
+        be_req_terminate(be_req, DP_ERR_OK, pam_status, NULL);
     } else {
-        be_req->fn(be_req, DP_ERR_FATAL, pam_status, NULL);
+        be_req_terminate(be_req, DP_ERR_FATAL, pam_status, NULL);
     }
 }
 

@@ -729,7 +729,6 @@ struct sdap_pam_chpass_state {
 
 static void sdap_auth4chpass_done(struct tevent_req *req);
 static void sdap_pam_chpass_done(struct tevent_req *req);
-static void sdap_pam_auth_reply(struct be_req *breq, int dp_err, int result);
 
 void sdap_pam_chpass_handler(struct be_req *breq)
 {
@@ -783,7 +782,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     return;
 
 done:
-    sdap_pam_auth_reply(breq, dp_err, pd->pam_status);
+    be_req_terminate(breq, dp_err, pd->pam_status, NULL);
 }
 
 static void sdap_lastchange_done(struct tevent_req *req);
@@ -904,7 +903,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     }
 
 done:
-    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
+    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
 }
 
 static void sdap_pam_chpass_done(struct tevent_req *req)
@@ -973,7 +972,7 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
     }
 
 done:
-    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
+    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
 }
 
 static void sdap_lastchange_done(struct tevent_req *req)
@@ -993,7 +992,7 @@ static void sdap_lastchange_done(struct tevent_req *req)
     state->pd->pam_status = PAM_SUCCESS;
 
 done:
-    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
+    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
 }
 
 /* ==Perform-User-Authentication-and-Password-Caching===================== */
@@ -1060,7 +1059,7 @@ void sdap_pam_auth_handler(struct be_req *breq)
     }
 
 done:
-    sdap_pam_auth_reply(breq, dp_err, pd->pam_status);
+    be_req_terminate(breq, dp_err, pd->pam_status, NULL);
 }
 
 static void sdap_pam_auth_done(struct tevent_req *req)
@@ -1173,11 +1172,5 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     }
 
 done:
-    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
+    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
 }
-
-static void sdap_pam_auth_reply(struct be_req *req, int dp_err, int result)
-{
-    req->fn(req, dp_err, result, NULL);
-}
-

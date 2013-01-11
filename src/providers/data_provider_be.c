@@ -119,6 +119,13 @@ static struct bet_data bet_data[] = {
     {BET_MAX, NULL, NULL}
 };
 
+void be_req_terminate(struct be_req *be_req,
+                      int dp_err_type, int errnum, const char *errstr)
+{
+    be_req->fn(be_req, dp_err_type, errnum, errstr);
+}
+
+
 struct be_async_req {
     be_req_fn_t fn;
     struct be_req *req;
@@ -2062,7 +2069,7 @@ static void be_target_access_permit(struct be_req *be_req)
     DEBUG(9, ("be_target_access_permit called, returning PAM_SUCCESS.\n"));
 
     pd->pam_status = PAM_SUCCESS;
-    be_req->fn(be_req, DP_ERR_OK, PAM_SUCCESS, NULL);
+    be_req_terminate(be_req, DP_ERR_OK, PAM_SUCCESS, NULL);
 }
 
 static struct bet_ops be_target_access_permit_ops = {
@@ -2077,7 +2084,7 @@ static void be_target_access_deny(struct be_req *be_req)
     DEBUG(9, ("be_target_access_deny called, returning PAM_PERM_DENIED.\n"));
 
     pd->pam_status = PAM_PERM_DENIED;
-    be_req->fn(be_req, DP_ERR_OK, PAM_PERM_DENIED, NULL);
+    be_req_terminate(be_req, DP_ERR_OK, PAM_PERM_DENIED, NULL);
 }
 
 static struct bet_ops be_target_access_deny_ops = {

@@ -1355,12 +1355,12 @@ void proxy_get_account_info(struct be_req *breq)
     domain = breq->be_ctx->domain;
 
     if (be_is_offline(breq->be_ctx)) {
-        return proxy_reply(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
+        return be_req_terminate(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
     /* for now we support only core attrs */
     if (ar->attr_type != BE_ATTR_CORE) {
-        return proxy_reply(breq, DP_ERR_FATAL, EINVAL, "Invalid attr type");
+        return be_req_terminate(breq, DP_ERR_FATAL, EINVAL, "Invalid attr type");
     }
 
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
@@ -1377,13 +1377,13 @@ void proxy_get_account_info(struct be_req *breq)
         case BE_FILTER_IDNUM:
             uid = (uid_t) strtouint32(ar->filter_value, &endptr, 10);
             if (errno || *endptr || (ar->filter_value == endptr)) {
-                return proxy_reply(breq, DP_ERR_FATAL,
+                return be_req_terminate(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
             }
             ret = get_pw_uid(breq, ctx, sysdb, domain, uid);
             break;
         default:
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                EINVAL, "Invalid filter type");
         }
         break;
@@ -1399,24 +1399,24 @@ void proxy_get_account_info(struct be_req *breq)
         case BE_FILTER_IDNUM:
             gid = (gid_t) strtouint32(ar->filter_value, &endptr, 10);
             if (errno || *endptr || (ar->filter_value == endptr)) {
-                return proxy_reply(breq, DP_ERR_FATAL,
+                return be_req_terminate(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
             }
             ret = get_gr_gid(breq, ctx, sysdb, domain, gid, 0);
             break;
         default:
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                EINVAL, "Invalid filter type");
         }
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (ar->filter_type != BE_FILTER_NAME) {
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                EINVAL, "Invalid filter type");
         }
         if (ctx->ops.initgroups_dyn == NULL) {
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                ENODEV, "Initgroups call not supported");
         }
         ret = get_initgr(breq, ctx, sysdb, domain, ar->filter_value);
@@ -1424,12 +1424,12 @@ void proxy_get_account_info(struct be_req *breq)
 
     case BE_REQ_NETGROUP:
         if (ar->filter_type != BE_FILTER_NAME) {
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                EINVAL, "Invalid filter type");
         }
         if (ctx->ops.setnetgrent == NULL || ctx->ops.getnetgrent_r == NULL ||
             ctx->ops.endnetgrent == NULL) {
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                ENODEV, "Netgroups are not supported");
         }
 
@@ -1440,7 +1440,7 @@ void proxy_get_account_info(struct be_req *breq)
         switch (ar->filter_type) {
         case BE_FILTER_NAME:
             if (ctx->ops.getservbyname_r == NULL) {
-                return proxy_reply(breq, DP_ERR_FATAL,
+                return be_req_terminate(breq, DP_ERR_FATAL,
                                    ENODEV, "Services are not supported");
             }
             ret = get_serv_byname(ctx, sysdb, domain,
@@ -1449,7 +1449,7 @@ void proxy_get_account_info(struct be_req *breq)
             break;
         case BE_FILTER_IDNUM:
             if (ctx->ops.getservbyport_r == NULL) {
-                return proxy_reply(breq, DP_ERR_FATAL,
+                return be_req_terminate(breq, DP_ERR_FATAL,
                                    ENODEV, "Services are not supported");
             }
             ret = get_serv_byport(ctx, sysdb, domain,
@@ -1460,19 +1460,19 @@ void proxy_get_account_info(struct be_req *breq)
             if (!ctx->ops.setservent
                     || !ctx->ops.getservent_r
                     || !ctx->ops.endservent) {
-                return proxy_reply(breq, DP_ERR_FATAL,
+                return be_req_terminate(breq, DP_ERR_FATAL,
                                    ENODEV, "Services are not supported");
             }
             ret = enum_services(ctx, sysdb, domain);
             break;
         default:
-            return proxy_reply(breq, DP_ERR_FATAL,
+            return be_req_terminate(breq, DP_ERR_FATAL,
                                EINVAL, "Invalid filter type");
         }
         break;
 
     default: /*fail*/
-        return proxy_reply(breq, DP_ERR_FATAL,
+        return be_req_terminate(breq, DP_ERR_FATAL,
                            EINVAL, "Invalid request type");
     }
 
@@ -1481,8 +1481,8 @@ void proxy_get_account_info(struct be_req *breq)
             DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
             be_mark_offline(breq->be_ctx);
         }
-        proxy_reply(breq, DP_ERR_FATAL, ret, NULL);
+        be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);
         return;
     }
-    proxy_reply(breq, DP_ERR_OK, EOK, NULL);
+    be_req_terminate(breq, DP_ERR_OK, EOK, NULL);
 }

@@ -32,11 +32,6 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"
 
-static void ipa_auth_reply(struct be_req *be_req, int dp_err, int result)
-{
-    be_req->fn(be_req, dp_err, result, NULL);
-}
-
 struct get_password_migration_flag_state {
     struct tevent_context *ev;
     struct sdap_id_op *sdap_op;
@@ -240,7 +235,7 @@ void ipa_auth(struct be_req *be_req)
 fail:
     talloc_free(state);
     pd->pam_status = PAM_SYSTEM_ERR;
-    ipa_auth_reply(be_req, DP_ERR_FATAL, pd->pam_status);
+    be_req_terminate(be_req, DP_ERR_FATAL, pd->pam_status, NULL);
 }
 
 static void ipa_auth_handler_done(struct tevent_req *req)
@@ -283,7 +278,7 @@ static void ipa_auth_handler_done(struct tevent_req *req)
     }
 
 done:
-    ipa_auth_reply(state->be_req, dp_err, state->pd->pam_status);
+    be_req_terminate(state->be_req, dp_err, state->pd->pam_status, NULL);
 }
 
 static void ipa_get_migration_flag_done(struct tevent_req *req)
@@ -322,7 +317,7 @@ static void ipa_get_migration_flag_done(struct tevent_req *req)
     DEBUG(SSSDBG_CONF_SETTINGS, ("Password migration is not enabled.\n"));
     dp_err = DP_ERR_OK;
 done:
-    ipa_auth_reply(state->be_req, dp_err, state->pd->pam_status);
+    be_req_terminate(state->be_req, dp_err, state->pd->pam_status, NULL);
 }
 
 static void ipa_migration_flag_connect_done(struct tevent_req *req)
@@ -385,7 +380,7 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     return;
 
 done:
-    ipa_auth_reply(state->be_req, dp_err, state->pd->pam_status);
+    be_req_terminate(state->be_req, dp_err, state->pd->pam_status, NULL);
 }
 
 static void ipa_auth_ldap_done(struct tevent_req *req)
@@ -429,7 +424,7 @@ static void ipa_auth_ldap_done(struct tevent_req *req)
     return;
 
 done:
-    ipa_auth_reply(state->be_req, dp_err, state->pd->pam_status);
+    be_req_terminate(state->be_req, dp_err, state->pd->pam_status, NULL);
 }
 
 static void ipa_auth_handler_retry_done(struct tevent_req *req)
@@ -452,5 +447,5 @@ static void ipa_auth_handler_retry_done(struct tevent_req *req)
     state->pd->pam_status = pam_status;
 
 done:
-    ipa_auth_reply(state->be_req, dp_err, state->pd->pam_status);
+    be_req_terminate(state->be_req, dp_err, state->pd->pam_status, NULL);
 }

@@ -47,7 +47,7 @@ ad_access_handler(struct be_req *breq)
                                pd->domain, NULL, NULL);
         if (domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
-            breq->fn(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
+            be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
             return;
         }
     } else {
@@ -61,7 +61,7 @@ ad_access_handler(struct be_req *breq)
                            access_ctx->sdap_access_ctx,
                            pd);
     if (!req) {
-        breq->fn(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
+        be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
         return;
     }
     tevent_req_set_callback(req, ad_access_done, breq);
@@ -79,7 +79,7 @@ ad_access_done(struct tevent_req *req)
     ret = sdap_access_recv(req, &pam_status);
     talloc_zfree(req);
     if (ret != EOK) {
-        breq->fn(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, strerror(ret));
+        be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, strerror(ret));
         return;
     }
 
@@ -87,12 +87,13 @@ ad_access_done(struct tevent_req *req)
 
     if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
         /* We got the proper approval or denial */
-        breq->fn(breq, DP_ERR_OK, pam_status, NULL);
+        be_req_terminate(breq, DP_ERR_OK, pam_status, NULL);
         return;
     }
 
     /* Something went wrong */
     pd->pam_status = PAM_SYSTEM_ERR;
-    breq->fn(breq, DP_ERR_FATAL, pam_status, pam_strerror(NULL, pam_status));
+    be_req_terminate(breq, DP_ERR_FATAL, pam_status,
+                     pam_strerror(NULL, pam_status));
     return;
 }

@@ -254,4 +254,10 @@ int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name);
 
 void reset_fo(struct be_ctx *be_ctx);
+
+/* be_req helpers */
+
+void be_req_terminate(struct be_req *be_req,
+                      int dp_err_type, int errnum, const char *errstr);
+
 #endif /* __DP_BACKEND_H___ */

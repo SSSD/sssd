@@ -745,7 +745,7 @@ done:
 void sdap_handler_done(struct be_req *req, int dp_err,
                        int error, const char *errstr)
 {
-    return req->fn(req, dp_err, error, errstr);
+    return be_req_terminate(req, dp_err, error, errstr);
 }
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx)

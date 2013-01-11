@@ -120,7 +120,7 @@ void ipa_selinux_handler(struct be_req *be_req)
     return;
 
 fail:
-    be_req->fn(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
+    be_req_terminate(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
 }
 
 static struct ipa_selinux_op_ctx *
@@ -248,7 +248,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     in_transaction = false;
 
     pd->pam_status = PAM_SUCCESS;
-    breq->fn(breq, DP_ERR_OK, EOK, "Success");
+    be_req_terminate(breq, DP_ERR_OK, EOK, "Success");
     return;
 
 fail:
@@ -259,9 +259,9 @@ fail:
         }
     }
     if (ret == EAGAIN) {
-        breq->fn(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
+        be_req_terminate(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     } else {
-        breq->fn(breq, DP_ERR_FATAL, ret, NULL);
+        be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);
     }
 }
 

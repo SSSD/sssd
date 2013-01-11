@@ -60,18 +60,18 @@ void proxy_pam_handler(struct be_req *req)
         case SSS_PAM_OPEN_SESSION:
         case SSS_PAM_CLOSE_SESSION:
             pd->pam_status = PAM_SUCCESS;
-            proxy_reply(req, DP_ERR_OK, EOK, NULL);
+            be_req_terminate(req, DP_ERR_OK, EOK, NULL);
             return;
         default:
             DEBUG(1, ("Unsupported PAM task.\n"));
             pd->pam_status = PAM_MODULE_UNKNOWN;
-            proxy_reply(req, DP_ERR_OK, EINVAL, "Unsupported PAM task");
+            be_req_terminate(req, DP_ERR_OK, EINVAL, "Unsupported PAM task");
             return;
     }
 
     client_ctx = talloc(req, struct proxy_client_ctx);
     if (client_ctx == NULL) {
-        proxy_reply(req, DP_ERR_FATAL, ENOMEM, NULL);
+        be_req_terminate(req, DP_ERR_FATAL, ENOMEM, NULL);
         return;
     }
     client_ctx->auth_ctx = ctx;
@@ -85,7 +85,7 @@ void proxy_pam_handler(struct be_req *req)
         /* Could not queue request
          * Return an error
          */
-        proxy_reply(req, DP_ERR_FATAL, EINVAL, "Could not queue request\n");
+        be_req_terminate(req, DP_ERR_FATAL, EINVAL, "Could not queue request\n");
         return;
     }
     tevent_req_set_callback(child_req, proxy_child_done, client_ctx);
@@ -740,7 +740,7 @@ static void proxy_child_done(struct tevent_req *req)
 
     if (ret != EOK) {
         /* Pam child failed */
-        proxy_reply(client_ctx->be_req, DP_ERR_FATAL, ret,
+        be_req_terminate(client_ctx->be_req, DP_ERR_FATAL, ret,
                     "PAM child failed");
         return;
     }
@@ -770,7 +770,7 @@ static void proxy_child_done(struct tevent_req *req)
     }
 
 done:
-    proxy_reply(client_ctx->be_req, DP_ERR_OK, EOK, NULL);
+    be_req_terminate(client_ctx->be_req, DP_ERR_OK, EOK, NULL);
 }
 
 static void run_proxy_child_queue(struct tevent_context *ev,

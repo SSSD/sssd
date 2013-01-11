@@ -142,10 +142,6 @@ struct pc_init_ctx {
 #define DEFAULT_BUFSIZE 4096
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
 
-/* From proxy_common.c */
-void proxy_reply(struct be_req *req, int dp_err,
-                 int error, const char *errstr);
-
 /* From proxy_id.c */
 void proxy_get_account_info(struct be_req *breq);
 

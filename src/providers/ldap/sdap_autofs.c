@@ -116,7 +116,7 @@ void sdap_autofs_handler(struct be_req *be_req)
 
     return;
 fail:
-    be_req->fn(be_req, DP_ERR_FATAL, ret, NULL);
+    be_req_terminate(be_req, DP_ERR_FATAL, ret, NULL);
 }
 
 struct autofs_get_map_state {

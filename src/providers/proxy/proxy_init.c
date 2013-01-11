@@ -43,13 +43,13 @@ struct sbus_interface proxy_interface = {
 static void proxy_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
-    req->fn(req, DP_ERR_OK, EOK, NULL);
+    be_req_terminate(req, DP_ERR_OK, EOK, NULL);
 }
 
 static void proxy_auth_shutdown(struct be_req *req)
 {
     talloc_free(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data);
-    req->fn(req, DP_ERR_OK, EOK, NULL);
+    be_req_terminate(req, DP_ERR_OK, EOK, NULL);
 }
 
 struct bet_ops proxy_id_ops = {

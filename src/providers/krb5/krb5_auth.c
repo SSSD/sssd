@@ -238,8 +238,6 @@ static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
     }
 }
 
-static void krb_reply(struct be_req *req, int dp_err, int result);
-
 static int krb5_cleanup(void *ptr)
 {
     struct krb5child_req *kr = talloc_get_type(ptr, struct krb5child_req);
@@ -1123,11 +1121,6 @@ int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
     return EOK;
 }
 
-static void krb_reply(struct be_req *req, int dp_err, int result)
-{
-    req->fn(req, dp_err, result, NULL);
-}
-
 void krb5_pam_handler_auth_done(struct tevent_req *req);
 static void krb5_pam_handler_access_done(struct tevent_req *req);
 
@@ -1202,7 +1195,7 @@ void krb5_pam_handler(struct be_req *be_req)
     return;
 
 done:
-    krb_reply(be_req, dp_err, pd->pam_status);
+    be_req_terminate(be_req, dp_err, pd->pam_status, NULL);
 }
 
 void krb5_pam_handler_auth_done(struct tevent_req *req)
@@ -1232,7 +1225,7 @@ void krb5_pam_handler_auth_done(struct tevent_req *req)
         DEBUG(1, ("Kerberos context not available.\n"));
     }
 
-    krb_reply(be_req, dp_err, pd->pam_status);
+    be_req_terminate(be_req, dp_err, pd->pam_status, NULL);
 }
 
 static void krb5_pam_handler_access_done(struct tevent_req *req)
@@ -1259,5 +1252,5 @@ static void krb5_pam_handler_access_done(struct tevent_req *req)
     dp_err = DP_ERR_OK;
 
 done:
-    krb_reply(be_req, dp_err, pd->pam_status);
+    be_req_terminate(be_req, dp_err, pd->pam_status, NULL);
 }

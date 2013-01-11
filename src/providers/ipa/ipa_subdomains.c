@@ -107,11 +107,6 @@ const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
     return NULL;
 }
 
-static void ipa_subdomains_reply(struct be_req *be_req, int dp_err, int result)
-{
-    be_req->fn(be_req, dp_err, result, NULL);
-}
-
 static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
                                         size_t count,
                                         struct sysdb_attrs **reply,
@@ -589,7 +584,7 @@ done:
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
     }
-    ipa_subdomains_reply(be_req, dp_error, ret);
+    be_req_terminate(be_req, dp_error, ret, NULL);
 }
 
 static void ipa_subdomains_get_conn_done(struct tevent_req *req)
@@ -626,7 +621,7 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
     return;
 
 fail:
-    ipa_subdomains_reply(ctx->be_req, dp_error, ret);
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
 static errno_t
@@ -752,7 +747,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     ret = EINVAL;
 
 done:
-    ipa_subdomains_reply(ctx->be_req, DP_ERR_FATAL, ret);
+    be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
 }
 
 
@@ -819,7 +814,7 @@ done:
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
     }
-    ipa_subdomains_reply(ctx->be_req, dp_error, ret);
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
 static void ipa_subdomains_handler_master_done(struct tevent_req *req)
@@ -899,7 +894,7 @@ done:
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
     }
-    ipa_subdomains_reply(ctx->be_req, dp_error, ret);
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
 static void ipa_subdom_online_cb(void *pvt);
@@ -1004,7 +999,7 @@ void ipa_subdomains_handler(struct be_req *be_req)
     ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
                           struct ipa_subdomains_ctx);
     if (!ctx) {
-        ipa_subdomains_reply(be_req, DP_ERR_FATAL, EINVAL);
+        be_req_terminate(be_req, DP_ERR_FATAL, EINVAL, NULL);
         return;
     }
 
@@ -1012,12 +1007,12 @@ void ipa_subdomains_handler(struct be_req *be_req)
 
     if (ctx->disabled_until > now) {
         DEBUG(SSSDBG_TRACE_ALL, ("Subdomain provider disabled.\n"));
-        ipa_subdomains_reply(be_req, DP_ERR_OK, EOK);
+        be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
         return;
     }
 
     if (ctx->last_refreshed > now - IPA_SUBDOMAIN_REFRESH_LIMIT) {
-        ipa_subdomains_reply(be_req, DP_ERR_OK, EOK);
+        be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
         return;
     }
 

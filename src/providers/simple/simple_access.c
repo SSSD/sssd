@@ -65,7 +65,7 @@ void simple_access_handler(struct be_req *be_req)
     }
 
 done:
-    be_req->fn(be_req, DP_ERR_OK, pd->pam_status, NULL);
+    be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
 }
 
 struct bet_ops simple_access_ops = {
