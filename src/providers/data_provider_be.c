@@ -119,9 +119,27 @@ static struct bet_data bet_data[] = {
     {BET_MAX, NULL, NULL}
 };
 
+struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
+                             struct be_client *becli, struct be_ctx *be_ctx,
+                             be_async_callback_t fn, void *pvt_fn_data)
+{
+    struct be_req *be_req;
+
+    be_req = talloc_zero(becli, struct be_req);
+    if (be_req == NULL) return NULL;
+
+    be_req->becli = becli;
+    be_req->be_ctx = be_ctx;
+    be_req->fn = fn;
+    be_req->pvt = pvt_fn_data;
+
+    return be_req;
+}
+
 void be_req_terminate(struct be_req *be_req,
                       int dp_err_type, int errnum, const char *errstr)
 {
+    if (be_req->fn == NULL) return;
     be_req->fn(be_req, dp_err_type, errnum, errstr);
 }
 
@@ -436,17 +454,15 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     }
 
     /* process request */
-    be_req = talloc_zero(becli, struct be_req);
+
+    be_req = be_req_create(becli, becli, becli->bectx,
+                           get_subdomains_callback, reply);
     if (!be_req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
         goto immediate;
     }
-    be_req->becli = becli;
-    be_req->be_ctx = becli->bectx;
-    be_req->fn = get_subdomains_callback;
-    be_req->pvt = reply;
 
     req = talloc(be_req, struct be_subdom_req);
     if (!req) {
@@ -823,17 +839,14 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
          */
     }
 
-    be_req = talloc_zero(becli, struct be_req);
+    be_req = be_req_create(becli, becli, becli->bectx,
+                           acctinfo_callback, reply);
     if (!be_req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
         goto done;
     }
-    be_req->becli = becli;
-    be_req->be_ctx = becli->bectx;
-    be_req->fn = acctinfo_callback;
-    be_req->pvt = reply;
 
     req = talloc(be_req, struct be_acct_req);
     if (!req) {
@@ -1036,17 +1049,13 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         return ENOMEM;
     }
 
-    be_req = talloc_zero(becli, struct be_req);
+    be_req = be_req_create(becli, becli, becli->bectx,
+                           be_pam_handler_callback, reply);
     if (!be_req) {
         DEBUG(7, ("talloc_zero failed.\n"));
         dbus_message_unref(reply);
         return ENOMEM;
     }
-
-    be_req->becli = becli;
-    be_req->be_ctx = becli->bectx;
-    be_req->fn = be_pam_handler_callback;
-    be_req->pvt = reply;
 
     dbus_error_init(&dbus_error);
 
@@ -1225,17 +1234,13 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     /* create be request */
-    be_req = talloc_zero(be_cli, struct be_req);
+    be_req = be_req_create(be_cli, be_cli, be_cli->bectx,
+                           be_sudo_handler_callback, reply);
     if (be_req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         dbus_message_unref(reply);
         return ENOMEM;
     }
-
-    be_req->becli = be_cli;
-    be_req->be_ctx = be_cli->bectx;
-    be_req->pvt = reply;
-    be_req->fn = be_sudo_handler_callback;
 
     dbus_error_init(&dbus_error);
     dbus_message_iter_init(message, &iter);
@@ -1465,7 +1470,8 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     /* create be request */
-    be_req = talloc_zero(be_cli, struct be_req);
+    be_req = be_req_create(be_cli, be_cli, be_cli->bectx,
+                           be_autofs_handler_callback, reply);
     if (be_req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         err_maj = DP_ERR_FATAL;
@@ -1473,11 +1479,6 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
         err_msg = "Out of memory";
         goto done;
     }
-
-    be_req->becli = be_cli;
-    be_req->be_ctx = be_cli->bectx;
-    be_req->pvt = reply;
-    be_req->fn = be_autofs_handler_callback;
 
     /* set autofs request data */
     be_autofs_req = talloc_zero(be_req, struct be_autofs_req);
@@ -1685,17 +1686,14 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
          */
     }
 
-    be_req = talloc_zero(becli, struct be_req);
+    be_req = be_req_create(becli, becli, becli->bectx,
+                           acctinfo_callback, reply);
     if (!be_req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
         goto done;
     }
-    be_req->becli = becli;
-    be_req->be_ctx = becli->bectx;
-    be_req->fn = acctinfo_callback;
-    be_req->pvt = reply;
 
     req = talloc(be_req, struct be_host_req);
     if (!req) {
@@ -1953,14 +1951,12 @@ static void check_if_online(struct be_ctx *ctx)
         goto failed;
     }
 
-    be_req = talloc_zero(ctx, struct be_req);
+    be_req = be_req_create(ctx, NULL, ctx,
+                           check_online_callback, NULL);
     if (be_req == NULL) {
         DEBUG(1, ("talloc_zero failed.\n"));
         goto failed;
     }
-
-    be_req->be_ctx = ctx;
-    be_req->fn = check_online_callback;
 
     ret = be_file_check_online_request(be_req);
     if (ret != EOK) {

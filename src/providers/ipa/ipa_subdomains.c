@@ -928,9 +928,8 @@ static void ipa_subdom_online_cb(void *pvt)
 
     ctx->disabled_until = 0;
 
-    be_req = talloc_zero(NULL, struct be_req);
-    be_req->be_ctx = ctx->be_ctx;
-    be_req->fn = ipa_subdom_be_req_callback;
+    be_req = be_req_create(ctx, NULL, ctx->be_ctx,
+                           ipa_subdom_be_req_callback, NULL);
 
     ipa_subdomains_retrieve(ctx, be_req);
 
