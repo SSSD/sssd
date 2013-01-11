@@ -34,16 +34,17 @@ void
 ad_access_handler(struct be_req *breq)
 {
     struct tevent_req *req;
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct ad_access_ctx *access_ctx =
-            talloc_get_type(breq->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                             struct ad_access_ctx);
 
     struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
     struct sss_domain_info *domain;
 
     /* Handle subdomains */
-    if (strcasecmp(pd->domain, breq->be_ctx->domain->name) != 0) {
-        domain = new_subdomain(breq, breq->be_ctx->domain,
+    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
+        domain = new_subdomain(breq, be_ctx->domain,
                                pd->domain, NULL, NULL);
         if (domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
@@ -51,15 +52,12 @@ ad_access_handler(struct be_req *breq)
             return;
         }
     } else {
-        domain = breq->be_ctx->domain;
+        domain = be_ctx->domain;
     }
 
     /* Verify that the account is not locked */
-    req = sdap_access_send(breq,
-                           breq->be_ctx->ev,
-                           breq->be_ctx, domain,
-                           access_ctx->sdap_access_ctx,
-                           pd);
+    req = sdap_access_send(breq, be_ctx->ev, be_ctx, domain,
+                           access_ctx->sdap_access_ctx, pd);
     if (!req) {
         be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
         return;

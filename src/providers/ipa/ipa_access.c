@@ -78,23 +78,20 @@ void ipa_access_handler(struct be_req *be_req)
     struct pam_data *pd;
     struct ipa_access_ctx *ipa_access_ctx;
     struct tevent_req *req;
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    ipa_access_ctx = talloc_get_type(
-                              be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                              struct ipa_access_ctx);
+    ipa_access_ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+                                     struct ipa_access_ctx);
 
     /* First, verify that this account isn't locked.
      * We need to do this in case the auth phase was
      * skipped (such as during GSSAPI single-sign-on
      * or SSH public key exchange.
      */
-    req = sdap_access_send(be_req,
-                           be_req->be_ctx->ev,
-                           be_req->be_ctx, be_req->be_ctx->domain,
-                           ipa_access_ctx->sdap_access_ctx,
-                           pd);
+    req = sdap_access_send(be_req, be_ctx->ev, be_ctx, be_ctx->domain,
+                           ipa_access_ctx->sdap_access_ctx, pd);
     if (!req) {
         be_req_terminate(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
         return;
@@ -105,6 +102,7 @@ void ipa_access_handler(struct be_req *be_req)
 static void ipa_hbac_check(struct tevent_req *req)
 {
     struct be_req *be_req;
+    struct be_ctx *be_ctx;
     struct pam_data *pd;
     struct hbac_ctx *hbac_ctx = NULL;
     const char *deny_method;
@@ -113,6 +111,7 @@ static void ipa_hbac_check(struct tevent_req *req)
     int ret;
 
     be_req = tevent_req_callback_data(req, struct be_req);
+    be_ctx = be_req_get_be_ctx(be_req);
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
     ret = sdap_access_recv(req, &pam_status);
@@ -147,9 +146,8 @@ static void ipa_hbac_check(struct tevent_req *req)
 
     hbac_ctx->be_req = be_req;
     hbac_ctx->pd = pd;
-    ipa_access_ctx = talloc_get_type(
-                              be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                              struct ipa_access_ctx);
+    ipa_access_ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+                                     struct ipa_access_ctx);
     hbac_ctx->access_ctx = ipa_access_ctx;
     hbac_ctx->sdap_ctx = ipa_access_ctx->sdap_ctx;
     hbac_ctx->ipa_options = ipa_access_ctx->ipa_options;
@@ -191,8 +189,9 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
     bool offline;
     time_t now, refresh_interval;
     struct ipa_access_ctx *access_ctx = hbac_ctx->access_ctx;
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
 
-    offline = be_is_offline(hbac_ctx->be_req->be_ctx);
+    offline = be_is_offline(be_ctx);
     DEBUG(9, ("Connection status is [%s].\n", offline ? "offline" : "online"));
 
     refresh_interval = dp_opt_get_int(hbac_ctx->ipa_options,
@@ -332,6 +331,7 @@ static void hbac_sysdb_save (struct tevent_req *req);
 
 static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
     const char *hostname;
     struct tevent_req *req;
 
@@ -345,8 +345,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
         hostname = dp_opt_get_string(hbac_ctx->ipa_options, IPA_HOSTNAME);
     }
 
-    req = ipa_host_info_send(hbac_ctx,
-                             hbac_ctx->be_req->be_ctx->ev,
+    req = ipa_host_info_send(hbac_ctx, be_ctx->ev,
                              sdap_id_op_handle(hbac_ctx->sdap_op),
                              hbac_ctx->sdap_ctx->opts,
                              hostname,
@@ -367,6 +366,7 @@ static void hbac_get_service_info_step(struct tevent_req *req)
     errno_t ret;
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
 
     ret = ipa_host_info_recv(req, hbac_ctx,
                              &hbac_ctx->host_count,
@@ -379,8 +379,7 @@ static void hbac_get_service_info_step(struct tevent_req *req)
     }
 
     /* Get services and service groups */
-    req = ipa_hbac_service_info_send(hbac_ctx,
-                                     hbac_ctx->be_req->be_ctx->ev,
+    req = ipa_hbac_service_info_send(hbac_ctx, be_ctx->ev,
                                     sdap_id_op_handle(hbac_ctx->sdap_op),
                                      hbac_ctx->sdap_ctx->opts,
                                     hbac_ctx->search_bases);
@@ -403,6 +402,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
     const char *hostname;
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
 
     ret = ipa_hbac_service_info_recv(req, hbac_ctx,
                                      &hbac_ctx->service_count,
@@ -445,7 +445,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
     /* Get the list of applicable rules */
     req = ipa_hbac_rule_info_send(hbac_ctx,
                                   hbac_ctx->get_deny_rules,
-                                  hbac_ctx->be_req->be_ctx->ev,
+                                  be_ctx->ev,
                                   sdap_id_op_handle(hbac_ctx->sdap_op),
                                   hbac_ctx->sdap_ctx->opts,
                                   hbac_ctx->search_bases,
@@ -468,10 +468,11 @@ static void hbac_sysdb_save(struct tevent_req *req)
     bool in_transaction = false;
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
-    struct sss_domain_info *domain = hbac_ctx->be_req->be_ctx->domain;
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
+    struct sss_domain_info *domain = be_ctx->domain;
     struct ldb_dn *base_dn;
     struct ipa_access_ctx *access_ctx =
-            talloc_get_type(hbac_ctx->be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                             struct ipa_access_ctx);
     TALLOC_CTX *tmp_ctx;
 
@@ -594,6 +595,7 @@ fail:
 
 void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
     errno_t ret;
     struct hbac_rule **hbac_rules;
     struct hbac_eval_req *eval_req;
@@ -601,7 +603,7 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
     struct hbac_info *info;
 
     /* Get HBAC rules from the sysdb */
-    ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx->be_req->be_ctx->domain,
+    ret = hbac_get_cached_rules(hbac_ctx, be_ctx->domain,
                                 &hbac_ctx->rule_count, &hbac_ctx->rules);
     if (ret != EOK) {
         DEBUG(1, ("Could not retrieve rules from the cache\n"));

@@ -260,6 +260,7 @@ void reset_fo(struct be_ctx *be_ctx);
 struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
                              struct be_client *becli, struct be_ctx *be_ctx,
                              be_async_callback_t fn, void *pvt_fn_data);
+struct be_ctx *be_req_get_be_ctx(struct be_req *be_req);
 void be_req_terminate(struct be_req *be_req,
                       int dp_err_type, int errnum, const char *errstr);
 

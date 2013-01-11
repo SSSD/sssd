@@ -213,6 +213,7 @@ static int krb5_delete_ccname(TALLOC_CTX *mem_ctx,
 
 static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct pam_data *pd;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
@@ -220,16 +221,16 @@ static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_CMD_RENEW:
-            return talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+            return talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                                    struct krb5_ctx);
             break;
         case SSS_PAM_ACCT_MGMT:
-            return talloc_get_type(be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+            return talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                                    struct krb5_ctx);
             break;
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            return talloc_get_type(be_req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+            return talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                                    struct krb5_ctx);
             break;
         default:
@@ -1126,6 +1127,7 @@ static void krb5_pam_handler_access_done(struct tevent_req *req);
 
 void krb5_pam_handler(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct tevent_req *req;
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
@@ -1159,8 +1161,7 @@ void krb5_pam_handler(struct be_req *be_req)
                           "running request immediately.\n", pd->user));
             }
 
-            req = krb5_auth_send(be_req, be_req->be_ctx->ev, be_req->be_ctx, pd,
-                                 krb5_ctx);
+            req = krb5_auth_send(be_req, be_ctx->ev, be_ctx, pd, krb5_ctx);
             if (req == NULL) {
                 DEBUG(1, ("krb5_auth_send failed.\n"));
                 goto done;
@@ -1169,8 +1170,7 @@ void krb5_pam_handler(struct be_req *be_req)
             tevent_req_set_callback(req, krb5_pam_handler_auth_done, be_req);
             break;
         case SSS_PAM_ACCT_MGMT:
-            req = krb5_access_send(be_req, be_req->be_ctx->ev, be_req->be_ctx,
-                                   pd, krb5_ctx);
+            req = krb5_access_send(be_req, be_ctx->ev, be_ctx, pd, krb5_ctx);
             if (req == NULL) {
                 DEBUG(1, ("krb5_access_send failed.\n"));
                 goto done;

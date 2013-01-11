@@ -66,12 +66,14 @@ static void ipa_account_info_done(struct tevent_req *req);
 
 void ipa_account_info_handler(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *ctx;
     struct be_acct_req *ar;
     struct tevent_req *req = NULL;
 
-    ipa_ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct ipa_id_ctx);
+    ipa_ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
+                              struct ipa_id_ctx);
     ctx = ipa_ctx->sdap_id_ctx;
 
     if (be_is_offline(ctx->be)) {
@@ -80,9 +82,9 @@ void ipa_account_info_handler(struct be_req *breq)
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
 
-    if (strcasecmp(ar->domain, breq->be_ctx->domain->name) != 0) {
+    if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
         /* if domain names do not match, this is a subdomain case */
-        req = ipa_get_subdom_acct_send(breq, breq->be_ctx->ev, ctx, ar);
+        req = ipa_get_subdom_acct_send(breq, be_ctx->ev, ctx, ar);
 
     } else if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         /* netgroups are handled by a separate request function */
@@ -90,7 +92,7 @@ void ipa_account_info_handler(struct be_req *breq)
             return sdap_handler_done(breq, DP_ERR_FATAL,
                                      EINVAL, "Invalid filter type");
         }
-        req = ipa_id_get_netgroup_send(breq, breq->be_ctx->ev,
+        req = ipa_id_get_netgroup_send(breq, be_ctx->ev,
                                        ipa_ctx, ar->filter_value);
     } else {
         /* any account request is handled by sdap,
@@ -321,9 +323,10 @@ static int ipa_id_get_netgroup_recv(struct tevent_req *req, int *dp_error)
 
 void ipa_check_online(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct ipa_id_ctx *ipa_ctx;
 
-    ipa_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
+    ipa_ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
                               struct ipa_id_ctx);
 
     return sdap_do_online_check(be_req, ipa_ctx->sdap_id_ctx);

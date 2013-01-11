@@ -44,6 +44,7 @@ static void sdap_access_reply(struct be_req *be_req, int pam_status)
 static void sdap_access_done(struct tevent_req *req);
 void sdap_pam_access_handler(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct pam_data *pd;
     struct tevent_req *req;
     struct sdap_access_ctx *access_ctx;
@@ -51,15 +52,11 @@ void sdap_pam_access_handler(struct be_req *breq)
     pd = talloc_get_type(breq->req_data, struct pam_data);
 
     access_ctx =
-            talloc_get_type(breq->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                             struct sdap_access_ctx);
 
-    req = sdap_access_send(breq,
-                           breq->be_ctx->ev,
-                           breq->be_ctx,
-                           breq->be_ctx->domain,
-                           access_ctx,
-                           pd);
+    req = sdap_access_send(breq, be_ctx->ev, be_ctx,
+                           be_ctx->domain, access_ctx, pd);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to start sdap_access request\n"));
         sdap_access_reply(breq, PAM_SYSTEM_ERR);

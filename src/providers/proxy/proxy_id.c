@@ -1339,6 +1339,7 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
 
 void proxy_get_account_info(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct be_acct_req *ar;
     struct proxy_id_ctx *ctx;
     struct sysdb_ctx *sysdb;
@@ -1349,12 +1350,12 @@ void proxy_get_account_info(struct be_req *breq)
     char *endptr;
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
                           struct proxy_id_ctx);
-    sysdb = breq->be_ctx->domain->sysdb;
-    domain = breq->be_ctx->domain;
+    sysdb = be_ctx->domain->sysdb;
+    domain = be_ctx->domain;
 
-    if (be_is_offline(breq->be_ctx)) {
+    if (be_is_offline(be_ctx)) {
         return be_req_terminate(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
@@ -1479,7 +1480,7 @@ void proxy_get_account_info(struct be_req *breq)
     if (ret) {
         if (ret == ENXIO) {
             DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
-            be_mark_offline(breq->be_ctx);
+            be_mark_offline(be_ctx);
         }
         be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);
         return;

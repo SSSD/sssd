@@ -82,6 +82,7 @@ struct ipa_selinux_op_ctx {
 
 void ipa_selinux_handler(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct ipa_selinux_ctx *selinux_ctx;
     struct ipa_selinux_op_ctx *op_ctx;
     struct tevent_req *req;
@@ -90,9 +91,8 @@ void ipa_selinux_handler(struct be_req *be_req)
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    selinux_ctx = talloc_get_type(
-                             be_req->be_ctx->bet_info[BET_SELINUX].pvt_bet_data,
-                             struct ipa_selinux_ctx);
+    selinux_ctx = talloc_get_type(be_ctx->bet_info[BET_SELINUX].pvt_bet_data,
+                                  struct ipa_selinux_ctx);
 
     hostname = dp_opt_get_string(selinux_ctx->id_ctx->ipa_options->basic,
                                  IPA_HOSTNAME);
@@ -101,15 +101,15 @@ void ipa_selinux_handler(struct be_req *be_req)
         goto fail;
     }
 
-    op_ctx = ipa_selinux_create_op_ctx(be_req, be_req->be_ctx->domain->sysdb,
-                                       be_req->be_ctx->domain,
+    op_ctx = ipa_selinux_create_op_ctx(be_req, be_ctx->domain->sysdb,
+                                       be_ctx->domain,
                                        be_req, pd->user, hostname);
     if (op_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot create op context\n"));
         goto fail;
     }
 
-    req = ipa_get_selinux_send(be_req, be_req->be_ctx,
+    req = ipa_get_selinux_send(be_req, be_ctx,
                                op_ctx->user, op_ctx->host, selinux_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot initiate the search\n"));

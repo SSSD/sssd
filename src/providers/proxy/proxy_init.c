@@ -48,7 +48,8 @@ static void proxy_shutdown(struct be_req *req)
 
 static void proxy_auth_shutdown(struct be_req *req)
 {
-    talloc_free(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(req);
+    talloc_free(be_ctx->bet_info[BET_AUTH].pvt_bet_data);
     be_req_terminate(req, DP_ERR_OK, EOK, NULL);
 }
 

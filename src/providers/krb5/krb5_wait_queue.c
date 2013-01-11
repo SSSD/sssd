@@ -42,10 +42,10 @@ static void wait_queue_auth(struct tevent_context *ev, struct tevent_timer *te,
                              struct timeval current_time, void *private_data)
 {
     struct queue_entry *qe = talloc_get_type(private_data, struct queue_entry);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(qe->be_req);
     struct tevent_req *req;
 
-    req = krb5_auth_send(qe->be_req, qe->be_req->be_ctx->ev,
-                         qe->be_req->be_ctx, qe->pd, qe->krb5_ctx);
+    req = krb5_auth_send(qe->be_req, be_ctx->ev, be_ctx, qe->pd, qe->krb5_ctx);
     if (req == NULL) {
         DEBUG(1, ("krb5_auth_send failed.\n"));
     } else {
@@ -151,6 +151,7 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
     struct queue_entry *head;
     struct queue_entry *queue_entry;
     struct tevent_timer *te;
+    struct be_ctx *be_ctx;
 
     if (krb5_ctx->wait_queue_hash == NULL) {
         DEBUG(1, ("No wait queue available.\n"));
@@ -178,7 +179,8 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
 
                 DLIST_REMOVE(head, queue_entry);
 
-                te = tevent_add_timer(queue_entry->be_req->be_ctx->ev, krb5_ctx,
+                be_ctx = be_req_get_be_ctx(queue_entry->be_req);
+                te = tevent_add_timer(be_ctx->ev, krb5_ctx,
                                       tevent_timeval_current(), wait_queue_auth,
                                       queue_entry);
                 if (te == NULL) {

@@ -136,6 +136,11 @@ struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
     return be_req;
 }
 
+struct be_ctx *be_req_get_be_ctx(struct be_req *be_req)
+{
+    return be_req->be_ctx;
+}
+
 void be_req_terminate(struct be_req *be_req,
                       int dp_err_type, int errnum, const char *errstr)
 {

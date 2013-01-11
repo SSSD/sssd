@@ -992,10 +992,11 @@ done:
 
 void ipa_subdomains_handler(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct ipa_subdomains_ctx *ctx;
     time_t now;
 
-    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
+    ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
                           struct ipa_subdomains_ctx);
     if (!ctx) {
         be_req_terminate(be_req, DP_ERR_FATAL, EINVAL, NULL);

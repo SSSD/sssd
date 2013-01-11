@@ -487,13 +487,14 @@ static void sdap_sudo_reply(struct tevent_req *req)
 
 void sdap_sudo_handler(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct tevent_req *req = NULL;
     struct be_sudo_req *sudo_req = NULL;
     struct sdap_sudo_ctx *sudo_ctx = NULL;
     struct sdap_id_ctx *id_ctx = NULL;
     int ret = EOK;
 
-    sudo_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_SUDO].pvt_bet_data,
+    sudo_ctx = talloc_get_type(be_ctx->bet_info[BET_SUDO].pvt_bet_data,
                                struct sdap_sudo_ctx);
     id_ctx = sudo_ctx->id_ctx;
 

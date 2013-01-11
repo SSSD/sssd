@@ -34,6 +34,7 @@
 
 void simple_access_handler(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     int ret;
     bool access_granted = false;
     struct pam_data *pd;
@@ -49,7 +50,7 @@ void simple_access_handler(struct be_req *be_req)
         goto done;
     }
 
-    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+    ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                           struct simple_ctx);
 
     ret = simple_access_check(ctx, pd->user, &access_granted);

@@ -78,6 +78,7 @@ static void sdap_autofs_handler_done(struct tevent_req *req);
 
 void sdap_autofs_handler(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct sdap_id_ctx *id_ctx;
     struct be_autofs_req *autofs_req;
     struct tevent_req *req;
@@ -85,7 +86,7 @@ void sdap_autofs_handler(struct be_req *be_req)
 
     DEBUG(SSSDBG_TRACE_INTERNAL, ("sdap autofs handler called\n"));
 
-    id_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_AUTOFS].pvt_bet_data,
+    id_ctx = talloc_get_type(be_ctx->bet_info[BET_AUTOFS].pvt_bet_data,
                              struct sdap_id_ctx);
 
     if (be_is_offline(id_ctx->be)) {
@@ -106,7 +107,7 @@ void sdap_autofs_handler(struct be_req *be_req)
         }
     }
 
-    req = sdap_autofs_get_map_send(be_req, be_req->be_ctx->ev,
+    req = sdap_autofs_get_map_send(be_req, be_ctx->ev,
                                    id_ctx, autofs_req->mapname);
     if (!req) {
         ret = ENOMEM;

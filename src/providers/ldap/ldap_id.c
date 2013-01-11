@@ -764,9 +764,10 @@ int groups_by_user_recv(struct tevent_req *req, int *dp_error_out)
 static void sdap_check_online_done(struct tevent_req *req);
 void sdap_check_online(struct be_req *be_req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct sdap_id_ctx *ctx;
 
-    ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_ID].pvt_bet_data,
+    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
                           struct sdap_id_ctx);
 
     return sdap_do_online_check(be_req, ctx);
@@ -779,6 +780,7 @@ struct sdap_online_check_ctx {
 
 void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct tevent_req *req;
     struct sdap_online_check_ctx *check_ctx;
     errno_t ret;
@@ -792,8 +794,8 @@ void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx)
     check_ctx->id_ctx = ctx;
     check_ctx->be_req = be_req;
 
-    req = sdap_cli_connect_send(be_req, be_req->be_ctx->ev, ctx->opts,
-                                be_req->be_ctx, ctx->service, false,
+    req = sdap_cli_connect_send(be_req, be_ctx->ev, ctx->opts,
+                                be_ctx, ctx->service, false,
                                 CON_TLS_DFL, false);
     if (req == NULL) {
         DEBUG(1, ("sdap_cli_connect_send failed.\n"));
@@ -821,6 +823,7 @@ static void sdap_check_online_done(struct tevent_req *req)
     struct sdap_id_ctx *id_ctx;
     struct tevent_req *reinit_req = NULL;
     bool reinit = false;
+    struct be_ctx *be_ctx;
 
     ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, &srv_opts);
     talloc_zfree(req);
@@ -853,13 +856,14 @@ static void sdap_check_online_done(struct tevent_req *req)
     }
 
     be_req = check_ctx->be_req;
+    be_ctx = be_req_get_be_ctx(be_req);
     id_ctx = check_ctx->id_ctx;
     talloc_free(check_ctx);
 
     if (reinit) {
         DEBUG(SSSDBG_TRACE_FUNC, ("Server reinitialization detected. "
                                   "Cleaning cache.\n"));
-        reinit_req = sdap_reinit_cleanup_send(be_req, be_req->be_ctx, id_ctx);
+        reinit_req = sdap_reinit_cleanup_send(be_req, be_ctx, id_ctx);
         if (reinit_req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to perform reinitialization "
                                         "clean up.\n"));
@@ -909,9 +913,10 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
 
 void sdap_account_info_handler(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct sdap_id_ctx *ctx;
 
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
+    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
     if (!ctx) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get sdap ctx\n"));
         return sdap_handler_done(breq, DP_ERR_FATAL,
@@ -922,6 +927,7 @@ void sdap_account_info_handler(struct be_req *breq)
 
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct be_acct_req *ar;
     struct tevent_req *req;
     const char *err = "Unknown Error";
@@ -941,7 +947,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
-        req = users_get_send(breq, breq->be_ctx->ev, ctx,
+        req = users_get_send(breq, be_ctx->ev, ctx,
                              ar->filter_value,
                              ar->filter_type,
                              ar->attr_type);
@@ -960,7 +966,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
-        req = groups_get_send(breq, breq->be_ctx->ev, ctx,
+        req = groups_get_send(breq, be_ctx->ev, ctx,
                               ar->filter_value,
                               ar->filter_type,
                               ar->attr_type);
@@ -983,7 +989,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
             err = "Invalid attr type";
             break;
         }
-        req = groups_by_user_send(breq, breq->be_ctx->ev, ctx,
+        req = groups_by_user_send(breq, be_ctx->ev, ctx,
                                   ar->filter_value);
         if (!req) ret = ENOMEM;
         /* tevent_req_set_callback(req, groups_by_user_done, breq); */
@@ -999,7 +1005,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
             break;
         }
 
-        req = ldap_netgroup_get_send(breq, breq->be_ctx->ev, ctx, ar->filter_value);
+        req = ldap_netgroup_get_send(breq, be_ctx->ev, ctx, ar->filter_value);
         if (!req) {
             return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
@@ -1013,7 +1019,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
-        req = services_get_send(breq, breq->be_ctx->ev, ctx,
+        req = services_get_send(breq, be_ctx->ev, ctx,
                                 ar->filter_value,
                                 ar->extra_value,
                                 ar->filter_type);

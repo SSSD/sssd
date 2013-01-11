@@ -35,6 +35,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 static void proxy_child_done(struct tevent_req *child_req);
 void proxy_pam_handler(struct be_req *req)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(req);
     struct pam_data *pd;
     struct proxy_auth_ctx *ctx;
     struct tevent_req *child_req = NULL;
@@ -44,16 +45,16 @@ void proxy_pam_handler(struct be_req *req)
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
-            ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+            ctx = talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                                   struct proxy_auth_ctx);
             break;
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            ctx = talloc_get_type(req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+            ctx = talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                                   struct proxy_auth_ctx);
             break;
         case SSS_PAM_ACCT_MGMT:
-            ctx = talloc_get_type(req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+            ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                                   struct proxy_auth_ctx);
             break;
         case SSS_PAM_SETCRED:
@@ -711,6 +712,7 @@ static void proxy_child_done(struct tevent_req *req)
 {
     struct proxy_client_ctx *client_ctx =
             tevent_req_callback_data(req, struct proxy_client_ctx);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(client_ctx->be_req);
     struct pam_data *pd = NULL;
     const char *password;
     int ret;
@@ -721,7 +723,7 @@ static void proxy_child_done(struct tevent_req *req)
 
     /* Start the next auth in the queue, if any */
     client_ctx->auth_ctx->running--;
-    imm = tevent_create_immediate(client_ctx->be_req->be_ctx->ev);
+    imm = tevent_create_immediate(be_ctx->ev);
     if (imm == NULL) {
         DEBUG(1, ("tevent_create_immediate failed.\n"));
         /* We'll still finish the current request, but we're
@@ -732,8 +734,7 @@ static void proxy_child_done(struct tevent_req *req)
          * to create this immediate event.
          */
     } else {
-        tevent_schedule_immediate(imm,
-                                  client_ctx->be_req->be_ctx->ev,
+        tevent_schedule_immediate(imm, be_ctx->ev,
                                   run_proxy_child_queue,
                                   client_ctx->auth_ctx);
     }
@@ -747,8 +748,7 @@ static void proxy_child_done(struct tevent_req *req)
 
     /* Check if we need to save the cached credentials */
     if ((pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) &&
-        (pd->pam_status == PAM_SUCCESS) &&
-        client_ctx->be_req->be_ctx->domain->cache_credentials) {
+        (pd->pam_status == PAM_SUCCESS) && be_ctx->domain->cache_credentials) {
 
         ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
         if (ret) {
@@ -757,8 +757,7 @@ static void proxy_child_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sysdb_cache_password(client_ctx->be_req->be_ctx->domain->sysdb,
-                                   client_ctx->be_req->be_ctx->domain,
+        ret = sysdb_cache_password(be_ctx->domain->sysdb, be_ctx->domain,
                                    pd->user, password);
 
         /* password caching failures are not fatal errors */

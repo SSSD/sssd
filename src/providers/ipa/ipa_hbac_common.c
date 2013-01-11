@@ -264,6 +264,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
                    size_t idx,
                    struct hbac_rule **rule)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
     errno_t ret;
     struct hbac_rule *new_rule;
     struct ldb_message_element *el;
@@ -306,8 +307,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     }
 
     /* Get the users */
-    ret = hbac_user_attrs_to_rule(new_rule,
-                                  hbac_ctx->be_req->be_ctx->domain,
+    ret = hbac_user_attrs_to_rule(new_rule, be_ctx->domain,
                                   new_rule->name,
                                   hbac_ctx->rules[idx],
                                   &new_rule->users);
@@ -318,8 +318,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     }
 
     /* Get the services */
-    ret = hbac_service_attrs_to_rule(new_rule,
-                                     hbac_ctx->be_req->be_ctx->domain,
+    ret = hbac_service_attrs_to_rule(new_rule, be_ctx->domain,
                                      new_rule->name,
                                      hbac_ctx->rules[idx],
                                      &new_rule->services);
@@ -330,8 +329,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     }
 
     /* Get the target hosts */
-    ret = hbac_thost_attrs_to_rule(new_rule,
-                                   hbac_ctx->be_req->be_ctx->domain,
+    ret = hbac_thost_attrs_to_rule(new_rule, be_ctx->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    &new_rule->targethosts);
@@ -343,8 +341,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     /* Get the source hosts */
 
-    ret = hbac_shost_attrs_to_rule(new_rule,
-                                   hbac_ctx->be_req->be_ctx->domain,
+    ret = hbac_shost_attrs_to_rule(new_rule, be_ctx->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    dp_opt_get_bool(hbac_ctx->ipa_options,
@@ -431,7 +428,8 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     struct pam_data *pd = hbac_ctx->pd;
     TALLOC_CTX *tmp_ctx;
     struct hbac_eval_req *eval_req;
-    struct sss_domain_info *domain = hbac_ctx->be_req->be_ctx->domain;
+    struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
+    struct sss_domain_info *domain = be_ctx->domain;
     const char *rhost;
     const char *thost;
     struct sss_domain_info *user_dom;

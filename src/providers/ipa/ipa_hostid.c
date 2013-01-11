@@ -55,6 +55,7 @@ ipa_host_info_hosts_done(struct tevent_req *req);
 void
 ipa_host_info_handler(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct ipa_hostid_ctx *hostid_ctx;
     struct sdap_id_ctx *ctx;
     struct be_host_req *hr;
@@ -63,7 +64,8 @@ ipa_host_info_handler(struct be_req *breq)
     errno_t ret = EOK;
     const char *err = "Unknown Error";
 
-    hostid_ctx = talloc_get_type(breq->be_ctx->bet_info[BET_HOSTID].pvt_bet_data, struct ipa_hostid_ctx);
+    hostid_ctx = talloc_get_type(be_ctx->bet_info[BET_HOSTID].pvt_bet_data,
+                                 struct ipa_hostid_ctx);
     ctx = hostid_ctx->sdap_id_ctx;
 
     if (be_is_offline(ctx->be)) {
@@ -81,7 +83,7 @@ ipa_host_info_handler(struct be_req *breq)
         goto done;
     }
 
-    req = hosts_get_send(breq, breq->be_ctx->ev, hostid_ctx,
+    req = hosts_get_send(breq, be_ctx->ev, hostid_ctx,
                          hr->name, hr->alias);
     if (!req) {
         ret = ENOMEM;

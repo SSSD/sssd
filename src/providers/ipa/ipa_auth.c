@@ -190,6 +190,7 @@ void ipa_auth(struct be_req *be_req)
     struct tevent_req *req;
     struct ipa_auth_state *state;
     struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
 
     state = talloc_zero(be_req, struct ipa_auth_state);
     if (state == NULL) {
@@ -201,28 +202,28 @@ void ipa_auth(struct be_req *be_req)
     state->sh = NULL;
 
     state->be_req = be_req;
-    state->ev = be_req->be_ctx->ev;
+    state->ev = be_ctx->ev;
 
     state->pd = pd;
 
     switch (state->pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
             state->ipa_auth_ctx = talloc_get_type(
-                                be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
-                                struct ipa_auth_ctx);
+                                    be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+                                    struct ipa_auth_ctx);
             break;
         case SSS_PAM_CHAUTHTOK:
         case SSS_PAM_CHAUTHTOK_PRELIM:
             state->ipa_auth_ctx = talloc_get_type(
-                              be_req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
-                              struct ipa_auth_ctx);
+                                    be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+                                    struct ipa_auth_ctx);
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, ("Unsupported PAM task.\n"));
             goto fail;
     }
 
-    req = krb5_auth_send(state, state->ev, be_req->be_ctx, state->pd,
+    req = krb5_auth_send(state, state->ev, be_ctx, state->pd,
                          state->ipa_auth_ctx->krb5_auth_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("krb5_auth_send failed.\n"));
@@ -324,6 +325,7 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
 {
     struct ipa_auth_state *state = tevent_req_callback_data(req,
                                                          struct ipa_auth_state);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(state->be_req);
     const char **attrs;
     struct ldb_message *user_msg;
     const char *dn;
@@ -352,8 +354,8 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     attrs[0] = SYSDB_ORIG_DN;
     attrs[1] = NULL;
 
-    ret = sysdb_search_user_by_name(state, state->be_req->be_ctx->domain->sysdb,
-                                    state->be_req->be_ctx->domain,
+    ret = sysdb_search_user_by_name(state, be_ctx->domain->sysdb,
+                                    be_ctx->domain,
                                     state->pd->user, attrs, &user_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));
@@ -387,6 +389,7 @@ static void ipa_auth_ldap_done(struct tevent_req *req)
 {
     struct ipa_auth_state *state = tevent_req_callback_data(req,
                                                          struct ipa_auth_state);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(state->be_req);
     int ret;
     int dp_err = DP_ERR_FATAL;
     enum sdap_result result;
@@ -412,8 +415,7 @@ static void ipa_auth_ldap_done(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, ("LDAP authentication succeded, "
                               "trying Kerberos authentication again.\n"));
 
-    req = krb5_auth_send(state, state->ev,
-                         state->be_req->be_ctx, state->pd,
+    req = krb5_auth_send(state, state->ev, be_ctx, state->pd,
                          state->ipa_auth_ctx->krb5_auth_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("krb5_auth_send failed.\n"));

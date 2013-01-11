@@ -732,13 +732,14 @@ static void sdap_pam_chpass_done(struct tevent_req *req);
 
 void sdap_pam_chpass_handler(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct sdap_pam_chpass_state *state;
     struct sdap_auth_ctx *ctx;
     struct tevent_req *subreq;
     struct pam_data *pd;
     int dp_err = DP_ERR_FATAL;
 
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+    ctx = talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                           struct sdap_auth_ctx);
     pd = talloc_get_type(breq->req_data, struct pam_data);
 
@@ -774,7 +775,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     state->username = pd->user;
     state->ctx = ctx;
 
-    subreq = auth_send(breq, breq->be_ctx->ev, ctx,
+    subreq = auth_send(breq, be_ctx->ev, ctx,
                        state->username, &pd->authtok, true);
     if (!subreq) goto done;
 
@@ -790,6 +791,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
 {
     struct sdap_pam_chpass_state *state =
                     tevent_req_callback_data(req, struct sdap_pam_chpass_state);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(state->breq);
     struct tevent_req *subreq;
     enum sdap_result result;
     enum pwexpire pw_expire_type;
@@ -828,7 +830,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                 break;
             case PWEXPIRE_KERBEROS:
                 ret = check_pwexpire_kerberos(pw_expire_data, time(NULL), NULL, &result,
-                                              state->breq->be_ctx->domain->pwd_expiration_warning);
+                                              be_ctx->domain->pwd_expiration_warning);
                 if (ret != EOK) {
                     DEBUG(1, ("check_pwexpire_kerberos failed.\n"));
                     state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -878,8 +880,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                 goto done;
             }
 
-            subreq = sdap_exop_modify_passwd_send(state,
-                                                  state->breq->be_ctx->ev,
+            subreq = sdap_exop_modify_passwd_send(state, be_ctx->ev,
                                                   state->sh, state->dn,
                                                   password, new_password);
             if (!subreq) {
@@ -895,7 +896,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         break;
     case SDAP_UNAVAIL:
         state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
-        be_mark_offline(state->breq->be_ctx);
+        be_mark_offline(be_ctx);
         dp_err = DP_ERR_OFFLINE;
         break;
     default:
@@ -910,6 +911,7 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
 {
     struct sdap_pam_chpass_state *state =
                     tevent_req_callback_data(req, struct sdap_pam_chpass_state);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(state->breq);
     enum sdap_result result;
     int dp_err = DP_ERR_FATAL;
     int ret;
@@ -957,11 +959,9 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
                         SDAP_CHPASS_UPDATE_LAST_CHANGE)) {
         lastchanged_name = state->ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name;
 
-        subreq = sdap_modify_shadow_lastchange_send(state,
-                                              state->breq->be_ctx->ev,
-                                              state->sh,
-                                              state->dn,
-                                              lastchanged_name);
+        subreq = sdap_modify_shadow_lastchange_send(state, be_ctx->ev,
+                                                    state->sh, state->dn,
+                                                    lastchanged_name);
         if (subreq == NULL) {
             state->pd->pam_status = PAM_SYSTEM_ERR;
             goto done;
@@ -1006,13 +1006,14 @@ static void sdap_pam_auth_done(struct tevent_req *req);
 
 void sdap_pam_auth_handler(struct be_req *breq)
 {
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct sdap_pam_auth_state *state;
     struct sdap_auth_ctx *ctx;
     struct tevent_req *subreq;
     struct pam_data *pd;
     int dp_err = DP_ERR_FATAL;
 
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+    ctx = talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                           struct sdap_auth_ctx);
     pd = talloc_get_type(breq->req_data, struct pam_data);
 
@@ -1035,7 +1036,7 @@ void sdap_pam_auth_handler(struct be_req *breq)
         state->breq = breq;
         state->pd = pd;
 
-        subreq = auth_send(breq, breq->be_ctx->ev, ctx,
+        subreq = auth_send(breq, be_ctx->ev, ctx,
                            pd->user, &pd->authtok,
                            pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ? true : false);
         if (!subreq) goto done;
@@ -1066,9 +1067,9 @@ static void sdap_pam_auth_done(struct tevent_req *req)
 {
     struct sdap_pam_auth_state *state =
                     tevent_req_callback_data(req, struct sdap_pam_auth_state);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(state->breq);
     enum sdap_result result;
     enum pwexpire pw_expire_type;
-    struct be_ctx *be_ctx = state->breq->be_ctx;
     void *pw_expire_data;
     const char *password;
     int dp_err = DP_ERR_OK;
@@ -1145,18 +1146,16 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     }
 
     if (result == SDAP_UNAVAIL) {
-        be_mark_offline(state->breq->be_ctx);
+        be_mark_offline(be_ctx);
         dp_err = DP_ERR_OFFLINE;
         goto done;
     }
 
-    if (result == SDAP_AUTH_SUCCESS &&
-        state->breq->be_ctx->domain->cache_credentials) {
+    if (result == SDAP_AUTH_SUCCESS && be_ctx->domain->cache_credentials) {
 
         ret = sss_authtok_get_password(&state->pd->authtok, &password, NULL);
         if (ret == EOK) {
-            ret = sysdb_cache_password(state->breq->be_ctx->domain->sysdb,
-                                       state->breq->be_ctx->domain,
+            ret = sysdb_cache_password(be_ctx->domain->sysdb, be_ctx->domain,
                                        state->pd->user, password);
         }
 
