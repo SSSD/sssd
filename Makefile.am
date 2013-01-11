@@ -1010,7 +1010,7 @@ ad_ldap_opt_tests_LDADD = \
 simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
     src/tests/common.c \
-    src/providers/simple/simple_access.c
+    src/providers/simple/simple_access_check.c
 simple_access_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
@@ -1350,6 +1350,7 @@ libsss_proxy_la_LDFLAGS = \
     -module
 
 libsss_simple_la_SOURCES = \
+    src/providers/simple/simple_access_check.c \
     src/providers/simple/simple_access.c
 libsss_simple_la_CFLAGS = \
     $(AM_CFLAGS)

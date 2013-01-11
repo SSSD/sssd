@@ -22,8 +22,6 @@
 #ifndef __SIMPLE_ACCESS_H__
 #define __SIMPLE_ACCESS_H__
 
-#include <stdlib.h>
-
 #include "util/util.h"
 
 struct simple_ctx {
