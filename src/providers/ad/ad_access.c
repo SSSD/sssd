@@ -38,8 +38,8 @@ ad_access_handler(struct be_req *breq)
     struct ad_access_ctx *access_ctx =
             talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                             struct ad_access_ctx);
-
-    struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
+    struct pam_data *pd =
+                    talloc_get_type(be_req_get_data(breq), struct pam_data);
     struct sss_domain_info *domain;
 
     /* Handle subdomains */
@@ -72,7 +72,8 @@ ad_access_done(struct tevent_req *req)
     int pam_status;
     struct be_req *breq =
             tevent_req_callback_data(req, struct be_req);
-    struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
+    struct pam_data *pd =
+                    talloc_get_type(be_req_get_data(breq), struct pam_data);
 
     ret = sdap_access_recv(req, &pam_status);
     talloc_zfree(req);

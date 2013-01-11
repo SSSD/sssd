@@ -216,7 +216,7 @@ static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
     struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct pam_data *pd;
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
@@ -1134,7 +1134,7 @@ void krb5_pam_handler(struct be_req *be_req)
     int dp_err = DP_ERR_FATAL;
     int ret;
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
     pd->pam_status = PAM_SYSTEM_ERR;
 
     krb5_ctx = get_krb5_ctx(be_req);
@@ -1207,7 +1207,7 @@ void krb5_pam_handler_auth_done(struct tevent_req *req)
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     ret = krb5_auth_recv(req, &pam_status, &dp_err);
     talloc_zfree(req);
@@ -1236,7 +1236,7 @@ static void krb5_pam_handler_access_done(struct tevent_req *req)
     struct pam_data *pd;
     int dp_err = DP_ERR_OK;
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
     pd->pam_status = PAM_SYSTEM_ERR;
 
     ret = krb5_access_recv(req, &access_allowed);

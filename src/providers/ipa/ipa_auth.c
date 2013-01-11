@@ -189,7 +189,8 @@ void ipa_auth(struct be_req *be_req)
 {
     struct tevent_req *req;
     struct ipa_auth_state *state;
-    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
+    struct pam_data *pd =
+                    talloc_get_type(be_req_get_data(be_req), struct pam_data);
     struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
 
     state = talloc_zero(be_req, struct ipa_auth_state);

@@ -80,7 +80,7 @@ void ipa_account_info_handler(struct be_req *breq)
         return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
-    ar = talloc_get_type(breq->req_data, struct be_acct_req);
+    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
 
     if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
         /* if domain names do not match, this is a subdomain case */
@@ -110,7 +110,7 @@ void ipa_account_info_handler(struct be_req *breq)
 static void ipa_account_info_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    struct be_acct_req *ar = talloc_get_type(breq->req_data,
+    struct be_acct_req *ar = talloc_get_type(be_req_get_data(breq),
                                              struct be_acct_req);
     const char *error_text;
     int ret, dp_error;

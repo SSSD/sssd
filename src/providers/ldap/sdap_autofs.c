@@ -93,7 +93,7 @@ void sdap_autofs_handler(struct be_req *be_req)
         return sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
-    autofs_req = talloc_get_type(be_req->req_data, struct be_autofs_req);
+    autofs_req = talloc_get_type(be_req_get_data(be_req), struct be_autofs_req);
 
     DEBUG(SSSDBG_FUNC_DATA, ("Requested refresh for: %s\n",
           autofs_req->mapname ? autofs_req->mapname : "<ALL>\n"));

@@ -141,6 +141,11 @@ struct be_ctx *be_req_get_be_ctx(struct be_req *be_req)
     return be_req->be_ctx;
 }
 
+void *be_req_get_data(struct be_req *be_req)
+{
+    return be_req->req_data;
+}
+
 void be_req_terminate(struct be_req *be_req,
                       int dp_err_type, int errnum, const char *errstr)
 {
@@ -684,7 +689,7 @@ done:
 
 static errno_t be_initgroups_prereq(struct be_req *be_req)
 {
-    struct be_acct_req *ar = talloc_get_type(be_req->req_data,
+    struct be_acct_req *ar = talloc_get_type(be_req_get_data(be_req),
                                              struct be_acct_req);
     struct be_initgr_prereq *pr;
     struct ldb_result *res;
@@ -983,7 +988,7 @@ static void be_pam_handler_callback(struct be_req *req,
               dp_err_type, errnum, errstr?errstr:"<NULL>",
               dp_pam_err_to_string(req, dp_err_type, errnum)));
 
-    pd = talloc_get_type(req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(req), struct pam_data);
 
     if (pd->cmd == SSS_PAM_ACCT_MGMT &&
         pd->pam_status == PAM_SUCCESS &&
@@ -2066,7 +2071,8 @@ static int be_srv_init(struct be_ctx *ctx)
 
 static void be_target_access_permit(struct be_req *be_req)
 {
-    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
+    struct pam_data *pd =
+                    talloc_get_type(be_req_get_data(be_req), struct pam_data);
     DEBUG(9, ("be_target_access_permit called, returning PAM_SUCCESS.\n"));
 
     pd->pam_status = PAM_SUCCESS;
@@ -2081,7 +2087,8 @@ static struct bet_ops be_target_access_permit_ops = {
 
 static void be_target_access_deny(struct be_req *be_req)
 {
-    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
+    struct pam_data *pd =
+                    talloc_get_type(be_req_get_data(be_req), struct pam_data);
     DEBUG(9, ("be_target_access_deny called, returning PAM_PERM_DENIED.\n"));
 
     pd->pam_status = PAM_PERM_DENIED;

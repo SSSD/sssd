@@ -39,7 +39,7 @@ static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
 {
     struct be_req *be_req = hbac_ctx->be_req;
     struct pam_data *pd;
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
     pd->pam_status = pam_status;
 
     /* destroy HBAC context now to release all used resources and LDAP connection */
@@ -80,7 +80,7 @@ void ipa_access_handler(struct be_req *be_req)
     struct tevent_req *req;
     struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     ipa_access_ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                                      struct ipa_access_ctx);
@@ -112,7 +112,7 @@ static void ipa_hbac_check(struct tevent_req *req)
 
     be_req = tevent_req_callback_data(req, struct be_req);
     be_ctx = be_req_get_be_ctx(be_req);
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     ret = sdap_access_recv(req, &pam_status);
     talloc_zfree(req);

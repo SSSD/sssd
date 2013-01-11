@@ -937,7 +937,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
         return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
-    ar = talloc_get_type(breq->req_data, struct be_acct_req);
+    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
 
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */

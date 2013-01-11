@@ -461,7 +461,7 @@ static void sdap_sudo_reply(struct tevent_req *req)
     int ret;
 
     be_req = tevent_req_callback_data(req, struct be_req);
-    sudo_req = talloc_get_type(be_req->req_data, struct be_sudo_req);
+    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
 
     switch (sudo_req->type) {
     case BE_REQ_SUDO_FULL:
@@ -498,7 +498,7 @@ void sdap_sudo_handler(struct be_req *be_req)
                                struct sdap_sudo_ctx);
     id_ctx = sudo_ctx->id_ctx;
 
-    sudo_req = talloc_get_type(be_req->req_data, struct be_sudo_req);
+    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
 
     switch (sudo_req->type) {
     case BE_REQ_SUDO_FULL:

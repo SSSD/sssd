@@ -31,7 +31,7 @@
 static void sdap_access_reply(struct be_req *be_req, int pam_status)
 {
     struct pam_data *pd;
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
     pd->pam_status = pam_status;
 
     if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
@@ -49,7 +49,7 @@ void sdap_pam_access_handler(struct be_req *breq)
     struct tevent_req *req;
     struct sdap_access_ctx *access_ctx;
 
-    pd = talloc_get_type(breq->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
 
     access_ctx =
             talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,

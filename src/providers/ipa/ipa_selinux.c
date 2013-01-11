@@ -89,7 +89,7 @@ void ipa_selinux_handler(struct be_req *be_req)
     struct pam_data *pd;
     const char *hostname;
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     selinux_ctx = talloc_get_type(be_ctx->bet_info[BET_SELINUX].pvt_bet_data,
                                   struct ipa_selinux_ctx);
@@ -194,7 +194,8 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     struct sysdb_attrs **maps = NULL;
     bool in_transaction = false;
     char *default_user = NULL;
-    struct pam_data *pd = talloc_get_type(breq->req_data, struct pam_data);
+    struct pam_data *pd =
+                    talloc_get_type(be_req_get_data(breq), struct pam_data);
     char *map_order = NULL;
     size_t hbac_count = 0;
     struct sysdb_attrs **hbac_rules = 0;

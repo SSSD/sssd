@@ -75,7 +75,7 @@ ipa_host_info_handler(struct be_req *breq)
         goto done;
     }
 
-    hr = talloc_get_type(breq->req_data, struct be_host_req);
+    hr = talloc_get_type(be_req_get_data(breq), struct be_host_req);
 
     if (hr->filter_type != BE_FILTER_NAME) {
         ret = EINVAL;

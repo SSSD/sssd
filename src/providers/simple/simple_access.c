@@ -40,7 +40,7 @@ void simple_access_handler(struct be_req *be_req)
     struct pam_data *pd;
     struct simple_ctx *ctx;
 
-    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     pd->pam_status = PAM_SYSTEM_ERR;
 

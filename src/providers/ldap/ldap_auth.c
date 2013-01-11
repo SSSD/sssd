@@ -741,7 +741,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
 
     ctx = talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                           struct sdap_auth_ctx);
-    pd = talloc_get_type(breq->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
 
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
@@ -1015,7 +1015,7 @@ void sdap_pam_auth_handler(struct be_req *breq)
 
     ctx = talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                           struct sdap_auth_ctx);
-    pd = talloc_get_type(breq->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
 
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));

@@ -41,7 +41,7 @@ void proxy_pam_handler(struct be_req *req)
     struct tevent_req *child_req = NULL;
     struct proxy_client_ctx *client_ctx;
 
-    pd = talloc_get_type(req->req_data, struct pam_data);
+    pd = talloc_get_type(be_req_get_data(req), struct pam_data);
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
@@ -138,7 +138,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 
     state->be_req = be_req;
     state->auth_ctx = auth_ctx;
-    state->pd = talloc_get_type(be_req->req_data, struct pam_data);
+    state->pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     /* Find an available key */
     key.type = HASH_KEY_ULONG;

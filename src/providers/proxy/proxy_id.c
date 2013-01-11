@@ -1349,7 +1349,7 @@ void proxy_get_account_info(struct be_req *breq)
     int ret;
     char *endptr;
 
-    ar = talloc_get_type(breq->req_data, struct be_acct_req);
+    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
     ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
                           struct proxy_id_ctx);
     sysdb = be_ctx->domain->sysdb;
