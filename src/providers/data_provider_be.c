@@ -119,6 +119,24 @@ static struct bet_data bet_data[] = {
     {BET_MAX, NULL, NULL}
 };
 
+#define REQ_PHASE_ACCESS 0
+#define REQ_PHASE_SELINUX 1
+
+struct be_req {
+    struct be_client *becli;
+    struct be_ctx *be_ctx;
+    void *req_data;
+
+    be_async_callback_t fn;
+    void *pvt;
+
+    /* This is utilized in access provider
+     * request handling to indicate if access or
+     * selinux provider is calling the callback.
+     */
+    int phase;
+};
+
 struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
                              struct be_client *becli, struct be_ctx *be_ctx,
                              be_async_callback_t fn, void *pvt_fn_data)

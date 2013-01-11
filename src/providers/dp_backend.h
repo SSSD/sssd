@@ -131,24 +131,6 @@ struct bet_ops {
     be_req_fn_t finalize;
 };
 
-#define REQ_PHASE_ACCESS 0
-#define REQ_PHASE_SELINUX 1
-
-struct be_req {
-    struct be_client *becli;
-    struct be_ctx *be_ctx;
-    void *req_data;
-
-    be_async_callback_t fn;
-    void *pvt;
-
-    /* This is utilized in access provider
-     * request handling to indicate if access or
-     * selinux provider is calling the callback.
-     */
-    int phase;
-};
-
 struct be_acct_req {
     int entry_type;
     int attr_type;
