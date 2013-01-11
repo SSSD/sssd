@@ -147,8 +147,6 @@ struct be_req {
      * selinux provider is calling the callback.
      */
     int phase;
-
-    struct sss_domain_info *domain;
 };
 
 struct be_acct_req {

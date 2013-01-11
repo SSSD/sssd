@@ -307,7 +307,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     /* Get the users */
     ret = hbac_user_attrs_to_rule(new_rule,
-                                  hbac_ctx->be_req->domain,
+                                  hbac_ctx->be_req->be_ctx->domain,
                                   new_rule->name,
                                   hbac_ctx->rules[idx],
                                   &new_rule->users);
@@ -319,7 +319,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     /* Get the services */
     ret = hbac_service_attrs_to_rule(new_rule,
-                                     hbac_ctx->be_req->domain,
+                                     hbac_ctx->be_req->be_ctx->domain,
                                      new_rule->name,
                                      hbac_ctx->rules[idx],
                                      &new_rule->services);
@@ -331,7 +331,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     /* Get the target hosts */
     ret = hbac_thost_attrs_to_rule(new_rule,
-                                   hbac_ctx->be_req->domain,
+                                   hbac_ctx->be_req->be_ctx->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    &new_rule->targethosts);
@@ -344,7 +344,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the source hosts */
 
     ret = hbac_shost_attrs_to_rule(new_rule,
-                                   hbac_ctx->be_req->domain,
+                                   hbac_ctx->be_req->be_ctx->domain,
                                    new_rule->name,
                                    hbac_ctx->rules[idx],
                                    dp_opt_get_bool(hbac_ctx->ipa_options,
@@ -431,7 +431,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     struct pam_data *pd = hbac_ctx->pd;
     TALLOC_CTX *tmp_ctx;
     struct hbac_eval_req *eval_req;
-    struct sss_domain_info *domain = hbac_ctx->be_req->domain;
+    struct sss_domain_info *domain = hbac_ctx->be_req->be_ctx->domain;
     const char *rhost;
     const char *thost;
     struct sss_domain_info *user_dom;

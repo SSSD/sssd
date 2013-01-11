@@ -679,20 +679,13 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
-    struct be_req *be_req;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     bool refresh_has_changes = false;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-    be_req = ctx->be_req;
-    if (be_req && be_req->domain) {
-        sysdb = be_req->domain->sysdb;
-        domain = be_req->domain;
-    } else {
-        sysdb = ctx->sd_ctx->be_ctx->domain->sysdb;
-        domain = ctx->sd_ctx->be_ctx->domain;
-    }
+    domain = ctx->sd_ctx->be_ctx->domain;
+    sysdb = domain->sysdb;
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
@@ -770,21 +763,14 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
-    struct be_req *be_req;
     struct sysdb_subdom *domain_info;
     struct range_info **range_list = NULL;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-    be_req = ctx->be_req;
-    if (be_req && be_req->domain) {
-        sysdb = be_req->domain->sysdb;
-        domain = be_req->domain;
-    } else {
-        sysdb = ctx->sd_ctx->be_ctx->domain->sysdb;
-        domain = ctx->sd_ctx->be_ctx->domain;
-    }
+    domain = ctx->sd_ctx->be_ctx->domain;
+    sysdb = domain->sysdb;
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
@@ -950,7 +936,6 @@ static void ipa_subdom_online_cb(void *pvt)
     be_req = talloc_zero(NULL, struct be_req);
     be_req->be_ctx = ctx->be_ctx;
     be_req->fn = ipa_subdom_be_req_callback;
-    be_req->domain = ctx->be_ctx->domain;
 
     ipa_subdomains_retrieve(ctx, be_req);
 

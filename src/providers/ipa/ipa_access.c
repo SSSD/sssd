@@ -468,7 +468,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
     bool in_transaction = false;
     struct hbac_ctx *hbac_ctx =
             tevent_req_callback_data(req, struct hbac_ctx);
-    struct sss_domain_info *domain = hbac_ctx->be_req->domain;
+    struct sss_domain_info *domain = hbac_ctx->be_req->be_ctx->domain;
     struct ldb_dn *base_dn;
     struct ipa_access_ctx *access_ctx =
             talloc_get_type(hbac_ctx->be_req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
@@ -601,7 +601,7 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
     struct hbac_info *info;
 
     /* Get HBAC rules from the sysdb */
-    ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx->be_req->domain,
+    ret = hbac_get_cached_rules(hbac_ctx, hbac_ctx->be_req->be_ctx->domain,
                                 &hbac_ctx->rule_count, &hbac_ctx->rules);
     if (ret != EOK) {
         DEBUG(1, ("Could not retrieve rules from the cache\n"));

@@ -829,7 +829,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                 break;
             case PWEXPIRE_KERBEROS:
                 ret = check_pwexpire_kerberos(pw_expire_data, time(NULL), NULL, &result,
-                                              state->breq->domain->pwd_expiration_warning);
+                                              state->breq->be_ctx->domain->pwd_expiration_warning);
                 if (ret != EOK) {
                     DEBUG(1, ("check_pwexpire_kerberos failed.\n"));
                     state->pd->pam_status = PAM_SYSTEM_ERR;
