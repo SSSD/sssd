@@ -279,7 +279,7 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
     /* Update autofs filter */
     ret = update_filter(tctx, domain_name, tctx->autofs_name,
                         tctx->update_autofs_filter,
-                        "(&(objectclass=%s)(%s=%s))",
+                        "(&(objectclass="SYSDB_AUTOFS_MAP_OC")(%s=%s))",
                         &tctx->autofs_filter);
     if (ret != EOK) {
         return ret;
