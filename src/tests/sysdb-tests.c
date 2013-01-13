@@ -1368,6 +1368,22 @@ START_TEST (test_sysdb_remove_nonexistent_group)
 }
 END_TEST
 
+START_TEST (test_sysdb_get_new_id)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    uint32_t id;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Cannot setup sysdb tests\n");
+
+    ret = sysdb_get_new_id(test_ctx->sysdb, test_ctx->domain, &id);
+    fail_if(ret != EOK, "Cannot get new ID\n");
+    fail_if(id != test_ctx->domain->id_min);
+}
+END_TEST
+
 START_TEST (test_sysdb_store_custom)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4561,7 +4577,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
 
     ret = sysdb_search_user_by_name(test_ctx, subdomain->sysdb, subdomain,
                                     "subdomuser", NULL, &msg);
-    fail_unless(ret == EOK, "sysdb_search_domuser_by_name failed with [%d][%s].",
+    fail_unless(ret == EOK, "sysdb_search_user_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
@@ -4843,6 +4859,9 @@ Suite *create_sysdb_suite(void)
     Suite *s = suite_create("sysdb");
 
     TCase *tc_sysdb = tcase_create("SYSDB Tests");
+
+    /* test getting next id works */
+    tcase_add_test(tc_sysdb, test_sysdb_get_new_id);
 
     /* Create a new user */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_user,27000,27010);
