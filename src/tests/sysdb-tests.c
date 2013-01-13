@@ -1248,6 +1248,51 @@ START_TEST (test_sysdb_add_group_member)
 }
 END_TEST
 
+START_TEST (test_sysdb_initgroups)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    const char *username;
+    struct ldb_result *res;
+    struct ldb_message *user;
+    struct ldb_message *group;
+    gid_t gid;
+    uid_t uid;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    username = talloc_asprintf(test_ctx, "testuser%d", _i);
+
+    ret = sysdb_initgroups(test_ctx,
+                           test_ctx->sysdb,
+                           test_ctx->domain,
+                           username, &res);
+    fail_if(ret != EOK, "sysdb_initgroups failed\n");
+
+    /* result should contain 2 messages - user and his group */
+    fail_if(res->count != 2, "expected 2 groups, got %d\n", res->count);
+
+    /* check if it's the expected user and expected group */
+    user = res->msgs[0];
+    group = res->msgs[1];
+
+    uid = ldb_msg_find_attr_as_uint(user, SYSDB_UIDNUM, 0);
+    fail_unless(uid == _i,
+                "Did not find the expected UID (found %d expected %d)",
+                uid, _i);
+
+    gid = ldb_msg_find_attr_as_uint(group, SYSDB_GIDNUM, 0);
+    fail_unless(gid == _i + 1000,
+                "Did not find the expected GID (found %d expected %d)",
+                gid, _i);
+}
+END_TEST
+
 START_TEST (test_sysdb_remove_group_member)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4866,6 +4911,9 @@ Suite *create_sysdb_suite(void)
 
     /* Add some members to the groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_group_member, 28010, 28020);
+
+    /* Test that sysdb_initgroups() works */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_initgroups, 27010, 27020);
 
     /* Authenticate with missing cached password */
     tcase_add_loop_test(tc_sysdb, test_sysdb_cached_authentication_missing_password,
