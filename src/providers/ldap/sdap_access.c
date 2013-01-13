@@ -128,7 +128,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     /* Get original user DN, take care of subdomain users as well */
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         user_dom = new_subdomain(state, be_ctx->domain, pd->domain,
-                                 NULL, NULL);
+                                 NULL, NULL, NULL);
         if (user_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
             ret = ENOMEM;

@@ -4552,7 +4552,7 @@ START_TEST(test_sysdb_subdomain_store_user)
                             ret, strerror(ret));
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain, "test.sub",
-                              NULL, NULL);
+                              NULL, NULL, NULL);
     fail_unless(subdomain != NULL, "new_subdomain failed.");
 
     ret = sysdb_store_user(subdomain->sysdb, subdomain, "subdomuser",
@@ -4608,7 +4608,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
                             ret, strerror(ret));
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain, "test.sub",
-                              NULL, NULL);
+                              NULL, NULL, NULL);
     fail_unless(subdomain != NULL, "new_subdomain failed.");
 
     ret = sysdb_store_user(subdomain->sysdb, subdomain, "subdomuser",
@@ -4660,7 +4660,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
                             ret, strerror(ret));
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain, "test.sub",
-                              NULL, NULL);
+                              NULL, NULL, NULL);
     fail_unless(subdomain != NULL, "new_subdomain failed.");
 
     ret = sysdb_store_group(subdomain->sysdb, subdomain,

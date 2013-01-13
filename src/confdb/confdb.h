@@ -232,6 +232,7 @@ struct sss_domain_info {
     struct sss_domain_info **subdomains;
     uint32_t subdomain_count;
     struct sss_domain_info *parent;
+    char *realm;
     char *flat_name;
     char *domain_id;
     struct timeval subdomains_last_checked;

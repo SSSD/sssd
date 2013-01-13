@@ -313,6 +313,7 @@ process_subdomains(struct sss_domain_info *domain)
                                  subdomains[c]->name, domain->name));
         new_sd_list[c] =  new_subdomain(new_sd_list, domain,
                                         subdomains[c]->name,
+                                        subdomains[c]->realm,
                                         subdomains[c]->flat_name,
                                         subdomains[c]->id);
         if (new_sd_list[c] == NULL) {

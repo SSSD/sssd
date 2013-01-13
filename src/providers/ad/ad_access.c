@@ -45,7 +45,7 @@ ad_access_handler(struct be_req *breq)
     /* Handle subdomains */
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         domain = new_subdomain(breq, be_ctx->domain,
-                               pd->domain, NULL, NULL);
+                               pd->domain, NULL, NULL, NULL);
         if (domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
             be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);

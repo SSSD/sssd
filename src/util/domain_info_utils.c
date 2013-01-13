@@ -25,6 +25,7 @@
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
                                       const char *name,
+                                      const char *realm,
                                       const char *flat_name,
                                       const char *id)
 {
@@ -53,6 +54,14 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     if (dom->conn_name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy connection name.\n"));
         goto fail;
+    }
+
+    if (realm != NULL) {
+        dom->realm = talloc_strdup(dom, realm);
+        if (dom->realm == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy realm name.\n"));
+            goto fail;
+        }
     }
 
     if (flat_name != NULL) {
@@ -105,7 +114,8 @@ fail:
 struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *subdomain)
 {
-    return new_subdomain(mem_ctx, subdomain->parent, subdomain->name,
+    return new_subdomain(mem_ctx, subdomain->parent,
+                         subdomain->name, subdomain->realm,
                          subdomain->flat_name, subdomain->domain_id);
 }
 

@@ -448,7 +448,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     /* Get user the user name and groups,
      * take care of subdomain users as well */
     if (strcasecmp(pd->domain, domain->name) != 0) {
-        user_dom = new_subdomain(tmp_ctx, domain, pd->domain, NULL, NULL);
+        user_dom = new_subdomain(tmp_ctx, domain, pd->domain, NULL, NULL, NULL);
         if (user_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
             ret = ENOMEM;

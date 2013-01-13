@@ -76,8 +76,9 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     }
 
     state->domain = new_subdomain(state, state->ctx->be->domain, ar->domain,
-                          get_flat_name_from_subdomain_name(ctx->be,ar->domain),
-                          NULL);
+                        NULL,
+                        get_flat_name_from_subdomain_name(ctx->be,ar->domain),
+                        NULL);
     if (state->domain == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
         ret = ENOMEM;

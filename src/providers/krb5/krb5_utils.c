@@ -1173,7 +1173,8 @@ errno_t get_domain_or_subdomain(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
 
     if (domain_name != NULL &&
         strcasecmp(domain_name, be_ctx->domain->name) != 0) {
-        *dom = new_subdomain(mem_ctx, be_ctx->domain, domain_name, NULL, NULL);
+        *dom = new_subdomain(mem_ctx, be_ctx->domain,
+                             domain_name, NULL, NULL, NULL);
         if (*dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
             return ENOMEM;
