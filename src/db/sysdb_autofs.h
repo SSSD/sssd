@@ -61,9 +61,7 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
                        struct sysdb_attrs *attrs);
 errno_t
 sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
-                      const char *map,
-                      const char *key,
-                      const char *value);
+                      const char *entry_dn);
 
 errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
@@ -80,5 +78,12 @@ sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,
 
 errno_t
 sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb);
+
+char *
+sysdb_autofsentry_strdn(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *sysdb,
+                        const char *map_name,
+                        const char *entry_name,
+                        const char *entry_value);
 
 #endif /* _SYSDB_AUTOFS_H_ */

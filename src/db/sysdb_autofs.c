@@ -77,6 +77,25 @@ done:
     return dn;
 }
 
+char *
+sysdb_autofsentry_strdn(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *sysdb,
+                        const char *map_name,
+                        const char *entry_name,
+                        const char *entry_value)
+{
+    struct ldb_dn *dn;
+    char *strdn;
+
+    dn = sysdb_autofsentry_dn(mem_ctx, sysdb,
+                              map_name, entry_name, entry_value);
+    if (!dn) return NULL;
+
+    strdn = talloc_strdup(mem_ctx, ldb_dn_get_linearized(dn));
+    talloc_free(dn);
+    return strdn;
+}
+
 errno_t
 sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
                      const char *name,
@@ -314,14 +333,12 @@ done:
 
 errno_t
 sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
-                      const char *map,
-                      const char *key,
-                      const char *value)
+                      const char *entry_dn)
 {
     struct ldb_dn *dn;
     errno_t ret;
 
-    dn = sysdb_autofsentry_dn(sysdb_ctx, sysdb_ctx, map, key, value);
+    dn = ldb_dn_new(NULL, sysdb_ctx_get_ldb(sysdb_ctx), entry_dn);
     if (!dn) {
         return ENOMEM;
     }
