@@ -3706,6 +3706,27 @@ START_TEST (test_sysdb_get_netgroup_attr)
 }
 END_TEST
 
+START_TEST (test_netgroup_base_dn)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_dn *base_dn;
+    const char *strdn;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    base_dn = sysdb_netgroup_base_dn(test_ctx->sysdb, test_ctx, test_ctx->domain);
+    fail_if(base_dn == NULL, "Could not get netgroup base DN");
+
+    strdn = ldb_dn_get_linearized(base_dn);
+    fail_if(strdn == NULL, "Could not get string netgroup base DN");
+
+    fail_if(strstr(strdn, SYSDB_NETGROUP_CONTAINER) != strdn,
+            "Malformed netgroup baseDN");
+}
+END_TEST
+
 START_TEST(test_odd_characters)
 {
     errno_t ret;
@@ -4871,6 +4892,8 @@ Suite *create_sysdb_suite(void)
 
     /* Remove the other half by DN */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_entry, 27005, 27010);
+
+    tcase_add_test(tc_sysdb, test_netgroup_base_dn);
 
 /* ===== SERVICE TESTS ===== */
 
