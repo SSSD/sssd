@@ -369,9 +369,14 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 
+errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
+                              const char *name, const char *realm,
+                              const char *flat_name, const char *domain_id);
+
 errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                                 int num_subdoms,
                                 struct sysdb_subdom *subdoms);
+
 
 errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 
