@@ -253,8 +253,11 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
     if (ret != EOK)
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to get domain list\n"));
 
-    for (domain = domain_list; domain != NULL; domain = domain->next)
+    for (domain = domain_list;
+         domain;
+         domain = get_next_domain(domain, false)) {
         domain_count++;
+    }
 
     /* allocate output space */
     sections = talloc_array(ctx, char*,
@@ -275,7 +278,9 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
         }
     }
 
-    for (domain = domain_list; domain != NULL; domain = domain->next, i++) {
+    for (domain = domain_list;
+         domain;
+         domain = get_next_domain(domain, false), i++) {
         sections[i] = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
                                       domain->name);
         if (sections[i] == NULL) {

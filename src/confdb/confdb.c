@@ -1190,7 +1190,7 @@ int confdb_get_domain(struct confdb_ctx *cdb,
         return ret;
     }
 
-    for (dom = doms; dom; dom = dom->next) {
+    for (dom = doms; dom; dom = get_next_domain(dom, false)) {
         if (strcasecmp(dom->name, name) == 0) {
             *_domain = dom;
             return EOK;

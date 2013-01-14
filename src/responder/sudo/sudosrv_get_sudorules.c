@@ -108,7 +108,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
        /* if it is a domainless search, skip domains that require fully
         * qualified names instead */
         while (dom && cmd_ctx->check_next && dom->fqnames) {
-            dom = dom->next;
+            dom = get_next_domain(dom, false);
         }
 
         if (!dom) break;
@@ -155,7 +155,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
             /* if a multidomain search, try with next */
             if (cmd_ctx->check_next) {
                 dctx->check_provider = true;
-                dom = dom->next;
+                dom = get_next_domain(dom, false);
                 if (dom) continue;
             }
 
@@ -209,7 +209,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
             /* if a multidomain search, try with next */
             if (cmd_ctx->check_next) {
                 dctx->check_provider = true;
-                dom = dom->next;
+                dom = get_next_domain(dom, false);
                 if (dom) continue;
             }
 

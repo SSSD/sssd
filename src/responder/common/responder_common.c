@@ -817,7 +817,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    for (dom = rctx->domains; dom; dom = dom->next) {
+    for (dom = rctx->domains; dom; dom = get_next_domain(dom, false)) {
         ret = sss_names_init(rctx->cdb, rctx->cdb, dom->name, &dom->names);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -894,7 +894,7 @@ responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
     struct sss_domain_info *ret_dom = NULL;
     int i;
 
-    for (dom = rctx->domains; dom; dom = dom->next) {
+    for (dom = rctx->domains; dom; dom = get_next_domain(dom, false)) {
         if (strcasecmp(dom->name, domain) == 0 ||
             (dom->flat_name != NULL &&
              strcasecmp(dom->flat_name, domain) == 0)) {

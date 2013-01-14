@@ -103,7 +103,7 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    for (dinfo = tctx->domains; dinfo; dinfo = dinfo->next) {
+    for (dinfo = tctx->domains; dinfo; dinfo = get_next_domain(dinfo, false)) {
         sysdb = dinfo->sysdb;
 
         /* Update filters for each domain */

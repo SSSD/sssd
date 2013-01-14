@@ -22,6 +22,24 @@
 #include "db/sysdb.h"
 #include "util/util.h"
 
+struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
+                                        bool descend)
+{
+    struct sss_domain_info *dom;
+
+    dom = domain;
+    if (descend && dom->subdomain_count > 0) {
+        dom = dom->subdomains[0];
+    } else if (dom->next) {
+        dom = dom->next;
+    } else if (descend && dom->parent) {
+        dom = dom->parent->next;
+    } else {
+        dom = NULL;
+    }
+    return dom;
+}
+
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
                                       const char *name,

@@ -579,7 +579,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     int i;
 
     /* Populate domain-specific negative cache entries */
-    for (dom = domain_list; dom; dom = dom->next) {
+    for (dom = domain_list; dom; dom = get_next_domain(dom, false)) {
         conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL,
                                     dom->name);
         if (!conf_path) {
@@ -667,7 +667,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
         } else {
-            for (dom = domain_list; dom; dom = dom->next) {
+            for (dom = domain_list; dom; dom = get_next_domain(dom, false)) {
                 ret = sss_ncache_set_user(ncache, true, dom, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent user filter for"
@@ -681,7 +681,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     }
 
     filter_set = false;
-    for (dom = domain_list; dom; dom = dom->next) {
+    for (dom = domain_list; dom; dom = get_next_domain(dom, false)) {
         conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, dom->name);
         if (!conf_path) {
             ret = ENOMEM;
@@ -765,7 +765,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
         } else {
-            for (dom = domain_list; dom; dom = dom->next) {
+            for (dom = domain_list; dom; dom = get_next_domain(dom, false)) {
                 ret = sss_ncache_set_group(ncache, true, dom, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent group filter for"

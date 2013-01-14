@@ -83,7 +83,7 @@ struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
         return NULL;
     }
 
-    for (dom = domains; dom; dom = dom->next) {
+    for (dom = domains; dom; dom = get_next_domain(dom, false)) {
         if (dom->domain_id == NULL) {
             continue;
         }

@@ -772,7 +772,7 @@ static int check_domain_ranges(struct sss_domain_info *domains)
     uint32_t id_min, id_max;
 
     while (dom) {
-        other = dom->next;
+        other = get_next_domain(dom, false);
         if (dom->id_max && dom->id_min > dom->id_max) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Domain '%s' does not have a valid ID range\n", dom->name));
@@ -788,9 +788,9 @@ static int check_domain_ranges(struct sss_domain_info *domains)
                       ("Domains '%s' and '%s' overlap in range %u - %u\n",
                       dom->name, other->name, id_min, id_max));
             }
-            other = other->next;
+            other = get_next_domain(other, false);
         }
-        dom = dom->next;
+        dom = get_next_domain(dom, false);
     }
 
     return EOK;
@@ -811,7 +811,7 @@ static int check_local_domain_unique(struct sss_domain_info *domains)
             break;
         }
 
-        dom = dom->next;
+        dom = get_next_domain(dom, false);
     }
 
     if (count > 1) {
@@ -2235,7 +2235,7 @@ int monitor_process_init(struct mt_ctx *ctx,
 
     /* start providers */
     num_providers = 0;
-    for (dom = ctx->domains; dom; dom = dom->next) {
+    for (dom = ctx->domains; dom; dom = get_next_domain(dom, false)) {
         ret = add_new_provider(ctx, dom->name, 0);
         if (ret != EOK && ret != ENOENT) {
             return ret;

@@ -173,7 +173,7 @@ ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
     /* if it is a domainless search, skip domains that require fully
      * qualified names instead */
     while (cmd_ctx->domain && cmd_ctx->check_next && cmd_ctx->domain->fqnames) {
-        cmd_ctx->domain = cmd_ctx->domain->next;
+        cmd_ctx->domain = get_next_domain(cmd_ctx->domain, false);
     }
 
     if (!cmd_ctx->domain) {
@@ -250,7 +250,7 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
     if (!res->count) {
         /* if a multidomain search, try with next */
         if (cmd_ctx->check_next) {
-            cmd_ctx->domain = cmd_ctx->domain->next;
+            cmd_ctx->domain = get_next_domain(cmd_ctx->domain, false);
             return ssh_user_pubkeys_search(cmd_ctx);
         }
 
@@ -303,7 +303,7 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
     /* if it is a domainless search, skip domains that require fully
      * qualified names instead */
     while (cmd_ctx->domain && cmd_ctx->check_next && cmd_ctx->domain->fqnames) {
-        cmd_ctx->domain = cmd_ctx->domain->next;
+        cmd_ctx->domain = get_next_domain(cmd_ctx->domain, false);
     }
 
     if (!cmd_ctx->domain) {
@@ -375,7 +375,7 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
     if (ret == ENOENT) {
         /* if a multidomain search, try with next */
         if (cmd_ctx->check_next) {
-            cmd_ctx->domain = cmd_ctx->domain->next;
+            cmd_ctx->domain = get_next_domain(cmd_ctx->domain, false);
             return ssh_host_pubkeys_search(cmd_ctx);
         }
 
@@ -598,7 +598,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         goto done;
     }
 
-    for (; dom; dom = dom->next) {
+    for (; dom; dom = get_next_domain(dom, false)) {
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,

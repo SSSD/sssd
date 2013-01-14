@@ -192,7 +192,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
     state->dom = rctx->domains;
     while(state->dom != NULL && !NEED_CHECK_PROVIDER(state->dom->provider)) {
-        state->dom = state->dom->next;
+        state->dom = get_next_domain(state->dom, false);
     }
 
     if (state->dom == NULL) {
@@ -249,11 +249,11 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
     }
 
     /* Advance to the next domain */
-    state->dom = state->dom->next;
+    state->dom = get_next_domain(state->dom, false);
 
     /* Skip local domains */
     while(state->dom != NULL && !NEED_CHECK_PROVIDER(state->dom->provider)) {
-        state->dom = state->dom->next;
+        state->dom = get_next_domain(state->dom, false);
     }
 
     if (state->dom == NULL) {
@@ -391,7 +391,7 @@ static errno_t check_last_request(struct resp_ctx *rctx, const char *hint)
                     break;
                 }
             }
-            dom = dom->next;
+            dom = get_next_domain(dom, false);
         }
     }
 

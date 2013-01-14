@@ -339,7 +339,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
     rname = NULL;
     rdomain = NULL;
 
-    for (dom = domains; dom != NULL; dom = dom->next) {
+    for (dom = domains; dom != NULL; dom = get_next_domain(dom, false)) {
         ret = sss_parse_name(tmp_ctx, dom->names, orig, &dmatch, &nmatch);
         if (ret == EOK) {
             /*
@@ -397,7 +397,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                     goto done;
                 }
 
-                for (dom = domains; dom != NULL; dom = dom->next) {
+                for (dom = domains; dom != NULL; dom = get_next_domain(dom, false)) {
                     match = match_any_domain_or_subdomain_name(dom, rdomain);
                     if (match != NULL) {
                         break;

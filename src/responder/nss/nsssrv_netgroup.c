@@ -424,7 +424,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         /* if it is a domainless search, skip domains that require fully
          * qualified names instead */
         while (dom && step_ctx->check_next && dom->fqnames) {
-            dom = dom->next;
+            dom = get_next_domain(dom, false);
         }
 
         /* No domains left to search */
@@ -463,7 +463,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
             /* This netgroup was not found in this domain */
             if (!step_ctx->dctx->check_provider) {
                 if (step_ctx->check_next) {
-                    dom = dom->next;
+                    dom = get_next_domain(dom, false);
                     continue;
                 }
                 else break;
@@ -494,7 +494,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
             if (!step_ctx->dctx->check_provider) {
                 if (step_ctx->check_next) {
-                    dom = dom->next;
+                    dom = get_next_domain(dom, false);
                     continue;
                 }
                 else break;
@@ -588,8 +588,8 @@ static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
         /* Loop to the next domain if possible */
-        if (dctx->domain->next && cmdctx->check_next) {
-            dctx->domain = dctx->domain->next;
+        if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
+            dctx->domain = get_next_domain(dctx->domain, false);
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         }
     }

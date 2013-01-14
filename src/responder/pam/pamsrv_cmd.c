@@ -1088,7 +1088,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             goto done;
         }
     } else {
-        for (dom = preq->cctx->rctx->domains; dom; dom = dom->next) {
+        for (dom = preq->cctx->rctx->domains;
+             dom;
+             dom = get_next_domain(dom, false)) {
             if (dom->fqnames) continue;
 
             ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
@@ -1186,7 +1188,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
        /* if it is a domainless search, skip domains that require fully
          * qualified names instead */
         while (dom && !preq->pd->domain && dom->fqnames) {
-            dom = dom->next;
+            dom = get_next_domain(dom, false);
         }
 
         if (!dom) break;
@@ -1248,7 +1250,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         if (preq->res->count == 0) {
             /* if a multidomain search, try with next */
             if (!preq->pd->domain) {
-                dom = dom->next;
+                dom = get_next_domain(dom, false);
                 continue;
             }
 

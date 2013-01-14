@@ -99,7 +99,9 @@ getserv_send(TALLOC_CTX *mem_ctx,
     if (!req) return NULL;
     state->dctx = dctx;
 
-    for (dom = cctx->rctx->domains; dom; dom = dom->next) num_domains++;
+    for (dom = cctx->rctx->domains; dom; dom = get_next_domain(dom, false)) {
+        num_domains++;
+    }
 
     /* Create an array of domains to check. To save resizes, we'll
      * assume that all will be checked
@@ -160,7 +162,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
         /* if it is a domainless search, skip domains that require fully
           * qualified names instead */
          while (dom && cmdctx->check_next && dom->fqnames) {
-             dom = dom->next;
+             dom = get_next_domain(dom, false);
          }
          if (!dom) break;
 
@@ -191,7 +193,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
                  /* If this is a multi-domain search, try the next one */
                  if (cmdctx->check_next) {
-                     dom = dom->next;
+                     dom = get_next_domain(dom, false);
                  } else {
                      /* This was a single-domain search.
                       * exit the loop. Since it was negatively-
@@ -232,7 +234,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
                  /* If this is a multi-domain search, try the next one */
                  if (cmdctx->check_next) {
-                     dom = dom->next;
+                     dom = get_next_domain(dom, false);
                  } else {
                      /* This was a single-domain search.
                       * exit the loop. Since it was negatively-
@@ -298,7 +300,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
              /* If this is a multi-domain search, try the next one */
              if (cmdctx->check_next) {
-                 dom = dom->next;
+                 dom = get_next_domain(dom, false);
              } else {
                  /* This was a single-domain search.
                   * exit the loop.
@@ -380,7 +382,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
              /* If this is a multi-domain search, try the next one */
              if (cmdctx->check_next) {
-                 dom = dom->next;
+                 dom = get_next_domain(dom, false);
              } else {
                  /* This was a single-domain search.
                   * exit the loop.
@@ -1257,10 +1259,10 @@ setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
      * to reallocate later
      */
     num_domains = 0;
-    dom = state->cctx->rctx->domains;
-    while (dom) {
+    for (dom = state->cctx->rctx->domains;
+         dom;
+         dom = get_next_domain(dom, false)) {
         num_domains++;
-        dom = dom->next;
     }
 
     state->nctx->svcctx->doms = talloc_zero_array(state->nctx->svcctx,
@@ -1306,7 +1308,7 @@ setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
               ("Error [%s] requesting info from domain [%s]. Skipping.\n",
                strerror(ret), step_ctx->dctx->domain->name));
 
-        step_ctx->dctx->domain = step_ctx->dctx->domain->next;
+        step_ctx->dctx->domain = get_next_domain(step_ctx->dctx->domain, false);
     }
 
     /* All domains failed */
@@ -1501,7 +1503,7 @@ setservent_step_done(struct tevent_req *req)
         svcctx->num++;
     }
 
-    step_ctx->dctx->domain = step_ctx->dctx->domain->next;
+    step_ctx->dctx->domain = get_next_domain(step_ctx->dctx->domain, false);
 
     while (step_ctx->dctx->domain) {
         /* There are more domains to check */
@@ -1515,7 +1517,7 @@ setservent_step_done(struct tevent_req *req)
               ("Error [%s] requesting info from domain [%s]. Skipping.\n",
                strerror(ret), step_ctx->dctx->domain->name));
 
-        step_ctx->dctx->domain = step_ctx->dctx->domain->next;
+        step_ctx->dctx->domain = get_next_domain(step_ctx->dctx->domain, false);
     }
 
     /* All domains have been checked */
