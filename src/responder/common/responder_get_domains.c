@@ -281,15 +281,14 @@ process_subdomains(struct sss_domain_info *domain)
 {
     int ret;
     size_t c;
-    struct sss_domain_info **new_sd_list = NULL;
     size_t subdomain_count;
-    struct sysdb_subdom **subdomains;
+    struct sss_domain_info **subdomains;
     struct sysdb_subdom *master_info;
 
     /* Retrieve all subdomains of this domain from sysdb
      * and create their struct sss_domain_info representations
      */
-    ret = sysdb_get_subdomains(domain, domain->sysdb,
+    ret = sysdb_get_subdomains(domain, domain,
                                &subdomain_count, &subdomains);
     if (ret != EOK) {
         DEBUG(SSSDBG_FUNC_DATA, ("sysdb_get_subdomains failed.\n"));
@@ -302,32 +301,11 @@ process_subdomains(struct sss_domain_info *domain)
         goto done;
     }
 
-    new_sd_list = talloc_zero_array(domain, struct sss_domain_info *,
-                                    subdomain_count);
-    if (new_sd_list == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    for (c = 0; c < subdomain_count; c++) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Adding subdomain [%s] to the domain [%s]!\n",
-                                 subdomains[c]->name, domain->name));
-        new_sd_list[c] =  new_subdomain(new_sd_list, domain,
-                                        subdomains[c]->name,
-                                        subdomains[c]->realm,
-                                        subdomains[c]->flat_name,
-                                        subdomains[c]->id);
-        if (new_sd_list[c] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
     /* Link all subdomains into single-linked list
      * (the list is used when processing all domains)
      */
-    while (c > 1) {
-        new_sd_list[c-1]->next  = new_sd_list[c];
-        --c;
+    for (c = 0; c < subdomain_count - 1; c++) {
+        subdomains[c]->next = subdomains[c + 1];
     }
 
     if (domain->flat_name == NULL || domain->domain_id == NULL) {
@@ -364,10 +342,9 @@ process_subdomains(struct sss_domain_info *domain)
         goto done;
     }
 
-    domain->subdomain_count = subdomain_count;
     talloc_zfree(domain->subdomains);
-    domain->subdomains = new_sd_list;
-    new_sd_list = NULL;
+    domain->subdomain_count = subdomain_count;
+    domain->subdomains = subdomains;
 
     ret = EOK;
 
@@ -375,7 +352,7 @@ done:
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to update sub-domains "
                                   "of domain [%s].\n", domain->name));
-        talloc_free(new_sd_list);
+        talloc_free(subdomains);
     }
 
     return ret;

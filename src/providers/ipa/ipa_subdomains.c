@@ -674,13 +674,11 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
-    struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     bool refresh_has_changes = false;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     domain = ctx->sd_ctx->be_ctx->domain;
-    sysdb = domain->sysdb;
 
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
@@ -717,7 +715,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     }
 
     if (refresh_has_changes) {
-        ret = sysdb_update_subdomains(sysdb, ctx->sd_ctx->num_subdoms,
+        ret = sysdb_update_subdomains(domain, ctx->sd_ctx->num_subdoms,
                                       ctx->sd_ctx->subdoms);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));

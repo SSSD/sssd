@@ -363,13 +363,13 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb);
 
 /* functions related to subdomains */
 errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
-                             struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
                              size_t *subdomain_count,
-                             struct sysdb_subdom ***subdomain_list);
+                             struct sss_domain_info ***subdomain_list);
 
 errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 
-errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                                 int num_subdoms,
                                 struct sysdb_subdom *subdoms);
 

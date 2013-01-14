@@ -23,9 +23,10 @@
 #include "util/util.h"
 #include "db/sysdb_private.h"
 
-errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
                              size_t *subdomain_count,
-                             struct sysdb_subdom ***subdomain_list)
+                             struct sss_domain_info ***subdomain_list)
 {
     int i;
     errno_t ret;
@@ -36,9 +37,8 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            NULL};
-    struct sysdb_subdom **list;
+    struct sss_domain_info **list;
     struct ldb_dn *basedn;
-    const char *tmp_str;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -46,12 +46,12 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    basedn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
+    basedn = ldb_dn_new(tmp_ctx, domain->sysdb->ldb, SYSDB_BASE);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
     }
-    ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
                      basedn, LDB_SCOPE_ONELEVEL,
                      attrs, "objectclass=%s", SYSDB_SUBDOMAIN_CLASS);
     if (ret != LDB_SUCCESS) {
@@ -59,20 +59,21 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    list = talloc_zero_array(tmp_ctx, struct sysdb_subdom *, res->count + 1);
+    list = talloc_zero_array(tmp_ctx, struct sss_domain_info *,
+                             res->count + 1);
     if (list == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
     for (i = 0; i < res->count; i++) {
-        list[i] = talloc_zero(list, struct sysdb_subdom);
-        if (list[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i], "cn", NULL);
-        if (tmp_str == NULL) {
+        const char *name;
+        const char *realm;
+        const char *flat;
+        const char *id;
+
+        name = ldb_msg_find_attr_as_string(res->msgs[i], "cn", NULL);
+        if (name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("The object [%s] doesn't have a name\n",
                    ldb_dn_get_linearized(res->msgs[i]->dn)));
@@ -80,40 +81,19 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        list[i]->name = talloc_strdup(list, tmp_str);
-        if (list[i]->name == NULL) {
+        realm = ldb_msg_find_attr_as_string(res->msgs[i],
+                                            SYSDB_SUBDOMAIN_REALM, NULL);
+
+        flat = ldb_msg_find_attr_as_string(res->msgs[i],
+                                           SYSDB_SUBDOMAIN_FLAT, NULL);
+
+        id = ldb_msg_find_attr_as_string(res->msgs[i],
+                                         SYSDB_SUBDOMAIN_ID, NULL);
+
+        list[i] = new_subdomain(list, domain, name, realm, flat, id);
+        if (list[i] == NULL) {
             ret = ENOMEM;
             goto done;
-        }
-
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
-                                              SYSDB_SUBDOMAIN_REALM, NULL);
-        if (tmp_str != NULL) {
-            list[i]->realm = talloc_strdup(list, tmp_str);
-            if (list[i]->realm == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
-                                              SYSDB_SUBDOMAIN_FLAT, NULL);
-        if (tmp_str != NULL) {
-            list[i]->flat_name = talloc_strdup(list, tmp_str);
-            if (list[i]->flat_name == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[i],
-                                              SYSDB_SUBDOMAIN_ID, NULL);
-        if (tmp_str != NULL) {
-            list[i]->id = talloc_strdup(list, tmp_str);
-            if (list[i]->id == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
         }
     }
 
@@ -432,7 +412,7 @@ done:
     return ret;
 }
 
-errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                                 int num_subdoms,
                                 struct sysdb_subdom *subdoms)
 {
@@ -442,7 +422,7 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
     size_t d;
     TALLOC_CTX *tmp_ctx = NULL;
     size_t cur_subdomains_count;
-    struct sysdb_subdom **cur_subdomains;
+    struct sss_domain_info **cur_subdomains;
     struct ldb_dn *dn;
     bool in_transaction = false;
     bool *keep_subdomain;
@@ -454,7 +434,7 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
     }
 
     /* Retrieve all subdomains that are currently in sysdb */
-    ret = sysdb_get_subdomains(tmp_ctx, sysdb, &cur_subdomains_count,
+    ret = sysdb_get_subdomains(tmp_ctx, domain, &cur_subdomains_count,
                                &cur_subdomains);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_subdomains failed.\n"));
@@ -468,7 +448,7 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_transaction_start(sysdb);
+    ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_start failed.\n"));
         goto done;
@@ -492,13 +472,13 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
         if (d == cur_subdomains_count) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Adding sub-domain [%s].\n",
                                       subdoms[c].name));
-            ret = sysdb_domain_create(sysdb, subdoms[c].name);
+            ret = sysdb_domain_create(domain->sysdb, subdoms[c].name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_domain_create failed.\n"));
                 goto done;
             }
 
-            ret = sysdb_add_subdomain_attributes(sysdb, &subdoms[c]);
+            ret = sysdb_add_subdomain_attributes(domain->sysdb, &subdoms[c]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       ("sysdb_add_subdomain_attributes failed.\n"));
@@ -515,14 +495,14 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
         if (!keep_subdomain[d]) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Removing sub-domain [%s].\n",
                                       cur_subdomains[d]->name));
-            dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE,
+            dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
                                 cur_subdomains[d]->name);
             if (dn == NULL) {
                 ret = ENOMEM;
                 goto done;
             }
 
-            ret = sysdb_delete_recursive(sysdb, dn, true);
+            ret = sysdb_delete_recursive(domain->sysdb, dn, true);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
                 goto done;
@@ -530,7 +510,7 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
         }
     }
 
-    ret = sysdb_transaction_commit(sysdb);
+    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not commit transaction\n"));
         goto done;
@@ -539,7 +519,7 @@ errno_t sysdb_update_subdomains(struct sysdb_ctx *sysdb,
 
 done:
     if (in_transaction) {
-        sret = sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(domain->sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }

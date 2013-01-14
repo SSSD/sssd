@@ -31,6 +31,9 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
 {
     struct sss_domain_info *dom;
 
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Creating [%s] as subdomain of [%s]!\n", name, parent->name));
+
     dom = talloc_zero(mem_ctx, struct sss_domain_info);
     if (dom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
