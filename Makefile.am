@@ -399,6 +399,7 @@ sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
+    src/providers/child_common.c \
     $(SSSD_UTIL_OBJ)
 sssd_LDADD = \
     $(SSSD_LIBS) \
