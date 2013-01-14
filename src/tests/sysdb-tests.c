@@ -1186,6 +1186,48 @@ START_TEST (test_sysdb_search_users)
 }
 END_TEST
 
+START_TEST (test_sysdb_remove_attrs)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    char *rmattrs[2];
+    char *username;
+    struct ldb_result *res;
+    const char *shell;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    username = talloc_asprintf(test_ctx, "testuser%d", _i);
+    fail_if(username == NULL, "OOM");
+
+    ret = sysdb_getpwnam(test_ctx,
+                         test_ctx->sysdb,
+                         test_ctx->domain,
+                         username, &res);
+    fail_if(ret != EOK, "sysdb_getpwnam failed for username %s (%d: %s)",
+                         username, ret, strerror(ret));
+    shell = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
+    fail_unless(shell != NULL, "Did not find user shell before removal");
+
+    rmattrs[0] = discard_const(SYSDB_SHELL);
+    rmattrs[1] = NULL;
+
+    ret = sysdb_remove_attrs(test_ctx->sysdb, test_ctx->domain,
+                             username, SYSDB_MEMBER_USER, rmattrs);
+    fail_if(ret != EOK, "Removing attributes failed: %d", ret);
+
+    ret = sysdb_getpwnam(test_ctx,
+                         test_ctx->sysdb,
+                         test_ctx->domain,
+                         username, &res);
+    fail_if(ret != EOK, "sysdb_getpwnam failed for username %s (%d: %s)",
+                         username, ret, strerror(ret));
+    shell = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
+    fail_unless(shell == NULL, "Found user shell after removal");
+}
+END_TEST
+
 START_TEST (test_sysdb_get_user_attr)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4913,6 +4955,9 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the change */
     tcase_add_loop_test(tc_sysdb, test_sysdb_get_user_attr, 27010, 27020);
+
+    /* Remove the attribute */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_attrs, 27010, 27020);
 
     /* Create a new group */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_group, 28010, 28020);
