@@ -219,6 +219,7 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
     void *data;
     struct sdap_auth_ctx *ctx = NULL;
     const char *urls;
+    const char *backup_urls;
     const char *dns_service_name;
 
     ret = sssm_ldap_auth_init(bectx, ops, &data);
@@ -237,13 +238,14 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
     }
 
     urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_URI);
-    if (!urls && !dns_service_name) {
+    backup_urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_BACKUP_URI);
+    if (!urls && !backup_urls && !dns_service_name) {
         DEBUG(9, ("ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
                   "using ldap_uri.\n"));
         ctx->chpass_service = NULL;
     } else {
         ret = sdap_service_init(ctx, ctx->be, "LDAP_CHPASS", dns_service_name,
-                                urls, NULL, &ctx->chpass_service);
+                                urls, backup_urls, &ctx->chpass_service);
         if (ret != EOK) {
             DEBUG(1, ("Failed to initialize failover service!\n"));
             goto done;
