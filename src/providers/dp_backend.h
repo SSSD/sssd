@@ -93,6 +93,7 @@ struct be_ctx {
     const char *identity;
     const char *conf_path;
     struct be_failover_ctx *be_fo;
+    struct sss_sigchild_ctx *sigchld_ctx;
 
     /* Functions to be invoked when the
      * backend goes online or offline

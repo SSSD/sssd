@@ -33,7 +33,217 @@
 #include "db/sysdb.h"
 #include "providers/child_common.h"
 
+struct sss_sigchild_ctx {
+    struct tevent_context *ev;
+    hash_table_t *children;
+    int options;
+};
+
 struct sss_child_ctx {
+    pid_t pid;
+    sss_child_fn_t cb;
+    void *pvt;
+    struct sss_sigchild_ctx *sigchld_ctx;
+};
+
+errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sss_sigchild_ctx **child_ctx)
+{
+    errno_t ret;
+    struct sss_sigchild_ctx *sigchld_ctx;
+    struct tevent_signal *tes;
+
+    sigchld_ctx = talloc_zero(mem_ctx, struct sss_sigchild_ctx);
+    if (!sigchld_ctx) {
+        DEBUG(0, ("fatal error initializing sss_sigchild_ctx\n"));
+        return ENOMEM;
+    }
+    sigchld_ctx->ev = ev;
+
+    ret = sss_hash_create(sigchld_ctx, 10, &sigchld_ctx->children);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing children hash table: [%s]\n",
+               strerror(ret)));
+        talloc_free(sigchld_ctx);
+        return ret;
+    }
+
+    BlockSignals(false, SIGCHLD);
+    tes = tevent_add_signal(ev, sigchld_ctx, SIGCHLD, SA_SIGINFO,
+                            sss_child_handler, sigchld_ctx);
+    if (tes == NULL) {
+        talloc_free(sigchld_ctx);
+        return EIO;
+    }
+
+    *child_ctx = sigchld_ctx;
+    return EOK;
+}
+
+static int sss_child_destructor(void *ptr)
+{
+    struct sss_child_ctx *child_ctx;
+    hash_key_t key;
+    int error;
+
+    child_ctx = talloc_get_type(ptr, struct sss_child_ctx);
+    key.type = HASH_KEY_ULONG;
+    key.ul = child_ctx->pid;
+
+    error = hash_delete(child_ctx->sigchld_ctx->children, &key);
+    if (error != HASH_SUCCESS && error != HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(8, ("failed to delete child_ctx from hash table [%d]: %s\n",
+               error, hash_error_string(error)));
+    }
+
+    return 0;
+}
+
+errno_t sss_child_register(TALLOC_CTX *mem_ctx,
+                           struct sss_sigchild_ctx *sigchld_ctx,
+                           pid_t pid,
+                           sss_child_fn_t cb,
+                           void *pvt,
+                           struct sss_child_ctx **child_ctx)
+{
+    struct sss_child_ctx *child;
+    hash_key_t key;
+    hash_value_t value;
+    int error;
+
+    child = talloc_zero(mem_ctx, struct sss_child_ctx);
+    if (child == NULL) {
+        return ENOMEM;
+    }
+
+    child->pid = pid;
+    child->cb = cb;
+    child->pvt = pvt;
+    child->sigchld_ctx = sigchld_ctx;
+
+    key.type = HASH_KEY_ULONG;
+    key.ul = pid;
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = child;
+
+    error = hash_enter(sigchld_ctx->children, &key, &value);
+    if (error != HASH_SUCCESS) {
+        talloc_free(child);
+        return ENOMEM;
+    }
+
+    talloc_set_destructor((TALLOC_CTX *) child, sss_child_destructor);
+
+    *child_ctx = child;
+    return EOK;
+}
+
+struct sss_child_cb_pvt {
+    struct sss_child_ctx *child_ctx;
+    int wait_status;
+};
+
+static void sss_child_invoke_cb(struct tevent_context *ev,
+                                struct tevent_immediate *imm,
+                                void *pvt)
+{
+    struct sss_child_cb_pvt *cb_pvt;
+    struct sss_child_ctx *child_ctx;
+    hash_key_t key;
+    int error;
+
+    cb_pvt = talloc_get_type(pvt, struct sss_child_cb_pvt);
+    child_ctx = cb_pvt->child_ctx;
+
+    key.type = HASH_KEY_ULONG;
+    key.ul = child_ctx->pid;
+
+    error = hash_delete(child_ctx->sigchld_ctx->children, &key);
+    if (error != HASH_SUCCESS && error != HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(2, ("failed to delete child_ctx from hash table [%d]: %s\n",
+               error, hash_error_string(error)));
+    }
+
+    if (child_ctx->cb) {
+        child_ctx->cb(child_ctx->pid, cb_pvt->wait_status, child_ctx->pvt);
+    }
+}
+
+void sss_child_handler(struct tevent_context *ev,
+                       struct tevent_signal *se,
+                       int signum,
+                       int count,
+                       void *siginfo,
+                       void *private_data)
+{
+    struct sss_sigchild_ctx *sigchld_ctx;
+    struct tevent_immediate *imm;
+    struct sss_child_cb_pvt *invoke_pvt;
+    struct sss_child_ctx *child_ctx;
+    hash_key_t key;
+    hash_value_t value;
+    int error;
+    int wait_status;
+    pid_t pid;
+
+    sigchld_ctx = talloc_get_type(private_data, struct sss_sigchild_ctx);
+    key.type = HASH_KEY_ULONG;
+
+    do {
+        do {
+            errno = 0;
+            pid = waitpid(-1, &wait_status, WNOHANG | sigchld_ctx->options);
+        } while (pid == -1 && errno == EINTR);
+
+        if (pid == -1) {
+            DEBUG(8, ("waitpid failed [%d]: %s\n", errno, strerror(errno)));
+            return;
+        } else if (pid == 0) continue;
+
+        key.ul = pid;
+        error = hash_lookup(sigchld_ctx->children, &key, &value);
+        if (error == HASH_SUCCESS) {
+            child_ctx = talloc_get_type(value.ptr, struct sss_child_ctx);
+
+            imm = tevent_create_immediate(sigchld_ctx->ev);
+            if (imm == NULL) {
+                DEBUG(1, ("Out of memory invoking SIGCHLD callback\n"));
+                return;
+            }
+
+            invoke_pvt = talloc_zero(child_ctx, struct sss_child_cb_pvt);
+            if (invoke_pvt == NULL) {
+                DEBUG(1, ("out of memory invoking SIGCHLD callback\n"));
+                return;
+            }
+            invoke_pvt->child_ctx = child_ctx;
+            invoke_pvt->wait_status = wait_status;
+
+            tevent_schedule_immediate(imm, sigchld_ctx->ev,
+                                      sss_child_invoke_cb, invoke_pvt);
+        } else if (error == HASH_ERROR_KEY_NOT_FOUND) {
+            DEBUG(7, ("BUG: waitpid() returned [%d] but it was not in the "
+                  "table. This could be due to a linked library creating "
+                  "processes without registering them with the sigchld "
+                  "handler\n", pid));
+            /* We will simply ignore this and return to the loop
+             * This will prevent a zombie, but may cause unexpected
+             * behavior in the code that was trying to handle this
+             * pid.
+             */
+        } else {
+            DEBUG(2, ("SIGCHLD hash table error [%d]: %s\n",
+                   error, hash_error_string(error)));
+            /* This is bad, but we should try to check for other
+             * children anyway, to avoid potential zombies.
+             */
+        }
+    } while (pid != 0);
+}
+
+struct sss_child_ctx_old {
     struct tevent_signal *sige;
     pid_t pid;
     int child_status;
@@ -44,11 +254,11 @@ struct sss_child_ctx {
 int child_handler_setup(struct tevent_context *ev, int pid,
                         sss_child_callback_t cb, void *pvt)
 {
-    struct sss_child_ctx *child_ctx;
+    struct sss_child_ctx_old *child_ctx;
 
     DEBUG(8, ("Setting up signal handler up for pid [%d]\n", pid));
 
-    child_ctx = talloc_zero(ev, struct sss_child_ctx);
+    child_ctx = talloc_zero(ev, struct sss_child_ctx_old);
     if (child_ctx == NULL) {
         return ENOMEM;
     }
@@ -300,7 +510,7 @@ void child_sig_handler(struct tevent_context *ev,
                        int count, void *__siginfo, void *pvt)
 {
     int ret, err;
-    struct sss_child_ctx *child_ctx;
+    struct sss_child_ctx_old *child_ctx;
     struct tevent_immediate *imm;
 
     if (count <= 0) {
@@ -308,7 +518,7 @@ void child_sig_handler(struct tevent_context *ev,
         return;
     }
 
-    child_ctx = talloc_get_type(pvt, struct sss_child_ctx);
+    child_ctx = talloc_get_type(pvt, struct sss_child_ctx_old);
     DEBUG(7, ("Waiting for child [%d].\n", child_ctx->pid));
 
     errno = 0;
@@ -363,8 +573,8 @@ static void child_invoke_callback(struct tevent_context *ev,
                                   struct tevent_immediate *imm,
                                   void *pvt)
 {
-    struct sss_child_ctx *child_ctx =
-            talloc_get_type(pvt, struct sss_child_ctx);
+    struct sss_child_ctx_old *child_ctx =
+            talloc_get_type(pvt, struct sss_child_ctx_old);
     if (child_ctx->cb) {
         child_ctx->cb(child_ctx->child_status, child_ctx->sige, child_ctx->pvt);
     }

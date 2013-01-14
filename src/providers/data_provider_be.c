@@ -42,6 +42,7 @@
 #include "sbus/sssd_dbus.h"
 #include "providers/dp_backend.h"
 #include "providers/fail_over.h"
+#include "providers/child_common.h"
 #include "resolv/async_resolv.h"
 #include "monitor/monitor_interfaces.h"
 
@@ -1338,6 +1339,13 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                             signal_be_offline, ctx);
     if (tes == NULL) {
         return EIO;
+    }
+
+    ret = sss_sigchld_init(ctx, ctx->ev, &ctx->sigchld_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not initialize sigchld context: [%s]\n",
+               strerror(ret)));
+        return ret;
     }
 
     return EOK;
