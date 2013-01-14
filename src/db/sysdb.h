@@ -373,10 +373,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                                 int num_subdoms,
                                 struct sysdb_subdom *subdoms);
 
-errno_t sysdb_master_domain_get_info(TALLOC_CTX *mem_ctx,
-                                     struct sysdb_ctx *sysdb,
-                                     struct sss_domain_info *domain,
-                                     struct sysdb_subdom **info);
+errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 
 errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
                                      struct sss_domain_info *domain,

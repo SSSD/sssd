@@ -756,7 +756,6 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
-    struct sysdb_subdom *domain_info;
     struct range_info **range_list = NULL;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
@@ -787,14 +786,14 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     }
 
 
-    ret = sysdb_master_domain_get_info(ctx, sysdb, domain, &domain_info);
+    ret = sysdb_master_domain_update(domain);
     if (ret != EOK) {
         goto done;
     }
 
-    if (domain_info->flat_name == NULL ||
-        domain_info->id == NULL ||
-        domain_info->name == NULL) {
+    if (domain->flat_name == NULL ||
+        domain->domain_id == NULL ||
+        domain->realm == NULL) {
 
         ctx->search_base_iter = 0;
         ctx->search_bases = ctx->sd_ctx->master_search_bases;

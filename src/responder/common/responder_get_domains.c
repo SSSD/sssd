@@ -283,7 +283,6 @@ process_subdomains(struct sss_domain_info *domain)
     size_t c;
     size_t subdomain_count;
     struct sss_domain_info **subdomains;
-    struct sysdb_subdom *master_info;
 
     /* Retrieve all subdomains of this domain from sysdb
      * and create their struct sss_domain_info representations
@@ -308,31 +307,15 @@ process_subdomains(struct sss_domain_info *domain)
         subdomains[c]->next = subdomains[c + 1];
     }
 
-    if (domain->flat_name == NULL || domain->domain_id == NULL) {
-        ret = sysdb_master_domain_get_info(domain, domain->sysdb,
-                                           domain, &master_info);
+    if (domain->realm == NULL ||
+        domain->flat_name == NULL ||
+        domain->domain_id == NULL) {
+        ret = sysdb_master_domain_update(domain);
         if (ret != EOK) {
                 DEBUG(SSSDBG_FUNC_DATA, ("sysdb_master_domain_get_info " \
                                          "failed.\n"));
                 goto done;
         }
-
-        if (domain->flat_name == NULL) {
-            domain->flat_name = talloc_strdup(domain, master_info->flat_name);
-            if (domain->flat_name == NULL) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("talloc_strdup failed, ignoring"));
-            }
-        }
-
-        if (domain->domain_id == NULL) {
-            domain->domain_id = talloc_strdup(domain, master_info->id);
-            if (domain->domain_id == NULL) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("talloc_strdup failed, ignoring"));
-            }
-        }
-        talloc_free(master_info);
-        DEBUG(SSSDBG_TRACE_LIBS, ("Adding flat name [%s] to domain [%s].\n",
-                                  domain->flat_name, domain->name));
     }
 
     errno = 0;
