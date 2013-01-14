@@ -992,6 +992,32 @@ done:
 }
 END_TEST
 
+START_TEST (test_sysdb_search_groups)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    const char *attrs[] = { SYSDB_NAME, NULL };
+    char *filter;
+    size_t count;
+    struct ldb_message **msgs;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    filter = talloc_asprintf(test_ctx, "("SYSDB_GIDNUM"=%d)", _i);
+    fail_if(filter == NULL, "OOM");
+
+    ret = sysdb_search_groups(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                             filter, attrs, &count, &msgs);
+    talloc_free(filter);
+    fail_if(ret != EOK, "Search failed: %d", ret);
+    fail_if(count != 1, "Did not find the expected group\n");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_getpwuid)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4831,6 +4857,9 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the groups can be queried by GID */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getgrgid, 28010, 28020);
+
+    /* Find the users by GID using a filter */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_search_groups, 28010, 28020);
 
     /* Enumerate the groups */
     tcase_add_test(tc_sysdb, test_sysdb_enumgrent);
