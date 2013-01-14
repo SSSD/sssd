@@ -235,13 +235,6 @@ struct sysdb_attrs {
 /* sysdb_attrs helper functions */
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *mem_ctx);
 
-struct sysdb_subdom {
-    const char *realm;
-    const char *name;
-    const char *flat_name;
-    const char *id;
-};
-
 struct range_info {
     char *name;
     uint32_t base_id;
@@ -373,10 +366,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id);
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
-                                int num_subdoms,
-                                struct sysdb_subdom *subdoms);
-
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain);
 
 errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 

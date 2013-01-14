@@ -394,7 +394,6 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-
         ret = ldb_msg_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_SUBDOMAIN_CLASS);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
@@ -461,9 +460,7 @@ done:
     return ret;
 }
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
-                                int num_subdoms,
-                                struct sysdb_subdom *subdoms)
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 {
     int ret;
     int sret;
@@ -508,9 +505,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
      * - if a subdomain already exists in sysdb, mark it for preservation
      * - if the subdomain doesn't exist in sysdb, create its bare structure
      */
-    for (c = 0; c < num_subdoms; c++) {
+    for (c = 0; c < domain->subdomain_count; c++) {
         for (d = 0; d < cur_subdomains_count; d++) {
-            if (strcasecmp(subdoms[c].name,
+            if (strcasecmp(domain->subdomains[c]->name,
                            cur_subdomains[d]->name) == 0) {
                 keep_subdomain[d] = true;
                 /* sub-domain already in cache, nothing to do */
@@ -519,20 +516,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         }
 
         if (d == cur_subdomains_count) {
-            struct sss_domain_info *ns;
-
             DEBUG(SSSDBG_TRACE_FUNC, ("Adding sub-domain [%s].\n",
-                                      subdoms[c].name));
-
-            ns = new_subdomain(tmp_ctx, domain,
-                               subdoms[c].name, subdoms[c].realm,
-                               subdoms[c].flat_name, subdoms[c].id);
-            if (!ns) {
-                DEBUG(SSSDBG_OP_FAILURE, ("new_subdomain failed.\n"));
-                goto done;
-            }
-
-            ret = sysdb_subdomain_create(ns);
+                                      domain->subdomains[c]->name));
+            ret = sysdb_subdomain_create(domain->subdomains[c]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_create failed.\n"));
                 goto done;
