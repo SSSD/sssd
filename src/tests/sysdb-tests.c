@@ -1132,6 +1132,34 @@ START_TEST (test_sysdb_set_user_attr)
 }
 END_TEST
 
+START_TEST (test_sysdb_search_users)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    const char *attrs[] = { SYSDB_NAME, NULL };
+    char *filter;
+    size_t count;
+    struct ldb_message **msgs;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    filter = talloc_asprintf(test_ctx,
+                             "(&("SYSDB_UIDNUM"=%d)("SYSDB_SHELL"=/bin/ksh))",
+                             _i);
+    fail_if(filter == NULL, "OOM");
+
+    ret = sysdb_search_users(test_ctx, test_ctx->sysdb, test_ctx->domain,
+                             filter, attrs, &count, &msgs);
+    talloc_free(filter);
+    fail_if(ret != EOK, "Search failed: %d", ret);
+    fail_if(count != 1, "Did not find the expected user\n");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_get_user_attr)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4789,6 +4817,9 @@ Suite *create_sysdb_suite(void)
 
     /* Change their attribute */
     tcase_add_loop_test(tc_sysdb, test_sysdb_set_user_attr, 27010, 27020);
+
+    /* Find the users by their new attribute */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_search_users, 27010, 27020);
 
     /* Verify the change */
     tcase_add_loop_test(tc_sysdb, test_sysdb_get_user_attr, 27010, 27020);
