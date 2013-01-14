@@ -1129,7 +1129,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
             return tevent_req_post(req, ev);
         }
         pw.bv_val = discard_const(password);
-        pw.bv_len = pwlen - 1;
+        pw.bv_len = pwlen;
 
         state->is_sasl = false;
         subreq = simple_bind_send(state, ev, sh, user_dn, &pw);
