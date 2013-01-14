@@ -821,8 +821,6 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
-    struct sysdb_subdom *domain_info;
-    const char *tmp_str;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
 
@@ -834,36 +832,21 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     }
 
     if (reply_count) {
-        domain_info = talloc_zero(ctx, struct sysdb_subdom);
-        if (domain_info == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
+        const char *flat = NULL;
+        const char *id = NULL;
 
-        ret = sysdb_attrs_get_string(reply[0], IPA_FLATNAME, &tmp_str);
+        ret = sysdb_attrs_get_string(reply[0], IPA_FLATNAME, &flat);
         if (ret != EOK) {
             goto done;
         }
-        domain_info->flat_name = talloc_strdup(domain_info, tmp_str);
-        if (domain_info->flat_name == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
 
-        ret = sysdb_attrs_get_string(reply[0], IPA_SID, &tmp_str);
+        ret = sysdb_attrs_get_string(reply[0], IPA_SID, &id);
         if (ret != EOK) {
             goto done;
         }
-        domain_info->id = talloc_strdup(domain_info, tmp_str);
-        if (domain_info->id == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
 
-        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain->sysdb,
-                                           ctx->sd_ctx->be_ctx->domain,
-                                           domain_info);
-        goto done;
+        ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
+                                           NULL, flat, id);
     } else {
         ctx->search_base_iter++;
         ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
@@ -884,7 +867,6 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
         }
 
         ret = EIO;
-        goto done;
     }
 
 done:

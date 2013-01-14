@@ -194,9 +194,9 @@ done:
     return ret;
 }
 
-errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
-                                     struct sss_domain_info *domain,
-                                     struct sysdb_subdom *domain_info)
+errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
+                                     const char *realm, const char *flat,
+                                     const char *id)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -219,16 +219,15 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+    msg->dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                              SYSDB_DOM_BASE, domain->name);
     if (msg->dn == NULL) {
         ret = EIO;
         goto done;
     }
 
-    if (domain_info->realm != NULL &&
-        (domain->realm == NULL ||
-         strcmp(domain->realm, domain_info->realm) != 0) ) {
+    if (realm != NULL && (domain->realm == NULL ||
+                          strcmp(domain->realm, realm) != 0)) {
         ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_REALM,
                                 LDB_FLAG_MOD_REPLACE, NULL);
         if (ret != LDB_SUCCESS) {
@@ -236,8 +235,7 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_REALM,
-                                 domain_info->realm);
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_REALM, realm);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
@@ -246,9 +244,8 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         do_update = true;
     }
 
-    if (domain_info->flat_name != NULL &&
-        (domain->flat_name == NULL ||
-         strcmp(domain->flat_name, domain_info->flat_name) != 0) ) {
+    if (flat != NULL && (domain->flat_name == NULL ||
+                         strcmp(domain->flat_name, flat) != 0)) {
         ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FLAT,
                                 LDB_FLAG_MOD_REPLACE, NULL);
         if (ret != LDB_SUCCESS) {
@@ -256,8 +253,7 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FLAT,
-                                 domain_info->flat_name);
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FLAT, flat);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
@@ -266,17 +262,16 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         do_update = true;
     }
 
-    if (domain_info->id != NULL &&
-        (domain->domain_id == NULL ||
-         strcmp(domain->domain_id, domain_info->id) != 0) ) {
-        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_ID, LDB_FLAG_MOD_REPLACE,
-                                NULL);
+    if (id != NULL && (domain->domain_id == NULL ||
+                       strcmp(domain->domain_id, id) != 0)) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_ID,
+                                LDB_FLAG_MOD_REPLACE, NULL);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
 
-        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_ID, domain_info->id);
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_ID, id);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
@@ -290,12 +285,11 @@ errno_t sysdb_master_domain_add_info(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = ldb_modify(sysdb->ldb, msg);
+    ret = ldb_modify(domain->sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add subdomain attributes to "
-                                     "[%s]: [%d][%s]!\n",
-                                     domain_info->name, ret,
-                                     ldb_errstring(sysdb->ldb)));
+                                     "[%s]: [%d][%s]!\n", domain->name, ret,
+                                     ldb_errstring(domain->sysdb->ldb)));
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
@@ -307,6 +301,7 @@ done:
 
     return ret;
 }
+
 static errno_t sysdb_add_subdomain_attributes(struct sysdb_ctx *sysdb,
                                              struct sysdb_subdom *domain_info)
 {
