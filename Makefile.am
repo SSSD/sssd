@@ -285,10 +285,14 @@ SSSD_RESPONDER_OBJ = \
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \
     src/tools/tools_util.c \
-    src/tools/tools_mc_util.c \
     src/tools/files.c \
     src/tools/selinux.c \
     src/tools/nscd.c
+
+SSSD_LCL_TOOLS_OBJ = \
+    src/sss_client/common.c \
+    src/tools/tools_mc_util.c \
+    $(SSSD_TOOLS_OBJ)
 
 SSSD_RESOLV_OBJ = \
     src/resolv/async_resolv.c
@@ -682,10 +686,9 @@ sss_useradd_LDADD = \
     $(TOOLS_LIBS)
 
 sss_userdel_SOURCES = \
-    src/sss_client/common.c \
     src/tools/sss_userdel.c \
     src/util/find_uid.c \
-    $(SSSD_TOOLS_OBJ)
+    $(SSSD_LCL_TOOLS_OBJ)
 sss_userdel_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
@@ -701,9 +704,8 @@ sss_groupadd_LDADD = \
     $(TOOLS_LIBS)
 
 sss_groupdel_SOURCES = \
-    src/sss_client/common.c \
     src/tools/sss_groupdel.c \
-    $(SSSD_TOOLS_OBJ)
+    $(SSSD_LCL_TOOLS_OBJ)
 sss_groupdel_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
@@ -734,10 +736,13 @@ sss_groupshow_LDADD = \
 
 sss_cache_SOURCES = \
     src/tools/sss_cache.c \
-    $(SSSD_TOOLS_OBJ)
+    $(SSSD_LCL_TOOLS_OBJ)
 sss_cache_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
+sss_cache_CFLAGS = $(AM_CFLAGS)
+sss_cache_LDFLAGS = \
+    $(CLIENT_LIBS)
 
 sss_debuglevel_SOURCES = \
     src/tools/sss_debuglevel.c \

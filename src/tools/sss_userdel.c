@@ -32,7 +32,6 @@
 #include "util/find_uid.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
-#include "sss_client/sss_cli.h"
 
 #ifndef KILL_CMD
 #define KILL_CMD "killall"
@@ -121,10 +120,6 @@ int main(int argc, const char **argv)
     int ret = EXIT_SUCCESS;
     struct tools_ctx *tctx = NULL;
     const char *pc_username = NULL;
-    struct sss_cli_req_data rd;
-    uint8_t *repbuf = NULL;
-    size_t replen;
-    enum nss_status nret;
 
     int pc_debug = SSSDBG_DEFAULT;
     int pc_remove = 0;
@@ -292,18 +287,11 @@ int main(int argc, const char **argv)
     }
 
     /* Delete user from memory cache */
-    rd.data = pc_username;
-    rd.len = strlen(pc_username) + 1;
-
-    sss_nss_lock();
-    nret = sss_nss_make_request(SSS_NSS_GETPWNAM, &rd,
-                                &repbuf, &replen, &ret);
-
-    sss_nss_unlock();
-    free(repbuf);
-    if (nret != NSS_STATUS_SUCCESS && nret != NSS_STATUS_NOTFOUND) {
+    ret = sss_mc_refresh_user(pc_username);
+    if (ret != EOK) {
         ERROR("NSS request failed (%1$d). Entry might remain in memory "
-              "cache.\n",nret);
+              "cache.\n", ret);
+        /* Nothing we can do about it */
     }
 
     if (tctx->octx->remove_homedir) {
