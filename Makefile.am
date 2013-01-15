@@ -285,6 +285,7 @@ SSSD_RESPONDER_OBJ = \
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \
     src/tools/tools_util.c \
+    src/tools/tools_mc_util.c \
     src/tools/files.c \
     src/tools/selinux.c \
     src/tools/nscd.c
