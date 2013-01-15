@@ -1122,7 +1122,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sss_domain_info *domain, *prevdom = NULL;
+    struct sss_domain_info *domain = NULL;
     char **domlist;
     int ret, i;
 
@@ -1155,13 +1155,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
             continue;
         }
 
-        if (cdb->doms == NULL) {
-            cdb->doms = domain;
-            prevdom = cdb->doms;
-        } else {
-            prevdom->next = domain;
-            prevdom = domain;
-        }
+        DLIST_ADD_END(cdb->doms, domain, struct sss_domain_info *);
     }
 
     if (cdb->doms == NULL) {

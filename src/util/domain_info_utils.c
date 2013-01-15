@@ -29,8 +29,8 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
 
     dom = domain;
     while (dom) {
-        if (descend && dom->subdomain_count > 0) {
-            dom = dom->subdomains[0];
+        if (descend && dom->subdomains) {
+            dom = dom->subdomains;
         } else if (dom->next) {
             dom = dom->next;
         } else if (descend && dom->parent) {
@@ -42,6 +42,27 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
     }
 
     return dom;
+}
+
+struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
+                                               const char *name,
+                                               bool match_any)
+{
+    struct sss_domain_info *dom = domain;
+
+    while (dom && dom->disabled) {
+        dom = get_next_domain(dom, true);
+    }
+    while (dom) {
+        if (strcasecmp(dom->name, name) == 0 ||
+            ((match_any == true) && (dom->flat_name != NULL) &&
+             (strcasecmp(dom->flat_name, name) == 0))) {
+            return dom;
+        }
+        dom = get_next_domain(dom, true);
+    }
+
+    return NULL;
 }
 
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
@@ -134,14 +155,6 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
 fail:
     talloc_free(dom);
     return NULL;
-}
-
-struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
-                                       struct sss_domain_info *subdomain)
-{
-    return new_subdomain(mem_ctx, subdomain->parent,
-                         subdomain->name, subdomain->realm,
-                         subdomain->flat_name, subdomain->domain_id);
 }
 
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,

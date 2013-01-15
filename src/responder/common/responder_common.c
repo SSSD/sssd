@@ -886,41 +886,32 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
 
 struct sss_domain_info *
 responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
-                     const char *domain)
+                     const char *name)
 {
     time_t now = time(NULL);
     time_t time_diff;
     struct sss_domain_info *dom;
     struct sss_domain_info *ret_dom = NULL;
-    int i;
 
-    for (dom = rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        if (strcasecmp(dom->name, domain) == 0 ||
-            (dom->flat_name != NULL &&
-             strcasecmp(dom->flat_name, domain) == 0)) {
-            ret_dom = dom;
-            break;
+    for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
+        if (!dom->parent) {
+            time_diff = now - dom->subdomains_last_checked.tv_sec;
         }
-
-        for (i = 0; i < dom->subdomain_count; i++) {
-            if (strcasecmp(dom->subdomains[i]->name, domain) == 0 ||
-                (dom->subdomains[i]->flat_name != NULL &&
-                 strcasecmp(dom->subdomains[i]->flat_name, domain) == 0)) {
-                /* Sub-domains may come and go, so we better copy the struct
-                 * for each request. */
-                ret_dom = copy_subdomain(sd_mem_ctx, dom->subdomains[i]);
+        if (strcasecmp(dom->name, name) == 0 ||
+            (dom->flat_name != NULL &&
+             strcasecmp(dom->flat_name, name) == 0)) {
+            ret_dom = dom;
+            if (!dom->parent ||
+                (dom->parent && time_diff < rctx->domains_timeout)) {
                 break;
             }
         }
 
-        time_diff = now - dom->subdomains_last_checked.tv_sec;
-        if (i < dom->subdomain_count && time_diff < rctx->domains_timeout) break;
     }
-    /* FIXME: we might want to return a real error, e.g. if copy_subdomain
-     * fails. */
+
     if (!ret_dom) {
         DEBUG(SSSDBG_OP_FAILURE, ("Unknown domain [%s], checking for"
-                                  "possible subdomains!\n", domain));
+                                  "possible subdomains!\n", name));
     }
 
     return ret_dom;

@@ -355,11 +355,6 @@ int sysdb_transaction_commit(struct sysdb_ctx *sysdb);
 int sysdb_transaction_cancel(struct sysdb_ctx *sysdb);
 
 /* functions related to subdomains */
-errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *domain,
-                             size_t *subdomain_count,
-                             struct sss_domain_info ***subdomain_list);
-
 errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
@@ -373,6 +368,8 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                                      const char *realm, const char *flat,
                                      const char *id);
+
+errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name);
 
 errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                              size_t *range_count,

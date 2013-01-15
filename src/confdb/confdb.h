@@ -229,14 +229,14 @@ struct sss_domain_info {
     struct sysdb_ctx *sysdb;
     struct sss_names_ctx *names;
 
-    struct sss_domain_info **subdomains;
-    uint32_t subdomain_count;
     struct sss_domain_info *parent;
+    struct sss_domain_info *subdomains;
     char *realm;
     char *flat_name;
     char *domain_id;
     struct timeval subdomains_last_checked;
 
+    struct sss_domain_info *prev;
     struct sss_domain_info *next;
 
     bool disabled;

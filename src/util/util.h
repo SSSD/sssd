@@ -568,14 +568,16 @@ void to_sized_string(struct sized_string *out, const char *in);
 /* form domain_info.c */
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         bool descend);
+struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
+                                               const char *name,
+                                               bool match_any);
+
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
                                       const char *name,
                                       const char *realm,
                                       const char *flat_name,
                                       const char *id);
-struct sss_domain_info *copy_subdomain(TALLOC_CTX *mem_ctx,
-                                       struct sss_domain_info *subdomain);
 
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
                          struct confdb_ctx *cdb,

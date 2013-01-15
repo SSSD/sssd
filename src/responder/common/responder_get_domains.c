@@ -280,32 +280,6 @@ static errno_t
 process_subdomains(struct sss_domain_info *domain)
 {
     int ret;
-    size_t c;
-    size_t subdomain_count;
-    struct sss_domain_info **subdomains;
-
-    /* Retrieve all subdomains of this domain from sysdb
-     * and create their struct sss_domain_info representations
-     */
-    ret = sysdb_get_subdomains(domain, domain,
-                               &subdomain_count, &subdomains);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA, ("sysdb_get_subdomains failed.\n"));
-        goto done;
-    }
-
-    if (subdomain_count == 0) {
-        talloc_zfree(domain->subdomains);
-        domain->subdomain_count = 0;
-        goto done;
-    }
-
-    /* Link all subdomains into single-linked list
-     * (the list is used when processing all domains)
-     */
-    for (c = 0; c < subdomain_count - 1; c++) {
-        subdomains[c]->next = subdomains[c + 1];
-    }
 
     if (domain->realm == NULL ||
         domain->flat_name == NULL ||
@@ -318,6 +292,15 @@ process_subdomains(struct sss_domain_info *domain)
         }
     }
 
+    /* Retrieve all subdomains of this domain from sysdb
+     * and create their struct sss_domain_info representations
+     */
+    ret = sysdb_update_subdomains(domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA, ("sysdb_update_subdomains failed.\n"));
+        goto done;
+    }
+
     errno = 0;
     ret = gettimeofday(&domain->subdomains_last_checked, NULL);
     if (ret == -1) {
@@ -325,17 +308,12 @@ process_subdomains(struct sss_domain_info *domain)
         goto done;
     }
 
-    talloc_zfree(domain->subdomains);
-    domain->subdomain_count = subdomain_count;
-    domain->subdomains = subdomains;
-
     ret = EOK;
 
 done:
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to update sub-domains "
                                   "of domain [%s].\n", domain->name));
-        talloc_free(subdomains);
     }
 
     return ret;
@@ -366,32 +344,26 @@ static errno_t check_last_request(struct resp_ctx *rctx, const char *hint)
     struct sss_domain_info *dom;
     time_t now = time(NULL);
     time_t diff;
-    int i;
 
-    diff = now-rctx->get_domains_last_call.tv_sec;
+    diff = now - rctx->get_domains_last_call.tv_sec;
     if (diff >= rctx->domains_timeout) {
         /* Timeout, expired, fetch domains again */
         return EAGAIN;
     }
 
     if (hint != NULL) {
-        dom = rctx->domains;
-        while (dom) {
-            for (i = 0; i< dom->subdomain_count; i++) {
-                if (strcasecmp(dom->subdomains[i]->name, hint) == 0) {
-                    diff = now-dom->subdomains_last_checked.tv_sec;
-                    if (diff >= rctx->domains_timeout) {
-                        /* Timeout, expired, fetch domains again */
-                        return EAGAIN;
-                    }
-                    /* Skip the rest of this domain, but check other domains
-                     * perhaps this subdomain will be also a part of another
-                     * domain where it will need refreshing
-                     */
-                    break;
+        for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
+            if (dom->parent == NULL) {
+                diff = now - dom->subdomains_last_checked.tv_sec;
+                /* not a subdomain */
+                continue;
+            }
+            if (strcasecmp(dom->name, hint) == 0) {
+                if (diff >= rctx->domains_timeout) {
+                    /* Timeout, expired, fetch domains again */
+                    return EAGAIN;
                 }
             }
-            dom = get_next_domain(dom, false);
         }
     }
 

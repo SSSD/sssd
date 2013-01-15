@@ -76,14 +76,13 @@ struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
 {
     struct sss_domain_info *dom;
     struct sss_domain_info *ret_dom = NULL;
-    size_t c;
 
     if (id_str == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Missing domain id.\n"));
         return NULL;
     }
 
-    for (dom = domains; dom; dom = get_next_domain(dom, false)) {
+    for (dom = domains; dom; dom = get_next_domain(dom, true)) {
         if (dom->domain_id == NULL) {
             continue;
         }
@@ -92,14 +91,6 @@ struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
             ret_dom = dom;
             break;
         }
-
-        for (c = 0; c < dom->subdomain_count; c++) {
-            if (strcasecmp(dom->subdomains[c]->domain_id, id_str) == 0) {
-                ret_dom = dom->subdomains[c];
-                break;
-            }
-        }
-
     }
 
     if (!ret_dom) {

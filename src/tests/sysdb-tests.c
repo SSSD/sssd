@@ -4471,89 +4471,53 @@ START_TEST(test_sysdb_subdomain_create)
 {
     struct sysdb_test_ctx *test_ctx;
     errno_t ret;
-    struct sss_domain_info **cur_subdomains = NULL;
-    size_t cur_subdomains_count;
-    struct sss_domain_info *new_subdom1;
-    struct sss_domain_info *new_subdom2;
+    const char const *dom1[4] = { "dom1.sub", "DOM1.SUB", "dom1", "S-1" };
+    const char const *dom2[4] = { "dom2.sub", "DOM2.SUB", "dom2", "S-2" };
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_get_subdomains(test_ctx, test_ctx->domain,
-                               &cur_subdomains_count, &cur_subdomains);
-    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-    fail_unless(cur_subdomains != NULL, "Non zero sub-domains returned.");
-    fail_unless(cur_subdomains[0] == NULL, "No empty sub-domain list returned.");
-
-    test_ctx->domain->subdomains = talloc_array(test_ctx->domain,
-                                                struct sss_domain_info *, 2);
-    fail_unless(test_ctx->domain->subdomains != NULL,
-                "talloc_array_zero failed");
-
-    new_subdom1 = new_subdomain(test_ctx, test_ctx->domain,
-                                "dom1.sub", "DOM1.SUB", "dom1", "S-1");
-    fail_unless(new_subdom1 != NULL, "Failed to create new subdomin.");
-    test_ctx->domain->subdomains[0] = new_subdom1;
-    test_ctx->domain->subdomain_count = 1;
-
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                "dom1.sub", "DOM1.SUB", "dom1", "S-1");
+                                dom1[0], dom1[1], dom1[2], dom1[3]);
     fail_if(ret != EOK, "Could not set up the test (dom1)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_get_subdomains(test_ctx, test_ctx->domain,
-                               &cur_subdomains_count, &cur_subdomains);
-    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-    fail_if(cur_subdomains_count != 1, "Wrong number of sub-domains returned.");
-    fail_if(cur_subdomains[0] == NULL, "Empyt sub-domain list returned.");
-    fail_if(strcmp(cur_subdomains[0]->name, new_subdom1->name) != 0,
+    fail_if(test_ctx->domain->subdomains == NULL, "Empyt sub-domain list.");
+    fail_if(strcmp(test_ctx->domain->subdomains->name, dom1[0]) != 0,
             "Unexpected sub-domain found, expected [%s], got [%s]",
-            new_subdom1->name, cur_subdomains[0]->name);
-
-    new_subdom2 = new_subdomain(test_ctx, test_ctx->domain,
-                                "dom2.sub", "DOM2.SUB", "dom2", "S-2");
-    fail_unless(new_subdom2 != NULL, "Failed to create new subdomin.");
-    test_ctx->domain->subdomains[1] = new_subdom2;
-    test_ctx->domain->subdomain_count = 2;
+            dom1[0], test_ctx->domain->subdomains->name);
 
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                "dom2.sub", "DOM2.SUB", "dom2", "S-2");
+                                dom2[0], dom2[1], dom2[2], dom2[3]);
     fail_if(ret != EOK, "Could not set up the test (dom2)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_get_subdomains(test_ctx, test_ctx->domain,
-                               &cur_subdomains_count, &cur_subdomains);
-    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-    fail_if(cur_subdomains_count != 2, "Wrong number of sub-domains returned.");
-    fail_if(cur_subdomains[1] == NULL, "Empyt sub-domain list returned.");
-    fail_if(strcmp(cur_subdomains[1]->name, new_subdom2->name) != 0,
+    fail_if(test_ctx->domain->subdomains->next == NULL, "Missing sub-domain");
+    fail_if(strcmp(test_ctx->domain->subdomains->next->name, dom2[0]) != 0,
             "Unexpected sub-domain found, expected [%s], got [%s]",
-            new_subdom2->name, cur_subdomains[1]->name);
+            dom2[0], test_ctx->domain->subdomains->next->name);
 
-    test_ctx->domain->subdomain_count = 0;
-    talloc_zfree(test_ctx->domain->subdomains);
+    ret = sysdb_subdomain_delete(test_ctx->sysdb, dom2[0]);
+    fail_if(ret != EOK, "Could not delete subdomain");
+
+    ret = sysdb_subdomain_delete(test_ctx->sysdb, dom1[0]);
+    fail_if(ret != EOK, "Could not delete subdomain");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_get_subdomains(test_ctx, test_ctx->domain,
-                               &cur_subdomains_count, &cur_subdomains);
-    fail_unless(ret == EOK, "sysdb_get_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-    fail_unless(cur_subdomains != NULL, "No sub-domains returned.");
-    fail_if(cur_subdomains[0] != NULL, "No empty sub-domain list returned.");
+    fail_unless(test_ctx->domain->subdomains->disabled, "Subdomain not disabled.");
 }
 END_TEST
+
+const char const *testdom[4] = { "test.sub", "TEST.SUB", "test", "S-3" };
 
 START_TEST(test_sysdb_subdomain_store_user)
 {
@@ -4568,9 +4532,10 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_if(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              "test.sub", "TEST.SUB", "test", "S-3");
+                              testdom[0], testdom[1], testdom[2], testdom[3]);
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
-    ret = sysdb_subdomain_create(subdomain);
+    ret = sysdb_subdomain_store(test_ctx->sysdb,
+                              testdom[0], testdom[1], testdom[2], testdom[3]);
     fail_if(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
@@ -4624,9 +4589,10 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_if(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                                "test.sub", "TEST.SUB", "test", "S-3");
+                              testdom[0], testdom[1], testdom[2], testdom[3]);
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
-    ret = sysdb_subdomain_create(subdomain);
+    ret = sysdb_subdomain_store(test_ctx->sysdb,
+                              testdom[0], testdom[1], testdom[2], testdom[3]);
     fail_if(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
@@ -4676,9 +4642,10 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_if(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                                "test.sub", "TEST.SUB", "test", "S-3");
+                              testdom[0], testdom[1], testdom[2], testdom[3]);
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
-    ret = sysdb_subdomain_create(subdomain);
+    ret = sysdb_subdomain_store(test_ctx->sysdb,
+                              testdom[0], testdom[1], testdom[2], testdom[3]);
     fail_if(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);

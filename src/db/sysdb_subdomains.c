@@ -23,10 +23,7 @@
 #include "util/util.h"
 #include "db/sysdb_private.h"
 
-errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *domain,
-                             size_t *subdomain_count,
-                             struct sss_domain_info ***subdomain_list)
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 {
     int i;
     errno_t ret;
@@ -37,7 +34,7 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            NULL};
-    struct sss_domain_info **list;
+    struct sss_domain_info *dom;
     struct ldb_dn *basedn;
 
     tmp_ctx = talloc_new(NULL);
@@ -59,10 +56,14 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    list = talloc_zero_array(tmp_ctx, struct sss_domain_info *,
-                             res->count + 1);
-    if (list == NULL) {
-        ret = ENOMEM;
+    /* disable all domains,
+     * let the search result refresh any that are still valid */
+    for (dom = domain->subdomains; dom; dom = get_next_domain(dom, false)) {
+        dom->disabled = true;
+    }
+
+    if (res->count == 0) {
+        ret = EOK;
         goto done;
     }
 
@@ -90,17 +91,58 @@ errno_t sysdb_get_subdomains(TALLOC_CTX *mem_ctx,
         id = ldb_msg_find_attr_as_string(res->msgs[i],
                                          SYSDB_SUBDOMAIN_ID, NULL);
 
-        list[i] = new_subdomain(list, domain, name, realm, flat, id);
-        if (list[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
+        /* explicitly use dom->next as we need to check 'disabled' domains */
+        for (dom = domain->subdomains; dom; dom = dom->next) {
+            if (strcasecmp(dom->name, name) == 0) {
+                dom->disabled = false;
+                /* in theory these may change, but it should never happen */
+                if (strcasecmp(dom->realm, realm) != 0) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("Realm name changed from [%s] to [%s]!\n",
+                           dom->realm, realm));
+                    talloc_zfree(dom->realm);
+                    dom->realm = talloc_strdup(dom, realm);
+                    if (dom->realm == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+                if (strcasecmp(dom->flat_name, flat) != 0) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("Flat name changed from [%s] to [%s]!\n",
+                           dom->flat_name, flat));
+                    talloc_zfree(dom->flat_name);
+                    dom->flat_name = talloc_strdup(dom, flat);
+                    if (dom->flat_name == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+                if (strcasecmp(dom->domain_id, id) != 0) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("Domain changed from [%s] to [%s]!\n",
+                           dom->domain_id, id));
+                    talloc_zfree(dom->domain_id);
+                    dom->domain_id = talloc_strdup(dom, id);
+                    if (dom->domain_id == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+                break;
+            }
+        }
+        /* If not found in loop it is a new subdomain */
+        if (dom == NULL) {
+            dom = new_subdomain(domain, domain, name, realm, flat, id);
+            if (dom == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            DLIST_ADD_END(domain->subdomains, dom, struct sss_domain_info *);
         }
     }
 
-    list[res->count] = NULL;
-
-    *subdomain_count = res->count;
-    *subdomain_list = talloc_steal(mem_ctx, list);
     ret = EOK;
 
 done:
@@ -460,18 +502,11 @@ done:
     return ret;
 }
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
+errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
 {
-    int ret;
-    int sret;
-    size_t c;
-    size_t d;
     TALLOC_CTX *tmp_ctx = NULL;
-    size_t cur_subdomains_count;
-    struct sss_domain_info **cur_subdomains;
     struct ldb_dn *dn;
-    bool in_transaction = false;
-    bool *keep_subdomain;
+    int ret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -479,90 +514,20 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         goto done;
     }
 
-    /* Retrieve all subdomains that are currently in sysdb */
-    ret = sysdb_get_subdomains(tmp_ctx, domain, &cur_subdomains_count,
-                               &cur_subdomains);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_subdomains failed.\n"));
-        goto done;
-    }
-
-    keep_subdomain = talloc_zero_array(tmp_ctx, bool, cur_subdomains_count);
-    if (keep_subdomain == NULL) {
+    DEBUG(SSSDBG_TRACE_FUNC, ("Removing sub-domain [%s] from db.\n", name));
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, name);
+    if (dn == NULL) {
         ret = ENOMEM;
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero_array failed.\n"));
         goto done;
     }
 
-    ret = sysdb_transaction_start(domain->sysdb);
+    ret = sysdb_delete_recursive(sysdb, dn, true);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_start failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
         goto done;
     }
-    in_transaction = true;
-
-    /* Go through a list of retrieved subdomains and:
-     * - if a subdomain already exists in sysdb, mark it for preservation
-     * - if the subdomain doesn't exist in sysdb, create its bare structure
-     */
-    for (c = 0; c < domain->subdomain_count; c++) {
-        for (d = 0; d < cur_subdomains_count; d++) {
-            if (strcasecmp(domain->subdomains[c]->name,
-                           cur_subdomains[d]->name) == 0) {
-                keep_subdomain[d] = true;
-                /* sub-domain already in cache, nothing to do */
-                break;
-            }
-        }
-
-        if (d == cur_subdomains_count) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Adding sub-domain [%s].\n",
-                                      domain->subdomains[c]->name));
-            ret = sysdb_subdomain_create(domain->subdomains[c]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_create failed.\n"));
-                goto done;
-            }
-        }
-    }
-
-    /* Now delete all subdomains that have been in sysdb prior to
-     * refreshing the list and are not marked for preservation
-     * (i.e. they are not in the new list of subdomains)
-     */
-    for (d = 0; d < cur_subdomains_count; d++) {
-        if (!keep_subdomain[d]) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removing sub-domain [%s].\n",
-                                      cur_subdomains[d]->name));
-            dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
-                                cur_subdomains[d]->name);
-            if (dn == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            ret = sysdb_delete_recursive(domain->sysdb, dn, true);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
-                goto done;
-            }
-        }
-    }
-
-    ret = sysdb_transaction_commit(domain->sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not commit transaction\n"));
-        goto done;
-    }
-    in_transaction = false;
 
 done:
-    if (in_transaction) {
-        sret = sysdb_transaction_cancel(domain->sysdb);
-        if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
-        }
-    }
     talloc_free(tmp_ctx);
     return ret;
 }

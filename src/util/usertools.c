@@ -298,24 +298,16 @@ int sss_parse_name(TALLOC_CTX *memctx,
     return EOK;
 }
 
-static struct sss_domain_info * match_any_domain_or_subdomain_name (
-        struct sss_domain_info *dom, const char *dmatch)
+static struct sss_domain_info * match_any_domain_or_subdomain_name(
+                                                struct sss_domain_info *dom,
+                                                const char *dmatch)
 {
-    uint32_t i;
-
-    if (strcasecmp (dom->name, dmatch) == 0 ||
-        (dom->flat_name != NULL && strcasecmp(dom->flat_name, dmatch) == 0))
+    if (strcasecmp(dom->name, dmatch) == 0 ||
+        (dom->flat_name != NULL && strcasecmp(dom->flat_name, dmatch) == 0)) {
         return dom;
-
-    for (i = 0; i < dom->subdomain_count; i++) {
-        if (strcasecmp(dom->subdomains[i]->name, dmatch) == 0 ||
-            (dom->subdomains[i]->flat_name != NULL &&
-             strcasecmp(dom->subdomains[i]->flat_name, dmatch) == 0)) {
-            return dom->subdomains[i];
-        }
     }
 
-    return NULL;
+    return find_subdomain_by_name(dom, dmatch, true);
 }
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,

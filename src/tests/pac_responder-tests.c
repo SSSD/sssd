@@ -98,15 +98,7 @@ void pac_setup(void) {
     fail_unless(pac_ctx->rctx->domains->domain_id != NULL,
                 "talloc_strdup failed.");
 
-    pac_ctx->rctx->domains->subdomain_count = 1;
-    pac_ctx->rctx->domains->subdomains = talloc_zero_array(pac_ctx->rctx->domains,
-                                                       struct sss_domain_info *,
-                                       pac_ctx->rctx->domains->subdomain_count);
-    fail_unless(pac_ctx->rctx->domains->subdomains != NULL,
-                "talloc_array_zero failed");
-
-    sd = talloc_zero(pac_ctx->rctx->domains->subdomains,
-                     struct sss_domain_info);
+    sd = talloc_zero(pac_ctx->rctx->domains, struct sss_domain_info);
     fail_unless(sd != NULL, "talloc_zero failed.");
 
     sd->name = talloc_strdup(sd, "remote.dom");
@@ -118,7 +110,7 @@ void pac_setup(void) {
     sd->domain_id = talloc_strdup(sd, test_remote_dom_sid_str);
     fail_unless(sd->domain_id != NULL, "talloc_strdup failed");
 
-    pac_ctx->rctx->domains->subdomains[0] = sd;
+    pac_ctx->rctx->domains->subdomains = sd;
 
     err = sss_idmap_init(idmap_talloc, pac_ctx, idmap_talloc_free,
                          &pac_ctx->idmap_ctx);
@@ -285,8 +277,8 @@ END_TEST
 #define NUM_DOMAINS 10
 START_TEST(pac_test_find_domain_by_id)
 {
+    struct sss_domain_info *domains;
     struct sss_domain_info *dom;
-    struct sss_domain_info **domains;
     size_t c;
     char *id;
 
@@ -296,33 +288,30 @@ START_TEST(pac_test_find_domain_by_id)
     dom = find_domain_by_id(NULL, "id");
     fail_unless(dom == NULL, "Domain returned without domain list.");
 
-    domains = talloc_zero_array(global_talloc_context, struct sss_domain_info *,
-                                NUM_DOMAINS);
+    domains = NULL;
     for (c = 0; c < NUM_DOMAINS; c++) {
-        domains[c] = talloc_zero(domains, struct sss_domain_info);
-        fail_unless(domains[c] != NULL, "talloc_zero failed.");
+        dom = talloc_zero(domains, struct sss_domain_info);
+        fail_unless(dom != NULL, "talloc_zero failed.");
 
-        domains[c]->domain_id = talloc_asprintf(domains[c],
-                                                "ID-of-domains-%zu", c);
-        fail_unless(domains[c]->domain_id != NULL, "talloc_asprintf failed.");
-        if (c > 0) {
-            domains[c-1]->next = domains[c];
-        }
+        dom->domain_id = talloc_asprintf(dom, "ID-of-domains-%zu", c);
+        fail_unless(dom->domain_id != NULL, "talloc_aprintf failed.");
+
+        DLIST_ADD(domains, dom);
     }
 
-    dom = find_domain_by_id(domains[0], NULL);
+    dom = find_domain_by_id(domains, NULL);
     fail_unless(dom == NULL, "Domain returned without search domain.");
 
-    dom = find_domain_by_id(domains[0], "DOES-NOT_EXISTS");
+    dom = find_domain_by_id(domains, "DOES-NOT_EXISTS");
     fail_unless(dom == NULL, "Domain returned with non existing id.");
 
     for (c = 0; c < NUM_DOMAINS; c++) {
         id = talloc_asprintf(global_talloc_context, "ID-of-domains-%zu", c);
         fail_unless(id != NULL, "talloc_asprintf failed.\n");
 
-        dom = find_domain_by_id(domains[0], id);
-        fail_unless(dom == domains[c], "Wrong domain returned for id [%s].",
-                                       id);
+        dom = find_domain_by_id(domains, id);
+        fail_unless((strcmp(dom->domain_id, id) == 0),
+                    "Wrong domain returned for id [%s].", id);
 
         talloc_free(id);
     }
