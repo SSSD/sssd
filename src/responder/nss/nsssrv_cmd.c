@@ -3410,6 +3410,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *dom;
     struct ldb_result *res;
+    struct sized_string delete_name;
     bool changed = false;
     uint32_t id;
     uint32_t gids[gnum];
@@ -3448,6 +3449,16 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     memcpy(gids, groups, gnum * sizeof(uint32_t));
 
     if (ret == ENOENT || res->count == 0) {
+        /* The user is gone. Invalidate the mc record */
+        to_sized_string(&delete_name, name);
+        ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx, &delete_name);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Internal failure in memory cache code: %d [%s]\n",
+                  ret, strerror(ret)));
+        }
+
+        /* Also invalidate his groups */
         changed = true;
     } else {
         /* we skip the first entry, it's the user itself */
