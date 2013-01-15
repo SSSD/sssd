@@ -214,6 +214,27 @@ int main(int argc, const char **argv)
     }
     in_transaction = false;
 
+    ret = sss_mc_refresh_group(pc_groupname);
+    if (ret != EOK) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n", ret);
+        /* Nothing we can do about it */
+    }
+
+    ret = sss_mc_refresh_grouplist(tctx->octx->addgroups);
+    if (ret != EOK) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n", ret);
+        /* Nothing we can do about it */
+    }
+
+    ret = sss_mc_refresh_grouplist(tctx->octx->rmgroups);
+    if (ret != EOK) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n", ret);
+        /* Nothing we can do about it */
+    }
+
 done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(tctx->sysdb);
