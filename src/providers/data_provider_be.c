@@ -669,9 +669,9 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
     if (ret && ret != ENOENT) {
         return ret;
     }
-    /* if the user is completely missing or has no group memberships
-     * at all there is no need to contact NSS, it would be a noop */
-    if (ret == ENOENT || res->count == 0 || res->count == 1) {
+    /* if the user is completely missing there is no need to contact NSS,
+     * it would be a noop */
+    if (ret == ENOENT || res->count == 0) {
         /* yet unknown, ignore */
         return EOK;
     }
@@ -680,7 +680,7 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
     if (!pr) {
         return ENOMEM;
     }
-    pr->groups = talloc_array(pr, gid_t, res->count - 1);
+    pr->groups = talloc_array(pr, gid_t, res->count);
     if (!pr->groups) {
         return ENOMEM;
     }
@@ -696,7 +696,9 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
     if (!pr->domain) {
         return ENOMEM;
     }
-    for (pr->gnum = 0, i = 1; i < res->count; i++) {
+    /* The first GID is the primary so it might be duplicated
+     * later in the list */
+    for (pr->gnum = 0, i = 0; i < res->count; i++) {
         pr->groups[pr->gnum] = ldb_msg_find_attr_as_uint(res->msgs[i],
                                                          SYSDB_GIDNUM, 0);
         /* if 0 it may be a non-posix group, so we skip it */

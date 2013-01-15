@@ -3418,11 +3418,6 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     int ret;
     int i, j;
 
-    if (gnum == 0) {
-        /* there are no groups to invalidate in any case, just return */
-        return;
-    }
-
     for (dom = nctx->rctx->domains; dom != NULL; dom = dom->next) {
         if (strcasecmp(dom->name, domain) == 0) {
             break;
@@ -3463,7 +3458,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
         changed = true;
     } else {
         /* we skip the first entry, it's the user itself */
-        for (i = 1; i < res->count; i++) {
+        for (i = 0; i < res->count; i++) {
             id = ldb_msg_find_attr_as_uint(res->msgs[i], SYSDB_GIDNUM, 0);
             if (id == 0) {
                 /* probably non-posix group, skip */
