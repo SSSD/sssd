@@ -238,6 +238,8 @@ struct sss_domain_info {
     struct timeval subdomains_last_checked;
 
     struct sss_domain_info *next;
+
+    bool disabled;
 };
 
 /**

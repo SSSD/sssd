@@ -28,15 +28,19 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
     struct sss_domain_info *dom;
 
     dom = domain;
-    if (descend && dom->subdomain_count > 0) {
-        dom = dom->subdomains[0];
-    } else if (dom->next) {
-        dom = dom->next;
-    } else if (descend && dom->parent) {
-        dom = dom->parent->next;
-    } else {
-        dom = NULL;
+    while (dom) {
+        if (descend && dom->subdomain_count > 0) {
+            dom = dom->subdomains[0];
+        } else if (dom->next) {
+            dom = dom->next;
+        } else if (descend && dom->parent) {
+            dom = dom->parent->next;
+        } else {
+            return NULL;
+        }
+        if (!dom->disabled) break;
     }
+
     return dom;
 }
 
