@@ -104,6 +104,7 @@ int run_userdel_cmd(struct tools_ctx *tctx);
 
 errno_t signal_sssd(int signum);
 
+/* tools_mc_util.c */
 errno_t sss_memcache_invalidate(const char *mc_filename);
 
 errno_t sss_memcache_clear_all(void);
