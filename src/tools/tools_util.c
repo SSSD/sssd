@@ -198,6 +198,7 @@ int check_group_names(struct tools_ctx *tctx,
     if (!groupinfo) {
         return ENOMEM;
     }
+    groupinfo->domain = tctx->local;
 
     ret = EOK;
     for (i=0; grouplist[i]; ++i) {
