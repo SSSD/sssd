@@ -715,17 +715,23 @@ sss_groupdel_LDFLAGS = \
 
 sss_usermod_SOURCES = \
     src/tools/sss_usermod.c \
-    $(SSSD_TOOLS_OBJ)
+    $(SSSD_LCL_TOOLS_OBJ)
 sss_usermod_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
+sss_usermod_CFLAGS = $(AM_CFLAGS)
+sss_usermod_LDFLAGS = \
+    $(CLIENT_LIBS)
 
 sss_groupmod_SOURCES = \
     src/tools/sss_groupmod.c \
-    $(SSSD_TOOLS_OBJ)
+    $(SSSD_LCL_TOOLS_OBJ)
 sss_groupmod_LDADD = \
     libsss_util.la \
     $(TOOLS_LIBS)
+sss_groupmod_CFLAGS = $(AM_CFLAGS)
+sss_groupmod_LDFLAGS = \
+    $(CLIENT_LIBS)
 
 sss_groupshow_SOURCES = \
     src/tools/sss_groupshow.c \

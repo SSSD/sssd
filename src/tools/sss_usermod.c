@@ -236,6 +236,27 @@ int main(int argc, const char **argv)
     }
     in_transaction = false;
 
+    ret = sss_mc_refresh_user(pc_username);
+    if (ret != EOK) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n", ret);
+        /* Nothing we can do about it */
+    }
+
+    ret = sss_mc_refresh_grouplist(tctx->octx->addgroups);
+    if (ret != EOK) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n", ret);
+        /* Nothing we can do about it */
+    }
+
+    ret = sss_mc_refresh_grouplist(tctx->octx->rmgroups);
+    if (ret != EOK) {
+        ERROR("NSS request failed (%1$d). Entry might remain in memory "
+              "cache.\n", ret);
+        /* Nothing we can do about it */
+    }
+
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */
     ret = set_seuser(tctx->octx->name, pc_selinux_user);
