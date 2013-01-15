@@ -240,3 +240,24 @@ errno_t sss_mc_refresh_group(const char *groupname)
 {
     return sss_mc_refresh_ent(groupname, SSS_TOOLS_GROUP);
 }
+
+errno_t sss_mc_refresh_grouplist(char **groupnames)
+{
+    int i;
+    errno_t ret;
+    bool failed = false;
+
+    if (!groupnames) return EOK;
+
+    for (i = 0; groupnames[i]; i++) {
+        ret = sss_mc_refresh_group(groupnames[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Cannot refresh group %s from memory cache\n"));
+            failed = true;
+            continue;
+        }
+    }
+
+    return failed ? EIO : EOK;
+}
