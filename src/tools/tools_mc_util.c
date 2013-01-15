@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 #include "util/mmap_cache.h"
+#include "sss_client/sss_cli.h"
 
 static errno_t sss_mc_set_recycled(int fd)
 {
@@ -184,4 +185,58 @@ errno_t sss_memcache_clear_all(void)
     }
 
     return EOK;
+}
+
+enum sss_tools_ent {
+    SSS_TOOLS_USER,
+    SSS_TOOLS_GROUP
+};
+
+static errno_t sss_mc_refresh_ent(const char *name, enum sss_tools_ent ent)
+{
+    enum sss_cli_command cmd;
+    struct sss_cli_req_data rd;
+    uint8_t *repbuf = NULL;
+    size_t replen;
+    enum nss_status nret;
+    errno_t ret;
+
+    cmd = SSS_CLI_NULL;
+    switch (ent) {
+        case SSS_TOOLS_USER:
+            cmd = SSS_NSS_GETPWNAM;
+            break;
+        case SSS_TOOLS_GROUP:
+            cmd = SSS_NSS_GETGRNAM;
+            break;
+    }
+
+    if (cmd == SSS_CLI_NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown object %d to refresh\n", cmd));
+        return EINVAL;
+    }
+
+    rd.data = name;
+    rd.len = strlen(name) + 1;
+
+    sss_nss_lock();
+    nret = sss_nss_make_request(cmd, &rd, &repbuf, &replen, &ret);
+    sss_nss_unlock();
+
+    free(repbuf);
+    if (nret != NSS_STATUS_SUCCESS && nret != NSS_STATUS_NOTFOUND) {
+        return EIO;
+    }
+
+    return EOK;
+}
+
+errno_t sss_mc_refresh_user(const char *username)
+{
+    return sss_mc_refresh_ent(username, SSS_TOOLS_USER);
+}
+
+errno_t sss_mc_refresh_group(const char *groupname)
+{
+    return sss_mc_refresh_ent(groupname, SSS_TOOLS_GROUP);
 }
