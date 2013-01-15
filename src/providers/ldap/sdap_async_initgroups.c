@@ -1793,7 +1793,6 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
     int num_added;
     int i;
     int grp_count;
-    int grp_count_old = 0;
     char **add = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -1833,12 +1832,10 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
          * nesting limit. This array must be NULL terminated.
          */
         for (grp_count = 0; iter->add[grp_count]; grp_count++);
-        if (grp_count > grp_count_old) {
-            add = talloc_realloc(tmp_ctx, add, char*, grp_count + 1);
-            if (add == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
+        add = talloc_zero_array(tmp_ctx, char *, grp_count + 1);
+        if (add == NULL) {
+            ret = ENOMEM;
+            goto done;
         }
 
         num_added = 0;
@@ -1851,11 +1848,6 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
                 }
             }
         }
-
-        /* Swap old and new group counter. */
-        grp_count ^= grp_count_old;
-        grp_count_old ^= grp_count;
-        grp_count ^= grp_count_old;
 
         if (num_added == 0) {
             add = NULL;
