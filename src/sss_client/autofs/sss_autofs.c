@@ -254,7 +254,6 @@ _sss_getautomntent_r(char **key, char **value, void *context)
     size_t ctr = 0;
     size_t data_len = 0;
     uint8_t *data;
-    uint32_t v;
 
     sss_nss_lock();
 
@@ -292,14 +291,13 @@ _sss_getautomntent_r(char **key, char **value, void *context)
         goto out;
     }
 
-    SAFEALIGN_COPY_UINT32(data, &name_len, &ctr);
+    SAFEALIGN_SET_UINT32(data, name_len, &ctr);
 
     safealign_memcpy(data+ctr, ctx->mapname, name_len + 1, &ctr);
 
-    SAFEALIGN_COPY_UINT32(data+ctr, &ctx->cursor, &ctr);
+    SAFEALIGN_SET_UINT32(data+ctr, ctx->cursor, &ctr);
 
-    v = GETAUTOMNTENT_MAX_ENTRIES;
-    SAFEALIGN_COPY_UINT32(data+ctr, &v, &ctr);
+    SAFEALIGN_SET_UINT32(data+ctr, GETAUTOMNTENT_MAX_ENTRIES, &ctr);
 
     rd.data = data;
     rd.len = data_len;
@@ -348,7 +346,6 @@ _sss_getautomntbyname_r(const char *key, char **value, void *context)
     size_t name_len;
     size_t data_len = 0;
     uint8_t *data;
-    uint32_t v;
     size_t ctr = 0;
     struct sss_cli_req_data rd;
     uint8_t *repbuf = NULL;
@@ -392,13 +389,11 @@ _sss_getautomntbyname_r(const char *key, char **value, void *context)
         goto out;
     }
 
-    v = name_len;
-    SAFEALIGN_COPY_UINT32(data, &v, &ctr);
+    SAFEALIGN_SET_UINT32(data, name_len, &ctr);
 
     safealign_memcpy(data+ctr, ctx->mapname, name_len + 1, &ctr);
 
-    v = key_len;
-    SAFEALIGN_COPY_UINT32(data+ctr, &v, &ctr);
+    SAFEALIGN_SET_UINT32(data+ctr, key_len, &ctr);
 
     safealign_memcpy(data+ctr, key, key_len + 1, &ctr);
 
