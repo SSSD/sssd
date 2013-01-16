@@ -298,7 +298,7 @@ static int fill_pwent(struct sss_packet *packet,
     size_t dom_len = 0;
     int delim = 1;
     int i, ret, num, t;
-    bool add_domain = (dom->fqnames && (dom->parent == NULL));
+    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
     const char *namefmt;
     bool packet_initialized = false;
@@ -1903,7 +1903,7 @@ static int fill_members(struct sss_packet *packet,
     size_t blen;
 
     const char *domain = dom->name;
-    bool add_domain = (dom->fqnames && (dom->parent == NULL));
+    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
 
     if (add_domain) {
         delim = 1;
@@ -2032,7 +2032,7 @@ static int fill_grent(struct sss_packet *packet,
     int i = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
-    bool add_domain = (dom->fqnames && (dom->parent == NULL));
+    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
     const char *namefmt;
     TALLOC_CTX *tmp_ctx = NULL;

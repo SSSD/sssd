@@ -353,7 +353,7 @@ static errno_t check_last_request(struct resp_ctx *rctx, const char *hint)
 
     if (hint != NULL) {
         for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
-            if (dom->parent == NULL) {
+            if (!IS_SUBDOMAIN(dom)) {
                 diff = now - dom->subdomains_last_checked.tv_sec;
                 /* not a subdomain */
                 continue;

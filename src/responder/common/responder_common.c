@@ -894,15 +894,15 @@ responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
     struct sss_domain_info *ret_dom = NULL;
 
     for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
-        if (!dom->parent) {
+        if (!IS_SUBDOMAIN(dom)) {
             time_diff = now - dom->subdomains_last_checked.tv_sec;
         }
         if (strcasecmp(dom->name, name) == 0 ||
             (dom->flat_name != NULL &&
              strcasecmp(dom->flat_name, name) == 0)) {
             ret_dom = dom;
-            if (!dom->parent ||
-                (dom->parent && time_diff < rctx->domains_timeout)) {
+            if (!IS_SUBDOMAIN(dom) ||
+                (IS_SUBDOMAIN(dom) && time_diff < rctx->domains_timeout)) {
                 break;
             }
         }

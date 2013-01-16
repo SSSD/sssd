@@ -55,7 +55,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
 
     /* If this is a subomain we need to use fully qualified names for the
      * search as well by default */
-    if (domain->parent && domain->fqnames) {
+    if (IS_SUBDOMAIN(domain) && domain->fqnames) {
         ret = ENOMEM;
         src_name = talloc_asprintf(tmp_ctx, domain->names->fq_fmt,
                                    name, domain->name);
@@ -243,7 +243,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
 
     /* If this is a subomain we need to use fully qualified names for the
      * search as well by default */
-    if (domain->parent && domain->fqnames) {
+    if (IS_SUBDOMAIN(domain) && domain->fqnames) {
         ret = ENOMEM;
         src_name = talloc_asprintf(tmp_ctx, domain->names->fq_fmt,
                                    name, domain->name);

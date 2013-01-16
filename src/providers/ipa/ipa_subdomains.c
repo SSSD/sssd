@@ -301,7 +301,7 @@ ipa_subdomains_write_mappings(struct sss_domain_info *domain)
     }
 
     for (dom = get_next_domain(domain, true);
-         dom && dom->parent; /* if we get back to a parent, stop */
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
          dom = get_next_domain(dom, false)) {
         ret = fprintf(fstream, ".%s = %s\n%s = %s\n",
                                dom->name, dom->realm, dom->name, dom->realm);
@@ -379,7 +379,7 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
 
     /* check existing subdomains */
     for (dom = get_next_domain(domain, true);
-         dom && dom->parent;
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
          dom = get_next_domain(dom, false)) {
         for (c = 0; c < count; c++) {
             if (handled[c]) {

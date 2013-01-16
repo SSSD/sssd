@@ -453,7 +453,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     state->pr_ctx = pr_ctx;
 
     /* Remote users are members of local groups */
-    if (pr_ctx->dom->parent != NULL) {
+    if (IS_SUBDOMAIN(pr_ctx->dom)) {
         state->group_dom = pr_ctx->dom->parent;
     } else {
         state->group_dom = pr_ctx->dom;
