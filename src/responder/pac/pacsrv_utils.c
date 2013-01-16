@@ -255,11 +255,7 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
     size_t c;
 
     if (pac_ctx->my_dom_sid == NULL || pac_ctx->range_map == NULL) {
-        if (dom->parent != NULL) {
-            sysdb = dom->parent->sysdb;
-        } else {
-            sysdb = dom->sysdb;
-        }
+        sysdb = dom->sysdb;
 
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Missing sysdb context.\n"));
