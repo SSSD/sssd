@@ -101,7 +101,7 @@ static errno_t sss_authtok_set_string(TALLOC_CTX *mem_ctx,
 
     size = len + 1;
 
-    tok->data = talloc_named(mem_ctx, size, context_name);
+    tok->data = talloc_named(mem_ctx, size, "%s", context_name);
     if (!tok->data) {
         return ENOMEM;
     }
