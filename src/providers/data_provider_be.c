@@ -1758,6 +1758,14 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
 
     /* process request */
 
+    if (!becli->bectx->bet_info[BET_HOSTID].bet_ops) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
+        err_maj = DP_ERR_FATAL;
+        err_min = ENODEV;
+        err_msg = "HostID back end target is not configured";
+        goto done;
+    }
+
     ret = be_file_request(becli->bectx->bet_info[BET_HOSTID].pvt_bet_data,
                           be_req,
                           becli->bectx->bet_info[BET_HOSTID].bet_ops->handler);
