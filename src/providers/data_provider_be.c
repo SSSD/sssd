@@ -2103,6 +2103,7 @@ static int load_backend_module(struct be_ctx *ctx,
     char *mod_init_fn_name = NULL;
     bet_init_fn_t mod_init_fn = NULL;
 
+    (*bet_info).bet_type = bet_type;
     (*bet_info).mod_name = NULL;
     (*bet_info).bet_ops = NULL;
     (*bet_info).pvt_bet_data = NULL;
