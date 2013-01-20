@@ -117,9 +117,8 @@ errno_t sss_mc_refresh_grouplist(struct tools_ctx *tctx,
 /* from files.c */
 int remove_tree(const char *root);
 
-int copy_tree(const char *src_root,
-              const char *dst_root,
-              uid_t uid, gid_t gid);
+int copy_tree(const char *src_root, const char *dst_root,
+              mode_t mode_root, uid_t uid, gid_t gid);
 
 /* from nscd.c */
 enum nscd_db {
