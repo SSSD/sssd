@@ -183,7 +183,7 @@ START_TEST(test_simple_copy)
 
     /* and finally copy.. */
     DEBUG(5, ("Will copy from '%s' to '%s'\n", dir_path, dst_path));
-    ret = copy_tree(dir_path, dst_path, uid, gid);
+    ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
@@ -225,7 +225,7 @@ START_TEST(test_copy_symlink)
 
     /* and finally copy.. */
     DEBUG(5, ("Will copy from '%s' to '%s'\n", dir_path, dst_path));
-    ret = copy_tree(dir_path, dst_path, uid, gid);
+    ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
@@ -264,7 +264,7 @@ START_TEST(test_copy_node)
 
     /* and finally copy.. */
     DEBUG(5, ("Will copy from '%s' to '%s'\n", dir_path, dst_path));
-    ret = copy_tree(dir_path, dst_path, uid, gid);
+    ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
