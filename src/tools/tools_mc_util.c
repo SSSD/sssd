@@ -22,6 +22,7 @@
 #include <talloc.h>
 #include <fcntl.h>
 
+#include "db/sysdb.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 #include "util/mmap_cache.h"
@@ -241,7 +242,67 @@ errno_t sss_mc_refresh_group(const char *groupname)
     return sss_mc_refresh_ent(groupname, SSS_TOOLS_GROUP);
 }
 
-errno_t sss_mc_refresh_grouplist(char **groupnames)
+errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
+                                    const char *name)
+{
+    errno_t ret;
+    struct ldb_message *msg;
+    struct ldb_message_element *el;
+    const char *attrs[] = { SYSDB_MEMBEROF,
+                            SYSDB_NAME,
+                            NULL };
+    size_t i;
+    char *parent_name;
+
+    ret = sss_mc_refresh_group(name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Cannot refresh group %s from memory cache\n", name));
+        /* try to carry on */
+    }
+
+    ret = sysdb_search_group_by_name(tctx, tctx->sysdb,
+                                     name, attrs, &msg);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+               ("Search failed: %s (%d)\n", strerror(ret), ret));
+        return ret;
+    }
+
+    el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    if (!el || el->num_values == 0) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Group %s has no parents\n", name));
+        talloc_free(msg);
+        return EOK;
+    }
+
+    /* This group is nested. We need to invalidate all its parents, too */
+    for (i=0; i < el->num_values; i++) {
+        ret = sysdb_group_dn_name(tctx->sysdb, tctx,
+                                  (const char *) el->values[i].data,
+                                  &parent_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Malformed DN [%s]? Skipping\n",
+                  (const char *) el->values[i].data));
+            talloc_free(parent_name);
+            continue;
+        }
+
+        ret = sss_mc_refresh_group(parent_name);
+        talloc_free(parent_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Cannot refresh group %s from memory cache\n", name));
+            /* try to carry on */
+        }
+    }
+
+    talloc_free(msg);
+    return EOK;
+}
+
+errno_t sss_mc_refresh_grouplist(struct tools_ctx *tctx,
+                                 char **groupnames)
 {
     int i;
     errno_t ret;
@@ -250,10 +311,11 @@ errno_t sss_mc_refresh_grouplist(char **groupnames)
     if (!groupnames) return EOK;
 
     for (i = 0; groupnames[i]; i++) {
-        ret = sss_mc_refresh_group(groupnames[i]);
+        ret = sss_mc_refresh_nested_group(tctx, groupnames[i]);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot refresh group %s from memory cache\n"));
+                  ("Cannot refresh group %s from memory cache\n",
+                  groupnames[i]));
             failed = true;
             continue;
         }

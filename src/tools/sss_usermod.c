@@ -243,14 +243,14 @@ int main(int argc, const char **argv)
         /* Nothing we can do about it */
     }
 
-    ret = sss_mc_refresh_grouplist(tctx->octx->addgroups);
+    ret = sss_mc_refresh_grouplist(tctx, tctx->octx->addgroups);
     if (ret != EOK) {
         ERROR("NSS request failed (%1$d). Entry might remain in memory "
               "cache.\n", ret);
         /* Nothing we can do about it */
     }
 
-    ret = sss_mc_refresh_grouplist(tctx->octx->rmgroups);
+    ret = sss_mc_refresh_grouplist(tctx, tctx->octx->rmgroups);
     if (ret != EOK) {
         ERROR("NSS request failed (%1$d). Entry might remain in memory "
               "cache.\n", ret);

@@ -111,7 +111,8 @@ errno_t sss_memcache_clear_all(void);
 
 errno_t sss_mc_refresh_user(const char *username);
 errno_t sss_mc_refresh_group(const char *groupname);
-errno_t sss_mc_refresh_grouplist(char **groupnames);
+errno_t sss_mc_refresh_grouplist(struct tools_ctx *tctx,
+                                 char **groupnames);
 
 /* from files.c */
 int remove_tree(const char *root);
