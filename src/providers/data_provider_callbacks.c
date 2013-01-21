@@ -34,7 +34,7 @@ struct be_cb {
     be_callback_t cb;
     void *pvt;
 
-    struct be_cb *list;
+    struct be_cb **list;
     struct be_ctx *be;
 };
 
@@ -46,7 +46,7 @@ struct be_cb_ctx {
 static int cb_destructor(TALLOC_CTX *ptr)
 {
     struct be_cb *cb = talloc_get_type(ptr, struct be_cb);
-    DLIST_REMOVE(cb->list, cb);
+    DLIST_REMOVE(*(cb->list), cb);
     return 0;
 }
 
@@ -67,7 +67,7 @@ static int be_add_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
 
     new_cb->cb = cb;
     new_cb->pvt = pvt;
-    new_cb->list = *cb_list;
+    new_cb->list = cb_list;
     new_cb->be = ctx;
 
     DLIST_ADD(*cb_list, new_cb);
@@ -85,14 +85,18 @@ static void be_run_cb_step(struct tevent_context *ev, struct tevent_timer *te,
                            struct timeval current_time, void *pvt)
 {
     struct be_cb_ctx *cb_ctx = talloc_get_type(pvt, struct be_cb_ctx);
+    struct be_cb *next_cb;
     struct tevent_timer *tev;
     struct timeval soon;
+
+    /* Store next callback in case this callback frees itself */
+    next_cb = cb_ctx->callback->next;
 
     /* Call the callback */
     cb_ctx->callback->cb(cb_ctx->callback->pvt);
 
-    if (cb_ctx->callback->next) {
-        cb_ctx->callback = cb_ctx->callback->next;
+    if (next_cb) {
+        cb_ctx->callback = next_cb;
 
         /* Delay 30ms so we don't block any other events */
         soon = tevent_timeval_current_ofs(0, 30000);
@@ -118,6 +122,10 @@ static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list) {
     struct timeval soon;
     struct tevent_timer *te;
     struct be_cb_ctx *cb_ctx;
+
+    if (cb_list == NULL) {
+        return EOK;
+    }
 
     cb_ctx = talloc(be, struct be_cb_ctx);
     if (!cb_ctx) {
@@ -158,6 +166,7 @@ int be_add_reconnect_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t c
 void be_run_reconnect_cb(struct be_ctx *be)
 {
     struct be_cb *callback = be->reconnect_cb_list;
+    struct be_cb *next_cb;
 
     if (callback) {
         DEBUG(SSSDBG_TRACE_FUNC, ("Reconnecting. Running callbacks.\n"));
@@ -168,8 +177,11 @@ void be_run_reconnect_cb(struct be_ctx *be)
          * a little while
          */
         do {
+            /* Store next callback in case this callback frees itself */
+            next_cb = callback->next;
+
             callback->cb(callback->pvt);
-            callback = callback->next;
+            callback = next_cb;
         } while(callback != NULL);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Reconnect call back list is empty, nothing to do.\n"));
