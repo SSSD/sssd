@@ -4363,8 +4363,12 @@ START_TEST(test_sysdb_svc_remove_alias)
 
     ret = sysdb_svc_remove_alias(test_ctx->sysdb, dn, aliases[1]);
     fail_if (ret != EOK, "[%s]", strerror(ret));
-    sysdb_transaction_commit(test_ctx->sysdb);
-    sysdb_transaction_start(test_ctx->sysdb);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    fail_if(ret != EOK);
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    fail_if(ret != EOK);
 
     /* Set aliases[1] to NULL to perform validation checks */
     aliases[1] = NULL;
