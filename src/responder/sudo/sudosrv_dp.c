@@ -37,7 +37,7 @@ struct sss_dp_get_sudoers_info {
     bool fast_reply;
     enum sss_dp_sudo_type type;
     const char *name;
-    size_t num_rules;
+    uint32_t num_rules;
     struct sysdb_attrs **rules;
 };
 
@@ -51,7 +51,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
                         bool fast_reply,
                         enum sss_dp_sudo_type type,
                         const char *name,
-                        size_t num_rules,
+                        uint32_t num_rules,
                         struct sysdb_attrs **rules)
 {
     struct tevent_req *req;
@@ -82,7 +82,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
     switch (info->type) {
         case SSS_DP_SUDO_REFRESH_RULES:
             key = talloc_asprintf(state, "%d:%u:%s@%s", type,
-                                  (unsigned int)num_rules, name, dom->name);
+                                  num_rules, name, dom->name);
             break;
         case SSS_DP_SUDO_FULL_REFRESH:
             key = talloc_asprintf(state, "%d:%s", type, dom->name);
@@ -122,7 +122,7 @@ sss_dp_get_sudoers_msg(void *pvt)
     struct sss_dp_get_sudoers_info *info;
     uint32_t be_type = 0;
     const char *rule_name = NULL;
-    int i;
+    uint32_t i;
 
     info = talloc_get_type(pvt, struct sss_dp_get_sudoers_info);
 
@@ -151,7 +151,7 @@ sss_dp_get_sudoers_msg(void *pvt)
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
           ("Creating SUDOers request for [%s][%u][%s][%u]\n",
-           info->dom->name, be_type, info->name, (unsigned int)info->num_rules));
+           info->dom->name, be_type, info->name, info->num_rules));
 
     dbus_message_iter_init_append(msg, &iter);
 

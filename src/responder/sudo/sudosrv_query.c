@@ -188,7 +188,7 @@ done:
  */
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
-                               int rules_num,
+                               uint32_t rules_num,
                                struct sysdb_attrs **rules,
                                uint8_t **_response_body,
                                size_t *_response_len)
@@ -196,7 +196,7 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
     uint8_t *response_body = NULL;
     size_t response_len = 0;
     TALLOC_CTX *tmp_ctx = NULL;
-    int i = 0;
+    uint32_t i = 0;
     errno_t ret = EOK;
 
     tmp_ctx = talloc_new(NULL);
@@ -225,7 +225,7 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
     }
 
     /* rules count */
-    ret = sudosrv_response_append_uint32(tmp_ctx, (uint32_t)rules_num,
+    ret = sudosrv_response_append_uint32(tmp_ctx, rules_num,
                                          &response_body, &response_len);
     if (ret != EOK) {
         goto fail;

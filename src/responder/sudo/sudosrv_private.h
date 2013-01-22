@@ -62,11 +62,11 @@ struct sudo_cmd_ctx {
     struct sss_domain_info *domain;
     bool check_next;
 
-    size_t expired_rules_num;
+    uint32_t expired_rules_num;
 
     /* output data */
     struct sysdb_attrs **rules;
-    size_t num_rules;
+    uint32_t num_rules;
 };
 
 struct sudo_dom_ctx {
@@ -101,7 +101,7 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
 
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,
-                               int rules_num,
+                               uint32_t rules_num,
                                struct sysdb_attrs **rules,
                                uint8_t **_response_body,
                                size_t *_response_len);
@@ -113,7 +113,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
                         bool fast_reply,
                         enum sss_dp_sudo_type type,
                         const char *name,
-                        size_t num_rules,
+                        uint32_t num_rules,
                         struct sysdb_attrs **rules);
 
 errno_t

@@ -174,13 +174,13 @@ done:
 }
 
 errno_t sysdb_sudo_filter_rules_by_time(TALLOC_CTX *mem_ctx,
-                                        size_t in_num_rules,
+                                        uint32_t in_num_rules,
                                         struct sysdb_attrs **in_rules,
                                         time_t now,
-                                        size_t *_num_rules,
+                                        uint32_t *_num_rules,
                                         struct sysdb_attrs ***_rules)
 {
-    size_t num_rules = 0;
+    uint32_t num_rules = 0;
     struct sysdb_attrs **rules = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     bool allowed = false;
