@@ -4145,7 +4145,7 @@ START_TEST(test_sysdb_add_services)
     protocols[2] = NULL;
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     ret = sysdb_svc_add(NULL, test_ctx->sysdb, test_ctx->domain,
                         primary_name, port,
@@ -4164,7 +4164,7 @@ START_TEST(test_sysdb_add_services)
                               aliases, protocols);
 
     ret = sysdb_transaction_commit(test_ctx->sysdb);
-    fail_if (ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     /* Clean up after ourselves (and test deleting by name)
      *
@@ -4174,7 +4174,7 @@ START_TEST(test_sysdb_add_services)
      */
     ret = sysdb_svc_delete(test_ctx->sysdb, test_ctx->domain,
                            primary_name, 0, NULL);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     talloc_free(test_ctx);
 }
@@ -4218,14 +4218,14 @@ START_TEST(test_sysdb_store_services)
     protocols[2] = NULL;
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     /* Store this group (which will add it) */
     ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
                               primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
-    fail_if (ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     /* Search by name and make sure the results match */
     services_check_match_name(test_ctx,
@@ -4291,7 +4291,7 @@ START_TEST(test_sysdb_store_services)
      */
     ret = sysdb_svc_delete(test_ctx->sysdb, test_ctx->domain,
                            NULL, altport, NULL);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     talloc_free(test_ctx);
 }
@@ -4339,7 +4339,7 @@ START_TEST(test_sysdb_svc_remove_alias)
     protocols[2] = NULL;
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     ret = sysdb_svc_add(NULL, test_ctx->sysdb, test_ctx->domain,
                         primary_name, port,
@@ -4384,7 +4384,7 @@ START_TEST(test_sysdb_svc_remove_alias)
                               aliases, protocols);
 
     ret = sysdb_transaction_commit(test_ctx->sysdb);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
 
     talloc_free(test_ctx);
 }
