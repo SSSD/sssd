@@ -320,7 +320,7 @@ done:
 static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
                                                 struct sudo_cmd_ctx *cmd_ctx,
                                                 struct sysdb_attrs ***_rules,
-                                                size_t *_num_rules);
+                                                uint32_t *_num_rules);
 static void
 sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
@@ -336,7 +336,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  uid_t uid,
                                                  char **groupnames,
                                                  struct sysdb_attrs ***_rules,
-                                                 size_t *_count);
+                                                 uint32_t *_count);
 
 errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
 {
@@ -346,7 +346,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     struct sysdb_ctx *user_sysdb = NULL;
     struct sysdb_ctx *rules_sysdb = NULL;
     char **groupnames = NULL;
-    size_t expired_rules_num = 0;
+    uint32_t expired_rules_num = 0;
     struct sysdb_attrs **expired_rules = NULL;
     errno_t ret;
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
@@ -563,7 +563,7 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
 static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
                                                 struct sudo_cmd_ctx *cmd_ctx,
                                                 struct sysdb_attrs ***_rules,
-                                                size_t *_num_rules)
+                                                uint32_t *_num_rules)
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
@@ -573,7 +573,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     const char *debug_name = NULL;
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
     struct sysdb_attrs **rules = NULL;
-    size_t num_rules = 0;
+    uint32_t num_rules = 0;
     const char *attrs[] = { SYSDB_OBJECTCLASS,
                             SYSDB_SUDO_CACHE_AT_CN,
                             SYSDB_SUDO_CACHE_AT_USER,
@@ -671,7 +671,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  uid_t uid,
                                                  char **groupnames,
                                                  struct sysdb_attrs ***_rules,
-                                                 size_t *_count)
+                                                 uint32_t *_count)
 {
     TALLOC_CTX *tmp_ctx;
     char *filter;
@@ -722,7 +722,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     }
 
     *_rules = talloc_steal(mem_ctx, rules);
-    *_count = count;
+    *_count = (uint32_t)count;
 
     ret = EOK;
 done:

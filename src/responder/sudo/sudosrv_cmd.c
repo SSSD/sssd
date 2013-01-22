@@ -97,7 +97,7 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
 {
     uint8_t *response_body = NULL;
     size_t response_len = 0;
-    size_t num_rules = cmd_ctx->num_rules;
+    uint32_t num_rules = cmd_ctx->num_rules;
     struct sysdb_attrs **rules = cmd_ctx->rules;
 
     switch (ret) {
