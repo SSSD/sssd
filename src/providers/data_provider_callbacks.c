@@ -114,7 +114,8 @@ final:
     talloc_free(cb_ctx);
 }
 
-static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list) {
+static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list)
+{
     struct timeval soon;
     struct tevent_timer *te;
     struct be_cb_ctx *cb_ctx;
