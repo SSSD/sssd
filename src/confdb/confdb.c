@@ -1012,10 +1012,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     val = ldb_msg_find_attr_as_int(res->msgs[0],
                                    CONFDB_DOMAIN_PWD_EXPIRATION_WARNING,
                                    -1);
-    if (val > 0) {
-        /* The value is in days, transform it to seconds */
-        val *= 24 * 3600;
-    } else {
+    if (val == -1) {
         ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                              CONFDB_PAM_PWD_EXPIRATION_WARNING,
                              -1, &val);
@@ -1024,7 +1021,11 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             val = -1;
         }
     }
-    domain->pwd_expiration_warning = val;
+
+    if (val > 0) {
+        /* The value is in days, transform it to seconds */
+        domain->pwd_expiration_warning = val * 24 * 3600;
+    }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
                               CONFDB_DOMAIN_OVERRIDE_GID, 0);
