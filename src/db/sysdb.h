@@ -562,6 +562,10 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
  * they have to be called within a transaction
  * See sysdb_transaction_send()/_recv() */
 
+/* Permissive modify */
+int sss_ldb_modify_permissive(struct ldb_context *ldb,
+                              struct ldb_message *msg);
+
 /* Delete Entry */
 int sysdb_delete_entry(struct sysdb_ctx *sysdb,
                        struct ldb_dn *dn,

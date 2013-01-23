@@ -74,8 +74,13 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
     return l;
 }
 
-static int sss_ldb_modify_permissive(struct ldb_context *ldb,
-                                     struct ldb_message *msg)
+/*
+ * The wrapper around ldb_modify that uses LDB_CONTROL_PERMISSIVE_MODIFY_OID
+ * so that on adds entries that already exist are skipped and similarly
+ * entries that are missing are ignored on deletes
+ */
+int sss_ldb_modify_permissive(struct ldb_context *ldb,
+                              struct ldb_message *msg)
 {
     struct ldb_request *req;
     int ret = EOK;
