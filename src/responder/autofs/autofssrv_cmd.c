@@ -940,7 +940,7 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
 
     SAFEALIGN_COPY_UINT32_CHECK(&namelen, body+c, blen, &c);
 
-    if (namelen == 0) {
+    if (namelen == 0 || namelen > blen - c) {
         ret = EINVAL;
         goto done;
     }
@@ -1215,7 +1215,7 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
     /* FIXME - split out a function to get string from <len><str>\0 */
     SAFEALIGN_COPY_UINT32_CHECK(&namelen, body+c, blen, &c);
 
-    if (namelen == 0) {
+    if (namelen == 0 || namelen > blen - c) {
         ret = EINVAL;
         goto done;
     }
@@ -1239,7 +1239,7 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
     /* FIXME - split out a function to get string from <len><str>\0 */
     SAFEALIGN_COPY_UINT32_CHECK(&keylen, body+c, blen, &c);
 
-    if (keylen == 0) {
+    if (keylen == 0 || keylen > blen - c) {
         ret = EINVAL;
         goto done;
     }
