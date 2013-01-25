@@ -930,6 +930,10 @@ static void ipa_subdom_online_cb(void *pvt)
 
     be_req = be_req_create(ctx, NULL, ctx->be_ctx,
                            ipa_subdom_be_req_callback, NULL);
+    if (be_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("be_req_create() failed.\n"));
+        return;
+    }
 
     ipa_subdomains_retrieve(ctx, be_req);
 
