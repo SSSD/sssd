@@ -691,6 +691,7 @@ copy_dir(struct copy_ctx *cctx,
          const struct stat *src_dir_stat)
 {
     errno_t ret;
+    errno_t dret;
     int dest_dir_fd = -1;
     DIR *dir = NULL;
     struct dirent *ent;
@@ -779,7 +780,14 @@ copy_dir(struct copy_ctx *cctx,
 
     ret = EOK;
 done:
-    if (dir) closedir(dir);
+    if (dir) {
+        dret = closedir(dir);
+        if (dret != 0) {
+            dret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Failed to close directory: %s.\n", strerror(dret)));
+        }
+    }
 
     if (dest_dir_fd != -1) {
         close(dest_dir_fd);
