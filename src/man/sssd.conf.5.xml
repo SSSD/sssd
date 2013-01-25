@@ -958,7 +958,10 @@ override_homedir = /home/%u
                             During this time, individual requests for
                             information will go directly to LDAP, though it
                             may be slow, due to the heavy enumeration
-                            processing.
+                            processing. Saving a large number of entries
+                            to cache after the enumeration completes might
+                            also be CPU intensive as the memberships have
+                            to be recomputed.
                         </para>
                         <para>
                             While the first enumeration is running, requests
@@ -972,6 +975,11 @@ override_homedir = /home/%u
                             enumeration lookups are completed successfully.
                             For more information, refer to the man pages for
                             the specific id_provider in use.
+                        </para>
+                        <para>
+                            For the reasons cited above, enabling enumeration
+                            is not recommended, especially in large
+                            environments.
                         </para>
                     </listitem>
                 </varlistentry>
