@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-12-06 00:31+0100\n"
+"POT-Creation-Date: 2013-01-28 21:37+0100\n"
 "PO-Revision-Date: 2012-10-07 14:53+0000\n"
 "Last-Translator: Geert Warrink <geert.warrink@onsnet.nu>\n"
 "Language-Team: Dutch (http://www.transifex.com/projects/p/fedora/language/"
@@ -1076,19 +1076,19 @@ msgstr "Moet indien mogelijk canonieke groepsnaam in cache opgezocht worden "
 msgid "PAM stack to use"
 msgstr "PAM-stack die gebruikt wordt"
 
-#: src/monitor/monitor.c:2639
+#: src/monitor/monitor.c:2647
 msgid "Become a daemon (default)"
 msgstr "Start in de achtergrond (standaard)"
 
-#: src/monitor/monitor.c:2641
+#: src/monitor/monitor.c:2649
 msgid "Run interactive (not a daemon)"
 msgstr "Start interactief (standaard)"
 
-#: src/monitor/monitor.c:2643 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2651 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Geef een niet-standaard configuratiebestand op"
 
-#: src/monitor/monitor.c:2645
+#: src/monitor/monitor.c:2653
 msgid "Print version number and exit"
 msgstr "Print versie nummer en sluit af"
 
@@ -1111,7 +1111,7 @@ msgstr "Toon tijdstempel met microseconden"
 msgid "An open file descriptor for the debug logs"
 msgstr "Een geopend bestand voor de debug logs"
 
-#: src/providers/data_provider_be.c:2544
+#: src/providers/data_provider_be.c:2553
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domein voor de informatie provider (verplicht)"
 
@@ -1205,10 +1205,10 @@ msgstr "Wachtwoord verlopen. Verander nu uw wachtwoord."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192 src/tools/sss_useradd.c:48
-#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
+#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
-#: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:335 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_userdel.c:132 src/tools/sss_usermod.c:47
+#: src/tools/sss_cache.c:469 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Het debugniveau waarmee gestart wordt"
 
@@ -1218,10 +1218,10 @@ msgid "The SSSD domain to use"
 msgstr "Hrt te gebruiken SSSD domein"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
-#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
-#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:366
+#: src/tools/sss_userdel.c:149 src/tools/sss_usermod.c:74
+#: src/tools/sss_cache.c:500
 msgid "Error setting the locale\n"
 msgstr "Fout bij het zetten van de locale\n"
 
@@ -1300,22 +1300,22 @@ msgid "Specify user to add\n"
 msgstr "Geef gebruiker op om toe te voegen\n"
 
 #: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
-#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:111
-#: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:193
+#: src/tools/sss_groupdel.c:78 src/tools/sss_groupmod.c:111
+#: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:194
 #: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
 msgstr "Fout bij de initialisatie van de tools - geen lokaal domein\n"
 
 #: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
-#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:113
-#: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:195
+#: src/tools/sss_groupdel.c:80 src/tools/sss_groupmod.c:113
+#: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:196
 #: src/tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "Fout bij de initialisatie van de tools\n"
 
 #: src/tools/sss_useradd.c:130 src/tools/sss_groupadd.c:95
-#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:121
-#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:204
+#: src/tools/sss_groupdel.c:89 src/tools/sss_groupmod.c:121
+#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:205
 #: src/tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "Verkeerd domein gespecificeerd in de FQDN\n"
@@ -1339,7 +1339,7 @@ msgstr ""
 "Kan groep %1$s niet in lokale domein vinden\n"
 "\n"
 
-#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
+#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:215
 msgid "Cannot set default values\n"
 msgstr "Kan de standaardwaarden niet zetten\n"
 
@@ -1347,7 +1347,7 @@ msgstr "Kan de standaardwaarden niet zetten\n"
 msgid "The selected UID is outside the allowed range\n"
 msgstr "De geselecteerde UID valt buiten het toegestane bereik\n"
 
-#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:243
+#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:264
 msgid "Cannot set SELinux login context\n"
 msgstr "Kan de SELinux login context niet zetten\n"
 
@@ -1405,16 +1405,24 @@ msgstr "Een groep met een zelfde naam of GID bestaat reeds\n"
 msgid "Transaction error. Could not add group.\n"
 msgstr "Transactiefout. Kan de groep niet toevoegen\n"
 
-#: src/tools/sss_groupdel.c:68
+#: src/tools/sss_groupdel.c:69
 msgid "Specify group to delete\n"
 msgstr "Geef groep op om te verwijderen\n"
 
-#: src/tools/sss_groupdel.c:101
+#: src/tools/sss_groupdel.c:102
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
 msgstr "Groep %1$s ligt buiten het gedefinieerde ID gebied voor domein\n"
 
-#: src/tools/sss_groupdel.c:115
+#: src/tools/sss_groupdel.c:117 src/tools/sss_groupmod.c:219
+#: src/tools/sss_groupmod.c:226 src/tools/sss_groupmod.c:233
+#: src/tools/sss_userdel.c:292 src/tools/sss_usermod.c:241
+#: src/tools/sss_usermod.c:248 src/tools/sss_usermod.c:255
+#, c-format
+msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
+msgstr ""
+
+#: src/tools/sss_groupdel.c:129
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
@@ -1422,7 +1430,7 @@ msgstr ""
 "Groep niet gevonden in lokaal domein. Verwijderen van groepen is alleen "
 "toegestaan in lokaal domein.\n"
 
-#: src/tools/sss_groupdel.c:120
+#: src/tools/sss_groupdel.c:134
 msgid "Internal error. Could not remove group.\n"
 msgstr "Interne fout. Kan de groep niet verwijden.\n"
 
@@ -1466,18 +1474,18 @@ msgstr ""
 "Kan groep %1$s niet in lokale domein vinden, alleen groepen in lokale domein "
 "zijn toegestaan\n"
 
-#: src/tools/sss_groupmod.c:229
+#: src/tools/sss_groupmod.c:250
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 "Kan de groep niet aanpassen - controleer of de namen van de lidmaatschappen "
 "correct zijn\n"
 
-#: src/tools/sss_groupmod.c:233
+#: src/tools/sss_groupmod.c:254
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 "Kan de groep niet aanpassen - controleer of de naam van de groep correct is\n"
 
-#: src/tools/sss_groupmod.c:237
+#: src/tools/sss_groupmod.c:258
 msgid "Transaction error. Could not modify group.\n"
 msgstr "Transactiefout. Kan de groep niet aanpassen.\n"
 
@@ -1538,75 +1546,75 @@ msgstr ""
 msgid "Internal error. Could not print group.\n"
 msgstr "Interne fout. Kan de groep niet weergeven.\n"
 
-#: src/tools/sss_userdel.c:133
+#: src/tools/sss_userdel.c:134
 msgid "Remove home directory and mail spool"
 msgstr "Verwijder gebruikersmap en postbestand"
 
-#: src/tools/sss_userdel.c:135
+#: src/tools/sss_userdel.c:136
 msgid "Do not remove home directory and mail spool"
 msgstr "Verwijder gebruikersmap en postbestand niet"
 
-#: src/tools/sss_userdel.c:137
+#: src/tools/sss_userdel.c:138
 msgid "Force removal of files not owned by the user"
 msgstr ""
 "Forceer het verwijderen van bestanden die niet aan de gebruiker toebehoren"
 
-#: src/tools/sss_userdel.c:139
+#: src/tools/sss_userdel.c:140
 msgid "Kill users' processes before removing him"
 msgstr ""
 "Kill de processen van de gebruiker voordat de gebruiker verwijderd wordt"
 
-#: src/tools/sss_userdel.c:184
+#: src/tools/sss_userdel.c:185
 msgid "Specify user to delete\n"
 msgstr "Specificeer de te verwijderen gebruiker\n"
 
-#: src/tools/sss_userdel.c:230
+#: src/tools/sss_userdel.c:231
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr "Gebruiker %1$s ligt buiten het gedefinieerde ID bereik voor domein\n"
 
-#: src/tools/sss_userdel.c:255
+#: src/tools/sss_userdel.c:256
 msgid "Cannot reset SELinux login context\n"
 msgstr "Kan de SELinux logincontext niet herstellen\n"
 
-#: src/tools/sss_userdel.c:267
+#: src/tools/sss_userdel.c:268
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
 "WAARSCHUWING: De gebruiker (uid %1$lu) was nog ingelogd bij het "
 "verwijderen.\n"
 
-#: src/tools/sss_userdel.c:272
+#: src/tools/sss_userdel.c:273
 msgid "Cannot determine if the user was logged in on this platform"
 msgstr "Kan niet bepalen of de gebruiker was ingelogd op dit platform"
 
-#: src/tools/sss_userdel.c:277
+#: src/tools/sss_userdel.c:278
 msgid "Error while checking if the user was logged in\n"
 msgstr "Fout bij het controleren of de gebruiker was ingelogd\n"
 
-#: src/tools/sss_userdel.c:284
+#: src/tools/sss_userdel.c:285
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
 msgstr "Het post-verwijder commando mislukte: %1$s\n"
 
-#: src/tools/sss_userdel.c:296
+#: src/tools/sss_userdel.c:305
 msgid "Not removing home dir - not owned by user\n"
 msgstr ""
 "De gebruikersmap wordt niet verwijderd - de gebruiker is geen eigenaar\n"
 
-#: src/tools/sss_userdel.c:298
+#: src/tools/sss_userdel.c:307
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
 msgstr "Kan persoonlijke map niet verwijderen: %1$s\n"
 
-#: src/tools/sss_userdel.c:309
+#: src/tools/sss_userdel.c:320
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 "Gebruiker bestaat niet in het lokale domein. Het verwijderen van gebruikers "
 "is alleen in het lokale domein toegestaan.\n"
 
-#: src/tools/sss_userdel.c:314
+#: src/tools/sss_userdel.c:325
 msgid "Internal error. Could not remove user.\n"
 msgstr "Interne fout. Kan de gebruiker niet verwijderen.\n"
 
@@ -1642,99 +1650,99 @@ msgstr ""
 "Kan de gebruiker niet vinden in het lokale domein, het aanpassen van "
 "gebruikers is alleen toegestaan in het lokale domein\n"
 
-#: src/tools/sss_usermod.c:260
+#: src/tools/sss_usermod.c:281
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 "Kan de gebruiker niet aanpassen - controleer of de groepsnamen correct zijn\n"
 
-#: src/tools/sss_usermod.c:264
+#: src/tools/sss_usermod.c:285
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 "Kan de gebruiker niet aanpassen - is de gebruiker reeds lid van de groepen?\n"
 
-#: src/tools/sss_usermod.c:268
+#: src/tools/sss_usermod.c:289
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transactiefout. Kan de gebruiker niet aanpassen.\n"
 
-#: src/tools/sss_cache.c:141
+#: src/tools/sss_cache.c:160
 msgid "No cache object matched the specified search\n"
 msgstr ""
 "Geen enkel cache object komt overeen met de gespecificeerde zoekopdracht\n"
 
-#: src/tools/sss_cache.c:184
+#: src/tools/sss_cache.c:318
 #, fuzzy, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
 msgstr "Er is geen %1$s met de naam %2$s, wordt overgeslagen\n"
 
-#: src/tools/sss_cache.c:187
+#: src/tools/sss_cache.c:321
 #, fuzzy, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
 msgstr "Er zijn geen objecten met type %1$s in de cache, worden overgeslagen\n"
 
-#: src/tools/sss_cache.c:199
+#: src/tools/sss_cache.c:333
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr "Kon %1$s niet ongeldig maken"
 
-#: src/tools/sss_cache.c:206
+#: src/tools/sss_cache.c:340
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "Kon %1$s %2$s niet ongeldig maken"
 
-#: src/tools/sss_cache.c:337
+#: src/tools/sss_cache.c:471
 msgid "Invalidate particular user"
 msgstr "Maak bepaalde gebruiker ongeldig"
 
-#: src/tools/sss_cache.c:339
+#: src/tools/sss_cache.c:473
 msgid "Invalidate all users"
 msgstr "Maak alle gebruikers ongeldig"
 
-#: src/tools/sss_cache.c:341
+#: src/tools/sss_cache.c:475
 msgid "Invalidate particular group"
 msgstr "Maak bepaalde groep ongeldig"
 
-#: src/tools/sss_cache.c:343
+#: src/tools/sss_cache.c:477
 msgid "Invalidate all groups"
 msgstr "Maak alle groepen ongeldig"
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:479
 msgid "Invalidate particular netgroup"
 msgstr "Maak bepaalde netgroep ongeldig"
 
-#: src/tools/sss_cache.c:347
+#: src/tools/sss_cache.c:481
 msgid "Invalidate all netgroups"
 msgstr "Maak alle netgroepen ongeldig"
 
-#: src/tools/sss_cache.c:349
+#: src/tools/sss_cache.c:483
 msgid "Invalidate particular service"
 msgstr "Maak bepaalde service ongeldig "
 
-#: src/tools/sss_cache.c:351
+#: src/tools/sss_cache.c:485
 msgid "Invalidate all services"
 msgstr "Maak alle services ongeldig"
 
-#: src/tools/sss_cache.c:354
+#: src/tools/sss_cache.c:488
 msgid "Invalidate particular autofs map"
 msgstr "Maak bepaalde autofs map ongeldig"
 
-#: src/tools/sss_cache.c:356
+#: src/tools/sss_cache.c:490
 msgid "Invalidate all autofs maps"
 msgstr "Maak alle autofs mappen ongeldig"
 
-#: src/tools/sss_cache.c:359
+#: src/tools/sss_cache.c:493
 msgid "Only invalidate entries from a particular domain"
 msgstr "Maak alleen ingangen van een bepaald domein ongeldig"
 
-#: src/tools/sss_cache.c:398
+#: src/tools/sss_cache.c:532
 msgid "Please select at least one object to invalidate\n"
 msgstr "Selecteer tenminste een object om ongeldig te maken\n"
 
-#: src/tools/sss_cache.c:469
+#: src/tools/sss_cache.c:604
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr "Kon domein %1$s niet openen\n"
 
-#: src/tools/sss_cache.c:471
+#: src/tools/sss_cache.c:606
 msgid "Could not open available domains\n"
 msgstr "Kon beschikbare domeinen niet openen\n"
 
@@ -1746,7 +1754,7 @@ msgstr "\n"
 msgid "Specify debug level you want to set\n"
 msgstr "Specificeer het debug niveau dat je wilt instellen\n"
 
-#: src/tools/tools_util.c:282
+#: src/tools/tools_util.c:281
 msgid "Out of memory\n"
 msgstr "Het geheugen zit vol\n"
 

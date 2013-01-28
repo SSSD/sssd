@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-12-06 00:31+0100\n"
+"POT-Creation-Date: 2013-01-28 21:37+0100\n"
 "PO-Revision-Date: 2012-10-05 18:20+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -1089,19 +1089,19 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: src/monitor/monitor.c:2639
+#: src/monitor/monitor.c:2647
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2641
+#: src/monitor/monitor.c:2649
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2643 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2651 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2645
+#: src/monitor/monitor.c:2653
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
@@ -1124,7 +1124,7 @@ msgstr "Показувати мікросекунди у часових позн
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:2544
+#: src/providers/data_provider_be.c:2553
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1216,10 +1216,10 @@ msgstr "Строк дії пароля вичерпано. Змініть ваш
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192 src/tools/sss_useradd.c:48
-#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
+#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
-#: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:335 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_userdel.c:132 src/tools/sss_usermod.c:47
+#: src/tools/sss_cache.c:469 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Рівень діагностики під час запуску"
 
@@ -1229,10 +1229,10 @@ msgid "The SSSD domain to use"
 msgstr "Домен SSSD, який слід використовувати"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
-#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
-#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:366
+#: src/tools/sss_userdel.c:149 src/tools/sss_usermod.c:74
+#: src/tools/sss_cache.c:500
 msgid "Error setting the locale\n"
 msgstr "Помилка під час спроби встановити локаль\n"
 
@@ -1311,22 +1311,22 @@ msgid "Specify user to add\n"
 msgstr "Вкажіть користувача, запис якого слід додати\n"
 
 #: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
-#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:111
-#: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:193
+#: src/tools/sss_groupdel.c:78 src/tools/sss_groupmod.c:111
+#: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:194
 #: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
 msgstr "Помилка ініціалізації інструментів: немає локального домену\n"
 
 #: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
-#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:113
-#: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:195
+#: src/tools/sss_groupdel.c:80 src/tools/sss_groupmod.c:113
+#: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:196
 #: src/tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "Помилка ініціалізації інструментів\n"
 
 #: src/tools/sss_useradd.c:130 src/tools/sss_groupadd.c:95
-#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:121
-#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:204
+#: src/tools/sss_groupdel.c:89 src/tools/sss_groupmod.c:121
+#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:205
 #: src/tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "У FQDN вказано некоректний домен\n"
@@ -1347,7 +1347,7 @@ msgstr "Групи мають належати до того самого дом
 msgid "Cannot find group %1$s in local domain\n"
 msgstr "Не вдалося знайти групу %1$s у локальному домені\n"
 
-#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
+#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:215
 msgid "Cannot set default values\n"
 msgstr "Не вдалося встановити типові значення\n"
 
@@ -1356,7 +1356,7 @@ msgid "The selected UID is outside the allowed range\n"
 msgstr ""
 "Вибраний ідентифікатор користувача не належить до діапазону дозволених\n"
 
-#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:243
+#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:264
 msgid "Cannot set SELinux login context\n"
 msgstr "Не вдалося встановити контекст входу SELinux\n"
 
@@ -1419,16 +1419,24 @@ msgstr "Вже існує група з такою самою назвою аб�
 msgid "Transaction error. Could not add group.\n"
 msgstr "Помилка під час виконання операції Не вдалося додати групу.\n"
 
-#: src/tools/sss_groupdel.c:68
+#: src/tools/sss_groupdel.c:69
 msgid "Specify group to delete\n"
 msgstr "Вкажіть групу, яку слід вилучити\n"
 
-#: src/tools/sss_groupdel.c:101
+#: src/tools/sss_groupdel.c:102
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
 msgstr "Група %1$s не належить визначеному діапазону ідентифікаторів домену\n"
 
-#: src/tools/sss_groupdel.c:115
+#: src/tools/sss_groupdel.c:117 src/tools/sss_groupmod.c:219
+#: src/tools/sss_groupmod.c:226 src/tools/sss_groupmod.c:233
+#: src/tools/sss_userdel.c:292 src/tools/sss_usermod.c:241
+#: src/tools/sss_usermod.c:248 src/tools/sss_usermod.c:255
+#, c-format
+msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
+msgstr ""
+
+#: src/tools/sss_groupdel.c:129
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
@@ -1436,7 +1444,7 @@ msgstr ""
 "У локальному домені немає такої групи. Вилучення груп можливе лише у межах "
 "локального домену.\n"
 
-#: src/tools/sss_groupdel.c:120
+#: src/tools/sss_groupdel.c:134
 msgid "Internal error. Could not remove group.\n"
 msgstr "Внутрішня помилка. Не вдалося вилучити запис групи.\n"
 
@@ -1479,18 +1487,18 @@ msgstr ""
 "Не вдалося знайти групу %1$s у локальному домені, можна використовувати лише "
 "групи з локального домену\n"
 
-#: src/tools/sss_groupmod.c:229
+#: src/tools/sss_groupmod.c:250
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 "Не вдалося змінити запис групи. Перевірте, чи правильно вказано назви груп-"
 "учасників\n"
 
-#: src/tools/sss_groupmod.c:233
+#: src/tools/sss_groupmod.c:254
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 "Не вдалося змінити запис групи. Перевірте, чи правильно вказано назву групи\n"
 
-#: src/tools/sss_groupmod.c:237
+#: src/tools/sss_groupmod.c:258
 msgid "Transaction error. Could not modify group.\n"
 msgstr "Помилка під час виконання операції Не вдалося змінити групу.\n"
 
@@ -1551,74 +1559,74 @@ msgstr ""
 msgid "Internal error. Could not print group.\n"
 msgstr "Внутрішня помилка. Не вдалося вивести дані групи.\n"
 
-#: src/tools/sss_userdel.c:133
+#: src/tools/sss_userdel.c:134
 msgid "Remove home directory and mail spool"
 msgstr "Вилучити домашній каталог і поштовий буфер"
 
-#: src/tools/sss_userdel.c:135
+#: src/tools/sss_userdel.c:136
 msgid "Do not remove home directory and mail spool"
 msgstr "Не вилучати домашній каталог і поштовий буфер"
 
-#: src/tools/sss_userdel.c:137
+#: src/tools/sss_userdel.c:138
 msgid "Force removal of files not owned by the user"
 msgstr "Примусово вилучити файли, які не належать користувачеві"
 
-#: src/tools/sss_userdel.c:139
+#: src/tools/sss_userdel.c:140
 msgid "Kill users' processes before removing him"
 msgstr "Припинити роботу процесів користувача перед вилученням його запису"
 
-#: src/tools/sss_userdel.c:184
+#: src/tools/sss_userdel.c:185
 msgid "Specify user to delete\n"
 msgstr "Вкажіть користувача, запис якого слід вилучити\n"
 
-#: src/tools/sss_userdel.c:230
+#: src/tools/sss_userdel.c:231
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
 "Користувач %1$s не належить визначеному діапазону ідентифікаторів домену\n"
 
-#: src/tools/sss_userdel.c:255
+#: src/tools/sss_userdel.c:256
 msgid "Cannot reset SELinux login context\n"
 msgstr "Не вдалося відновити початковий контекст входу SELinux\n"
 
-#: src/tools/sss_userdel.c:267
+#: src/tools/sss_userdel.c:268
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
 "ПОПЕРЕДЖЕННЯ: користувач (uid %1$lu) все ще працював у системі на час "
 "вилучення його запису.\n"
 
-#: src/tools/sss_userdel.c:272
+#: src/tools/sss_userdel.c:273
 msgid "Cannot determine if the user was logged in on this platform"
 msgstr ""
 "Не вдалося визначити, чи увійшов користувач до системи на цій платформі"
 
-#: src/tools/sss_userdel.c:277
+#: src/tools/sss_userdel.c:278
 msgid "Error while checking if the user was logged in\n"
 msgstr "Помилка під час перевірки входу користувача до системи\n"
 
-#: src/tools/sss_userdel.c:284
+#: src/tools/sss_userdel.c:285
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
 msgstr "Помилка команди, яку слід було виконати після вилучення запису: %1$s\n"
 
-#: src/tools/sss_userdel.c:296
+#: src/tools/sss_userdel.c:305
 msgid "Not removing home dir - not owned by user\n"
 msgstr "Домашній каталог не буде вилучено. Він не належить користувачеві.\n"
 
-#: src/tools/sss_userdel.c:298
+#: src/tools/sss_userdel.c:307
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
 msgstr "Не вдалося вилучити домашній каталог: %1$s\n"
 
-#: src/tools/sss_userdel.c:309
+#: src/tools/sss_userdel.c:320
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 "У локальному домені немає такого користувача. Вилучення користувачів можливе "
 "лише у межах локального домену.\n"
 
-#: src/tools/sss_userdel.c:314
+#: src/tools/sss_userdel.c:325
 msgid "Internal error. Could not remove user.\n"
 msgstr "Внутрішня помилка Не вдалося вилучити запис користувача.\n"
 
@@ -1654,101 +1662,101 @@ msgstr ""
 "Не вдалося знайти користувача у локальному домені. Зміну записів "
 "користувачів можна виконувати лише у межах локального домену\n"
 
-#: src/tools/sss_usermod.c:260
+#: src/tools/sss_usermod.c:281
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 "Не вдалося змінити запис користувача. Перевірте, чи правильно вказано назви "
 "груп\n"
 
-#: src/tools/sss_usermod.c:264
+#: src/tools/sss_usermod.c:285
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 "Не вдалося змінити запис користувача. Користувач вже є учасником груп?\n"
 
-#: src/tools/sss_usermod.c:268
+#: src/tools/sss_usermod.c:289
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 "Помилка під час виконання операції. Не вдалося змінити запис користувача.\n"
 
-#: src/tools/sss_cache.c:141
+#: src/tools/sss_cache.c:160
 msgid "No cache object matched the specified search\n"
 msgstr "Вказаному критерію пошуку не відповідає жоден об’єкт у кеші\n"
 
-#: src/tools/sss_cache.c:184
+#: src/tools/sss_cache.c:318
 #, fuzzy, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
 msgstr "Немає %1$s з назвою %2$s, пропускаємо\n"
 
-#: src/tools/sss_cache.c:187
+#: src/tools/sss_cache.c:321
 #, fuzzy, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
 msgstr "У кеші немає об’єктів типу %1$s, пропускаємо\n"
 
-#: src/tools/sss_cache.c:199
+#: src/tools/sss_cache.c:333
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr "Не вдалося скасувати визначення %1$s"
 
-#: src/tools/sss_cache.c:206
+#: src/tools/sss_cache.c:340
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "Не вдалося скасувати визначення %1$s %2$s"
 
-#: src/tools/sss_cache.c:337
+#: src/tools/sss_cache.c:471
 msgid "Invalidate particular user"
 msgstr "Скасувати визначення певного користувача"
 
-#: src/tools/sss_cache.c:339
+#: src/tools/sss_cache.c:473
 msgid "Invalidate all users"
 msgstr "Скасувати визначення всіх користувачів"
 
-#: src/tools/sss_cache.c:341
+#: src/tools/sss_cache.c:475
 msgid "Invalidate particular group"
 msgstr "Скасувати визначення певної групи"
 
-#: src/tools/sss_cache.c:343
+#: src/tools/sss_cache.c:477
 msgid "Invalidate all groups"
 msgstr "Скасувати визначення всіх груп"
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:479
 msgid "Invalidate particular netgroup"
 msgstr "Скасувати визначення певної мережевої групи"
 
-#: src/tools/sss_cache.c:347
+#: src/tools/sss_cache.c:481
 msgid "Invalidate all netgroups"
 msgstr "Скасувати визначення всіх мережевих груп"
 
-#: src/tools/sss_cache.c:349
+#: src/tools/sss_cache.c:483
 msgid "Invalidate particular service"
 msgstr "Скасувати визначення певної служби"
 
-#: src/tools/sss_cache.c:351
+#: src/tools/sss_cache.c:485
 msgid "Invalidate all services"
 msgstr "Скасувати визначення всіх служб"
 
-#: src/tools/sss_cache.c:354
+#: src/tools/sss_cache.c:488
 msgid "Invalidate particular autofs map"
 msgstr "Скасувати визначення певну карту autofs"
 
-#: src/tools/sss_cache.c:356
+#: src/tools/sss_cache.c:490
 msgid "Invalidate all autofs maps"
 msgstr "Скасувати визначення всіх карт autofs"
 
-#: src/tools/sss_cache.c:359
+#: src/tools/sss_cache.c:493
 msgid "Only invalidate entries from a particular domain"
 msgstr "Скасувати визначення лише записів з певного домену"
 
-#: src/tools/sss_cache.c:398
+#: src/tools/sss_cache.c:532
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 "Будь ласка, виберіть принаймні один об’єкт для скасовування відповідності\n"
 
-#: src/tools/sss_cache.c:469
+#: src/tools/sss_cache.c:604
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr "Не вдалося відкрити домен %1$s\n"
 
-#: src/tools/sss_cache.c:471
+#: src/tools/sss_cache.c:606
 msgid "Could not open available domains\n"
 msgstr "Не вдалося відкрити доступні домени\n"
 
@@ -1760,7 +1768,7 @@ msgstr "\n"
 msgid "Specify debug level you want to set\n"
 msgstr "Вкажіть рівень діагностики, який ви бажаєте встановити\n"
 
-#: src/tools/tools_util.c:282
+#: src/tools/tools_util.c:281
 msgid "Out of memory\n"
 msgstr "Не вистачає пам'яті\n"
 

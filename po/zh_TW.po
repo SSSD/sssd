@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2012-12-06 00:31+0100\n"
+"POT-Creation-Date: 2013-01-28 21:37+0100\n"
 "PO-Revision-Date: 2012-10-05 17:31+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Chinese (Taiwan) <trans-zh_TW@lists.fedoraproject.org>\n"
@@ -1011,19 +1011,19 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "要使用的 PAM 堆疊"
 
-#: src/monitor/monitor.c:2639
+#: src/monitor/monitor.c:2647
 msgid "Become a daemon (default)"
 msgstr "作為幕後程式 (預設)"
 
-#: src/monitor/monitor.c:2641
+#: src/monitor/monitor.c:2649
 msgid "Run interactive (not a daemon)"
 msgstr "以互動方式執行 (非幕後程式)"
 
-#: src/monitor/monitor.c:2643 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2651 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "指定非預設的配置檔"
 
-#: src/monitor/monitor.c:2645
+#: src/monitor/monitor.c:2653
 msgid "Print version number and exit"
 msgstr ""
 
@@ -1046,7 +1046,7 @@ msgstr ""
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:2544
+#: src/providers/data_provider_be.c:2553
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -1138,10 +1138,10 @@ msgstr "密碼已過期。請立刻變更您的密碼。"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192 src/tools/sss_useradd.c:48
-#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:43
+#: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
-#: src/tools/sss_userdel.c:131 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:335 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_userdel.c:132 src/tools/sss_usermod.c:47
+#: src/tools/sss_cache.c:469 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr ""
 
@@ -1151,10 +1151,10 @@ msgid "The SSSD domain to use"
 msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
-#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:52
+#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:662
-#: src/tools/sss_userdel.c:148 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:366
+#: src/tools/sss_userdel.c:149 src/tools/sss_usermod.c:74
+#: src/tools/sss_cache.c:500
 msgid "Error setting the locale\n"
 msgstr "設定區域設置時發生錯誤\n"
 
@@ -1233,22 +1233,22 @@ msgid "Specify user to add\n"
 msgstr "指定要加入的使用者\n"
 
 #: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
-#: src/tools/sss_groupdel.c:77 src/tools/sss_groupmod.c:111
-#: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:193
+#: src/tools/sss_groupdel.c:78 src/tools/sss_groupmod.c:111
+#: src/tools/sss_groupshow.c:695 src/tools/sss_userdel.c:194
 #: src/tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
 msgstr "初始化工具時發生錯誤 - 沒有本機網域\n"
 
 #: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
-#: src/tools/sss_groupdel.c:79 src/tools/sss_groupmod.c:113
-#: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:195
+#: src/tools/sss_groupdel.c:80 src/tools/sss_groupmod.c:113
+#: src/tools/sss_groupshow.c:697 src/tools/sss_userdel.c:196
 #: src/tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "初始化工具時發生錯誤\n"
 
 #: src/tools/sss_useradd.c:130 src/tools/sss_groupadd.c:95
-#: src/tools/sss_groupdel.c:88 src/tools/sss_groupmod.c:121
-#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:204
+#: src/tools/sss_groupdel.c:89 src/tools/sss_groupmod.c:121
+#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:205
 #: src/tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "在 FQDN 內指定了無效的網域\n"
@@ -1269,7 +1269,7 @@ msgstr "群組必須位於與使用者相同的網域內\n"
 msgid "Cannot find group %1$s in local domain\n"
 msgstr ""
 
-#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:214
+#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:215
 msgid "Cannot set default values\n"
 msgstr "無法設定預設值\n"
 
@@ -1277,7 +1277,7 @@ msgstr "無法設定預設值\n"
 msgid "The selected UID is outside the allowed range\n"
 msgstr "所選的 UID 位於許可的範圍外\n"
 
-#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:243
+#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:264
 msgid "Cannot set SELinux login context\n"
 msgstr ""
 
@@ -1335,22 +1335,30 @@ msgstr "已經存在相同名稱的群組或 GID\n"
 msgid "Transaction error. Could not add group.\n"
 msgstr "處理事項發生錯誤。無法加入群組。\n"
 
-#: src/tools/sss_groupdel.c:68
+#: src/tools/sss_groupdel.c:69
 msgid "Specify group to delete\n"
 msgstr "指定要刪除的群組\n"
 
-#: src/tools/sss_groupdel.c:101
+#: src/tools/sss_groupdel.c:102
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
 msgstr ""
 
-#: src/tools/sss_groupdel.c:115
+#: src/tools/sss_groupdel.c:117 src/tools/sss_groupmod.c:219
+#: src/tools/sss_groupmod.c:226 src/tools/sss_groupmod.c:233
+#: src/tools/sss_userdel.c:292 src/tools/sss_usermod.c:241
+#: src/tools/sss_usermod.c:248 src/tools/sss_usermod.c:255
+#, c-format
+msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
+msgstr ""
+
+#: src/tools/sss_groupdel.c:129
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr "在本機網域內沒有這樣的群組。只許可在本機網域內移除群組。\n"
 
-#: src/tools/sss_groupdel.c:120
+#: src/tools/sss_groupdel.c:134
 msgid "Internal error. Could not remove group.\n"
 msgstr "內部錯誤。無法移除群組。\n"
 
@@ -1388,15 +1396,15 @@ msgid ""
 "allowed\n"
 msgstr ""
 
-#: src/tools/sss_groupmod.c:229
+#: src/tools/sss_groupmod.c:250
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 
-#: src/tools/sss_groupmod.c:233
+#: src/tools/sss_groupmod.c:254
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr "無法修改群組 - 請檢查群組名稱是否正確\n"
 
-#: src/tools/sss_groupmod.c:237
+#: src/tools/sss_groupmod.c:258
 msgid "Transaction error. Could not modify group.\n"
 msgstr "處理事項發生錯誤。無法修改群組。\n"
 
@@ -1451,68 +1459,68 @@ msgstr "本機網域內沒有這樣的群組。只許可在本機網域內列出
 msgid "Internal error. Could not print group.\n"
 msgstr "內部錯誤。無法列出群組。\n"
 
-#: src/tools/sss_userdel.c:133
+#: src/tools/sss_userdel.c:134
 msgid "Remove home directory and mail spool"
 msgstr ""
 
-#: src/tools/sss_userdel.c:135
+#: src/tools/sss_userdel.c:136
 msgid "Do not remove home directory and mail spool"
 msgstr ""
 
-#: src/tools/sss_userdel.c:137
+#: src/tools/sss_userdel.c:138
 msgid "Force removal of files not owned by the user"
 msgstr "強制檔案的移除並非由使用者所擁有"
 
-#: src/tools/sss_userdel.c:139
+#: src/tools/sss_userdel.c:140
 msgid "Kill users' processes before removing him"
 msgstr ""
 
-#: src/tools/sss_userdel.c:184
+#: src/tools/sss_userdel.c:185
 msgid "Specify user to delete\n"
 msgstr "指定要刪除的使用者\n"
 
-#: src/tools/sss_userdel.c:230
+#: src/tools/sss_userdel.c:231
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
 
-#: src/tools/sss_userdel.c:255
+#: src/tools/sss_userdel.c:256
 msgid "Cannot reset SELinux login context\n"
 msgstr ""
 
-#: src/tools/sss_userdel.c:267
+#: src/tools/sss_userdel.c:268
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
 
-#: src/tools/sss_userdel.c:272
+#: src/tools/sss_userdel.c:273
 msgid "Cannot determine if the user was logged in on this platform"
 msgstr ""
 
-#: src/tools/sss_userdel.c:277
+#: src/tools/sss_userdel.c:278
 msgid "Error while checking if the user was logged in\n"
 msgstr ""
 
-#: src/tools/sss_userdel.c:284
+#: src/tools/sss_userdel.c:285
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
 msgstr ""
 
-#: src/tools/sss_userdel.c:296
+#: src/tools/sss_userdel.c:305
 msgid "Not removing home dir - not owned by user\n"
 msgstr "不會移除家目錄 - 並非由使用者所擁有\n"
 
-#: src/tools/sss_userdel.c:298
+#: src/tools/sss_userdel.c:307
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
 msgstr ""
 
-#: src/tools/sss_userdel.c:309
+#: src/tools/sss_userdel.c:320
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr "在本機網域內沒有這樣的使用者。只許可在本機網域內移除使用者。\n"
 
-#: src/tools/sss_userdel.c:314
+#: src/tools/sss_userdel.c:325
 msgid "Internal error. Could not remove user.\n"
 msgstr "內部錯誤。無法移除使用者。\n"
 
@@ -1546,96 +1554,96 @@ msgid ""
 "domain\n"
 msgstr "在本機網域內找不到使用者，只許可在本機網域內修改使用者\n"
 
-#: src/tools/sss_usermod.c:260
+#: src/tools/sss_usermod.c:281
 msgid "Could not modify user - check if group names are correct\n"
 msgstr "無法修改使用者 - 請檢查群組名稱是否正確\n"
 
-#: src/tools/sss_usermod.c:264
+#: src/tools/sss_usermod.c:285
 msgid "Could not modify user - user already member of groups?\n"
 msgstr "無法修改使用者 - 使用者是否已經是群組的成員？\n"
 
-#: src/tools/sss_usermod.c:268
+#: src/tools/sss_usermod.c:289
 msgid "Transaction error. Could not modify user.\n"
 msgstr "處理事項發生錯誤。無法修改使用者。\n"
 
-#: src/tools/sss_cache.c:141
+#: src/tools/sss_cache.c:160
 msgid "No cache object matched the specified search\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:184
+#: src/tools/sss_cache.c:318
 #, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:187
+#: src/tools/sss_cache.c:321
 #, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:199
+#: src/tools/sss_cache.c:333
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:206
+#: src/tools/sss_cache.c:340
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:337
+#: src/tools/sss_cache.c:471
 msgid "Invalidate particular user"
 msgstr ""
 
-#: src/tools/sss_cache.c:339
+#: src/tools/sss_cache.c:473
 msgid "Invalidate all users"
 msgstr ""
 
-#: src/tools/sss_cache.c:341
+#: src/tools/sss_cache.c:475
 msgid "Invalidate particular group"
 msgstr ""
 
-#: src/tools/sss_cache.c:343
+#: src/tools/sss_cache.c:477
 msgid "Invalidate all groups"
 msgstr ""
 
-#: src/tools/sss_cache.c:345
+#: src/tools/sss_cache.c:479
 msgid "Invalidate particular netgroup"
 msgstr ""
 
-#: src/tools/sss_cache.c:347
+#: src/tools/sss_cache.c:481
 msgid "Invalidate all netgroups"
 msgstr ""
 
-#: src/tools/sss_cache.c:349
+#: src/tools/sss_cache.c:483
 msgid "Invalidate particular service"
 msgstr ""
 
-#: src/tools/sss_cache.c:351
+#: src/tools/sss_cache.c:485
 msgid "Invalidate all services"
 msgstr ""
 
-#: src/tools/sss_cache.c:354
+#: src/tools/sss_cache.c:488
 msgid "Invalidate particular autofs map"
 msgstr ""
 
-#: src/tools/sss_cache.c:356
+#: src/tools/sss_cache.c:490
 msgid "Invalidate all autofs maps"
 msgstr ""
 
-#: src/tools/sss_cache.c:359
+#: src/tools/sss_cache.c:493
 msgid "Only invalidate entries from a particular domain"
 msgstr ""
 
-#: src/tools/sss_cache.c:398
+#: src/tools/sss_cache.c:532
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:469
+#: src/tools/sss_cache.c:604
 #, c-format
 msgid "Could not open domain %1$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:471
+#: src/tools/sss_cache.c:606
 msgid "Could not open available domains\n"
 msgstr ""
 
@@ -1647,7 +1655,7 @@ msgstr ""
 msgid "Specify debug level you want to set\n"
 msgstr ""
 
-#: src/tools/tools_util.c:282
+#: src/tools/tools_util.c:281
 msgid "Out of memory\n"
 msgstr "記憶體耗盡\n"
 

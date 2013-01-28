@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2012-12-06 00:30+0100\n"
+"POT-Creation-Date: 2013-01-28 21:37+0100\n"
 "PO-Revision-Date: 2012-11-26 09:44+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
@@ -149,7 +149,7 @@ msgstr "ファイル形式および変換"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.conf.5.xml:17 sssd-ldap.5.xml:17 sssd_krb5_locator_plugin.8.xml:16
-#: sssd-ipa.5.xml:17 sssd-ad.5.xml:17 sssd-sudo.5.xml:17 sssd-krb5.5.xml:17
+#: sssd-ipa.5.xml:17 sssd-ad.5.xml:17 sssd-krb5.5.xml:17
 msgid "the configuration file for SSSD"
 msgstr "SSSD の設定ファイル"
 
@@ -230,7 +230,7 @@ msgid "The [sssd] section"
 msgstr "[sssd] セクション"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
-#: sssd.conf.5.xml:71 sssd.conf.5.xml:1717
+#: sssd.conf.5.xml:71 sssd.conf.5.xml:1725
 msgid "Section parameters"
 msgstr "セクションのパラメーター"
 
@@ -309,7 +309,7 @@ msgstr ""
 "始できません。このパラメーターは検索したいドメインの一覧を表されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:124 sssd.conf.5.xml:1497
+#: sssd.conf.5.xml:124 sssd.conf.5.xml:1505
 msgid "re_expression (string)"
 msgstr "re_expression (文字列)"
 
@@ -329,7 +329,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:141 sssd.conf.5.xml:1544
+#: sssd.conf.5.xml:141 sssd.conf.5.xml:1552
 msgid "full_name_format (string)"
 msgstr "full_name_format (文字列)"
 
@@ -534,7 +534,7 @@ msgid "Add microseconds to the timestamp in debug messages"
 msgstr "デバッグメッセージの日時にマイクロ秒を追加します"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:272 sssd.conf.5.xml:788 sssd.conf.5.xml:1651
+#: sssd.conf.5.xml:272 sssd.conf.5.xml:788 sssd.conf.5.xml:1659
 #: sssd-ldap.5.xml:640 sssd-ldap.5.xml:1377 sssd-ldap.5.xml:1396
 #: sssd-ldap.5.xml:1551 sssd-ipa.5.xml:129 sssd-ipa.5.xml:345
 #: sssd-krb5.5.xml:244 sssd-krb5.5.xml:278 sssd-krb5.5.xml:427
@@ -596,17 +596,17 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:330 sssd.conf.5.xml:346 sssd.conf.5.xml:606
-#: sssd.conf.5.xml:766 sssd.conf.5.xml:990 sssd-ldap.5.xml:1099
+#: sssd.conf.5.xml:766 sssd.conf.5.xml:998 sssd-ldap.5.xml:1099
 msgid "Default: 60"
 msgstr "初期値: 60"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:335 sssd.conf.5.xml:979
+#: sssd.conf.5.xml:335 sssd.conf.5.xml:987
 msgid "force_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:338 sssd.conf.5.xml:982
+#: sssd.conf.5.xml:338 sssd.conf.5.xml:990
 msgid ""
 "If a service is not responding to ping checks (see the <quote>timeout</"
 "quote> option), it is first sent the SIGTERM signal that instructs it to "
@@ -1096,7 +1096,7 @@ msgstr ""
 "効にできます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:673 sssd.conf.5.xml:726 sssd.conf.5.xml:1598
+#: sssd.conf.5.xml:673 sssd.conf.5.xml:726 sssd.conf.5.xml:1606
 msgid "Default: 5"
 msgstr "初期値: 5"
 
@@ -1178,7 +1178,7 @@ msgid "pam_pwd_expiration_warning (integer)"
 msgstr "pam_pwd_expiration_warning (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:735 sssd.conf.5.xml:1122
+#: sssd.conf.5.xml:735 sssd.conf.5.xml:1130
 msgid "Display a warning N days before the password expires."
 msgstr "パスワードの期限が切れる前に N 日間警告を表示します。"
 
@@ -1193,7 +1193,7 @@ msgstr ""
 "ことに注意してください。この情報がなければ、sssd は警告を表示します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:744 sssd.conf.5.xml:1125
+#: sssd.conf.5.xml:744 sssd.conf.5.xml:1133
 msgid ""
 "If zero is set, then this filter is not applied, i.e. if the expiration "
 "warning was received from backend server, it will automatically be displayed."
@@ -1428,18 +1428,27 @@ msgid "FALSE = No enumerations for this domain"
 msgstr "FALSE = このドメインに対して列挙しません"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:951 sssd.conf.5.xml:1099 sssd.conf.5.xml:1201
+#: sssd.conf.5.xml:951 sssd.conf.5.xml:1107 sssd.conf.5.xml:1209
 msgid "Default: FALSE"
 msgstr "初期値: FALSE"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:954
+#, fuzzy
+#| msgid ""
+#| "Note: Enabling enumeration has a moderate performance impact on SSSD "
+#| "while enumeration is running. It may take up to several minutes after "
+#| "SSSD startup to fully complete enumerations.  During this time, "
+#| "individual requests for information will go directly to LDAP, though it "
+#| "may be slow, due to the heavy enumeration processing."
 msgid ""
 "Note: Enabling enumeration has a moderate performance impact on SSSD while "
 "enumeration is running. It may take up to several minutes after SSSD startup "
 "to fully complete enumerations.  During this time, individual requests for "
 "information will go directly to LDAP, though it may be slow, due to the "
-"heavy enumeration processing."
+"heavy enumeration processing. Saving a large number of entries to cache "
+"after the enumeration completes might also be CPU intensive as the "
+"memberships have to be recomputed."
 msgstr ""
 "注: 列挙を有効にすることにより、列挙の実行中に SSSD にわずかな性能の影響があ"
 "ります。列挙を完全に完了するには SSSD が開始後に数分間時間がかかります。この"
@@ -1447,7 +1456,7 @@ msgstr ""
 "は遅いかもしれません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:964
+#: sssd.conf.5.xml:967
 msgid ""
 "While the first enumeration is running, requests for the complete user or "
 "group lists may return no results until it completes."
@@ -1456,7 +1465,7 @@ msgstr ""
 "れが完了するまで結果を返しません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:969
+#: sssd.conf.5.xml:972
 msgid ""
 "Further, enabling enumeration may increase the time necessary to detect "
 "network disconnection, as longer timeouts are required to ensure that "
@@ -1468,13 +1477,20 @@ msgstr ""
 "があります。詳細は使用している具体的な id_provider のマニュアルページを参照し"
 "てください。"
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:980
+msgid ""
+"For the reasons cited above, enabling enumeration is not recommended, "
+"especially in large environments."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:996
+#: sssd.conf.5.xml:1004
 msgid "entry_cache_timeout (integer)"
 msgstr "entry_cache_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:999
+#: sssd.conf.5.xml:1007
 msgid ""
 "How many seconds should nss_sss consider entries valid before asking the "
 "backend again"
@@ -1483,17 +1499,17 @@ msgstr ""
 "数です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1003
+#: sssd.conf.5.xml:1011
 msgid "Default: 5400"
 msgstr "初期値: 5400"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1009
+#: sssd.conf.5.xml:1017
 msgid "entry_cache_user_timeout (integer)"
 msgstr "entry_cache_user_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1012
+#: sssd.conf.5.xml:1020
 msgid ""
 "How many seconds should nss_sss consider user entries valid before asking "
 "the backend again"
@@ -1502,18 +1518,18 @@ msgstr ""
 "考える秒数です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1016 sssd.conf.5.xml:1029 sssd.conf.5.xml:1042
-#: sssd.conf.5.xml:1055 sssd.conf.5.xml:1068 sssd.conf.5.xml:1082
+#: sssd.conf.5.xml:1024 sssd.conf.5.xml:1037 sssd.conf.5.xml:1050
+#: sssd.conf.5.xml:1063 sssd.conf.5.xml:1076 sssd.conf.5.xml:1090
 msgid "Default: entry_cache_timeout"
 msgstr "初期値: entry_cache_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1022
+#: sssd.conf.5.xml:1030
 msgid "entry_cache_group_timeout (integer)"
 msgstr "entry_cache_group_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1025
+#: sssd.conf.5.xml:1033
 msgid ""
 "How many seconds should nss_sss consider group entries valid before asking "
 "the backend again"
@@ -1522,12 +1538,12 @@ msgstr ""
 "考える秒数です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1035
+#: sssd.conf.5.xml:1043
 msgid "entry_cache_netgroup_timeout (integer)"
 msgstr "entry_cache_netgroup_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1038
+#: sssd.conf.5.xml:1046
 msgid ""
 "How many seconds should nss_sss consider netgroup entries valid before "
 "asking the backend again"
@@ -1536,12 +1552,12 @@ msgstr ""
 "有効であると考える秒数です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1048
+#: sssd.conf.5.xml:1056
 msgid "entry_cache_service_timeout (integer)"
 msgstr "entry_cache_service_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1051
+#: sssd.conf.5.xml:1059
 msgid ""
 "How many seconds should nss_sss consider service entries valid before asking "
 "the backend again"
@@ -1550,54 +1566,54 @@ msgstr ""
 "考える秒数です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1061
+#: sssd.conf.5.xml:1069
 msgid "entry_cache_sudo_timeout (integer)"
 msgstr "entry_cache_sudo_timeout (integer)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1064
+#: sssd.conf.5.xml:1072
 msgid ""
 "How many seconds should sudo consider rules valid before asking the backend "
 "again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1074
+#: sssd.conf.5.xml:1082
 msgid "entry_cache_autofs_timeout (integer)"
 msgstr "entry_cache_autofs_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1077
+#: sssd.conf.5.xml:1085
 msgid ""
 "How many seconds should the autofs service consider automounter maps valid "
 "before asking the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1088
+#: sssd.conf.5.xml:1096
 msgid "cache_credentials (bool)"
 msgstr "cache_credentials (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1091
+#: sssd.conf.5.xml:1099
 msgid "Determines if user credentials are also cached in the local LDB cache"
 msgstr ""
 "ユーザーのクレディンシャルがローカル LDB キャッシュにキャッシュされるかどうか"
 "を決めます"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1095
+#: sssd.conf.5.xml:1103
 msgid "User credentials are stored in a SHA512 hash, not in plaintext"
 msgstr ""
 "ユーザーのクレディンシャルが、平文ではなく SHA512 ハッシュで保存されます"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1104
+#: sssd.conf.5.xml:1112
 msgid "account_cache_expiration (integer)"
 msgstr "account_cache_expiration (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1107
+#: sssd.conf.5.xml:1115
 msgid ""
 "Number of days entries are left in cache after last successful login before "
 "being removed during a cleanup of the cache. 0 means keep forever.  The "
@@ -1609,17 +1625,17 @@ msgstr ""
 "offline_credentials_expiration と同等以上でなければいけません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1114
+#: sssd.conf.5.xml:1122
 msgid "Default: 0 (unlimited)"
 msgstr "初期値: 0 (無制限)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1119
+#: sssd.conf.5.xml:1127
 msgid "pwd_expiration_warning (integer)"
 msgstr "pwd_expiration_warning (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1130
+#: sssd.conf.5.xml:1138
 msgid ""
 "Please note that the backend server has to provide information about the "
 "expiration time of the password.  If this information is missing, sssd "
@@ -1628,17 +1644,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1137
+#: sssd.conf.5.xml:1145
 msgid "Default: 7 (Kerberos), 0 (LDAP)"
 msgstr "初期値: 7 (Kerberos), 0 (LDAP)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1143
+#: sssd.conf.5.xml:1151
 msgid "id_provider (string)"
 msgstr "id_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1146
+#: sssd.conf.5.xml:1154
 msgid ""
 "The identification provider used for the domain.  Supported ID providers are:"
 msgstr ""
@@ -1646,17 +1662,17 @@ msgstr ""
 "ダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1150
+#: sssd.conf.5.xml:1158
 msgid "proxy: Support a legacy NSS provider"
 msgstr "proxy: レガシーな NSS プロバイダーのサポート"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1153
+#: sssd.conf.5.xml:1161
 msgid "<quote>local</quote>: SSSD internal provider for local users"
 msgstr "<quote>local</quote>: ローカルユーザー向け SSSD 内部プロバイダー"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1157
+#: sssd.conf.5.xml:1165
 msgid ""
 "<quote>ldap</quote>: LDAP provider. See <citerefentry> <refentrytitle>sssd-"
 "ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
@@ -1667,8 +1683,8 @@ msgstr ""
 "manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1165 sssd.conf.5.xml:1227 sssd.conf.5.xml:1278
-#: sssd.conf.5.xml:1331
+#: sssd.conf.5.xml:1173 sssd.conf.5.xml:1235 sssd.conf.5.xml:1286
+#: sssd.conf.5.xml:1339
 msgid ""
 "<quote>ipa</quote>: FreeIPA and Red Hat Enterprise Identity Management "
 "provider. See <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
@@ -1681,8 +1697,8 @@ msgstr ""
 "い。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1174 sssd.conf.5.xml:1236 sssd.conf.5.xml:1287
-#: sssd.conf.5.xml:1340
+#: sssd.conf.5.xml:1182 sssd.conf.5.xml:1244 sssd.conf.5.xml:1295
+#: sssd.conf.5.xml:1348
 msgid ""
 "<quote>ad</quote>: Active Directory provider. See <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -1693,12 +1709,12 @@ msgstr ""
 "<manvolnum>5</manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1185
+#: sssd.conf.5.xml:1193
 msgid "use_fully_qualified_names (bool)"
 msgstr "use_fully_qualified_names (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1188
+#: sssd.conf.5.xml:1196
 msgid ""
 "Use the full name and domain (as formatted by the domain's full_name_format) "
 "as the user's login name reported to NSS."
@@ -1707,7 +1723,7 @@ msgstr ""
 "名形式により整形されたように) を使用します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1193
+#: sssd.conf.5.xml:1201
 msgid ""
 "If set to TRUE, all requests to this domain must use fully qualified names. "
 "For example, if used in LOCAL domain that contains a \"test\" user, "
@@ -1720,12 +1736,12 @@ msgstr ""
 "んが、<command>getent passwd test@LOCAL</command> は見つけられます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1206
+#: sssd.conf.5.xml:1214
 msgid "auth_provider (string)"
 msgstr "auth_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1209
+#: sssd.conf.5.xml:1217
 msgid ""
 "The authentication provider used for the domain.  Supported auth providers "
 "are:"
@@ -1734,7 +1750,7 @@ msgstr ""
 "ダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1213 sssd.conf.5.xml:1271
+#: sssd.conf.5.xml:1221 sssd.conf.5.xml:1279
 msgid ""
 "<quote>ldap</quote> for native LDAP authentication. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -1745,7 +1761,7 @@ msgstr ""
 "manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1220
+#: sssd.conf.5.xml:1228
 msgid ""
 "<quote>krb5</quote> for Kerberos authentication. See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -1756,19 +1772,19 @@ msgstr ""
 "manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1244
+#: sssd.conf.5.xml:1252
 msgid ""
 "<quote>proxy</quote> for relaying authentication to some other PAM target."
 msgstr ""
 "<quote>proxy</quote> はいくつかの他の PAM ターゲットに認証を中継します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1247
+#: sssd.conf.5.xml:1255
 msgid "<quote>none</quote> disables authentication explicitly."
 msgstr "<quote>none</quote> は明示的に認証を無効化します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1250
+#: sssd.conf.5.xml:1258
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can handle "
 "authentication requests."
@@ -1777,12 +1793,12 @@ msgstr ""
 "ならば、それが使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1256
+#: sssd.conf.5.xml:1264
 msgid "access_provider (string)"
 msgstr "access_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1259
+#: sssd.conf.5.xml:1267
 msgid ""
 "The access control provider used for the domain.  There are two built-in "
 "access providers (in addition to any included in installed backends)  "
@@ -1793,7 +1809,7 @@ msgstr ""
 "えます）。内部の特別プロバイダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1265
+#: sssd.conf.5.xml:1273
 msgid ""
 "<quote>permit</quote> always allow access. It's the only permitted access "
 "provider for a local domain."
@@ -1802,12 +1818,12 @@ msgstr ""
 "ロバイダーのみアクセスが許可されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1268
+#: sssd.conf.5.xml:1276
 msgid "<quote>deny</quote> always deny access."
 msgstr "<quote>deny</quote> は常にアクセスを拒否します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1295
+#: sssd.conf.5.xml:1303
 msgid ""
 "<quote>simple</quote> access control based on access or deny lists. See "
 "<citerefentry> <refentrytitle>sssd-simple</refentrytitle> <manvolnum>5</"
@@ -1820,17 +1836,17 @@ msgstr ""
 "citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1302
+#: sssd.conf.5.xml:1310
 msgid "Default: <quote>permit</quote>"
 msgstr "初期値: <quote>permit</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1307
+#: sssd.conf.5.xml:1315
 msgid "chpass_provider (string)"
 msgstr "chpass_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1310
+#: sssd.conf.5.xml:1318
 msgid ""
 "The provider which should handle change password operations for the domain.  "
 "Supported change password providers are:"
@@ -1839,7 +1855,7 @@ msgstr ""
 "パスワード変更プロバイダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1315
+#: sssd.conf.5.xml:1323
 msgid ""
 "<quote>ldap</quote> to change a password stored in a LDAP server.  See "
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
@@ -1850,7 +1866,7 @@ msgstr ""
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1323
+#: sssd.conf.5.xml:1331
 msgid ""
 "<quote>krb5</quote> to change the Kerberos password. See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -1861,7 +1877,7 @@ msgstr ""
 "<manvolnum>5</manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1348
+#: sssd.conf.5.xml:1356
 msgid ""
 "<quote>proxy</quote> for relaying password changes to some other PAM target."
 msgstr ""
@@ -1869,12 +1885,12 @@ msgstr ""
 "します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1352
+#: sssd.conf.5.xml:1360
 msgid "<quote>none</quote> disallows password changes explicitly."
 msgstr "<quote>none</quote> は明示的にパスワードの変更を無効化します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1355
+#: sssd.conf.5.xml:1363
 msgid ""
 "Default: <quote>auth_provider</quote> is used if it is set and can handle "
 "change password requests."
@@ -1883,19 +1899,19 @@ msgstr ""
 "うことができるならば、それが使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1362
+#: sssd.conf.5.xml:1370
 msgid "sudo_provider (string)"
 msgstr "sudo_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1365
+#: sssd.conf.5.xml:1373
 msgid "The SUDO provider used for the domain.  Supported SUDO providers are:"
 msgstr ""
 "ドメインに使用される SUDO プロバイダーです。サポートされる SUDO プロバイダー"
 "は次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1369
+#: sssd.conf.5.xml:1377
 msgid ""
 "<quote>ldap</quote> for rules stored in LDAP. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -1906,24 +1922,24 @@ msgstr ""
 "<manvolnum>5</manvolnum> </citerefentry> を参照します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1376
+#: sssd.conf.5.xml:1384
 msgid "<quote>none</quote> disables SUDO explicitly."
 msgstr "<quote>none</quote> は SUDO を明示的に無効化します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1379 sssd.conf.5.xml:1433 sssd.conf.5.xml:1465
-#: sssd.conf.5.xml:1490
+#: sssd.conf.5.xml:1387 sssd.conf.5.xml:1441 sssd.conf.5.xml:1473
+#: sssd.conf.5.xml:1498
 msgid "Default: The value of <quote>id_provider</quote> is used if it is set."
 msgstr ""
 "初期値: <quote>id_provider</quote> の値が設定されていると使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1385
+#: sssd.conf.5.xml:1393
 msgid "selinux_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1388
+#: sssd.conf.5.xml:1396
 msgid ""
 "The provider which should handle loading of selinux settings. Note that this "
 "provider will be called right after access provider ends.  Supported selinux "
@@ -1931,7 +1947,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1394
+#: sssd.conf.5.xml:1402
 msgid ""
 "<quote>ipa</quote> to load selinux settings from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -1939,24 +1955,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1402
+#: sssd.conf.5.xml:1410
 msgid "<quote>none</quote> disallows fetching selinux settings explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1405
+#: sssd.conf.5.xml:1413
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can handle "
 "selinux loading requests."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1411
+#: sssd.conf.5.xml:1419
 msgid "subdomains_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1414
+#: sssd.conf.5.xml:1422
 #, fuzzy
 #| msgid ""
 #| "The provider which should handle change password operations for the "
@@ -1969,7 +1985,7 @@ msgstr ""
 "パスワード変更プロバイダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1420
+#: sssd.conf.5.xml:1428
 msgid ""
 "<quote>ipa</quote> to load a list of subdomains from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -1977,17 +1993,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1429
+#: sssd.conf.5.xml:1437
 msgid "<quote>none</quote> disallows fetching subdomains explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1440
+#: sssd.conf.5.xml:1448
 msgid "autofs_provider (string)"
 msgstr "autofs_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1443
+#: sssd.conf.5.xml:1451
 msgid ""
 "The autofs provider used for the domain.  Supported autofs providers are:"
 msgstr ""
@@ -1995,7 +2011,7 @@ msgstr ""
 "プロバイダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1447
+#: sssd.conf.5.xml:1455
 msgid ""
 "<quote>ldap</quote> to load maps stored in LDAP. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -2003,7 +2019,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1454
+#: sssd.conf.5.xml:1462
 msgid ""
 "<quote>ipa</quote> to load maps stored in an IPA server. See <citerefentry> "
 "<refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -2011,17 +2027,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1462
+#: sssd.conf.5.xml:1470
 msgid "<quote>none</quote> disables autofs explicitly."
 msgstr "<quote>none</quote> は明示的に autofs を無効にします。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1472
+#: sssd.conf.5.xml:1480
 msgid "hostid_provider (string)"
 msgstr "hostid_provider (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1475
+#: sssd.conf.5.xml:1483
 msgid ""
 "The provider used for retrieving host identity information.  Supported "
 "hostid providers are:"
@@ -2030,7 +2046,7 @@ msgstr ""
 "hostid プロバイダーは次のとおりです:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1479
+#: sssd.conf.5.xml:1487
 msgid ""
 "<quote>ipa</quote> to load host identity stored in an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -2038,19 +2054,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1487
+#: sssd.conf.5.xml:1495
 msgid "<quote>none</quote> disables hostid explicitly."
 msgstr "<quote>none</quote> は明示的に hostid を無効にします。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1500
+#: sssd.conf.5.xml:1508
 msgid ""
 "Regular expression for this domain that describes how to parse the string "
 "containing user name and domain into these components."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1505
+#: sssd.conf.5.xml:1513
 msgid ""
 "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
 "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
@@ -2059,29 +2075,29 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:1510
+#: sssd.conf.5.xml:1518
 msgid "username"
 msgstr "username"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:1513
+#: sssd.conf.5.xml:1521
 msgid "username@domain.name"
 msgstr "username@domain.name"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:1516
+#: sssd.conf.5.xml:1524
 msgid "domain\\username"
 msgstr "domain\\username"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1519
+#: sssd.conf.5.xml:1527
 msgid ""
 "While the first two correspond to the general default the third one is "
 "introduced to allow easy integration of users from Windows domains."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1524
+#: sssd.conf.5.xml:1532
 msgid ""
 "Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote> "
 "which translates to \"the name is everything up to the <quote>@</quote> "
@@ -2092,7 +2108,7 @@ msgstr ""
 "everything after that\" に解釈されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1530
+#: sssd.conf.5.xml:1538
 msgid ""
 "PLEASE NOTE: the support for non-unique named subpatterns is not available "
 "on all platforms (e.g. RHEL5 and SLES10). Only platforms with libpcre "
@@ -2100,7 +2116,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1537
+#: sssd.conf.5.xml:1545
 msgid ""
 "PLEASE NOTE ALSO: older version of libpcre only support the Python syntax (?"
 "P&lt;name&gt;) to label subpatterns."
@@ -2109,7 +2125,7 @@ msgstr ""
 "Python 構文 (?P&lt;name&gt;) のみをサポートします。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1547
+#: sssd.conf.5.xml:1555
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to translate "
@@ -2117,17 +2133,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1555
+#: sssd.conf.5.xml:1563
 msgid "Default: <quote>%1$s@%2$s</quote>."
 msgstr "初期値: <quote>%1$s@%2$s</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1561
+#: sssd.conf.5.xml:1569
 msgid "lookup_family_order (string)"
 msgstr "lookup_family_order (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1564
+#: sssd.conf.5.xml:1572
 msgid ""
 "Provides the ability to select preferred address family to use when "
 "performing DNS lookups."
@@ -2136,46 +2152,46 @@ msgstr ""
 "します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1568
+#: sssd.conf.5.xml:1576
 msgid "Supported values:"
 msgstr "サポートする値:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1571
+#: sssd.conf.5.xml:1579
 msgid "ipv4_first: Try looking up IPv4 address, if that fails, try IPv6"
 msgstr ""
 "ipv4_first: IPv4 アドレスの検索を試行します。失敗すると IPv6 を試行します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1574
+#: sssd.conf.5.xml:1582
 msgid "ipv4_only: Only attempt to resolve hostnames to IPv4 addresses."
 msgstr ""
 "ipv4_only: ホスト名を IPv4 アドレスに名前解決することのみを試行します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1577
+#: sssd.conf.5.xml:1585
 msgid "ipv6_first: Try looking up IPv6 address, if that fails, try IPv4"
 msgstr ""
 "ipv6_first: IPv6 アドレスの検索を試行します。失敗すると IPv4 を試行します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1580
+#: sssd.conf.5.xml:1588
 msgid "ipv6_only: Only attempt to resolve hostnames to IPv6 addresses."
 msgstr ""
 "ipv6_only: ホスト名を IPv6 アドレスに名前解決することのみを試行します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1583
+#: sssd.conf.5.xml:1591
 msgid "Default: ipv4_first"
 msgstr "初期値: ipv4_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1589
+#: sssd.conf.5.xml:1597
 msgid "dns_resolver_timeout (integer)"
 msgstr "dns_resolver_timeout (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1592
+#: sssd.conf.5.xml:1600
 msgid ""
 "Defines the amount of time (in seconds) to wait for a reply from the DNS "
 "resolver before assuming that it is unreachable. If this timeout is reached, "
@@ -2186,12 +2202,12 @@ msgstr ""
 "ドにて操作を継続します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1604
+#: sssd.conf.5.xml:1612
 msgid "dns_discovery_domain (string)"
 msgstr "dns_discovery_domain (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1607
+#: sssd.conf.5.xml:1615
 msgid ""
 "If service discovery is used in the back end, specifies the domain part of "
 "the service discovery DNS query."
@@ -2200,27 +2216,27 @@ msgstr ""
 "イン部分を指定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1611
+#: sssd.conf.5.xml:1619
 msgid "Default: Use the domain part of machine's hostname"
 msgstr "初期値: マシンのホスト名のドメイン部分を使用します"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1617
+#: sssd.conf.5.xml:1625
 msgid "override_gid (integer)"
 msgstr "override_gid (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1620
+#: sssd.conf.5.xml:1628
 msgid "Override the primary GID value with the one specified."
 msgstr "プライマリー GID の値を指定されたもので上書きします。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1626
+#: sssd.conf.5.xml:1634
 msgid "case_sensitive (boolean)"
 msgstr "case_sensitive (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1629
+#: sssd.conf.5.xml:1637
 msgid ""
 "Treat user and group names as case sensitive. At the moment, this option is "
 "not supported in the local provider."
@@ -2229,17 +2245,17 @@ msgstr ""
 "このオプションはローカルプロバイダーにおいてサポートされません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1634
+#: sssd.conf.5.xml:1642
 msgid "Default: True"
 msgstr "初期値: True"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1640
+#: sssd.conf.5.xml:1648
 msgid "proxy_fast_alias (boolean)"
 msgstr "proxy_fast_alias (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1643
+#: sssd.conf.5.xml:1651
 msgid ""
 "When a user or group is looked up by name in the proxy provider, a second "
 "lookup by ID is performed to \"canonicalize\" the name in case the requested "
@@ -2248,26 +2264,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1657
+#: sssd.conf.5.xml:1665
 msgid "subdomain_homedir (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1660
+#: sssd.conf.5.xml:1668
 msgid ""
 "Use this homedir as default value for all subdomains within this domain. See "
 "<emphasis>override_homedir</emphasis> for info about possible values."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1665
+#: sssd.conf.5.xml:1673
 msgid ""
 "The value can be overridden by <emphasis>override_homedir</emphasis> option."
 msgstr ""
 "値は <emphasis>override_homedir</emphasis> オプションにより上書きできます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1669
+#: sssd.conf.5.xml:1677
 msgid "Default: <filename>/home/%d/%u</filename>"
 msgstr "初期値: <filename>/home/%d/%u</filename>"
 
@@ -2283,17 +2299,17 @@ msgstr ""
 "\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1681
+#: sssd.conf.5.xml:1689
 msgid "proxy_pam_target (string)"
 msgstr "proxy_pam_target (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1684
+#: sssd.conf.5.xml:1692
 msgid "The proxy target PAM proxies to."
 msgstr "中継するプロキシターゲット PAM です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1687
+#: sssd.conf.5.xml:1695
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here."
@@ -2302,12 +2318,12 @@ msgstr ""
 "をここに追加する必要があります。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1695
+#: sssd.conf.5.xml:1703
 msgid "proxy_lib_name (string)"
 msgstr "proxy_lib_name (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1698
+#: sssd.conf.5.xml:1706
 msgid ""
 "The name of the NSS library to use in proxy domains. The NSS functions "
 "searched for in the library are in the form of _nss_$(libName)_$(function), "
@@ -2318,7 +2334,7 @@ msgstr ""
 "_nss_files_getpwent です。"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1677
+#: sssd.conf.5.xml:1685
 msgid ""
 "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
 "\"0\"/>"
@@ -2327,12 +2343,12 @@ msgstr ""
 "\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:1710
+#: sssd.conf.5.xml:1718
 msgid "The local domain section"
 msgstr "ローカルドメインのセクション"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:1712
+#: sssd.conf.5.xml:1720
 msgid ""
 "This section contains settings for domain that stores users and groups in "
 "SSSD native database, that is, a domain that uses "
@@ -2343,27 +2359,27 @@ msgstr ""
 "メインに対する設定を含みます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1719
+#: sssd.conf.5.xml:1727
 msgid "default_shell (string)"
 msgstr "default_shell (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1722
+#: sssd.conf.5.xml:1730
 msgid "The default shell for users created with SSSD userspace tools."
 msgstr "SSSD ユーザー空間ツールを用いて作成されたユーザーの初期シェルです。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1726
+#: sssd.conf.5.xml:1734
 msgid "Default: <filename>/bin/bash</filename>"
 msgstr "初期値: <filename>/bin/bash</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1731
+#: sssd.conf.5.xml:1739
 msgid "base_directory (string)"
 msgstr "base_directory (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1734
+#: sssd.conf.5.xml:1742
 msgid ""
 "The tools append the login name to <replaceable>base_directory</replaceable> "
 "and use that as the home directory."
@@ -2372,17 +2388,17 @@ msgstr ""
 "ホームディレクトリーとして使用します。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1739
+#: sssd.conf.5.xml:1747
 msgid "Default: <filename>/home</filename>"
 msgstr "初期値: <filename>/home</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1744
+#: sssd.conf.5.xml:1752
 msgid "create_homedir (bool)"
 msgstr "create_homedir (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1747
+#: sssd.conf.5.xml:1755
 msgid ""
 "Indicate if a home directory should be created by default for new users.  "
 "Can be overridden on command line."
@@ -2391,17 +2407,17 @@ msgstr ""
 "す。コマンドラインにおいて上書きできます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1751 sssd.conf.5.xml:1763
+#: sssd.conf.5.xml:1759 sssd.conf.5.xml:1771
 msgid "Default: TRUE"
 msgstr "初期値: TRUE"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1756
+#: sssd.conf.5.xml:1764
 msgid "remove_homedir (bool)"
 msgstr "remove_homedir (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1759
+#: sssd.conf.5.xml:1767
 msgid ""
 "Indicate if a home directory should be removed by default for deleted "
 "users.  Can be overridden on command line."
@@ -2410,12 +2426,12 @@ msgstr ""
 "す。コマンドラインにおいて上書きできます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1768
+#: sssd.conf.5.xml:1776
 msgid "homedir_umask (integer)"
 msgstr "homedir_umask (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1771
+#: sssd.conf.5.xml:1779
 msgid ""
 "Used by <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
 "<manvolnum>8</manvolnum> </citerefentry> to specify the default permissions "
@@ -2426,17 +2442,17 @@ msgstr ""
 "manvolnum> </citerefentry> により使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1779
+#: sssd.conf.5.xml:1787
 msgid "Default: 077"
 msgstr "初期値: 077"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1784
+#: sssd.conf.5.xml:1792
 msgid "skel_dir (string)"
 msgstr "skel_dir (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1787
+#: sssd.conf.5.xml:1795
 msgid ""
 "The skeleton directory, which contains files and directories to be copied in "
 "the user's home directory, when the home directory is created by "
@@ -2449,17 +2465,17 @@ msgstr ""
 "を含む、スケルトンディレクトリーです。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1797
+#: sssd.conf.5.xml:1805
 msgid "Default: <filename>/etc/skel</filename>"
 msgstr "初期値: <filename>/etc/skel</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1802
+#: sssd.conf.5.xml:1810
 msgid "mail_dir (string)"
 msgstr "mail_dir (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1805
+#: sssd.conf.5.xml:1813
 msgid ""
 "The mail spool directory. This is needed to manipulate the mailbox when its "
 "corresponding user account is modified or deleted.  If not specified, a "
@@ -2470,17 +2486,17 @@ msgstr ""
 "が使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1812
+#: sssd.conf.5.xml:1820
 msgid "Default: <filename>/var/mail</filename>"
 msgstr "初期値: <filename>/var/mail</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:1817
+#: sssd.conf.5.xml:1825
 msgid "userdel_cmd (string)"
 msgstr "userdel_cmd (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1820
+#: sssd.conf.5.xml:1828
 msgid ""
 "The command that is run after a user is removed.  The command us passed the "
 "username of the user being removed as the first and only parameter. The "
@@ -2491,18 +2507,18 @@ msgstr ""
 "せん。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1826
+#: sssd.conf.5.xml:1834
 msgid "Default: None, no command is run"
 msgstr "初期値: なし、コマンドを実行しません"
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:1836 sssd-ldap.5.xml:2277 sssd-simple.5.xml:131
+#: sssd.conf.5.xml:1844 sssd-ldap.5.xml:2277 sssd-simple.5.xml:131
 #: sssd-ipa.5.xml:612 sssd-ad.5.xml:229 sssd-krb5.5.xml:441
 msgid "EXAMPLE"
 msgstr "例"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:1842
+#: sssd.conf.5.xml:1850
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -2556,7 +2572,7 @@ msgstr ""
 "enumerate = False\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1838
+#: sssd.conf.5.xml:1846
 msgid ""
 "The following example shows a typical SSSD config. It does not describe "
 "configuration of the domains themselves - refer to documentation on "
@@ -5081,8 +5097,8 @@ msgstr "ldap_sudo_include_regexp (論理値)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2086
 msgid ""
-"If true then SSSD will download every rule that contains a regular "
-"expression in sudoHost attribute."
+"If true then SSSD will download every rule that contains a wildcard in "
+"sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -6663,6 +6679,11 @@ msgstr ""
 msgid "sssd-sudo"
 msgstr "sssd-sudo"
 
+#. type: Content of: <reference><refentry><refnamediv><refpurpose>
+#: sssd-sudo.5.xml:17
+msgid "Configuring sudo with the SSSD back end"
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:23
 msgid ""
@@ -6864,8 +6885,8 @@ msgstr "keyword ALL"
 
 #. type: Content of: <reference><refentry><refsect1><itemizedlist><listitem><para>
 #: sssd-sudo.5.xml:168
-msgid "regular expression"
-msgstr "正規表現"
+msgid "wildcard"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><itemizedlist><listitem><para>
 #: sssd-sudo.5.xml:173
@@ -9036,7 +9057,7 @@ msgid ""
 "<emphasis>primary</emphasis> and <emphasis>backup</emphasis>.  The idea is "
 "that servers in the primary list are preferred and backup servers are only "
 "searched if no primary servers can be reached. If a backup server is "
-"selected, a timeout of 30 seconds is set. After this timeout SSSD will "
+"selected, a timeout of 31 seconds is set. After this timeout SSSD will "
 "periodically try to reconnect to one of the primary servers. If it succeeds, "
 "it will replace the current active (backup) server."
 msgstr ""
@@ -9621,3 +9642,6 @@ msgid ""
 "any autofs-related changes are made to the sssd.conf, you typically also "
 "need to restart the automounter daemon after restarting the SSSD."
 msgstr ""
+
+#~ msgid "regular expression"
+#~ msgstr "正規表現"
