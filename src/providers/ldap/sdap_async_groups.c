@@ -2519,6 +2519,11 @@ struct sdap_nested_group_ctx {
 
     bool enable_deref;
     struct sdap_deref_ctx *derefctx;
+
+    /**
+     * FIXME: Remove me!
+     */
+    bool send_finished;
 };
 
 static errno_t sdap_nested_group_process_deref_step(struct tevent_req *req);
@@ -2555,6 +2560,7 @@ static struct tevent_req *sdap_nested_group_process_send(
     state->sh = sh;
     state->enable_deref = enable_deref;
     state->nesting_level = nesting;
+    state->send_finished = false;
 
     /* If this is too many levels deep, just return success */
     if (nesting > dp_opt_get_int(opts->basic, SDAP_NESTING_LEVEL)) {
@@ -2663,6 +2669,7 @@ static struct tevent_req *sdap_nested_group_process_send(
         if (ret != EAGAIN) goto immediate;
     }
 
+    state->send_finished = true;
     return req;
 
 immediate:
@@ -2672,6 +2679,7 @@ immediate:
         tevent_req_error(req, ret);
     }
     tevent_req_post(req, ev);
+    state->send_finished = true;
     return req;
 }
 
@@ -3199,6 +3207,14 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
             } else if (ret == EOK) {
                 DEBUG(SSSDBG_TRACE_FUNC, ("All done.\n"));
                 tevent_req_done(req);
+
+                /**
+                 * FIXME: Rewrite nested group processing so we call
+                 *        tevent_req_post() only in _send().
+                 */
+                if (state->send_finished == false) {
+                    tevent_req_post(req, state->ev);
+                }
             }
             return EOK;
         }
@@ -3255,6 +3271,14 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
         } else if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_FUNC, ("All done.\n"));
             tevent_req_done(req);
+
+            /**
+             * FIXME: Rewrite nested group processing so we call
+             *        tevent_req_post() only in _send().
+             */
+            if (state->send_finished == false) {
+                tevent_req_post(req, state->ev);
+            }
         }
         return EOK;
     }
