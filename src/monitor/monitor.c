@@ -60,6 +60,19 @@
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
 
+/* TODO: get the restart related values from config */
+#define MONITOR_RESTART_CNT_INTERVAL_RESET   30
+/* maximum allowed number of service restarts if the restarts
+ * were less than MONITOR_RESTART_CNT_INTERVAL_RESET apart, which would
+ * indicate a crash after startup or after every request */
+#define MONITOR_MAX_SVC_RESTARTS    2
+/* The services are restarted with a delay in case the restart was
+ * hitting a race condition where the DP is not ready yet either.
+ * The MONITOR_MAX_RESTART_DELAY defines the maximum delay between
+ * restarts.
+ */
+#define MONITOR_MAX_RESTART_DELAY   4
+
 /* Special value to leave the Kerberos Replay Cache set to use
  * the libkrb5 defaults
  */
@@ -2304,10 +2317,43 @@ static void service_startup_handler(struct tevent_context *ev,
     _exit(1);
 }
 
+static void mt_svc_restart(struct tevent_context *ev,
+                           struct tevent_timer *te,
+                           struct timeval t, void *ptr)
+{
+    struct mt_svc *svc;
+
+    svc = talloc_get_type(ptr, struct mt_svc);
+    if (svc == NULL) {
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Scheduling service %s for restart %d\n",
+                              svc->name, svc->restarts+1));
+
+    if (svc->type == MT_SVC_SERVICE) {
+        add_new_service(svc->mt_ctx, svc->name, svc->restarts + 1);
+    } else if (svc->type == MT_SVC_PROVIDER) {
+        add_new_provider(svc->mt_ctx, svc->name, svc->restarts + 1);
+    } else {
+        /* Invalid type? */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("BUG: Invalid child process type [%d]\n", svc->type));
+    }
+
+    /* Free the old service (which will also remove it
+     * from the child list)
+     */
+    talloc_free(svc);
+}
+
 static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
 {
     struct mt_svc *svc = talloc_get_type(pvt, struct mt_svc);
     time_t now = time(NULL);
+    struct tevent_timer *te;
+    struct timeval tv;
+    int restart_delay;
 
     if WIFEXITED(wait_status) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -2328,32 +2374,31 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
         return;
     }
 
-    if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
+    if ((now - svc->last_restart) > MONITOR_RESTART_CNT_INTERVAL_RESET) {
         svc->restarts = 0;
     }
 
     /* Restart the service */
-    if (svc->restarts > 2) { /* TODO: get val from config */
+    if (svc->restarts > MONITOR_MAX_SVC_RESTARTS) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Process [%s], definitely stopped!\n", svc->name));
         talloc_free(svc);
         return;
     }
 
-    if (svc->type == MT_SVC_SERVICE) {
-        add_new_service(svc->mt_ctx, svc->name, svc->restarts + 1);
-    } else if (svc->type == MT_SVC_PROVIDER) {
-        add_new_provider(svc->mt_ctx, svc->name, svc->restarts + 1);
-    } else {
-        /* Invalid type? */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("BUG: Invalid child process type [%d]\n", svc->type));
+    /* restarts are schedule after 0, 2, 4 seconds */
+    restart_delay = svc->restarts << 1;
+    if (restart_delay > MONITOR_MAX_RESTART_DELAY) {
+        restart_delay = MONITOR_MAX_RESTART_DELAY;
     }
 
-    /* Free the old service (which will also remove it
-     * from the child list)
-     */
-    talloc_free(svc);
+    tv = tevent_timeval_current_ofs(restart_delay, 0);
+    te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, mt_svc_restart, svc);
+    if (!te) {
+        /* Nothing much we can do */
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        return;
+    }
 }
 
 int main(int argc, const char *argv[])
