@@ -472,33 +472,7 @@ int create_homedir(const char *skeldir,
 
     selinux_file_context(homedir);
 
-    ret = mkdir(homedir, 0);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot create user's home directory: [%d][%s].\n",
-                  ret, strerror(ret)));
-        goto done;
-    }
-
-    ret = chown(homedir, uid, gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot chown user's home directory: [%d][%s].\n",
-                  ret, strerror(ret)));
-        goto done;
-    }
-
-    ret = chmod(homedir, 0777 & ~default_umask);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot chmod user's home directory: [%d][%s].\n",
-                  ret, strerror(ret)));
-        goto done;
-    }
-
-    reset_selinux_file_context();
-
-    ret = copy_tree(skeldir, homedir, uid, gid);
+    ret = copy_tree(skeldir, homedir, 0777 & ~default_umask, uid, gid);
     if (ret != EOK) {
         DEBUG(1, ("Cannot populate user's home directory: [%d][%s].\n",
                   ret, strerror(ret)));

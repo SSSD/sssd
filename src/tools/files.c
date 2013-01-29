@@ -66,13 +66,12 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 
-int copy_tree(const char *src_root, const char *dst_root,
-              uid_t uid, gid_t gid);
-
 struct copy_ctx {
     const char *src_orig;
     const char *dst_orig;
     dev_t       src_dev;
+    uid_t       uid;
+    gid_t       gid;
 };
 
 /* wrapper in order not to create a temporary context in
@@ -197,66 +196,13 @@ fail:
     return ret;
 }
 
-static int copy_dir(const char *src, const char *dst,
-                    const struct stat *statp, const struct timeval mt[2],
-                    uid_t uid, gid_t gid)
-{
-    int ret = 0;
-
-    /*
-     * Create a new target directory, make it owned by
-     * the user and then recursively copy that directory.
-     */
-    selinux_file_context(dst);
-
-    ret = mkdir(dst, statp->st_mode);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot mkdir directory '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = chown(dst, uid, gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot chown directory '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = chmod(dst, statp->st_mode);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot chmod directory '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = copy_tree(src, dst, uid, gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot copy directory from '%s' to '%s': [%d][%s].\n",
-                  src, dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = utimes(dst, mt);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot set utimes on a directory '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    return EOK;
-}
-
-static char *talloc_readlink(TALLOC_CTX *mem_ctx, const char *filename)
+static char *talloc_readlinkat(TALLOC_CTX *mem_ctx, int dir_fd,
+                               const char *filename)
 {
     size_t size = 1024;
     ssize_t nchars;
     char *buffer;
+    char *new_buffer;
 
     buffer = talloc_array(mem_ctx, char, size);
     if (!buffer) {
@@ -264,8 +210,9 @@ static char *talloc_readlink(TALLOC_CTX *mem_ctx, const char *filename)
     }
 
     while (1) {
-        nchars = readlink(filename, buffer, size);
+        nchars = readlinkat(dir_fd, filename, buffer, size);
         if (nchars < 0) {
+            talloc_free(buffer);
             return NULL;
         }
 
@@ -276,10 +223,12 @@ static char *talloc_readlink(TALLOC_CTX *mem_ctx, const char *filename)
 
         /* Try again with a bigger buffer */
         size *= 2;
-        buffer = talloc_realloc(mem_ctx, buffer, char, size);
-        if (!buffer) {
+        new_buffer = talloc_realloc(mem_ctx, buffer, char, size);
+        if (!new_buffer) {
+            talloc_free(buffer);
             return NULL;
         }
+        buffer = new_buffer;
     }
 
     /* readlink does not nul-terminate */
@@ -287,424 +236,500 @@ static char *talloc_readlink(TALLOC_CTX *mem_ctx, const char *filename)
     return buffer;
 }
 
-static int copy_symlink(struct copy_ctx *cctx,
-                        const char *src,
-                        const char *dst,
-                        const struct stat *statp,
-                        const struct timeval mt[],
-                        uid_t uid, gid_t gid)
+static int
+copy_symlink(int src_dir_fd,
+             int dst_dir_fd,
+             const char *file_name,
+             const char *full_path,
+             const struct stat *statp,
+             uid_t uid, gid_t gid)
 {
-    int ret;
-    char *oldlink;
-    char *tmp;
-    TALLOC_CTX *tmp_ctx = NULL;
+    char *buf;
+    errno_t ret;
+    struct timespec timebuf[2];
 
-    tmp_ctx = talloc_new(cctx);
-    if (!tmp_ctx) {
+    buf = talloc_readlinkat(NULL, src_dir_fd, file_name);
+    if (!buf) {
         return ENOMEM;
     }
 
-    /*
-     * Get the name of the file which the link points
-     * to.  If that name begins with the original
-     * source directory name, that part of the link
-     * name will be replaced with the original
-     * destination directory name.
-     */
-    oldlink = talloc_readlink(tmp_ctx, src);
-    if (oldlink == NULL) {
-        ret = ENOMEM;
+    ret = selinux_file_context(full_path);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to set SELinux context for [%s]\n", full_path));
+        /* Not fatal */
+    }
+
+    ret = symlinkat(buf, dst_dir_fd, file_name);
+    talloc_free(buf);
+    if (ret == -1) {
+        ret = errno;
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("symlink pointing to already exists at '%s'\n", full_path));
+            return EOK;
+        }
+
+        DEBUG(SSSDBG_CRIT_FAILURE, ("symlinkat failed: %s\n", strerror(ret)));
+        return ret;
+    }
+
+    ret = fchownat(dst_dir_fd, file_name,
+                   uid, gid, AT_SYMLINK_NOFOLLOW);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+             ("fchownat failed: %s\n", strerror(ret)));
+        return ret;
+    }
+
+    timebuf[0] = statp->st_atim;
+    timebuf[1] = statp->st_mtim;
+    ret = utimensat(dst_dir_fd, file_name, timebuf,
+                    AT_SYMLINK_NOFOLLOW);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE, ("utimensat failed [%d]: %s\n",
+              ret, strerror(ret)));
+        /* Do not fail */
+    }
+
+    return EOK;
+}
+
+/* Create a special file named file_name under a directory with file
+ * descriptor dst_dir_fd. full_path is used for both setting SELinux
+ * context and logging. The node is owned by uid/gid and its mode
+ * and device number is read from statp.
+ */
+static int copy_special(int dst_dir_fd,
+                        const char *file_name,
+                        const char *full_path,
+                        const struct stat *statp,
+                        uid_t uid, gid_t gid)
+{
+    int ret;
+    struct timespec timebuf[2];
+
+    ret = selinux_file_context(full_path);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to set SELinux context for [%s]\n", full_path));
+        /* Not fatal */
+    }
+
+    ret = mknodat(dst_dir_fd, file_name, statp->st_mode & ~07777,
+                  statp->st_rdev);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot mknod special file '%s': [%d][%s].\n",
+              full_path, ret, strerror(ret)));
+        return ret;
+    }
+
+    ret = fchownat(dst_dir_fd, file_name, uid, gid, 0);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("fchownat failed for '%s': [%d][%s]\n",
+              full_path, ret, strerror(ret)));
+        return ret;
+    }
+
+    ret = fchmodat(dst_dir_fd, file_name, statp->st_mode & 07777, 0);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("fchmodat failed for '%s': [%d][%s]\n",
+              full_path, ret, strerror(ret)));
+        return ret;
+    }
+
+    timebuf[0] = statp->st_atim;
+    timebuf[1] = statp->st_mtim;
+    ret = utimensat(dst_dir_fd, file_name, timebuf, 0);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("utimensat failed for '%s': [%d][%s]\n",
+              full_path, ret, strerror(ret)));
+        /* Do not fail, this shouldn't be fatal */
+    }
+
+    return EOK;
+}
+
+/* Copy bytes from input file descriptor ifd into file named
+ * dst_named under directory with dest_dir_fd. Own the new file
+ * by uid/gid
+ */
+static int
+copy_file(int ifd,
+          int dest_dir_fd,
+          const char *file_name,
+          const char *full_path,
+          const struct stat *statp,
+          uid_t uid, gid_t gid)
+{
+    int ofd = -1;
+    errno_t ret;
+    char buf[1024];
+    ssize_t cnt, written;
+    struct timespec timebuf[2];
+
+    ret = selinux_file_context(full_path);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to set SELinux context for [%s]\n", full_path));
+        /* Not fatal */
+    }
+
+    /* Start with absolutely restrictive permissions */
+    ofd = openat(dest_dir_fd, file_name,
+                 O_EXCL | O_CREAT | O_WRONLY | O_NOFOLLOW,
+                 0);
+    if (ofd < 0 && errno != EEXIST) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+               ("Cannot open() destination file '%s': [%d][%s].\n",
+               full_path, ret, strerror(ret)));
         goto done;
     }
 
-    /* If src was a link to an entry of the src_orig directory itself,
-     * create a link to the corresponding entry in the dst_orig
-     * directory.
-     * FIXME: This may change a relative link to an absolute link
-     */
-    if (strncmp(oldlink, cctx->src_orig, strlen(cctx->src_orig)) == 0) {
-        tmp = talloc_asprintf(tmp_ctx, "%s%s", cctx->dst_orig, oldlink + strlen(cctx->src_orig));
-        if (tmp == NULL) {
-            ret = ENOMEM;
+    while ((cnt = sss_atomic_read(ifd, buf, sizeof(buf))) != 0) {
+        if (cnt == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot read() from source file: [%d][%s].\n",
+                   ret, strerror(ret)));
             goto done;
         }
 
-        talloc_free(oldlink);
-        oldlink = tmp;
+        errno = 0;
+        written = sss_atomic_write(ofd, buf, cnt);
+        if (written == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot write() to destination file: [%d][%s].\n",
+                   ret, strerror(ret)));
+            goto done;
+        }
+
+        if (written != cnt) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Wrote %d bytes, expected %d\n", written, cnt));
+            goto done;
+        }
     }
 
-    selinux_file_context(dst);
-
-    ret = symlink(oldlink, dst);
-    if (ret != 0) {
+    /* Set the ownership; permissions are still
+     * restrictive. */
+    ret = fchown(ofd, uid, gid);
+    if (ret == -1 && errno != EPERM) {
         ret = errno;
-        DEBUG(1, ("symlink() failed on file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Error changing owner of '%s': %s\n",
+              full_path, strerror(ret)));
         goto done;
     }
 
-    ret = lchown(dst, uid, gid);
-    if (ret != 0) {
+    /* Set the desired mode. */
+    ret = fchmod(ofd, statp->st_mode);
+    if (ret == -1) {
         ret = errno;
-        DEBUG(1, ("lchown() failed on file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto done;
+        DEBUG(SSSDBG_OP_FAILURE, ("Error changing owner of '%s': %s\n",
+              full_path, strerror(ret)));
+              goto done;
     }
+
+    timebuf[0] = statp->st_atim;
+    timebuf[1] = statp->st_mtim;
+    ret = futimens(ofd, timebuf);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE, ("futimens failed [%d]: %s\n",
+              ret, strerror(ret)));
+        /* Do not fail */
+    }
+
+    close(ofd);
+    ofd = -1;
+    ret = EOK;
 
 done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-static int copy_special(const char *dst,
-                        const struct stat *statp,
-                        const struct timeval mt[],
-                        uid_t uid, gid_t gid)
-{
-    int ret = 0;
-
-    selinux_file_context(dst);
-
-    ret = mknod(dst, statp->st_mode & ~07777, statp->st_rdev);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot mknod special file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = chown(dst, uid, gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot chown special file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = chmod(dst, statp->st_mode & 07777);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot chmod special file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = utimes(dst, mt);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot call utimes on special file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        return ret;
-    }
-
-    return EOK;
-}
-
-static int copy_file(const char *src,
-                     const char *dst,
-                     const struct stat *statp,
-                     const struct timeval mt[],
-                     uid_t uid, gid_t gid)
-{
-    int ret;
-    int ifd = -1;
-    int ofd = -1;
-    char buf[1024];
-    ssize_t cnt, written, res;
-    struct stat fstatbuf;
-
-    ifd = open(src, O_RDONLY);
-    if (ifd < 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot open() source file '%s': [%d][%s].\n",
-                  src, ret, strerror(ret)));
-        goto fail;
-    }
-
-    ret = fstat(ifd, &fstatbuf);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot fstat() source file '%s': [%d][%s].\n",
-                  src, ret, strerror(ret)));
-        goto fail;
-    }
-
-    if (statp->st_dev != fstatbuf.st_dev ||
-        statp->st_ino != fstatbuf.st_ino) {
-        DEBUG(1, ("File %s was modified between lstat and open.\n", src));
-        ret = EIO;
-        goto fail;
-    }
-
-    selinux_file_context(dst);
-
-    ofd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, statp->st_mode & 07777);
-    if (ofd < 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot open() destination file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto fail;
-    }
-
-    ret = fchown(ofd, uid, gid);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot fchown() destination file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto fail;
-    }
-
-    ret = fchmod(ofd, statp->st_mode & 07777);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot fchmod() destination file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto fail;
-    }
-
-    while ((cnt = read(ifd, buf, sizeof(buf))) != 0) {
-        if (cnt == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-
-            DEBUG(1, ("Cannot read() from source file '%s': [%d][%s].\n",
-                        src, ret, strerror(ret)));
-            goto fail;
-        }
-        else if (cnt > 0) {
-            /* Copy the buffer to the new file */
-            written = 0;
-            while (written < cnt) {
-                res = write(ofd, buf+written, (size_t)cnt-written);
-                if (res == -1) {
-                    ret = errno;
-                    if (ret == EINTR || ret == EAGAIN) {
-                        /* retry the write */
-                        continue;
-                    }
-                    DEBUG(1, ("Cannot write() to destination file '%s': [%d][%s].\n",
-                                dst, ret, strerror(ret)));
-                    goto fail;
-                }
-                else if (res <= 0) {
-                    DEBUG(1, ("Unexpected result from write(): [%d]\n", res));
-                    goto fail;
-                }
-
-                written += res;
-            }
-        }
-        else {
-            DEBUG(1, ("Unexpected return code of read [%d]\n", cnt));
-            goto fail;
-        }
-    }
-
-    ret = close(ifd);
-    ifd = -1;
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot close() source file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto fail;
-    }
-
-    ret = close(ofd);
-    ifd = -1;
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot close() destination file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto fail;
-    }
-
-    ret = utimes(dst, mt);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot call utimes() on destination file '%s': [%d][%s].\n",
-                  dst, ret, strerror(ret)));
-        goto fail;
-    }
-
-    return EOK;
-
-    /* Reachable by jump only */
-fail:
-    if (ifd != -1) close(ifd);
     if (ofd != -1) close(ofd);
     return ret;
 }
 
-/*
- * The context is not freed in case of error
- * because this is a recursive function, will be freed when we
- * reach the top level copy_tree() again
- */
-static int copy_entry(struct copy_ctx *cctx,
-                      const char *src,
-                      const char *dst,
-                      uid_t uid,
-                      gid_t gid)
+static errno_t
+copy_dir(struct copy_ctx *cctx,
+         int src_dir_fd, const char *src_dir_path,
+         int dest_parent_fd, const char *dest_dir_name,
+         const char *dest_dir_path,
+         mode_t mode,
+         const struct stat *src_dir_stat);
+
+static errno_t
+copy_entry(struct copy_ctx *cctx,
+           int src_dir_fd,
+           const char *src_dir_path,
+           int dest_dir_fd,
+           const char *dest_dir_path,
+           const char *ent_name)
 {
-    int ret = EOK;
-    struct stat sb;
-    struct timeval mt[2];
+    char *src_ent_path = NULL;
+    char *dest_ent_path = NULL;
+    int ifd = -1;
+    errno_t ret;
+    struct stat st;
 
-    ret = lstat(src, &sb);
-    if (ret == -1) {
+    /* Build the path of the source file or directory and its
+     * corresponding member in the new tree. */
+    src_ent_path = talloc_asprintf(cctx, "%s/%s", src_dir_path, ent_name);
+    dest_ent_path = talloc_asprintf(cctx, "%s/%s", dest_dir_path, ent_name);
+    if (!src_ent_path || !dest_ent_path) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Open the input entry first, then we can fstat() it and be
+     * certain that it is still the same file.  O_NONBLOCK protects
+     * us against FIFOs and perhaps side-effects of the open() of a
+     * device file if there ever was one here, and doesn't matter
+     * for regular files or directories. */
+    ifd = openat(src_dir_fd, ent_name,
+                 O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
+    if (ifd == -1 && errno != ELOOP) {
+        /* openat error */
         ret = errno;
-        DEBUG(1, ("Cannot lstat() the source file '%s': [%d][%s].\n",
-                  src, ret, strerror(ret)));
-        return ret;
-    }
+        DEBUG(SSSDBG_CRIT_FAILURE, ("openat failed on '%s': %s\n",
+              src_ent_path, strerror(ret)));
+        goto done;
+    } else if (ifd == -1 && errno == ELOOP) {
+        /* Should be a symlink.. */
+        ret = fstatat(src_dir_fd, ent_name, &st, AT_SYMLINK_NOFOLLOW);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, ("fstatat failed on '%s': %s\n",
+                  src_ent_path, strerror(ret)));
+            goto done;
+        }
 
-    mt[0].tv_sec  = sb.st_atime;
-    mt[0].tv_usec = 0;
-
-    mt[1].tv_sec  = sb.st_mtime;
-    mt[1].tv_usec = 0;
-
-    if (S_ISLNK (sb.st_mode)) {
-        ret = copy_symlink(cctx, src, dst, &sb, mt, uid, gid);
+        /* Handle symlinks */
+        ret = copy_symlink(src_dir_fd, dest_dir_fd, ent_name,
+                           dest_ent_path, &st, cctx->uid, cctx->gid);
         if (ret != EOK) {
-            DEBUG(1, ("Cannot copy symlink '%s' to '%s': [%d][%s]\n",
-                      src, dst, ret, strerror(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot copy '%s' to '%s'\n",
+                  src_ent_path, dest_ent_path));
         }
-        return ret;
+        goto done;
     }
 
-    if (S_ISDIR(sb.st_mode)) {
-        /* Check if we're still on the same FS */
-        if (sb.st_dev != cctx->src_dev) {
-            DEBUG(2, ("Will not descend to other FS\n"));
-            /* Skip this without error */
-            return EOK;
-        }
-        return copy_dir(src, dst, &sb, mt, uid, gid);
-    } else if (!S_ISREG(sb.st_mode)) {
-        /*
-         * Deal with FIFOs and special files.  The user really
-         * shouldn't have any of these, but it seems like it
-         * would be nice to copy everything ...
-         */
-        return copy_special(dst, &sb, mt, uid, gid);
-    } else {
-        /*
-         * Create the new file and copy the contents.  The new
-         * file will be owned by the provided UID and GID values.
-         */
-        return copy_file(src, dst, &sb, mt, uid, gid);
-    }
-
-    return ret;
-}
-
-/*
- * The context is not freed in case of error
- * because this is a recursive function, will be freed when we
- * reach the top level copy_tree() again
- */
-static int copy_tree_ctx(struct copy_ctx *cctx,
-                         const char *src_root,
-                         const char *dst_root,
-                         uid_t uid,
-                         gid_t gid)
-{
-    DIR *src_dir = NULL;
-    int ret, err;
-    struct dirent *result;
-    struct dirent direntp;
-    char *src_name, *dst_name;
-    TALLOC_CTX *tmp_ctx;
-
-    tmp_ctx = talloc_new(cctx);
-
-    src_dir = opendir(src_root);
-    if (src_dir == NULL) {
-        ret = errno;
-        DEBUG(1, ("Cannot open the source directory %s: [%d][%s].\n",
-                  src_root, ret, strerror(ret)));
-        goto fail;
-    }
-
-    while (readdir_r(src_dir, &direntp, &result) == 0) {
-        if (result == NULL) {
-            /* End of directory */
-            break;
-        }
-
-        if (strcmp (direntp.d_name, ".") == 0 ||
-            strcmp (direntp.d_name, "..") == 0) {
-            continue;
-        }
-
-        /* build src and dst paths */
-        src_name = talloc_asprintf(tmp_ctx, "%s/%s", src_root, direntp.d_name);
-        dst_name = talloc_asprintf(tmp_ctx, "%s/%s", dst_root, direntp.d_name);
-        if (dst_name == NULL || src_name == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        /* copy */
-        ret = copy_entry(cctx, src_name, dst_name, uid, gid);
-        if (ret != EOK) {
-            DEBUG(1, ("Cannot copy '%s' to '%s', error %d\n",
-                      src_name, dst_name, ret));
-            goto fail;
-        }
-        talloc_free(src_name);
-        talloc_free(dst_name);
-    }
-
-    ret = closedir(src_dir);
-    src_dir = NULL;
+    ret = fstat(ifd, &st);
     if (ret != 0) {
         ret = errno;
-        goto fail;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                ("couldn't stat '%s': %s", src_ent_path, strerror(ret)));
+        goto done;
+    }
+
+    if (S_ISDIR(st.st_mode)) {
+        /* If it's a directory, descend into it. */
+        ret = copy_dir(cctx, ifd, src_ent_path,
+                       dest_dir_fd, ent_name,
+                       dest_ent_path, st.st_mode & 07777,
+                       &st);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                    ("Could recursively copy '%s' to '%s': %s\n",
+                    src_ent_path, dest_dir_fd, strerror(ret)));
+            goto done;
+        }
+    } else if (S_ISREG(st.st_mode)) {
+        /* Copy a regular file */
+        ret = copy_file(ifd, dest_dir_fd, ent_name, dest_ent_path,
+                        &st, cctx->uid, cctx->gid);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot copy '%s' to '%s'\n",
+                    src_ent_path, dest_ent_path));
+            goto done;
+        }
+    } else {
+        /* Copy a special file */
+        ret = copy_special(dest_dir_fd, ent_name, dest_ent_path,
+                           &st, cctx->uid, cctx->gid);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot copy '%s' to '%s'\n",
+                  src_ent_path, dest_ent_path));
+            goto done;
+        }
     }
 
     ret = EOK;
-fail:
-    if (src_dir) {  /* clean up on abnormal exit but retain return code */
-        err = closedir(src_dir);
-        if (err) {
-            DEBUG(1, ("closedir failed, bad dirp?\n"));
-        }
-    }
-    talloc_free(tmp_ctx);
+done:
+    talloc_free(src_ent_path);
+    talloc_free(dest_ent_path);
+    if (ifd != -1) close(ifd);
     return ret;
 }
 
+static errno_t
+copy_dir(struct copy_ctx *cctx,
+         int src_dir_fd, const char *src_dir_path,
+         int dest_parent_fd, const char *dest_dir_name,
+         const char *dest_dir_path,
+         mode_t mode,
+         const struct stat *src_dir_stat)
+{
+    errno_t ret;
+    int dest_dir_fd = -1;
+    DIR *dir = NULL;
+    struct dirent *ent;
+    struct timespec timebuf[2];
+
+    if (!dest_dir_path) {
+        return EINVAL;
+    }
+
+    dir = fdopendir(src_dir_fd);
+    if (dir == NULL) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error reading '%s': %s", src_dir_path, strerror(ret)));
+        goto done;
+    }
+
+    /* Create the directory.  It starts owned by us (presumbaly root), with
+     * fairly restrictive permissions that still allow us to use the
+     * directory.
+     * */
+    errno = 0;
+    ret = mkdirat(dest_parent_fd, dest_dir_name, S_IRWXU);
+    if (ret == -1 && errno != EEXIST) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error reading '%s': %s", dest_dir_path, strerror(ret)));
+        goto done;
+    }
+
+    dest_dir_fd = openat(dest_parent_fd, dest_dir_name,
+                         O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
+    if (dest_dir_fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Error opening '%s': %s", dest_dir_path, strerror(ret)));
+        goto done;
+    }
+
+    while ((ent = readdir(dir)) != NULL) {
+        /* Iterate through each item in the directory. */
+        /* Skip over self and parent hard links. */
+        if (strcmp(ent->d_name, ".") == 0 ||
+            strcmp(ent->d_name, "..") == 0) {
+            continue;
+        }
+
+        ret = copy_entry(cctx,
+                         src_dir_fd, src_dir_path,
+                         dest_dir_fd, dest_dir_path,
+                         ent->d_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not copy [%s] to [%s]\n",
+                  src_dir_path, dest_dir_path));
+            goto done;
+        }
+    }
+
+    /* Set the ownership on the directory.  Permissions are still
+     * fairly restrictive. */
+    ret = fchown(dest_dir_fd, cctx->uid, cctx->gid);
+    if (ret == -1 && errno != EPERM) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Error changing owner of '%s': %s",
+              dest_dir_path, strerror(ret)));
+        goto done;
+    }
+
+    /* Set the desired mode. Do this explicitly to preserve S_ISGID and
+     * other bits. Do this after chown, because chown is permitted to
+     * reset these bits. */
+    ret = fchmod(dest_dir_fd, mode);
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Error setting mode of '%s': %s",
+              dest_dir_path, strerror(ret)));
+        goto done;
+    }
+
+    timebuf[0] = src_dir_stat->st_atim;
+    timebuf[1] = src_dir_stat->st_mtim;
+    futimens(dest_dir_fd, timebuf);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE, ("futimens failed [%d]: %s\n",
+              ret, strerror(ret)));
+        /* Do not fail */
+    }
+
+    ret = EOK;
+done:
+    if (dir) closedir(dir);
+
+    if (dest_dir_fd != -1) {
+        close(dest_dir_fd);
+    }
+    return ret;
+}
+
+/* NOTE:
+ * For several reasons, including the fact that we copy even special files
+ * (pipes, etc) from the skeleton directory, the skeldir needs to be trusted
+ */
 int copy_tree(const char *src_root, const char *dst_root,
-              uid_t uid, gid_t gid)
+              mode_t mode_root, uid_t uid, gid_t gid)
 {
     int ret = EOK;
     struct copy_ctx *cctx = NULL;
+    int fd = -1;
     struct stat s_src;
+
+    fd = open(src_root, O_RDONLY | O_CLOEXEC | O_DIRECTORY);
+    if (fd == -1) {
+        ret = errno;
+        goto fail;
+    }
+
+    ret = fstat(fd, &s_src);
+    if (ret == -1) {
+        ret = errno;
+        goto fail;
+    }
 
     cctx = talloc_zero(NULL, struct copy_ctx);
 
-    ret = lstat(src_root, &s_src);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(1, ("Cannot lstat the source directory '%s': [%d][%s]\n",
-                  src_root, ret, strerror(ret)));
+    if (!cctx) {
+        ret = ENOMEM;
         goto fail;
     }
 
     cctx->src_orig = src_root;
     cctx->dst_orig = dst_root;
     cctx->src_dev  = s_src.st_dev;
+    cctx->uid      = uid;
+    cctx->gid      = gid;
 
-    ret = copy_tree_ctx(cctx, src_root, dst_root, uid, gid);
+    ret = copy_dir(cctx, fd, src_root, AT_FDCWD,
+                   dst_root, dst_root, mode_root, &s_src);
     if (ret != EOK) {
-        DEBUG(1, ("copy_tree_ctx failed: [%d][%s]\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("copy_dir failed: [%d][%s]\n", ret, strerror(ret)));
         goto fail;
     }
 
 fail:
+    if (fd != -1) close(fd);
     reset_selinux_file_context();
     talloc_free(cctx);
     return ret;

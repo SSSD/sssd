@@ -755,6 +755,7 @@ FILES_TESTS_LIBS = \
     $(CHECK_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
+	$(DHASH_LIBS) \
     libsss_test_common.la
 if BUILD_SELINUX
     FILES_TESTS_LIBS += $(SELINUX_LIBS)
@@ -767,7 +768,8 @@ files_tests_SOURCES = \
     src/tests/files-tests.c \
     src/util/check_and_open.c \
     src/tools/selinux.c \
-    src/tools/files.c
+    src/tools/files.c \
+	src/util/util.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
