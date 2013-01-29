@@ -328,6 +328,7 @@ dist_noinst_HEADERS = \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
     src/util/murmurhash3.h \
+    src/util/auth_utils.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/responder/common/responder.h \
