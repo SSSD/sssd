@@ -772,7 +772,7 @@ cc_residual_is_used(uid_t uid, const char *ccname,
     if (ret == -1) {
         ret = errno;
         if (ret == ENOENT) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Cache file [%s] does not exists, "
+            DEBUG(SSSDBG_FUNC_DATA, ("Cache file [%s] does not exist, "
                                      "it will be recreated\n", ccname));
             *result = false;
             return EOK;
