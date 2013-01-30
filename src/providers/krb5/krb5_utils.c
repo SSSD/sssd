@@ -770,8 +770,15 @@ cc_residual_is_used(uid_t uid, const char *ccname,
 
     ret = lstat(ccname, &stat_buf);
 
-    if (ret == -1 && errno != ENOENT) {
+    if (ret == -1) {
         ret = errno;
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_FUNC_DATA, ("Cache file [%s] does not exists, "
+                                     "it will be recreated\n", ccname));
+            *result = false;
+            return EOK;
+        }
+
         DEBUG(SSSDBG_OP_FAILURE,
               ("stat failed [%d][%s].\n", ret, strerror(ret)));
         return ret;
