@@ -146,9 +146,9 @@ check_PROGRAMS = \
 PYTHON_TESTS =
 
 if BUILD_PYTHON_BINDINGS
-PYTHON_TESTS += $(srcdir)/src/config/SSSDConfigTest.py \
-                $(srcdir)/src/tests/pyhbac-test.py \
-                $(srcdir)/src/tests/pysss_murmur-test.py
+PYTHON_TESTS += src/config/SSSDConfigTest.py \
+                src/tests/pyhbac-test.py \
+                src/tests/pysss_murmur-test.py
 endif
 
 TESTS = \
