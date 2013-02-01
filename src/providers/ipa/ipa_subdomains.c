@@ -294,21 +294,45 @@ ipa_subdomains_write_mappings(struct sss_domain_info *domain,
     errno_t err;
     TALLOC_CTX *tmp_ctx;
     const char *mapping_file;
+    char *sanitized_domain;
     char *tmp_file = NULL;
     int fd = -1;
     mode_t old_mode;
     FILE *fstream = NULL;
     size_t i;
 
+    if (domain == NULL || domain->name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No domain name provided\n"));
+        return EINVAL;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
+    sanitized_domain = talloc_strdup(tmp_ctx, domain->name);
+    if (sanitized_domain == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        return ENOMEM;
+    }
+
+    /* only alpha-numeric chars, dashes and underscores are allowed in
+     * krb5 include directory */
+    for (i = 0; sanitized_domain[i] != '\0'; i++) {
+        if (!isalnum(sanitized_domain[i])
+                && sanitized_domain[i] != '-' && sanitized_domain[i] != '_') {
+            sanitized_domain[i] = '_';
+        }
+    }
+
     mapping_file = talloc_asprintf(tmp_ctx, "%s/domain_realm_%s",
-                                   IPA_SUBDOMAIN_MAPPING_DIR, domain->name);
+                                   IPA_SUBDOMAIN_MAPPING_DIR, sanitized_domain);
     if (!mapping_file) {
         ret = ENOMEM;
         goto done;
     }
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Mapping file for domain [%s] is [%s]\n",
+                             domain->name, mapping_file));
 
     tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", mapping_file);
     if (tmp_file == NULL) {
