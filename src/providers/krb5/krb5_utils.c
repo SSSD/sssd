@@ -782,34 +782,34 @@ cc_residual_is_used(uid_t uid, const char *ccname,
         DEBUG(SSSDBG_OP_FAILURE,
               ("stat failed [%d][%s].\n", ret, strerror(ret)));
         return ret;
-    } else if (ret == EOK) {
-        if (stat_buf.st_uid != uid) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cache file [%s] exists, but is owned by [%d] instead of "
-                   "[%d].\n", ccname, stat_buf.st_uid, uid));
-            return EINVAL;
-        }
+    }
 
-        switch (type) {
+    if (stat_buf.st_uid != uid) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cache file [%s] exists, but is owned by [%d] instead of "
+               "[%d].\n", ccname, stat_buf.st_uid, uid));
+        return EINVAL;
+    }
+
+    switch (type) {
 #ifdef HAVE_KRB5_DIRCACHE
-            case SSS_KRB5_TYPE_DIR:
-                ret = S_ISDIR(stat_buf.st_mode);
-                break;
+        case SSS_KRB5_TYPE_DIR:
+            ret = S_ISDIR(stat_buf.st_mode);
+            break;
 #endif /* HAVE_KRB5_DIRCACHE */
-            case SSS_KRB5_TYPE_FILE:
-                ret = S_ISREG(stat_buf.st_mode);
-                break;
-            default:
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported ccache type\n"));
-                return EINVAL;
-        }
-
-        if (ret == 0) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cache file [%s] exists, but is not the expected type\n",
-                   ccname));
+        case SSS_KRB5_TYPE_FILE:
+            ret = S_ISREG(stat_buf.st_mode);
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported ccache type\n"));
             return EINVAL;
-        }
+    }
+
+    if (ret == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cache file [%s] exists, but is not the expected type\n",
+              ccname));
+        return EINVAL;
     }
 
     ret = check_if_uid_is_active(uid, &active);
