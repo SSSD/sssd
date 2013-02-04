@@ -1001,9 +1001,15 @@ sss_krb5_residual_check_type(const char *full_location,
 }
 
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
+
+#ifndef HAVE_KRB5_TRACE_INFO
+/* krb5-1.10 had struct krb5_trace_info, 1.11 has type named krb5_trace_info */
+typedef struct krb5_trace_info krb5_trace_info;
+#endif  /* HAVE_KRB5_TRACE_INFO */
+
 static void
 sss_child_krb5_trace_cb(krb5_context context,
-                        const struct krb5_trace_info *info, void *data)
+                        const krb5_trace_info *info, void *data)
 {
     if (info == NULL) {
         /* Null info means destroy the callback data. */

@@ -37,7 +37,7 @@ SAVE_LIBS=$LIBS
 CFLAGS="$CFLAGS $KRB5_CFLAGS"
 LIBS="$LIBS $KRB5_LIBS"
 AC_CHECK_HEADERS([krb5.h krb5/krb5.h])
-AC_CHECK_TYPES([krb5_ticket_times, krb5_times], [], [],
+AC_CHECK_TYPES([krb5_ticket_times, krb5_times, krb5_trace_info], [], [],
                [ #ifdef HAVE_KRB5_KRB5_H
                  #include <krb5/krb5.h>
                  #else
