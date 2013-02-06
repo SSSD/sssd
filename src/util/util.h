@@ -60,6 +60,24 @@ extern const char *debug_log_file;
 void debug_fn(const char *format, ...);
 errno_t set_debug_file_from_fd(const int fd);
 
+#define SSS_DEFAULT_DEBUG_LEVEL SSSDBG_DEFAULT
+#define SSS_UNRESOLVED_DEBUG_LEVEL SSSDBG_UNRESOLVED
+
+#define SSSDBG_FATAL_FAILURE  0x0010   /* level 0 */
+#define SSSDBG_CRIT_FAILURE   0x0020   /* level 1 */
+#define SSSDBG_OP_FAILURE     0x0040   /* level 2 */
+#define SSSDBG_MINOR_FAILURE  0x0080   /* level 3 */
+#define SSSDBG_CONF_SETTINGS  0x0100   /* level 4 */
+#define SSSDBG_FUNC_DATA      0x0200   /* level 5 */
+#define SSSDBG_TRACE_FUNC     0x0400   /* level 6 */
+#define SSSDBG_TRACE_LIBS     0x1000   /* level 7 */
+#define SSSDBG_TRACE_INTERNAL 0x2000   /* level 8 */
+#define SSSDBG_TRACE_ALL      0x4000   /* level 9 */
+
+#define SSSDBG_UNRESOLVED     -1
+#define SSSDBG_MASK_ALL       0xFFF0   /* enable all debug levels */
+#define SSSDBG_DEFAULT        SSSDBG_FATAL_FAILURE
+
 #define SSSD_DEBUG_OPTS \
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0, \
          _("Debug level"), NULL}, \
