@@ -21,7 +21,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#include <selinux/selinux.h>
 #include <security/pam_modules.h>
 
 #include "db/sysdb_selinux.h"
@@ -36,6 +36,8 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
+
+#ifdef HAVE_SELINUX_LOGIN_DIR
 
 static struct tevent_req *
 ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
@@ -65,12 +67,14 @@ static void ipa_get_config_step(struct tevent_req *req);
 static void ipa_get_selinux_config_done(struct tevent_req *subreq);
 static void ipa_get_selinux_maps_done(struct tevent_req *subreq);
 static void ipa_get_selinux_hbac_done(struct tevent_req *subreq);
-static errno_t ipa_selinux_process_maps(struct sysdb_attrs *user,
+static errno_t ipa_selinux_process_maps(TALLOC_CTX *mem_ctx,
+                                        struct sysdb_attrs *user,
                                         struct sysdb_attrs *host,
                                         struct sysdb_attrs **selinux_maps,
                                         size_t selinux_map_count,
                                         struct sysdb_attrs **hbac_rules,
-                                        size_t hbac_rule_count);
+                                        size_t hbac_rule_count,
+                                        struct sysdb_attrs ***usermaps);
 
 struct ipa_selinux_op_ctx {
     struct be_req *be_req;
@@ -184,6 +188,14 @@ fail:
     return NULL;
 }
 
+static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
+                                  char ***_order_array, size_t *_order_count);
+static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
+                                  struct pam_data *pd,
+                                  char **order_array, int order_count,
+                                  const char *default_user);
+
+
 static void ipa_selinux_handler_done(struct tevent_req *req)
 {
     struct ipa_selinux_op_ctx *op_ctx = tevent_req_callback_data(req, struct ipa_selinux_op_ctx);
@@ -199,6 +211,9 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     char *map_order = NULL;
     size_t hbac_count = 0;
     struct sysdb_attrs **hbac_rules = 0;
+    struct sysdb_attrs **best_match_maps;
+    size_t order_count;
+    char **order_array;
 
     ret = ipa_get_selinux_recv(req, breq, &map_count, &maps,
                                &hbac_count, &hbac_rules,
@@ -207,10 +222,31 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = ipa_selinux_process_maps(op_ctx->user, op_ctx->host,
+    /* Process the maps and return list of best matches (maps with
+     * highest priority). The input maps are also parent memory
+     * context for the output list of best matches. The best match
+     * maps should never be freed explicitly but always through
+     * their parent (or any indirect parent) */
+    ret = ipa_selinux_process_maps(maps, op_ctx->user, op_ctx->host,
                                    maps, map_count,
-                                   hbac_rules, hbac_count);
+                                   hbac_rules, hbac_count, &best_match_maps);
     if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = create_order_array(op_ctx, map_order,
+                             &order_array, &order_count);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to create ordered SELinux users array.\n"));
+        goto fail;
+    }
+
+    ret = choose_best_seuser(best_match_maps, pd, order_array, order_count,
+                             default_user);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to evaluate ordered SELinux users array.\n"));
         goto fail;
     }
 
@@ -272,22 +308,30 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
                                  struct sysdb_attrs **seealso_rules,
                                  size_t seealso_rules_count,
                                  struct sysdb_attrs **hbac_rules,
-                                 size_t hbac_rule_count);
+                                 size_t hbac_rule_count,
+                                 uint32_t top_priority,
+                                 struct sysdb_attrs **usermaps,
+                                 size_t best_match_maps_cnt);
 static errno_t
-ipa_selinux_process_maps(struct sysdb_attrs *user,
+ipa_selinux_process_maps(TALLOC_CTX *mem_ctx,
+                         struct sysdb_attrs *user,
                          struct sysdb_attrs *host,
                          struct sysdb_attrs **selinux_maps,
                          size_t selinux_map_count,
                          struct sysdb_attrs **hbac_rules,
-                         size_t hbac_rule_count)
+                         size_t hbac_rule_count,
+                         struct sysdb_attrs ***_usermaps)
 {
     TALLOC_CTX *tmp_ctx;
     int i;
     errno_t ret;
     uint32_t priority = 0;
+    uint32_t top_priority = 0;
     struct sysdb_attrs **seealso_rules;
-    size_t num_seealso_rules;
+    size_t num_seealso_rules = 0;
     const char *seealso_str;
+    struct sysdb_attrs **usermaps;
+    size_t best_match_maps_cnt = 0;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -300,23 +344,36 @@ ipa_selinux_process_maps(struct sysdb_attrs *user,
         ret = ENOMEM;
         goto done;
     }
-    num_seealso_rules = 0;
+
+    usermaps = talloc_zero_array(tmp_ctx, struct sysdb_attrs *, selinux_map_count + 1);
+    if (usermaps == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     for (i = 0; i < selinux_map_count; i++) {
-        if (sss_selinux_match(selinux_maps[i], user,
-                              host, &priority)) {
-            priority &= ~(SELINUX_PRIORITY_USER_NAME |
-                          SELINUX_PRIORITY_USER_GROUP |
-                          SELINUX_PRIORITY_USER_CAT);
-            ret = sysdb_attrs_add_uint32(selinux_maps[i],
-                                         SYSDB_SELINUX_HOST_PRIORITY,
-                                         priority);
-            if (ret != EOK) {
-                goto done;
+        if (sss_selinux_match(selinux_maps[i], user, host, &priority)) {
+            if (priority < top_priority) {
+                /* This rule has lower priority than what we already have,
+                 * skip it. */
+                continue;
+            } else if (priority > top_priority) {
+                /* This rule has higher priority, drop what we already have */
+                while (best_match_maps_cnt > 0) {
+                    best_match_maps_cnt--;
+                    usermaps[best_match_maps_cnt] = NULL;
+                }
+                top_priority = priority;
             }
+
+            usermaps[best_match_maps_cnt] = selinux_maps[i];
+            best_match_maps_cnt++;
+
             continue;
         }
 
+        /* SELinux map did not matched -> check sealso attribute for
+         * possible HBAC match */
         ret = sysdb_attrs_get_string(selinux_maps[i],
                                      SYSDB_SELINUX_SEEALSO, &seealso_str);
         if (ret == ENOENT) {
@@ -331,10 +388,13 @@ ipa_selinux_process_maps(struct sysdb_attrs *user,
 
     ret = ipa_selinux_process_seealso_maps(user, host,
                                            seealso_rules, num_seealso_rules,
-                                           hbac_rules, hbac_rule_count);
+                                           hbac_rules, hbac_rule_count,
+                                           top_priority, usermaps, best_match_maps_cnt);
     if (ret != EOK) {
         goto done;
     }
+
+    *_usermaps = talloc_steal(mem_ctx, usermaps);
 
     ret = EOK;
 done:
@@ -348,15 +408,18 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
                                  struct sysdb_attrs **seealso_rules,
                                  size_t seealso_rules_count,
                                  struct sysdb_attrs **hbac_rules,
-                                 size_t hbac_rule_count)
+                                 size_t hbac_rule_count,
+                                 uint32_t top_priority,
+                                 struct sysdb_attrs **usermaps,
+                                 size_t best_match_maps_cnt)
 {
     int i, j;
     errno_t ret;
     struct ldb_message_element *el;
-    uint32_t priority = 0;
     struct sysdb_attrs *usermap;
     const char *seealso_dn;
     const char *hbac_dn;
+    uint32_t priority;
 
     for (i = 0; i < hbac_rule_count; i++) {
         ret = sysdb_attrs_get_string(hbac_rules[i], SYSDB_ORIG_DN, &hbac_dn);
@@ -399,15 +462,23 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
                 DEBUG(SSSDBG_TRACE_FUNC, ("HBAC rule [%s] matched, copying its"
                                           "attributes to SELinux user map [%s]\n",
                                           hbac_dn, seealso_dn));
-                priority &= ~(SELINUX_PRIORITY_USER_NAME |
-                              SELINUX_PRIORITY_USER_GROUP |
-                              SELINUX_PRIORITY_USER_CAT);
-                ret = sysdb_attrs_add_uint32(usermap,
-                                             SYSDB_SELINUX_HOST_PRIORITY,
-                                             priority);
-                if (ret != EOK) {
-                    return ret;
+
+                /* Selinux maps priority evaluation removed --DELETE this comment before pushing*/
+                if (priority < top_priority) {
+                    /* This rule has lower priority than what we already have,
+                     * skip it. */
+                    continue;
+                } else if (priority > top_priority) {
+                    /* This rule has higher priority, drop what we already have */
+                    while (best_match_maps_cnt > 0) {
+                        best_match_maps_cnt--;
+                        usermaps[best_match_maps_cnt] = NULL;
+                    }
+                    top_priority = priority;
                 }
+
+                usermaps[best_match_maps_cnt] = usermap;
+                best_match_maps_cnt++;
 
                 ret = sysdb_attrs_copy_values(hbac_rules[i], usermap, SYSDB_ORIG_MEMBER_USER);
                 if (ret != EOK) {
@@ -427,6 +498,271 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
 
     return EOK;
 }
+
+static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
+                                  char ***_order_array, size_t *_order_count)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *order = NULL;
+    char **order_array;
+    errno_t ret;
+    int i;
+    int len;
+    size_t order_count;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    order = talloc_strdup(tmp_ctx, map_order);
+    if (order == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    len = strlen(order);
+
+    /* The "order" string contains one or more SELinux user records
+     * separated by $. Now we need to create an array of string from
+     * this one string. First find out how many elements in the array
+     * will be. This way only one alloc will be necessary for the array
+     */
+    order_count = 1;
+    for (i = 0; i < len; i++) {
+        if (order[i] == '$') order_count++;
+    }
+
+    order_array = talloc_array(tmp_ctx, char *, order_count);
+    if (order_array == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Now fill the array with pointers to the original string. Also
+     * use binary zeros to make multiple string out of the one.
+     */
+    order_array[0] = order;
+    order_count = 1;
+    for (i = 0; i < len; i++) {
+        if (order[i] == '$') {
+            order[i] = '\0';
+            order_array[order_count] = &order[i+1];
+            order_count++;
+        }
+    }
+
+    *_order_array = talloc_steal(mem_ctx, order_array);
+    *_order_count = order_count;
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t write_selinux_login_file(const char *username, char *string);
+static errno_t remove_selinux_login_file(const char *username);
+
+/* Choose best selinux user based on given order and write
+ * the user to selinux login file. */
+static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
+                                  struct pam_data *pd,
+                                  char **order_array, int order_count,
+                                  const char *default_user)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *file_content = NULL;
+    const char *tmp_str;
+    errno_t ret, err;
+    int i, j;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    /* If no maps match, we'll use the default SELinux user from the
+     * config */
+    file_content = talloc_strdup(tmp_ctx, default_user);
+    if (file_content == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Iterate through the order array and try to find SELinux users
+     * in fetched maps. The order array contains all SELinux users
+     * allowed in the domain in the same order they should appear
+     * in the SELinux config file. If any user from the order array
+     * is not in fetched user maps, it means it should not be allowed
+     * for the user who is just logging in.
+     *
+     * Right now we have empty content of the SELinux config file,
+     * we shall add only those SELinux users that are present both in
+     * the order array and user maps applicable to the user who is
+     * logging in.
+     */
+    for (i = 0; i < order_count; i++) {
+        for (j = 0; usermaps[j] != NULL; j++) {
+            tmp_str = sss_selinux_map_get_seuser(usermaps[j]);
+
+            if (tmp_str && !strcasecmp(tmp_str, order_array[i])) {
+                /* If file_content contained something, overwrite it.
+                 * This record has higher priority.
+                 */
+                talloc_zfree(file_content);
+                file_content = talloc_strdup(tmp_ctx, tmp_str);
+                if (file_content == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                break;
+            }
+        }
+    }
+
+    ret = write_selinux_login_file(pd->user, file_content);
+done:
+    if (!file_content) {
+        err = remove_selinux_login_file(pd->user);
+        /* Don't overwrite original error condition if there was one */
+        if (ret == EOK) ret = err;
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t write_selinux_login_file(const char *username, char *string)
+{
+    char *path = NULL;
+    char *tmp_path = NULL;
+    ssize_t written;
+    int len;
+    int fd = -1;
+    mode_t oldmask;
+    TALLOC_CTX *tmp_ctx;
+    char *full_string = NULL;
+    int enforce;
+    errno_t ret = EOK;
+
+    len = strlen(string);
+    if (len == 0) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    path = selogin_path(tmp_ctx, username);
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmp_path = talloc_asprintf(tmp_ctx, "%sXXXXXX", path);
+    if (tmp_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    oldmask = umask(022);
+    fd = mkstemp(tmp_path);
+    ret = errno;
+    umask(oldmask);
+    if (fd < 0) {
+        if (ret == ENOENT) {
+            /* if selinux is disabled and selogin dir does not exist,
+             * just ignore the error */
+            if (selinux_getenforcemode(&enforce) == 0 && enforce == -1) {
+                ret = EOK;
+                goto done;
+            }
+
+            /* continue if we can't get enforce mode or selinux is enabled */
+        }
+
+        DEBUG(SSSDBG_OP_FAILURE, ("unable to create temp file [%s] "
+              "for SELinux data [%d]: %s\n", tmp_path, ret, strerror(ret)));
+        goto done;
+    }
+
+    full_string = talloc_asprintf(tmp_ctx, "%s:%s", ALL_SERVICES, string);
+    if (full_string == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    len = strlen(full_string);
+
+    errno = 0;
+    written = sss_atomic_write_s(fd, full_string, len);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("writing to SELinux data file %s"
+                                  "failed [%d]: %s", tmp_path, ret,
+                                  strerror(ret)));
+        goto done;
+    }
+
+    if (written != len) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Expected to write %d bytes, wrote %d",
+                                  written, len));
+        ret = EIO;
+        goto done;
+    }
+
+    errno = 0;
+    if (rename(tmp_path, path) < 0) {
+        ret = errno;
+    } else {
+        ret = EOK;
+    }
+    close(fd);
+    fd = -1;
+
+done:
+    if (fd != -1) {
+        close(fd);
+        if (unlink(tmp_path) < 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not remove file [%s]",
+                                         tmp_path));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t remove_selinux_login_file(const char *username)
+{
+    char *path;
+    errno_t ret;
+
+    path = selogin_path(NULL, username);
+    if (!path) return ENOMEM;
+
+    errno = 0;
+    ret = unlink(path);
+    if (ret < 0) {
+        ret = errno;
+        if (ret == ENOENT) {
+            /* Just return success if the file was not there */
+            ret = EOK;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not remove login file %s [%d]: %s\n",
+                   path, ret, strerror(ret)));
+        }
+    }
+
+    talloc_free(path);
+    return ret;
+}
+
 
 /* A more generic request to gather all SELinux and HBAC rules. Updates
  * cache if necessary
@@ -912,3 +1248,17 @@ ipa_get_selinux_recv(struct tevent_req *req,
 
     return EOK;
 }
+
+#else
+/* Simply return success if HAVE_SELINUX_LOGIN_DIR is not defined. */
+void ipa_selinux_handler(struct be_req *be_req)
+{
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
+    struct pam_data *pd;
+
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
+
+    pd->pam_status = PAM_SUCCESS;
+    be_req_terminate(be_req, DP_ERR_OK, EOK, "Success");
+}
+#endif

@@ -239,16 +239,16 @@ done:
     return ret;
 }
 
-const char *sss_selinux_map_get_seuser(struct ldb_message *usermap)
+const char *sss_selinux_map_get_seuser(struct sysdb_attrs *usermap)
 {
     int i;
     const uint8_t *name;
     const uint8_t *template = (const uint8_t *)SYSDB_SELINUX_USER;
 
-    for (i = 0; i < usermap->num_elements; i++) {
-        name = (const uint8_t *)usermap->elements[i].name;
+    for (i = 0; i < usermap->num; i++) {
+        name = (const uint8_t *)usermap->a[i].name;
         if (sss_utf8_case_eq(name, template) == 0) {
-            return (const char *)usermap->elements[i].values[0].data;
+            return (const char *)usermap->a[i].values[0].data;
         }
     }
 

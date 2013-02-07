@@ -50,6 +50,6 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
                        struct sysdb_attrs *host,
                        uint32_t *_priority);
 
-const char *sss_selinux_map_get_seuser(struct ldb_message *usermap);
+const char *sss_selinux_map_get_seuser(struct sysdb_attrs *usermap);
 
 #endif /* SSS_SELINUX_H_ */
