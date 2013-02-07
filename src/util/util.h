@@ -42,6 +42,7 @@
 #include <tevent.h>
 #include <ldb.h>
 #include <dhash.h>
+#include "util/atomic_io.h"
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
