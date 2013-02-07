@@ -808,7 +808,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
 
     if (dom->subdomain_homedir) {
         pwd->pw_dir = expand_homedir_template(pwd, dom->subdomain_homedir,
-                                              lname, pwd->pw_uid,
+                                              lname, pwd->pw_uid, NULL,
                                               dom->name);
         if (pwd->pw_dir == NULL) {
             ret = ENOMEM;

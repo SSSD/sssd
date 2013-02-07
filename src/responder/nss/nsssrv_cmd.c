@@ -176,28 +176,29 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
 {
     const char *homedir;
 
+    homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+
     /* Check whether we are unconditionally overriding the server
      * for home directory locations.
      */
     if (dom->override_homedir) {
         return expand_homedir_template(mem_ctx, dom->override_homedir,
-                                       name, uid, dom->name);
+                                       name, uid, homedir, dom->name);
     } else if (nctx->override_homedir) {
         return expand_homedir_template(mem_ctx, nctx->override_homedir,
-                                       name, uid, dom->name);
+                                       name, uid, homedir, dom->name);
     }
 
-    homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
     if (!homedir || *homedir == '\0') {
         /* In the case of a NULL or empty homedir, check to see if
          * we have a fallback homedir to use.
          */
         if (dom->fallback_homedir) {
             return expand_homedir_template(mem_ctx, dom->fallback_homedir,
-                                           name, uid, dom->name);
+                                           name, uid, homedir, dom->name);
         } else if (nctx->fallback_homedir) {
             return expand_homedir_template(mem_ctx, nctx->fallback_homedir,
-                                           name, uid, dom->name);
+                                           name, uid, homedir, dom->name);
         }
     }
 
