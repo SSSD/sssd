@@ -24,7 +24,7 @@
 
 char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                               const char *username, uint32_t uid,
-                              const char *domain)
+                              const char *original, const char *domain)
 {
     char *copy;
     char *p;
@@ -32,6 +32,7 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
     char *result = NULL;
     char *res = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
+    const char *orig = NULL;
 
     if (template == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Missing template.\n"));
@@ -103,6 +104,17 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                 }
                 result = talloc_asprintf_append(result, "%s%s@%s", p,
                                                 username, domain);
+                break;
+            case 'o':
+                if (original == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("Original home directory for %s is not available, "
+                           "using empty string\n", username));
+                    orig = "";
+                } else {
+                    orig = original;
+                }
+                result = talloc_asprintf_append(result, "%s%s", p, orig);
                 break;
 
             case '%':
