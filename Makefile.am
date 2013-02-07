@@ -606,6 +606,7 @@ files_tests_SOURCES = \
     src/tests/files-tests.c \
     src/util/check_and_open.c \
     src/tools/selinux.c \
+    src/util/atomic_io.c \
     src/tools/files.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \
