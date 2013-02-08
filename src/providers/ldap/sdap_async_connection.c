@@ -1628,15 +1628,17 @@ static void sdap_cli_auth_step(struct tevent_req *req)
             tevent_req_error(req, EINVAL);
             return;
         }
+
         authtok_blob = dp_opt_get_blob(state->opts->basic,
                                        SDAP_DEFAULT_AUTHTOK);
-
-        ret = sss_authtok_set_password(state, &authtok,
-                                       (const char *)authtok_blob.data,
-                                       authtok_blob.length);
-        if (ret) {
-            tevent_req_error(req, ret);
-            return;
+        if (authtok_blob.data) {
+            ret = sss_authtok_set_password(state, &authtok,
+                                        (const char *)authtok_blob.data,
+                                        authtok_blob.length);
+            if (ret) {
+                tevent_req_error(req, ret);
+                return;
+            }
         }
     }
 
