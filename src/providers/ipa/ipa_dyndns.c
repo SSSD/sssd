@@ -212,7 +212,7 @@ static bool ok_for_dns(struct sockaddr *sa)
             snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
         }
 
-        if (IN_MULTICAST(addr->s_addr)) {
+        if (IN_MULTICAST(ntohl(addr->s_addr))) {
             DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv4 address %s\n", straddr));
             return false;
         } else if (inet_netof(*addr) == IN_LOOPBACKNET) {
