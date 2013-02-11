@@ -54,6 +54,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _GNU_SOURCE
+
+#include "config.h"
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -62,7 +66,6 @@
 #include <errno.h>
 #include <talloc.h>
 
-#include "config.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 
@@ -73,6 +76,125 @@ struct copy_ctx {
     uid_t       uid;
     gid_t       gid;
 };
+
+static int open_cloexec(const char *pathname, int flags, int *ret)
+{
+    int fd;
+    int oflags;
+
+    oflags = flags;
+#ifdef O_CLOEXEC
+    oflags |= O_CLOEXEC;
+#endif
+
+    errno = 0;
+    fd = open(pathname, oflags);
+    if (fd == -1) {
+        if (ret) {
+            *ret = errno;
+        }
+        return -1;
+    }
+
+#ifndef O_CLOEXEC
+    int v;
+
+    v = fcntl(fd, F_GETFD, 0);
+    /* we ignore an error, it's not fatal and there is nothing we
+     * can do about it anyways */
+    (void)fcntl(fd, F_SETFD, v | FD_CLOEXEC);
+#endif
+
+    return fd;
+}
+
+static int openat_cloexec(int dir_fd, const char *pathname, int flags, int *ret)
+{
+    int fd;
+    int oflags;
+
+    oflags = flags;
+#ifdef O_CLOEXEC
+    oflags |= O_CLOEXEC;
+#endif
+
+    errno = 0;
+    fd = openat(dir_fd, pathname, oflags);
+    if (fd == -1) {
+        if (ret) {
+            *ret = errno;
+        }
+        return -1;
+    }
+
+#ifndef O_CLOEXEC
+    int v;
+
+    v = fcntl(fd, F_GETFD, 0);
+    /* we ignore an error, it's not fatal and there is nothing we
+     * can do about it anyways */
+    (void)fcntl(fd, F_SETFD, v | FD_CLOEXEC);
+#endif
+
+    return fd;
+}
+
+static int sss_timeat_set(int dir_fd, const char *path,
+                          const struct stat *statp,
+                          int flags)
+{
+    int ret;
+
+#ifdef HAVE_UTIMENSAT
+    struct timespec timebuf[2];
+
+    timebuf[0] = statp->st_atim;
+    timebuf[1] = statp->st_mtim;
+
+    ret = utimensat(dir_fd, path, timebuf, flags);
+#else
+    struct timeval tv[2];
+
+    tv[0].tv_sec  = statp->st_atime;
+    tv[0].tv_usec = 0;
+    tv[1].tv_sec = statp->st_mtime;
+    tv[1].tv_usec = 0;
+
+    ret = futimesat(dir_fd, path, tv);
+#endif
+    if (ret == -1) {
+        return errno;
+    }
+
+    return EOK;
+}
+
+static int sss_futime_set(int fd, const struct stat *statp)
+{
+    int ret;
+
+#ifdef HAVE_FUTIMENS
+    struct timespec timebuf[2];
+
+    timebuf[0] = statp->st_atim;
+    timebuf[1] = statp->st_mtim;
+    ret = futimens(fd, timebuf);
+#else
+    struct timeval tv[2];
+
+    tv[0].tv_sec  = statp->st_atime;
+    tv[0].tv_usec = 0;
+    tv[1].tv_sec = statp->st_mtime;
+    tv[1].tv_usec = 0;
+
+    ret = futimes(fd, tv);
+#endif
+    if (ret == -1) {
+        return errno;
+    }
+
+    return EOK;
+}
 
 /* wrapper in order not to create a temporary context in
  * every iteration */
@@ -112,8 +234,8 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     int ret, err;
     int dir_fd;
 
-    dir_fd = openat(parent_fd, dir_name,
-                    O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
+    dir_fd = openat_cloexec(parent_fd, dir_name,
+                            O_RDONLY | O_DIRECTORY | O_NOFOLLOW, &ret);
     if (dir_fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot open %s: [%d]: %s\n",
@@ -246,7 +368,6 @@ copy_symlink(int src_dir_fd,
 {
     char *buf;
     errno_t ret;
-    struct timespec timebuf[2];
 
     buf = talloc_readlinkat(NULL, src_dir_fd, file_name);
     if (!buf) {
@@ -283,12 +404,9 @@ copy_symlink(int src_dir_fd,
         return ret;
     }
 
-    timebuf[0] = statp->st_atim;
-    timebuf[1] = statp->st_mtim;
-    ret = utimensat(dst_dir_fd, file_name, timebuf,
-                    AT_SYMLINK_NOFOLLOW);
-    if (ret == -1) {
-        ret = errno;
+    ret = sss_timeat_set(dst_dir_fd, file_name, statp,
+                         AT_SYMLINK_NOFOLLOW);
+    if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("utimensat failed [%d]: %s\n",
               ret, strerror(ret)));
         /* Do not fail */
@@ -309,7 +427,6 @@ static int copy_special(int dst_dir_fd,
                         uid_t uid, gid_t gid)
 {
     int ret;
-    struct timespec timebuf[2];
 
     ret = selinux_file_context(full_path);
     if (ret != 0) {
@@ -346,9 +463,7 @@ static int copy_special(int dst_dir_fd,
         return ret;
     }
 
-    timebuf[0] = statp->st_atim;
-    timebuf[1] = statp->st_mtim;
-    ret = utimensat(dst_dir_fd, file_name, timebuf, 0);
+    ret = sss_timeat_set(dst_dir_fd, file_name, statp, 0);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -375,8 +490,7 @@ copy_file(int ifd,
     int ofd = -1;
     errno_t ret;
     char buf[1024];
-    ssize_t cnt, written, res;
-    struct timespec timebuf[2];
+    ssize_t cnt, written;
 
     ret = selinux_file_context(full_path);
     if (ret != 0) {
@@ -443,12 +557,9 @@ copy_file(int ifd,
               goto done;
     }
 
-    timebuf[0] = statp->st_atim;
-    timebuf[1] = statp->st_mtim;
-    ret = futimens(ofd, timebuf);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("futimens failed [%d]: %s\n",
+    ret = sss_futime_set(ofd, statp);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("sss_futime_set failed [%d]: %s\n",
               ret, strerror(ret)));
         /* Do not fail */
     }
@@ -498,15 +609,14 @@ copy_entry(struct copy_ctx *cctx,
      * us against FIFOs and perhaps side-effects of the open() of a
      * device file if there ever was one here, and doesn't matter
      * for regular files or directories. */
-    ifd = openat(src_dir_fd, ent_name,
-                 O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
-    if (ifd == -1 && errno != ELOOP) {
+    ifd = openat_cloexec(src_dir_fd, ent_name,
+                         O_RDONLY | O_NOFOLLOW | O_NONBLOCK, &ret);
+    if (ifd == -1 && ret != ELOOP) {
         /* openat error */
-        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, ("openat failed on '%s': %s\n",
               src_ent_path, strerror(ret)));
         goto done;
-    } else if (ifd == -1 && errno == ELOOP) {
+    } else if (ifd == -1 && ret == ELOOP) {
         /* Should be a symlink.. */
         ret = fstatat(src_dir_fd, ent_name, &st, AT_SYMLINK_NOFOLLOW);
         if (ret == -1) {
@@ -586,7 +696,6 @@ copy_dir(struct copy_ctx *cctx,
     int dest_dir_fd = -1;
     DIR *dir = NULL;
     struct dirent *ent;
-    struct timespec timebuf[2];
 
     if (!dest_dir_path) {
         return EINVAL;
@@ -613,8 +722,8 @@ copy_dir(struct copy_ctx *cctx,
         goto done;
     }
 
-    dest_dir_fd = openat(dest_parent_fd, dest_dir_name,
-                         O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW);
+    dest_dir_fd = openat_cloexec(dest_parent_fd, dest_dir_name,
+                                 O_RDONLY | O_DIRECTORY | O_NOFOLLOW, &ret);
     if (dest_dir_fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -663,13 +772,10 @@ copy_dir(struct copy_ctx *cctx,
         goto done;
     }
 
-    timebuf[0] = src_dir_stat->st_atim;
-    timebuf[1] = src_dir_stat->st_mtim;
-    futimens(dest_dir_fd, timebuf);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("futimens failed [%d]: %s\n",
-              ret, strerror(ret)));
+    sss_futime_set(dest_dir_fd, src_dir_stat);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("sss_futime_set failed [%d]: %s\n",
+               ret, strerror(ret)));
         /* Do not fail */
     }
 
@@ -695,9 +801,8 @@ int copy_tree(const char *src_root, const char *dst_root,
     int fd = -1;
     struct stat s_src;
 
-    fd = open(src_root, O_RDONLY | O_CLOEXEC | O_DIRECTORY);
+    fd = open_cloexec(src_root, O_RDONLY | O_DIRECTORY, &ret);
     if (fd == -1) {
-        ret = errno;
         goto fail;
     }
 
