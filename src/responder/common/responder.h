@@ -176,9 +176,11 @@ responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
 int sss_cmd_empty_packet(struct sss_packet *packet);
 int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx);
 int sss_cmd_send_error(struct cli_ctx *cctx, int err);
-int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
+int sss_cmd_execute(struct cli_ctx *cctx,
+                    enum sss_cli_command cmd,
+                    struct sss_cmd_table *sss_cmds);
 struct cli_protocol_version *register_cli_protocol_version(void);
 
 struct setent_req_list;

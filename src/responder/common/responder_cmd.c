@@ -141,12 +141,11 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     return EOK;
 }
 
-int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds)
+int sss_cmd_execute(struct cli_ctx *cctx,
+                    enum sss_cli_command cmd,
+                    struct sss_cmd_table *sss_cmds)
 {
-    enum sss_cli_command cmd;
     int i;
-
-    cmd = sss_packet_get_cmd(cctx->creq->in);
 
     for (i = 0; sss_cmds[i].cmd != SSS_CLI_NULL; i++) {
         if (cmd == sss_cmds[i].cmd) {
@@ -156,7 +155,6 @@ int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds)
 
     return EINVAL;
 }
-
 struct setent_req_list {
     struct setent_req_list *prev;
     struct setent_req_list *next;

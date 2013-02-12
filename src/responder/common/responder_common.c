@@ -262,6 +262,14 @@ static void client_send(struct cli_ctx *cctx)
     return;
 }
 
+static int client_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds)
+{
+    enum sss_cli_command cmd;
+
+    cmd = sss_packet_get_cmd(cctx->creq->in);
+    return sss_cmd_execute(cctx, cmd, sss_cmds);
+}
+
 static void client_recv(struct cli_ctx *cctx)
 {
     int ret;
@@ -291,7 +299,7 @@ static void client_recv(struct cli_ctx *cctx)
         /* do not read anymore */
         TEVENT_FD_NOT_READABLE(cctx->cfde);
         /* execute command */
-        ret = sss_cmd_execute(cctx, cctx->rctx->sss_cmds);
+        ret = client_cmd_execute(cctx, cctx->rctx->sss_cmds);
         if (ret != EOK) {
             DEBUG(0, ("Failed to execute request, aborting client!\n"));
             talloc_free(cctx);
