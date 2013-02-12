@@ -55,4 +55,44 @@ errno_t
 compare_sdap_attr_maps(struct sdap_attr_map *map1, size_t size1,
                        struct sdap_attr_map *map2);
 
+/* A common test structure for tests that require a domain to be set up. */
+struct sss_test_ctx {
+    struct sysdb_ctx *sysdb;
+    struct confdb_ctx *confdb;
+    struct tevent_context *ev;
+    struct sss_domain_info *dom;
+
+    bool done;
+    int error;
+};
+
+struct sss_test_conf_param {
+    const char *key;
+    const char *value;
+};
+
+struct sss_test_ctx *
+create_dom_test_ctx(TALLOC_CTX *mem_ctx,
+                    const char *tests_path,
+                    const char *confdb_path,
+                    const char *sysdb_path,
+                    const char *domain_name,
+                    const char *id_provider,
+                    struct sss_test_conf_param *params);
+
+void test_dom_suite_setup(const char *tests_path);
+
+void test_dom_suite_cleanup(const char *tests_path,
+                            const char *confdb_path,
+                            const char *sysdb_path);
+
+struct tevent_req *
+test_request_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev, errno_t err);
+
+#define test_req_succeed_send(mem_ctx, ev) test_request_send(mem_ctx, ev, 0)
+
+errno_t test_request_recv(struct tevent_req *req);
+
+int test_ev_loop(struct sss_test_ctx *tctx);
+
 #endif /* !__TESTS_COMMON_H__ */
