@@ -137,6 +137,7 @@ m4_include([src/external/ldap.m4])
 m4_include([src/external/libpcre.m4])
 m4_include([src/external/krb5.m4])
 m4_include([src/external/libcares.m4])
+m4_include([src/external/libcmocka.m4])
 m4_include([src/external/docbook.m4])
 m4_include([src/external/sizes.m4])
 m4_include([src/external/python.m4])
@@ -269,6 +270,7 @@ AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
+AM_CONDITIONAL([HAVE_CMOCKA], [test x$have_cmocka != x])
 
 abs_build_dir=`pwd`
 AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the build directory])
