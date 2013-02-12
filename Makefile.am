@@ -138,9 +138,15 @@ endif
 
 endif
 
+if HAVE_CMOCKA
+    non_interactive_cmocka_based_tests = \
+	nss-srv-tests
+endif
+
 check_PROGRAMS = \
     stress-tests \
     krb5-child-test \
+    $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests)
 
 PYTHON_TESTS =
@@ -153,6 +159,7 @@ endif
 
 TESTS = \
     $(PYTHON_TESTS) \
+    $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests)
 
 sssdlib_LTLIBRARIES = \
@@ -1152,6 +1159,42 @@ krb5_child_test_LDADD = \
     $(CHECK_LIBS) \
     libsss_util.la \
     libsss_test_common.la
+
+if HAVE_CMOCKA
+TEST_MOCK_OBJ = \
+     src/tests/common.c
+
+TEST_MOCK_RESP_OBJ = \
+     $(TEST_MOCK_OBJ) \
+     src/tests/common_tev.c \
+     src/tests/common_dom.c \
+     src/tests/cmocka/common_mock_resp.c \
+     src/responder/common/responder_packet.c \
+     src/responder/common/responder_cmd.c \
+     src/responder/common/negcache.c \
+     src/responder/common/responder_common.c
+
+nss_srv_tests_DEPENDENCIES = \
+     $(ldblib_LTLIBRARIES)
+nss_srv_tests_SOURCES = \
+     $(TEST_MOCK_RESP_OBJ) \
+     src/tests/cmocka/test_nss_srv.c \
+     src/responder/nss/nsssrv_cmd.c \
+     src/responder/nss/nsssrv_netgroup.c \
+     src/responder/nss/nsssrv_services.c \
+     src/responder/nss/nsssrv_mmap_cache.c
+nss_srv_tests_CFLAGS = \
+    $(AM_CFLAGS)
+nss_srv_tests_LDFLAGS = \
+    -Wl,-wrap,sss_ncache_check_user \
+    -Wl,-wrap,sss_packet_get_body \
+    -Wl,-wrap,sss_packet_get_cmd \
+    -Wl,-wrap,sss_cmd_send_empty \
+    -Wl,-wrap,sss_cmd_done
+nss_srv_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    libsss_util.la
+endif
 
 noinst_PROGRAMS = pam_test_client
 if BUILD_SUDO
