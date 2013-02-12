@@ -33,7 +33,7 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
             dom = dom->subdomains;
         } else if (dom->next) {
             dom = dom->next;
-        } else if (descend && IS_SUBDOMAIN(dom)) {
+        } else if (descend && IS_SUBDOMAIN(dom) && dom->parent->next) {
             dom = dom->parent->next;
         } else {
             return NULL;
