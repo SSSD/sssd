@@ -790,7 +790,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             ret = delete_entry_from_memcache(dctx->domain, name,
                                              nctx->pwd_mc_ctx);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Deleting user from memcache failed.\n"));
             }
 
@@ -2365,8 +2365,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             ret = delete_entry_from_memcache(dctx->domain, name,
                                              nctx->grp_mc_ctx);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Deleting user from memcache failed.\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Deleting group from memcache failed.\n"));
             }
 
 
