@@ -1020,7 +1020,11 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    /* Set the PAM warning time, if specified */
+    /* Set the PAM warning time, if specified. If not specified, pass on
+     * the "not set" value of "-1" which means "use provider default". The
+     * value 0 means "always display the warning if server sends one" */
+    domain->pwd_expiration_warning = -1;
+
     val = ldb_msg_find_attr_as_int(res->msgs[0],
                                    CONFDB_DOMAIN_PWD_EXPIRATION_WARNING,
                                    -1);
@@ -1035,6 +1039,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     if (val > 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Setting domain password expiration warning to %d days\n", val));
         /* The value is in days, transform it to seconds */
         domain->pwd_expiration_warning = val * 24 * 3600;
     }
