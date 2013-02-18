@@ -112,4 +112,20 @@ errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
                             const char *name,
                             char ***grouplist);
 
+/* from sdap_async_nested_groups.c */
+
+struct tevent_req *sdap_nested_group_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sss_domain_info *domain,
+                                          struct sdap_options *opts,
+                                          struct sdap_handle *sh,
+                                          struct sysdb_attrs *group);
+
+errno_t sdap_nested_group_recv(TALLOC_CTX *mem_ctx,
+                               struct tevent_req *req,
+                               unsigned long *_num_users,
+                               struct sysdb_attrs ***_users,
+                               unsigned long *_num_groups,
+                               struct sysdb_attrs ***_groups);
+
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */
