@@ -70,8 +70,20 @@ static int setup_db(struct tools_ctx *ctx)
  */
 void usage(poptContext pc, const char *error)
 {
+    size_t lentmp;
+    char nl[2] = "";
+
     poptPrintUsage(pc, stderr, 0);
-    if (error) fprintf(stderr, "%s", error);
+
+    if (error) {
+        lentmp = strlen(error);
+        if ((lentmp > 0) && (error[lentmp - 1] != '\n')) {
+            nl[0]='\n';
+            nl[1]='\0';
+        }
+
+        fprintf(stderr, "%s%s", error, nl);
+    }
 }
 
 int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
