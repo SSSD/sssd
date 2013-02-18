@@ -371,15 +371,40 @@ AC_DEFUN([WITH_SEMANAGE],
 AC_DEFUN([WITH_LIBNL],
   [ AC_ARG_WITH([libnl],
                 [AC_HELP_STRING([--with-libnl],
-                                [Whether to build with libnetlink support [AUTO]]
+                                [Whether to build with libnetlink support (libnl3, libnl1, no) [auto]]
                                )
                 ],
                 [],
                 with_libnl=yes
                )
+
     if test x"$with_libnl" = xyes; then
-        BUILD_LIBNL=1
-        AC_SUBST(BUILD_LIBNL)
+
+        AM_CHECK_LIBNL3
+
+        if test x"$HAVE_LIBNL" != x1; then
+            AM_CHECK_LIBNL1
+        fi
+
+        if test x"$HAVE_LIBNL" != x1; then
+            AC_MSG_WARN([Building without netlink])
+        fi
+
+    elif test x"$with_libnl" = xlibnl3; then
+
+        AM_CHECK_LIBNL3
+
+        if test x"$HAVE_LIBNL" != x1; then
+            AC_MSG_ERROR([Libnl3 required, but not available])
+        fi
+
+    elif test x"$with_libnl" = xlibnl1; then
+
+        AM_CHECK_LIBNL1
+
+        if test x"$HAVE_LIBNL" != x1; then
+            AC_MSG_ERROR([Libnl required, but not available])
+        fi
     fi
   ])
 

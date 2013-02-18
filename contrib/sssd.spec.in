@@ -122,7 +122,6 @@ BuildRequires: libselinux-devel
 BuildRequires: libsemanage-devel
 BuildRequires: bind-utils
 BuildRequires: keyutils-libs-devel
-BuildRequires: libnl-devel
 BuildRequires: gettext-devel
 BuildRequires: pkgconfig
 BuildRequires: findutils
@@ -130,6 +129,9 @@ BuildRequires: glib2-devel
 BuildRequires: selinux-policy-targeted
 %if (0%{?fedora} >= 18)
 BuildRequires: libcmocka-devel
+BuildRequires: libnl3-devel
+%else
+BuildRequires: libnl-devel
 %endif
 
 # RHEL 5 is too old to support samba4 and the PAC responder

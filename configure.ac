@@ -114,7 +114,6 @@ WITH_PYTHON_BINDINGS
 WITH_SELINUX
 WITH_NSCD
 WITH_SEMANAGE
-WITH_LIBNL
 WITH_NOLOGIN_SHELL
 WITH_APP_LIBS
 WITH_SUDO
@@ -163,6 +162,8 @@ else
 	        UNICODE_LIBS=$GLIB2_LIBS
 	        AC_SUBST(UNICODE_LIBS)
 fi
+
+WITH_LIBNL
 
 WITH_INITSCRIPT
 if test x$initscript = xsystemd; then
@@ -229,10 +230,6 @@ fi
 
 if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
     AM_CHECK_SEMANAGE
-fi
-
-if test x$BUILD_LIBNL != x; then
-    AM_CHECK_LIBNL
 fi
 
 if test x$HAVE_SYSTEMD_UNIT != x; then

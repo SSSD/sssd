@@ -47,18 +47,13 @@
 #include <netlink/route/rtnl.h>
 #include <netlink/route/route.h>
 #include <netlink/handlers.h>
+#include <netlink/socket.h>
 #endif
 
 /* Linux header file confusion causes this to be undefined. */
 #ifndef SOL_NETLINK
 #define SOL_NETLINK 270
 #endif
-
-#define nlw_get_fd nl_socket_get_fd
-#define nlw_recvmsgs_default nl_recvmsgs_default
-#define nlw_get_pid nl_socket_get_local_port
-#define nlw_object_match nl_object_match_filter
-#define NLW_OK NL_OK
 
 #define SYSFS_IFACE_TEMPLATE "/sys/class/net/%s"
 #define SYSFS_IFACE_PATH_MAX (16+IFNAMSIZ)
@@ -73,6 +68,32 @@
 
 #define BUFSIZE 8
 
+#ifdef HAVE_LIBNL
+/* Wrappers determining use of libnl version 1 or 3 */
+#ifdef HAVE_LIBNL3
+
+#define nlw_destroy_handle      nl_socket_free
+#define nlw_alloc               nl_socket_alloc
+#define nlw_disable_seq_check   nl_socket_disable_seq_check
+
+#define nlw_geterror(error)     nl_geterror(error)
+
+#define nlw_handle              nl_sock
+
+#elif HAVE_LIBNL1
+
+#define nlw_destroy_handle      nl_handle_destroy
+#define nlw_alloc               nl_handle_alloc
+#define nlw_disable_seq_check   nl_disable_sequence_check
+
+#define nlw_geterror(error)     nl_geterror()
+
+#define nlw_handle              nl_handle
+
+#endif /* HAVE_LIBNL3 */
+
+#endif /* HAVE_LIBNL */
+
 enum nlw_msg_type {
     NLW_LINK,
     NLW_ROUTE,
@@ -82,7 +103,7 @@ enum nlw_msg_type {
 
 struct netlink_ctx {
 #ifdef HAVE_LIBNL
-    struct nl_handle *nlh;
+    struct nlw_handle *nlp;
 #endif
     struct tevent_fd *tefd;
 
@@ -96,13 +117,34 @@ static int netlink_ctx_destructor(void *ptr)
     struct netlink_ctx *nlctx;
     nlctx = talloc_get_type(ptr, struct netlink_ctx);
 
-    nl_handle_destroy(nlctx->nlh);
+    nlw_destroy_handle(nlctx->nlp);
     return 0;
 }
 
 /*******************************************************************
  *                      Utility functions
  *******************************************************************/
+
+/* rtnl_route_get_oif removed from libnl3 */
+int
+rtnlw_route_get_oif(struct rtnl_route * route)
+{
+#ifndef HAVE_RTNL_ROUTE_GET_OIF
+    struct rtnl_nexthop * nh;
+    int hops;
+
+    hops = rtnl_route_get_nnexthops(route);
+    if (hops <= 0) {
+        return 0;
+    }
+
+    nh = rtnl_route_nexthop_n(route, 0);
+
+    return rtnl_route_nh_get_ifindex(nh);
+#else
+    return rtnl_route_get_oif(route);
+#endif
+}
 
 static bool has_wireless_extension(const char *ifname)
 {
@@ -270,7 +312,7 @@ static void nladdr_to_string(struct nl_addr *nl, char *buf, size_t bufsize)
  * Wrappers for different capabilities of different libnl versions
  *******************************************************************/
 
-static bool nlw_accept_message(struct nl_handle *nlh,
+static bool nlw_accept_message(struct nlw_handle *nlp,
                                const struct sockaddr_nl *snl,
                                struct nlmsghdr *hdr)
 {
@@ -290,7 +332,7 @@ static bool nlw_accept_message(struct nl_handle *nlh,
     /* And any multicast message directed to our netlink PID, since multicast
      * currently requires CAP_ADMIN to use.
      */
-    local_port = nlw_get_pid(nlh);
+    local_port = nl_socket_get_local_port(nlp);
     if ((hdr->nlmsg_pid == local_port) && snl->nl_groups) {
         accept_msg = true;
     }
@@ -315,7 +357,7 @@ static bool nlw_is_addr_object(struct nl_object *obj)
     }
 
     /* Ensure it's an addr object */
-    if (!nlw_object_match(obj, OBJ_CAST(filter))) {
+    if (!nl_object_match_filter(obj, OBJ_CAST(filter))) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Not an addr object\n"));
         is_addr_object = false;
     }
@@ -336,7 +378,7 @@ static bool nlw_is_route_object(struct nl_object *obj)
     }
 
     /* Ensure it's a route object */
-    if (!nlw_object_match(obj, OBJ_CAST(filter))) {
+    if (!nl_object_match_filter(obj, OBJ_CAST(filter))) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Not a route object\n"));
         is_route_object = false;
     }
@@ -357,7 +399,7 @@ static bool nlw_is_link_object(struct nl_object *obj)
     }
 
     /* Ensure it's a link object */
-    if (!nlw_object_match(obj, OBJ_CAST(filter))) {
+    if (!nl_object_match_filter(obj, OBJ_CAST(filter))) {
         DEBUG(2, ("Not a link object\n"));
         is_link_object = false;
     }
@@ -366,27 +408,30 @@ static bool nlw_is_link_object(struct nl_object *obj)
     return is_link_object;
 }
 
-static int nlw_enable_passcred(struct nl_handle *nlh)
+static int nlw_enable_passcred(struct nlw_handle *nlp)
 {
-#ifndef HAVE_NL_SET_PASSCRED
-    return EOK;                      /* not available in this version */
+#ifdef HAVE_NL_SET_PASSCRED
+    return nl_set_passcred(nlp, 1);  /* 1 = enabled */
+#elif HAVE_NL_SOCKET_SET_PASSCRED
+    return nl_socket_set_passcred(nlp, 1);
 #else
-    return nl_set_passcred(nlh, 1);  /* 1 = enabled */
+    return EOK;                      /* not available in this version */
 #endif
 }
 
-static int nlw_group_subscribe(struct nl_handle *nlh, int group)
+static int nlw_group_subscribe(struct nlw_handle *nlp, int group)
 {
     int ret;
 
 #ifdef HAVE_NL_SOCKET_ADD_MEMBERSHIP
-    ret = nl_socket_add_membership(nlh, group);
+    ret = nl_socket_add_membership(nlp, group);
     if (ret != 0) {
-        DEBUG(1, ("Unable to add membership: %s\n", nl_geterror()));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unable to add membership: %s\n", nlw_geterror(ret)));
         return ret;
     }
 #else
-     int nlfd = nlw_get_fd(nlh);
+     int nlfd = nl_socket_get_fd(nlp);
 
      errno = 0;
      ret = setsockopt(nlfd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
@@ -401,13 +446,13 @@ static int nlw_group_subscribe(struct nl_handle *nlh, int group)
      return 0;
 }
 
-static int nlw_groups_subscribe(struct nl_handle *nlh, int *groups)
+static int nlw_groups_subscribe(struct nlw_handle *nlp, int *groups)
 {
     int ret;
     int i;
 
     for (i=0; groups[i]; i++) {
-        ret = nlw_group_subscribe(nlh, groups[i]);
+        ret = nlw_group_subscribe(nlp, groups[i]);
         if (ret != EOK) return ret;
     }
 
@@ -435,11 +480,11 @@ static int event_msg_recv(struct nl_msg *msg, void *arg)
     hdr = nlmsg_hdr(msg);
     snl = nlmsg_get_src(msg);
 
-    if (!nlw_accept_message(ctx->nlh, snl, hdr)) {
+    if (!nlw_accept_message(ctx->nlp, snl, hdr)) {
         return NL_SKIP;
     }
 
-    return NLW_OK;
+    return NL_OK;
 }
 
 static void link_msg_handler(struct nl_object *obj, void *arg);
@@ -487,28 +532,30 @@ static int event_msg_ready(struct nl_msg *msg, void *arg)
             return EOK; /* Don't care */
     }
 
-    return NLW_OK;
+    return NL_OK;
 }
 
-static int nlw_set_callbacks(struct nl_handle *nlh, void *data)
+static int nlw_set_callbacks(struct nlw_handle *nlp, void *data)
 {
     int ret = EIO;
 
-#ifndef HAVE_NL_SOCKET_MODIFY_CB
-    struct nl_cb *cb = nl_handle_get_cb(nlh);
-    ret = nl_cb_set(cb, NL_CB_MSG_IN, NL_CB_CUSTOM, event_msg_recv, data);
+#ifdef HAVE_NL_SOCKET_MODIFY_CB
+    ret = nl_socket_modify_cb(nlp, NL_CB_MSG_IN, NL_CB_CUSTOM, event_msg_recv,
+                              data);
 #else
-    ret = nl_socket_modify_cb(nlh, NL_CB_MSG_IN, NL_CB_CUSTOM, event_msg_recv, data);
+    struct nl_cb *cb = nl_handle_get_cb(nlp);
+    ret = nl_cb_set(cb, NL_CB_MSG_IN, NL_CB_CUSTOM, event_msg_recv, data);
 #endif
     if (ret != 0) {
         DEBUG(1, ("Unable to set validation callback\n"));
         return ret;
     }
 
-#ifndef HAVE_NL_SOCKET_MODIFY_CB
-    ret = nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, event_msg_ready, data);
+#ifdef HAVE_NL_SOCKET_MODIFY_CB
+    ret = nl_socket_modify_cb(nlp, NL_CB_VALID, NL_CB_CUSTOM, event_msg_ready,
+                              data);
 #else
-    ret = nl_socket_modify_cb(nlh, NL_CB_VALID, NL_CB_CUSTOM, event_msg_ready, data);
+    ret = nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, event_msg_ready, data);
 #endif
     if (ret != 0) {
         DEBUG(1, ("Unable to set receive callback\n"));
@@ -534,8 +581,9 @@ static void route_msg_debug_print(struct rtnl_route *route_obj)
     }
 
     DEBUG(SSSDBG_TRACE_LIBS, ("route idx %d flags %#X family %d addr %s/%d\n",
-          rtnl_route_get_oif(route_obj), rtnl_route_get_flags(route_obj),
+          rtnlw_route_get_oif(route_obj), rtnl_route_get_flags(route_obj),
           rtnl_route_get_family(route_obj), buf, prefixlen));
+
 }
 
 /*
@@ -665,12 +713,12 @@ static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
     struct netlink_ctx *nlctx = talloc_get_type(data, struct netlink_ctx);
     int ret;
 
-    if (!nlctx || !nlctx->nlh) {
+    if (!nlctx || !nlctx->nlp) {
         DEBUG(1, ("Invalid netlink handle, this is most likely a bug!\n"));
         return;
     }
 
-    ret = nlw_recvmsgs_default(nlctx->nlh);
+    ret = nl_recvmsgs_default(nlctx->nlp);
     if (ret != EOK) {
         DEBUG(1, ("Error while reading from netlink fd\n"));
         return;
@@ -699,17 +747,17 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     nlctx->change_cb = change_cb;
     nlctx->cb_data   = cb_data;
 
-    /* allocate the libnl handle and register the default filter set */
-    nlctx->nlh = nl_handle_alloc();
-    if (!nlctx->nlh) {
-        DEBUG(1, (("unable to allocate netlink handle: %s"),
-                   nl_geterror()));
+    /* allocate the libnl handle/socket and register the default filter set */
+    nlctx->nlp = nlw_alloc();
+    if (!nlctx->nlp) {
+        DEBUG(SSSDBG_CRIT_FAILURE, (("unable to allocate netlink handle: %s"),
+                                     nlw_geterror(ENOMEM)));
         ret = ENOMEM;
         goto fail;
     }
 
     /* Register our custom message validation filter */
-    ret = nlw_set_callbacks(nlctx->nlh, nlctx);
+    ret = nlw_set_callbacks(nlctx->nlp, nlctx);
     if (ret != 0) {
         DEBUG(1, ("Unable to set callbacks\n"));
         ret = EIO;
@@ -717,31 +765,33 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     }
 
     /* Try to start talking to netlink */
-    ret = nl_connect(nlctx->nlh, NETLINK_ROUTE);
+    ret = nl_connect(nlctx->nlp, NETLINK_ROUTE);
     if (ret != 0) {
-        DEBUG(1, ("Unable to connect to netlink: %s\n", nl_geterror()));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unable to connect to netlink: %s\n", nlw_geterror(ret)));
         ret = EIO;
         goto fail;
     }
 
-    ret = nlw_enable_passcred(nlctx->nlh);
+    ret = nlw_enable_passcred(nlctx->nlp);
     if (ret != 0) {
-        DEBUG(1, ("Cannot enable credential passing: %s\n", nl_geterror()));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Cannot enable credential passing: %s\n", nlw_geterror(ret)));
         ret = EIO;
         goto fail;
     }
 
     /* Subscribe to the LINK group for internal carrier signals */
-    ret = nlw_groups_subscribe(nlctx->nlh, groups);
+    ret = nlw_groups_subscribe(nlctx->nlp, groups);
     if (ret != 0) {
         DEBUG(1, ("Unable to subscribe to netlink monitor\n"));
         ret = EIO;
         goto fail;
     }
 
-    nl_disable_sequence_check(nlctx->nlh);
+    nlw_disable_seq_check(nlctx->nlp);
 
-    nlfd = nlw_get_fd(nlctx->nlh);
+    nlfd = nl_socket_get_fd(nlctx->nlp);
     flags = fcntl(nlfd, F_GETFL, 0);
 
     errno = 0;
