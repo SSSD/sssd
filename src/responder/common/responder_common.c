@@ -889,7 +889,7 @@ responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
                      const char *name)
 {
     time_t now = time(NULL);
-    time_t time_diff;
+    time_t time_diff = 0;
     struct sss_domain_info *dom;
     struct sss_domain_info *ret_dom = NULL;
 
