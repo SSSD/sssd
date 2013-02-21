@@ -343,7 +343,6 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
     const char **ocs;
     struct sdap_attr_map *map;
     int num_attrs;
-    struct ldb_val v;
     int ret, i, a, mi;
     const char *name;
     size_t len;
@@ -474,10 +473,9 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
             for (i=0; dval->vals[i].bv_val; i++) {
                 DEBUG(9, ("Dereferenced attribute value: %s\n",
                           dval->vals[i].bv_val));
-                v.data = (uint8_t *) dval->vals[i].bv_val;
-                v.length = dval->vals[i].bv_len;
-
-                ret = sysdb_attrs_add_val(res[mi]->attrs, name, &v);
+                ret = sysdb_attrs_add_mem(res[mi]->attrs, name,
+                                          dval->vals[i].bv_val,
+                                          dval->vals[i].bv_len);
                 if (ret) goto done;
             }
         }

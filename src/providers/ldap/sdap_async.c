@@ -2226,8 +2226,8 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
             DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding %s [%s] to attributes "
                   "of [%s].\n", desc, el->values[i].data, objname));
 
-            ret = sysdb_attrs_add_string(attrs, attr_name,
-                                         (const char *) el->values[i].data);
+            ret = sysdb_attrs_add_mem(attrs, attr_name, el->values[i].data,
+                                      el->values[i].length);
             if (ret) {
                 return ret;
             }
