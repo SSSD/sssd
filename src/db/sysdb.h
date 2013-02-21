@@ -280,6 +280,8 @@ int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val);
 int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
                            const char *name, const char *str);
+int sysdb_attrs_add_mem(struct sysdb_attrs *, const char *,
+                        const void *, size_t);
 int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
                          const char *name, bool value);
 int sysdb_attrs_add_long(struct sysdb_attrs *attrs,

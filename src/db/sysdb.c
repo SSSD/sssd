@@ -511,6 +511,16 @@ int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
     return sysdb_attrs_add_val(attrs, name, &v);
 }
 
+int sysdb_attrs_add_mem(struct sysdb_attrs *attrs, const char *name,
+                        const void *mem, size_t size)
+{
+	struct ldb_val v;
+
+	v.data   = discard_const(mem);
+	v.length = size;
+	return sysdb_attrs_add_val(attrs, name, &v);
+}
+
 int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
                          const char *name, bool value)
 {
