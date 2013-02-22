@@ -768,6 +768,34 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
 }
 
 static errno_t
+be_file_account_request(struct be_req *be_req, struct be_acct_req *ar)
+{
+    errno_t ret;
+    struct be_ctx *be_ctx = be_req->be_ctx;
+
+    be_req->req_data = ar;
+
+    /* see if we need a pre request call, only done for initgroups for now */
+    if ((ar->entry_type & 0xFF) == BE_REQ_INITGROUPS) {
+        ret = be_initgroups_prereq(be_req);
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Prerequest failed"));
+            return ret;
+        }
+    }
+
+    /* process request */
+    ret = be_file_request(be_ctx, be_req,
+                          be_ctx->bet_info[BET_ID].bet_ops->handler);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to file request"));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t
 split_name_extended(TALLOC_CTX *mem_ctx,
                     const char *filter,
                     char **name,
@@ -788,6 +816,106 @@ split_name_extended(TALLOC_CTX *mem_ctx,
         *extended = p + 1;
     } else {
         *extended = NULL;
+    }
+
+    return EOK;
+}
+
+static void
+be_get_account_info_done(struct be_req *be_req,
+                         int dp_err, int dp_ret,
+                         const char *errstr);
+
+struct be_get_account_info_state {
+    int err_maj;
+    int err_min;
+    const char *err_msg;
+};
+
+struct tevent_req *
+be_get_account_info_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_client *becli,
+                         struct be_ctx *be_ctx,
+                         struct be_acct_req *ar)
+{
+    struct tevent_req *req;
+    struct be_get_account_info_state *state;
+    struct be_req *be_req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct be_get_account_info_state);
+    if (!req) return NULL;
+
+    be_req = be_req_create(state, becli, be_ctx,
+                           be_get_account_info_done, req);
+    if (!be_req) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_file_account_request(be_req, ar);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    return req;
+
+done:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void
+be_get_account_info_done(struct be_req *be_req,
+                         int dp_err, int dp_ret,
+                         const char *errstr)
+{
+    struct tevent_req *req;
+    struct be_get_account_info_state *state;
+
+    req = talloc_get_type(be_req->pvt, struct tevent_req);
+    state = tevent_req_data(req, struct be_get_account_info_state);
+
+    state->err_maj = dp_err;
+    state->err_min = dp_ret;
+    if (errstr) {
+        state->err_msg = talloc_strdup(state, errstr);
+        if (state->err_msg == NULL) {
+            talloc_free(be_req);
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    }
+
+    talloc_free(be_req);
+    tevent_req_done(req);
+}
+
+errno_t be_get_account_info_recv(struct tevent_req *req,
+                                 TALLOC_CTX *mem_ctx,
+                                 int *_err_maj,
+                                 int *_err_min,
+                                 const char **_err_msg)
+{
+    struct be_get_account_info_state *state;
+
+    state = tevent_req_data(req, struct be_get_account_info_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_err_maj) {
+        *_err_maj = state->err_maj;
+    }
+
+    if (_err_min) {
+        *_err_min = state->err_min;
+    }
+
+    if (_err_msg) {
+        *_err_msg = talloc_steal(mem_ctx, state->err_msg);
     }
 
     return EOK;
@@ -893,8 +1021,6 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         goto done;
     }
 
-    be_req->req_data = req;
-
     if ((attr_type != BE_ATTR_CORE) &&
         (attr_type != BE_ATTR_MEM) &&
         (attr_type != BE_ATTR_ALL)) {
@@ -941,26 +1067,11 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         goto done;
     }
 
-    /* see if we need a pre request call, only done for initgroups for now */
-    if ((type & 0xFF) == BE_REQ_INITGROUPS) {
-        ret = be_initgroups_prereq(be_req);
-        if (ret) {
-            err_maj = DP_ERR_FATAL;
-            err_min = ret;
-            err_msg = "Prerequest failed";
-            goto done;
-        }
-    }
-
-    /* process request */
-
-    ret = be_file_request(becli->bectx->bet_info[BET_ID].pvt_bet_data,
-                          be_req,
-                          becli->bectx->bet_info[BET_ID].bet_ops->handler);
+    ret = be_file_account_request(be_req, req);
     if (ret != EOK) {
         err_maj = DP_ERR_FATAL;
         err_min = ret;
-        err_msg = "Failed to file request";
+        err_msg = "Cannot file account request";
         goto done;
     }
 

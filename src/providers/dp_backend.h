@@ -249,4 +249,18 @@ void *be_req_get_data(struct be_req *be_req);
 void be_req_terminate(struct be_req *be_req,
                       int dp_err_type, int errnum, const char *errstr);
 
+/* Request account information */
+struct tevent_req *
+be_get_account_info_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_client *becli,
+                         struct be_ctx *be_ctx,
+                         struct be_acct_req *ar);
+
+errno_t be_get_account_info_recv(struct tevent_req *req,
+                                 TALLOC_CTX *mem_ctx,
+                                 int *_err_maj,
+                                 int *_err_min,
+                                 const char **_err_msg);
+
 #endif /* __DP_BACKEND_H___ */
