@@ -385,6 +385,14 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_proxy.so
 %{_libdir}/%{name}/libsss_simple.so
 
+#Internal shared libraries
+%{_libdir}/%{name}/libsss_child.so
+%{_libdir}/%{name}/libsss_crypt.so
+%{_libdir}/%{name}/libsss_debug.so
+%{_libdir}/%{name}/libsss_krb5_common.so
+%{_libdir}/%{name}/libsss_ldap_common.so
+%{_libdir}/%{name}/libsss_util.so
+
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhostsproxy

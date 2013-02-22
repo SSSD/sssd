@@ -176,7 +176,9 @@ krb5authdata_plugin_LTLIBRARIES = \
     sssd_pac_plugin.la
 endif
 
-noinst_LTLIBRARIES = \
+noinst_LTLIBRARIES =
+
+pkglib_LTLIBRARIES = \
     libsss_crypt.la
 
 if HAVE_NSS
@@ -203,6 +205,8 @@ libsss_crypt_la_CFLAGS = \
     $(DHASH_CFLAGS)
 libsss_crypt_la_LIBADD = \
     $(SSS_CRYPT_LIBS)
+libsss_crypt_la_LDFLAGS = \
+    -avoid-version
 
 if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
@@ -471,15 +475,18 @@ endif
 #####################
 # Utility libraries #
 #####################
-noinst_LTLIBRARIES += libsss_debug.la
+pkglib_LTLIBRARIES += libsss_debug.la
 libsss_debug_la_SOURCES = \
     src/util/debug.c \
     src/util/sss_log.c
+libsss_debug_la_LDFLAGS = \
+    -avoid-version
 
-noinst_LTLIBRARIES += libsss_child.la
+pkglib_LTLIBRARIES += libsss_child.la
 libsss_child_la_SOURCES = src/util/child_common.c
+libsss_child_la_LDFLAGS = -avoid-version
 
-noinst_LTLIBRARIES += libsss_util.la
+pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
     src/confdb/confdb.c \
     src/db/sysdb.c \
@@ -532,6 +539,7 @@ libsss_util_la_SOURCES += \
     src/db/sysdb_ssh.c \
     src/util/sss_ssh.c
 endif
+libsss_util_la_LDFLAGS = -avoid-version
 
 lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
@@ -1251,7 +1259,7 @@ endif
 # Plugin Libraries #
 ####################
 
-noinst_LTLIBRARIES += libsss_ldap_common.la
+pkglib_LTLIBRARIES += libsss_ldap_common.la
 libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
@@ -1278,6 +1286,8 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_range.c \
     src/providers/ldap/sdap_reinit.c \
     src/providers/ldap/sdap.c
+libsss_ldap_common_la_LDFLAGS = \
+    -avoid-version
 
 if BUILD_SUDO
 libsss_ldap_common_la_SOURCES += \
@@ -1295,7 +1305,7 @@ libsss_ldap_common_la_SOURCES += \
 endif
 
 
-noinst_LTLIBRARIES += libsss_krb5_common.la
+pkglib_LTLIBRARIES += libsss_krb5_common.la
 libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_utils.c \
     src/providers/krb5/krb5_become_user.c \
@@ -1307,6 +1317,8 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_child_handler.c \
     src/providers/krb5/krb5_init_shared.c
+libsss_krb5_common_la_LDFLAGS = \
+    -avoid-version
 
 libsss_ldap_la_SOURCES = \
     src/util/find_uid.c \
@@ -1658,6 +1670,7 @@ installsssddirs::
     $(DESTDIR)$(dbusintrospectdir) \
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
+    $(DESTDIR)$(pkglibdir) \
     $(DESTDIR)$(sssdconfdir) \
     $(DESTDIR)$(sssddatadir) \
     $(DESTDIR)$(dbpath) \
