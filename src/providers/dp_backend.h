@@ -258,4 +258,19 @@ int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name);
 
 void reset_fo(struct be_ctx *be_ctx);
+
+/* Request account information */
+struct tevent_req *
+be_get_account_info_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_client *becli,
+                         struct be_ctx *be_ctx,
+                         struct be_acct_req *ar);
+
+errno_t be_get_account_info_recv(struct tevent_req *req,
+                                 TALLOC_CTX *mem_ctx,
+                                 int *_err_maj,
+                                 int *_err_min,
+                                 const char **_err_msg);
+
 #endif /* __DP_BACKEND_H___ */
