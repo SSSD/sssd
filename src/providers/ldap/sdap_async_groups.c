@@ -219,10 +219,14 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
             ret = sdap_find_entry_by_origDN(el->values, ctx, domain,
                                             (char *)values[i].data,
                                             (char **)&el->values[j].data);
+            if (ret == ENOENT) {
+                /* member may be outside of the configured search bases
+                 * or out of scope of nesting limit */
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Member [%s] was not found in "
+                      "cache. Is it out of scope?\n", (char *)values[i].data));
+                continue;
+            }
             if (ret != EOK) {
-                /* This should never return ENOENT
-                 * -> fail if it does
-                 */
                 goto done;
             }
 
