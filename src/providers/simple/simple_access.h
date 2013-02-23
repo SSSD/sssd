@@ -29,6 +29,7 @@
 struct simple_ctx {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
+    struct be_ctx *be_ctx;
 
     char **allow_users;
     char **deny_users;
@@ -36,6 +37,12 @@ struct simple_ctx {
     char **deny_groups;
 };
 
-errno_t simple_access_check(struct simple_ctx *ctx, const char *username,
-                            bool *access_granted);
+struct tevent_req *simple_access_check_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct simple_ctx *ctx,
+                                            const char *username);
+
+errno_t simple_access_check_recv(struct tevent_req *req,
+                                 bool *access_granted);
+
 #endif /* __SIMPLE_ACCESS_H__ */
