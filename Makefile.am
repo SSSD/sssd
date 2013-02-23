@@ -1032,15 +1032,22 @@ ad_ldap_opt_tests_LDADD = \
 
 simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
-    src/tests/common.c \
-    src/providers/simple/simple_access_check.c
+    src/providers/simple/simple_access_check.c \
+    src/providers/data_provider_be.c \
+    src/providers/data_provider_fo.c \
+    src/providers/data_provider_callbacks.c \
+    $(SSSD_FAILOVER_OBJ)
 simple_access_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
+    $(CHECK_CFLAGS) \
+    -DUNIT_TESTING
 simple_access_tests_LDADD = \
     $(SSSD_LIBS) \
+    $(CARES_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la
+    $(PAM_LIBS) \
+    libsss_util.la \
+    libsss_test_common.la
 
 util_tests_SOURCES = \
     src/tests/util-tests.c

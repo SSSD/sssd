@@ -32,12 +32,13 @@
 #define CONFDB_SIMPLE_ALLOW_GROUPS "simple_allow_groups"
 #define CONFDB_SIMPLE_DENY_GROUPS "simple_deny_groups"
 
+static void simple_access_check(struct tevent_req *req);
+
 void simple_access_handler(struct be_req *be_req)
 {
     struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    int ret;
-    bool access_granted = false;
     struct pam_data *pd;
+    struct tevent_req *req;
     struct simple_ctx *ctx;
 
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
@@ -53,7 +54,30 @@ void simple_access_handler(struct be_req *be_req)
     ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                           struct simple_ctx);
 
-    ret = simple_access_check(ctx, pd->user, &access_granted);
+    req = simple_access_check_send(be_req, be_ctx->ev, ctx, pd->user);
+    if (!req) {
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+    tevent_req_set_callback(req, simple_access_check, be_req);
+    return;
+
+done:
+    be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
+}
+
+static void simple_access_check(struct tevent_req *req)
+{
+    bool access_granted = false;
+    errno_t ret;
+    struct pam_data *pd;
+    struct be_req *be_req;
+
+    be_req = tevent_req_callback_data(req, struct be_req);
+    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
+
+    ret = simple_access_check_recv(req, &access_granted);
+    talloc_free(req);
     if (ret != EOK) {
         pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
@@ -87,6 +111,7 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
     }
 
     ctx->domain = bectx->domain;
+    ctx->be_ctx = bectx;
 
     /* Users */
     ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
