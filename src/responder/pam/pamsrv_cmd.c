@@ -387,6 +387,7 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     mode_t oldmask;
     TALLOC_CTX *tmp_ctx;
     char *full_string = NULL;
+    int enforce;
     errno_t ret = EOK;
 
     len = strlen(string);
@@ -414,11 +415,22 @@ static errno_t write_selinux_login_file(const char *username, char *string)
 
     oldmask = umask(022);
     fd = mkstemp(tmp_path);
+    ret = errno;
     umask(oldmask);
     if (fd < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("creating the temp file for SELinux "
-                                  "data failed. %s", tmp_path));
-        ret = EIO;
+        if (ret == ENOENT) {
+            /* if selinux is disabled and selogin dir does not exist,
+             * just ignore the error */
+            if (selinux_getenforcemode(&enforce) == 0 && enforce == -1) {
+                ret = EOK;
+                goto done;
+            }
+
+            /* continue if we can't get enforce mode or selinux is enabled */
+        }
+
+        DEBUG(SSSDBG_OP_FAILURE, ("unable to create temp file [%s] "
+              "for SELinux data [%d]: %s\n", tmp_path, ret, strerror(ret)));
         goto done;
     }
 
