@@ -36,7 +36,6 @@ struct get_password_migration_flag_state {
     struct tevent_context *ev;
     struct sdap_id_op *sdap_op;
     struct sdap_id_ctx *sdap_id_ctx;
-    enum sdap_result result;
     struct fo_server *srv;
     char *ipa_realm;
     bool password_migration;
@@ -68,7 +67,6 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->sdap_id_ctx = sdap_id_ctx;
-    state->result = SDAP_ERROR;
     state->srv = NULL;
     state->password_migration = false;
     state->ipa_realm = ipa_realm;
@@ -393,25 +391,29 @@ static void ipa_auth_ldap_done(struct tevent_req *req)
     struct be_ctx *be_ctx = be_req_get_be_ctx(state->be_req);
     int ret;
     int dp_err = DP_ERR_FATAL;
-    enum sdap_result result;
 
-    ret = sdap_auth_recv(req, state, &result, NULL);
+    ret = sdap_auth_recv(req, state, NULL);
     talloc_zfree(req);
-    if (ret != EOK) {
+    switch (ret) {
+    case EOK:
+        break;
+
+    case ERR_AUTH_DENIED:
+    case ERR_AUTH_FAILED:
+    case ERR_PASSWORD_EXPIRED:
+/* TODO: do we need to handle expired passwords? */
+        DEBUG(SSSDBG_MINOR_FAILURE, ("LDAP authentication failed, "
+                                     "Password migration not possible.\n"));
+        state->pd->pam_status = PAM_CRED_INSUFFICIENT;
+        dp_err = DP_ERR_OK;
+        goto done;
+    default:
         DEBUG(SSSDBG_OP_FAILURE, ("auth_send request failed.\n"));
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;
     }
 
-/* TODO: do we need to handle expired passwords? */
-    if (result != SDAP_AUTH_SUCCESS) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("LDAP authentication failed, "
-                                     "Password migration not possible.\n"));
-        state->pd->pam_status = PAM_CRED_INSUFFICIENT;
-        dp_err = DP_ERR_OK;
-        goto done;
-    }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("LDAP authentication succeded, "
                               "trying Kerberos authentication again.\n"));

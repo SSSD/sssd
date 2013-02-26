@@ -32,12 +32,9 @@
 
 const char* sss_ldap_err2string(int err)
 {
-    static const char *password_expired = "Password expired";
-
-    switch (err) {
-    case LDAP_X_SSSD_PASSWORD_EXPIRED:
-        return password_expired;
-    default:
+    if (IS_SSSD_ERROR(err)) {
+        return sss_strerror(err);
+    } else {
         return ldap_err2string(err);
     }
 }

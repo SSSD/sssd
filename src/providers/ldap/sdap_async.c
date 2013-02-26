@@ -490,7 +490,6 @@ struct sdap_exop_modify_passwd_state {
 
     struct sdap_op *op;
 
-    int result;
     char *user_error_message;
 };
 
@@ -552,6 +551,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
         DEBUG(1, ("sdap_control_create failed to create "
                   "Password Policy control.\n"));
+        ret = ERR_INTERNAL;
         goto fail;
     }
     request_controls = ctrls;
@@ -564,6 +564,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     if (ctrls[0]) ldap_control_free(ctrls[0]);
     if (ret == -1 || msgid == -1) {
         DEBUG(1, ("ldap_extended_operation failed\n"));
+        ret = ERR_NETWORK_IO;
         goto fail;
     }
     DEBUG(8, ("ldap_extended_operation sent, msgid = %d\n", msgid));
@@ -573,13 +574,14 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                       sdap_exop_modify_passwd_done, req, 5, &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
+        ret = ERR_INTERNAL;
         goto fail;
     }
 
     return req;
 
 fail:
-    tevent_req_error(req, EIO);
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
 }
@@ -598,6 +600,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     ber_int_t pp_grace;
     ber_int_t pp_expire;
     LDAPPasswordPolicyError pp_error;
+    int result;
 
     if (error) {
         tevent_req_error(req, error);
@@ -605,11 +608,11 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     }
 
     ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                            &state->result, NULL, &errmsg, NULL,
+                            &result, NULL, &errmsg, NULL,
                             &response_controls, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
-        ret = EIO;
+        ret = ERR_INTERNAL;
         goto done;
     }
 
@@ -627,7 +630,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                                                         &pp_error);
                 if (ret != LDAP_SUCCESS) {
                     DEBUG(1, ("ldap_parse_passwordpolicy_control failed.\n"));
-                    ret = EIO;
+                    ret = ERR_NETWORK_IO;
                     goto done;
                 }
 
@@ -639,9 +642,16 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     }
 
     DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
-            sss_ldap_err2string(state->result), state->result, errmsg));
+            sss_ldap_err2string(result), result, errmsg));
 
-    if (state->result != LDAP_SUCCESS) {
+    switch (result) {
+    case LDAP_SUCCESS:
+        ret = EOK;
+        break;
+    case LDAP_CONSTRAINT_VIOLATION:
+        ret = ERR_CHPASS_DENIED;
+        break;
+    default:
         if (errmsg) {
             state->user_error_message = talloc_strdup(state, errmsg);
             if (state->user_error_message == NULL) {
@@ -650,11 +660,10 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                 goto done;
             }
         }
-        ret = EIO;
-        goto done;
+        ret = ERR_NETWORK_IO;
+        break;
     }
 
-    ret = EOK;
 done:
     ldap_controls_free(response_controls);
     ldap_memfree(errmsg);
@@ -666,27 +675,14 @@ done:
     }
 }
 
-int sdap_exop_modify_passwd_recv(struct tevent_req *req,
-                                 TALLOC_CTX * mem_ctx,
-                                 enum sdap_result *result,
-                                 char **user_error_message)
+errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
+                                     TALLOC_CTX * mem_ctx,
+                                     char **user_error_message)
 {
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
 
     *user_error_message = talloc_steal(mem_ctx, state->user_error_message);
-
-    switch (state->result) {
-        case LDAP_SUCCESS:
-            *result = SDAP_SUCCESS;
-            break;
-        case LDAP_CONSTRAINT_VIOLATION:
-            *result = SDAP_AUTH_PW_CONSTRAINT_VIOLATION;
-            break;
-        default:
-            *result = SDAP_ERROR;
-            break;
-    }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

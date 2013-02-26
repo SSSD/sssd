@@ -52,7 +52,6 @@ struct ipa_s2n_exop_state {
 
     struct sdap_op *op;
 
-    int result;
     char *retoid;
     struct berval *retdata;
 };
@@ -75,7 +74,6 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
     if (!req) return NULL;
 
     state->sh = sh;
-    state->result = LDAP_OPERATIONS_ERROR;
     state->retoid = NULL;
     state->retdata = NULL;
 
@@ -85,6 +83,7 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                   bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("ldap_extended_operation failed\n"));
+        ret = ERR_NETWORK_IO;
         goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, ("ldap_extended_operation sent, msgid = %d\n", msgid));
@@ -94,13 +93,14 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                       &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set up operation!\n"));
+        ret = ERR_INTERNAL;
         goto fail;
     }
 
     return req;
 
 fail:
-    tevent_req_error(req, EIO);
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
 }
@@ -116,6 +116,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     char *errmsg = NULL;
     char *retoid = NULL;
     struct berval *retdata = NULL;
+    int result;
 
     if (error) {
         tevent_req_error(req, error);
@@ -123,19 +124,19 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     }
 
     ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                            &state->result, &errmsg, NULL, NULL,
+                            &result, &errmsg, NULL, NULL,
                             NULL, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_result failed (%d)\n", state->op->msgid));
-        ret = EIO;
+        ret = ERR_NETWORK_IO;
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("ldap_extended_operation result: %s(%d), %s\n",
-            sss_ldap_err2string(state->result), state->result, errmsg));
+            sss_ldap_err2string(result), result, errmsg));
 
-    if (state->result != LDAP_SUCCESS) {
-        ret = EIO;
+    if (result != LDAP_SUCCESS) {
+        ret = ERR_NETWORK_IO;
         goto done;
     }
 
@@ -143,7 +144,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
                                       &retoid, &retdata, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_extendend_result failed (%d)\n", ret));
-        ret = EIO;
+        ret = ERR_NETWORK_IO;
         goto done;
     }
 
@@ -183,21 +184,15 @@ done:
 }
 
 static int ipa_s2n_exop_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                             enum sdap_result *result, char **retoid,
-                             struct berval **retdata)
+                             char **retoid, struct berval **retdata)
 {
     struct ipa_s2n_exop_state *state = tevent_req_data(req,
                                                     struct ipa_s2n_exop_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (state->result == LDAP_SUCCESS) {
-        *result = SDAP_SUCCESS;
-        *retoid = talloc_steal(mem_ctx, state->retoid);
-        *retdata = talloc_steal(mem_ctx, state->retdata);
-    } else {
-        *result = SDAP_ERROR;
-    }
+    *retoid = talloc_steal(mem_ctx, state->retoid);
+    *retdata = talloc_steal(mem_ctx, state->retdata);
 
     return EOK;
 }
@@ -583,7 +578,6 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     struct ipa_s2n_get_user_state *state = tevent_req_data(req,
                                                 struct ipa_s2n_get_user_state);
     int ret;
-    enum sdap_result result;
     char *retoid = NULL;
     struct berval *retdata = NULL;
     struct resp_attrs *attrs = NULL;
@@ -595,7 +589,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     char *realm;
     char *upn;
 
-    ret = ipa_s2n_exop_recv(subreq, state, &result, &retoid, &retdata);
+    ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("s2n exop request failed.\n"));

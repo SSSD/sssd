@@ -446,7 +446,6 @@ struct simple_bind_state {
 
     struct sdap_msg *reply;
     struct sdap_ppolicy_data *ppolicy;
-    int result;
 };
 
 static void simple_bind_done(struct sdap_op *op,
@@ -529,7 +528,7 @@ fail:
     if (ret == LDAP_SERVER_DOWN) {
         tevent_req_error(req, ETIMEDOUT);
     } else {
-        tevent_req_error(req, EIO);
+        tevent_req_error(req, ERR_NETWORK_IO);
     }
     tevent_req_post(req, ev);
     return req;
@@ -544,13 +543,14 @@ static void simple_bind_done(struct sdap_op *op,
                                             struct simple_bind_state);
     char *errmsg = NULL;
     char *nval;
-    errno_t ret;
+    errno_t ret = ERR_INTERNAL;
     int lret;
     LDAPControl **response_controls;
     int c;
     ber_int_t pp_grace;
     ber_int_t pp_expire;
     LDAPPasswordPolicyError pp_error;
+    int result = LDAP_OTHER;
 
     if (error) {
         tevent_req_error(req, error);
@@ -560,13 +560,19 @@ static void simple_bind_done(struct sdap_op *op,
     state->reply = talloc_steal(state, reply);
 
     lret = ldap_parse_result(state->sh->ldap, state->reply->msg,
-                            &state->result, NULL, &errmsg, NULL,
+                            &result, NULL, &errmsg, NULL,
                             &response_controls, 0);
     if (lret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("ldap_parse_result failed (%d)\n", state->op->msgid));
-        ret = EIO;
+        ret = ERR_INTERNAL;
         goto done;
+    }
+
+    if (result == LDAP_SUCCESS) {
+        ret = EOK;
+    } else {
+        ret = ERR_AUTH_FAILED;
     }
 
     if (response_controls == NULL) {
@@ -586,7 +592,7 @@ static void simple_bind_done(struct sdap_op *op,
                 if (lret != LDAP_SUCCESS) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           ("ldap_parse_passwordpolicy_control failed.\n"));
-                    ret = EIO;
+                    ret = ERR_INTERNAL;
                     goto done;
                 }
 
@@ -602,12 +608,13 @@ static void simple_bind_done(struct sdap_op *op,
                 }
                 state->ppolicy->grace = pp_grace;
                 state->ppolicy->expire = pp_expire;
-                if (state->result == LDAP_SUCCESS) {
+                if (result == LDAP_SUCCESS) {
+
                     if (pp_error == PP_changeAfterReset) {
                         DEBUG(SSSDBG_TRACE_LIBS,
                               ("Password was reset. "
                                "User must set a new password.\n"));
-                        state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
+                        ret = ERR_PASSWORD_EXPIRED;
                     } else if (pp_grace > 0) {
                         DEBUG(SSSDBG_TRACE_LIBS,
                               ("Password expired. "
@@ -618,17 +625,17 @@ static void simple_bind_done(struct sdap_op *op,
                               ("Password will expire in [%d] seconds.\n",
                                pp_expire));
                     }
-                } else if (state->result == LDAP_INVALID_CREDENTIALS &&
+                } else if (result == LDAP_INVALID_CREDENTIALS &&
                            pp_error == PP_passwordExpired) {
                     DEBUG(SSSDBG_TRACE_LIBS,
                           ("Password expired user must set a new password.\n"));
-                    state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
+                    ret = ERR_PASSWORD_EXPIRED;
                 }
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRED) == 0) {
                 DEBUG(SSSDBG_TRACE_LIBS,
                       ("Password expired user must set a new password.\n"));
-                state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
+                ret = ERR_PASSWORD_EXPIRED;
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRING) == 0) {
                 /* ignore controls with suspiciously long values */
@@ -670,10 +677,13 @@ static void simple_bind_done(struct sdap_op *op,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Bind result: %s(%d), %s\n",
-              sss_ldap_err2string(state->result), state->result,
+              sss_ldap_err2string(result), result,
               errmsg ? errmsg : "no errmsg set"));
 
-    ret = EOK;
+    if (result != LDAP_SUCCESS && ret == EOK) {
+        ret = ERR_AUTH_FAILED;
+    }
+
 done:
     ldap_controls_free(response_controls);
     ldap_memfree(errmsg);
@@ -685,19 +695,19 @@ done:
     }
 }
 
-static int simple_bind_recv(struct tevent_req *req,
-                            TALLOC_CTX *memctx,
-                            int *ldaperr,
-                            struct sdap_ppolicy_data **ppolicy)
+static errno_t simple_bind_recv(struct tevent_req *req,
+                                TALLOC_CTX *memctx,
+                                struct sdap_ppolicy_data **ppolicy)
 {
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
 
-    *ldaperr = LDAP_OTHER;
+    if (ppolicy != NULL) {
+        *ppolicy = talloc_steal(memctx, state->ppolicy);
+    }
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *ldaperr = state->result;
-    *ppolicy = talloc_steal(memctx, state->ppolicy);
     return EOK;
 }
 
@@ -710,8 +720,6 @@ struct sasl_bind_state {
     const char *sasl_mech;
     const char *sasl_user;
     struct berval *sasl_cred;
-
-    int result;
 };
 
 static int sdap_sasl_interact(LDAP *ld, unsigned flags,
@@ -749,7 +757,6 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
                                        sasl_mech, NULL, NULL,
                                        LDAP_SASL_QUIET,
                                        (*sdap_sasl_interact), state);
-    state->result = ret;
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("ldap_sasl_bind failed (%d)[%s]\n",
@@ -771,14 +778,20 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
         if (ret) goto fail;
     }
 
+    /* This is a hack, relies on the fact that tevent_req_done() will always
+     * set the state but will not complain if no callback has been set.
+     * tevent_req_post() will only set the immediate event and then just call
+     * the async callback set by the caller right after we return using the
+     * state value set previously by tevent_req_done() */
+    tevent_req_done(req);
     tevent_req_post(req, ev);
     return req;
 
 fail:
-    if (ret == LDAP_SERVER_DOWN) {
+    if (ret == LDAP_SERVER_DOWN || ret == LDAP_TIMEOUT) {
         tevent_req_error(req, ETIMEDOUT);
     } else {
-        tevent_req_error(req, EIO);
+        tevent_req_error(req, ERR_AUTH_FAILED);
     }
     tevent_req_post(req, ev);
     return req;
@@ -830,21 +843,10 @@ fail:
     return LDAP_UNAVAILABLE;
 }
 
-static int sasl_bind_recv(struct tevent_req *req, int *ldaperr)
+static errno_t sasl_bind_recv(struct tevent_req *req)
 {
-    struct sasl_bind_state *state = tevent_req_data(req,
-                                            struct sasl_bind_state);
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (tstate != TEVENT_REQ_IN_PROGRESS) {
-            *ldaperr = LDAP_OTHER;
-            return err;
-        }
-    }
-
-    *ldaperr = state->result;
     return EOK;
 }
 
@@ -862,7 +864,6 @@ struct sdap_kinit_state {
     struct be_ctx *be;
 
     struct fo_server *kdc_srv;
-    int result;
     time_t expire_time;
 };
 
@@ -870,6 +871,7 @@ static void sdap_kinit_done(struct tevent_req *subreq);
 static struct tevent_req *sdap_kinit_next_kdc(struct tevent_req *req);
 static void sdap_kinit_kdc_resolved(struct tevent_req *subreq);
 
+static
 struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct be_ctx *be,
@@ -899,7 +901,6 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct sdap_kinit_state);
     if (!req) return NULL;
 
-    state->result = SDAP_AUTH_FAILED;
     state->keytab = keytab;
     state->principal = principal;
     state->realm = realm;
@@ -974,7 +975,7 @@ static void sdap_kinit_kdc_resolved(struct tevent_req *subreq)
     if (ret != EOK) {
         /* all servers have been tried and none
          * was found good, go offline */
-        tevent_req_error(req, EIO);
+        tevent_req_error(req, ERR_NETWORK_IO);
         return;
     }
 
@@ -1021,7 +1022,6 @@ static void sdap_kinit_done(struct tevent_req *subreq)
         return;
     } else if (ret != EOK) {
         /* A severe error while executing the child. Abort the operation. */
-        state->result = SDAP_AUTH_FAILED;
         DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
         return;
@@ -1031,12 +1031,10 @@ static void sdap_kinit_done(struct tevent_req *subreq)
         ret = setenv("KRB5CCNAME", ccname, 1);
         if (ret == -1) {
             DEBUG(2, ("Unable to set env. variable KRB5CCNAME!\n"));
-            state->result = SDAP_AUTH_FAILED;
-            tevent_req_error(req, EFAULT);
+            tevent_req_error(req, ERR_AUTH_FAILED);
         }
 
         state->expire_time = expire_time;
-        state->result = SDAP_AUTH_SUCCESS;
         tevent_req_done(req);
         return;
     } else {
@@ -1052,28 +1050,24 @@ static void sdap_kinit_done(struct tevent_req *subreq)
 
     }
 
-    DEBUG(4, ("Could not get TGT: %d [%s]\n", result, strerror(result)));
-    state->result = SDAP_AUTH_FAILED;
-    tevent_req_error(req, EIO);
+    DEBUG(4, ("Could not get TGT: %d [%s]\n", result, sss_strerror(result)));
+    tevent_req_error(req, ERR_AUTH_FAILED);
 }
 
-int sdap_kinit_recv(struct tevent_req *req,
-                    enum sdap_result *result,
-                    time_t *expire_time)
+static errno_t sdap_kinit_recv(struct tevent_req *req,
+                               time_t *expire_time)
 {
     struct sdap_kinit_state *state = tevent_req_data(req,
                                                      struct sdap_kinit_state);
     enum tevent_req_state tstate;
-    uint64_t err = EIO;
+    uint64_t err = ERR_INTERNAL;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         if (tstate != TEVENT_REQ_IN_PROGRESS) {
-            *result = SDAP_ERROR;
             return err;
         }
     }
 
-    *result = state->result;
     *expire_time = state->expire_time;
     return EOK;
 }
@@ -1084,7 +1078,6 @@ int sdap_kinit_recv(struct tevent_req *req,
 struct sdap_auth_state {
     struct sdap_ppolicy_data *ppolicy;
     bool is_sasl;
-    int result;
 };
 
 static void sdap_auth_done(struct tevent_req *subreq);
@@ -1171,46 +1164,31 @@ static void sdap_auth_done(struct tevent_req *subreq)
     int ret;
 
     if (state->is_sasl) {
-        ret = sasl_bind_recv(subreq, &state->result);
+        ret = sasl_bind_recv(subreq);
         state->ppolicy = NULL;
     } else {
-        ret = simple_bind_recv(subreq, state, &state->result, &state->ppolicy);
+        ret = simple_bind_recv(subreq, state, &state->ppolicy);
     }
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+
+    if (tevent_req_error(req, ret)) {
         return;
     }
 
     tevent_req_done(req);
 }
 
-int sdap_auth_recv(struct tevent_req *req,
-                   TALLOC_CTX *memctx,
-                   enum sdap_result *result,
-                   struct sdap_ppolicy_data **ppolicy)
+errno_t sdap_auth_recv(struct tevent_req *req,
+                       TALLOC_CTX *memctx,
+                       struct sdap_ppolicy_data **ppolicy)
 {
     struct sdap_auth_state *state = tevent_req_data(req,
                                                  struct sdap_auth_state);
 
-    *result = SDAP_ERROR;
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
     if (ppolicy != NULL) {
         *ppolicy = talloc_steal(memctx, state->ppolicy);
     }
-    switch (state->result) {
-        case LDAP_SUCCESS:
-            *result = SDAP_AUTH_SUCCESS;
-            break;
-        case LDAP_INVALID_CREDENTIALS:
-            *result = SDAP_AUTH_FAILED;
-            break;
-        case LDAP_X_SSSD_PASSWORD_EXPIRED:
-            *result = SDAP_AUTH_PW_EXPIRED;
-            break;
-        default:
-            break;
-    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -1564,17 +1542,16 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
-    enum sdap_result result;
     time_t expire_time;
-    int ret;
+    errno_t ret;
 
-    ret = sdap_kinit_recv(subreq, &result, &expire_time);
+    ret = sdap_kinit_recv(subreq, &expire_time);
     talloc_zfree(subreq);
-    if (ret != EOK || result != SDAP_AUTH_SUCCESS) {
+    if (ret != EOK) {
         /* We're not able to authenticate to the LDAP server.
          * There's not much we can do except for going offline */
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Cannot get a TGT: ret [%d] result [%d]\n", ret, result));
+              ("Cannot get a TGT: ret [%d](%s)\n", ret, sss_strerror(ret)));
         tevent_req_error(req, EACCES);
         return;
     }
@@ -1660,17 +1637,12 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
-    enum sdap_result result;
     int ret;
 
-    ret = sdap_auth_recv(subreq, NULL, &result, NULL);
+    ret = sdap_auth_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
-        return;
-    }
-    if (result != SDAP_AUTH_SUCCESS) {
-        tevent_req_error(req, EACCES);
         return;
     }
 

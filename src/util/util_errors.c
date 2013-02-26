@@ -35,8 +35,11 @@ struct err_string error_to_str[] = {
     { "Cached credentials are expired" }, /* ERR_CACHED_CREDS_EXPIRED */
     { "Authentication Denied" }, /* ERR_AUTH_DENIED */
     { "Authentication Failed" }, /* ERR_AUTH_FAILED */
+    { "Password Change Denied" }, /* ERR_CHPASS_DENIED */
     { "Password Change Failed" }, /* ERR_CHPASS_FAILED */
     { "Network I/O Error" }, /* ERR_NETWORK_IO */
+    { "Account Expired" }, /* ERR_ACCOUNT_EXPIRED */
+    { "Password Expired" }, /* ERR_PASSWORD_EXPIRED */
 };
 
 

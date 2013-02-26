@@ -136,19 +136,6 @@ struct sdap_ppolicy_data {
 #define SDAP_AD_USN "uSNChanged"
 #define SDAP_AD_LAST_USN "highestCommittedUSN"
 
-enum sdap_result {
-    SDAP_SUCCESS,
-    SDAP_NOT_FOUND,
-    SDAP_UNAVAIL,
-    SDAP_RETRY,
-    SDAP_ERROR,
-    SDAP_AUTH_SUCCESS,
-    SDAP_AUTH_FAILED,
-    SDAP_AUTH_PW_EXPIRED,
-    SDAP_AUTH_PW_CONSTRAINT_VIOLATION,
-    SDAP_ACCT_EXPIRED
-};
-
 enum sdap_basic_opt {
     SDAP_URI = 0,
     SDAP_BACKUP_URI,

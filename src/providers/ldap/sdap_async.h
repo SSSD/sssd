@@ -86,22 +86,6 @@ int sdap_get_netgroups_recv(struct tevent_req *req,
                             size_t *reply_count,
                             struct sysdb_attrs ***reply);
 
-struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
-                                   struct tevent_context *ev,
-                                   struct be_ctx *be,
-                                   struct sdap_handle *sh,
-                                   const char *service_name,
-                                   int    timeout,
-                                   const char *keytab,
-                                   const char *principal,
-                                   const char *realm,
-                                   bool canonicalize,
-                                   int lifetime);
-
-int sdap_kinit_recv(struct tevent_req *req,
-                    enum sdap_result *result,
-                    time_t *expire_time);
-
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_handle *sh,
@@ -110,10 +94,9 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *user_dn,
                                   struct sss_auth_token *authtok);
 
-int sdap_auth_recv(struct tevent_req *req,
-                   TALLOC_CTX *memctx,
-                   enum sdap_result *result,
-                   struct sdap_ppolicy_data **ppolicy);
+errno_t sdap_auth_recv(struct tevent_req *req,
+                       TALLOC_CTX *memctx,
+                       struct sdap_ppolicy_data **ppolicy);
 
 struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
@@ -129,9 +112,9 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                                 char *user_dn,
                                                 const char *password,
                                                 const char *new_password);
-int sdap_exop_modify_passwd_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                                 enum sdap_result *result,
-                                 char **user_error_msg);
+errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
+                                     TALLOC_CTX *mem_ctx,
+                                     char **user_error_msg);
 
 struct tevent_req *
 sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,

@@ -27,8 +27,6 @@
 #include <talloc.h>
 #include <tevent.h>
 
-#define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
-
 #ifndef LDAP_CONTROL_PWEXPIRED
 #define LDAP_CONTROL_PWEXPIRED "2.16.840.1.113730.3.4.4"
 #endif
