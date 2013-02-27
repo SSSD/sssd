@@ -230,6 +230,25 @@ Requires: libipa_hbac = %{version}-%{release}
 The libipa_hbac-python contains the bindings so that libipa_hbac can be
 used by Python applications.
 
+%package -n libsss_nss_idmap
+Summary: Library for SID based lookups
+Group: Development/Libraries
+License: LGPLv3+
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
+
+%description -n libsss_nss_idmap
+Utility library for SID based lookups
+
+%package -n libsss_nss_idmap-devel
+Summary: Library for SID based lookups
+Group: Development/Libraries
+License: LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
+
+%description -n libsss_nss_idmap-devel
+Utility library for SID based lookups
+
 %package -n libsss_sudo
 Summary: A library to allow communication between SUDO and SSSD
 Group: Development/Libraries
@@ -521,6 +540,23 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/ipa_hbac.h
 %{_libdir}/libipa_hbac.so
 %{_libdir}/pkgconfig/ipa_hbac.pc
+
+%files -n libsss_nss_idmap
+%defattr(-,root,root,-)
+%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%{_libdir}/libsss_nss_idmap.so.*
+
+%files -n libsss_nss_idmap-devel
+%defattr(-,root,root,-)
+%if 0%{?fedora}
+%doc nss_idmap_doc/html
+%endif
+%if 0%{?rhel} >= 6
+%doc nss_idmap_doc/html
+%endif
+%{_includedir}/sss_nss_idmap.h
+%{_libdir}/libsss_nss_idmap.so
+%{_libdir}/pkgconfig/sss_nss_idmap.pc
 
 %package -n libsss_autofs
 Summary: A library to allow communication between Autofs and SSSD

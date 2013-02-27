@@ -222,6 +222,26 @@ enum sss_cli_command {
 /* PAC responder calls */
     SSS_PAC_ADD_PAC_USER     = 0x0101,
 
+/* ID-SID mapping calls */
+SSS_NSS_GETSIDBYNAME = 0x0111, /**< Takes a zero terminated fully qualified
+                                    name and returns the zero terminated
+                                    string representation of the SID of the
+                                    object with the given name. */
+SSS_NSS_GETSIDBYID   = 0x0112, /**< Takes an unsigned 32bit integer (POSIX ID)
+                                    and returns the zero terminated string
+                                    representation of the SID of the object
+                                    with the given ID. */
+SSS_NSS_GETNAMEBYSID = 0x0113, /**< Takes the zero terminated string
+                                    representation of a SID and returns the
+                                    zero terminated fully qualified name of
+                                    the related object. */
+SSS_NSS_GETIDBYSID   = 0x0114, /**< Takes the zero terminated string
+                                    representation of a SID and returns and
+                                    returns the POSIX ID of the related object
+                                    as unsigned 32bit integer value and
+                                    another unsigned 32bit integer value
+                                    indicating the type (unknown, user, group,
+                                    both) of the object. */
 };
 
 /**

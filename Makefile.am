@@ -148,7 +148,8 @@ if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
         nss-srv-tests \
         test-find-uid \
-        test-io
+        test-io \
+        sss_nss_idmap-tests
 endif
 
 check_PROGRAMS = \
@@ -490,7 +491,8 @@ endif
 SSSD_DOCS = \
     doc \
     hbac_doc \
-    idmap_doc
+    idmap_doc \
+    nss_idmap_doc
 
 if BUILD_SUDO
     SSSD_DOCS += libsss_sudo_doc
@@ -572,7 +574,7 @@ libsss_util_la_SOURCES += \
 endif
 libsss_util_la_LDFLAGS = -avoid-version
 
-lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la
+lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c \
@@ -589,10 +591,19 @@ libsss_idmap_la_SOURCES = \
 libsss_idmap_la_LDFLAGS = \
     -version-info 1:0:1
 
+dist_pkgconfig_DATA += src/sss_client/idmap/sss_nss_idmap.pc
+libsss_nss_idmap_la_SOURCES = \
+    src/sss_client/idmap/sss_nss_idmap.c \
+    src/sss_client/common.c \
+    src/util/strtonum.c
+libsss_nss_idmap_la_LDFLAGS = \
+    $(CLIENT_LIBS) \
+    -version-info 0:1:0
 
 include_HEADERS = \
     src/providers/ipa/ipa_hbac.h \
-    src/lib/idmap/sss_idmap.h
+    src/lib/idmap/sss_idmap.h \
+    src/sss_client/idmap/sss_nss_idmap.h
 
 ####################
 # Program Binaries #
@@ -1129,6 +1140,14 @@ sss_idmap_tests_LDADD = \
     $(TALLOC_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la
+
+sss_nss_idmap_tests_SOURCES = \
+    src/tests/sss_nss_idmap-tests.c
+sss_nss_idmap_tests_CFLAGS = \
+    $(AM_CFLAGS)
+sss_nss_idmap_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    libsss_nss_idmap.la
 
 pac_responder_tests_SOURCES = \
     src/tests/pac_responder-tests.c \
@@ -1810,6 +1829,7 @@ docs:
 if BUILD_SUDO
 	$(DOXYGEN) src/sss_client/sudo/sss_sudo.doxy
 endif BUILD_SUDO
+	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"
