@@ -1085,13 +1085,13 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
         goto done;
     }
 
+    /* allocate memory for number of entries in the packet */
     ret = sss_packet_grow(client->creq->out, sizeof(uint32_t));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot grow packet\n"));
         goto done;
     }
 
-    sss_packet_get_body(client->creq->out, &body, &blen);
     rp = sizeof(uint32_t);  /* We'll write the number of entries here */
 
     left = map->entry_count - cursor;
@@ -1110,6 +1110,10 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
         }
         nentries++;
     }
+
+    /* packet grows in fill_autofs_entry, body pointer may change,
+     * thus we have to obtain it here */
+    sss_packet_get_body(client->creq->out, &body, &blen);
 
     rp = 0;
     SAFEALIGN_SET_UINT32(&body[rp], nentries, &rp);
