@@ -36,6 +36,7 @@
 
 struct ipa_selinux_ctx {
     struct ipa_id_ctx *id_ctx;
+    time_t last_update;
 
     struct sdap_search_base **selinux_search_bases;
     struct sdap_search_base **host_search_bases;

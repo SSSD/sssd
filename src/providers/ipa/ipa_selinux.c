@@ -58,7 +58,8 @@ static struct ipa_selinux_op_ctx *
 ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           struct be_req *be_req, const char *username,
-                          const char *hostname);
+                          const char *hostname,
+                          struct ipa_selinux_ctx *selinux_ctx);
 static void ipa_selinux_handler_done(struct tevent_req *subreq);
 
 static void ipa_get_selinux_connect_done(struct tevent_req *subreq);
@@ -79,6 +80,7 @@ static errno_t ipa_selinux_process_maps(TALLOC_CTX *mem_ctx,
 struct ipa_selinux_op_ctx {
     struct be_req *be_req;
     struct sss_domain_info *domain;
+    struct ipa_selinux_ctx *selinux_ctx;
 
     struct sysdb_attrs *user;
     struct sysdb_attrs *host;
@@ -107,7 +109,8 @@ void ipa_selinux_handler(struct be_req *be_req)
 
     op_ctx = ipa_selinux_create_op_ctx(be_req, be_ctx->domain->sysdb,
                                        be_ctx->domain,
-                                       be_req, pd->user, hostname);
+                                       be_req, pd->user, hostname,
+                                       selinux_ctx);
     if (op_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot create op context\n"));
         goto fail;
@@ -131,7 +134,8 @@ static struct ipa_selinux_op_ctx *
 ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           struct be_req *be_req, const char *username,
-                          const char *hostname)
+                          const char *hostname,
+                          struct ipa_selinux_ctx *selinux_ctx)
 {
     struct ipa_selinux_op_ctx *op_ctx;
     struct ldb_dn *host_dn;
@@ -149,6 +153,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     }
     op_ctx->be_req = be_req;
     op_ctx->domain = domain;
+    op_ctx->selinux_ctx = selinux_ctx;
 
     ret = sss_selinux_extract_user(op_ctx, sysdb, domain, username, &op_ctx->user);
     if (ret != EOK) {
@@ -200,6 +205,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
 {
     struct ipa_selinux_op_ctx *op_ctx = tevent_req_callback_data(req, struct ipa_selinux_op_ctx);
     struct be_req *breq = op_ctx->be_req;
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     struct sysdb_ctx *sysdb = op_ctx->domain->sysdb;
     errno_t ret, sret;
     size_t map_count = 0;
@@ -283,6 +289,11 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
     in_transaction = false;
+
+    /* If we got here in online mode, set last_update to current time */
+    if (!be_is_offline(be_ctx)) {
+        op_ctx->selinux_ctx->last_update = time(NULL);
+    }
 
     pd->pam_status = PAM_SUCCESS;
     be_req_terminate(breq, DP_ERR_OK, EOK, "Success");
@@ -798,6 +809,8 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     struct ipa_get_selinux_state *state;
     bool offline;
     int ret = EOK;
+    time_t now;
+    time_t refresh_interval;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving SELinux user mapping\n"));
     req = tevent_req_create(mem_ctx, &state, struct ipa_get_selinux_state);
@@ -813,6 +826,18 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     offline = be_is_offline(be_ctx);
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Connection status is [%s].\n",
                                   offline ? "offline" : "online"));
+
+    if (!offline) {
+        /* FIXME: Make the interval configurable */
+        refresh_interval = 5;
+        now = time(NULL);
+        if (now < selinux_ctx->last_update + refresh_interval) {
+            /* SELinux maps were recently updated -> force offline */
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  ("Performing cached SELinux processing\n"));
+            offline = true;
+        }
+    }
 
     if (!offline) {
         state->op = sdap_id_op_create(state, selinux_ctx->id_ctx->sdap_id_ctx->conn_cache);
