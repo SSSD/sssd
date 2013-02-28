@@ -1038,7 +1038,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    if (val > 0) {
+    DEBUG(SSSDBG_TRACE_LIBS, ("pwd_expiration_warning is %d\n", val));
+    if (val >= 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               ("Setting domain password expiration warning to %d days\n", val));
         /* The value is in days, transform it to seconds */
