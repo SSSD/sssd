@@ -143,7 +143,7 @@ struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
 {
     struct be_req *be_req;
 
-    be_req = talloc_zero(becli, struct be_req);
+    be_req = talloc_zero(mem_ctx, struct be_req);
     if (be_req == NULL) return NULL;
 
     be_req->becli = becli;
