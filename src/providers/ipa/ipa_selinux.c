@@ -811,6 +811,7 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     int ret = EOK;
     time_t now;
     time_t refresh_interval;
+    struct ipa_options *ipa_options = selinux_ctx->id_ctx->ipa_options;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving SELinux user mapping\n"));
     req = tevent_req_create(mem_ctx, &state, struct ipa_get_selinux_state);
@@ -828,8 +829,8 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
                                   offline ? "offline" : "online"));
 
     if (!offline) {
-        /* FIXME: Make the interval configurable */
-        refresh_interval = 5;
+        refresh_interval = dp_opt_get_int(ipa_options->basic,
+                                          IPA_SELINUX_REFRESH);
         now = time(NULL);
         if (now < selinux_ctx->last_update + refresh_interval) {
             /* SELinux maps were recently updated -> force offline */
