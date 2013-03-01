@@ -20,7 +20,6 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "sss_client/autofs/sss_autofs_private.h"
 #include "sss_client/sss_cli.h"
@@ -224,8 +223,6 @@ sss_getautomntent_data_save(const char *mapname, uint8_t **repbuf, size_t replen
 
     rp = 0;
     SAFEALIGN_COPY_UINT32(&num, *repbuf+rp, &rp);
-    fprintf(stderr, "Map %s, got %u entries, reply length %uB\n",
-            mapname, num, (uint32_t)replen);
     if (num == 0) {
         free(*repbuf);
         return ENOENT;
