@@ -3904,19 +3904,3 @@ static struct sss_cmd_table nss_cmds[] = {
 struct sss_cmd_table *get_nss_cmds(void) {
     return nss_cmds;
 }
-
-int nss_cmd_execute(struct cli_ctx *cctx)
-{
-    enum sss_cli_command cmd;
-    int i;
-
-    cmd = sss_packet_get_cmd(cctx->creq->in);
-
-    for (i = 0; nss_cmds[i].cmd != SSS_CLI_NULL; i++) {
-        if (cmd == nss_cmds[i].cmd) {
-            return nss_cmds[i].fn(cctx);
-        }
-    }
-
-    return EINVAL;
-}

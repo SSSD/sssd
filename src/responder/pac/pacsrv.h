@@ -77,8 +77,6 @@ struct pac_dom_grps {
     gid_t *gids;
 };
 
-int pac_cmd_execute(struct cli_ctx *cctx);
-
 struct sss_cmd_table *get_pac_cmds(void);
 
 errno_t local_sid_to_id(struct local_mapping_ranges *map, struct dom_sid *sid,

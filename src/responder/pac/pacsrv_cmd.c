@@ -784,19 +784,3 @@ static struct sss_cmd_table pac_cmds[] = {
 struct sss_cmd_table *get_pac_cmds(void) {
     return pac_cmds;
 }
-
-int pac_cmd_execute(struct cli_ctx *cctx)
-{
-    enum sss_cli_command cmd;
-    int i;
-
-    cmd = sss_packet_get_cmd(cctx->creq->in);
-
-    for (i = 0; pac_cmds[i].cmd != SSS_CLI_NULL; i++) {
-        if (cmd == pac_cmds[i].cmd) {
-            return pac_cmds[i].fn(cctx);
-        }
-    }
-
-    return EINVAL;
-}
