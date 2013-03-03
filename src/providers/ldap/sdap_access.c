@@ -47,33 +47,16 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct sdap_access_ctx *access_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry);
-static void sdap_access_filter_done(struct tevent_req *subreq);
+static errno_t sdap_access_filter_recv(struct tevent_req *req);
 
-static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sdap_access_ctx *access_ctx,
-                                             struct pam_data *pd,
-                                             struct ldb_message *user_entry);
-static errno_t sdap_access_service_recv(struct tevent_req *req,
-                                        int *pam_status);
-static void sdap_access_service_done(struct tevent_req *subreq);
+static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
+                                    struct pam_data *pd,
+                                    struct ldb_message *user_entry);
 
-static struct tevent_req *sdap_access_service_send(
-        TALLOC_CTX *mem_ctx,
-        struct tevent_context *ev,
-        struct pam_data *pd,
-        struct ldb_message *user_entry);
+static  errno_t sdap_access_service(struct pam_data *pd,
+                                    struct ldb_message *user_entry);
 
-static void sdap_account_expired_done(struct tevent_req *subreq);
-
-static errno_t sdap_access_host_recv(struct tevent_req *req,
-                                        int *pam_status);
-static void sdap_access_host_done(struct tevent_req *subreq);
-
-static struct tevent_req *sdap_access_host_send(
-        TALLOC_CTX *mem_ctx,
-        struct tevent_context *ev,
-        struct ldb_message *user_entry);
+static errno_t sdap_access_host(struct ldb_message *user_entry);
 
 struct sdap_access_req_ctx {
     struct pam_data *pd;
@@ -81,12 +64,14 @@ struct sdap_access_req_ctx {
     struct sdap_access_ctx *access_ctx;
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
-    int pam_status;
     struct ldb_message *user_entry;
     size_t current_rule;
 };
 
-static errno_t select_next_rule(struct tevent_req *req);
+static errno_t check_next_rule(struct sdap_access_req_ctx *state,
+                               struct tevent_req *req);
+static void sdap_access_filter_done(struct tevent_req *subreq);
+
 struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct tevent_context *ev,
@@ -111,7 +96,6 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->be_ctx = be_ctx;
     state->domain = domain;
     state->pd = pd;
-    state->pam_status = PAM_SYSTEM_ERR;
     state->ev = ev;
     state->access_ctx = access_ctx;
     state->current_rule = 0;
@@ -120,8 +104,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
 
     if (access_ctx->access_rule[0] == LDAP_ACCESS_EMPTY) {
         DEBUG(3, ("No access rules defined, access denied.\n"));
-        state->pam_status = PAM_PERM_DENIED;
-        ret = EOK;
+        ret = ERR_ACCESS_DENIED;
         goto done;
     }
 
@@ -142,18 +125,16 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     }
     if (ret != EOK) {
         if (ret == ENOENT) {
-            /* If we can't find the user, return permission denied */
-            state->pam_status = PAM_PERM_DENIED;
-            ret = EOK;
+            /* If we can't find the user, return access denied */
+            ret = ERR_ACCESS_DENIED;
             goto done;
         }
         goto done;
     }
     else {
         if (res->count == 0) {
-            /* If we can't find the user, return permission denied */
-            state->pam_status = PAM_PERM_DENIED;
-            ret = EOK;
+            /* If we can't find the user, return access denied */
+            ret = ERR_ACCESS_DENIED;
             goto done;
         }
 
@@ -166,18 +147,10 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
 
     state->user_entry = res->msgs[0];
 
-    ret = select_next_rule(req);
-    if (ret != EOK) {
-        if (ret == EACCES) {
-            state->pam_status = PAM_PERM_DENIED;
-            ret = EOK;
-            goto done;
-        }
-        DEBUG(1, ("select_next_rule failed.\n"));
-        goto done;
+    ret = check_next_rule(state, req);
+    if (ret == EAGAIN) {
+        return req;
     }
-
-    return req;
 
 done:
     if (ret == EOK) {
@@ -189,16 +162,17 @@ done:
     return req;
 }
 
-static errno_t select_next_rule(struct tevent_req *req)
+static errno_t check_next_rule(struct sdap_access_req_ctx *state,
+                               struct tevent_req *req)
 {
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
     struct tevent_req *subreq;
+    int ret = EOK;
 
-    switch (state->access_ctx->access_rule[state->current_rule]) {
+    while (ret == EOK) {
+        switch (state->access_ctx->access_rule[state->current_rule]) {
         case LDAP_ACCESS_EMPTY:
-            return ENOENT;
-            break;
+            /* we are done with no errors */
+            return EOK;
 
         case LDAP_ACCESS_FILTER:
             subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
@@ -212,85 +186,74 @@ static errno_t select_next_rule(struct tevent_req *req)
             }
 
             tevent_req_set_callback(subreq, sdap_access_filter_done, req);
-            return EOK;
+            return EAGAIN;
 
         case LDAP_ACCESS_EXPIRE:
-            subreq = sdap_account_expired_send(state, state->ev,
-                                               state->access_ctx,
-                                               state->pd,
-                                               state->user_entry);
-            if (subreq == NULL) {
-                DEBUG(1, ("sdap_account_expired_send failed.\n"));
-                return ENOMEM;
-            }
-
-            tevent_req_set_callback(subreq, sdap_account_expired_done, req);
-            return EOK;
+            ret = sdap_account_expired(state->access_ctx,
+                                       state->pd, state->user_entry);
+            break;
 
         case LDAP_ACCESS_SERVICE:
-            subreq = sdap_access_service_send(state, state->ev,
-                                              state->pd,
-                                              state->user_entry);
-            if (subreq == NULL) {
-                DEBUG(1, ("sdap_access_service_send failed.\n"));
-                return ENOMEM;
-            }
-            tevent_req_set_callback(subreq, sdap_access_service_done, req);
-            return EOK;
+            ret = sdap_access_service( state->pd, state->user_entry);
+            break;
 
         case LDAP_ACCESS_HOST:
-            subreq = sdap_access_host_send(state, state->ev,
-                                           state->user_entry);
-            if (subreq == NULL) {
-                DEBUG(1, ("sdap_access_host_send failed.\n"));
-                return ENOMEM;
-            }
-            tevent_req_set_callback(subreq, sdap_access_host_done, req);
-            return EOK;
+            ret = sdap_access_host(state->user_entry);
+            break;
 
         default:
             DEBUG(1, ("Unexpected access rule type. Access denied.\n"));
+            ret = ERR_ACCESS_DENIED;
+        }
+
+        state->current_rule++;
     }
 
-    return EACCES;
+    return ret;
 }
 
-static void next_access_rule(struct tevent_req *req)
+static void sdap_access_filter_done(struct tevent_req *subreq)
 {
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_access_req_ctx *state =
             tevent_req_data(req, struct sdap_access_req_ctx);
-    int ret;
 
-    if (state->pam_status == PAM_PERM_DENIED ||
-        state->pam_status == PAM_ACCT_EXPIRED) {
-        tevent_req_done(req);
+    ret = sdap_access_filter_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(1, ("Error retrieving access check result.\n"));
+        tevent_req_error(req, ret);
         return;
     }
 
     state->current_rule++;
 
-    ret = select_next_rule(req);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            state->pam_status = PAM_SUCCESS;
-            tevent_req_done(req);
-            return;
-        } else if (ret == EACCES) {
-            state->pam_status = PAM_PERM_DENIED;
-            tevent_req_done(req);
-        } else {
-            tevent_req_error(req, ret);
-        }
+    ret = check_next_rule(state, req);
+    switch (ret) {
+    case EAGAIN:
+        return;
+    case EOK:
+        tevent_req_done(req);
+        return;
+    default:
+        tevent_req_error(req, ret);
+        return;
     }
-
-    return;
 }
+
+errno_t sdap_access_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 
 #define SHADOW_EXPIRE_MSG "Account expired according to shadow attributes"
 
 static errno_t sdap_account_expired_shadow(struct pam_data *pd,
-                                           struct ldb_message *user_entry,
-                                           int *pam_status)
+                                           struct ldb_message *user_entry)
 {
     int ret;
     const char *val;
@@ -303,7 +266,6 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
     if (val == NULL) {
         DEBUG(3, ("Shadow expire attribute not found. "
                   "Access will be granted.\n"));
-        *pam_status = PAM_SUCCESS;
         return EOK;
     }
     ret = string_to_shadowpw_days(val, &sp_expire);
@@ -314,7 +276,6 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
 
     today = (long) (time(NULL) / (60 * 60 * 24));
     if (sp_expire > 0 && today > sp_expire) {
-        *pam_status = PAM_ACCT_EXPIRED;
 
         ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(SHADOW_EXPIRE_MSG),
@@ -322,8 +283,8 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
-    } else {
-        *pam_status = PAM_SUCCESS;
+
+        return ERR_ACCOUNT_EXPIRED;
     }
 
     return EOK;
@@ -363,8 +324,7 @@ static bool ad_account_expired(uint64_t expiration_time)
 }
 
 static errno_t sdap_account_expired_ad(struct pam_data *pd,
-                                       struct ldb_message *user_entry,
-                                       int *pam_status)
+                                       struct ldb_message *user_entry)
 {
     uint32_t uac;
     uint64_t expiration_time;
@@ -383,7 +343,6 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
               pd->user, expiration_time));
 
     if (uac & UAC_ACCOUNTDISABLE) {
-        *pam_status = PAM_PERM_DENIED;
 
         ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(AD_DISABLE_MESSAGE),
@@ -391,8 +350,10 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
+
+        return ERR_ACCESS_DENIED;
+
     } else if (ad_account_expired(expiration_time)) {
-        *pam_status = PAM_ACCT_EXPIRED;
 
         ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(AD_EXPIRED_MESSAGE),
@@ -400,8 +361,8 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
-    } else {
-        *pam_status = PAM_SUCCESS;
+
+        return ERR_ACCOUNT_EXPIRED;
     }
 
     return EOK;
@@ -410,8 +371,7 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
 #define RHDS_LOCK_MSG "The user account is locked on the server"
 
 static errno_t sdap_account_expired_rhds(struct pam_data *pd,
-                                         struct ldb_message *user_entry,
-                                         int *pam_status)
+                                         struct ldb_message *user_entry)
 {
     bool locked;
     int ret;
@@ -429,9 +389,9 @@ static errno_t sdap_account_expired_rhds(struct pam_data *pd,
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
-    }
 
-    *pam_status = locked ? PAM_PERM_DENIED : PAM_SUCCESS;
+        return ERR_ACCESS_DENIED;
+    }
 
     return EOK;
 }
@@ -543,8 +503,7 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
 }
 
 static errno_t sdap_account_expired_nds(struct pam_data *pd,
-                                         struct ldb_message *user_entry,
-                                         int *pam_status)
+                                         struct ldb_message *user_entry)
 {
     bool locked = true;
     int ret;
@@ -565,6 +524,9 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
+
+        return ERR_ACCESS_DENIED;
+
     } else {
         exp_time_str = ldb_msg_find_attr_as_string(user_entry,
                                                 SYSDB_NDS_LOGIN_EXPIRATION_TIME,
@@ -581,6 +543,9 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
             if (ret != EOK) {
                 DEBUG(1, ("pam_add_response failed.\n"));
             }
+
+            return ERR_ACCESS_DENIED;
+
         } else {
             time_map = ldb_msg_find_ldb_val(user_entry,
                                             SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP);
@@ -597,131 +562,60 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
                 if (ret != EOK) {
                     DEBUG(1, ("pam_add_response failed.\n"));
                 }
+
+                return ERR_ACCESS_DENIED;
             }
         }
     }
 
-    *pam_status = locked ? PAM_PERM_DENIED : PAM_SUCCESS;
-
     return EOK;
 }
 
-struct sdap_account_expired_req_ctx {
-    int pam_status;
-};
 
-static struct tevent_req *sdap_account_expired_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sdap_access_ctx *access_ctx,
-                                             struct pam_data *pd,
-                                             struct ldb_message *user_entry)
+static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
+                                    struct pam_data *pd,
+                                    struct ldb_message *user_entry)
 {
-    struct tevent_req *req;
-    struct sdap_account_expired_req_ctx *state;
-    int ret;
     const char *expire;
-
-    req = tevent_req_create(mem_ctx, &state, struct sdap_account_expired_req_ctx);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
-    }
-
-    state->pam_status = PAM_SYSTEM_ERR;
+    int ret;
 
     expire = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                 SDAP_ACCOUNT_EXPIRE_POLICY);
     if (expire == NULL) {
         DEBUG(1, ("Missing account expire policy. Access denied\n"));
-        state->pam_status = PAM_PERM_DENIED;
-        ret = EOK;
-        goto done;
+        return ERR_ACCESS_DENIED;
     } else {
         if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_SHADOW) == 0) {
-            ret = sdap_account_expired_shadow(pd, user_entry,
-                                              &state->pam_status);
+            ret = sdap_account_expired_shadow(pd, user_entry);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_shadow failed.\n"));
-                goto done;
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_AD) == 0) {
-            ret = sdap_account_expired_ad(pd, user_entry,
-                                          &state->pam_status);
+            ret = sdap_account_expired_ad(pd, user_entry);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_ad failed.\n"));
-                goto done;
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_RHDS) == 0 ||
                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_IPA) == 0 ||
                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_389DS) == 0) {
-            ret = sdap_account_expired_rhds(pd, user_entry,
-                                            &state->pam_status);
+            ret = sdap_account_expired_rhds(pd, user_entry);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_rhds failed.\n"));
-                goto done;
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_NDS) == 0) {
-            ret = sdap_account_expired_nds(pd, user_entry, &state->pam_status);
+            ret = sdap_account_expired_nds(pd, user_entry);
             if (ret != EOK) {
                 DEBUG(1, ("sdap_account_expired_nds failed.\n"));
-                goto done;
             }
         } else {
             DEBUG(1, ("Unsupported LDAP account expire policy [%s]. "
                       "Access denied.\n", expire));
-            state->pam_status = PAM_PERM_DENIED;
-            ret = EOK;
-            goto done;
+            ret = ERR_ACCESS_DENIED;
         }
     }
 
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, ev);
-
-    return req;
+    return ret;
 }
-
-static errno_t sdap_account_expired_recv(struct tevent_req *req, int *pam_status)
-{
-    struct sdap_account_expired_req_ctx *state =
-            tevent_req_data(req, struct sdap_account_expired_req_ctx);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *pam_status = state->pam_status;
-
-    return EOK;
-}
-
-static void sdap_account_expired_done(struct tevent_req *subreq)
-{
-    errno_t ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
-
-    ret = sdap_account_expired_recv(subreq, &state->pam_status);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("Error retrieving access check result.\n"));
-        state->pam_status = PAM_SYSTEM_ERR;
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    next_access_rule(req);
-
-    return;
-}
-
-
 
 struct sdap_access_filter_req_ctx {
     const char *username;
@@ -732,12 +626,11 @@ struct sdap_access_filter_req_ctx {
     struct sdap_id_op *sdap_op;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
-    int pam_status;
     bool cached_access;
     char *basedn;
 };
 
-static void sdap_access_filter_decide_offline(struct tevent_req *req);
+static errno_t sdap_access_filter_decide_offline(struct tevent_req *req);
 static int sdap_access_filter_retry(struct tevent_req *req);
 static void sdap_access_filter_connect_done(struct tevent_req *subreq);
 static void sdap_access_filter_get_access_done(struct tevent_req *req);
@@ -749,11 +642,11 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              const char *username,
                                              struct ldb_message *user_entry)
 {
-    errno_t ret;
     struct sdap_access_filter_req_ctx *state;
     struct tevent_req *req;
     const char *basedn;
     char *clean_username;
+    errno_t ret = ERR_INTERNAL;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_access_filter_req_ctx);
     if (req == NULL) {
@@ -763,15 +656,12 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     if (access_ctx->filter == NULL || *access_ctx->filter == '\0') {
         /* If no filter is set, default to restrictive */
         DEBUG(6, ("No filter set. Access is denied.\n"));
-        state->pam_status = PAM_PERM_DENIED;
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
-        return req;
+        ret = ERR_ACCESS_DENIED;
+        goto done;
     }
 
     state->filter = NULL;
     state->username = username;
-    state->pam_status = PAM_SYSTEM_ERR;
     state->sdap_ctx = access_ctx->id_ctx;
     state->ev = ev;
     state->access_ctx = access_ctx;
@@ -785,31 +675,31 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     /* Ok, we have one result, check if we are online or offline */
     if (be_is_offline(be_ctx)) {
         /* Ok, we're offline. Return from the cache */
-        sdap_access_filter_decide_offline(req);
-        goto finished;
+        ret = sdap_access_filter_decide_offline(req);
+        goto done;
     }
 
     /* Perform online operation */
-    basedn = ldb_msg_find_attr_as_string(user_entry,
-                                         SYSDB_ORIG_DN,
-                                         NULL);
-    if(basedn == NULL) {
+    basedn = ldb_msg_find_attr_as_string(user_entry, SYSDB_ORIG_DN, NULL);
+    if (basedn == NULL) {
         DEBUG(1,("Could not find originalDN for user [%s]\n",
                  state->username));
-        goto failed;
+        ret = EINVAL;
+        goto done;
     }
 
     state->basedn = talloc_strdup(state, basedn);
     if (state->basedn == NULL) {
         DEBUG(1, ("Could not allocate memory for originalDN\n"));
-        goto failed;
+        ret = ENOMEM;
+        goto done;
     }
 
     /* Construct the filter */
 
     ret = sss_filter_sanitize(state, state->username, &clean_username);
     if (ret != EOK) {
-        goto failed;
+        goto done;
     }
 
     state->filter = talloc_asprintf(
@@ -821,7 +711,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
         state->access_ctx->filter);
     if (state->filter == NULL) {
         DEBUG(0, ("Could not construct access filter\n"));
-        goto failed;
+        ret = ENOMEM;
+        goto done;
     }
     talloc_zfree(clean_username);
 
@@ -830,37 +721,38 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     state->sdap_op = sdap_id_op_create(state, state->sdap_ctx->conn_cache);
     if (!state->sdap_op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
-        goto failed;
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = sdap_access_filter_retry(req);
     if (ret != EOK) {
-        goto failed;
+        goto done;
     }
 
     return req;
 
-failed:
-    talloc_free(req);
-    return NULL;
-
-finished:
-    tevent_req_done(req);
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
     tevent_req_post(req, ev);
     return req;
 }
 
-static void sdap_access_filter_decide_offline(struct tevent_req *req)
+static errno_t sdap_access_filter_decide_offline(struct tevent_req *req)
 {
     struct sdap_access_filter_req_ctx *state =
             tevent_req_data(req, struct sdap_access_filter_req_ctx);
 
     if (state->cached_access) {
         DEBUG(6, ("Access granted by cached credentials\n"));
-        state->pam_status = PAM_SUCCESS;
+        return EOK;
     } else {
         DEBUG(6, ("Access denied by cached credentials\n"));
-        state->pam_status = PAM_PERM_DENIED;
+        return ERR_ACCESS_DENIED;
     }
 }
 
@@ -894,9 +786,11 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
 
     if (ret != EOK) {
         if (dp_error == DP_ERR_OFFLINE) {
-            sdap_access_filter_decide_offline(req);
-            tevent_req_done(req);
-            return;
+            ret = sdap_access_filter_decide_offline(req);
+            if (ret == EOK) {
+                tevent_req_done(req);
+                return;
+            }
         }
 
         tevent_req_error(req, ret);
@@ -919,7 +813,6 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
                                    false);
     if (subreq == NULL) {
         DEBUG(1, ("Could not start LDAP communication\n"));
-        state->pam_status = PAM_SYSTEM_ERR;
         tevent_req_error(req, EIO);
         return;
     }
@@ -929,7 +822,7 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
 
 static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
 {
-    int ret, dp_error;
+    int ret, tret, dp_error;
     size_t num_results;
     bool found = false;
     struct sysdb_attrs *attrs;
@@ -938,6 +831,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_access_filter_req_ctx *state =
             tevent_req_data(req, struct sdap_access_filter_req_ctx);
+
     ret = sdap_get_generic_recv(subreq, state,
                                 &num_results, &results);
     talloc_zfree(subreq);
@@ -946,17 +840,15 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
     if (ret != EOK) {
         if (dp_error == DP_ERR_OK) {
             /* retry */
-            ret = sdap_access_filter_retry(req);
-            if (ret == EOK) {
+            tret = sdap_access_filter_retry(req);
+            if (tret == EOK) {
                 return;
             }
-            state->pam_status = PAM_SYSTEM_ERR;
         } else if (dp_error == DP_ERR_OFFLINE) {
-            sdap_access_filter_decide_offline(req);
+            ret = sdap_access_filter_decide_offline(req);
         } else {
             DEBUG(1, ("sdap_get_generic_send() returned error [%d][%s]\n",
                       ret, strerror(ret)));
-            state->pam_status = PAM_SYSTEM_ERR;
         }
 
         goto done;
@@ -974,8 +866,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
     }
     else if (results == NULL) {
         DEBUG(1, ("num_results > 0, but results is NULL\n"));
-        ret = EIO;
-        state->pam_status = PAM_SYSTEM_ERR;
+        ret = ERR_INTERNAL;
         goto done;
     }
     else if (num_results > 1) {
@@ -983,8 +874,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
          * here, since we're doing a base-scoped search
          */
         DEBUG(1, ("Received multiple replies\n"));
-        ret = EIO;
-        state->pam_status = PAM_SYSTEM_ERR;
+        ret = ERR_INTERNAL;
         goto done;
     }
     else { /* Ok, we got a single reply */
@@ -993,17 +883,17 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
 
     if (found) {
         /* Save "allow" to the cache for future offline
-         * access checks.
+         :q* access checks.
          */
         DEBUG(6, ("Access granted by online lookup\n"));
-        state->pam_status = PAM_SUCCESS;
+        ret = EOK;
     }
     else {
         /* Save "disallow" to the cache for future offline
          * access checks.
          */
         DEBUG(6, ("Access denied by online lookup\n"));
-        state->pam_status = PAM_PERM_DENIED;
+        ret = ERR_ACCESS_DENIED;
     }
 
     attrs = sysdb_new_attrs(state);
@@ -1013,28 +903,22 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_attrs_add_bool(attrs, SYSDB_LDAP_ACCESS_FILTER,
-                               state->pam_status == PAM_SUCCESS ?
-                                                    true :
-                                                    false);
-    if (ret != EOK) {
+    tret = sysdb_attrs_add_bool(attrs, SYSDB_LDAP_ACCESS_FILTER,
+                                ret == EOK ?  true : false);
+    if (tret != EOK) {
         /* Failing to save to the cache is non-fatal.
          * Just return the result.
          */
-        ret = EOK;
         DEBUG(1, ("Could not set up attrs\n"));
         goto done;
     }
 
-    ret = sysdb_set_user_attr(state->domain->sysdb,
-                              state->domain,
-                              state->username,
-                              attrs, SYSDB_MOD_REP);
-    if (ret != EOK) {
+    tret = sysdb_set_user_attr(state->domain->sysdb, state->domain,
+                               state->username, attrs, SYSDB_MOD_REP);
+    if (tret != EOK) {
         /* Failing to save to the cache is non-fatal.
          * Just return the result.
          */
-        ret = EOK;
         DEBUG(1, ("Failed to set user access attribute\n"));
         goto done;
     }
@@ -1048,43 +932,13 @@ done:
     }
 }
 
-static errno_t sdap_access_filter_recv(struct tevent_req *req, int *pam_status)
+static errno_t sdap_access_filter_recv(struct tevent_req *req)
 {
-    struct sdap_access_filter_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_filter_req_ctx);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *pam_status = state->pam_status;
 
     return EOK;
 }
 
-static void sdap_access_filter_done(struct tevent_req *subreq)
-{
-    errno_t ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
-
-    ret = sdap_access_filter_recv(subreq, &state->pam_status);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("Error retrieving access check result.\n"));
-        state->pam_status = PAM_SYSTEM_ERR;
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    next_access_rule(req);
-
-    return;
-}
-
-
-struct sdap_access_service_ctx {
-    int pam_status;
-};
 
 #define AUTHR_SRV_MISSING_MSG "Authorized service attribute missing, " \
                               "access denied"
@@ -1092,170 +946,97 @@ struct sdap_access_service_ctx {
 #define AUTHR_SRV_NO_MATCH_MSG "Authorized service attribute has " \
                                "no matching rule, access denied"
 
-static struct tevent_req *sdap_access_service_send(
-        TALLOC_CTX *mem_ctx,
-        struct tevent_context *ev,
-        struct pam_data *pd,
-        struct ldb_message *user_entry)
+static errno_t sdap_access_service(struct pam_data *pd,
+                                   struct ldb_message *user_entry)
 {
-    errno_t ret;
-    struct tevent_req *req;
-    struct sdap_access_service_ctx *state;
+    errno_t ret, tret;
     struct ldb_message_element *el;
     unsigned int i;
     char *service;
-
-    req = tevent_req_create(mem_ctx, &state, struct sdap_access_service_ctx);
-    if (!req) {
-        return NULL;
-    }
-
-    state->pam_status = PAM_PERM_DENIED;
 
     el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_SERVICE);
     if (!el || el->num_values == 0) {
         DEBUG(1, ("Missing authorized services. Access denied\n"));
 
-        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+        tret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(AUTHR_SRV_MISSING_MSG),
                                (const uint8_t *) AUTHR_SRV_MISSING_MSG);
-        if (ret != EOK) {
+        if (tret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
 
-        ret = EOK;
-        goto done;
+        return ERR_ACCESS_DENIED;
     }
+
+    ret = ENOENT;
 
     for (i = 0; i < el->num_values; i++) {
         service = (char *)el->values[i].data;
         if (service[0] == '!' &&
                 strcasecmp(pd->service, service+1) == 0) {
             /* This service is explicitly denied */
-            state->pam_status = PAM_PERM_DENIED;
             DEBUG(4, ("Access denied by [%s]\n", service));
 
-            ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+            tret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                    sizeof(AUTHR_SRV_DENY_MSG),
                                    (const uint8_t *) AUTHR_SRV_DENY_MSG);
-            if (ret != EOK) {
+            if (tret != EOK) {
                 DEBUG(1, ("pam_add_response failed.\n"));
             }
 
             /* A denial trumps all. Break here */
-            ret = EOK;
-            goto done;
+            return ERR_ACCESS_DENIED;
 
         } else if (strcasecmp(pd->service, service) == 0) {
             /* This service is explicitly allowed */
-            state->pam_status = PAM_SUCCESS;
             DEBUG(4, ("Access granted for [%s]\n", service));
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
+            ret = EOK;
         } else if (strcmp("*", service) == 0) {
             /* This user has access to all services */
-            state->pam_status = PAM_SUCCESS;
             DEBUG(4, ("Access granted to all services\n"));
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
+            ret = EOK;
         }
     }
 
-    if (state->pam_status != PAM_SUCCESS) {
+    if (ret == ENOENT) {
         DEBUG(4, ("No matching service rule found\n"));
 
-        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+        tret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(AUTHR_SRV_NO_MATCH_MSG),
                                (const uint8_t *) AUTHR_SRV_NO_MATCH_MSG);
-        if (ret != EOK) {
+        if (tret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
         }
+
+        ret = ERR_ACCESS_DENIED;
     }
 
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, ev);
-
-    return req;
+    return ret;
 }
 
-static errno_t sdap_access_service_recv(struct tevent_req *req,
-                                        int *pam_status)
-{
-    struct sdap_access_service_ctx *state =
-            tevent_req_data(req, struct sdap_access_service_ctx);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *pam_status = state->pam_status;
-
-    return EOK;
-}
-
-static void sdap_access_service_done(struct tevent_req *subreq)
+static errno_t sdap_access_host(struct ldb_message *user_entry)
 {
     errno_t ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
-
-    ret = sdap_access_service_recv(subreq, &state->pam_status);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("Error retrieving access check result.\n"));
-        state->pam_status = PAM_SYSTEM_ERR;
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    next_access_rule(req);
-
-    return;
-}
-
-struct sdap_access_host_ctx {
-    int pam_status;
-};
-
-static struct tevent_req *sdap_access_host_send(
-        TALLOC_CTX *mem_ctx,
-        struct tevent_context *ev,
-        struct ldb_message *user_entry)
-{
-    errno_t ret;
-    struct tevent_req *req;
-    struct sdap_access_host_ctx *state;
     struct ldb_message_element *el;
     unsigned int i;
     char *host;
     char hostname[HOST_NAME_MAX+1];
 
-    req = tevent_req_create(mem_ctx, &state, struct sdap_access_host_ctx);
-    if (!req) {
-        return NULL;
-    }
-
-    state->pam_status = PAM_PERM_DENIED;
-
     el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_HOST);
     if (!el || el->num_values == 0) {
         DEBUG(1, ("Missing hosts. Access denied\n"));
-        ret = EOK;
-        goto done;
+        return ERR_ACCESS_DENIED;
     }
 
     if (gethostname(hostname, sizeof(hostname)) == -1) {
         DEBUG(1, ("Unable to get system hostname. Access denied\n"));
-        ret = EOK;
-        goto done;
+        return ERR_ACCESS_DENIED;
     }
 
     /* FIXME: PADL's pam_ldap also calls gethostbyname() on the hostname
@@ -1264,93 +1045,38 @@ static struct tevent_req *sdap_access_host_send(
      *        order to be compatible...
      */
 
+    ret = ENOENT;
+
     for (i = 0; i < el->num_values; i++) {
         host = (char *)el->values[i].data;
         if (host[0] == '!' &&
                 strcasecmp(hostname, host+1) == 0) {
             /* This host is explicitly denied */
-            state->pam_status = PAM_PERM_DENIED;
             DEBUG(4, ("Access denied by [%s]\n", host));
             /* A denial trumps all. Break here */
-            break;
+            return ERR_ACCESS_DENIED;
 
         } else if (strcasecmp(hostname, host) == 0) {
             /* This host is explicitly allowed */
-            state->pam_status = PAM_SUCCESS;
             DEBUG(4, ("Access granted for [%s]\n", host));
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
+            ret = EOK;
         } else if (strcmp("*", host) == 0) {
             /* This user has access to all hosts */
-            state->pam_status = PAM_SUCCESS;
             DEBUG(4, ("Access granted to all hosts\n"));
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
+            ret = EOK;
         }
     }
 
-    if (state->pam_status != PAM_SUCCESS) {
+    if (ret == ENOENT) {
         DEBUG(4, ("No matching host rule found\n"));
+        ret = ERR_ACCESS_DENIED;
     }
 
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, ev);
-
-    return req;
-}
-
-static errno_t sdap_access_host_recv(struct tevent_req *req,
-                                        int *pam_status)
-{
-    struct sdap_access_host_ctx *state =
-            tevent_req_data(req, struct sdap_access_host_ctx);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *pam_status = state->pam_status;
-
-    return EOK;
-}
-
-static void sdap_access_host_done(struct tevent_req *subreq)
-{
-    errno_t ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
-
-    ret = sdap_access_host_recv(subreq, &state->pam_status);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("Error retrieving access check result.\n"));
-        state->pam_status = PAM_SYSTEM_ERR;
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    next_access_rule(req);
-
-    return;
-}
-
-errno_t
-sdap_access_recv(struct tevent_req *req, int *pam_status)
-{
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *pam_status = state->pam_status;
-
-    return EOK;
+    return ret;
 }

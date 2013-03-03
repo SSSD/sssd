@@ -63,7 +63,6 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
                  struct pam_data *pd);
-errno_t
-sdap_access_recv(struct tevent_req *req, int *pam_status);
+errno_t sdap_access_recv(struct tevent_req *req);
 
 #endif /* SDAP_ACCESS_H_ */

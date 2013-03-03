@@ -69,30 +69,28 @@ static void
 ad_access_done(struct tevent_req *req)
 {
     errno_t ret;
-    int pam_status;
     struct be_req *breq =
             tevent_req_callback_data(req, struct be_req);
     struct pam_data *pd =
                     talloc_get_type(be_req_get_data(breq), struct pam_data);
 
-    ret = sdap_access_recv(req, &pam_status);
+    ret = sdap_access_recv(req);
     talloc_zfree(req);
-    if (ret != EOK) {
-        be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, strerror(ret));
+    switch (ret) {
+    case EOK:
+        pd->pam_status = PAM_SUCCESS;
+        be_req_terminate(breq, DP_ERR_OK, PAM_SUCCESS, NULL);
+        return;
+    case ERR_ACCESS_DENIED:
+        /* We got the proper denial */
+        pd->pam_status = PAM_PERM_DENIED;
+        be_req_terminate(breq, DP_ERR_OK, PAM_PERM_DENIED, NULL);
+        return;
+    default:
+        /* Something went wrong */
+        pd->pam_status = PAM_SYSTEM_ERR;
+        be_req_terminate(breq, DP_ERR_FATAL,
+                         PAM_SYSTEM_ERR, sss_strerror(ret));
         return;
     }
-
-    pd->pam_status = pam_status;
-
-    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
-        /* We got the proper approval or denial */
-        be_req_terminate(breq, DP_ERR_OK, pam_status, NULL);
-        return;
-    }
-
-    /* Something went wrong */
-    pd->pam_status = PAM_SYSTEM_ERR;
-    be_req_terminate(breq, DP_ERR_FATAL, pam_status,
-                     pam_strerror(NULL, pam_status));
-    return;
 }

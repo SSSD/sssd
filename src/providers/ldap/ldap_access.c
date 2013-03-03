@@ -69,15 +69,23 @@ void sdap_pam_access_handler(struct be_req *breq)
 static void sdap_access_done(struct tevent_req *req)
 {
     errno_t ret;
-    int pam_status = PAM_SYSTEM_ERR;
+    int pam_status;
     struct be_req *breq =
             tevent_req_callback_data(req, struct be_req);
 
-    ret = sdap_access_recv(req, &pam_status);
+    ret = sdap_access_recv(req);
     talloc_zfree(req);
-    if (ret != EOK) {
+    switch (ret) {
+    case EOK:
+        pam_status = PAM_SUCCESS;
+        break;
+    case ERR_ACCESS_DENIED:
+        pam_status = PAM_PERM_DENIED;
+        break;
+    default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error retrieving access check result.\n"));
         pam_status = PAM_SYSTEM_ERR;
+        break;
     }
 
     sdap_access_reply(breq, pam_status);

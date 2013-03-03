@@ -106,7 +106,6 @@ static void ipa_hbac_check(struct tevent_req *req)
     struct pam_data *pd;
     struct hbac_ctx *hbac_ctx = NULL;
     const char *deny_method;
-    int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
     int ret;
 
@@ -114,33 +113,34 @@ static void ipa_hbac_check(struct tevent_req *req)
     be_ctx = be_req_get_be_ctx(be_req);
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
-    ret = sdap_access_recv(req, &pam_status);
+    ret = sdap_access_recv(req);
     talloc_zfree(req);
-    if (ret != EOK) goto fail;
 
-    switch(pam_status) {
-    case PAM_SUCCESS:
+    switch(ret) {
+    case EOK:
         /* Account wasn't locked. Continue below
          * to HBAC processing.
          */
         break;
-    case PAM_PERM_DENIED:
+    case ERR_ACCESS_DENIED:
         /* Account was locked. Return permission denied
          * here.
          */
         pd->pam_status = PAM_PERM_DENIED;
-        be_req_terminate(be_req, DP_ERR_OK, PAM_PERM_DENIED, NULL);
+        be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
         return;
     default:
         /* We got an unexpected error. Return it as-is */
         pd->pam_status = PAM_SYSTEM_ERR;
-        be_req_terminate(be_req, DP_ERR_FATAL, pam_status, NULL);
+        be_req_terminate(be_req, DP_ERR_FATAL, pd->pam_status,
+                         sss_strerror(ret));
         return;
     }
 
     hbac_ctx = talloc_zero(be_req, struct hbac_ctx);
     if (hbac_ctx == NULL) {
         DEBUG(1, ("talloc failed.\n"));
+        ret = ENOMEM;
         goto fail;
     }
 
@@ -155,6 +155,7 @@ static void ipa_hbac_check(struct tevent_req *req)
     hbac_ctx->search_bases = ipa_access_ctx->hbac_search_bases;
     if (hbac_ctx->search_bases == NULL) {
         DEBUG(1, ("No HBAC search base found.\n"));
+        ret = EINVAL;
         goto fail;
     }
 
@@ -176,9 +177,9 @@ static void ipa_hbac_check(struct tevent_req *req)
 fail:
     if (hbac_ctx) {
         /* Return an proper error */
-        ipa_access_reply(hbac_ctx, pam_status);
+        ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
     } else {
-        be_req_terminate(be_req, DP_ERR_FATAL, pam_status, NULL);
+        be_req_terminate(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
     }
 }
 
