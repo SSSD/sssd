@@ -335,8 +335,9 @@ static int fill_pwent(struct sss_packet *packet,
                                         nctx->neg_timeout,
                                         dom, orig_name);
             if (ncret == EEXIST) {
-                DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
-                          orig_name, domain));
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      ("User [%s@%s] filtered out! (negative cache)\n",
+                       orig_name, domain));
                 continue;
             }
         }
@@ -739,8 +740,9 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
-            DEBUG(2, ("User [%s] does not exist in [%s]! (negative cache)\n",
-                      name, dom->name));
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("User [%s] does not exist in [%s]! (negative cache)\n",
+                   name, dom->name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = get_next_domain(dom, false);
@@ -1209,8 +1211,9 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 
     ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
     if (ret == EEXIST) {
-        DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
-                  (unsigned long)cmdctx->id));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Uid [%lu] does not exist! (negative cache)\n",
+               (unsigned long)cmdctx->id));
         ret = ENOENT;
         goto done;
     }
@@ -1933,10 +1936,10 @@ static int fill_members(struct sss_packet *packet,
                                         nctx->neg_timeout,
                                         dom, tmpstr);
             if (ret == EEXIST) {
-                DEBUG(SSSDBG_TRACE_FUNC, ("Group [%s] member [%s@%s] filtered out!"
-                                          " (negative cache)\n",
-                                          (char *)&body[rzero+STRS_ROFFSET],
-                                          tmpstr, domain));
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      ("Group [%s] member [%s@%s] filtered out!"
+                       " (negative cache)\n",
+                       (char *)&body[rzero+STRS_ROFFSET], tmpstr, domain));
                 continue;
             }
         }
@@ -2090,8 +2093,9 @@ static int fill_grent(struct sss_packet *packet,
             ret = sss_ncache_check_group(nctx->ncache,
                                          nctx->neg_timeout, dom, orig_name);
             if (ret == EEXIST) {
-                DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
-                          orig_name, domain));
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      ("Group [%s@%s] filtered out! (negative cache)\n",
+                       orig_name, domain));
                 continue;
             }
         }
@@ -2314,8 +2318,9 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
-            DEBUG(2, ("Group [%s] does not exist in [%s]! (negative cache)\n",
-                    name, dom->name));
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Group [%s] does not exist in [%s]! (negative cache)\n",
+                   name, dom->name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = get_next_domain(dom, false);
@@ -2784,8 +2789,9 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 
     ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
     if (ret == EEXIST) {
-        DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
-                  (unsigned long)cmdctx->id));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Gid [%lu] does not exist! (negative cache)\n",
+               (unsigned long)cmdctx->id));
         ret = ENOENT;
         goto done;
     }
@@ -3599,8 +3605,9 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
-            DEBUG(2, ("User [%s] does not exist in [%s]! (negative cache)\n",
-                      name, dom->name));
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("User [%s] does not exist in [%s]! (negative cache)\n",
+                   name, dom->name));
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
                 dom = get_next_domain(dom, false);

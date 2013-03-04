@@ -1115,9 +1115,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             }
 
             /* Try the next domain */
-            DEBUG(4, ("User [%s@%s] filtered out (negative cache). "
-                      "Trying next domain.\n",
-                      pd->user, dom->name));
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("User [%s@%s] filtered out (negative cache). "
+                   "Trying next domain.\n", pd->user, dom->name));
         }
         if (!dom) {
             ret = ENOENT;
