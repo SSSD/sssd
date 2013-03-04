@@ -1899,7 +1899,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int debug_fd = -1;
     int status;
-    int ret;
+    errno_t ret;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -1941,6 +1941,7 @@ int main(int argc, const char *argv[])
     debug_prg_name = talloc_asprintf(kr, "[sssd[krb5_child[%d]]]", getpid());
     if (!debug_prg_name) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed.\n"));
+        ret = ENOMEM;
         goto done;
     }
 
