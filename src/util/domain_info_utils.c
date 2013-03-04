@@ -36,9 +36,9 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
         } else if (descend && IS_SUBDOMAIN(dom) && dom->parent->next) {
             dom = dom->parent->next;
         } else {
-            return NULL;
+            dom = NULL;
         }
-        if (!dom->disabled) break;
+        if (dom && !dom->disabled) break;
     }
 
     return dom;
