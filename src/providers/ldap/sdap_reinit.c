@@ -165,6 +165,12 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     /* reset services' usn */
     ret = sysdb_search_services(tmp_ctx, sysdb, domain,
                                 "", attrs, &msgs_num, &msgs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot search services [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
+
     sdap_delete_msgs_usn(sysdb, msgs, msgs_num);
     talloc_zfree(msgs);
     msgs_num = 0;
