@@ -230,11 +230,13 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, id);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
+        goto done;
     }
 
+    ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    return EOK;
+    return ret;
 }
 
 static errno_t
@@ -431,8 +433,11 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             /* ok let's try to update it */
             ret = ipa_subdom_store(domain, reply[c]);
             if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Failed to parse subdom data\n"));
-                goto done;
+                /* Nothing we can do about the errorr. Let's at least try
+                 * to reuse the existing domain
+                 */
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
+                      "will try to use cached subdomain\n"));
             }
             handled[c] = true;
             h++;
@@ -452,10 +457,13 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
         if (handled[c]) {
             continue;
         }
+        /* Nothing we can do about the errorr. Let's at least try
+         * to reuse the existing domain.
+         */
         ret = ipa_subdom_store(domain, reply[c]);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to parse subdom data\n"));
-            goto done;
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
+                  "will try to use cached subdomain\n"));
         }
     }
 
