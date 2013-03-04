@@ -2651,6 +2651,7 @@ fail:
     return ret;
 }
 
+#ifndef UNIT_TESTING
 int main(int argc, const char *argv[])
 {
     int opt;
@@ -2732,6 +2733,7 @@ int main(int argc, const char *argv[])
 
     return 0;
 }
+#endif
 
 static int data_provider_res_init(DBusMessage *message,
                                   struct sbus_connection *conn)
