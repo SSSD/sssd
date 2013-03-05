@@ -62,10 +62,10 @@ enum sssd_errors {
     ERR_LAST            /* ALWAYS LAST */
 };
 
+#define SSSD_ERR_BASE(err) ((err) & ~ERR_MASK)
 #define SSSD_ERR_IDX(err) ((err) & ERR_MASK)
 #define IS_SSSD_ERROR(err) \
-    ((((err) & ERR_BASE) == ERR_BASE) && \
-     SSSD_ERR_IDX(err) < ERR_LAST)
+    ((SSSD_ERR_BASE(err) == ERR_BASE) && ((err) < ERR_LAST))
 
 #define ERR_OK      0
 /* Backwards compat */
