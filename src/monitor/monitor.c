@@ -2211,7 +2211,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     if (!tmp_ctx) {
         return ENOMEM;
     }
-    ret = sysdb_init(tmp_ctx, ctx->domains, NULL, true);
+    ret = sysdb_init(tmp_ctx, ctx->domains, true);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
         return ret;

@@ -385,7 +385,6 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
  * the sysdb ctx */
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains,
-               const char *alt_db_path,
                bool allow_upgrade);
 /* used to initialize only one domain database.
  * Do NOT use if sysdb_init has already been called */

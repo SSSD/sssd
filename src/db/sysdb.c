@@ -1207,23 +1207,15 @@ done:
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains,
-               const char *alt_db_path,
                bool allow_upgrade)
 {
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
-    const char *db_path;
     int ret;
-
-    if (alt_db_path) {
-        db_path = alt_db_path;
-    } else {
-        db_path = DB_PATH;
-    }
 
     if (allow_upgrade) {
         /* check if we have an old sssd.ldb to upgrade */
-        ret = sysdb_check_upgrade_02(domains, db_path);
+        ret = sysdb_check_upgrade_02(domains, DB_PATH);
         if (ret != EOK) {
             return ret;
         }
@@ -1232,7 +1224,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
     /* open a db for each domain */
     for (dom = domains; dom; dom = dom->next) {
 
-        ret = sysdb_domain_init_internal(mem_ctx, dom, db_path,
+        ret = sysdb_domain_init_internal(mem_ctx, dom, DB_PATH,
                                          allow_upgrade, &sysdb);
         if (ret != EOK) {
             return ret;

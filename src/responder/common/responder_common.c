@@ -838,7 +838,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_init(rctx, rctx->domains, NULL, false);
+    ret = sysdb_init(rctx, rctx->domains, false);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
         DEBUG(0, ("fatal error initializing resp_ctx\n"));
