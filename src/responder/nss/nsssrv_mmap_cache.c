@@ -830,7 +830,7 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
 
     errno = 0;
     ret = unlink(mc_ctx->file);
-    if (ret == -1) {
+    if (ret == -1 && errno != ENOENT) {
         ret = errno;
         DEBUG(SSSDBG_TRACE_FUNC, ("Failed to rm mmap file %s: %d(%s)\n",
                                   mc_ctx->file, ret, strerror(ret)));
@@ -855,6 +855,7 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Failed to lock file %s.\n", mc_ctx->file));
         close(mc_ctx->fd);
+        mc_ctx->fd = -1;
 
         /* Report on unlink failures but don't overwrite the errno
          * from sss_br_lock_file
@@ -897,6 +898,36 @@ static void sss_mc_header_update(struct sss_mc_ctx *mc_ctx, int status)
     MC_LOWER_BARRIER(h);
 }
 
+static int mc_ctx_destructor(struct sss_mc_ctx *mc_ctx)
+{
+    int ret;
+
+    /* Print debug message to logs if munmap() or close()
+     * fail but always return 0 */
+
+    if (mc_ctx->mmap_base != NULL) {
+        ret = munmap(mc_ctx->mmap_base, mc_ctx->mmap_size);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to unmap old memory cache file."
+                   "[%d]: %s\n", ret, strerror(ret)));
+        }
+    }
+
+    if (mc_ctx->fd != -1) {
+        ret = close(mc_ctx->fd);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to close old memory cache file."
+                   "[%d]: %s\n", ret, strerror(ret)));
+        }
+    }
+
+    return 0;
+}
+
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             enum sss_mc_type type, size_t n_elem,
                             time_t timeout, struct sss_mc_ctx **mcc)
@@ -904,7 +935,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
     struct sss_mc_ctx *mc_ctx = NULL;
     unsigned int rseed;
     int payload;
-    int ret;
+    int ret, dret;
 
     switch (type) {
     case SSS_MC_PASSWD:
@@ -922,6 +953,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         return ENOMEM;
     }
     mc_ctx->fd = -1;
+    talloc_set_destructor(mc_ctx, mc_ctx_destructor);
 
     mc_ctx->name = talloc_strdup(mc_ctx, name);
     if (!mc_ctx->name) {
@@ -1003,15 +1035,14 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
 done:
     if (ret) {
-        if (mc_ctx && mc_ctx->mmap_base) {
-            munmap(mc_ctx->mmap_base, mc_ctx->mmap_size);
-        }
-        if (mc_ctx && mc_ctx->fd != -1) {
-            close(mc_ctx->fd);
-            ret = unlink(mc_ctx->file);
-            if (ret == -1) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to rm mmap file %s: %d(%s)\n",
-                                            mc_ctx->file, ret, strerror(ret)));
+        /* Closing the file descriptor and ummaping the file
+         * from memory is done in the mc_ctx_destructor. */
+        if (mc_ctx && mc_ctx->file && mc_ctx->fd != -1) {
+            dret = unlink(mc_ctx->file);
+            if (dret == -1) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to rm mmap file %s: %d(%s)\n", mc_ctx->file,
+                       dret, strerror(dret)));
             }
         }
 
@@ -1059,13 +1090,7 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
         timeout = (*mc_ctx)->valid_time_slot;
     }
 
-    ret = talloc_free(*mc_ctx);
-    if (ret != 0) {
-        /* This can happen only if destructor is associated with this
-         * context */
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Destructor asociated with memory"
-                                    " context failed.\n"));
-    }
+    talloc_free(*mc_ctx);
 
     /* make sure we do not leave a potentially freed pointer around */
     *mc_ctx = NULL;
