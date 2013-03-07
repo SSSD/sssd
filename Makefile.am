@@ -223,6 +223,7 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py \
     src/config/SSSDConfig/sssd_upgrade_config.py \
     contrib/rhel/update_debug_levels.py \
+    contrib/fedora/bashrc_sssd \
     src/tests/pyhbac-test.py \
     src/tests/pysss_murmur-test.py
 
