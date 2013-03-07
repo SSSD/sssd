@@ -816,6 +816,11 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         }
 
         close(ofd);
+    } else if (errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to open old memory cache file %s: %d(%s).\n",
+               mc_ctx->file, ret, strerror(ret)));
     }
 
     errno = 0;
