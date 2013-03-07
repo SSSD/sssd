@@ -516,15 +516,17 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
                 (tm_now->tm_min < 30 ? 0 : 1);
 
     if (map_index > 335) {
-        DEBUG(1, ("Unexpected index value [%d] for time map.\n", index));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unexpected index value [%d] for time map.\n", map_index));
         return true;
     }
 
     q = div(map_index, 8);
 
     if (q.quot > 41 || q.quot < 0 || q.rem > 7 || q.rem < 0) {
-        DEBUG(1, ("Unexpected result of div(), [%d][%d][%d].\n",
-                  index, q.quot, q.rem));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unexpected result of div(), [%d][%d][%d].\n",
+               map_index, q.quot, q.rem));
         return true;
     }
 
