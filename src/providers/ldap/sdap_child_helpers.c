@@ -453,11 +453,10 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
 int setup_child(struct sdap_id_ctx *ctx)
 {
     int ret;
-    unsigned v;
     FILE *debug_filep;
 
     if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
-        ret = open_debug_file_ex(LDAP_CHILD_LOG_FILE, &debug_filep);
+        ret = open_debug_file_ex(LDAP_CHILD_LOG_FILE, &debug_filep, false);
         if (ret != EOK) {
             DEBUG(0, ("Error setting up logging (%d) [%s]\n",
                         ret, strerror(ret)));
@@ -470,9 +469,6 @@ int setup_child(struct sdap_id_ctx *ctx)
             ret = errno;
             return ret;
         }
-
-        v = fcntl(ldap_child_debug_fd, F_GETFD, 0);
-        fcntl(ldap_child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
     }
 
     return EOK;

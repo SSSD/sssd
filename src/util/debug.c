@@ -173,7 +173,7 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
     free(message);
 }
 
-int open_debug_file_ex(const char *filename, FILE **filep)
+int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
 {
     FILE *f = NULL;
     char *logpath;
@@ -214,8 +214,10 @@ int open_debug_file_ex(const char *filename, FILE **filep)
         return EIO;
     }
 
-    flags = fcntl(debug_fd, F_GETFD, 0);
-    (void) fcntl(debug_fd, F_SETFD, flags | FD_CLOEXEC);
+    if(want_cloexec) {
+        flags = fcntl(debug_fd, F_GETFD, 0);
+        (void) fcntl(debug_fd, F_SETFD, flags | FD_CLOEXEC);
+    }
 
     if (filep == NULL) {
         debug_file = f;
@@ -228,7 +230,7 @@ int open_debug_file_ex(const char *filename, FILE **filep)
 
 int open_debug_file(void)
 {
-    return open_debug_file_ex(NULL, NULL);
+    return open_debug_file_ex(NULL, NULL, true);
 }
 
 int rotate_debug_files(void)

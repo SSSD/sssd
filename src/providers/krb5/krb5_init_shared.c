@@ -30,7 +30,6 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
 {
     errno_t ret;
     FILE *debug_filep;
-    unsigned v;
     time_t renew_intv;
 
     if (dp_opt_get_bool(krb5_auth_ctx->opts, KRB5_STORE_PASSWORD_IF_OFFLINE)) {
@@ -71,7 +70,7 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
     }
 
     if (debug_to_file != 0) {
-        ret = open_debug_file_ex(KRB5_CHILD_LOG_FILE, &debug_filep);
+        ret = open_debug_file_ex(KRB5_CHILD_LOG_FILE, &debug_filep, false);
         if (ret != EOK) {
             DEBUG(0, ("Error setting up logging (%d) [%s]\n",
                     ret, strerror(ret)));
@@ -84,9 +83,6 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
             ret = errno;
             goto done;
         }
-
-        v = fcntl(krb5_auth_ctx->child_debug_fd, F_GETFD, 0);
-        fcntl(krb5_auth_ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
     }
 
 done:

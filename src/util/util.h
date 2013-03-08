@@ -336,7 +336,7 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
 /* From debug.c */
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
-int open_debug_file_ex(const char *filename, FILE **filep);
+int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec);
 int open_debug_file(void);
 int rotate_debug_files(void);
 void talloc_log_fn(const char *msg);
