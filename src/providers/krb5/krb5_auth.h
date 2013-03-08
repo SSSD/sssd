@@ -81,6 +81,7 @@ struct krb5_child_response {
     struct tgt_times tgtt;
     char *ccname;
     char *correct_upn;
+    bool otp;
 };
 
 errno_t

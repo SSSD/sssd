@@ -146,6 +146,220 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
     return;
 }
 
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER
+/*
+ * TODO: These features generally would requires a significant refactoring
+ * of SSSD and MIT krb5 doesn't support them anyway. They are listed here
+ * simply as a reminder of things that might become future feature potential.
+ *
+ *   1. tokeninfo selection
+ *   2. challenge
+ *   3. discreet token/pin prompting
+ *   4. interactive otp format correction
+ *   5. nextOTP
+ *
+ */
+typedef int (*checker)(int c);
+
+static inline checker pick_checker(int format)
+{
+    switch (format) {
+    case KRB5_RESPONDER_OTP_FORMAT_DECIMAL:
+        return isdigit;
+    case KRB5_RESPONDER_OTP_FORMAT_HEXADECIMAL:
+        return isxdigit;
+    case KRB5_RESPONDER_OTP_FORMAT_ALPHANUMERIC:
+        return isalnum;
+    }
+
+    return NULL;
+}
+
+static int token_pin_destructor(char *mem)
+{
+    safezero(mem, strlen(mem));
+    return 0;
+}
+
+static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
+                                         const krb5_responder_otp_tokeninfo *ti,
+                                         const char *pwd, size_t len,
+                                         char **out_token, char **out_pin)
+{
+    char *token = NULL, *pin = NULL;
+    checker check = NULL;
+    int i;
+
+
+    if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_NEXTOTP) {
+        return ENOTSUP;
+    }
+
+    if (ti->challenge != NULL) {
+        return ENOTSUP;
+    }
+
+    /* This is a non-sensical value. */
+    if (ti->length == 0) {
+        return EPROTO;
+    }
+
+    if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_TOKEN) {
+        /* ASSUMPTION: authtok has one of the following formats:
+         *   1. TokenValue
+         *   2. PIN+TokenValue
+         */
+        token = talloc_strndup(mem_ctx, pwd, len);
+        if (token == NULL) {
+            return ENOMEM;
+        }
+        talloc_set_destructor(token, token_pin_destructor);
+
+        if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_PIN) {
+            /* If the server desires a separate pin, we will split it.
+             * ASSUMPTION: Format of authtok is PIN+TokenValue. */
+            if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_SEPARATE_PIN) {
+                if (ti->length < 1) {
+                    talloc_free(token);
+                    return ENOTSUP;
+                }
+
+                if (ti->length >= len) {
+                    talloc_free(token);
+                    return EMSGSIZE;
+                }
+
+                /* Copy the PIN from the front of the value. */
+                pin = talloc_strndup(NULL, pwd, len - ti->length);
+                if (pin == NULL) {
+                    talloc_free(token);
+                    return ENOMEM;
+                }
+                talloc_set_destructor(pin, token_pin_destructor);
+
+                /* Remove the PIN from the front of the token value. */
+                memmove(token, token + len - ti->length, ti->length + 1);
+
+                check = pick_checker(ti->format);
+            } else {
+                if (ti->length > 0 && ti->length > len) {
+                    talloc_free(token);
+                    return EMSGSIZE;
+                }
+            }
+        } else {
+            if (ti->length > 0 && ti->length != len) {
+                talloc_free(token);
+                return EMSGSIZE;
+            }
+
+            check = pick_checker(ti->format);
+        }
+    } else {
+        pin = talloc_strndup(mem_ctx, pwd, len);
+        if (pin == NULL) {
+            return ENOMEM;
+        }
+        talloc_set_destructor(pin, token_pin_destructor);
+    }
+
+    /* If check is set, we need to verify the contents of the token. */
+    for (i = 0; check != NULL && token[i] != '\0'; i++) {
+        if (!check(token[i])) {
+            talloc_free(token);
+            talloc_free(pin);
+            return EBADMSG;
+        }
+    }
+
+    *out_token = token;
+    *out_pin = pin;
+    return 0;
+}
+
+static krb5_error_code answer_otp(krb5_context ctx,
+                                  struct krb5_req *kr,
+                                  krb5_responder_context rctx)
+{
+    krb5_responder_otp_challenge *chl;
+    char *token = NULL, *pin = NULL;
+    const char *pwd = NULL;
+    krb5_error_code ret;
+    size_t i, len;
+
+    ret = krb5_responder_otp_get_challenge(ctx, rctx, &chl);
+    if (ret != EOK || chl == NULL) {
+        /* Either an error, or nothing to do. */
+        return ret;
+    }
+
+    if (chl->tokeninfo == NULL || chl->tokeninfo[0] == NULL) {
+        /* No tokeninfos? Absurd! */
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Validate our assumptions about the contents of authtok. */
+    ret = sss_authtok_get_password(&kr->pd->authtok, &pwd, &len);
+    if (ret != EOK)
+        goto done;
+
+    /* Find the first supported tokeninfo which matches our authtoken. */
+    for (i = 0; chl->tokeninfo[i] != NULL; i++) {
+        ret = tokeninfo_matches(kr, chl->tokeninfo[i], pwd, len, &token, &pin);
+        if (ret == EOK) {
+            break;
+        }
+
+        switch (ret) {
+        case EBADMSG:
+        case EMSGSIZE:
+        case ENOTSUP:
+        case EPROTO:
+            break;
+        default:
+            goto done;
+        }
+    }
+    if (chl->tokeninfo[i] == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("No tokeninfos found which match our credentials.\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    if (chl->tokeninfo[i]->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_TOKEN) {
+        /* Don't let SSSD cache the OTP authtok since it is single-use. */
+        ret = pam_add_response(kr->pd, SSS_OTP, 0, NULL);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+            goto done;
+        }
+    }
+
+    /* Respond with the appropriate answer. */
+    ret = krb5_responder_otp_set_answer(ctx, rctx, i, token, pin);
+done:
+    talloc_free(token);
+    talloc_free(pin);
+    krb5_responder_otp_challenge_free(ctx, rctx, chl);
+    return ret;
+}
+
+static krb5_error_code sss_krb5_responder(krb5_context ctx,
+                                          void *data,
+                                          krb5_responder_context rctx)
+{
+    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+
+    if (kr == NULL) {
+        return EINVAL;
+    }
+
+    return answer_otp(ctx, kr, rctx);
+}
+#endif
+
 static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
                                          const char *name, const char *banner,
                                          int num_prompts, krb5_prompt prompts[])
@@ -1745,6 +1959,15 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
+
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER
+    kerr = krb5_get_init_creds_opt_set_responder(kr->ctx, kr->options,
+                                                 sss_krb5_responder, kr);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        return kerr;
+    }
+#endif
 
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CHANGE_PASSWORD_PROMPT
     /* A prompter is used to catch messages about when a password will

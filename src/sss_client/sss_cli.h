@@ -368,6 +368,9 @@ enum response_type {
                           * the user.This should only be used in the case where
                           * it is not possile to use SSS_PAM_USER_INFO.
                           * @param A zero terminated string. */
+    SSS_OTP,             /**< Indicates that the autotok was a OTP, so don't
+                          * cache it. There is no message.
+                          * @param None. */
 };
 
 /**

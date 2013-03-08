@@ -482,6 +482,7 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     struct krb5_child_response *res;
     const char *upn = NULL;
     size_t upn_len;
+    bool otp = false;
 
     if ((size_t) len < sizeof(int32_t)) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("message too short.\n"));
@@ -563,6 +564,11 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
             }
         }
 
+        if (msg_type == SSS_OTP) {
+            otp = true;
+            skip = true;
+        }
+
         if (!skip) {
             ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);
             if (ret != EOK) {
@@ -583,6 +589,7 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     res = talloc_zero(mem_ctx, struct krb5_child_response);
     if (!res) return ENOMEM;
 
+    res->otp = otp;
     res->msg_status = msg_status;
     memcpy(&res->tgtt, &tgtt, sizeof(tgtt));
 

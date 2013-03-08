@@ -1107,7 +1107,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (state->be_ctx->domain->cache_credentials == TRUE) {
+    if (state->be_ctx->domain->cache_credentials == TRUE && !res->otp) {
         krb5_auth_store_creds(state->sysdb, state->domain, pd);
     }
 
