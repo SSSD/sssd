@@ -537,7 +537,8 @@ libsss_util_la_SOURCES = \
     src/util/sss_selinux.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
-    src/util/util_errors.c
+    src/util/util_errors.c \
+    src/util/io.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS) \
@@ -931,7 +932,8 @@ files_tests_CFLAGS = \
 files_tests_LDADD = \
     libsss_debug.la \
     $(FILES_TESTS_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_util.la
 
 SSSD_RESOLV_TESTS_OBJ = \
     $(SSSD_RESOLV_OBJ)

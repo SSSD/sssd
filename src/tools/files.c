@@ -75,68 +75,6 @@ struct copy_ctx {
     gid_t       gid;
 };
 
-static int open_cloexec(const char *pathname, int flags, int *ret)
-{
-    int fd;
-    int oflags;
-
-    oflags = flags;
-#ifdef O_CLOEXEC
-    oflags |= O_CLOEXEC;
-#endif
-
-    errno = 0;
-    fd = open(pathname, oflags);
-    if (fd == -1) {
-        if (ret) {
-            *ret = errno;
-        }
-        return -1;
-    }
-
-#ifndef O_CLOEXEC
-    int v;
-
-    v = fcntl(fd, F_GETFD, 0);
-    /* we ignore an error, it's not fatal and there is nothing we
-     * can do about it anyways */
-    (void)fcntl(fd, F_SETFD, v | FD_CLOEXEC);
-#endif
-
-    return fd;
-}
-
-static int openat_cloexec(int dir_fd, const char *pathname, int flags, int *ret)
-{
-    int fd;
-    int oflags;
-
-    oflags = flags;
-#ifdef O_CLOEXEC
-    oflags |= O_CLOEXEC;
-#endif
-
-    errno = 0;
-    fd = openat(dir_fd, pathname, oflags);
-    if (fd == -1) {
-        if (ret) {
-            *ret = errno;
-        }
-        return -1;
-    }
-
-#ifndef O_CLOEXEC
-    int v;
-
-    v = fcntl(fd, F_GETFD, 0);
-    /* we ignore an error, it's not fatal and there is nothing we
-     * can do about it anyways */
-    (void)fcntl(fd, F_SETFD, v | FD_CLOEXEC);
-#endif
-
-    return fd;
-}
-
 static int sss_timeat_set(int dir_fd, const char *path,
                           const struct stat *statp,
                           int flags)
@@ -232,7 +170,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     int ret, err;
     int dir_fd;
 
-    dir_fd = openat_cloexec(parent_fd, dir_name,
+    dir_fd = sss_openat_cloexec(parent_fd, dir_name,
                             O_RDONLY | O_DIRECTORY | O_NOFOLLOW, &ret);
     if (dir_fd == -1) {
         ret = errno;
@@ -607,7 +545,7 @@ copy_entry(struct copy_ctx *cctx,
      * us against FIFOs and perhaps side-effects of the open() of a
      * device file if there ever was one here, and doesn't matter
      * for regular files or directories. */
-    ifd = openat_cloexec(src_dir_fd, ent_name,
+    ifd = sss_openat_cloexec(src_dir_fd, ent_name,
                          O_RDONLY | O_NOFOLLOW | O_NONBLOCK, &ret);
     if (ifd == -1 && ret != ELOOP) {
         /* openat error */
@@ -721,7 +659,7 @@ copy_dir(struct copy_ctx *cctx,
         goto done;
     }
 
-    dest_dir_fd = openat_cloexec(dest_parent_fd, dest_dir_name,
+    dest_dir_fd = sss_openat_cloexec(dest_parent_fd, dest_dir_name,
                                  O_RDONLY | O_DIRECTORY | O_NOFOLLOW, &ret);
     if (dest_dir_fd == -1) {
         ret = errno;
@@ -807,7 +745,7 @@ int copy_tree(const char *src_root, const char *dst_root,
     int fd = -1;
     struct stat s_src;
 
-    fd = open_cloexec(src_root, O_RDONLY | O_DIRECTORY, &ret);
+    fd = sss_open_cloexec(src_root, O_RDONLY | O_DIRECTORY, &ret);
     if (fd == -1) {
         goto fail;
     }

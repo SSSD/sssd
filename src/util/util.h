@@ -584,6 +584,9 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);
+/* from io.c */
+int sss_open_cloexec(const char *pathname, int flags, int *ret);
+int sss_openat_cloexec(int dir_fd, const char *pathname, int flags, int *ret);
 
 /* Endianness-compatibility for systems running older versions of glibc */
 

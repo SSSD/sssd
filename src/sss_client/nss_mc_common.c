@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "nss_mc.h"
+#include "util/util.h"
 
 /* FIXME: hook up to library destructor to avoid leaks */
 /* FIXME: temporarily open passwd file on our own, later we will probably
@@ -100,12 +101,6 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
     return 0;
 }
 
-#ifdef O_CLOEXEC
-#define SSS_MC_OPEN_FLAGS O_RDONLY|O_CLOEXEC
-#else
-#define SSS_MC_OPEN_FLAGS O_RDONLY
-#endif
-
 errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
 {
     struct stat fdstat;
@@ -129,19 +124,9 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
         goto done;
     }
 
-    ctx->fd = open(file, SSS_MC_OPEN_FLAGS);
+    ctx->fd = sss_open_cloexec(file, O_RDONLY, &ret);
     if (ctx->fd == -1) {
-        ret = EIO;
         goto done;
-#ifndef O_CLOEXEC
-    } else {
-        int v;
-
-        v = fcntl(ctx->fd, F_GETFD, 0);
-        /* we ignore an error, it's not fatal and there is nothing we
-         * can do about it anyways */
-        (void)fcntl(ctx->fd, F_SETFD, v | FD_CLOEXEC);
-#endif
     }
 
     ret = fstat(ctx->fd, &fdstat);
