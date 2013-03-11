@@ -421,7 +421,6 @@ dist_noinst_HEADERS = \
     src/providers/data_provider.h \
     src/providers/dp_backend.h \
     src/providers/fail_over.h \
-    src/providers/providers.h \
     src/util/child_common.h \
     src/providers/simple/simple_access.h \
     src/providers/krb5/krb5_auth.h \
