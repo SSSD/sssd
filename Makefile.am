@@ -461,6 +461,8 @@ dist_noinst_HEADERS = \
     src/resolv/ares/ares_parse_txt_reply.h \
     src/resolv/ares/ares_data.h \
     src/tests/common.h \
+    src/tests/cmocka/common_mock.h \
+    src/tests/cmocka/common_mock_resp.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/lib/idmap/sss_idmap_private.h
 

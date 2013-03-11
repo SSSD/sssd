@@ -270,7 +270,7 @@ AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
-AM_CONDITIONAL([HAVE_CMOCKA], [test x$have_cmocka != x])
+AM_CONDITIONAL([HAVE_CMOCKA], [test x$have_cmocka = xyes])
 
 abs_build_dir=`pwd`
 AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the build directory])
