@@ -129,18 +129,18 @@ if HAVE_CHECK
         responder_socket_access-tests
 
 if BUILD_PAC_RESPONDER
-        non_interactive_check_based_tests += pac_responder-tests
+    non_interactive_check_based_tests += pac_responder-tests
 endif
 
 if BUILD_SSH
-        non_interactive_check_based_tests += sysdb_ssh-tests
+    non_interactive_check_based_tests += sysdb_ssh-tests
 endif
 
 endif
 
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
-	nss-srv-tests
+        nss-srv-tests
 endif
 
 check_PROGRAMS = \
@@ -472,11 +472,12 @@ if HAVE_NSS
 endif
 
 SSSD_DOCS = \
-	doc \
-	hbac_doc \
-	idmap_doc
+    doc \
+    hbac_doc \
+    idmap_doc
+
 if BUILD_SUDO
-	SSSD_DOCS += libsss_sudo_doc
+    SSSD_DOCS += libsss_sudo_doc
 endif
 
 if HAVE_PTHREAD
@@ -682,7 +683,7 @@ sssd_be_LDFLAGS = \
 if BUILD_PYTHON_BINDINGS
 sss_obfuscate_pythondir = $(sbindir)
 dist_sss_obfuscate_python_SCRIPTS = \
-	src/tools/sss_obfuscate
+    src/tools/sss_obfuscate
 endif
 
 
@@ -1210,9 +1211,10 @@ pam_test_client_SOURCES = src/sss_client/pam_test_client.c
 pam_test_client_LDFLAGS = -lpam -lpam_misc
 
 if BUILD_AUTOFS
-autofs_test_client_SOURCES = src/sss_client/autofs/autofs_test_client.c \
-			     src/sss_client/autofs/sss_autofs.c \
-			     src/sss_client/common.c
+autofs_test_client_SOURCES = \
+    src/sss_client/autofs/autofs_test_client.c \
+    src/sss_client/autofs/sss_autofs.c \
+    src/sss_client/common.c
 autofs_test_client_CFLAGS = $(AM_CFLAGS)
 autofs_test_client_LDFLAGS = -lpopt $(CLIENT_LIBS)
 endif
