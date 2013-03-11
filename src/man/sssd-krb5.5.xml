@@ -223,7 +223,7 @@
                             authentication request is continued offline.
                         </para>
                         <para>
-                            Default: 15
+                            Default: 6
                         </para>
                     </listitem>
                 </varlistentry>
