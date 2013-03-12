@@ -30,7 +30,7 @@ struct tevent_req *
 test_request_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev, errno_t err)
 {
     struct tevent_req *req;
-    int state;
+    int *state;
 
     req = tevent_req_create(mem_ctx, &state, int);
     if (!req) return NULL;
