@@ -2974,7 +2974,7 @@ sdap_nested_group_check_cache(TALLOC_CTX *mem_ctx,
                                    SYSDB_CREATE_TIME, SYSDB_NAME,
                                    NULL };
     char *filter;
-    enum sysdb_member_type mtype;
+    enum sysdb_member_type mtype = -1;
     size_t count;
 
     tmp_ctx = talloc_new(NULL);

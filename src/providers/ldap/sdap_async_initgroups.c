@@ -1048,7 +1048,7 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
     errno_t ret;
     int i, tret;
     TALLOC_CTX *tmp_ctx;
-    struct membership_diff *miter;
+    struct membership_diff *miter = NULL;
     struct membership_diff *memberships = NULL;
     bool in_transaction = false;
 

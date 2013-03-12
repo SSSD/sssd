@@ -586,7 +586,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     enum sdap_result result;
     char *retoid = NULL;
     struct berval *retdata = NULL;
-    struct resp_attrs *attrs;
+    struct resp_attrs *attrs = NULL;
     time_t now;
     uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
     const char *homedir = NULL;

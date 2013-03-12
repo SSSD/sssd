@@ -89,7 +89,7 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
                             struct sss_auth_token *tok)
 {
     uint32_t auth_token_type;
-    uint32_t auth_token_length;
+    uint32_t auth_token_length = 0;
     const char *data;
     size_t len;
     errno_t ret = EOK;
@@ -345,7 +345,7 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req, *subreq;
     struct handle_child_state *state;
     int ret;
-    struct io_buffer *buf;
+    struct io_buffer *buf = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct handle_child_state);
     if (req == NULL) {

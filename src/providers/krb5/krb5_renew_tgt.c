@@ -157,7 +157,7 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
     time_t now;
     struct auth_data *auth_data;
     struct renew_data *renew_data;
-    struct tevent_timer *te;
+    struct tevent_timer *te = NULL;
 
     ret = hash_entries(renew_tgt_ctx->tgt_table, &count, &entries);
     if (ret != HASH_SUCCESS) {
@@ -197,7 +197,6 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
                                                    entries[c].key.str);
                 if (auth_data->key.str == NULL) {
                     DEBUG(1, ("talloc_strdup failed.\n"));
-                    te = NULL;
                 } else {
                     te = tevent_add_timer(renew_tgt_ctx->ev,
                                           auth_data, tevent_timeval_current(),

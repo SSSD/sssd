@@ -168,7 +168,7 @@ done:
 static int mpg_convert(struct ldb_message *msg)
 {
     struct ldb_message_element *el;
-    struct ldb_val *val;
+    struct ldb_val *val = NULL;
     int i;
 
     el = ldb_msg_find_element(msg, "objectClass");

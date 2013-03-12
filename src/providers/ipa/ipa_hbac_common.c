@@ -213,7 +213,7 @@ hbac_ctx_to_rules(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     struct hbac_rule **new_rules;
-    struct hbac_eval_req *new_request;
+    struct hbac_eval_req *new_request = NULL;
     size_t i;
     TALLOC_CTX *tmp_ctx = NULL;
 
