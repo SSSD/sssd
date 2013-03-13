@@ -4566,8 +4566,8 @@ const struct ldb_module_ops ldb_memberof_module_ops = {
 
 int ldb_init_module(const char *version)
 {
-#ifdef LDB_MODULE_CHECK_VERSION
+#if defined(SSS_LDB_VERSION_CHECK) && defined(LDB_MODULE_CHECK_VERSION)
     LDB_MODULE_CHECK_VERSION(version);
-#endif
+#endif /* SSS_LDB_VERSION_CHECK && LDB_MODULE_CHECK_VERSION */
     return ldb_register_module(&ldb_memberof_module_ops);
 }
