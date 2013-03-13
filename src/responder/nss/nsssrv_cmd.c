@@ -3328,7 +3328,6 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     return nss_cmd_getgrent_immediate(cmdctx);
 }
 
-static errno_t nss_cmd_setgrent_recv(struct tevent_req *req);
 static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
 {
     errno_t ret;

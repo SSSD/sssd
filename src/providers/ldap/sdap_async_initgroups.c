@@ -2621,15 +2621,6 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
     return EOK;
 }
 
-static struct tevent_req *sdap_initgr_rfc2307bis_send(
-        TALLOC_CTX *memctx,
-        struct tevent_context *ev,
-        struct sdap_options *opts,
-        struct sysdb_ctx *sysdb,
-        struct sss_domain_info *dom,
-        struct sdap_handle *sh,
-        const char *name,
-        const char *orig_dn);
 static void sdap_get_initgr_user(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -2802,7 +2793,6 @@ fail:
     tevent_req_error(req, ret);
 }
 
-static int sdap_initgr_rfc2307bis_recv(struct tevent_req *req);
 static void sdap_get_initgr_pgid(struct tevent_req *req);
 static void sdap_get_initgr_done(struct tevent_req *subreq)
 {

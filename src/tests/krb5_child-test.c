@@ -39,8 +39,6 @@
 #include "providers/krb5/krb5_utils.h"
 
 extern struct dp_option default_krb5_opts[];
-extern struct sss_krb5_cc_be file_cc;
-extern struct sss_krb5_cc_be dir_cc;
 
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_TEST_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)

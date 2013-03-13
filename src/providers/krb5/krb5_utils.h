@@ -64,7 +64,7 @@ struct sss_krb5_cc_be {
     cc_be_remove remove;
 };
 
-struct sss_krb5_cc_be file_cc;
+extern struct sss_krb5_cc_be file_cc;
 
 errno_t create_ccache_dir(const char *dirname, pcre *illegal_re,
                           uid_t uid, gid_t gid, bool private_path);
@@ -86,7 +86,7 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
 
 #ifdef HAVE_KRB5_DIRCACHE
 
-struct sss_krb5_cc_be dir_cc;
+extern struct sss_krb5_cc_be dir_cc;
 
 errno_t cc_dir_create(const char *location, pcre *illegal_re,
                       uid_t uid, gid_t gid, bool private_path);
