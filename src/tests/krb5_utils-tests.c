@@ -700,8 +700,6 @@ START_TEST(test_compare_principal_realm)
     ret = compare_principal_realm("userABC", "ABC", &different_realm);
     fail_unless(ret == EINVAL, "Missing '@' does not cause EINVAL.");
 
-    fail_unless(different_realm == false, "Same realm but " \
-                                          "different_realm is not false.");
     ret = compare_principal_realm("user@ABC", "ABC", &different_realm);
     fail_unless(ret == EOK, "Failure with same realm");
     fail_unless(different_realm == false, "Same realm but " \
