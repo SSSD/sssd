@@ -310,6 +310,7 @@ START_TEST(pac_test_find_domain_by_id)
         fail_unless(id != NULL, "talloc_asprintf failed.\n");
 
         dom = find_domain_by_id(domains, id);
+        fail_unless(dom != NULL, "Domain %zu not found by id.", c);
         fail_unless((strcmp(dom->domain_id, id) == 0),
                     "Wrong domain returned for id [%s].", id);
 
