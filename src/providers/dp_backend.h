@@ -218,6 +218,9 @@ void be_fo_set_srv_lookup_plugin(struct be_ctx *ctx,
                                  void *pvt,
                                  const char *plugin_name);
 
+errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
+                                        const char *hostname);
+
 int be_fo_add_srv_server(struct be_ctx *ctx,
                          const char *service_name,
                          const char *query_service,

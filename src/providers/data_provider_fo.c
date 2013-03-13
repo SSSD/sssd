@@ -254,6 +254,40 @@ void be_fo_set_srv_lookup_plugin(struct be_ctx *ctx,
     }
 }
 
+errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
+                                        const char *hostname)
+{
+    struct fo_resolve_srv_dns_ctx *srv_ctx = NULL;
+    char resolved_hostname[HOST_NAME_MAX];
+    errno_t ret;
+
+    if (hostname == NULL) {
+        ret = gethostname(resolved_hostname, HOST_NAME_MAX);
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("gethostname() failed: [%d]: %s\n", ret, strerror(ret)));
+            return ret;
+        }
+        resolved_hostname[HOST_NAME_MAX-1] = '\0';
+        hostname = resolved_hostname;
+    }
+
+    srv_ctx = fo_resolve_srv_dns_ctx_init(be_ctx, be_ctx->be_res->resolv,
+                                          be_ctx->be_res->family_order,
+                                          default_host_dbs, hostname,
+                                          be_ctx->domain->name);
+    if (srv_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        return ENOMEM;
+    }
+
+    be_fo_set_srv_lookup_plugin(be_ctx, fo_resolve_srv_dns_send,
+                                fo_resolve_srv_dns_recv, srv_ctx, "DNS");
+
+    return EOK;
+}
+
 int be_fo_add_srv_server(struct be_ctx *ctx,
                          const char *service_name,
                          const char *query_service,

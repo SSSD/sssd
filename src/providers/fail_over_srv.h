@@ -69,4 +69,44 @@ typedef errno_t
                                struct fo_server_info **_backup_servers,
                                size_t *_num_backup_servers);
 
+struct tevent_req *fo_discover_srv_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct resolv_ctx *resolv_ctx,
+                                        const char *service,
+                                        const char *protocol,
+                                        const char **discovery_domains);
+
+errno_t fo_discover_srv_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             char **_dns_domain,
+                             struct fo_server_info **_servers,
+                             size_t *_num_servers);
+
+/* Simple SRV lookup plugin */
+
+struct fo_resolve_srv_dns_ctx;
+
+struct fo_resolve_srv_dns_ctx *
+fo_resolve_srv_dns_ctx_init(TALLOC_CTX *mem_ctx,
+                            struct resolv_ctx *resolv_ctx,
+                            enum restrict_family family_order,
+                            enum host_database *host_dbs,
+                            const char *hostname,
+                            const char *sssd_domain);
+
+struct tevent_req *fo_resolve_srv_dns_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           const char *service,
+                                           const char *protocol,
+                                           const char *discovery_domain,
+                                           void *pvt);
+
+errno_t fo_resolve_srv_dns_recv(TALLOC_CTX *mem_ctx,
+                                struct tevent_req *req,
+                                char **_dns_domain,
+                                struct fo_server_info **_primary_servers,
+                                size_t *_num_primary_servers,
+                                struct fo_server_info **_backup_servers,
+                                size_t *_num_backup_servers);
+
 #endif /* __FAIL_OVER_SRV_H__ */

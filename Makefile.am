@@ -325,6 +325,7 @@ endif
 
 SSSD_FAILOVER_OBJ = \
     src/providers/fail_over.c \
+    src/providers/fail_over_srv.c \
     $(SSSD_RESOLV_OBJ)
 
 SSSD_LIBS = \
