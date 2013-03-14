@@ -750,7 +750,7 @@ static void proxy_child_done(struct tevent_req *req)
     if ((pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) &&
         (pd->pam_status == PAM_SUCCESS) && be_ctx->domain->cache_credentials) {
 
-        ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+        ret = sss_authtok_get_password(pd->authtok, &password, NULL);
         if (ret) {
             /* password caching failures are not fatal errors */
             DEBUG(2, ("Failed to cache password\n"));

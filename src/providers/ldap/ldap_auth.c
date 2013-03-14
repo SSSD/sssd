@@ -722,7 +722,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     }
 
     if ((pd->priv == 1) && (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
-        (sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
+        (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
         DEBUG(4, ("Password reset by root is not supported.\n"));
         pd->pam_status = PAM_PERM_DENIED;
         dp_err = DP_ERR_OK;
@@ -747,7 +747,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     state->ctx = ctx;
 
     subreq = auth_send(breq, be_ctx->ev, ctx,
-                       state->username, &pd->authtok, true);
+                       state->username, pd->authtok, true);
     if (!subreq) goto done;
 
     tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
@@ -820,13 +820,13 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
             const char *password;
             const char *new_password;
 
-            ret = sss_authtok_get_password(&state->pd->authtok,
+            ret = sss_authtok_get_password(state->pd->authtok,
                                            &password, NULL);
             if (ret) {
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            ret = sss_authtok_get_password(&state->pd->newauthtok,
+            ret = sss_authtok_get_password(state->pd->newauthtok,
                                            &new_password, NULL);
             if (ret) {
                 state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -990,7 +990,7 @@ void sdap_pam_auth_handler(struct be_req *breq)
         state->pd = pd;
 
         subreq = auth_send(breq, be_ctx->ev, ctx,
-                           pd->user, &pd->authtok,
+                           pd->user, pd->authtok,
                            pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ? true : false);
         if (!subreq) goto done;
 
@@ -1102,7 +1102,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
 
     if (ret == EOK && be_ctx->domain->cache_credentials) {
 
-        ret = sss_authtok_get_password(&state->pd->authtok, &password, NULL);
+        ret = sss_authtok_get_password(state->pd->authtok, &password, NULL);
         if (ret == EOK) {
             ret = sysdb_cache_password(be_ctx->domain->sysdb, be_ctx->domain,
                                        state->pd->user, password);

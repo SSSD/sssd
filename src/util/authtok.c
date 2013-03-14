@@ -19,6 +19,12 @@
 
 #include "authtok.h"
 
+struct sss_auth_token {
+    enum sss_authtok_type type;
+    uint8_t *data;
+    size_t length;
+};
+
 enum sss_authtok_type sss_authtok_get_type(struct sss_auth_token *tok)
 {
     return tok->type;
@@ -80,8 +86,7 @@ errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
     return EINVAL;
 }
 
-static errno_t sss_authtok_set_string(TALLOC_CTX *mem_ctx,
-                                      struct sss_auth_token *tok,
+static errno_t sss_authtok_set_string(struct sss_auth_token *tok,
                                       enum sss_authtok_type type,
                                       const char *context_name,
                                       const char *str, size_t len)
@@ -101,7 +106,7 @@ static errno_t sss_authtok_set_string(TALLOC_CTX *mem_ctx,
 
     size = len + 1;
 
-    tok->data = talloc_named(mem_ctx, size, "%s", context_name);
+    tok->data = talloc_named(tok, size, "%s", context_name);
     if (!tok->data) {
         return ENOMEM;
     }
@@ -131,38 +136,33 @@ void sss_authtok_set_empty(struct sss_auth_token *tok)
     tok->length = 0;
 }
 
-errno_t sss_authtok_set_password(TALLOC_CTX *mem_ctx,
-                                 struct sss_auth_token *tok,
+errno_t sss_authtok_set_password(struct sss_auth_token *tok,
                                  const char *password, size_t len)
 {
     sss_authtok_set_empty(tok);
 
-    return sss_authtok_set_string(mem_ctx, tok,
-                                  SSS_AUTHTOK_TYPE_PASSWORD,
+    return sss_authtok_set_string(tok, SSS_AUTHTOK_TYPE_PASSWORD,
                                   "password", password, len);
 }
 
-errno_t sss_authtok_set_ccfile(TALLOC_CTX *mem_ctx,
-                               struct sss_auth_token *tok,
+errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
                                const char *ccfile, size_t len)
 {
     sss_authtok_set_empty(tok);
 
-    return sss_authtok_set_string(mem_ctx, tok,
-                                  SSS_AUTHTOK_TYPE_CCFILE,
+    return sss_authtok_set_string(tok, SSS_AUTHTOK_TYPE_CCFILE,
                                   "ccfile", ccfile, len);
 }
 
-errno_t sss_authtok_set(TALLOC_CTX *mem_ctx,
-                        struct sss_auth_token *tok,
+errno_t sss_authtok_set(struct sss_auth_token *tok,
                         enum sss_authtok_type type,
                         uint8_t *data, size_t len)
 {
     switch (type) {
     case SSS_AUTHTOK_TYPE_PASSWORD:
-        return sss_authtok_set_password(mem_ctx, tok, (const char *)data, len);
+        return sss_authtok_set_password(tok, (const char *)data, len);
     case SSS_AUTHTOK_TYPE_CCFILE:
-        return sss_authtok_set_ccfile(mem_ctx, tok, (const char *)data, len);
+        return sss_authtok_set_ccfile(tok, (const char *)data, len);
     case SSS_AUTHTOK_TYPE_EMPTY:
         sss_authtok_set_empty(tok);
         return EOK;
@@ -171,8 +171,7 @@ errno_t sss_authtok_set(TALLOC_CTX *mem_ctx,
     return EINVAL;
 }
 
-errno_t sss_authtok_copy(TALLOC_CTX *mem_ctx,
-                         struct sss_auth_token *src,
+errno_t sss_authtok_copy(struct sss_auth_token *src,
                          struct sss_auth_token *dst)
 {
     sss_authtok_set_empty(dst);
@@ -181,7 +180,7 @@ errno_t sss_authtok_copy(TALLOC_CTX *mem_ctx,
         return EOK;
     }
 
-    dst->data = talloc_memdup(mem_ctx, src->data, src->length);
+    dst->data = talloc_memdup(dst, src->data, src->length);
     if (!dst->data) {
         return ENOMEM;
     }
@@ -190,6 +189,19 @@ errno_t sss_authtok_copy(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
+{
+    struct sss_auth_token *token;
+
+    token = talloc_zero(mem_ctx, struct sss_auth_token);
+    if (token == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+    }
+
+    return token;
+}
+
 
 void sss_authtok_wipe_password(struct sss_auth_token *tok)
 {

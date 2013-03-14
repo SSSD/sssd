@@ -371,7 +371,7 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     }
 
     req = sdap_auth_send(state, state->ev, state->sh, NULL, NULL, dn,
-                         &state->pd->authtok);
+                         state->pd->authtok);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_auth_send failed.\n"));
         goto done;

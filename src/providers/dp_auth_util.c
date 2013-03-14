@@ -40,12 +40,12 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
     tty = pd->tty ? pd->tty : "";
     ruser = pd->ruser ? pd->ruser : "";
     rhost = pd->rhost ? pd->rhost : "";
-    authtok_type = (uint32_t)sss_authtok_get_type(&pd->authtok);
-    authtok_data = sss_authtok_get_data(&pd->authtok);
-    authtok_length = sss_authtok_get_size(&pd->authtok);
-    new_authtok_type = (uint32_t)sss_authtok_get_type(&pd->newauthtok);
-    new_authtok_data = sss_authtok_get_data(&pd->newauthtok);
-    new_authtok_length = sss_authtok_get_size(&pd->newauthtok);
+    authtok_type = (uint32_t)sss_authtok_get_type(pd->authtok);
+    authtok_data = sss_authtok_get_data(pd->authtok);
+    authtok_length = sss_authtok_get_size(pd->authtok);
+    new_authtok_type = (uint32_t)sss_authtok_get_type(pd->newauthtok);
+    new_authtok_data = sss_authtok_get_data(pd->newauthtok);
+    new_authtok_length = sss_authtok_get_size(pd->newauthtok);
 
     db_ret = dbus_message_append_args(msg,
                                       DBUS_TYPE_INT32,  &(pd->cmd),
@@ -112,13 +112,13 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
         return false;
     }
 
-    ret = sss_authtok_set(*new_pd, &((*new_pd)->authtok), authtok_type,
+    ret = sss_authtok_set((*new_pd)->authtok, authtok_type,
                           authtok_data, authtok_length);
     if (ret) {
         DEBUG(1, ("Failed to set auth token: %d [%s]\n", ret, strerror(ret)));
         return false;
     }
-    ret = sss_authtok_set(*new_pd, &((*new_pd)->newauthtok), new_authtok_type,
+    ret = sss_authtok_set((*new_pd)->newauthtok, new_authtok_type,
                           new_authtok_data, new_authtok_length);
     if (ret) {
         DEBUG(1, ("Failed to set auth token: %d [%s]\n", ret, strerror(ret)));

@@ -176,8 +176,8 @@ struct pam_data {
     char *tty;
     char *ruser;
     char *rhost;
-    struct sss_auth_token authtok;
-    struct sss_auth_token newauthtok;
+    struct sss_auth_token *authtok;
+    struct sss_auth_token *newauthtok;
     uint32_t cli_pid;
 
     int pam_status;

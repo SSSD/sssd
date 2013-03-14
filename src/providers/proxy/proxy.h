@@ -89,8 +89,8 @@ struct proxy_nss_ops {
 };
 
 struct authtok_conv {
-    struct sss_auth_token authtok;
-    struct sss_auth_token newauthtok;
+    struct sss_auth_token *authtok;
+    struct sss_auth_token *newauthtok;
 
     bool sent_old;
 };

@@ -284,7 +284,7 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     const char *password = NULL;
     errno_t ret;
 
-    ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+    ret = sss_authtok_get_password(pd->authtok, &password, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to get password [%d] %s\n", ret, strerror(ret)));
         *pam_status = PAM_SYSTEM_ERR;
@@ -397,10 +397,10 @@ static void krb5_auth_store_creds(struct sysdb_ctx *sysdb,
             break;
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+            ret = sss_authtok_get_password(pd->authtok, &password, NULL);
             break;
         case SSS_PAM_CHAUTHTOK:
-            ret = sss_authtok_get_password(&pd->newauthtok, &password, NULL);
+            ret = sss_authtok_get_password(pd->newauthtok, &password, NULL);
             break;
         default:
             DEBUG(0, ("unsupported PAM command [%d].\n", pd->cmd));
@@ -490,7 +490,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         case SSS_PAM_AUTHENTICATE:
         case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK:
-            if (sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+            if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
                 DEBUG(1, ("Missing authtok for user [%s].\n", pd->user));
                 state->pam_status = PAM_SYSTEM_ERR;
                 state->dp_err = DP_ERR_FATAL;
@@ -500,7 +500,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
             if (pd->priv == 1 &&
-                sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+                sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
                 DEBUG(4, ("Password reset by root is not supported.\n"));
                 state->pam_status = PAM_PERM_DENIED;
                 state->dp_err = DP_ERR_OK;

@@ -155,12 +155,12 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         buf->size += 4*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
-                     sss_authtok_get_size(&kr->pd->authtok);
+                     sss_authtok_get_size(kr->pd->authtok);
     }
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         buf->size += 2*sizeof(uint32_t) +
-                     sss_authtok_get_size(&kr->pd->newauthtok);
+                     sss_authtok_get_size(kr->pd->newauthtok);
     }
 
     if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
@@ -196,14 +196,14 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(keytab), &rp);
         safealign_memcpy(&buf->data[rp], keytab, strlen(keytab), &rp);
 
-        ret = pack_authtok(buf, &rp, &kr->pd->authtok);
+        ret = pack_authtok(buf, &rp, kr->pd->authtok);
         if (ret) {
             return ret;
         }
     }
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-        ret = pack_authtok(buf, &rp, &kr->pd->newauthtok);
+        ret = pack_authtok(buf, &rp, kr->pd->newauthtok);
         if (ret) {
             return ret;
         }

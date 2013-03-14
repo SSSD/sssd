@@ -592,10 +592,9 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
         goto done;
     }
 
-    sss_authtok_set_empty(&renew_data->pd->newauthtok);
+    sss_authtok_set_empty(renew_data->pd->newauthtok);
 
-    ret = sss_authtok_set_ccfile(renew_data->pd, &renew_data->pd->authtok,
-                                 renew_data->ccfile, 0);
+    ret = sss_authtok_set_ccfile(renew_data->pd->authtok, renew_data->ccfile, 0);
     if (ret) {
         DEBUG(1, ("Failed to store ccfile in auth token.\n"));
         goto done;

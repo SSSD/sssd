@@ -176,10 +176,10 @@ create_dummy_pam_data(TALLOC_CTX *mem_ctx, const char *user,
     pd->user = talloc_strdup(pd, user);
     if (!pd->user) goto fail;
 
-    ret = sss_authtok_set_password(pd, &pd->authtok, password, 0);
+    ret = sss_authtok_set_password(pd->authtok, password, 0);
     if (ret) goto fail;
 
-    (void)sss_authtok_get_password(&pd->authtok, &authtok, &authtok_len);
+    (void)sss_authtok_get_password(pd->authtok, &authtok, &authtok_len);
     DEBUG(SSSDBG_FUNC_DATA, ("Authtok [%s] len [%d]\n",
                              authtok, (int)authtok_len));
 

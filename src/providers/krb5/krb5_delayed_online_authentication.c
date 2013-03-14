@@ -84,7 +84,7 @@ static void authenticate_user(struct tevent_context *ev,
         return;
     }
 
-    ret = sss_authtok_set_password(pd, &pd->authtok, password, keysize);
+    ret = sss_authtok_set_password(pd->authtok, password, keysize);
     safezero(password, keysize);
     free(password);
     if (ret) {
@@ -246,7 +246,7 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    if (sss_authtok_get_type(&pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+    if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
         DEBUG(1, ("Invalid authtok for user [%s].\n", pd->user));
         return EINVAL;
     }
@@ -262,10 +262,10 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
     const char *password;
     size_t len;
 
-    ret = sss_authtok_get_password(&new_pd->authtok, &password, &len);
+    ret = sss_authtok_get_password(new_pd->authtok, &password, &len);
     if (ret) {
         DEBUG(1, ("Failed to get password [%d][%s].\n", ret, strerror(ret)));
-        sss_authtok_set_empty(&new_pd->authtok);
+        sss_authtok_set_empty(new_pd->authtok);
         talloc_free(new_pd);
         return ret;
     }
@@ -275,13 +275,13 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
     if (new_pd->key_serial == -1) {
         ret = errno;
         DEBUG(1, ("add_key failed [%d][%s].\n", ret, strerror(ret)));
-        sss_authtok_set_empty(&new_pd->authtok);
+        sss_authtok_set_empty(new_pd->authtok);
         talloc_free(new_pd);
         return ret;
     }
     DEBUG(9, ("Saved authtok of user [%s] with serial [%ld].\n",
               new_pd->user, new_pd->key_serial));
-    sss_authtok_set_empty(&new_pd->authtok);
+    sss_authtok_set_empty(new_pd->authtok);
 #endif
 
     key.type = HASH_KEY_ULONG;

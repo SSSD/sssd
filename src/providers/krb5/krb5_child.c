@@ -1201,7 +1201,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Password change operation\n"));
 
-    ret = sss_authtok_get_password(&kr->pd->authtok, &password, NULL);
+    ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to fetch current password [%d] %s.\n",
                   ret, strerror(ret)));
@@ -1233,7 +1233,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
         return kerr;
     }
 
-    sss_authtok_set_empty(&kr->pd->authtok);
+    sss_authtok_set_empty(kr->pd->authtok);
 
     if (prelim) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -1243,7 +1243,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
         return EOK;
     }
 
-    ret = sss_authtok_get_password(&kr->pd->newauthtok, &newpassword, NULL);
+    ret = sss_authtok_get_password(kr->pd->newauthtok, &newpassword, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to fetch new password [%d] %s.\n",
                   ret, strerror(ret)));
@@ -1307,7 +1307,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     kerr = get_and_save_tgt(kr, newpassword);
 
-    sss_authtok_set_empty(&kr->pd->newauthtok);
+    sss_authtok_set_empty(kr->pd->newauthtok);
 
     if (kerr == 0) {
         kerr = k5c_attach_ccname_msg(kr);
@@ -1324,7 +1324,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Attempting to get a TGT\n"));
 
-    ret = sss_authtok_get_password(&kr->pd->authtok, &password, NULL);
+    ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
     switch (ret) {
         if (ret == EACCES) {
             DEBUG(SSSDBG_OP_FAILURE, ("Invalid authtok type\n"));
@@ -1379,7 +1379,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     }
 
 done:
-    sss_authtok_set_empty(&kr->pd->authtok);
+    sss_authtok_set_empty(kr->pd->authtok);
     return ret;
 }
 
@@ -1423,11 +1423,11 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Renewing a ticket\n"));
 
-    ret = sss_authtok_get_ccfile(&kr->pd->authtok, &ccname, NULL);
+    ret = sss_authtok_get_ccfile(kr->pd->authtok, &ccname, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Unsupported authtok type for TGT renewal [%d].\n",
-               sss_authtok_get_type(&kr->pd->authtok)));
+               sss_authtok_get_type(kr->pd->authtok)));
         return ERR_INVALID_CRED_TYPE;
     }
 
@@ -1527,10 +1527,10 @@ static errno_t unpack_authtok(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
         sss_authtok_set_empty(tok);
         break;
     case SSS_AUTHTOK_TYPE_PASSWORD:
-        ret = sss_authtok_set_password(mem_ctx, tok, (char *)(buf + *p), 0);
+        ret = sss_authtok_set_password(tok, (char *)(buf + *p), 0);
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
-        ret = sss_authtok_set_ccfile(mem_ctx, tok, (char *)(buf + *p), 0);
+        ret = sss_authtok_set_ccfile(tok, (char *)(buf + *p), 0);
         break;
     default:
         return EINVAL;
@@ -1598,7 +1598,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         if (kr->keytab == NULL) return ENOMEM;
         p += len;
 
-        ret = unpack_authtok(pd, &pd->authtok, buf, size, &p);
+        ret = unpack_authtok(pd, pd->authtok, buf, size, &p);
         if (ret) {
             return ret;
         }
@@ -1608,16 +1608,16 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     } else {
         kr->ccname = NULL;
         kr->keytab = NULL;
-        sss_authtok_set_empty(&pd->authtok);
+        sss_authtok_set_empty(pd->authtok);
     }
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        ret = unpack_authtok(pd, &pd->newauthtok, buf, size, &p);
+        ret = unpack_authtok(pd, pd->newauthtok, buf, size, &p);
         if (ret) {
             return ret;
         }
     } else {
-        sss_authtok_set_empty(&pd->newauthtok);
+        sss_authtok_set_empty(pd->newauthtok);
     }
 
     if (pd->cmd == SSS_PAM_ACCT_MGMT) {

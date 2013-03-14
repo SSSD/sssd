@@ -98,7 +98,7 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
                 DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
                 reply[i].resp_retcode = 0;
 
-                ret = sss_authtok_get_password(&auth_data->authtok,
+                ret = sss_authtok_get_password(auth_data->authtok,
                                                &password, &pwlen);
                 if (ret) goto failed;
                 reply[i].resp = calloc(pwlen + 1, sizeof(char));
@@ -149,7 +149,7 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
                 reply[i].resp_retcode = 0;
                 if (!auth_data->sent_old) {
                     /* The first prompt will be asking for the old authtok */
-                    ret = sss_authtok_get_password(&auth_data->authtok,
+                    ret = sss_authtok_get_password(auth_data->authtok,
                                                   &password, &pwlen);
                     if (ret) goto failed;
                     reply[i].resp = calloc(pwlen + 1, sizeof(char));
@@ -159,7 +159,7 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
                 }
                 else {
                     /* Subsequent prompts are looking for the new authtok */
-                    ret = sss_authtok_get_password(&auth_data->newauthtok,
+                    ret = sss_authtok_get_password(auth_data->newauthtok,
                                                   &password, &pwlen);
                     if (ret) goto failed;
                     reply[i].resp = calloc(pwlen + 1, sizeof(char));
@@ -224,8 +224,7 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
         }
         switch (pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
-                sss_authtok_copy(auth_data, &pd->authtok,
-                                 &auth_data->authtok);
+                sss_authtok_copy(pd->authtok, auth_data->authtok);
                 pam_status = pam_authenticate(pamh, 0);
                 break;
             case SSS_PAM_SETCRED:
@@ -241,21 +240,18 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
                 pam_status=pam_close_session(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK:
-                sss_authtok_copy(auth_data, &pd->authtok,
-                                 &auth_data->authtok);
+                sss_authtok_copy(pd->authtok, auth_data->authtok);
                 if (pd->priv != 1) {
                     pam_status = pam_authenticate(pamh, 0);
                     auth_data->sent_old = false;
                     if (pam_status != PAM_SUCCESS) break;
                 }
-                sss_authtok_copy(auth_data, &pd->newauthtok,
-                                 &auth_data->newauthtok);
+                sss_authtok_copy(pd->newauthtok, auth_data->newauthtok);
                 pam_status = pam_chauthtok(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK_PRELIM:
                 if (pd->priv != 1) {
-                    sss_authtok_copy(auth_data, &pd->authtok,
-                                     &auth_data->authtok);
+                    sss_authtok_copy(pd->authtok, auth_data->authtok);
                     pam_status = pam_authenticate(pamh, 0);
                 } else {
                     pam_status = PAM_SUCCESS;

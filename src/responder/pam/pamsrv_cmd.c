@@ -65,8 +65,7 @@ static int extract_authtok_v2(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
         sss_authtok_set_empty(tok);
         break;
     case SSS_AUTHTOK_TYPE_PASSWORD:
-        ret = sss_authtok_set_password(mem_ctx, tok,
-                                       (const char *)auth_token_data,
+        ret = sss_authtok_set_password(tok, (const char *)auth_token_data,
                                        auth_token_length);
         break;
     default:
@@ -197,12 +196,12 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_AUTHTOK:
-                    ret = extract_authtok_v2(pd, &pd->authtok,
+                    ret = extract_authtok_v2(pd, pd->authtok,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_NEWAUTHTOK:
-                    ret = extract_authtok_v2(pd, &pd->newauthtok,
+                    ret = extract_authtok_v2(pd, pd->newauthtok,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
@@ -260,8 +259,7 @@ static int extract_authtok_v1(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
         sss_authtok_set_empty(tok);
         break;
     case SSS_AUTHTOK_TYPE_PASSWORD:
-        ret = sss_authtok_set_password(mem_ctx, tok,
-                                       (const char *)auth_token_data,
+        ret = sss_authtok_set_password(tok, (const char *)auth_token_data,
                                        auth_token_length);
         break;
     default:
@@ -310,12 +308,12 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
     if (body[end++] != '\0') return EINVAL;
     pd->rhost = (char *) &body[start];
 
-    ret = extract_authtok_v1(pd, &pd->authtok, body, blen, &end);
+    ret = extract_authtok_v1(pd, pd->authtok, body, blen, &end);
     if (ret) {
         DEBUG(1, ("Invalid auth token\n"));
         return ret;
     }
-    ret = extract_authtok_v1(pd, &pd->newauthtok, body, blen, &end);
+    ret = extract_authtok_v1(pd, pd->newauthtok, body, blen, &end);
     if (ret) {
         DEBUG(1, ("Invalid new auth token\n"));
         return ret;
@@ -489,7 +487,7 @@ static void pam_reply(struct pam_auth_req *preq)
                     goto done;
                 }
 
-                ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+                ret = sss_authtok_get_password(pd->authtok, &password, NULL);
                 if (ret) {
                     DEBUG(0, ("Failed to get password.\n"));
                     goto done;

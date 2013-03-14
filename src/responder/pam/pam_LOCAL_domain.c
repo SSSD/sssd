@@ -164,7 +164,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
 
     pd = lreq->preq->pd;
 
-    ret = sss_authtok_get_password(&pd->newauthtok, &password, NULL);
+    ret = sss_authtok_get_password(pd->newauthtok, &password, NULL);
     if (ret) {
         /* TODO: should we allow null passwords via a config option ? */
         if (ret == ENOENT) {
@@ -204,7 +204,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
 
 done:
-    sss_authtok_set_empty(&pd->newauthtok);
+    sss_authtok_set_empty(pd->newauthtok);
 }
 
 int LOCAL_pam_handler(struct pam_auth_req *preq)
@@ -288,7 +288,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
                 DEBUG(4, ("allowing root to reset a password.\n"));
                 break;
             }
-            ret = sss_authtok_get_password(&pd->authtok, &password, NULL);
+            ret = sss_authtok_get_password(pd->authtok, &password, NULL);
             NEQ_CHECK_OR_JUMP(ret, EOK, ("Failed to get password.\n"),
                                lreq->error, ret, done);
 
@@ -336,8 +336,8 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     }
 
 done:
-    sss_authtok_set_empty(&pd->newauthtok);
-    sss_authtok_set_empty(&pd->authtok);
+    sss_authtok_set_empty(pd->newauthtok);
+    sss_authtok_set_empty(pd->authtok);
     prepare_reply(lreq);
     return EOK;
 }

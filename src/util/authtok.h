@@ -23,15 +23,9 @@
 #include "util/util.h"
 #include "sss_client/sss_cli.h"
 
-/* Auth token structure,
- * please never use directly.
- * Use sss_authtok_* accesor functions instead
+/* Use sss_authtok_* accesor functions instead of struct sss_auth_token
  */
-struct sss_auth_token {
-    enum sss_authtok_type type;
-    uint8_t *data;
-    size_t length;
-};
+struct sss_auth_token;
 
 /**
  * @brief Returns the token type
@@ -79,8 +73,8 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
 /**
  * @brief Set a password into a an auth token, replacing any previous data
  *
- * @param mem_ctx    A memory context use to allocate the internal data
- * @param tok        A pointer to a sss_auth_token structure to change
+ * @param tok        A pointer to a sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
  * @param password   A string
  * @param len        The length of the string or, if 0 is passed,
  *                   then strlen(password) will be used internally.
@@ -88,8 +82,7 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
  * @return       EOK on success
  *               ENOMEM on error
  */
-errno_t sss_authtok_set_password(TALLOC_CTX *mem_ctx,
-                                 struct sss_auth_token *tok,
+errno_t sss_authtok_set_password(struct sss_auth_token *tok,
                                  const char *password, size_t len);
 
 /**
@@ -98,7 +91,7 @@ errno_t sss_authtok_set_password(TALLOC_CTX *mem_ctx,
  *
  * @param tok    A pointer to an sss_auth_token
  * @param ccfile A pointer to a const char *, that will point to a null
- *               terminated string
+ *               terminated string, also used as a memory context use to allocate the internal data
  * @param len    The length of the string
  *
  * @return       EOK on success
@@ -111,16 +104,15 @@ errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
 /**
  * @brief Set a cc file name into a an auth token, replacing any previous data
  *
- * @param mem_ctx    A memory context use to allocate the internal data
- * @param tok        A pointer to a sss_auth_token structure to change
+ * @param tok        A pointer to a sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
  * @param ccfile     A null terminated string
  * @param len    The length of the string
  *
  * @return       EOK on success
  *               ENOMEM on error
  */
-errno_t sss_authtok_set_ccfile(TALLOC_CTX *mem_ctx,
-                               struct sss_auth_token *tok,
+errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
                                const char *ccfile, size_t len);
 
 /**
@@ -136,8 +128,8 @@ void sss_authtok_set_empty(struct sss_auth_token *tok);
 /**
  * @brief Set an auth token by type, replacing any previous data
  *
- * @param mem_ctx    A memory context use to allocate the internal data
- * @param tok        A pointer to a sss_auth_token structure to change
+ * @param tok        A pointer to a sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
  * @param type       A valid authtok type
  * @param ccfile     A data pointer
  * @param len        The length of the data
@@ -145,23 +137,21 @@ void sss_authtok_set_empty(struct sss_auth_token *tok);
  * @return       EOK on success
  *               ENOMEM or EINVAL on error
  */
-errno_t sss_authtok_set(TALLOC_CTX *mem_ctx,
-                        struct sss_auth_token *tok,
+errno_t sss_authtok_set(struct sss_auth_token *tok,
                         enum sss_authtok_type type,
                         uint8_t *data, size_t len);
 
 /**
  * @brief Copy an auth token from source to destination
  *
- * @param mem_ctx    The memory context to use for allocations on dst
  * @param src        The source auth token
- * @param dst        The destination auth token
+ * @param dst        The destination auth token, also used as a memory context
+ *                   to allocate dst internal data.
  *
  * @return       EOK on success
  *               ENOMEM on error
  */
-errno_t sss_authtok_copy(TALLOC_CTX *mem_ctx,
-                         struct sss_auth_token *src,
+errno_t sss_authtok_copy(struct sss_auth_token *src,
                          struct sss_auth_token *dst);
 
 /**
@@ -176,5 +166,17 @@ errno_t sss_authtok_copy(TALLOC_CTX *mem_ctx,
  * Use sss_authtok_set_empty() in normal circumstances.
  */
 void sss_authtok_wipe_password(struct sss_auth_token *tok);
+
+/**
+ * @brief Create new empty struct sss_auth_token.
+ *
+ * @param mem_ctx    A memory context use to allocate the internal data
+ * @return           A pointer to new empty struct sss_auth_token
+ *                   NULL in case of failure
+ *
+ * NOTE: This function is the only way, how to create new empty
+ * struct sss_auth_token.
+ */
+struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx);
 
 #endif /*  __AUTHTOK_H__ */

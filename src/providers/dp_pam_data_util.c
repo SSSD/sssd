@@ -53,8 +53,8 @@ int pam_data_destructor(void *ptr)
     struct pam_data *pd = talloc_get_type(ptr, struct pam_data);
 
     /* make sure to wipe any password from memory before freeing */
-    sss_authtok_wipe_password(&pd->authtok);
-    sss_authtok_wipe_password(&pd->newauthtok);
+    sss_authtok_wipe_password(pd->authtok);
+    sss_authtok_wipe_password(pd->newauthtok);
 
     return 0;
 }
@@ -65,13 +65,29 @@ struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx)
 
     pd = talloc_zero(mem_ctx, struct pam_data);
     if (pd == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
-        return NULL;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        goto failed;
+    }
+
+    pd->authtok = sss_authtok_new(pd);
+    if (pd == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        goto failed;
+    }
+
+    pd->newauthtok = sss_authtok_new(pd);
+    if (pd == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        goto failed;
     }
 
     talloc_set_destructor((TALLOC_CTX *) pd, pam_data_destructor);
 
     return pd;
+
+failed:
+    talloc_free(pd);
+    return NULL;
 }
 
 errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *src,
@@ -122,14 +138,34 @@ errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *src,
 
     pd->cli_pid = src->cli_pid;
 
-    ret = sss_authtok_copy(pd, &src->authtok, &pd->authtok);
-    if (ret) {
-        goto failed;
+    /* if structure pam_data was allocated on stack and zero initialized,
+     * than src->authtok and src->newauthtok are NULL, therefore
+     * instead of copying, new empty authtok will be created.
+     */
+    if (src->authtok) {
+        ret = sss_authtok_copy(src->authtok, pd->authtok);
+        if (ret) {
+            goto failed;
+        }
+    } else {
+        pd->authtok = sss_authtok_new(pd);
+        if (pd->authtok == NULL) {
+            ret = ENOMEM;
+            goto failed;
+        }
     }
 
-    ret = sss_authtok_copy(pd, &src->newauthtok, &pd->newauthtok);
-    if (ret) {
-        goto failed;
+    if (src->newauthtok) {
+        ret = sss_authtok_copy(src->newauthtok, pd->newauthtok);
+        if (ret) {
+            goto failed;
+        }
+    } else {
+        pd->newauthtok = sss_authtok_new(pd);
+        if (pd->newauthtok == NULL) {
+            ret = ENOMEM;
+            goto failed;
+        }
     }
 
     *dst = pd;
@@ -151,8 +187,8 @@ void pam_print_data(int l, struct pam_data *pd)
     DEBUG(l, ("tty: %s\n", PAM_SAFE_ITEM(pd->tty)));
     DEBUG(l, ("ruser: %s\n", PAM_SAFE_ITEM(pd->ruser)));
     DEBUG(l, ("rhost: %s\n", PAM_SAFE_ITEM(pd->rhost)));
-    DEBUG(l, ("authtok type: %d\n", sss_authtok_get_type(&pd->authtok)));
-    DEBUG(l, ("newauthtok type: %d\n", sss_authtok_get_type(&pd->newauthtok)));
+    DEBUG(l, ("authtok type: %d\n", sss_authtok_get_type(pd->authtok)));
+    DEBUG(l, ("newauthtok type: %d\n", sss_authtok_get_type(pd->newauthtok)));
     DEBUG(l, ("priv: %d\n", pd->priv));
     DEBUG(l, ("cli_pid: %d\n", pd->cli_pid));
 }

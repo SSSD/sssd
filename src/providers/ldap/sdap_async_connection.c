@@ -1573,7 +1573,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                                             SDAP_DEFAULT_BIND_DN);
     const char *authtok_type;
     struct dp_opt_blob authtok_blob;
-    struct sss_auth_token authtok = { 0 };
+    struct sss_auth_token *authtok;
     errno_t ret;
 
     /* Set the LDAP expiration time
@@ -1599,6 +1599,12 @@ static void sdap_cli_auth_step(struct tevent_req *req)
 
     authtok_type = dp_opt_get_string(state->opts->basic,
                                      SDAP_DEFAULT_AUTHTOK_TYPE);
+    authtok = sss_authtok_new(state);
+    if(authtok == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     if (authtok_type != NULL) {
         if (strcasecmp(authtok_type, "password") != 0) {
             DEBUG(SSSDBG_TRACE_LIBS, ("Invalid authtoken type\n"));
@@ -1609,7 +1615,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
         authtok_blob = dp_opt_get_blob(state->opts->basic,
                                        SDAP_DEFAULT_AUTHTOK);
         if (authtok_blob.data) {
-            ret = sss_authtok_set_password(state, &authtok,
+            ret = sss_authtok_set_password(authtok,
                                         (const char *)authtok_blob.data,
                                         authtok_blob.length);
             if (ret) {
@@ -1623,7 +1629,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                             state->sh, sasl_mech,
                             dp_opt_get_string(state->opts->basic,
                                               SDAP_SASL_AUTHID),
-                            user_dn, &authtok);
+                            user_dn, authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
