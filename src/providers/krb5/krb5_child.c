@@ -1556,7 +1556,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     if (!offline || !kr) return EINVAL;
 
-    pd = talloc_zero(kr, struct pam_data);
+    pd = create_pam_data(kr);
     if (pd == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         return ENOMEM;

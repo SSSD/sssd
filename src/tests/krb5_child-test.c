@@ -169,7 +169,7 @@ create_dummy_pam_data(TALLOC_CTX *mem_ctx, const char *user,
     size_t authtok_len;
     errno_t ret;
 
-    pd = talloc_zero(mem_ctx, struct pam_data);
+    pd = create_pam_data(mem_ctx);
     if (!pd) goto fail;
 
     pd->cmd = SSS_PAM_AUTHENTICATE;

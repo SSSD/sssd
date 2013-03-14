@@ -202,6 +202,18 @@ struct pam_data {
 #define SSS_KRB5_INFO_TGT_LIFETIME (SSS_SERVER_INFO|SSS_KRB5_INFO|0x01)
 #define SSS_KRB5_INFO_UPN (SSS_SERVER_INFO|SSS_KRB5_INFO|0x02)
 
+/**
+ * @brief Create new zero initialized struct pam_data.
+ *
+ * @param mem_ctx    A memory context use to allocate the internal data
+ * @return           A pointer to new struct pam_data
+ *                   NULL on error
+ *
+ * NOTE: This function should be the only way, how to create new empty
+ * struct pam_data, because this function automatically initialize sub
+ * structures and set destructor to created object.
+ */
+struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx);
 errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *old_pd,
                       struct pam_data **new_pd);
 void pam_print_data(int l, struct pam_data *pd);

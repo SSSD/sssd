@@ -758,7 +758,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
     preq->cctx = cctx;
 
-    preq->pd = talloc_zero(preq, struct pam_data);
+    preq->pd = create_pam_data(preq);
     if (!preq->pd) {
         talloc_free(preq);
         return ENOMEM;

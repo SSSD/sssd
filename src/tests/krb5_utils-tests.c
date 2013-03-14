@@ -425,7 +425,7 @@ void setup_talloc_context(void)
     kr = talloc_zero(tmp_ctx, struct krb5child_req);
     fail_unless(kr != NULL, "Cannot create krb5child_req structure.");
 
-    pd = talloc_zero(tmp_ctx, struct pam_data);
+    pd = create_pam_data(tmp_ctx);
     fail_unless(pd != NULL, "Cannot create pam_data structure.");
 
     krb5_ctx = talloc_zero(tmp_ctx, struct krb5_ctx);
