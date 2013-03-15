@@ -89,15 +89,6 @@ int sdap_get_tgt_recv(struct tevent_req *req,
                       char **ccname,
                       time_t *expire_time_out);
 
-int sdap_save_user(TALLOC_CTX *memctx,
-                   struct sysdb_ctx *ctx,
-                   struct sdap_options *opts,
-                   struct sss_domain_info *dom,
-                   struct sysdb_attrs *attrs,
-                   bool is_initgr,
-                   char **_usn_value,
-                   time_t now);
-
 int sdap_save_users(TALLOC_CTX *memctx,
                     struct sysdb_ctx *sysdb,
                     struct sss_domain_info *dom,
@@ -118,4 +109,5 @@ errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
                             struct sysdb_ctx *sysdb,
                             const char *name,
                             char ***grouplist);
+
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */

@@ -26,6 +26,8 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/sdap_users.h"
+
 
 /* ==Save-User-Entry====================================================== */
 
@@ -699,4 +701,93 @@ int sdap_get_users_recv(struct tevent_req *req,
     }
 
     return EOK;
+}
+
+/* ==Fetch-Fallback-local-user============================================ */
+
+errno_t sdap_fallback_local_user(TALLOC_CTX *memctx,
+                                 struct sdap_options *opts,
+                                 const char *name, uid_t uid,
+                                 struct sysdb_attrs ***reply)
+{
+    struct sysdb_attrs **ua;
+    struct sysdb_attrs *user;
+    struct passwd *pwd;
+    int ret;
+
+    if (name) {
+        pwd = getpwnam(name);
+    } else {
+        pwd = getpwuid(uid);
+    }
+
+    if (!pwd) {
+        return errno ? errno : ENOENT;
+    }
+
+    ua = talloc_array(memctx, struct sysdb_attrs *, 2);
+    if (!ua) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ua[1] = NULL;
+
+    user = sysdb_new_attrs(ua);
+    if (!user) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ua[0] = user;
+
+    ret = sysdb_attrs_add_string(user, SYSDB_NAME, pwd->pw_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (pwd->pw_passwd) {
+        ret = sysdb_attrs_add_string(user, SYSDB_PWD, pwd->pw_passwd);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = sysdb_attrs_add_long(user, SYSDB_UIDNUM, (long)pwd->pw_uid);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_long(user, SYSDB_GIDNUM, (long)pwd->pw_gid);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (pwd->pw_gecos) {
+        ret = sysdb_attrs_add_string(user, SYSDB_GECOS, pwd->pw_gecos);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (pwd->pw_dir) {
+        ret = sysdb_attrs_add_string(user, SYSDB_HOMEDIR, pwd->pw_dir);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (pwd->pw_shell) {
+        ret = sysdb_attrs_add_string(user, SYSDB_SHELL, pwd->pw_shell);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+done:
+    if (ret != EOK) {
+        talloc_free(ua);
+    } else {
+        *reply = ua;
+    }
+
+    return ret;
 }

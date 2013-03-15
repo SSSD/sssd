@@ -26,6 +26,7 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/sdap_users.h"
 
 /* ==Save-fake-group-list=====================================*/
 static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
@@ -2656,8 +2657,20 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
 
-        tevent_req_error(req, ENOENT);
-        return;
+        /* fallback to fetch a local user if required */
+        if ((state->opts->schema_type == SDAP_SCHEMA_RFC2307) &&
+            (dp_opt_get_bool(state->opts->basic,
+                             SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS) == true)) {
+            ret = sdap_fallback_local_user(state, state->opts,
+                                           state->name, -1, &usr_attrs);
+        } else {
+            ret = ENOENT;
+        }
+
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
     } else if (count != 1) {
         DEBUG(2, ("Expected one user entry and got %d\n", count));
         tevent_req_error(req, EINVAL);
