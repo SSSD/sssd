@@ -440,6 +440,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_id_op.h \
     src/providers/ldap/ldap_opts.h \
     src/providers/ldap/sdap_range.h \
+    src/providers/ldap/sdap_users.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \

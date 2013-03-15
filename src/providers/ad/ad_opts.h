@@ -120,6 +120,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_idmap_default_domain_sid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_groups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_initgroups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_rfc2307_fallback_to_local_users", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     DP_OPTION_TERMINATOR
 };
 

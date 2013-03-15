@@ -1810,6 +1810,37 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_rfc2307_fallback_to_local_users (boolean)</term>
+                    <listitem>
+                        <para>
+                            Allows to retain local users as members of an LDAP
+                            group for servers that use the RFC2307 schema.
+                        </para>
+                        <para>
+                            In some environments where the RFC2307 schema is
+                            used, local users are made members of LDAP groups
+                            by adding their names to the memberUid attribute.
+                            The self-consistency of the domain is compromised
+                            when this is done, so SSSD would normally remove
+                            the "missing" users from the cached group
+                            memberships as soon as nsswitch tries to fetch
+                            information about the user via getpw*() or
+                            initgroups() calls.
+                        </para>
+                        <para>
+                            This option falls back to checking if local users
+                            are referenced, and caches them so that later
+                            initgroups() calls will augment the local users
+                            with the additional LDAP groups.
+                       </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

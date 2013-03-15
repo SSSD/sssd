@@ -32,6 +32,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/sdap_users.h"
 
 /* =Users-Related-Functions-(by-name,by-uid)============================== */
 
@@ -242,6 +243,44 @@ static void users_get_done(struct tevent_req *subreq)
         }
 
         return;
+    }
+
+    if ((ret == ENOENT) &&
+        (state->ctx->opts->schema_type == SDAP_SCHEMA_RFC2307) &&
+        (dp_opt_get_bool(state->ctx->opts->basic,
+                         SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS) == true)) {
+        struct sysdb_attrs **usr_attrs;
+        const char *name = NULL;
+        bool fallback;
+
+        switch (state->filter_type) {
+        case BE_FILTER_NAME:
+            name = state->name;
+            uid = -1;
+            fallback = true;
+            break;
+        case BE_FILTER_IDNUM:
+            uid = (uid_t) strtouint32(state->name, &endptr, 10);
+            if (errno || *endptr || (state->name == endptr)) {
+                tevent_req_error(req, errno ? errno : EINVAL);
+                return;
+            }
+            fallback = true;
+            break;
+        default:
+            fallback = false;
+            break;
+        }
+
+        if (fallback) {
+            ret = sdap_fallback_local_user(state, state->ctx->opts,
+                                           name, uid, &usr_attrs);
+            if (ret == EOK) {
+                ret = sdap_save_user(state, state->sysdb,
+                                     state->ctx->opts, state->domain,
+                                     usr_attrs[0], false, NULL, 0);
+            }
+        }
     }
 
     if (ret && ret != ENOENT) {
