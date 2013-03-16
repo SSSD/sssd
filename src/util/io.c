@@ -24,8 +24,14 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
-#include "util/util.h"
+#include "util/io.h"
+
+/* CAUTION:
+ * This file have to be minimalist and cannot include DEBUG macros
+ * or header file util.h.
+ */
 
 int sss_open_cloexec(const char *pathname, int flags, int *ret)
 {

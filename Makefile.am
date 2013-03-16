@@ -371,6 +371,7 @@ dist_noinst_HEADERS = \
     src/util/crypto/sss_crypto.h \
     src/util/dlinklist.h \
     src/util/util.h \
+    src/util/io.h \
     src/util/util_errors.h \
     src/util/strtonum.h \
     src/util/sss_nss.h \
@@ -1234,6 +1235,7 @@ libnss_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/sss_client/nss_compat.h \
     src/sss_client/nss_mc_common.c \
+    src/util/io.c \
     src/util/murmurhash3.c \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
