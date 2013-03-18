@@ -149,7 +149,7 @@ m4_include([src/external/libkeyutils.m4])
 m4_include([src/external/libnl.m4])
 m4_include([src/external/systemd.m4])
 m4_include([src/external/pac_responder.m4])
-m4_include([src/util/signal.m4])
+m4_include([src/external/signal.m4])
 
 WITH_UNICODE_LIB
 if test x$unicode_lib = xlibunistring; then
