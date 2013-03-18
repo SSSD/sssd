@@ -860,7 +860,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
         be_fo_set_port_status(state->be_ctx, state->krb5_ctx->service->name,
                               search_srv, PORT_NOT_WORKING);
         subreq = be_resolve_server_send(state, state->ev, state->be_ctx,
-                                        state->krb5_ctx->kpasswd_service->name,
+                                        state->krb5_ctx->service->name,
                                         search_srv == NULL ? true : false);
         if (subreq == NULL) {
             DEBUG(1, ("Failed resolved request.\n"));
