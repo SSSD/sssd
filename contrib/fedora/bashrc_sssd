@@ -68,12 +68,6 @@ WARNINGS='-Wall \
           -Wno-sign-compare \
           -Wformat-security'
 
-# Clean the build directory and rebuild all objects, then run the build-tests
-# against them.
-alias remake='make clean > /dev/null \
-                && make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS $SSS_WERROR" \
-                        -j%PROCESSORS check'
-
 # Build (or finish building) all objects and then run the build-tests against
 # them. This builds with optimizations turned off and GDB debugging symbols.
 alias chmake='make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS $SSS_WERROR" \
