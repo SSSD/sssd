@@ -257,6 +257,7 @@ done
 autoreconf -ivf
 
 %configure \
+    --with-test-dir=/dev/shm \
     --with-db-path=%{dbpath} \
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \

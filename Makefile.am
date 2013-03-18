@@ -1,5 +1,11 @@
+extra_distcheck_flags =
+if HAVE_DEVSHM
+    extra_distcheck_flags += --with-test-dir=/dev/shm
+endif
+
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
-                            --enable-all-experimental-features
+                            --enable-all-experimental-features \
+                            $(extra_distcheck_flags)
 
 SUBDIRS = po
 
