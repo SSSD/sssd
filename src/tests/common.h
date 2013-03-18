@@ -95,4 +95,6 @@ errno_t test_request_recv(struct tevent_req *req);
 
 int test_ev_loop(struct sss_test_ctx *tctx);
 
+bool ldb_modules_path_is_set(void);
+
 #endif /* !__TESTS_COMMON_H__ */

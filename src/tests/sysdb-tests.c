@@ -5268,6 +5268,11 @@ int main(int argc, const char *argv[]) {
 
     DEBUG_INIT(debug_level);
 
+    if (!ldb_modules_path_is_set()) {
+        fprintf(stderr, "Warning: LDB_MODULES_PATH is not set, "
+                "will use LDB plugins installed in system paths.\n");
+    }
+
     tests_set_cwd();
 
     ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);

@@ -101,3 +101,12 @@ compare_sdap_attr_maps(struct sdap_attr_map *map1, size_t size1,
 
     return EOK;
 }
+
+bool ldb_modules_path_is_set(void)
+{
+    if (getenv("LDB_MODULES_PATH")) {
+        return true;
+    }
+
+    return false;
+}
