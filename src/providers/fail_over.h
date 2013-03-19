@@ -29,6 +29,7 @@
 #include <talloc.h>
 
 #include "resolv/async_resolv.h"
+#include "providers/fail_over_srv.h"
 
 #define FO_PROTO_TCP "tcp"
 #define FO_PROTO_UDP "udp"
@@ -197,5 +198,13 @@ time_t fo_get_service_retry_timeout(struct fo_service *svc);
 void fo_reset_services(struct fo_ctx *fo_ctx);
 
 bool fo_svc_has_server(struct fo_service *service, struct fo_server *server);
+
+/*
+ * pvt will be talloc_stealed to ctx
+ */
+bool fo_set_srv_lookup_plugin(struct fo_ctx *ctx,
+                              fo_srv_lookup_plugin_send_t send_fn,
+                              fo_srv_lookup_plugin_recv_t recv_fn,
+                              void *pvt);
 
 #endif /* !__FAIL_OVER_H__ */

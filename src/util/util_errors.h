@@ -63,6 +63,8 @@ enum sssd_errors {
     ERR_ACCOUNT_EXPIRED,
     ERR_PASSWORD_EXPIRED,
     ERR_ACCESS_DENIED,
+    ERR_SRV_NOT_FOUND,
+    ERR_SRV_LOOKUP_ERROR,
     ERR_LAST            /* ALWAYS LAST */
 };
 

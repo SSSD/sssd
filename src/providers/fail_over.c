@@ -55,6 +55,10 @@ struct fo_ctx {
     struct server_common *server_common_list;
 
     struct fo_options *opts;
+
+    fo_srv_lookup_plugin_send_t srv_send_fn;
+    fo_srv_lookup_plugin_recv_t srv_recv_fn;
+    void *srv_pvt;
 };
 
 struct fo_service {
@@ -1590,4 +1594,26 @@ bool fo_svc_has_server(struct fo_service *service, struct fo_server *server)
     }
 
     return false;
+}
+
+bool fo_set_srv_lookup_plugin(struct fo_ctx *ctx,
+                              fo_srv_lookup_plugin_send_t send_fn,
+                              fo_srv_lookup_plugin_recv_t recv_fn,
+                              void *pvt)
+{
+    if (ctx == NULL || send_fn == NULL || recv_fn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid parameters\n"));
+        return false;
+    }
+
+    if (ctx->srv_send_fn != NULL || ctx->srv_recv_fn != NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("SRV lookup plugin is already set\n"));
+        return false;
+    }
+
+    ctx->srv_send_fn = send_fn;
+    ctx->srv_recv_fn = recv_fn;
+    ctx->srv_pvt = talloc_steal(ctx, pvt);
+
+    return true;
 }

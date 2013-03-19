@@ -41,6 +41,8 @@ struct err_string error_to_str[] = {
     { "Account Expired" }, /* ERR_ACCOUNT_EXPIRED */
     { "Password Expired" }, /* ERR_PASSWORD_EXPIRED */
     { "Host Access Denied" }, /* ERR_ACCESS_DENIED */
+    { "SRV record not found" }, /* ERR_SRV_NOT_FOUND */
+    { "SRV lookup error" }, /* ERR_SRV_LOOKUP_ERROR */
 };
 
 

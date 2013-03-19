@@ -233,6 +233,27 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
     return EOK;
 }
 
+void be_fo_set_srv_lookup_plugin(struct be_ctx *ctx,
+                                 fo_srv_lookup_plugin_send_t send_fn,
+                                 fo_srv_lookup_plugin_recv_t recv_fn,
+                                 void *pvt,
+                                 const char *plugin_name)
+{
+    bool bret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Trying to set SRV lookup plugin to %s\n",
+                              plugin_name));
+
+    bret = fo_set_srv_lookup_plugin(ctx->be_fo->fo_ctx, send_fn, recv_fn, pvt);
+    if (bret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("SRV lookup plugin is now %s\n",
+                                  plugin_name));
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to set SRV lookup plugin, "
+              "another plugin may be already in place\n"));
+    }
+}
+
 int be_fo_add_srv_server(struct be_ctx *ctx,
                          const char *service_name,
                          const char *query_service,
