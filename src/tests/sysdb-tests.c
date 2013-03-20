@@ -4475,8 +4475,8 @@ START_TEST(test_sysdb_subdomain_create)
 {
     struct sysdb_test_ctx *test_ctx;
     errno_t ret;
-    const char const *dom1[4] = { "dom1.sub", "DOM1.SUB", "dom1", "S-1" };
-    const char const *dom2[4] = { "dom2.sub", "DOM2.SUB", "dom2", "S-2" };
+    const char *const dom1[4] = { "dom1.sub", "DOM1.SUB", "dom1", "S-1" };
+    const char *const dom2[4] = { "dom2.sub", "DOM2.SUB", "dom2", "S-2" };
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -4521,7 +4521,7 @@ START_TEST(test_sysdb_subdomain_create)
 }
 END_TEST
 
-const char const *testdom[4] = { "test.sub", "TEST.SUB", "test", "S-3" };
+const char *const testdom[4] = { "test.sub", "TEST.SUB", "test", "S-3" };
 
 START_TEST(test_sysdb_subdomain_store_user)
 {
