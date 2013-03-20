@@ -39,8 +39,8 @@ struct err_string error_to_str[] = {
     { "Password Change Failed" }, /* ERR_CHPASS_FAILED */
     { "Network I/O Error" }, /* ERR_NETWORK_IO */
     { "Account Expired" }, /* ERR_ACCOUNT_EXPIRED */
-    { "Host Access Denied" }, /* ERR_ACEESS_DENIED */
     { "Password Expired" }, /* ERR_PASSWORD_EXPIRED */
+    { "Host Access Denied" }, /* ERR_ACCESS_DENIED */
 };
 
 
