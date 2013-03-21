@@ -248,6 +248,20 @@ ad_domain = example.com
         </para>
     </refsect1>
 
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            The AD access control provider checks if the account is expired.
+            It has the same effect as the following configuration of the LDAP
+            provider:
+<programlisting>
+access_provider = ldap
+ldap_access_order = expire
+ldap_account_expire_policy = ad
+</programlisting>
+        </para>
+    </refsect1>
+
 	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
