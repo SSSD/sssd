@@ -147,7 +147,8 @@ endif
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
         nss-srv-tests \
-        test-find-uid
+        test-find-uid \
+        test-io
 endif
 
 check_PROGRAMS = \
@@ -1233,6 +1234,14 @@ test_find_uid_LDADD = \
     $(DHASH_LIBS) \
     $(CMOCKA_LIBS) \
     libsss_util.la
+
+test_io_SOURCES = \
+    src/tests/cmocka/test_io.c \
+    src/util/io.c
+test_io_CFLAGS = \
+    $(AM_CFLAGS)
+test_io_LDADD = \
+    $(CMOCKA_LIBS)
 endif
 
 noinst_PROGRAMS = pam_test_client
