@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    compact.c
+    io.c
 
     Authors:
         Lukas Slebodnik <lslebodn@redhat.com>
