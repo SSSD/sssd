@@ -146,7 +146,8 @@ endif
 
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
-        nss-srv-tests
+        nss-srv-tests \
+        test-find-uid
 endif
 
 check_PROGRAMS = \
@@ -1212,6 +1213,24 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_cmd_send_empty \
     -Wl,-wrap,sss_cmd_done
 nss_srv_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    libsss_util.la
+
+test_find_uid_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES)
+test_find_uid_SOURCES = \
+    src/tests/cmocka/test_find_uid.c \
+    src/util/find_uid.c \
+    src/util/atomic_io.c \
+    src/util/strtonum.c
+test_find_uid_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(DHASH_CFLAGS)
+test_find_uid_LDADD = \
+    libsss_debug.la \
+    $(TALLOC_LIBS) \
+    $(DHASH_LIBS) \
     $(CMOCKA_LIBS) \
     libsss_util.la
 endif
