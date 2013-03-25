@@ -142,17 +142,11 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
                         struct ipa_options *ctx)
 {
     errno_t ret;
-    int resolv_timeout;
 
-    ret = confdb_get_int(be_ctx->cdb, be_ctx->conf_path,
-                         CONFDB_DOMAIN_RESOLV_TIMEOUT,
-                         RESOLV_DEFAULT_TIMEOUT, &resolv_timeout);
-    if (ret != EOK) {
-        DEBUG(1, ("Could get the timeout parameter from confdb\n"));
-        return ret;
-    }
-
-    ret = resolv_init(be_ctx, be_ctx->ev, resolv_timeout, &ctx->resolv);
+    ret = resolv_init(be_ctx, be_ctx->ev,
+                      dp_opt_get_int(be_ctx->be_res->opts,
+                                     DP_RES_OPT_RESOLVER_OP_TIMEOUT),
+                      &ctx->resolv);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up resolver context\n"));
         return ret;
@@ -255,6 +249,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     struct ipa_ipaddress *address;
     struct tevent_req *req, *subreq;
     size_t addrsize;
+    struct sdap_id_ctx *id_ctx = state->ipa_ctx->id_ctx->sdap_id_ctx;
 
     DEBUG (9, ("Performing update\n"));
 
@@ -264,6 +259,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     }
     state->ipa_ctx = ctx;
     state->use_server_with_nsupdate = false;
+    state->family_order = id_ctx->be->be_res->family_order;
 
     iface = dp_opt_get_string(ctx->basic, IPA_DYNDNS_IFACE);
 
@@ -488,17 +484,8 @@ static int ipa_dyndns_gss_tsig_update_step(struct tevent_req *req)
 static errno_t
 ipa_dyndns_gss_tsig_update_setup_check(struct ipa_dyndns_ctx *state)
 {
-    struct sdap_id_ctx *id_ctx = state->ipa_ctx->id_ctx->sdap_id_ctx;
-    errno_t ret;
-
     if (dp_opt_get_string(state->ipa_ctx->basic, IPA_DYNDNS_IFACE)) {
-        ret = resolv_get_family_order(id_ctx->be->cdb, id_ctx->be->conf_path,
-                                      &state->family_order);
-        if (ret != EOK) {
-            return ret;
-        }
-
-        /* Unless one family is restricted, just replace all
+       /* Unless one family is restricted, just replace all
         * address families during the update
         */
         switch (state->family_order) {

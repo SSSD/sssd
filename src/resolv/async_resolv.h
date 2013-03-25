@@ -85,11 +85,6 @@ enum restrict_family {
     IPV6_FIRST
 };
 
-/* Read and validate the family order from conf_path in confdb */
-errno_t
-resolv_get_family_order(struct confdb_ctx *cdb, const char *conf_path,
-                        enum restrict_family *family_order);
-
 /* If resolv_hostent->family is AF_INET, then ipaddr points to
  * struct in_addr, else if family is AF_INET6, ipaddr points to
  * struct in6_addr

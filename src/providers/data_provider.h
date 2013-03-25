@@ -316,4 +316,16 @@ int _dp_opt_set_bool(struct dp_option *opts, int id,
 #define dp_opt_set_int(o, i, v) _dp_opt_set_int(o, i, v, __FUNCTION__)
 #define dp_opt_set_bool(o, i, v) _dp_opt_set_bool(o, i, v, __FUNCTION__)
 
+/* Generic Data Provider options */
+
+/* Resolver DP options */
+enum dp_res_opts {
+    DP_RES_OPT_FAMILY_ORDER,
+    DP_RES_OPT_RESOLVER_TIMEOUT,
+    DP_RES_OPT_RESOLVER_OP_TIMEOUT,
+    DP_RES_OPT_DNS_DOMAIN,
+
+    DP_RES_OPTS /* attrs counter */
+};
+
 #endif /* __DATA_PROVIDER_ */

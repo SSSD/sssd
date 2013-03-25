@@ -111,47 +111,6 @@ struct resolv_request {
 
 struct resolv_ctx *context_list;
 
-errno_t
-resolv_get_family_order(struct confdb_ctx *cdb, const char *conf_path,
-                        enum restrict_family *family_order)
-{
-    errno_t ret;
-    TALLOC_CTX *tmp_ctx;
-    char *str_opt;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
-    ret = confdb_get_string(cdb, tmp_ctx, conf_path,
-                            CONFDB_DOMAIN_FAMILY_ORDER,
-                            "ipv4_first", &str_opt);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    DEBUG(7, ("Lookup order: %s\n", str_opt));
-
-    if (strcasecmp(str_opt, "ipv4_first") == 0) {
-        *family_order = IPV4_FIRST;
-    } else if (strcasecmp(str_opt, "ipv4_only") == 0) {
-        *family_order = IPV4_ONLY;
-    } else if (strcasecmp(str_opt, "ipv6_first") == 0) {
-        *family_order = IPV6_FIRST;
-    } else if (strcasecmp(str_opt, "ipv6_only") == 0) {
-        *family_order = IPV6_ONLY;
-    } else {
-        DEBUG(1, ("Unknown value for option %s: %s\n",
-                  CONFDB_DOMAIN_FAMILY_ORDER, str_opt));
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = EOK;
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 static int
 return_code(int ares_code)
 {

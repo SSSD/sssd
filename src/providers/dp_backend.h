@@ -80,6 +80,13 @@ struct be_offline_status {
     bool offline;
 };
 
+struct be_resolv_ctx {
+    struct resolv_ctx *resolv;
+    struct dp_option *opts;
+
+    enum restrict_family family_order;
+};
+
 struct be_client {
     struct be_ctx *bectx;
     struct sbus_connection *conn;
@@ -98,6 +105,7 @@ struct be_ctx {
     const char *identity;
     const char *conf_path;
     struct be_failover_ctx *be_fo;
+    struct be_resolv_ctx *be_res;
     struct sss_sigchild_ctx *sigchld_ctx;
 
     /* Functions to be invoked when the
@@ -236,6 +244,8 @@ int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name);
 
 void reset_fo(struct be_ctx *be_ctx);
+
+errno_t be_res_init(struct be_ctx *ctx);
 
 /* be_req helpers */
 

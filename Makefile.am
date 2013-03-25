@@ -1042,6 +1042,7 @@ simple_access_tests_SOURCES = \
     src/providers/simple/simple_access_check.c \
     src/providers/data_provider_be.c \
     src/providers/data_provider_fo.c \
+    src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
     $(SSSD_FAILOVER_OBJ)
 simple_access_tests_CFLAGS = \

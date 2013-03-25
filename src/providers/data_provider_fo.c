@@ -51,7 +51,7 @@ struct be_svc_data {
 
 struct be_failover_ctx {
     struct fo_ctx *fo_ctx;
-    struct resolv_ctx *resolv;
+    struct be_resolv_ctx *be_res;
 
     struct be_svc_data *svcs;
     struct tevent_timer *primary_server_handler;
@@ -67,24 +67,11 @@ int be_fo_is_srv_identifier(const char *server)
 static int be_fo_get_options(struct be_ctx *ctx,
                              struct fo_options *opts)
 {
-    errno_t ret;
-
-    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
-                         CONFDB_DOMAIN_RESOLV_TIMEOUT,
-                         FO_DEFAULT_SVC_TIMEOUT,
-                         &opts->service_resolv_timeout);
-    if (ret != EOK) {
-        return ret;
-    }
-
+    opts->service_resolv_timeout = dp_opt_get_int(ctx->be_res->opts,
+                                                  DP_RES_OPT_RESOLVER_OP_TIMEOUT);
     opts->retry_timeout = 30;
     opts->srv_retry_timeout = 14400;
-
-    ret = resolv_get_family_order(ctx->cdb, ctx->conf_path,
-                                  &opts->family_order);
-    if (ret != EOK) {
-        return ret;
-    }
+    opts->family_order = ctx->be_res->family_order;
 
     return EOK;
 }
@@ -92,7 +79,6 @@ static int be_fo_get_options(struct be_ctx *ctx,
 int be_init_failover(struct be_ctx *ctx)
 {
     int ret;
-    int resolv_timeout;
     struct fo_options fopts;
 
     if (ctx->be_fo != NULL) {
@@ -104,18 +90,14 @@ int be_init_failover(struct be_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
-                         CONFDB_DOMAIN_RESOLV_OP_TIMEOUT,
-                         RESOLV_DEFAULT_TIMEOUT, &resolv_timeout);
+    ret = be_res_init(ctx);
     if (ret != EOK) {
-        return ret;
-    }
-
-    ret = resolv_init(ctx, ctx->ev, resolv_timeout, &ctx->be_fo->resolv);
-    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("fatal error initializing resolver context\n"));
         talloc_zfree(ctx->be_fo);
         return ret;
     }
+    ctx->be_fo->be_res = ctx->be_res;
 
     ret = be_fo_get_options(ctx, &fopts);
     if (ret != EOK) {
@@ -259,7 +241,7 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                          bool proto_fallback, void *user_data)
 {
     struct be_svc_data *svc;
-    char *domain;
+    const char *domain;
     int ret;
     int i;
 
@@ -268,13 +250,9 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
         return ENOENT;
     }
 
-    ret = confdb_get_string(ctx->cdb, svc, ctx->conf_path,
-                            CONFDB_DOMAIN_DNS_DISCOVERY_NAME,
-                            default_discovery_domain, &domain);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed reading %s from confdb\n",
-                  CONFDB_DOMAIN_DNS_DISCOVERY_NAME));
-        return ret;
+    domain = dp_opt_get_string(ctx->be_res->opts, DP_RES_OPT_DNS_DOMAIN);
+    if (!domain) {
+        domain = default_discovery_domain;
     }
 
     /* Add the first protocol as the primary lookup */
@@ -383,7 +361,7 @@ be_primary_server_timeout(struct tevent_context *ev,
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Looking for primary server!\n"));
     subreq = fo_resolve_service_send(ctx->bctx, ctx->ev,
-                                     ctx->bctx->be_fo->resolv,
+                                     ctx->bctx->be_fo->be_res->resolv,
                                      ctx->bctx->be_fo->fo_ctx,
                                      ctx->svc->fo_service);
     if (subreq == NULL) {
@@ -512,7 +490,7 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
     state->first_try = first_try;
 
     subreq = fo_resolve_service_send(state, ev,
-                                     ctx->be_fo->resolv,
+                                     ctx->be_fo->be_res->resolv,
                                      ctx->be_fo->fo_ctx,
                                      svc->fo_service);
     if (!subreq) {
@@ -601,7 +579,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         /* now try next one */
         DEBUG(SSSDBG_TRACE_LIBS, ("Trying with the next one!\n"));
         subreq = fo_resolve_service_send(state, state->ev,
-                                         state->ctx->be_fo->resolv,
+                                         state->ctx->be_fo->be_res->resolv,
                                          state->ctx->be_fo->fo_ctx,
                                          state->svc->fo_service);
         if (!subreq) {
@@ -736,4 +714,79 @@ void be_fo_set_port_status(struct be_ctx *ctx,
          * available servers next time */
         be_svc->first_resolved = NULL;
     }
+}
+
+/* Resolver back end interface */
+static struct dp_option dp_res_default_opts[] = {
+    { "lookup_family_order", DP_OPT_STRING, { "ipv4_first" }, NULL_STRING },
+    { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    DP_OPTION_TERMINATOR
+};
+
+static errno_t be_res_get_opts(struct be_resolv_ctx *res_ctx,
+                               struct confdb_ctx *cdb,
+                               const char *conf_path)
+{
+    errno_t ret;
+    const char *str_family;
+
+    ret = dp_get_options(res_ctx, cdb, conf_path,
+                         dp_res_default_opts,
+                         DP_RES_OPTS,
+                         &res_ctx->opts);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    str_family = dp_opt_get_string(res_ctx->opts, DP_RES_OPT_FAMILY_ORDER);
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Lookup order: %s\n", str_family));
+
+    if (strcasecmp(str_family, "ipv4_first") == 0) {
+        res_ctx->family_order = IPV4_FIRST;
+    } else if (strcasecmp(str_family, "ipv4_only") == 0) {
+        res_ctx->family_order = IPV4_ONLY;
+    } else if (strcasecmp(str_family, "ipv6_first") == 0) {
+        res_ctx->family_order = IPV6_FIRST;
+    } else if (strcasecmp(str_family, "ipv6_only") == 0) {
+        res_ctx->family_order = IPV6_ONLY;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown value for option %s: %s\n",
+              dp_res_default_opts[DP_RES_OPT_FAMILY_ORDER].opt_name, str_family));
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
+errno_t be_res_init(struct be_ctx *ctx)
+{
+    errno_t ret;
+
+    if (ctx->be_res != NULL) {
+        return EOK;
+    }
+
+    ctx->be_res = talloc_zero(ctx, struct be_resolv_ctx);
+    if (!ctx->be_res) {
+        return ENOMEM;
+    }
+
+    ret = be_res_get_opts(ctx->be_res, ctx->cdb, ctx->conf_path);
+    if (ret != EOK) {
+        talloc_zfree(ctx->be_res);
+        return ret;
+    }
+
+    ret = resolv_init(ctx, ctx->ev,
+                      dp_opt_get_int(ctx->be_res->opts,
+                                     DP_RES_OPT_RESOLVER_OP_TIMEOUT),
+                      &ctx->be_res->resolv);
+    if (ret != EOK) {
+        talloc_zfree(ctx->be_res);
+        return ret;
+    }
+
+    return EOK;
 }

@@ -372,7 +372,6 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     struct sdap_sudo_get_hostnames_state *state = NULL;
     char *dot = NULL;
     char hostname[HOST_NAME_MAX + 1];
-    int resolv_timeout;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -433,29 +432,12 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     }
 
     /* initialize resolv ctx */
-
-    ret = confdb_get_int(be_ctx->cdb, be_ctx->conf_path,
-                         CONFDB_DOMAIN_RESOLV_OP_TIMEOUT,
-                         RESOLV_DEFAULT_TIMEOUT, &resolv_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could get the timeout parameter from confdb\n"));
-        goto done;
-    }
-
-    ret = resolv_init(be_ctx, be_ctx->ev, resolv_timeout, &state->resolv_ctx);
+    ret = resolv_init(be_ctx, be_ctx->ev,
+                      dp_opt_get_int(be_ctx->be_res->opts,
+                                     DP_RES_OPT_RESOLVER_OP_TIMEOUT),
+                      &state->resolv_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up resolver context\n"));
-        goto done;
-    }
-
-    /* get family order */
-
-    ret = resolv_get_family_order(be_ctx->cdb, be_ctx->conf_path,
-                                  &state->family_order);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve family order "
-                                    "[%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
@@ -467,9 +449,8 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     state->host_db[2] = DB_SENTINEL;
 
     /* get fqdn */
-
     subreq = resolv_gethostbyname_send(state, state->ev, state->resolv_ctx,
-                                       hostname, state->family_order,
+                                       hostname, be_ctx->be_res->family_order,
                                        state->host_db);
     if (subreq == NULL) {
         ret = ENOMEM;
