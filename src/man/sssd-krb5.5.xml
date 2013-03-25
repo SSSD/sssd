@@ -451,6 +451,21 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_use_enterprise_principal (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies if the user principal should be treated
+                            as enterprise principal. See section 5 of RFC 6806
+                            for more details about enterprise principals.
+                        </para>
+
+                        <para>
+                            Default: false (AD provide: true)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

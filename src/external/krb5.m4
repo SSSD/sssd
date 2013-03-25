@@ -51,6 +51,7 @@ AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_get_init_creds_opt_set_fast_flags \
                 krb5_get_init_creds_opt_set_canonicalize \
                 krb5_get_init_creds_opt_set_responder \
+                krb5_parse_name_flags \
                 krb5_unparse_name_flags \
                 krb5_get_init_creds_opt_set_change_password_prompt \
                 krb5_free_keytab_entry_contents \

@@ -130,6 +130,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     const char *keytab;
     uint32_t validate;
     uint32_t different_realm;
+    uint32_t use_enterprise_principal;
     size_t username_len = 0;
     errno_t ret;
 
@@ -141,6 +142,8 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     validate = dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ? 1 : 0;
     different_realm = kr->upn_from_different_realm ? 1 : 0;
+    use_enterprise_principal = dp_opt_get_bool(kr->krb5_ctx->opts,
+                                         KRB5_USE_ENTERPRISE_PRINCIPAL) ? 1 : 0;
 
     buf = talloc(kr, struct io_buffer);
     if (buf == NULL) {
@@ -148,7 +151,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         return ENOMEM;
     }
 
-    buf->size = 7*sizeof(uint32_t) + strlen(kr->upn);
+    buf->size = 8*sizeof(uint32_t) + strlen(kr->upn);
 
     if (kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
         kr->pd->cmd == SSS_CMD_RENEW ||
@@ -182,6 +185,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &validate, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->is_offline, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &different_realm, &rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &use_enterprise_principal, &rp);
 
     SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(kr->upn), &rp);
     safealign_memcpy(&buf->data[rp], kr->upn, strlen(kr->upn), &rp);

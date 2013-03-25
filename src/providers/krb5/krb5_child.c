@@ -54,6 +54,7 @@ struct krb5_req {
     char *keytab;
     bool validate;
     bool upn_from_different_realm;
+    bool use_enterprise_princ;
     char *fast_ccname;
 
     const char *upn;
@@ -1549,6 +1550,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     uint32_t len;
     uint32_t validate;
     uint32_t different_realm;
+    uint32_t use_enterprise_princ;
     struct pam_data *pd;
     errno_t ret;
 
@@ -1571,6 +1573,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     SAFEALIGN_COPY_UINT32_CHECK(offline, buf + p, size, &p);
     SAFEALIGN_COPY_UINT32_CHECK(&different_realm, buf + p, size, &p);
     kr->upn_from_different_realm = (different_realm == 0) ? false : true;
+    SAFEALIGN_COPY_UINT32_CHECK(&use_enterprise_princ, buf + p, size, &p);
+    kr->use_enterprise_princ = (use_enterprise_princ == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     if ((p + len ) > size) return EINVAL;
     kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
@@ -1578,9 +1582,11 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     p += len;
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("cmd [%d] uid [%llu] gid [%llu] validate [%s] offline [%s] "
-           "UPN [%s]\n", pd->cmd, (unsigned long long) kr->uid,
+          ("cmd [%d] uid [%llu] gid [%llu] validate [%s] "
+           "enterprise principal [%s] offline [%s] UPN [%s]\n",
+           pd->cmd, (unsigned long long) kr->uid,
            (unsigned long long) kr->gid, kr->validate ? "true" : "false",
+           kr->use_enterprise_princ ? "true" : "false",
            *offline ? "true" : "false", kr->upn ? kr->upn : "none"));
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE ||
@@ -1912,6 +1918,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     char *lifetime_str;
     char *use_fast_str;
     krb5_deltat lifetime;
+    int parse_flags;
 
     kr->realm = getenv(SSSD_KRB5_REALM);
     if (kr->realm == NULL) {
@@ -1936,7 +1943,8 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         }
     }
 
-    kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ);
+    parse_flags = kr->use_enterprise_princ ? KRB5_PRINCIPAL_PARSE_ENTERPRISE : 0;
+    kerr = sss_krb5_parse_name_flags(kr->ctx, kr->upn, parse_flags, &kr->princ);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;

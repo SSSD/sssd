@@ -766,6 +766,25 @@ sss_krb5_component_length_quoted(const krb5_data *src, int flags)
 
 
 krb5_error_code
+sss_krb5_parse_name_flags(krb5_context context, const char *name, int flags,
+                          krb5_principal *principal)
+{
+#ifdef HAVE_KRB5_PARSE_NAME_FLAGS
+    return krb5_parse_name_flags(context, name, flags, principal);
+#else
+    if (flags != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("krb5_parse_name_flags not available on " \
+                                     "this plattform, names are parsed " \
+                                     "without flags. Some features like " \
+                                     "enterprise principals might not work " \
+                                     "as expected.\n"));
+    }
+
+    return krb5_parse_name(context, name, principal);
+#endif
+}
+
+krb5_error_code
 sss_krb5_unparse_name_flags(krb5_context context, krb5_const_principal principal,
                         int flags, char **name)
 {
