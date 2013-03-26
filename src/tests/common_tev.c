@@ -26,6 +26,31 @@
 
 #include "tests/common.h"
 
+struct sss_test_ctx *
+create_ev_test_ctx(TALLOC_CTX *mem_ctx)
+{
+    struct sss_test_ctx *test_ctx;
+
+    test_ctx = talloc_zero(mem_ctx, struct sss_test_ctx);
+    if (test_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed\n"));
+        goto fail;
+    }
+
+    /* Create an event context */
+    test_ctx->ev = tevent_context_init(test_ctx);
+    if (test_ctx->ev == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_context_init failed\n"));
+        goto fail;
+    }
+
+    return test_ctx;
+
+fail:
+    talloc_free(test_ctx);
+    return NULL;
+}
+
 struct tevent_req *
 test_request_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev, errno_t err)
 {

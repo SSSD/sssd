@@ -42,16 +42,9 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
     errno_t ret;
     char *dompath;
 
-    test_ctx = talloc_zero(mem_ctx, struct sss_test_ctx);
+    test_ctx = create_ev_test_ctx(mem_ctx);
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed\n"));
-        goto fail;
-    }
-
-    /* Create an event context */
-    test_ctx->ev = tevent_context_init(test_ctx);
-    if (test_ctx->ev == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_context_init failed\n"));
         goto fail;
     }
 

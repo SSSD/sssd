@@ -65,6 +65,9 @@ enum sssd_errors {
     ERR_ACCESS_DENIED,
     ERR_SRV_NOT_FOUND,
     ERR_SRV_LOOKUP_ERROR,
+    ERR_DYNDNS_FAILED,
+    ERR_DYNDNS_TIMEOUT,
+    ERR_DYNDNS_OFFLINE,
     ERR_LAST            /* ALWAYS LAST */
 };
 

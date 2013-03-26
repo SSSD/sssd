@@ -149,7 +149,9 @@ if HAVE_CMOCKA
         nss-srv-tests \
         test-find-uid \
         test-io \
-        sss_nss_idmap-tests
+        sss_nss_idmap-tests \
+        test-io	      \
+        dyndns-tests
 endif
 
 check_PROGRAMS = \
@@ -434,6 +436,7 @@ dist_noinst_HEADERS = \
     src/confdb/confdb_setup.h \
     src/providers/data_provider.h \
     src/providers/dp_backend.h \
+    src/providers/dp_dyndns.h \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
     src/util/child_common.h \
@@ -455,6 +458,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/ldap_opts.h \
     src/providers/ldap/sdap_range.h \
     src/providers/ldap/sdap_users.h \
+    src/providers/ldap/sdap_dyndns.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
@@ -701,6 +705,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
+    src/providers/dp_dyndns.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     -ldl \
@@ -1215,8 +1220,9 @@ krb5_child_test_LDADD = \
     libsss_test_common.la
 
 if HAVE_CMOCKA
-TEST_MOCK_OBJ = \
-     src/tests/common.c
+TEST_MOCK_OBJ = 		\
+     src/tests/common.c		\
+     src/tests/leak_check.c
 
 TEST_MOCK_RESP_OBJ = \
      $(TEST_MOCK_OBJ) \
@@ -1276,6 +1282,23 @@ test_io_CFLAGS = \
     $(AM_CFLAGS)
 test_io_LDADD = \
     $(CMOCKA_LIBS)
+
+dyndns_tests_SOURCES = \
+     $(TEST_MOCK_OBJ) \
+     $(SSSD_RESOLV_OBJ) \
+     src/tests/common_tev.c \
+     src/tests/cmocka/test_dyndns.c
+dyndns_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DDYNDNS_TIMEOUT=2
+dyndns_tests_LDFLAGS = \
+    -Wl,-wrap,execv \
+    -Wl,-wrap,getifaddrs \
+    -Wl,-wrap,freeifaddrs
+dyndns_tests_LDADD = \
+    $(CARES_LIBS) \
+    $(CMOCKA_LIBS) \
+    libsss_util.la
 endif
 
 noinst_PROGRAMS = pam_test_client
@@ -1416,6 +1439,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_idmap.h \
     src/providers/ldap/sdap_range.c \
     src/providers/ldap/sdap_reinit.c \
+    src/providers/ldap/sdap_dyndns.c \
     src/providers/ldap/sdap.c
 libsss_ldap_common_la_LDFLAGS = \
     -avoid-version

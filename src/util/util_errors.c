@@ -43,6 +43,9 @@ struct err_string error_to_str[] = {
     { "Host Access Denied" }, /* ERR_ACCESS_DENIED */
     { "SRV record not found" }, /* ERR_SRV_NOT_FOUND */
     { "SRV lookup error" }, /* ERR_SRV_LOOKUP_ERROR */
+    { "Dynamic DNS update failed" }, /* ERR_DYNDNS_FAILED */
+    { "Dynamic DNS update timed out" }, /* ERR_DYNDNS_TIMEOUT */
+    { "Dynamic DNS update not possible while offline" }, /* ERR_DYNDNS_OFFLINE */
 };
 
 

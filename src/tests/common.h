@@ -72,6 +72,8 @@ struct sss_test_conf_param {
     const char *value;
 };
 
+struct sss_test_ctx *create_ev_test_ctx(TALLOC_CTX *mem_ctx);
+
 struct sss_test_ctx *
 create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                     const char *tests_path,
