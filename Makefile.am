@@ -507,6 +507,7 @@ dist_noinst_HEADERS = \
     src/tests/common_check.h \
     src/tests/cmocka/common_mock.h \
     src/tests/cmocka/common_mock_resp.h \
+    src/tests/cmocka/common_mock_sdap.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
     src/lib/idmap/sss_idmap_private.h
