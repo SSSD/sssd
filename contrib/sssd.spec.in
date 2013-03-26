@@ -61,6 +61,7 @@ Requires: libtdb >= 1.1.3
 Requires: sssd-client%{?_isa} = %{version}-%{release}
 Requires: libipa_hbac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
+Requires: python-sssdconfig = %{version}-%{release}
 Requires: cyrus-sasl-gssapi
 %if (0%{?use_systemd} == 1)
 Requires(post): systemd-units systemd-sysv
@@ -171,6 +172,15 @@ Also provides several other administrative tools:
     * sss_debuglevel to change the debug level on the fly
     * sss_seed which pre-creates a user entry for use in kickstarts
     * sss_obfuscate for generating an obfuscated LDAP password
+
+%package -n python-sssdconfig
+Summary: SSSD and IPA configuration file manipulation classes and functions
+Group: Applications/System
+License: GPLv3+
+BuildArch: noarch
+
+%description -n python-sssdconfig
+Provides python files for manipulation SSSD and IPA configuration files.
 
 %package -n libsss_idmap
 Summary: FreeIPA Idmap library
@@ -319,12 +329,13 @@ find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
 rm -Rf ${RPM_BUILD_ROOT}/%{_docdir}/%{name}
 
 # Older versions of rpmbuild can only handle one -f option
-# So we need to append to the sssd.lang file
+# So we need to append to the sssd*.lang file
 for file in `ls $RPM_BUILD_ROOT/%{python_sitelib}/*.egg-info 2> /dev/null`
 do
-    echo %{python_sitelib}/`basename $file` >> sssd.lang
+    echo %{python_sitelib}/`basename $file` >> python_sssdconfig.lang
 done
 
+touch sssd.lang
 touch sssd_tools.lang
 touch sssd_client.lang
 for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`
@@ -435,8 +446,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{python_sitearch}/pysss.so
 %{python_sitearch}/pysss_murmur.so
-%dir %{python_sitelib}/SSSDConfig
-%{python_sitelib}/SSSDConfig/*.py*
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)
@@ -473,6 +482,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_obfuscate.8*
 %{_mandir}/man8/sss_debuglevel.8*
 %{_mandir}/man8/sss_seed.8*
+
+%files -n python-sssdconfig -f python_sssdconfig.lang
+%defattr(-,root,root,-)
+%dir %{python_sitelib}/SSSDConfig
+%{python_sitelib}/SSSDConfig/*.py*
 
 %files -n libsss_idmap
 %defattr(-,root,root,-)
