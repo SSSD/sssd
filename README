@@ -30,8 +30,14 @@
   There are several ways to contact us:
 
      * the sssd-devel mailing list:
+       Development of the System Security Services Daemon
        <https://fedorahosted.org/mailman/listinfo/sssd-devel>
 
-     * the #freeipa IRC channel on freenode:
+     * the sssd-users mailing list:
+       End-user discussions about the System Security Services Daemon
+       <https://fedorahosted.org/mailman/listinfo/sssd-users>
+
+     * the #sssd and #freeipa IRC channels on freenode:
+       irc://irc.freenode.net/sssd
        irc://irc.freenode.net/freeipa
 
