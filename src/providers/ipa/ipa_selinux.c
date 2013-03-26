@@ -1279,7 +1279,6 @@ ipa_get_selinux_recv(struct tevent_req *req,
 /* Simply return success if HAVE_SELINUX_LOGIN_DIR is not defined. */
 void ipa_selinux_handler(struct be_req *be_req)
 {
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct pam_data *pd;
 
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
