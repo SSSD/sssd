@@ -1001,7 +1001,7 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     int ret;
     int result;
     char *ccname = NULL;
-    time_t expire_time;
+    time_t expire_time = 0;
     krb5_error_code kerr;
     struct tevent_req *nextreq;
 
