@@ -86,7 +86,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
                                enum sss_cache_entry entry_type,
                                const char *filter, const char *name);
 static errno_t update_all_filters(struct cache_tool_ctx *tctx,
-                                  char *domain_name);
+                                  struct sss_domain_info *dinfo);
 
 int main(int argc, const char *argv[])
 {
@@ -103,11 +103,21 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    for (dinfo = tctx->domains; dinfo; dinfo = get_next_domain(dinfo, false)) {
-        sysdb = dinfo->sysdb;
+    for (dinfo = tctx->domains; dinfo; dinfo = get_next_domain(dinfo, true)) {
+         sysdb = dinfo->sysdb;
 
+        if (!IS_SUBDOMAIN(dinfo)) {
+            /* Update list of subdomains for this domain */
+            ret = sysdb_update_subdomains(dinfo);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Failed to update subdomains for domain %s.\n", dinfo->name));
+            }
+        }
+
+        sysdb = dinfo->sysdb;
         /* Update filters for each domain */
-        ret = update_all_filters(tctx, dinfo->name);
+        ret = update_all_filters(tctx, dinfo);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to update filters.\n"));
             goto done;
@@ -115,27 +125,35 @@ int main(int argc, const char *argv[])
 
         ret = sysdb_transaction_start(sysdb);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not start the transaction!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Could not start the transaction!\n"));
             goto done;
         }
 
         skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_USER,
-                                   tctx->user_filter, tctx->user_name);
+                                       tctx->user_filter,
+                                       tctx->user_name);
         skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_GROUP,
-                                   tctx->group_filter, tctx->group_name);
+                                       tctx->group_filter,
+                                       tctx->group_name);
         skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_NETGROUP,
-                                   tctx->netgroup_filter, tctx->netgroup_name);
+                                       tctx->netgroup_filter,
+                                       tctx->netgroup_name);
         skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_SERVICE,
-                                   tctx->service_filter, tctx->service_name);
+                                       tctx->service_filter,
+                                       tctx->service_name);
         skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_AUTOFSMAP,
-                                   tctx->autofs_filter, tctx->autofs_name);
+                                       tctx->autofs_filter,
+                                       tctx->autofs_name);
 
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not commit the transaction!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Could not commit the transaction!\n"));
             ret = sysdb_transaction_cancel(sysdb);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to cancel transaction\n"));
             }
         }
     }
@@ -158,59 +176,95 @@ done:
     return ret;
 }
 
-static errno_t update_filter(struct cache_tool_ctx *tctx, char *domain_name,
+static errno_t update_filter(struct cache_tool_ctx *tctx,
+                             struct sss_domain_info *dinfo,
                              char *name, bool update, const char *fmt,
-                             char **filter)
+                             bool force_case_sensitivity,
+                             char **_filter)
 {
     errno_t ret;
     char *parsed_domain = NULL;
     char *parsed_name = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *use_name = NULL;
+    char *filter;
 
-    if (name && update) {
-        ret = sss_parse_name(tctx, tctx->nctx, name,
-                             &parsed_domain, &parsed_name);
-       if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_parse_name failed\n"));
+    if (!name || !update) {
+        /* Nothing to do */
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        return ENOMEM;
+    }
+
+    ret = sss_parse_name(tmp_ctx, tctx->nctx, name,
+                         &parsed_domain, &parsed_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_parse_name failed\n"));
+        goto done;
+    }
+
+    if (!dinfo->case_sensitive && !force_case_sensitivity) {
+        use_name = sss_tc_utf8_str_tolower(tmp_ctx, parsed_name);
+        if (!use_name) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+            ret = ENOMEM;
             goto done;
         }
+    } else {
+        use_name = parsed_name;
+    }
 
-        if (parsed_domain) {
-            talloc_free(*filter);
-            if (!strcmp(domain_name, parsed_domain)) {
-                if (fmt) {
-                    *filter = talloc_asprintf(tctx, fmt,
-                                              SYSDB_NAME, parsed_name);
-                } else {
-                    *filter = talloc_strdup(tctx, parsed_name);
-                }
-                if (*filter == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
-                    ret = ENOMEM;
-                    goto done;
-                }
-            } else {
-               /* Set to NULL to indicate that it will not be used
-                * in this domain */
-                *filter = NULL;
-            }
-        } else {
-            if (fmt) {
-                *filter = talloc_asprintf(tctx, fmt, SYSDB_NAME, name);
-            } else {
-                *filter = talloc_strdup(tctx, name);
-            }
-            if (*filter == NULL) {
+    if (parsed_domain) {
+        if (IS_SUBDOMAIN(dinfo)) {
+            /* Use fqdn for subdomains */
+            use_name = talloc_asprintf(tmp_ctx, tctx->nctx->fq_fmt, use_name,
+                                       dinfo->name);
+            if (use_name == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
                 ret = ENOMEM;
                 goto done;
             }
         }
+
+        if (!strcasecmp(dinfo->name, parsed_domain)) {
+            if (fmt) {
+                filter = talloc_asprintf(tmp_ctx, fmt,
+                                         SYSDB_NAME, use_name);
+            } else {
+                filter = talloc_strdup(tmp_ctx, use_name);
+            }
+            if (filter == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            /* We were able to parse the domain from given fqdn, but it
+             * does not match with currently processed domain. */
+            filter = NULL;
+        }
+    } else {
+        if (fmt) {
+            filter = talloc_asprintf(tmp_ctx, fmt, SYSDB_NAME, name);
+        } else {
+            filter = talloc_strdup(tmp_ctx, name);
+        }
+        if (filter == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
+    talloc_free(*_filter);
+    *_filter = talloc_steal(tctx, filter);
     ret = EOK;
 done:
-    talloc_free(parsed_domain);
-    talloc_free(parsed_name);
+    talloc_free(tmp_ctx);
     return ret;
 
 }
@@ -218,52 +272,57 @@ done:
 /* This function updates all filters for specified domain using this
  * domains regex to parse string into domain and name (if exists). */
 static errno_t update_all_filters(struct cache_tool_ctx *tctx,
-                                 char *domain_name)
+                                  struct sss_domain_info *dinfo)
 {
     errno_t ret;
 
-    ret = sss_names_init(tctx, tctx->confdb, domain_name, &tctx->nctx);
+    if (IS_SUBDOMAIN(dinfo)) {
+        ret = sss_names_init(tctx, tctx->confdb, dinfo->parent->name,
+                             &tctx->nctx);
+    } else {
+        ret = sss_names_init(tctx, tctx->confdb, dinfo->name, &tctx->nctx);
+    }
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("sss_names_init() failed\n"));
         return ret;
     }
 
     /* Update user filter */
-    ret = update_filter(tctx, domain_name, tctx->user_name,
-                        tctx->update_user_filter, "(%s=%s)",
+    ret = update_filter(tctx, dinfo, tctx->user_name,
+                        tctx->update_user_filter, "(%s=%s)", false,
                         &tctx->user_filter);
     if (ret != EOK) {
         return ret;
     }
 
     /* Update group filter */
-    ret = update_filter(tctx, domain_name, tctx->group_name,
-                        tctx->update_group_filter, "(%s=%s)",
+    ret = update_filter(tctx, dinfo, tctx->group_name,
+                        tctx->update_group_filter, "(%s=%s)", false,
                         &tctx->group_filter);
     if (ret != EOK) {
         return ret;
     }
 
     /* Update netgroup filter */
-    ret = update_filter(tctx, domain_name, tctx->netgroup_name,
-                        tctx->update_netgroup_filter, "(%s=%s)",
+    ret = update_filter(tctx, dinfo, tctx->netgroup_name,
+                        tctx->update_netgroup_filter, "(%s=%s)", false,
                         &tctx->netgroup_filter);
     if (ret != EOK) {
         return ret;
     }
 
     /* Update service filter */
-    ret = update_filter(tctx, domain_name, tctx->service_name,
-                        tctx->update_service_filter, "(%s=%s)",
+    ret = update_filter(tctx, dinfo, tctx->service_name,
+                        tctx->update_service_filter, "(%s=%s)", false,
                         &tctx->service_filter);
     if (ret != EOK) {
         return ret;
     }
 
     /* Update autofs filter */
-    ret = update_filter(tctx, domain_name, tctx->autofs_name,
+    ret = update_filter(tctx, dinfo, tctx->autofs_name,
                         tctx->update_autofs_filter,
-                        "(&(objectclass="SYSDB_AUTOFS_MAP_OC")(%s=%s))",
+                        "(&(objectclass="SYSDB_AUTOFS_MAP_OC")(%s=%s))", true,
                         &tctx->autofs_filter);
     if (ret != EOK) {
         return ret;
@@ -288,7 +347,6 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     bool iret;
 
     if (!filter) return false;
-
     switch (entry_type) {
     case TYPE_USER:
         type_string = "user";
@@ -601,7 +659,9 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     ret = init_domains(ctx, domain);
     if (ret != EOK) {
         if (domain) {
-            ERROR("Could not open domain %1$s\n", domain);
+            ERROR("Could not open domain %1$s. If the domain is a subdomain "
+                  "(trusted domain), use fully qualified name instead of "
+                  "--domain/-d parameter.\n", domain);
         } else {
             ERROR("Could not open available domains\n");
         }
