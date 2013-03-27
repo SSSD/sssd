@@ -351,12 +351,34 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_renew_interval (integer)</term>
+                    <term>krb5_renew_interval (string)</term>
                     <listitem>
                         <para>
                             The time in seconds between two checks if the TGT
                             should be renewed. TGTs are renewed if about half
-                            of their lifetime is exceeded.
+                            of their lifetime is exceeded, given as an integer
+                            immediately followed by a time unit:
+                        </para>
+                        <para>
+                            <emphasis>s</emphasis> for seconds
+                        </para>
+                        <para>
+                            <emphasis>m</emphasis> for minutes
+                        </para>
+                        <para>
+                            <emphasis>h</emphasis> for hours
+                        </para>
+                        <para>
+                            <emphasis>d</emphasis> for days.
+                        </para>
+                        <para>
+                            If there is no unit given, <emphasis>s</emphasis> is
+                            assumed.
+                        </para>
+                        <para>
+                            NOTE: It is not possible to mix units.  To set
+                            the renewable lifetime to one and a half hours,
+                            use '90m' instead of '1h30m'.
                         </para>
                         <para>
                              If this option is not set or is 0 the automatic

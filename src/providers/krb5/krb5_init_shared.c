@@ -30,7 +30,9 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
 {
     errno_t ret;
     FILE *debug_filep;
-    time_t renew_intv;
+    time_t renew_intv = 0;
+    krb5_deltat renew_interval_delta;
+    char *renew_interval_str;
 
     if (dp_opt_get_bool(krb5_auth_ctx->opts, KRB5_STORE_PASSWORD_IF_OFFLINE)) {
         ret = init_delayed_online_authentication(krb5_auth_ctx, bectx,
@@ -40,8 +42,18 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
             goto done;
         }
     }
+    renew_interval_str = dp_opt_get_string(krb5_auth_ctx->opts,
+                         KRB5_RENEW_INTERVAL);
+    if (renew_interval_str != NULL) {
+        ret = krb5_string_to_deltat(renew_interval_str, &renew_interval_delta);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                 ("Reading krb5_renew_interval failed.\n"));
+            renew_interval_delta = 0;
+        }
+        renew_intv = renew_interval_delta;
+    }
 
-    renew_intv = dp_opt_get_int(krb5_auth_ctx->opts, KRB5_RENEW_INTERVAL);
     if (renew_intv > 0) {
         ret = init_renew_tgt(krb5_auth_ctx, bectx, bectx->ev, renew_intv);
         if (ret != EOK) {

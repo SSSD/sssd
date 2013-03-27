@@ -827,6 +827,9 @@ static void krb5_auth_done(struct tevent_req *subreq)
     struct krb5_child_response *res;
     const char *store_ccname;
     struct fo_server *search_srv;
+    krb5_deltat renew_interval_delta;
+    char *renew_interval_str;
+    time_t renew_interval_time = 0;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -1072,9 +1075,18 @@ static void krb5_auth_done(struct tevent_req *subreq)
         DEBUG(1, ("krb5_save_ccname failed.\n"));
         goto done;
     }
-
-    if (res->msg_status == ERR_OK &&
-        (dp_opt_get_int(kr->krb5_ctx->opts, KRB5_RENEW_INTERVAL) > 0) &&
+    renew_interval_str = dp_opt_get_string(kr->krb5_ctx->opts,
+                         KRB5_RENEW_INTERVAL);
+    if (renew_interval_str != NULL) {
+        ret = krb5_string_to_deltat(renew_interval_str, &renew_interval_delta);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                 ("Reading krb5_renew_interval failed.\n"));
+            renew_interval_delta = 0;
+        }
+        renew_interval_time = renew_interval_delta;
+    }
+    if (res->msg_status == ERR_OK && renew_interval_time > 0 &&
         (pd->cmd == SSS_PAM_AUTHENTICATE ||
          pd->cmd == SSS_CMD_RENEW ||
          pd->cmd == SSS_PAM_CHAUTHTOK) &&
