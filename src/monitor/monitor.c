@@ -2775,7 +2775,9 @@ int main(int argc, const char *argv[])
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Error loading configuration database: "
                                         "[%d]: %s\n", ret, strerror(ret)));
-            sss_log(SSS_LOG_ALERT, "Cannot load configuration database");
+            sss_log(SSS_LOG_ALERT,
+                    "Cannot load configuration database: [%d]: %s",
+                    ret, strerror(ret));
         }
         return 4;
     }
