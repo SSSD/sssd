@@ -391,6 +391,7 @@ dist_noinst_HEADERS = \
     src/util/sss_selinux.h \
     src/util/sss_utf8.h \
     src/util/sss_ssh.h \
+    src/util/sss_ini.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -552,6 +553,7 @@ libsss_util_la_SOURCES = \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
+    src/util/sss_ini.c \
     src/util/io.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \

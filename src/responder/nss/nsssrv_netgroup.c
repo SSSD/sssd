@@ -22,7 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <collection.h>
+
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"

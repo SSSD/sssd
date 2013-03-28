@@ -26,9 +26,7 @@
 #include "confdb.h"
 #include "confdb_private.h"
 #include "confdb_setup.h"
-#include "collection.h"
-#include "collection_tools.h"
-#include "ini_config.h"
+#include "util/sss_ini.h"
 
 
 int confdb_test(struct confdb_ctx *cdb)
@@ -126,280 +124,159 @@ int confdb_create_base(struct confdb_ctx *cdb)
     return EOK;
 }
 
-static int confdb_create_ldif(TALLOC_CTX *mem_ctx,
-                              struct collection_item *sssd_config,
-                              const char **config_ldif)
-{
-    int ret, i, j;
-    char *ldif;
-    char *tmp_ldif;
-    char **sections;
-    int section_count;
-    char *dn;
-    char *tmp_dn;
-    char *sec_dn;
-    char **attrs;
-    int attr_count;
-    char *ldif_attr;
-    struct collection_item *attr;
-    TALLOC_CTX *tmp_ctx;
-    size_t dn_size;
-    size_t ldif_len;
-    size_t attr_len;
-
-    ldif_len = strlen(CONFDB_INTERNAL_LDIF);
-    ldif = talloc_array(mem_ctx, char, ldif_len+1);
-    if (!ldif) return ENOMEM;
-
-    tmp_ctx = talloc_new(ldif);
-    if (!tmp_ctx) {
-        ret = ENOMEM;
-        goto error;
-    }
-
-    memcpy(ldif, CONFDB_INTERNAL_LDIF, ldif_len);
-
-    /* Read in the collection and convert it to an LDIF */
-    /* Get the list of sections */
-    sections = get_section_list(sssd_config, &section_count, &ret);
-    if (ret != EOK) {
-        goto error;
-    }
-
-    for(i = 0; i < section_count; i++) {
-        const char *rdn = NULL;
-        DEBUG(6,("Processing config section [%s]\n", sections[i]));
-        ret = parse_section(tmp_ctx, sections[i], &sec_dn, &rdn);
-        if (ret != EOK) {
-            goto error;
-        }
-
-        dn = talloc_asprintf(tmp_ctx,
-                             "dn: %s,cn=config\n"
-                             "cn: %s\n",
-                             sec_dn, rdn);
-        if(!dn) {
-            ret = ENOMEM;
-            free_section_list(sections);
-            goto error;
-        }
-        dn_size = strlen(dn);
-
-        /* Get all of the attributes and their values as LDIF */
-        attrs = get_attribute_list(sssd_config, sections[i],
-                                   &attr_count, &ret);
-        if (ret != EOK) {
-            free_section_list(sections);
-            goto error;
-        }
-
-        for(j = 0; j < attr_count; j++) {
-            DEBUG(6, ("Processing attribute [%s]\n", attrs[j]));
-            ret = get_config_item(sections[i], attrs[j], sssd_config,
-                                   &attr);
-            if (ret != EOK) goto error;
-
-            const char *value = get_const_string_config_value(attr, &ret);
-            if (ret != EOK) goto error;
-            if (value && value[0] == '\0') {
-                DEBUG(1, ("Attribute '%s' has empty value, ignoring\n", attrs[j]));
-                continue;
-            }
-
-            ldif_attr = talloc_asprintf(tmp_ctx,
-                                        "%s: %s\n", attrs[j], value);
-            DEBUG(9, ("%s", ldif_attr));
-
-            attr_len = strlen(ldif_attr);
-
-            tmp_dn = talloc_realloc(tmp_ctx, dn, char,
-                                    dn_size+attr_len+1);
-            if(!tmp_dn) {
-                ret = ENOMEM;
-                free_attribute_list(attrs);
-                free_section_list(sections);
-                goto error;
-            }
-            dn = tmp_dn;
-            memcpy(dn+dn_size, ldif_attr, attr_len+1);
-            dn_size += attr_len;
-        }
-
-        dn_size ++;
-        tmp_dn = talloc_realloc(tmp_ctx, dn, char,
-                                dn_size+1);
-        if(!tmp_dn) {
-            ret = ENOMEM;
-            free_attribute_list(attrs);
-            free_section_list(sections);
-            goto error;
-        }
-        dn = tmp_dn;
-        dn[dn_size-1] = '\n';
-        dn[dn_size] = '\0';
-
-        DEBUG(9, ("Section dn\n%s", dn));
-
-        tmp_ldif = talloc_realloc(mem_ctx, ldif, char,
-                                  ldif_len+dn_size+1);
-        if(!tmp_ldif) {
-            ret = ENOMEM;
-            free_attribute_list(attrs);
-            free_section_list(sections);
-            goto error;
-        }
-        ldif = tmp_ldif;
-        memcpy(ldif+ldif_len, dn, dn_size);
-        ldif_len += dn_size;
-
-        free_attribute_list(attrs);
-        talloc_free(dn);
-    }
-
-    ldif[ldif_len] = '\0';
-
-    free_section_list(sections);
-
-    *config_ldif = (const char *)ldif;
-    talloc_free(tmp_ctx);
-    return EOK;
-
-error:
-    talloc_free(ldif);
-    return ret;
-}
-
 int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 {
-    int ret;
-    int fd = -1;
-    struct collection_item *sssd_config = NULL;
-    struct collection_item *error_list = NULL;
-    struct collection_item *item = NULL;
-    const char *config_ldif;
-    struct ldb_ldif *ldif;
     TALLOC_CTX *tmp_ctx;
-    char *lasttimestr, timestr[21];
-    const char *vals[2] = { timestr, NULL };
-    struct stat cstat;
+    int ret;
+    int sret = EOK;
     int version;
+    char timestr[21];
+    char *lasttimestr;
+    bool in_transaction = false;
+    const char *config_ldif;
+    const char *vals[2] = { timestr, NULL };
+    struct ldb_ldif *ldif;
+    struct sss_ini_initdata *init_data;
+
 
     tmp_ctx = talloc_new(cdb);
-    if (tmp_ctx == NULL) return ENOMEM;
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory.\n"));
+        return ENOMEM;
+    }
 
-    ret = check_and_open_readonly(config_file, &fd, 0, 0, (S_IRUSR|S_IWUSR),
-                                  CHECK_REG);
+    init_data = sss_ini_initdata_init(tmp_ctx);
+    if (!init_data) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Open config file */
+    ret = sss_ini_config_file_open(init_data, config_file);
     if (ret != EOK) {
-        DEBUG(1, ("Permission check on config file failed.\n"));
-        talloc_zfree(tmp_ctx);
-        return EPERM;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open configuration file.\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sss_ini_config_access_check(init_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Permission check on config file failed.\n"));
+        ret = EPERM;
+        goto done;
     }
 
     /* Determine if the conf file has changed since we last updated
      * the confdb
      */
-    ret = fstat(fd, &cstat);
-    if (ret != 0) {
-        DEBUG(0, ("Unable to stat config file [%s]! (%d [%s])\n",
-                  config_file, errno, strerror(errno)));
-        close(fd);
-        talloc_zfree(tmp_ctx);
-        return errno;
-    }
-    ret = snprintf(timestr, 21, "%llu", (long long unsigned)cstat.st_mtime);
-    if (ret <= 0 || ret >= 21) {
-        DEBUG(0, ("Failed to convert time_t to string ??\n"));
-        close(fd);
-        talloc_zfree(tmp_ctx);
-        return errno ? errno: EFAULT;
+    ret = sss_ini_get_stat(init_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Status check on config file failed.\n"));
+        ret = errno;
+        goto done;
     }
 
-    /* check if we need to re-init the db */
-    ret = confdb_get_string(cdb, tmp_ctx, "config", "lastUpdate", NULL, &lasttimestr);
-    if (ret == EOK && lasttimestr != NULL) {
+    errno = 0;
 
-        /* now check if we lastUpdate and last file modification change differ*/
-        if (strcmp(lasttimestr, timestr) == 0) {
+    ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
+    if (ret <= 0 || ret >= sizeof(timestr)) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to convert time_t to string ??\n"));
+        ret = errno ? errno : EFAULT;
+    }
+    ret = confdb_get_string(cdb, tmp_ctx, "config", "lastUpdate",
+                            NULL, &lasttimestr);
+    if (ret == EOK) {
+
+        /* check if we lastUpdate and last file modification change differ*/
+        if ((lasttimestr != NULL) && (strcmp(lasttimestr, timestr) == 0)) {
             /* not changed, get out, nothing more to do */
-            close(fd);
-            talloc_zfree(tmp_ctx);
-            return EOK;
+            ret = EOK;
+            goto done;
         }
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get lastUpdate attribute.\n"));
+        goto done;
+    }
+
+    ret = sss_ini_get_config(init_data, config_file);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to load configuration\n"));
+        goto done;
+    }
+
+    /* Make sure that the config file version matches the confdb version */
+    ret = sss_ini_get_cfgobj(init_data, "sssd", "config_file_version");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Internal error determining config_file_version\n"));
+        goto done;
+    }
+
+    ret = sss_ini_check_config_obj(init_data);
+    if (ret != EOK) {
+        /* No known version. Assumed to be version 1 */
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Config file is an old version. "
+               "Please run configuration upgrade script.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    version = sss_ini_get_int_config_value(init_data, 1, -1, &ret);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+                ("Config file version could not be determined\n"));
+        goto done;
+    } else if (version < CONFDB_VERSION_INT) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+                ("Config file is an old version. "
+                 "Please run configuration upgrade script.\n"));
+        ret = EINVAL;
+        goto done;
+    } else if (version > CONFDB_VERSION_INT) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+                ("Config file version is newer than confdb\n"));
+        ret = EINVAL;
+        goto done;
     }
 
     /* Set up a transaction to replace the configuration */
     ret = ldb_transaction_start(cdb->ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to start a transaction for updating the configuration\n"));
-        talloc_zfree(tmp_ctx);
-        close(fd);
-        return sysdb_error_to_errno(ret);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to start a transaction for "
+               "updating the configuration\n"));
+        ret = sysdb_error_to_errno(ret);
+        goto done;
     }
+    in_transaction = true;
 
     /* Purge existing database */
     ret = confdb_purge(cdb);
     if (ret != EOK) {
-        DEBUG(0, ("Could not purge existing configuration\n"));
-        close(fd);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Could not purge existing configuration\n"));
         goto done;
     }
 
-    /* Read the configuration into a collection */
-    ret = config_from_fd("sssd", fd, config_file, &sssd_config,
-                         INI_STOP_ON_ANY, &error_list);
-    close(fd);
+    ret = sss_confdb_create_ldif(tmp_ctx, init_data, &config_ldif);
     if (ret != EOK) {
-        DEBUG(0, ("Parse error reading configuration file [%s]\n",
-                  config_file));
-        print_file_parsing_errors(stderr, error_list);
-        free_ini_config_errors(error_list);
-        free_ini_config(sssd_config);
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not create LDIF for confdb\n"));
         goto done;
     }
 
-    /* Make sure that the config file version matches the confdb version */
-    ret = get_config_item("sssd", "config_file_version",
-                          sssd_config, &item);
-    if (ret != EOK) {
-        DEBUG(0, ("Internal error determining config_file_version\n"));
-        goto done;
-    }
-    if (item == NULL) {
-        /* No known version. Assumed to be version 1 */
-        DEBUG(0, ("Config file is an old version. "
-                  "Please run configuration upgrade script.\n"));
-        ret = EINVAL;
-        goto done;
-    }
-    version = get_int_config_value(item, 1, -1, &ret);
-    if (ret != EOK) {
-        DEBUG(0, ("Config file version could not be determined\n"));
-        goto done;
-    } else if (version < CONFDB_VERSION_INT) {
-        DEBUG(0, ("Config file is an old version. "
-                  "Please run configuration upgrade script.\n"));
-        ret = EINVAL;
-        goto done;
-    } else if (version > CONFDB_VERSION_INT) {
-        DEBUG(0, ("Config file version is newer than confdb\n"));
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = confdb_create_ldif(tmp_ctx, sssd_config, &config_ldif);
-    free_ini_config(sssd_config);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not create LDIF for confdb\n"));
-        goto done;
-    }
-
-    DEBUG(7, ("LDIF file to import: \n%s", config_ldif));
+    DEBUG(SSSDBG_TRACE_LIBS, ("LDIF file to import: \n%s", config_ldif));
 
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            DEBUG(0, ("Failed to initialize DB (%d,[%s]), aborting!\n",
-                      ret, ldb_errstring(cdb->ldb)));
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                    ("Failed to initialize DB (%d,[%s]), aborting!\n",
+                     ret, ldb_errstring(cdb->ldb)));
             ret = EIO;
             goto done;
         }
@@ -411,15 +288,31 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 
     ret = confdb_add_param(cdb, true, "config", "lastUpdate", vals);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to set last update time on db!\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+                ("Failed to set last update time on db!\n"));
+        goto done;
     }
+
+    ret = ldb_transaction_commit(cdb->ldb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        goto done;
+    }
+    in_transaction = false;
 
     ret = EOK;
 
 done:
-    ret == EOK ?
-            ldb_transaction_commit(cdb->ldb) :
-            ldb_transaction_cancel(cdb->ldb);
+    if (in_transaction) {
+        sret = ldb_transaction_cancel(cdb->ldb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+        }
+    }
+
+    sss_ini_config_destroy(init_data);
+    sss_ini_close_file(init_data);
+
     talloc_zfree(tmp_ctx);
     return ret;
 }

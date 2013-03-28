@@ -21,7 +21,6 @@
 */
 
 
-#include <collection.h>
 #include <arpa/inet.h>
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
