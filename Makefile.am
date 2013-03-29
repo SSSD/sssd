@@ -315,7 +315,8 @@ SSSD_LCL_TOOLS_OBJ = \
     $(SSSD_TOOLS_OBJ)
 
 SSSD_RESOLV_OBJ = \
-    src/resolv/async_resolv.c
+    src/resolv/async_resolv.c \
+    src/resolv/async_resolv_utils.c
 if BUILD_ARES_DATA
     SSSD_RESOLV_OBJ += \
     src/resolv/ares/ares_parse_srv_reply.c \

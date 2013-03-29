@@ -156,4 +156,18 @@ int resolv_gettxt_recv(TALLOC_CTX *mem_ctx,
                        int *timeouts,
                        struct ares_txt_reply **reply_list);
 
+/** Utils **/
+
+struct tevent_req *
+resolv_get_domain_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct resolv_ctx *resolv_ctx,
+                        const char *hostname,
+                        enum host_database *host_dbs,
+                        enum restrict_family family_order);
+
+errno_t resolv_get_domain_recv(TALLOC_CTX *mem_ctx,
+                               struct tevent_req *req,
+                               char **_dns_domain);
+
 #endif /* __ASYNC_RESOLV_H__ */
