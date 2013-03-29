@@ -170,4 +170,17 @@ errno_t resolv_get_domain_recv(TALLOC_CTX *mem_ctx,
                                struct tevent_req *req,
                                char **_dns_domain);
 
+struct tevent_req *
+resolv_discover_srv_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct resolv_ctx *resolv_ctx,
+                         const char *service,
+                         const char *protocol,
+                         const char **discovery_domains);
+
+errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
+                                 struct tevent_req *req,
+                                 struct ares_srv_reply **_reply_list,
+                                 char **_dns_domain);
+
 #endif /* __ASYNC_RESOLV_H__ */
