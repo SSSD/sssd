@@ -172,6 +172,8 @@ static void sss_child_invoke_cb(struct tevent_context *ev,
     if (child_ctx->cb) {
         child_ctx->cb(child_ctx->pid, cb_pvt->wait_status, child_ctx->pvt);
     }
+
+    talloc_free(imm);
 }
 
 void sss_child_handler(struct tevent_context *ev,
@@ -211,7 +213,7 @@ void sss_child_handler(struct tevent_context *ev,
         if (error == HASH_SUCCESS) {
             child_ctx = talloc_get_type(value.ptr, struct sss_child_ctx);
 
-            imm = tevent_create_immediate(sigchld_ctx->ev);
+            imm = tevent_create_immediate(child_ctx);
             if (imm == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Out of memory invoking SIGCHLD callback\n"));
@@ -555,13 +557,13 @@ void child_sig_handler(struct tevent_context *ev,
         /* Invoke the callback in a tevent_immediate handler
          * so that it is safe to free the tevent_signal *
          */
-        imm = tevent_create_immediate(ev);
+        imm = tevent_create_immediate(child_ctx);
         if (imm == NULL) {
             DEBUG(0, ("Out of memory invoking sig handler callback\n"));
             return;
         }
 
-        tevent_schedule_immediate(imm, ev,child_invoke_callback,
+        tevent_schedule_immediate(imm, ev, child_invoke_callback,
                                   child_ctx);
     }
 
