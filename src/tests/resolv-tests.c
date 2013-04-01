@@ -33,7 +33,7 @@
 
 #include "tests/common.h"
 #include "util/util.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 /* Interface under test */
 #include "resolv/async_resolv.h"
@@ -118,7 +118,7 @@ START_TEST(test_copy_hostent)
     ctx = talloc_new(global_talloc_context);
     fail_if(ctx == NULL);
 
-    check_leaks_push(ctx);
+    ck_leaks_push(ctx);
 
     rhe = resolv_copy_hostent_ares(ctx, &he, AF_INET, &attl, 2);
 
@@ -151,7 +151,7 @@ START_TEST(test_copy_hostent)
 
     talloc_free(rhe);
 
-    check_leaks_pop(ctx);
+    ck_leaks_pop(ctx);
 }
 END_TEST
 
@@ -203,7 +203,7 @@ START_TEST(test_resolv_ip_addr)
         return;
     }
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_ONLY,
                                     default_host_dbs);
@@ -217,7 +217,7 @@ START_TEST(test_resolv_ip_addr)
         ret = test_loop(test_ctx);
     }
 
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
     fail_unless(ret == EOK);
 
     talloc_zfree(test_ctx);
@@ -272,7 +272,7 @@ START_TEST(test_resolv_localhost)
         return;
     }
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
@@ -286,7 +286,7 @@ START_TEST(test_resolv_localhost)
         ret = test_loop(test_ctx);
     }
 
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
     fail_unless(ret == EOK);
 
     talloc_zfree(test_ctx);
@@ -328,7 +328,7 @@ START_TEST(test_resolv_negative)
         return;
     }
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
@@ -342,7 +342,7 @@ START_TEST(test_resolv_negative)
         ret = test_loop(test_ctx);
     }
 
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
 
     fail_unless(ret != EOK);
     fail_unless(test_ctx->error == ARES_ENOTFOUND);
@@ -366,7 +366,7 @@ static void test_internet(struct tevent_req *req)
     test_ctx->done = true;
 
     tmp_ctx = talloc_new(test_ctx);
-    check_leaks_push(tmp_ctx);
+    ck_leaks_push(tmp_ctx);
 
     switch (test_ctx->tested_function) {
     case TESTING_HOSTNAME:
@@ -417,7 +417,7 @@ static void test_internet(struct tevent_req *req)
     } else if (srv_replies != NULL) {
         talloc_free(srv_replies);
     }
-    check_leaks_pop(tmp_ctx);
+    ck_leaks_pop(tmp_ctx);
 }
 
 START_TEST(test_resolv_internet)
@@ -434,7 +434,7 @@ START_TEST(test_resolv_internet)
     }
     test_ctx->tested_function = TESTING_HOSTNAME;
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
@@ -449,7 +449,7 @@ START_TEST(test_resolv_internet)
     }
 
     fail_unless(ret == EOK);
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -464,7 +464,7 @@ START_TEST(test_resolv_internet_txt)
     fail_if(ret != EOK, "Could not set up test");
     test_ctx->tested_function = TESTING_TXT;
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
 
     req = resolv_gettxt_send(test_ctx, test_ctx->ev, test_ctx->resolv, txt_host);
     fail_if(req == NULL, "Function resolv_gettxt_send failed");
@@ -473,7 +473,7 @@ START_TEST(test_resolv_internet_txt)
     ret = test_loop(test_ctx);
     fail_unless(ret == EOK);
 
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
 
     talloc_zfree(test_ctx);
 }
@@ -489,7 +489,7 @@ START_TEST(test_resolv_internet_srv)
     fail_if(ret != EOK, "Could not set up test");
     test_ctx->tested_function = TESTING_SRV;
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
 
     req = resolv_getsrv_send(test_ctx, test_ctx->ev, test_ctx->resolv, srv_host);
     fail_if(req == NULL, "Function resolv_getsrv_send failed");
@@ -498,7 +498,7 @@ START_TEST(test_resolv_internet_srv)
     ret = test_loop(test_ctx);
     fail_unless(ret == EOK);
 
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
 
     talloc_zfree(test_ctx);
 }
@@ -600,7 +600,7 @@ START_TEST(test_resolv_sort_srv_reply)
         return;
     }
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
 
     /* prepare linked list with reversed values */
     for (i = 0; i<num_replies; i++) {
@@ -667,7 +667,7 @@ START_TEST(test_resolv_sort_srv_reply)
 
 
     /* check for leaks */
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -687,7 +687,7 @@ START_TEST(test_resolv_free_req)
         return;
     }
 
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
@@ -716,7 +716,7 @@ START_TEST(test_resolv_free_req)
     }
 
     ret = test_loop(test_ctx);
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
     fail_unless(ret == EOK);
 
 done:
@@ -737,7 +737,7 @@ static void test_timeout(struct tevent_req *req)
     test_ctx->done = true;
 
     tmp_ctx = talloc_new(test_ctx);
-    check_leaks_push(tmp_ctx);
+    ck_leaks_push(tmp_ctx);
 
     fail_unless(test_ctx->tested_function == TESTING_HOSTNAME);
     recv_status = resolv_gethostbyname_recv(req, tmp_ctx,
@@ -745,7 +745,7 @@ static void test_timeout(struct tevent_req *req)
     talloc_zfree(req);
     fail_unless(recv_status == ETIMEDOUT);
     fail_unless(status == ARES_ETIMEOUT);
-    check_leaks_pop(tmp_ctx);
+    ck_leaks_pop(tmp_ctx);
     talloc_free(tmp_ctx);
 }
 
@@ -788,7 +788,7 @@ Suite *create_resolv_suite(void)
 
     TCase *tc_resolv = tcase_create("RESOLV Tests");
 
-    tcase_add_checked_fixture(tc_resolv, leak_check_setup, leak_check_teardown);
+    tcase_add_checked_fixture(tc_resolv, ck_leak_check_setup, ck_leak_check_teardown);
     /* Do some testing */
     tcase_add_test(tc_resolv, test_copy_hostent);
     tcase_add_test(tc_resolv, test_resolv_ip_addr);

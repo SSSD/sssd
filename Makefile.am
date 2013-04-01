@@ -474,6 +474,7 @@ dist_noinst_HEADERS = \
     src/resolv/ares/ares_parse_txt_reply.h \
     src/resolv/ares/ares_data.h \
     src/tests/common.h \
+    src/tests/common_check.h \
     src/tests/cmocka/common_mock.h \
     src/tests/cmocka/common_mock_resp.h \
     src/sss_client/ssh/sss_ssh_client.h \
@@ -848,7 +849,8 @@ libsss_test_common_la_SOURCES = \
 
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
-    src/tests/common_check.c
+    src/tests/common_check.c	 \
+    src/tests/leak_check.c
 
 sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)

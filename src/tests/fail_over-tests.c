@@ -32,7 +32,7 @@
 #include <tevent.h>
 
 #include "resolv/async_resolv.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 #include "util/util.h"
 
 /* Interface under test */
@@ -107,13 +107,13 @@ START_TEST(test_fo_new_service)
     struct fo_service *services[10];
 
     ctx = setup_test();
-    check_leaks_push(ctx);
+    ck_leaks_push(ctx);
 
     for (i = 0; i < 10; i++) {
         char buf[16];
         sprintf(buf, "service_%d", i);
 
-        check_leaks_push(ctx);
+        ck_leaks_push(ctx);
         ret = fo_new_service(ctx->fo_ctx, buf, NULL, &services[i]);
         fail_if(ret != EOK);
     }
@@ -129,13 +129,13 @@ START_TEST(test_fo_new_service)
         fail_if(ret != EOK);
         fail_if(service != services[i]);
         talloc_free(service);
-        check_leaks_pop(ctx);
+        ck_leaks_pop(ctx);
 
         ret = fo_get_service(ctx->fo_ctx, buf, &service);
         fail_if(ret != ENOENT);
     }
 
-    check_leaks_pop(ctx);
+    ck_leaks_pop(ctx);
     talloc_free(ctx);
 }
 END_TEST
@@ -264,7 +264,7 @@ create_suite(void)
 
     TCase *tc = tcase_create("FAIL_OVER Tests");
 
-    tcase_add_checked_fixture(tc, leak_check_setup, leak_check_teardown);
+    tcase_add_checked_fixture(tc, ck_leak_check_setup, ck_leak_check_teardown);
     /* Do some testing */
     tcase_add_test(tc, test_fo_new_service);
     tcase_add_test(tc, test_fo_resolve_service);

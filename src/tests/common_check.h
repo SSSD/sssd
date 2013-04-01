@@ -22,18 +22,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <check.h>
+#ifndef __TESTS_COMMON_CHECK_H__
+#define __TESTS_COMMON_CHECK_H__
 
 #include "tests/common.h"
 
-void ck_leak_check_setup(void)
-{
-    fail_unless(leak_check_setup() == true,
-                "Cannot set up leaks test: %s\n", check_leaks_err_msg());
-}
+void ck_leak_check_setup(void);
+void ck_leak_check_teardown(void);
 
-void ck_leak_check_teardown(void)
-{
-    fail_unless(leak_check_teardown() == true,
-                "Cannot tear down leaks test: %s\n", check_leaks_err_msg());
-}
+#define ck_leaks_push(ctx) check_leaks_push(ctx)
+#define ck_leaks_pop(ctx) fail_unless(check_leaks_pop(ctx) == true, check_leaks_err_msg())
+
+#endif /* __TESTS_COMMON_CHECK_H__ */

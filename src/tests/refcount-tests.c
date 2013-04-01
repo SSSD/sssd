@@ -28,7 +28,7 @@
 #include <tevent.h>
 #include <popt.h>
 
-#include "tests/common.h"
+#include "tests/common_check.h"
 #include "util/util.h"
 
 /* Interface under test */
@@ -146,7 +146,7 @@ START_TEST(test_refcount_swap)
 
     tmp_ctx = talloc_new(NULL);
 
-    check_leaks_push(tmp_ctx);
+    ck_leaks_push(tmp_ctx);
 
     container1 = talloc(tmp_ctx, struct container);
     container2 = talloc(tmp_ctx, struct container);
@@ -170,7 +170,7 @@ START_TEST(test_refcount_swap)
     CHECK_FILLER(container2->foo);
     talloc_free(container2);
 
-    check_leaks_pop(tmp_ctx);
+    ck_leaks_pop(tmp_ctx);
     talloc_free(tmp_ctx);
 }
 END_TEST
@@ -182,7 +182,7 @@ Suite *create_suite(void)
     TCase *tc = tcase_create("REFCOUNT Tests");
 
     /* Do some testing */
-    tcase_add_checked_fixture(tc, leak_check_setup, leak_check_teardown);
+    tcase_add_checked_fixture(tc, ck_leak_check_setup, ck_leak_check_teardown);
     tcase_add_test(tc, test_refcount_basic);
     tcase_add_test(tc, test_refcount_swap);
 

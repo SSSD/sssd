@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <talloc.h>
 
-#include "tests/common.h"
+#include "tests/common_check.h"
 #include "providers/ipa/ipa_hbac.h"
 
 #define HBAC_TEST_USER "testuser"
@@ -815,8 +815,8 @@ Suite *hbac_test_suite (void)
 
     TCase *tc_hbac = tcase_create("HBAC_rules");
     tcase_add_checked_fixture(tc_hbac,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
 
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_all);
     tcase_add_test(tc_hbac, ipa_hbac_test_allow_user);

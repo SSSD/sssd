@@ -24,7 +24,7 @@
 
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 #define IDMAP_RANGE_MIN 1234
 #define IDMAP_RANGE_MAX 9876
@@ -492,8 +492,8 @@ Suite *idmap_test_suite (void)
 
     TCase *tc_init = tcase_create("IDMAP init tests");
     tcase_add_checked_fixture(tc_init,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
 
     tcase_add_test(tc_init, idmap_test_init_malloc);
     tcase_add_test(tc_init, idmap_test_init_talloc);
@@ -503,8 +503,8 @@ Suite *idmap_test_suite (void)
 
     TCase *tc_dom = tcase_create("IDMAP domain tests");
     tcase_add_checked_fixture(tc_dom,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
     tcase_add_checked_fixture(tc_dom,
                               idmap_ctx_setup,
                               idmap_ctx_teardown);
@@ -515,8 +515,8 @@ Suite *idmap_test_suite (void)
 
     TCase *tc_conv = tcase_create("IDMAP SID conversion tests");
     tcase_add_checked_fixture(tc_conv,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
     tcase_add_checked_fixture(tc_conv,
                               idmap_ctx_setup,
                               idmap_ctx_teardown);
@@ -536,8 +536,8 @@ Suite *idmap_test_suite (void)
 
     TCase *tc_map = tcase_create("IDMAP mapping tests");
     tcase_add_checked_fixture(tc_map,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
     tcase_add_checked_fixture(tc_map,
                               idmap_ctx_setup,
                               idmap_ctx_teardown);

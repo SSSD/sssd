@@ -26,7 +26,7 @@
 #include <check.h>
 
 #include "util/util.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 /* interfaces under test */
 #include "util/crypto/sss_crypto.h"
@@ -68,7 +68,7 @@ START_TEST(test_encrypt_decrypt)
 
     test_ctx = talloc_new(NULL);
     fail_if(test_ctx == NULL);
-    check_leaks_push(test_ctx);
+    ck_leaks_push(test_ctx);
 
     for (i=0; password[i]; i++) {
         ret = sss_password_encrypt(test_ctx, password[i], strlen(password[i])+1,
@@ -84,7 +84,7 @@ START_TEST(test_encrypt_decrypt)
         talloc_free(ctpwd);
     }
 
-    check_leaks_pop(test_ctx);
+    ck_leaks_pop(test_ctx);
     talloc_free(test_ctx);
 }
 END_TEST
@@ -163,7 +163,7 @@ Suite *crypto_suite(void)
     Suite *s = suite_create("sss_crypto");
 
     TCase *tc = tcase_create("sss crypto tests");
-    tcase_add_checked_fixture(tc, leak_check_setup, leak_check_teardown);
+    tcase_add_checked_fixture(tc, ck_leak_check_setup, ck_leak_check_teardown);
     /* Do some testing */
 #ifdef HAVE_NSS
     tcase_add_test(tc, test_nss_init);

@@ -27,7 +27,7 @@
 #include <util/data_blob.h>
 #include <gen_ndr/security.h>
 
-#include "tests/common.h"
+#include "tests/common_check.h"
 #include "responder/pac/pacsrv.h"
 #include "lib/idmap/sss_idmap.h"
 
@@ -488,8 +488,8 @@ Suite *idmap_test_suite (void)
 
     TCase *tc_pac = tcase_create("PAC responder tests");
     tcase_add_checked_fixture(tc_pac,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
 
     tcase_add_checked_fixture(tc_pac,
                               pac_setup,

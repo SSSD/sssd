@@ -31,7 +31,7 @@
 #include "util/util.h"
 #include "util/sss_utf8.h"
 #include "util/murmurhash3.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 #define FILENAME_TEMPLATE "tests-atomicio-XXXXXX"
 char *filename;
@@ -815,8 +815,8 @@ Suite *util_suite(void)
     TCase *tc_util = tcase_create("util");
 
     tcase_add_checked_fixture(tc_util,
-                              leak_check_setup,
-                              leak_check_teardown);
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
     tcase_add_test (tc_util, test_diff_string_lists);
     tcase_add_test (tc_util, test_sss_filter_sanitize);
     tcase_add_test (tc_util, test_size_t_overflow);

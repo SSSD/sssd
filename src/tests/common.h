@@ -33,17 +33,18 @@
 extern TALLOC_CTX *global_talloc_context;
 
 #define check_leaks(ctx, bytes) _check_leaks((ctx), (bytes), __location__)
-void _check_leaks(TALLOC_CTX *ctx,
+bool _check_leaks(TALLOC_CTX *ctx,
                   size_t bytes,
                   const char *location);
 
 void check_leaks_push(TALLOC_CTX *ctx);
 
 #define check_leaks_pop(ctx) _check_leaks_pop((ctx), __location__)
-void _check_leaks_pop(TALLOC_CTX *ctx, const char *location);
+bool _check_leaks_pop(TALLOC_CTX *ctx, const char *location);
 
-void leak_check_setup(void);
-void leak_check_teardown(void);
+bool leak_check_setup(void);
+bool leak_check_teardown(void);
+const char *check_leaks_err_msg(void);
 
 void tests_set_cwd(void);
 
