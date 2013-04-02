@@ -431,22 +431,8 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Found hostname: %s\n", hostname));
     }
 
-    /* initialize resolv ctx */
-    ret = resolv_init(be_ctx, be_ctx->ev,
-                      dp_opt_get_int(be_ctx->be_res->opts,
-                                     DP_RES_OPT_RESOLVER_OP_TIMEOUT),
-                      &state->resolv_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up resolver context\n"));
-        goto done;
-    }
-
-    /* get database order */
-
-    state->host_db = talloc_zero_array(state, enum host_database, 3);
-    state->host_db[0] = DB_FILES;
-    state->host_db[1] = DB_DNS;
-    state->host_db[2] = DB_SENTINEL;
+    state->resolv_ctx = be_ctx->be_res->resolv;
+    state->host_db = default_host_dbs;
 
     /* get fqdn */
     subreq = resolv_gethostbyname_send(state, state->ev, state->resolv_ctx,

@@ -78,11 +78,6 @@ struct fd_watch {
 };
 
 struct resolv_ctx {
-    /* Contexts are linked so we can keep track of them and re-create
-     * the ares channels in all of them at once if we need to. */
-    struct resolv_ctx *prev;
-    struct resolv_ctx *next;
-
     struct tevent_context *ev_ctx;
     ares_channel channel;
 
@@ -108,8 +103,6 @@ struct resolv_request {
     struct request_watch *rwatch;
     struct tevent_timer *request_timeout;
 };
-
-struct resolv_ctx *context_list;
 
 static int
 return_code(int ares_code)
@@ -406,8 +399,6 @@ resolv_ctx_destructor(struct resolv_ctx *ctx)
 {
     ares_channel channel;
 
-    DLIST_REMOVE(context_list, ctx);
-
     if (ctx->channel == NULL) {
         DEBUG(1, ("Ares channel already destroyed?\n"));
         return -1;
@@ -487,7 +478,6 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
         goto done;
     }
 
-    DLIST_ADD(context_list, ctx);
     talloc_set_destructor(ctx, resolv_ctx_destructor);
 
     *ctxp = ctx;
@@ -499,14 +489,9 @@ done:
 }
 
 void
-resolv_reread_configuration(void)
+resolv_reread_configuration(struct resolv_ctx *ctx)
 {
-    struct resolv_ctx *ctx;
-
-    DEBUG(4, ("Recreating all c-ares channels\n"));
-    DLIST_FOR_EACH(ctx, context_list) {
-        recreate_ares_channel(ctx);
-    }
+    recreate_ares_channel(ctx);
 }
 
 static errno_t

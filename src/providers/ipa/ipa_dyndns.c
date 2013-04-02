@@ -143,14 +143,7 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
 {
     errno_t ret;
 
-    ret = resolv_init(be_ctx, be_ctx->ev,
-                      dp_opt_get_int(be_ctx->be_res->opts,
-                                     DP_RES_OPT_RESOLVER_OP_TIMEOUT),
-                      &ctx->resolv);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not set up resolver context\n"));
-        return ret;
-    }
+    ctx->resolv = be_ctx->be_res->resolv;
 
     ret = be_add_online_cb(be_ctx, be_ctx,
                            ipa_dyndns_update,

@@ -2775,7 +2775,7 @@ static int data_provider_res_init(DBusMessage *message,
     struct be_ctx *be_ctx;
     be_ctx = talloc_get_type(sbus_conn_get_private_data(conn), struct be_ctx);
 
-    resolv_reread_configuration();
+    resolv_reread_configuration(be_ctx->be_res->resolv);
     check_if_online(be_ctx);
 
     return monitor_common_res_init(message, conn);

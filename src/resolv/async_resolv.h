@@ -58,7 +58,7 @@ struct resolv_ctx;
 int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
                 int timeout, struct resolv_ctx **ctxp);
 
-void resolv_reread_configuration(void);
+void resolv_reread_configuration(struct resolv_ctx *ctx);
 
 const char *resolv_strerror(int ares_code);
 
