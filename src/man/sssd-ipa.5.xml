@@ -627,7 +627,7 @@
         <para>
             If the option 'subdomains_provider' is not set in the domain
             section of sssd.conf but there is the option 'id_provider = ipa',
-            the IPA subdomains provider is configured implictly. In this case,
+            the IPA subdomains provider is configured implicitly. In this case,
             if a subdomain request fails and indicates that the server does not
             support subdomains, i.e. is not configured for trusts, the IPA
             subdomains provider is disabled. After an hour or after the IPA

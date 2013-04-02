@@ -319,7 +319,7 @@
                     <term>krb5_lifetime (string)</term>
                     <listitem>
                         <para>
-                            Request ticket with a with a lifetime, given as an
+                            Request ticket with a lifetime, given as an
                             integer immediately followed by a time unit:
                         </para>
                         <para>
