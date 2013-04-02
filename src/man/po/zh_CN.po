@@ -3,21 +3,20 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# Artyom Kunyov <artkun@guitarplayer.ru>, 2012.
+# Christopher Meng <cickumqt@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2013-04-02 18:27+0300\n"
-"PO-Revision-Date: 2012-10-05 17:53+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Russian <trans-ru@lists.fedoraproject.org>\n"
-"Language: ru\n"
+"PO-Revision-Date: 2012-12-24 06:39+0000\n"
+"Last-Translator: Christopher Meng <cickumqt@gmail.com>\n"
+"Language-Team: Chinese (China) <trans-zh_cn@lists.fedoraproject.org>\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -29,12 +28,12 @@ msgstr ""
 #: sss_seed.8.xml:5 sss_ssh_authorizedkeys.1.xml:5
 #: sss_ssh_knownhostsproxy.1.xml:5
 msgid "SSSD Manual pages"
-msgstr "Справка по SSSD"
+msgstr "SSSD 手册页面"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_groupmod.8.xml:10 sss_groupmod.8.xml:15
 msgid "sss_groupmod"
-msgstr ""
+msgstr "sss_groupmod"
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sss_groupmod.8.xml:11 pam_sss.8.xml:14 sssd_krb5_locator_plugin.8.xml:11
@@ -43,12 +42,12 @@ msgstr ""
 #: sss_groupshow.8.xml:11 sss_usermod.8.xml:11 sss_cache.8.xml:11
 #: sss_debuglevel.8.xml:11 sss_seed.8.xml:11
 msgid "8"
-msgstr ""
+msgstr "8"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupmod.8.xml:16
 msgid "modify a group"
-msgstr "изменить группу"
+msgstr "变更一个组"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupmod.8.xml:21
@@ -68,7 +67,7 @@ msgstr ""
 #: sss_seed.8.xml:31 sss_ssh_authorizedkeys.1.xml:30
 #: sss_ssh_knownhostsproxy.1.xml:31
 msgid "DESCRIPTION"
-msgstr "ОПИСАНИЕ"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupmod.8.xml:32
@@ -84,7 +83,7 @@ msgstr ""
 #: sss_cache.8.xml:38 sss_debuglevel.8.xml:38 sss_seed.8.xml:42
 #: sss_ssh_authorizedkeys.1.xml:75 sss_ssh_knownhostsproxy.1.xml:62
 msgid "OPTIONS"
-msgstr "ОПЦИИ"
+msgstr "选项"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:43 sss_usermod.8.xml:77
@@ -92,6 +91,8 @@ msgid ""
 "<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
 "replaceable>"
 msgstr ""
+"<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_groupmod.8.xml:48
@@ -107,6 +108,8 @@ msgid ""
 "<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
 "replaceable>"
 msgstr ""
+"<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_groupmod.8.xml:62
@@ -114,11 +117,13 @@ msgid ""
 "Remove this group from groups specified by the <replaceable>GROUPS</"
 "replaceable> parameter."
 msgstr ""
+"Remove this group from groups specified by the <replaceable>GROUPS</"
+"replaceable> parameter."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.conf.5.xml:10 sssd.conf.5.xml:16
 msgid "sssd.conf"
-msgstr "sssd.CONF"
+msgstr "sssd.conf"
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
@@ -136,12 +141,12 @@ msgstr ""
 #: sssd.conf.5.xml:17 sssd-ldap.5.xml:17 sssd_krb5_locator_plugin.8.xml:16
 #: sssd-ipa.5.xml:17 sssd-ad.5.xml:17 sssd-krb5.5.xml:17
 msgid "the configuration file for SSSD"
-msgstr "Файл конфигурации SSSD"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:21
 msgid "FILE FORMAT"
-msgstr "ФОРМАТ ФАЙЛА"
+msgstr "文件格式"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:29
@@ -220,7 +225,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:82
 msgid "services"
-msgstr "службы"
+msgstr "服务"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:85
@@ -240,7 +245,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:98 sssd.conf.5.xml:290
 msgid "reconnection_retries (integer)"
-msgstr "попыток_соединения (целое число)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:101 sssd.conf.5.xml:293
@@ -252,12 +257,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:106 sssd.conf.5.xml:298
 msgid "Default: 3"
-msgstr "По умолчанию: 3"
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:111
 msgid "domains"
-msgstr "домены"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:114
@@ -414,7 +419,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:236
 msgid "SERVICES SECTIONS"
-msgstr ""
+msgstr "服务部分"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:238
@@ -428,12 +433,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:245
 msgid "General service configuration options"
-msgstr ""
+msgstr "基本服务配置选项"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:247
 msgid "These options can be used to configure any service."
-msgstr ""
+msgstr "这些选项可被用于配置任何服务。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:251
@@ -475,7 +480,7 @@ msgstr ""
 #: sssd-ipa.5.xml:376 sssd-krb5.5.xml:244 sssd-krb5.5.xml:278
 #: sssd-krb5.5.xml:427
 msgid "Default: false"
-msgstr "По умолчанию: false"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:277
@@ -492,7 +497,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:285 sssd-ldap.5.xml:1248
 msgid "Default: 10"
-msgstr "По умолчанию: 10"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:303
@@ -574,7 +579,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:368
 msgid "Default: 120"
-msgstr "По умолчанию: 120"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:373
@@ -629,7 +634,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:414 sssd.conf.5.xml:819
 msgid "Default: 15"
-msgstr "По умолчанию: 15"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:419
@@ -648,7 +653,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:429
 msgid "Default: root"
-msgstr "По умолчанию: root"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:434
@@ -946,7 +951,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:647 sssd.conf.5.xml:660
 msgid "Default: 0 (No limit)"
-msgstr "По умолчанию: 0 (неограничено)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:653
@@ -983,7 +988,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:680 sssd.conf.5.xml:733 sssd.conf.5.xml:1630
 msgid "Default: 5"
-msgstr "По умолчанию: 5"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:686
@@ -1000,7 +1005,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:694
 msgid "Currently sssd supports the following values:"
-msgstr "В настоящее время sssd поддерживает следующие значения:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:697
@@ -1025,7 +1030,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:711 sssd.8.xml:63
 msgid "Default: 1"
-msgstr "По умолчанию: 1"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:716
@@ -1294,7 +1299,7 @@ msgstr ""
 #: sssd.conf.5.xml:958 sssd.conf.5.xml:1114 sssd.conf.5.xml:1216
 #: sssd.conf.5.xml:1233
 msgid "Default: FALSE"
-msgstr "По умолчанию: FALSE"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:961
@@ -1913,7 +1918,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1587
 msgid "Default: <quote>%1$s@%2$s</quote>."
-msgstr "По умолчанию: <quote>%1$s@%2$s</quote>."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1593
@@ -1930,7 +1935,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1600
 msgid "Supported values:"
-msgstr "Поддерживаемые значения:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1603
@@ -1985,7 +1990,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1643
 msgid "Default: Use the domain part of machine's hostname"
-msgstr "По умолчанию: использовать доменное имя из hostname"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1649
@@ -2139,7 +2144,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1771
 msgid "Default: <filename>/home</filename>"
-msgstr "По умолчанию: <filename>/home</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1776
@@ -2156,7 +2161,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1783 sssd.conf.5.xml:1795
 msgid "Default: TRUE"
-msgstr "По умолчанию: TRUE"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1788
@@ -2186,7 +2191,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1811
 msgid "Default: 077"
-msgstr "По умолчанию: 077"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1816
@@ -2205,7 +2210,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1829
 msgid "Default: <filename>/etc/skel</filename>"
-msgstr "По умолчанию: <filename>/etc/skel</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1834
@@ -2223,7 +2228,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1844
 msgid "Default: <filename>/var/mail</filename>"
-msgstr "По умолчанию: <filename>/var/mail</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1849
@@ -2247,7 +2252,7 @@ msgstr ""
 #: sssd.conf.5.xml:1868 sssd-ldap.5.xml:2308 sssd-simple.5.xml:131
 #: sssd-ipa.5.xml:643 sssd-ad.5.xml:229 sssd-krb5.5.xml:441
 msgid "EXAMPLE"
-msgstr "ПРИМЕР"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:1874
@@ -2324,7 +2329,7 @@ msgstr ""
 #: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:70 sssd-ad.5.xml:75
 #: sssd-krb5.5.xml:63
 msgid "CONFIGURATION OPTIONS"
-msgstr "ПАРАМЕТРЫ КОНФИГУРАЦИИ"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:60
@@ -2511,7 +2516,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:203
 msgid "Default: rfc2307"
-msgstr "По умолчанию: rfc2307"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:209
@@ -2541,7 +2546,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:229
 msgid "password"
-msgstr "пароль"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:232
@@ -2578,7 +2583,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:257
 msgid "Default: posixAccount"
-msgstr "По умолчанию: posixAccount"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:263
@@ -2638,7 +2643,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:309
 msgid "Default: gecos"
-msgstr "По умолчанию: gecos"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:315
@@ -2653,7 +2658,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:322
 msgid "Default: homeDirectory"
-msgstr "По умолчанию: homeDirectory"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:328
@@ -2668,7 +2673,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:335
 msgid "Default: loginShell"
-msgstr "По умолчанию: loginShell"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:341
@@ -2717,7 +2722,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:376 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1006
 msgid "Default: modifyTimestamp"
-msgstr "По умолчанию: modifyTimestamp"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:382
@@ -2793,7 +2798,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:450
 msgid "Default: shadowWarning"
-msgstr "По умолчанию: shadowWarning"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:456
@@ -2812,7 +2817,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:469
 msgid "Default: shadowInactive"
-msgstr "По умолчанию: shadowInactive"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:475
@@ -2831,7 +2836,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:488
 msgid "Default: shadowExpire"
-msgstr "По умолчанию: shadowExpire"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:494
@@ -5282,10 +5287,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:143
-#, fuzzy
-#| msgid "Default: gecos"
 msgid "Default: 1200 (seconds)"
-msgstr "По умолчанию: gecos"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:149
@@ -8296,7 +8299,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: include/seealso.xml:2
 msgid "SEE ALSO"
-msgstr "СМ. ТАКЖЕ"
+msgstr "另见"
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
