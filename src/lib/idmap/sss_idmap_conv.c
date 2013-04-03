@@ -289,7 +289,7 @@ enum idmap_error_code sss_idmap_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     }
 
     do {
-        if (dom_sid->num_auths > SID_SUB_AUTHS) {
+        if (dom_sid->num_auths >= SID_SUB_AUTHS) {
             err = IDMAP_SID_INVALID;
             goto done;
         }
