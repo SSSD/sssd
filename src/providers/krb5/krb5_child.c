@@ -300,7 +300,7 @@ static krb5_error_code answer_otp(krb5_context ctx,
     }
 
     /* Validate our assumptions about the contents of authtok. */
-    ret = sss_authtok_get_password(&kr->pd->authtok, &pwd, &len);
+    ret = sss_authtok_get_password(kr->pd->authtok, &pwd, &len);
     if (ret != EOK)
         goto done;
 
