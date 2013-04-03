@@ -703,6 +703,7 @@ copy_dir(struct copy_ctx *cctx,
      * reset these bits. */
     ret = fchmod(dest_dir_fd, mode);
     if (ret == -1) {
+        ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
               ("Error setting mode of '%s': %s",
               dest_dir_path, strerror(ret)));
