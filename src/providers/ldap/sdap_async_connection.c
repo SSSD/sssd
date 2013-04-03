@@ -1542,7 +1542,7 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
-    time_t expire_time;
+    time_t expire_time = 0;
     errno_t ret;
 
     ret = sdap_kinit_recv(subreq, &expire_time);

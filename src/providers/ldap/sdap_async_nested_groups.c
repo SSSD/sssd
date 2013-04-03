@@ -1147,7 +1147,7 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
     struct sdap_nested_group_single_state *state = NULL;
     struct tevent_req *req = NULL;
     struct sysdb_attrs *entry = NULL;
-    enum sdap_nested_group_dn_type type;
+    enum sdap_nested_group_dn_type type = SDAP_NESTED_GROUP_DN_UNKNOWN;
     const char *orig_dn = NULL;
     errno_t ret;
 
