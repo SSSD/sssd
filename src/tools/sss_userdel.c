@@ -101,14 +101,14 @@ static int kick_user(struct tools_ctx *tctx)
         }
 
         while((child_pid = waitpid(pid, &status, 0)) > 0) {
-            if (child_pid == -1) {
-                DEBUG(1, ("waitpid failed\n"));
-                return errno;
-            }
 
             if (WIFEXITED(status)) {
                 break;
             }
+        }
+        if (child_pid == -1) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("waitpid failed\n"));
+            return errno;
         }
     }
 

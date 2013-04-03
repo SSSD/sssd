@@ -538,12 +538,6 @@ int run_userdel_cmd(struct tools_ctx *tctx)
         }
 
         while((child_pid = waitpid(pid, &status, 0)) > 0) {
-            if (child_pid == -1) {
-                DEBUG(1, ("waitpid failed\n"));
-                ret = errno;
-                goto done;
-            }
-
             if (WIFEXITED(status)) {
                 ret = WEXITSTATUS(status);
                 if (ret != 0) {
@@ -566,6 +560,11 @@ int run_userdel_cmd(struct tools_ctx *tctx)
                 ret = EIO;
                 goto done;
             }
+        }
+        if (child_pid == -1) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("waitpid failed\n"));
+            ret = errno;
+            goto done;
         }
     }
 
