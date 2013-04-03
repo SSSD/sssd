@@ -70,7 +70,7 @@ int flush_nscd_cache(enum nscd_db flush_db)
             errno = 0;
             ret = waitpid(nscd_pid, &status, 0);
         } while (ret == -1 && errno == EINTR);
-        if (ret == 0) {
+        if (ret > 0) {
             if (WIFEXITED(status)) {
                 ret = WEXITSTATUS(status);
                 if (ret > 0) {
