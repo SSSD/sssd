@@ -2767,17 +2767,19 @@ int main(int argc, const char *argv[])
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, &monitor);
     if (ret != EOK) {
-        if (ret == EPERM) {
-            DEBUG(1, ("Cannot read configuration file %s\n", config_file));
+        switch (ret) {
+        case EPERM:
+        case EACCES:
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                 ("Insufficient permissions to read configuration file.\n"));
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                 ("SSSD couldn't load the configuration database.\n"));
             sss_log(SSS_LOG_ALERT,
-                    "Cannot read config file %s, please check if permissions "
-                    "are 0600 and the file is owned by root.root", config_file);
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Error loading configuration database: "
-                                        "[%d]: %s\n", ret, strerror(ret)));
-            sss_log(SSS_LOG_ALERT,
-                    "Cannot load configuration database: [%d]: %s",
+                   "SSSD couldn't load the configuration database [%d]: %s.\n",
                     ret, strerror(ret));
+            break;
         }
         return 4;
     }
