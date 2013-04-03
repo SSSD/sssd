@@ -221,6 +221,7 @@ int pidfile(const char *path, const char *name)
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("write failed [%d][%s]\n", err, strerror(err)));
+        close(fd);
         return err;
     }
 
