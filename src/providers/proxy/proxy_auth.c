@@ -531,7 +531,7 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
 
         /* schedule another immediate timer to delete the sigchld handler */
         imm2 = tevent_create_immediate(ev);
-        if (imm == NULL) {
+        if (imm2 == NULL) {
             DEBUG(1, ("tevent_create_immediate failed.\n"));
             return;
         }

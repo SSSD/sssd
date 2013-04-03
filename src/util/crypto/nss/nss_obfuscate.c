@@ -112,7 +112,7 @@ static int generate_random_key(TALLOC_CTX *mem_ctx,
     }
 
     randkeydata = PK11_GetKeyData(randkey);
-    if (randkey == NULL) {
+    if (randkeydata == NULL) {
         DEBUG(1, ("Failure to get key data (err %d)\n",
                   PR_GetError()));
         ret = EIO;

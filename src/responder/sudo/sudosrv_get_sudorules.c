@@ -197,7 +197,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         /* user is stored in cache, remember cased and original name */
         original_name = ldb_msg_find_attr_as_string(user->msgs[0],
                                                     SYSDB_NAME, NULL);
-        if (name == NULL) {
+        if (original_name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no name?\n"));
             ret = EFAULT;
             goto done;

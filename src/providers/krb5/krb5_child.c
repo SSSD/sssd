@@ -1974,10 +1974,6 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
      * expired. The library shall not use the prompter to ask for a new password
      * but shall return KRB5KDC_ERR_KEY_EXP. */
     krb5_get_init_creds_opt_set_change_password_prompt(kr->options, 0);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        return kerr;
-    }
 #endif
 
     lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);

@@ -383,7 +383,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
             rdomain = NULL;
             if (default_domain != NULL) {
                 rdomain = talloc_strdup(tmp_ctx, default_domain);
-                if (default_domain == NULL) {
+                if (rdomain == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
                     ret = ENOMEM;
                     goto done;

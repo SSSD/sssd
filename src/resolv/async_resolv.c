@@ -1664,7 +1664,7 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     }
 
     ret = ares_parse_srv_reply(abuf, alen, &reply_list);
-    if (status != ARES_SUCCESS) {
+    if (ret != ARES_SUCCESS) {
         DEBUG(2, ("SRV record parsing failed: %d: %s\n", ret, ares_strerror(ret)));
         ret = return_code(ret);
         goto fail;
