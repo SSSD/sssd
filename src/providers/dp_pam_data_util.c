@@ -70,13 +70,13 @@ struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx)
     }
 
     pd->authtok = sss_authtok_new(pd);
-    if (pd == NULL) {
+    if (pd->authtok == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         goto failed;
     }
 
     pd->newauthtok = sss_authtok_new(pd);
-    if (pd == NULL) {
+    if (pd->newauthtok == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         goto failed;
     }
