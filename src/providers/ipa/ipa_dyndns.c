@@ -242,7 +242,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     struct ipa_ipaddress *address;
     struct tevent_req *req, *subreq;
     size_t addrsize;
-    struct sdap_id_ctx *id_ctx = state->ipa_ctx->id_ctx->sdap_id_ctx;
+    struct sdap_id_ctx *id_ctx = ctx->id_ctx->sdap_id_ctx;
 
     DEBUG (9, ("Performing update\n"));
 
