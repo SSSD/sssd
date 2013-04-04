@@ -110,6 +110,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *sdap_ctx;
     struct stat stat_buf;
+    const char *hostname;
     errno_t err;
     int ret;
 
@@ -204,6 +205,15 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     if (ret != EOK) {
         DEBUG(1, ("setup_child failed [%d][%s].\n",
                   ret, strerror(ret)));
+        goto done;
+    }
+
+    /* setup SRV lookup plugin */
+    hostname = dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME);
+    ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
+                                    "[%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 

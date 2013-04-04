@@ -107,6 +107,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
     errno_t ret;
     struct ad_id_ctx *ad_ctx;
     struct sdap_id_ctx *sdap_ctx;
+    const char *hostname;
 
     if (!ad_options) {
         ret = common_ad_init(bectx);
@@ -172,6 +173,15 @@ sssm_ad_id_init(struct be_ctx *bectx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("setup_child failed [%d][%s].\n",
                ret, strerror(ret)));
+        goto done;
+    }
+
+    /* setup SRV lookup plugin */
+    hostname = dp_opt_get_string(ad_options->basic, AD_HOSTNAME);
+    ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
+                                    "[%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 

@@ -29,6 +29,7 @@
 #include "providers/ldap/sdap_sudo.h"
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/fail_over_srv.h"
 
 static void sdap_shutdown(struct be_req *req);
 
@@ -169,6 +170,14 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     if (ret != EOK) {
         DEBUG(1, ("setup_child failed [%d][%s].\n",
                   ret, strerror(ret)));
+        goto done;
+    }
+
+    /* setup SRV lookup plugin */
+    ret = be_fo_set_dns_srv_lookup_plugin(bectx, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
+                                    "[%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
