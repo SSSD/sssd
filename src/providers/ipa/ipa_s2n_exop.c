@@ -624,7 +624,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                                                    attrs->a.user.pw_name,
                                                    attrs->a.user.pw_uid,
                                                    NULL,
-                                                   state->dom->name);
+                                                   state->dom->name,
+                                                   state->dom->flat_name);
                 if (homedir == NULL) {
                     ret = ENOMEM;
                     goto done;

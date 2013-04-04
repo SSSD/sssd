@@ -24,7 +24,8 @@
 
 char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                               const char *username, uint32_t uid,
-                              const char *original, const char *domain)
+                              const char *original, const char *domain,
+                              const char *flatname)
 {
     char *copy;
     char *p;
@@ -105,6 +106,7 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                 result = talloc_asprintf_append(result, "%s%s@%s", p,
                                                 username, domain);
                 break;
+
             case 'o':
                 if (original == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
@@ -115,6 +117,16 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                     orig = original;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, orig);
+                break;
+
+            case 'F':
+                if (flatname == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot expand domain name "
+                                                "template because domain flat "
+                                                "name is empty.\n"));
+                    goto done;
+                }
+                result = talloc_asprintf_append(result, "%s%s", p, flatname);
                 break;
 
             case '%':

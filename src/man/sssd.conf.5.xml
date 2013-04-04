@@ -1638,7 +1638,15 @@ override_homedir = /home/%u
                         <para>
                             Use this homedir as default value for all subdomains
                             within this domain. See <emphasis>override_homedir</emphasis>
-                            for info about possible values.
+                            for info about possible values. In addition to those, the
+                            expansion below can only be used with
+                            <emphasis>subdomain_homedir</emphasis>.
+                            <variablelist>
+                                <varlistentry>
+                                    <term>%F</term>
+                                    <listitem><para>flat (NetBIOS) name of a subdomain.</para></listitem>
+                                </varlistentry>
+                            </variablelist>
                         </para>
                         <para>
                             The value can be overridden by
