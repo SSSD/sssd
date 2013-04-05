@@ -739,6 +739,17 @@ done:
     return ret;
 }
 
+static int pam_auth_req_destructor(struct pam_auth_req *preq)
+{
+    if (preq && preq->dpreq_spy) {
+        /* If there is still a request pending, tell the spy
+         * the client is going away
+         */
+        preq->dpreq_spy->preq = NULL;
+    }
+    return 0;
+}
+
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
     struct sss_domain_info *dom;
@@ -754,6 +765,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (!preq) {
         return ENOMEM;
     }
+    talloc_set_destructor(preq, pam_auth_req_destructor);
     preq->cctx = cctx;
 
     preq->pd = create_pam_data(preq);
