@@ -37,20 +37,32 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
     DBusMessage* msg;
     int ret;
     int type;
-    struct pam_auth_req *preq;
+    struct pam_auth_req *preq = NULL;
+    struct pam_auth_dp_req *pdp_req;
 
-    preq = talloc_get_type(ptr, struct pam_auth_req);
+    pdp_req = talloc_get_type(ptr, struct pam_auth_dp_req);
+    preq = pdp_req->preq;
+    talloc_free(pdp_req);
 
     dbus_error_init(&dbus_error);
-
     msg = dbus_pending_call_steal_reply(pending);
+
+    /* Check if the client still exists. If not, simply free all the resources
+     * and quit */
+    if (preq == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Client already disconnected\n"));
+        dbus_pending_call_unref(pending);
+        dbus_message_unref(msg);
+        return;
+    }
+
+    /* Sanity-check of message validity */
     if (msg == NULL) {
         DEBUG(0, ("Severe error. A reply callback was called but no reply was"
                   "received and no timeout occurred\n"));
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
-
 
     type = dbus_message_get_type(msg);
     switch (type) {
@@ -79,6 +91,16 @@ done:
     preq->callback(preq);
 }
 
+static int pdp_req_destructor(struct pam_auth_dp_req *pdp_req)
+{
+    if (pdp_req && pdp_req->preq) {
+        /* If there is still a client waiting, reset the
+         * spy */
+        pdp_req->preq->dpreq_spy = NULL;
+    }
+    return 0;
+}
+
 int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
 {
     struct pam_data *pd = preq->pd;
@@ -86,6 +108,7 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     DBusMessage *msg;
     dbus_bool_t ret;
     int res;
+    struct pam_auth_dp_req *pdp_req;
 
     /* double check dp_ctx has actually been initialized.
      * in some pathological cases it may happen that nss starts up before
@@ -118,9 +141,17 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
         return EIO;
     }
 
+    pdp_req = talloc(preq->cctx->rctx, struct pam_auth_dp_req);
+    if (pdp_req == NULL) {
+        return ENOMEM;
+    }
+    pdp_req->preq = preq;
+    preq->dpreq_spy = pdp_req;
+    talloc_set_destructor(pdp_req, pdp_req_destructor);
+
     res = sbus_conn_send(be_conn->conn, msg,
                          timeout, pam_dp_process_reply,
-                         preq, NULL);
+                         pdp_req, NULL);
     dbus_message_unref(msg);
     return res;
 }
