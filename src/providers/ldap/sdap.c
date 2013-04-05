@@ -77,10 +77,8 @@ int sdap_get_map(TALLOC_CTX *memctx,
         if (map[i].def_name && !map[i].name) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Failed to retrieve value for %s\n", map[i].opt_name));
-            if (ret != EOK) {
-                talloc_zfree(map);
-                return EINVAL;
-            }
+            talloc_zfree(map);
+            return EINVAL;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
