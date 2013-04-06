@@ -106,6 +106,11 @@ check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
 
     ret = old_cc_ops->check_existing(old_ccache, kr->uid, realm, kr->upn,
                                      cc_template, active, valid);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Saved ccache %s doesn't exist.\n", old_ccache));
+        return ret;
+    }
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot check if saved ccache %s is active and valid\n",
@@ -467,7 +472,12 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             ret = check_old_ccache(ccache_file, kr, realm,
                                    &kr->active_ccache_present,
                                    &kr->valid_tgt_present);
-            if (ret != EOK) {
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_FUNC_DATA,
+                      ("Ignoring ccache attribute [%s], because it doesn't"
+                       "exist.\n", ccache_file));
+                ccache_file = NULL;
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("check_if_ccache_file_is_used failed.\n"));
                 goto done;

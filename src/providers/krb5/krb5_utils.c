@@ -775,40 +775,40 @@ cc_residual_is_used(uid_t uid, const char *ccname,
             DEBUG(SSSDBG_FUNC_DATA, ("Cache file [%s] does not exist, "
                                      "it will be recreated\n", ccname));
             *result = false;
-            return EOK;
+            return ENOENT;
         }
 
         DEBUG(SSSDBG_OP_FAILURE,
               ("stat failed [%d][%s].\n", ret, strerror(ret)));
         return ret;
-    } else if (ret == EOK) {
-        if (stat_buf.st_uid != uid) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cache file [%s] exists, but is owned by [%d] instead of "
-                   "[%d].\n", ccname, stat_buf.st_uid, uid));
-            return EINVAL;
-        }
+    }
 
-        switch (type) {
+    if (stat_buf.st_uid != uid) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cache file [%s] exists, but is owned by [%d] instead of "
+               "[%d].\n", ccname, stat_buf.st_uid, uid));
+        return EINVAL;
+    }
+
+    switch (type) {
 #ifdef HAVE_KRB5_DIRCACHE
-            case SSS_KRB5_TYPE_DIR:
-                ret = S_ISDIR(stat_buf.st_mode);
-                break;
+        case SSS_KRB5_TYPE_DIR:
+            ret = S_ISDIR(stat_buf.st_mode);
+            break;
 #endif /* HAVE_KRB5_DIRCACHE */
-            case SSS_KRB5_TYPE_FILE:
-                ret = S_ISREG(stat_buf.st_mode);
-                break;
-            default:
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported ccache type\n"));
-                return EINVAL;
-        }
-
-        if (ret == 0) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cache file [%s] exists, but is not the expected type\n",
-                   ccname));
+        case SSS_KRB5_TYPE_FILE:
+            ret = S_ISREG(stat_buf.st_mode);
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported ccache type\n"));
             return EINVAL;
-        }
+    }
+
+    if (ret == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cache file [%s] exists, but is not the expected type\n",
+              ccname));
+        return EINVAL;
     }
 
     ret = check_if_uid_is_active(uid, &active);
@@ -868,10 +868,13 @@ cc_file_check_existing(const char *location, uid_t uid,
 
     ret = cc_residual_is_used(uid, filename, SSS_KRB5_TYPE_FILE, &active);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active. "
-                                  "Will create a new one.\n"));
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not check if ccache is active.\n"));
+        }
         cc_check_template(cc_template);
         active = false;
+        return ret;
     }
 
     kerr = krb5_init_context(&context);
@@ -997,6 +1000,7 @@ cc_dir_check_existing(const char *location, uid_t uid,
                       const char *cc_template, bool *_active, bool *_valid)
 {
     bool active = false;
+    bool active_primary = false;
     bool valid = false;
     krb5_ccache ccache = NULL;
     krb5_context context = NULL;
@@ -1005,7 +1009,9 @@ cc_dir_check_existing(const char *location, uid_t uid,
     const char *filename;
     const char *dir;
     char *tmp;
+    char *primary_file;
     errno_t ret;
+    TALLOC_CTX *tmp_ctx;
 
     type = sss_krb5_get_type(location);
     if (type != SSS_KRB5_TYPE_DIR) {
@@ -1026,29 +1032,62 @@ cc_dir_check_existing(const char *location, uid_t uid,
         return EINVAL;
     }
 
-    tmp = talloc_strdup(NULL, filename);
-    if (!tmp) return ENOMEM;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    tmp = talloc_strdup(tmp_ctx, filename);
+    if (!tmp) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
 
     dir = dirname(tmp);
     if (!dir) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Cannot base get directory of %s\n", location));
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     ret = cc_residual_is_used(uid, dir, SSS_KRB5_TYPE_DIR, &active);
-    talloc_free(tmp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not check if ccache is active. "
-                                  "Will create a new one.\n"));
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not check if ccache is active.\n"));
+        }
         cc_check_template(cc_template);
         active = false;
+        goto done;
+    }
+
+    /* If primary file isn't in ccache dir, we will ignore it.
+     * But if primary file has wrong permissions, we will fail.
+     */
+    primary_file = talloc_asprintf(tmp_ctx, "%s/primary", dir);
+    if (!primary_file) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = cc_residual_is_used(uid, primary_file, SSS_KRB5_TYPE_FILE,
+                              &active_primary);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not check if file 'primary' [%s] in dir ccache"
+               " is active.\n", primary_file));
+        active = false;
+        goto done;
     }
 
     krberr = krb5_init_context(&context);
     if (krberr) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to init kerberos context\n"));
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
     krberr = krb5_cc_resolve(context, location, &ccache);
@@ -1080,6 +1119,7 @@ cc_dir_check_existing(const char *location, uid_t uid,
 
     ret = EOK;
 done:
+    talloc_free(tmp_ctx);
     if (ccache) krb5_cc_close(context, ccache);
     krb5_free_context(context);
     *_active = active;
