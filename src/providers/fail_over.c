@@ -673,28 +673,119 @@ static bool fo_server_match(struct fo_server *server,
     return false;
 }
 
+static bool fo_server_exists(struct fo_server *list,
+                             const char *name,
+                             int port,
+                             void *user_data)
+{
+    struct fo_server *server = NULL;
+
+    DLIST_FOR_EACH(server, list) {
+        if (fo_server_match(server, name, port, user_data)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static errno_t fo_add_server_to_list(struct fo_server **to_list,
+                                     struct fo_server *check_list,
+                                     struct fo_server *server,
+                                     const char *service_name)
+{
+    const char *debug_name = NULL;
+    const char *name = NULL;
+    bool exists;
+
+    if (server->common == NULL || server->common->name == NULL) {
+        debug_name = "(no name)";
+        name = NULL;
+    } else {
+        debug_name = server->common->name;
+        name = server->common->name;
+    }
+
+    exists = fo_server_exists(check_list, name, server->port,
+                              server->user_data);
+
+    if (exists) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Server '%s:%d' for service '%s' "
+              "is already present\n", debug_name, server->port, service_name));
+        return EEXIST;
+    }
+
+    DLIST_ADD_END(*to_list, server, struct fo_server *);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Inserted %s server '%s:%d' to service "
+          "'%s'\n", (server->primary ? "primary" : "backup"),
+          debug_name, server->port, service_name));
+
+    return EOK;
+}
+
+static errno_t fo_add_server_list(struct fo_service *service,
+                                  struct fo_server *after_server,
+                                  struct fo_server_info *servers,
+                                  size_t num_servers,
+                                  struct srv_data *srv_data,
+                                  void *user_data,
+                                  bool primary,
+                                  struct fo_server **_last_server)
+{
+    struct fo_server *server = NULL;
+    struct fo_server *srv_list = NULL;
+    size_t i;
+    errno_t ret;
+
+    for (i = 0; i < num_servers; i++) {
+        server = create_fo_server(service, servers[i].host, servers[i].port,
+                                  user_data, primary);
+        if (server == NULL) {
+            talloc_free(srv_list);
+            return ENOMEM;
+        }
+
+        server->srv_data = srv_data;
+
+        ret = fo_add_server_to_list(&srv_list, service->server_list,
+                                    server, service->name);
+        if (ret != EOK) {
+            talloc_free(server);
+        }
+    }
+
+    if (srv_list != NULL) {
+        DLIST_ADD_LIST_AFTER(service->server_list, after_server,
+                             srv_list, struct fo_server *);
+    }
+
+    if (_last_server != NULL) {
+        *_last_server = server;
+    }
+
+    return EOK;
+}
+
 int
 fo_add_server(struct fo_service *service, const char *name, int port,
               void *user_data, bool primary)
 {
     struct fo_server *server;
-
-    DEBUG(3, ("Adding new server '%s', to service '%s'\n",
-              name ? name : "(no name)", service->name));
-    DLIST_FOR_EACH(server, service->server_list) {
-        if (fo_server_match(server, name, port, user_data)) {
-            return EEXIST;
-        }
-    }
+    errno_t ret;
 
     server = create_fo_server(service, name, port, user_data, primary);
     if (!server) {
         return ENOMEM;
     }
 
-    DLIST_ADD_END(service->server_list, server, struct fo_server *);
+    ret = fo_add_server_to_list(&service->server_list, service->server_list,
+                                server, service->name);
+    if (ret != EOK) {
+        talloc_free(server);
+    }
 
-    return EOK;
+    return ret;
 }
 
 static int
