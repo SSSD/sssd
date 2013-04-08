@@ -697,6 +697,17 @@ static int pam_check_user_search(struct pam_auth_req *preq);
 static int pam_check_user_done(struct pam_auth_req *preq, int ret);
 static void pam_dom_forwarder(struct pam_auth_req *preq);
 
+static int pam_auth_req_destructor(struct pam_auth_req *preq)
+{
+    if (preq && preq->dpreq_spy) {
+        /* If there is still a request pending, tell the spy
+         * the client is going away
+         */
+        preq->dpreq_spy->preq = NULL;
+    }
+    return 0;
+}
+
 /* TODO: we should probably return some sort of cookie that is set in the
  * PAM_ENVIRONMENT, so that we can save performing some calls and cache
  * data. */
@@ -717,6 +728,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (!preq) {
         return ENOMEM;
     }
+    talloc_set_destructor(preq, pam_auth_req_destructor);
     preq->cctx = cctx;
 
     preq->pd = talloc_zero(preq, struct pam_data);

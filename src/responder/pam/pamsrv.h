@@ -38,6 +38,10 @@ struct pam_ctx {
     time_t id_timeout;
 };
 
+struct pam_auth_dp_req {
+    struct pam_auth_req *preq;
+};
+
 struct pam_auth_req {
     struct cli_ctx *cctx;
     struct sss_domain_info *domain;
@@ -49,6 +53,8 @@ struct pam_auth_req {
     struct ldb_result *res;
     bool check_provider;
     void *data;
+
+    struct pam_auth_dp_req *dpreq_spy;
 };
 
 struct sss_cmd_table *get_pam_cmds(void);
