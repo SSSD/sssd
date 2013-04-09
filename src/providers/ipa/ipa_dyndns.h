@@ -25,6 +25,9 @@
 #ifndef IPA_DYNDNS_H_
 #define IPA_DYNDNS_H_
 
+void ipa_dyndns_update(void *pvt);
+void ipa_dyndns_timer(void *pvt);
+
 errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
                         struct ipa_options *ctx);
 

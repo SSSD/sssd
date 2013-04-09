@@ -28,6 +28,7 @@
 
 #include "db/sysdb_selinux.h"
 #include "providers/ipa/ipa_common.h"
+#include "providers/ipa/ipa_dyndns.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/dp_dyndns.h"
 #include "util/sss_krb5.h"
@@ -1018,7 +1019,8 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
     bool update;
     int ttl;
 
-    ret = be_nsupdate_init(ctx, be_ctx, ipa_dyndns_opts, &ctx->dyndns_ctx);
+    ret = be_nsupdate_init(ctx, be_ctx, ipa_dyndns_opts, ipa_dyndns_timer,
+                           ctx, &ctx->dyndns_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot initialize IPA dyndns opts [%d]: %s\n",

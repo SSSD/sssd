@@ -29,12 +29,21 @@
 /* dynamic dns helpers */
 struct sss_iface_addr;
 
+typedef void (*nsupdate_timer_fn_t)(void *pvt);
+
 struct be_nsupdate_ctx {
     struct dp_option *opts;
+
+    time_t last_refresh;
+    bool timer_in_progress;
+    struct tevent_timer *refresh_timer;
+    nsupdate_timer_fn_t timer_callback;
+    void *timer_pvt;
 };
 
 enum dp_dyndns_opts {
     DP_OPT_DYNDNS_UPDATE,
+    DP_OPT_DYNDNS_REFRESH_INTERVAL,
     DP_OPT_DYNDNS_IFACE,
     DP_OPT_DYNDNS_TTL,
 
@@ -48,7 +57,13 @@ errno_t be_nsupdate_check(void);
 
 errno_t
 be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
-                 struct dp_option *defopts, struct be_nsupdate_ctx **ctx);
+                 struct dp_option *defopts,
+                 nsupdate_timer_fn_t timer_callback,
+                 void *timer_pvt,
+                 struct be_nsupdate_ctx **_ctx);
+
+void be_nsupdate_timer_schedule(struct tevent_context *ev,
+                                struct be_nsupdate_ctx *ctx);
 
 errno_t
 sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,

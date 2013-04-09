@@ -55,6 +55,98 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
     return EOK;
 }
 
+struct ipa_dyndns_timer_ctx {
+    struct sdap_id_op *sdap_op;
+    struct tevent_context *ev;
+
+    struct ipa_options *ctx;
+};
+
+static void ipa_dyndns_timer_connected(struct tevent_req *req);
+
+void ipa_dyndns_timer(void *pvt)
+{
+    struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
+    struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
+    struct tevent_req *req;
+    struct ipa_dyndns_timer_ctx *timer_ctx;
+    errno_t ret;
+
+    timer_ctx = talloc_zero(ctx, struct ipa_dyndns_timer_ctx);
+    if (timer_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        /* Not much we can do */
+        return;
+    }
+    timer_ctx->ev = sdap_ctx->be->ev;
+    timer_ctx->ctx = ctx;
+
+    /* In order to prevent the connection triggering an
+     * online callback which would in turn trigger a concurrent DNS
+     * update
+     */
+    ctx->dyndns_ctx->timer_in_progress = true;
+
+    /* Make sure to have a valid LDAP connection */
+    timer_ctx->sdap_op = sdap_id_op_create(timer_ctx, sdap_ctx->conn_cache);
+    if (timer_ctx->sdap_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        goto fail;
+    }
+
+    req = sdap_id_op_connect_send(timer_ctx->sdap_op, timer_ctx, &ret);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: [%d](%s)\n",
+              ret, sss_strerror(ret)));
+        goto fail;
+    }
+    tevent_req_set_callback(req, ipa_dyndns_timer_connected, timer_ctx);
+    return;
+
+fail:
+    ctx->dyndns_ctx->timer_in_progress = false;
+    be_nsupdate_timer_schedule(timer_ctx->ev, ctx->dyndns_ctx);
+    talloc_free(timer_ctx);
+}
+
+static void ipa_dyndns_timer_connected(struct tevent_req *req)
+{
+    errno_t ret;
+    int dp_error;
+    struct ipa_dyndns_timer_ctx *timer_ctx = tevent_req_callback_data(req,
+                                     struct ipa_dyndns_timer_ctx);
+    struct tevent_context *ev;
+    struct ipa_options *ctx;
+
+    ctx = timer_ctx->ctx;
+    ev = timer_ctx->ev;
+    ctx->dyndns_ctx->timer_in_progress = false;
+
+    ret = sdap_id_op_connect_recv(req, &dp_error);
+    talloc_zfree(req);
+    talloc_free(timer_ctx);
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("No IPA server is available, "
+                  "dynamic DNS update is skipped in offline mode.\n"));
+            /* Another timer will be scheduled when provider goes online
+             * and ipa_dyndns_update() is called */
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Failed to connect to LDAP server: [%d](%s)\n",
+                  ret, sss_strerror(ret)));
+
+            /* Just schedule another dyndns retry */
+            be_nsupdate_timer_schedule(ev, ctx->dyndns_ctx);
+        }
+        return;
+    }
+
+    /* all OK just call ipa_dyndns_update and schedule another refresh */
+    be_nsupdate_timer_schedule(ev, ctx->dyndns_ctx);
+    return ipa_dyndns_update(ctx);
+}
+
 static struct tevent_req *ipa_dyndns_update_send(struct ipa_options *ctx);
 static errno_t ipa_dyndns_update_recv(struct tevent_req *req);
 
@@ -63,6 +155,11 @@ static void ipa_dyndns_nsupdate_done(struct tevent_req *subreq);
 void ipa_dyndns_update(void *pvt)
 {
     struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
+    struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
+
+    /* Schedule timer after provider went offline */
+    be_nsupdate_timer_schedule(sdap_ctx->be->ev, ctx->dyndns_ctx);
+
     struct tevent_req *req = ipa_dyndns_update_send(ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Could not update DNS\n"));
@@ -108,6 +205,16 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         return NULL;
     }
     state->ipa_ctx = ctx;
+
+    if (ctx->dyndns_ctx->last_refresh + 60 > time(NULL) ||
+        ctx->dyndns_ctx->timer_in_progress) {
+        DEBUG(SSSDBG_FUNC_DATA, ("Last periodic update ran recently or timer"
+              "in progress, not scheduling another update\n"));
+        tevent_req_done(req);
+        tevent_req_post(req, sdap_ctx->be->ev);
+        return req;
+    }
+    state->ipa_ctx->dyndns_ctx->last_refresh = time(NULL);
 
     dns_zone = dp_opt_get_string(ctx->basic, IPA_DOMAIN);
     if (!dns_zone) {

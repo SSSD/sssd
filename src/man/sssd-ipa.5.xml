@@ -204,6 +204,22 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dyndns_refresh_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            How often should the back end perform periodic DNS update in
+                            addition to the automatic update performed when the back end
+                            goes online.
+                            This option is optional and applicable only when dyndns_update
+                            is true.
+                        </para>
+                        <para>
+                            Default: 0 (disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_hbac_search_base (string)</term>
                     <listitem>
                         <para>

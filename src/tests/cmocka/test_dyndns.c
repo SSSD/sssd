@@ -35,6 +35,12 @@
 #include "tests/cmocka/common_mock.h"
 #include "src/providers/dp_dyndns.h"
 
+#define TESTS_PATH "tests_dyndns"
+#define TEST_CONF_DB "test_dyndns_conf.ldb"
+#define TEST_SYSDB_FILE "cache_dyndns_test.ldb"
+#define TEST_DOM_NAME "dyndns_test"
+#define TEST_ID_PROVIDER "ldap"
+
 enum mock_nsupdate_states {
     MOCK_NSUPDATE_OK,
     MOCK_NSUPDATE_ERR,
@@ -43,6 +49,9 @@ enum mock_nsupdate_states {
 
 struct dyndns_test_ctx {
     struct sss_test_ctx *tctx;
+
+    struct be_ctx *be_ctx;
+    struct be_nsupdate_ctx *update_ctx;
 
     enum mock_nsupdate_states state;
     int child_status;
@@ -275,15 +284,73 @@ void dyndns_test_timeout(void **state)
     talloc_free(tmp_ctx);
 }
 
+void dyndns_test_timer(void *pvt)
+{
+    struct dyndns_test_ctx *ctx = talloc_get_type(pvt, struct dyndns_test_ctx);
+    static int ncalls = 0;
+
+    ncalls++;
+    if (ncalls == 1) {
+        be_nsupdate_timer_schedule(ctx->tctx->ev, ctx->update_ctx);
+    } else if (ncalls == 2) {
+        ctx->tctx->done = true;
+    }
+    ctx->tctx->error = ERR_OK;
+}
+
+void dyndns_test_interval(void **state)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(global_talloc_context);
+    assert_non_null(tmp_ctx);
+    check_leaks_push(tmp_ctx);
+
+    ret = be_nsupdate_init(tmp_ctx, dyndns_test_ctx->be_ctx, NULL,
+                           dyndns_test_timer, dyndns_test_ctx,
+                           &dyndns_test_ctx->update_ctx);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the timer hits */
+    ret = test_ev_loop(dyndns_test_ctx->tctx);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          ("Child request returned [%d]: %s\n", ret, strerror(ret)));
+    assert_int_equal(ret, ERR_OK);
+
+    talloc_free(dyndns_test_ctx->update_ctx);
+    assert_true(check_leaks_pop(tmp_ctx) == true);
+    talloc_free(tmp_ctx);
+}
+
 /* Testsuite setup and teardown */
 void dyndns_test_setup(void **state)
 {
+    struct sss_test_conf_param params[] = {
+        { "dyndns_update", "true" },
+        { "dyndns_refresh_interval", "2" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
     assert_true(leak_check_setup());
     dyndns_test_ctx = talloc_zero(global_talloc_context, struct dyndns_test_ctx);
     assert_non_null(dyndns_test_ctx);
 
-    dyndns_test_ctx->tctx = create_ev_test_ctx(dyndns_test_ctx);
+    dyndns_test_ctx->tctx = create_dom_test_ctx(dyndns_test_ctx, TESTS_PATH,
+                                                TEST_CONF_DB, TEST_SYSDB_FILE,
+                                                TEST_DOM_NAME, TEST_ID_PROVIDER,
+                                                params);
     assert_non_null(dyndns_test_ctx->tctx);
+
+    dyndns_test_ctx->be_ctx = talloc_zero(dyndns_test_ctx, struct be_ctx);
+    assert_non_null(dyndns_test_ctx->be_ctx);
+
+    dyndns_test_ctx->be_ctx->cdb = dyndns_test_ctx->tctx->confdb;
+    dyndns_test_ctx->be_ctx->ev  = dyndns_test_ctx->tctx->ev;
+    dyndns_test_ctx->be_ctx->conf_path = talloc_asprintf(dyndns_test_ctx,
+                                                         CONFDB_DOMAIN_PATH_TMPL,
+                                                         TEST_DOM_NAME);
+    assert_non_null(dyndns_test_ctx->be_ctx->conf_path);
 }
 
 void dyndns_test_teardown(void **state)
@@ -295,11 +362,14 @@ void dyndns_test_teardown(void **state)
 int main(int argc, const char *argv[])
 {
     int rv;
+    int no_cleanup = 0;
     poptContext pc;
     int opt;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
+        {"no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
+         _("Do not delete the test database after a test run"), NULL },
         POPT_TABLEEND
     };
 
@@ -313,6 +383,8 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(dyndns_test_error,
                                  dyndns_test_setup, dyndns_test_teardown),
         unit_test_setup_teardown(dyndns_test_timeout,
+                                 dyndns_test_setup, dyndns_test_teardown),
+        unit_test_setup_teardown(dyndns_test_interval,
                                  dyndns_test_setup, dyndns_test_teardown),
     };
 
@@ -332,8 +404,17 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     DEBUG_INIT(debug_level);
+
+    /* Even though normally the tests should clean up after themselves
+     * they might not after a failed run. Remove the old db to be sure */
+    tests_set_cwd();
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    test_dom_suite_setup(TESTS_PATH);
+
     tests_set_cwd();
     rv = run_tests(tests);
-
+    if (rv == 0 && !no_cleanup) {
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    }
     return rv;
 }

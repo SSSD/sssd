@@ -1283,10 +1283,13 @@ test_io_CFLAGS = \
 test_io_LDADD = \
     $(CMOCKA_LIBS)
 
+dyndns_tests_DEPENDENCIES = \
+     $(ldblib_LTLIBRARIES)
 dyndns_tests_SOURCES = \
      $(TEST_MOCK_OBJ) \
      $(SSSD_RESOLV_OBJ) \
      src/tests/common_tev.c \
+     src/tests/common_dom.c \
      src/tests/cmocka/test_dyndns.c \
      src/providers/data_provider_opts.c
 dyndns_tests_CFLAGS = \
