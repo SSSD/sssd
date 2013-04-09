@@ -52,6 +52,7 @@ enum ipa_basic_opt {
     IPA_HBAC_SUPPORT_SRCHOST,
     IPA_AUTOMOUNT_LOCATION,
     IPA_RANGES_SEARCH_BASE,
+    IPA_ENABLE_DNS_SITES,
 
     IPA_OPTS_BASIC /* opts counter */
 };

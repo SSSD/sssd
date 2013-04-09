@@ -39,6 +39,7 @@
 #include "providers/ipa/ipa_selinux.h"
 #include "providers/ldap/sdap_access.h"
 #include "providers/ipa/ipa_subdomains.h"
+#include "providers/ipa/ipa_srv.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -111,6 +112,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     struct sdap_id_ctx *sdap_ctx;
     struct stat stat_buf;
     const char *hostname;
+    const char *ipa_domain;
+    struct ipa_srv_plugin_ctx *srv_ctx;
     errno_t err;
     int ret;
 
@@ -210,11 +213,27 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     /* setup SRV lookup plugin */
     hostname = dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME);
-    ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
-                                    "[%d]: %s\n", ret, strerror(ret)));
-        goto done;
+    if (dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES)) {
+        /* use IPA plugin */
+        ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
+        srv_ctx = ipa_srv_plugin_ctx_init(bectx, bectx->be_res->resolv,
+                                          hostname, ipa_domain);
+        if (srv_ctx == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        be_fo_set_srv_lookup_plugin(bectx, ipa_srv_plugin_send,
+                                    ipa_srv_plugin_recv, srv_ctx, "IPA");
+    } else {
+        /* fall back to standard plugin */
+        ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
+                                        "[%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
     }
 
     *ops = &ipa_id_ops;
