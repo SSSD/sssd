@@ -125,6 +125,9 @@ option_strings = {
     'entry_cache_service_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_autofs_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_sudo_timeout' : _('Entry cache timeout length (seconds)'),
+    'dyndns_update' : _("Whether to automatically update the client's DNS entry"),
+    'dyndns_ttl' : _("The TTL to apply to the client's DNS entry after updating it"),
+    'dyndns_iface' : _("The interface whose IP should be used for dynamic DNS updates"),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

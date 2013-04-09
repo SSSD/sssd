@@ -37,9 +37,6 @@ enum ipa_basic_opt {
     IPA_SERVER,
     IPA_BACKUP_SERVER,
     IPA_HOSTNAME,
-    IPA_DYNDNS_UPDATE,
-    IPA_DYNDNS_TTL,
-    IPA_DYNDNS_IFACE,
     IPA_HBAC_SEARCH_BASE,
     IPA_HOST_SEARCH_BASE,
     IPA_SELINUX_SEARCH_BASE,
@@ -139,6 +136,7 @@ struct ipa_options {
     struct sdap_options *id;
     struct ipa_id_ctx *id_ctx;
     struct be_resolv_ctx *be_res;
+    struct be_nsupdate_ctx *dyndns_ctx;
 
     /* auth and chpass provider */
     struct dp_option *auth;
@@ -168,6 +166,9 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
                            struct confdb_ctx *cdb,
                            const char *conf_path,
                            struct sdap_options **_opts);
+
+errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
+                               struct ipa_options *ctx);
 
 int ipa_autofs_init(struct be_ctx *be_ctx,
                     struct ipa_id_ctx *id_ctx,

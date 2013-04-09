@@ -29,6 +29,7 @@
 #include "db/sysdb_selinux.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/dp_dyndns.h"
 #include "util/sss_krb5.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
@@ -1007,4 +1008,99 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
+                               struct ipa_options *ctx)
+{
+    errno_t ret;
+    char *val;
+    bool update;
+    int ttl;
+
+    ret = be_nsupdate_init(ctx, be_ctx, ipa_dyndns_opts, &ctx->dyndns_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot initialize IPA dyndns opts [%d]: %s\n",
+               ret, sss_strerror(ret)));
+        return ret;
+    }
+
+    if (ctx->basic == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("IPA basic options not (yet) "
+              "initialized, cannot copy legacy options\n"));
+        return EOK;
+    }
+
+    /* Reuse legacy option values */
+    ret = confdb_get_string(be_ctx->cdb, ctx, be_ctx->conf_path,
+                            "ipa_dyndns_update", NULL, &val);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get the value of %s\n",
+              "ipa_dyndns_update"));
+        /* Not fatal */
+    } else if (ret == EOK && val) {
+        if (strcasecmp(val, "FALSE") == 0) {
+            update = false;
+        } else if (strcasecmp(val, "TRUE") == 0) {
+            update = true;
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("ipa_dyndns_update value is not a boolean!\n"));
+            talloc_free(val);
+            return EINVAL;
+        }
+
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Deprecation warning: The option %s is "
+              "deprecated and should not be used in favor of %s\n",
+              "ipa_dyndns_update", "dyndns_update"));
+
+        ret = dp_opt_set_bool(ctx->dyndns_ctx->opts,
+                              DP_OPT_DYNDNS_UPDATE, update);
+        talloc_free(val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set option value\n"));
+            return ret;
+        }
+    }
+
+    ret = confdb_get_int(be_ctx->cdb, be_ctx->conf_path,
+                         "ipa_dyndns_ttl", -1, &ttl);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get the value of %s\n",
+              "ipa_dyndns_ttl"));
+        /* Not fatal */
+    } else if (ret == EOK && ttl != -1) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Deprecation warning: The option %s is "
+              "deprecated and should not be used in favor of %s\n",
+              "ipa_dyndns_ttl", "dyndns_ttl"));
+
+        ret = dp_opt_set_int(ctx->dyndns_ctx->opts, DP_OPT_DYNDNS_TTL, ttl);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set option value\n"));
+            return ret;
+        }
+    }
+
+    /* Reuse legacy option values */
+    ret = confdb_get_string(be_ctx->cdb, ctx, be_ctx->conf_path,
+                            "ipa_dyndns_iface", NULL, &val);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get the value of %s\n",
+              "ipa_dyndns_iface"));
+        /* Not fatal */
+    } else if (ret == EOK && val) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Deprecation warning: The option %s is "
+              "deprecated and should not be used in favor of %s\n",
+              "ipa_dyndns_iface", "dyndns_iface"));
+
+        ret = dp_opt_set_string(ctx->dyndns_ctx->opts,
+                                DP_OPT_DYNDNS_IFACE, val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set option value\n"));
+            return ret;
+        }
+    }
+
+    return EOK;
 }

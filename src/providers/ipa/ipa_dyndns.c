@@ -28,6 +28,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/data_provider.h"
+#include "providers/dp_dyndns.h"
 
 void ipa_dyndns_update(void *pvt);
 
@@ -135,16 +136,16 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
 
     subreq = sdap_dyndns_update_send(state, sdap_ctx->be->ev,
                                      sdap_ctx->be, sdap_ctx,
-                                     dp_opt_get_string(ctx->basic,
-                                                       IPA_DYNDNS_IFACE),
+                                     dp_opt_get_string(ctx->dyndns_ctx->opts,
+                                                       DP_OPT_DYNDNS_IFACE),
                                      dp_opt_get_string(ctx->basic,
                                                        IPA_HOSTNAME),
                                      dns_zone,
                                      dp_opt_get_string(ctx->basic,
                                                        IPA_KRB5_REALM),
                                      servername,
-                                     dp_opt_get_int(ctx->basic,
-                                                    IPA_DYNDNS_TTL),
+                                     dp_opt_get_int(ctx->dyndns_ctx->opts,
+                                                    DP_OPT_DYNDNS_TTL),
                                      true);
     if (!subreq) {
         ret = EIO;

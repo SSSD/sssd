@@ -81,7 +81,7 @@ void __wrap_execv(const char *path, char *const argv[])
 
 int __wrap_getifaddrs(struct ifaddrs **_ifap)
 {
-    struct ifaddrs *ifap;
+    struct ifaddrs *ifap = NULL;
     struct ifaddrs *ifap_prev = NULL;
     struct ifaddrs *ifap_head = NULL;
     char *name;

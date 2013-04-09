@@ -113,7 +113,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_dyndns_update (boolean)</term>
+                    <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>
                             Optional. This option tells SSSD to automatically
@@ -126,18 +126,30 @@
                             realm must be set properly in /etc/krb5.conf
                         </para>
                         <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_update</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_update</emphasis>
+                            in their config file.
+                        </para>
+                        <para>
                             Default: false
                         </para>
                     </listitem>
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_dyndns_ttl (integer)</term>
+                    <term>dyndns_ttl (integer)</term>
                     <listitem>
                         <para>
                             The TTL to apply to the client DNS record when updating it.
-                            If ipa_dyndns_update is false this has no effect. This will
+                            If dyndns_update is false this has no effect. This will
                             override the TTL serverside if set by an administrator.
+                        </para>
+                        <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_ttl</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_ttl</emphasis>
+                            in their config file.
                         </para>
                         <para>
                             Default: 1200 (seconds)
@@ -146,12 +158,18 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_dyndns_iface (string)</term>
+                    <term>dyndns_iface (string)</term>
                     <listitem>
                         <para>
-                            Optional. Applicable only when ipa_dyndns_update
+                            Optional. Applicable only when dyndns_update
                             is true. Choose the interface whose IP address
                             should be used for dynamic DNS updates.
+                        </para>
+                        <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_iface</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_iface</emphasis>
+                            in their config file.
                         </para>
                         <para>
                             Default: Use the IP address of the IPA LDAP connection

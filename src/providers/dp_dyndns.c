@@ -878,3 +878,60 @@ be_nsupdate_recv(struct tevent_req *req, int *child_status)
 
     return EOK;
 }
+
+errno_t
+be_nsupdate_check(void)
+{
+    errno_t ret;
+    struct stat stat_buf;
+
+    /* Ensure that nsupdate exists */
+    errno = 0;
+    ret = stat(NSUPDATE_PATH, &stat_buf);
+    if (ret == -1) {
+        ret = errno;
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("%s does not exist. Dynamic DNS updates disabled\n",
+                  NSUPDATE_PATH));
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Could not set up dynamic DNS updates: [%d][%s]\n",
+                  ret, strerror(ret)));
+        }
+    }
+
+    return ret;
+}
+
+static struct dp_option default_dyndns_opts[] = {
+    { "dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
+
+    DP_OPTION_TERMINATOR
+};
+
+errno_t
+be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
+                 struct dp_option *defopts, struct be_nsupdate_ctx **_ctx)
+{
+    errno_t ret;
+    struct dp_option *src_opts;
+    struct be_nsupdate_ctx *ctx;
+
+    ctx = talloc(mem_ctx, struct be_nsupdate_ctx);
+    if (ctx == NULL) return ENOMEM;
+
+    src_opts = defopts ? defopts : default_dyndns_opts;
+
+    ret = dp_get_options(ctx, be_ctx->cdb, be_ctx->conf_path,
+                         src_opts, DP_OPT_DYNDNS, &ctx->opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve dynamic DNS options\n"));
+        return ret;
+    }
+
+    *_ctx = ctx;
+    return EOK;
+}

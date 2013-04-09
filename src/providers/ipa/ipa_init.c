@@ -40,6 +40,7 @@
 #include "providers/ldap/sdap_access.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_srv.h"
+#include "providers/dp_dyndns.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -110,11 +111,9 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 {
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *sdap_ctx;
-    struct stat stat_buf;
     const char *hostname;
     const char *ipa_domain;
     struct ipa_srv_plugin_ctx *srv_ctx;
-    errno_t err;
     int ret;
 
     if (!ipa_options) {
@@ -153,7 +152,12 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    if(dp_opt_get_bool(ipa_options->basic, IPA_DYNDNS_UPDATE)) {
+    ret = ipa_get_dyndns_options(bectx, ipa_options);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (dp_opt_get_bool(ipa_options->dyndns_ctx->opts, DP_OPT_DYNDNS_UPDATE)) {
         /* Perform automatic DNS updates when the
          * IP address changes.
          * Register a callback for successful LDAP
@@ -161,21 +165,10 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
          * identify that we have gone online.
          */
 
-        /* Ensure that nsupdate exists */
-        errno = 0;
-        ret = stat(NSUPDATE_PATH, &stat_buf);
-        if (ret == -1) {
-            err = errno;
-            if (err == ENOENT) {
-                DEBUG(0, ("%s does not exist. Dynamic DNS updates disabled\n",
-                          NSUPDATE_PATH));
-            }
-            else {
-                DEBUG(0, ("Could not set up dynamic DNS updates: [%d][%s]\n",
-                          err, strerror(err)));
-            }
-        }
-        else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Dynamic DNS updates are on. Checking for nsupdate..\n"));
+        ret = be_nsupdate_check();
+        if (ret == EOK) {
             /* nsupdate is available. Dynamic updates
              * are supported
              */

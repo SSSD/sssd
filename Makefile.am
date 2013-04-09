@@ -1287,7 +1287,8 @@ dyndns_tests_SOURCES = \
      $(TEST_MOCK_OBJ) \
      $(SSSD_RESOLV_OBJ) \
      src/tests/common_tev.c \
-     src/tests/cmocka/test_dyndns.c
+     src/tests/cmocka/test_dyndns.c \
+     src/providers/data_provider_opts.c
 dyndns_tests_CFLAGS = \
     $(AM_CFLAGS) \
     -DDYNDNS_TIMEOUT=2

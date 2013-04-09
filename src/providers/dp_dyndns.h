@@ -22,11 +22,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#ifndef DP_DYNDNS_H_
+#define DP_DYNDNS_H_
+
 /* dynamic dns helpers */
 struct sss_iface_addr;
 
+struct be_nsupdate_ctx {
+    struct dp_option *opts;
+};
+
+enum dp_dyndns_opts {
+    DP_OPT_DYNDNS_UPDATE,
+    DP_OPT_DYNDNS_IFACE,
+    DP_OPT_DYNDNS_TTL,
+
+    DP_OPT_DYNDNS /* attrs counter */
+};
+
 #define DYNDNS_REMOVE_A     0x1
 #define DYNDNS_REMOVE_AAAA  0x2
+
+errno_t be_nsupdate_check(void);
+
+errno_t
+be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
+                 struct dp_option *defopts, struct be_nsupdate_ctx **ctx);
 
 errno_t
 sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
@@ -66,3 +88,5 @@ struct tevent_req * nsupdate_get_addrs_send(TALLOC_CTX *mem_ctx,
 errno_t nsupdate_get_addrs_recv(struct tevent_req *req,
                                 TALLOC_CTX *mem_ctx,
                                 char ***_addrlist);
+
+#endif /* DP_DYNDNS_H_ */
