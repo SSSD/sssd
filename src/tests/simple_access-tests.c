@@ -481,7 +481,7 @@ START_TEST(test_group_case)
     test_ctx->ctx->deny_groups = NULL;
 
     req = simple_access_check_send(test_ctx, test_ctx->ev,
-                                   test_ctx->ctx, "U1");
+                                   test_ctx->ctx, "u1");
     fail_unless(test_ctx != NULL, "Cannot create request\n");
     tevent_req_set_callback(req, simple_access_check_done, test_ctx);
 
@@ -496,7 +496,7 @@ START_TEST(test_group_case)
     test_ctx->ctx->domain->case_sensitive = false;
 
     req = simple_access_check_send(test_ctx, test_ctx->ev,
-                                   test_ctx->ctx, "U1");
+                                   test_ctx->ctx, "u1");
     fail_unless(test_ctx != NULL, "Cannot create request\n");
     tevent_req_set_callback(req, simple_access_check_done, test_ctx);
 

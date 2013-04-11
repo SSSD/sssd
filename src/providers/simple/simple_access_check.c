@@ -90,8 +90,8 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
 }
 
 static errno_t
-simple_check_groups(struct simple_ctx *ctx, const char *username,
-                    const char **group_names, bool *access_granted)
+simple_check_groups(struct simple_ctx *ctx, const char **group_names,
+                    bool *access_granted)
 {
     bool matched;
     int i, j;
@@ -356,7 +356,6 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
     struct ldb_message **groups;
     int i;
     gid_t gid;
-    char *cname;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct simple_check_groups_state);
@@ -365,18 +364,12 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->ctx = ctx;
 
-    cname = sss_get_cased_name(state, username, ctx->domain->case_sensitive);
-    if (!cname) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS, ("Looking up groups for user %s\n", cname));
+    DEBUG(SSSDBG_TRACE_LIBS, ("Looking up groups for user %s\n", username));
 
     ret = sysdb_search_user_by_name(state, ctx->domain->sysdb,
-                                    cname, attrs, &user);
+                                    username, attrs, &user);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No such user %s\n", cname));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No such user %s\n", username));
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -394,7 +387,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC,
           ("User %s is a member of %d supplemental groups\n",
-           cname, group_count));
+           username, group_count));
 
     /* One extra space for terminator, one extra space for private group */
     state->group_names = talloc_zero_array(state, const char *, group_count + 2);
@@ -420,7 +413,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
 
     gid = ldb_msg_find_attr_as_uint64(user, SYSDB_GIDNUM, 0);
     if (!gid) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("User %s has no gid?\n", cname));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("User %s has no gid?\n", username));
         ret = EINVAL;
         goto done;
     }
@@ -694,8 +687,8 @@ static void simple_access_check_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = simple_check_groups(state->ctx, state->username,
-                              state->group_names, &state->access_granted);
+    ret = simple_check_groups(state->ctx, state->group_names,
+                              &state->access_granted);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
