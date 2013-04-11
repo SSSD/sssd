@@ -132,6 +132,9 @@ struct tevent_req *ipa_srv_plugin_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, ("About to discover primary and "
+                              "backup servers\n"));
+
     subreq = fo_discover_servers_send(state, ev, ctx->resolv_ctx, service,
                                       protocol, primary_domain, backup_domain);
     if (subreq == NULL) {
@@ -169,6 +172,9 @@ static void ipa_srv_plugin_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Got %lu primary and %lu backup servers\n",
+          state->num_primary_servers, state->num_backup_servers));
 
     tevent_req_done(req);
 }
