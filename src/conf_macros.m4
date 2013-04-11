@@ -329,11 +329,12 @@ AC_DEFUN([WITH_TEST_DIR],
                 [AC_HELP_STRING([--with-test-dir=PATH],
                                 [Directory used for make check temporary files [$builddir]]
                                )
-                ]
+                ],
+                [TEST_DIR=$withval],
+                [TEST_DIR="."]
                )
-    TEST_DIR=$with_test_dir
     AC_SUBST(TEST_DIR)
-    AC_DEFINE_UNQUOTED(TEST_DIR, "$with_test_dir", [Directory used for 'make check' temporary files])
+    AC_DEFINE_UNQUOTED(TEST_DIR, "$TEST_DIR", [Directory used for 'make check' temporary files])
   ])
 
 AC_DEFUN([WITH_NSCD],

@@ -33,12 +33,8 @@ tests_set_cwd(void)
 
     ret = chdir(TEST_DIR);
     if (ret == -1) {
-        if (strlen(TEST_DIR)) {
-            fprintf(stderr,
-                    "Could not chdir to [%s].\n"
-                    "Attempting to continue with current dir\n",
-                    TEST_DIR);
-        }
+        fprintf(stderr, "Could not chdir to [%s].\n"
+                "Attempting to continue with current dir\n", TEST_DIR);
     }
 }
 
