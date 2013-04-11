@@ -67,12 +67,6 @@ fail:
 }
 
 struct ipa_srv_plugin_state {
-    struct tevent_context *ev;
-    struct ipa_srv_plugin_ctx *ctx;
-    const char *service;
-    const char *protocol;
-    const char *discovery_domain;
-
     char *dns_domain;
     struct fo_server_info *primary_servers;
     size_t num_primary_servers;
@@ -80,8 +74,7 @@ struct ipa_srv_plugin_state {
     size_t num_backup_servers;
 };
 
-static void ipa_srv_plugin_primary_done(struct tevent_req *subreq);
-static void ipa_srv_plugin_backup_done(struct tevent_req *subreq);
+static void ipa_srv_plugin_done(struct tevent_req *subreq);
 
 /* If IPA server supports sites, we will use
  * _locations.hostname.discovery_domain for primary servers and
@@ -99,7 +92,8 @@ struct tevent_req *ipa_srv_plugin_send(TALLOC_CTX *mem_ctx,
     struct ipa_srv_plugin_ctx *ctx = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    const char **domains = NULL;
+    const char *primary_domain = NULL;
+    const char *backup_domain = NULL;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -115,51 +109,37 @@ struct tevent_req *ipa_srv_plugin_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    state->ev = ev;
-    state->ctx = ctx;
-    state->service = service;
-    state->protocol = protocol;
-
     if (discovery_domain != NULL) {
-        state->discovery_domain = discovery_domain;
+        backup_domain = talloc_strdup(state, discovery_domain);
     } else {
-        state->discovery_domain = ctx->ipa_domain;
+        backup_domain = talloc_strdup(state, ctx->ipa_domain);
     }
-    if (state->discovery_domain == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up primary servers\n"));
-
-    domains = talloc_zero_array(state, const char *, 3);
-    if (domains == NULL) {
+    if (backup_domain == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
     if (strchr(ctx->hostname, '.') == NULL) {
         /* not FQDN, append domain name */
-        domains[0] = talloc_asprintf(domains, IPA_DNS_LOCATION ".%s.%s",
-                                     ctx->hostname, state->discovery_domain);
+        primary_domain = talloc_asprintf(state, IPA_DNS_LOCATION ".%s.%s",
+                                         ctx->hostname, backup_domain);
     } else {
-        domains[0] = talloc_asprintf(domains, IPA_DNS_LOCATION ".%s",
-                                     ctx->hostname);
+        primary_domain = talloc_asprintf(state, IPA_DNS_LOCATION ".%s",
+                                         ctx->hostname);
     }
-    if (domains[0] == NULL) {
+    if (primary_domain == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
-    domains[1] = state->discovery_domain;
 
-    subreq = fo_discover_srv_send(state, ev, ctx->resolv_ctx,
-                                  state->service, state->protocol, domains);
+    subreq = fo_discover_servers_send(state, ev, ctx->resolv_ctx, service,
+                                      protocol, primary_domain, backup_domain);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
-    tevent_req_set_callback(subreq, ipa_srv_plugin_primary_done, req);
+    tevent_req_set_callback(subreq, ipa_srv_plugin_done, req);
 
     return req;
 
@@ -170,66 +150,7 @@ immediately:
     return req;
 }
 
-static void ipa_srv_plugin_primary_done(struct tevent_req *subreq)
-{
-    struct ipa_srv_plugin_state *state = NULL;
-    struct tevent_req *req = NULL;
-    const char **domains = NULL;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ipa_srv_plugin_state);
-
-    ret = fo_discover_srv_recv(state, subreq,
-                               &state->dns_domain,
-                               &state->primary_servers,
-                               &state->num_primary_servers);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    if (strcmp(state->dns_domain, state->discovery_domain) == 0) {
-        /* IPA server does not support sites or this host is in default site */
-        state->backup_servers = NULL;
-        state->num_backup_servers = 0;
-
-        ret = EOK;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up backup servers\n"));
-
-    domains = talloc_zero_array(state, const char *, 3);
-    if (domains == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    domains[0] = state->discovery_domain;
-
-    subreq = fo_discover_srv_send(state, state->ev, state->ctx->resolv_ctx,
-                                  state->service, state->protocol, domains);
-    if (subreq == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ipa_srv_plugin_backup_done, req);
-
-    ret = EAGAIN;
-
-done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-    }
-
-    return;
-}
-
-static void ipa_srv_plugin_backup_done(struct tevent_req *subreq)
+static void ipa_srv_plugin_done(struct tevent_req *subreq)
 {
     struct ipa_srv_plugin_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -238,18 +159,12 @@ static void ipa_srv_plugin_backup_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_srv_plugin_state);
 
-    ret = fo_discover_srv_recv(state, subreq, NULL,
-                               &state->backup_servers,
-                               &state->num_backup_servers);
+    ret = fo_discover_servers_recv(state, subreq, &state->dns_domain,
+                                   &state->primary_servers,
+                                   &state->num_primary_servers,
+                                   &state->backup_servers,
+                                   &state->num_backup_servers);
     talloc_zfree(subreq);
-    if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
-        /* we have successfully fetched primary servers, so we will
-         * finish the request normally */
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to retrieve backup servers "
-                                     "[%d]: %s\n", ret, sss_strerror(ret)));
-        ret = EOK;
-    }
-
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
