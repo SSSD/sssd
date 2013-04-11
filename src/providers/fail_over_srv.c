@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <string.h>
+#include <strings.h>
 #include <talloc.h>
 #include <tevent.h>
 
@@ -161,6 +161,243 @@ errno_t fo_discover_srv_recv(TALLOC_CTX *mem_ctx,
     if (_num_servers != NULL) {
         *_num_servers = state->num_servers;
     }
+
+    return EOK;
+}
+
+struct fo_discover_servers_state {
+    struct tevent_context *ev;
+    struct resolv_ctx *resolv_ctx;
+    const char *service;
+    const char *protocol;
+    const char *primary_domain;
+    const char *backup_domain;
+
+    char *dns_domain;
+    struct fo_server_info *primary_servers;
+    size_t num_primary_servers;
+    struct fo_server_info *backup_servers;
+    size_t num_backup_servers;
+};
+
+static void fo_discover_servers_primary_done(struct tevent_req *subreq);
+static void fo_discover_servers_backup_done(struct tevent_req *subreq);
+
+struct tevent_req *fo_discover_servers_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct resolv_ctx *resolv_ctx,
+                                            const char *service,
+                                            const char *protocol,
+                                            const char *primary_domain,
+                                            const char *backup_domain)
+{
+    struct fo_discover_servers_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    const char **domains = NULL;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct fo_discover_servers_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
+    if (primary_domain == NULL) {
+        if (backup_domain == NULL) {
+            state->primary_servers = NULL;
+            state->num_primary_servers = 0;
+            state->backup_servers = NULL;
+            state->num_backup_servers = 0;
+            state->dns_domain = NULL;
+
+            ret = EOK;
+            goto immediately;
+        } else {
+            primary_domain = backup_domain;
+            backup_domain = NULL;
+        }
+    }
+
+    state->ev = ev;
+    state->resolv_ctx = resolv_ctx;
+
+    state->service = talloc_strdup(state, service);
+    if (state->service == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->protocol = talloc_strdup(state, protocol);
+    if (state->protocol == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->primary_domain = talloc_strdup(state, primary_domain);
+    if (state->primary_domain == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->backup_domain = talloc_strdup(state, backup_domain);
+    if (state->backup_domain == NULL && backup_domain != NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up primary servers\n"));
+
+    domains = talloc_zero_array(state, const char *, 3);
+    if (domains == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    domains[0] = state->primary_domain;
+    domains[1] = state->backup_domain;
+
+    subreq = fo_discover_srv_send(state, ev, resolv_ctx,
+                                  state->service, state->protocol, domains);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, fo_discover_servers_primary_done, req);
+
+    return req;
+
+immediately:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void fo_discover_servers_primary_done(struct tevent_req *subreq)
+{
+    struct fo_discover_servers_state *state = NULL;
+    struct tevent_req *req = NULL;
+    const char **domains = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct fo_discover_servers_state);
+
+    ret = fo_discover_srv_recv(state, subreq,
+                               &state->dns_domain,
+                               &state->primary_servers,
+                               &state->num_primary_servers);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (strcasecmp(state->dns_domain, state->backup_domain) == 0) {
+        /* primary domain was unreachable, we will use servers from backup
+         * domain as primary */
+        state->backup_servers = NULL;
+        state->num_backup_servers = 0;
+
+        ret = EOK;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up backup servers\n"));
+
+    domains = talloc_zero_array(state, const char *, 2);
+    if (domains == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    domains[0] = state->backup_domain;
+
+    subreq = fo_discover_srv_send(state, state->ev, state->resolv_ctx,
+                                  state->service, state->protocol, domains);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, fo_discover_servers_backup_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+static void fo_discover_servers_backup_done(struct tevent_req *subreq)
+{
+    struct fo_discover_servers_state *state = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct fo_discover_servers_state);
+
+    ret = fo_discover_srv_recv(state, subreq, NULL,
+                               &state->backup_servers,
+                               &state->num_backup_servers);
+    talloc_zfree(subreq);
+    if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
+        /* we have successfully fetched primary servers, so we will
+         * finish the request normally */
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to retrieve backup servers "
+                                     "[%d]: %s\n", ret, sss_strerror(ret)));
+        ret = EOK;
+    }
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t fo_discover_servers_recv(TALLOC_CTX *mem_ctx,
+                                 struct tevent_req *req,
+                                 char **_dns_domain,
+                                 struct fo_server_info **_primary_servers,
+                                 size_t *_num_primary_servers,
+                                 struct fo_server_info **_backup_servers,
+                                 size_t *_num_backup_servers)
+{
+    struct fo_discover_servers_state *state = NULL;
+    state = tevent_req_data(req, struct fo_discover_servers_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_primary_servers) {
+        *_primary_servers = talloc_steal(mem_ctx, state->primary_servers);
+    }
+
+    if (_num_primary_servers) {
+        *_num_primary_servers = state->num_primary_servers;
+    }
+
+    if (_backup_servers) {
+        *_backup_servers = talloc_steal(mem_ctx, state->backup_servers);
+    }
+
+    if (_num_backup_servers) {
+        *_num_backup_servers = state->num_backup_servers;
+    }
+
+    if (_dns_domain) {
+        *_dns_domain = talloc_steal(mem_ctx, state->dns_domain);
+    }
+
 
     return EOK;
 }
