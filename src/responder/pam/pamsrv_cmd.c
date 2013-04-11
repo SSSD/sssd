@@ -514,6 +514,7 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
     int i, j;
     size_t order_count;
     size_t len = 0;
+    bool selinux_support = false;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -537,6 +538,8 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
     } else if (ret != EOK) {
         goto done;
     }
+    /* Now we know that SELinux support is available */
+    selinux_support = true;
 
     default_user = ldb_msg_find_attr_as_string(config,
                                                SYSDB_SELINUX_DEFAULT_USER,
@@ -642,7 +645,7 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
 
     ret = write_selinux_login_file(pd->user, file_content);
 done:
-    if (!file_content) {
+    if (!file_content && selinux_support) {
         err = remove_selinux_login_file(pd->user);
         /* Don't overwrite original error condition if there was one */
         if (ret == EOK) ret = err;
