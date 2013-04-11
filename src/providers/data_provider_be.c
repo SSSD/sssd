@@ -1043,6 +1043,11 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
             ret = split_name_extended(req, &filter[9],
                                       &req->filter_value,
                                       &req->extra_value);
+        } else if (strncmp(filter, DP_SEC_ID"=", DP_SEC_ID_LEN + 1) == 0) {
+            req->filter_type = BE_FILTER_SECID;
+            ret = split_name_extended(req, &filter[DP_SEC_ID_LEN + 1],
+                                      &req->filter_value,
+                                      &req->extra_value);
         } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
             req->filter_type = BE_FILTER_ENUM;
             req->filter_value = NULL;

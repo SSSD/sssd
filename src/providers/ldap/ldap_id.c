@@ -1058,6 +1058,12 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
             return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
+        if (ar->filter_type == BE_FILTER_SECID) {
+            ret = EINVAL;
+            err = "Invalid filter type";
+            break;
+        }
+
         req = services_get_send(breq, be_ctx->ev, ctx,
                                 ar->filter_value,
                                 ar->extra_value,

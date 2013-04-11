@@ -1364,6 +1364,12 @@ void proxy_get_account_info(struct be_req *breq)
         return be_req_terminate(breq, DP_ERR_FATAL, EINVAL, "Invalid attr type");
     }
 
+    /* proxy provider does not support security ID lookups */
+    if (ar->filter_type == BE_FILTER_SECID) {
+        return be_req_terminate(breq, DP_ERR_FATAL, ENOSYS,
+                                "Invalid filter type");
+    }
+
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
         switch (ar->filter_type) {

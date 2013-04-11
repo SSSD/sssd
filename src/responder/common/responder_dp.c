@@ -548,11 +548,21 @@ sss_dp_get_account_msg(void *pvt)
     }
 
     if (info->opt_name) {
-        if (info->extra) {
-            filter = talloc_asprintf(info, "name=%s:%s",
-                                     info->opt_name, info->extra);
+        if (info->type == SSS_DP_SECID) {
+            if (info->extra) {
+                filter = talloc_asprintf(info, "%s=%s:%s", DP_SEC_ID,
+                                               info->opt_name, info->extra);
+            } else {
+                filter = talloc_asprintf(info, "%s=%s", DP_SEC_ID,
+                                               info->opt_name);
+            }
         } else {
-            filter = talloc_asprintf(info, "name=%s", info->opt_name);
+            if (info->extra) {
+                filter = talloc_asprintf(info, "name=%s:%s",
+                                         info->opt_name, info->extra);
+            } else {
+                filter = talloc_asprintf(info, "name=%s", info->opt_name);
+            }
         }
     } else if (info->opt_id) {
         if (info->extra) {
