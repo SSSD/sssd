@@ -376,15 +376,13 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     }
 
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Searching for %s in domain %s with filter %s failed\n",
-               type_string, dinfo->name, filter));
-        if (name) {
-            ERROR("No such %1$s named %2$s in domain %3$s, skipping\n",
-                  type_string, name, dinfo->name);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("'%s' %s: Not found in domain '%s'\n",
+                  type_string, name ? name : "", dinfo->name));
         } else {
-            ERROR("No objects of type %1$s from domain %2$s in the cache, "
-                   "skipping\n", type_string, dinfo->name);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Searching for %s in domain %s with filter %s failed\n",
+                   type_string, dinfo->name, filter));
         }
         return false;
     }
