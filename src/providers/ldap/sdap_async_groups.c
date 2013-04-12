@@ -323,10 +323,20 @@ sdap_process_ghost_members(struct sysdb_attrs *attrs,
         return ret;
     }
 
-    ret = sysdb_attrs_get_el(attrs,
+    ret = sysdb_attrs_get_el_ext(attrs,
                              opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
-                             &memberel);
-    if (ret != EOK) {
+                             false, &memberel);
+    if (ret == ENOENT) {
+        /* Create a dummy element with no values in order for the loop to just
+         * fall through and make sure the attrs array is not reallocated.
+         */
+        memberel = talloc(attrs, struct ldb_message_element);
+        if (memberel == NULL) {
+            return ENOMEM;
+        }
+        memberel->num_values = 0;
+        memberel->values = NULL;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
                 ("Error reading members: [%s]\n", strerror(ret)));
         return ret;
