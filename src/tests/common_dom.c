@@ -92,9 +92,10 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
 
     if (params) {
         for (i=0; params[i].key; i++) {
-            val[0] = params[i].key;
+            val[0] = params[i].value;
             ret = confdb_add_param(test_ctx->confdb, true,
-                                   dompath, params[i].value, val);
+                                   dompath, params[i].key,
+                                   val);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("cannot add parameter %s: %d\n", params[i].key, ret));
