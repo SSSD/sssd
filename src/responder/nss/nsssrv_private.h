@@ -29,6 +29,7 @@
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
+    enum sss_cli_command cmd;
     char *name;
     uint32_t id;
 

@@ -649,9 +649,6 @@ static void nsssrv_dp_send_acct_req_done(struct tevent_req *req)
     cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
 }
 
-static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                         const char *err_msg, void *ptr);
-
 static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
                                       struct sss_mc_ctx *mc_ctx)
 {
@@ -692,6 +689,9 @@ done:
     return ret;
 
 }
+
+static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr);
 
 /* search for a user.
  * Returns:
@@ -806,7 +806,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_USER, name, 0,
-                              nss_cmd_getpwnam_dp_callback,
+                              nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
@@ -827,8 +827,15 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     return ENOENT;
 }
 
-static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                         const char *err_msg, void *ptr)
+static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx);
+static int nss_cmd_getgr_send_reply(struct nss_dom_ctx *dctx, bool filter);
+static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx);
+static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx);
+static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx);
+static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx);
+
+static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
 {
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -841,8 +848,30 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
 
-        if (dctx->res && dctx->res->count == 1) {
-            ret = nss_cmd_getpw_send_reply(dctx, false);
+        if ((dctx->res && dctx->res->count == 1) ||
+            (dctx->cmdctx->cmd == SSS_NSS_INITGR &&
+             dctx->res && dctx->res->count != 0)) {
+            switch (dctx->cmdctx->cmd) {
+            case SSS_NSS_GETPWNAM:
+                ret = nss_cmd_getpw_send_reply(dctx, false);
+                break;
+            case SSS_NSS_GETGRNAM:
+                ret = nss_cmd_getgr_send_reply(dctx, false);
+                break;
+            case SSS_NSS_INITGR:
+                ret = nss_cmd_initgr_send_reply(dctx);
+                break;
+            case SSS_NSS_GETPWUID:
+                ret = nss_cmd_getpw_send_reply(dctx, true);
+                break;
+            case SSS_NSS_GETGRGID:
+                ret = nss_cmd_getgr_send_reply(dctx, true);
+                break;
+            default:
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                            dctx->cmdctx->cmd));
+                ret = EINVAL;
+            }
             goto done;
         }
 
@@ -858,10 +887,46 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     /* ok the backend returned, search to see if we have updated results */
-    ret = nss_cmd_getpwnam_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, false);
+    switch (dctx->cmdctx->cmd) {
+    case SSS_NSS_GETPWNAM:
+        ret = nss_cmd_getpwnam_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getpw_send_reply(dctx, false);
+        }
+        break;
+    case SSS_NSS_GETGRNAM:
+        ret = nss_cmd_getgrnam_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getgr_send_reply(dctx, false);
+        }
+        break;
+    case SSS_NSS_INITGR:
+        ret = nss_cmd_initgroups_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_initgr_send_reply(dctx);
+        }
+        break;
+    case SSS_NSS_GETPWUID:
+        ret = nss_cmd_getpwuid_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getpw_send_reply(dctx, true);
+        }
+        break;
+    case SSS_NSS_GETGRGID:
+        ret = nss_cmd_getgrgid_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getgr_send_reply(dctx, true);
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                    dctx->cmdctx->cmd));
+        ret = EINVAL;
     }
 
 done:
@@ -871,9 +936,16 @@ done:
     }
 }
 
-static void nss_cmd_getpwnam_cb(struct tevent_req *req);
+static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx);
+static void nss_cmd_getbynam_done(struct tevent_req *req);
 static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 {
+    return nss_cmd_getbynam(SSS_NSS_GETPWNAM, cctx);
+}
+
+static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
+{
+
     struct tevent_req *req;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
@@ -883,11 +955,22 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     size_t blen;
     int ret;
 
+    switch(cmd) {
+    case SSS_NSS_GETPWNAM:
+    case SSS_NSS_GETGRNAM:
+    case SSS_NSS_INITGR:
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command type [%d].\n", cmd));
+        return EINVAL;
+    }
+
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
     cmdctx->cctx = cctx;
+    cmdctx->cmd = cmd;
 
     dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
     if (!dctx) {
@@ -913,6 +996,9 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
     rawname = (const char *)body;
 
+    DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with input [%s].\n",
+                               dctx->cmdctx->cmd, rawname));
+
     domname = NULL;
     ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
                                      cctx->rctx->default_domain, rawname,
@@ -923,11 +1009,11 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
             ret = ENOMEM;
         } else {
             dctx->rawname = rawname;
-            tevent_req_set_callback(req, nss_cmd_getpwnam_cb, dctx);
+            tevent_req_set_callback(req, nss_cmd_getbynam_done, dctx);
             ret = EAGAIN;
         }
         goto done;
-    } if (ret != EOK) {
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
         ret = ENOENT;
         goto done;
@@ -952,7 +1038,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
             if (req == NULL) {
                 ret = ENOMEM;
             } else {
-                tevent_req_set_callback(req, nss_cmd_getpwnam_cb, dctx);
+                tevent_req_set_callback(req, nss_cmd_getbynam_done, dctx);
                 ret = EAGAIN;
             }
             goto done;
@@ -962,17 +1048,38 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     /* ok, find it ! */
-    ret = nss_cmd_getpwnam_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, false);
+    switch (dctx->cmdctx->cmd) {
+    case SSS_NSS_GETPWNAM:
+        ret = nss_cmd_getpwnam_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getpw_send_reply(dctx, false);
+        }
+        break;
+    case SSS_NSS_GETGRNAM:
+        ret = nss_cmd_getgrnam_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getgr_send_reply(dctx, false);
+        }
+        break;
+    case SSS_NSS_INITGR:
+        ret = nss_cmd_initgroups_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_initgr_send_reply(dctx);
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        ret = EINVAL;
     }
 
 done:
     return nss_cmd_done(cmdctx, ret);
 }
 
-static void nss_cmd_getpwnam_cb(struct tevent_req *req)
+static void nss_cmd_getbynam_done(struct tevent_req *req)
 {
     struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -1014,18 +1121,36 @@ static void nss_cmd_getpwnam_cb(struct tevent_req *req)
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     /* ok, find it ! */
-    ret = nss_cmd_getpwnam_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, false);
+    switch (dctx->cmdctx->cmd) {
+    case SSS_NSS_GETPWNAM:
+        ret = nss_cmd_getpwnam_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getpw_send_reply(dctx, false);
+        }
+        break;
+    case SSS_NSS_GETGRNAM:
+        ret = nss_cmd_getgrnam_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getgr_send_reply(dctx, false);
+        }
+        break;
+    case SSS_NSS_INITGR:
+        ret = nss_cmd_initgroups_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_initgr_send_reply(dctx);
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        ret = EINVAL;
     }
 
 done:
     nss_cmd_done(cmdctx, ret);
 }
-
-static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                        const char *err_msg, void *ptr);
 
 /* search for a uid.
  * Returns:
@@ -1112,7 +1237,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_USER, NULL, cmdctx->id,
-                              nss_cmd_getpwuid_dp_callback,
+                              nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
@@ -1132,52 +1257,15 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
     return ENOENT;
 }
 
-static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr)
+static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx);
+static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx);
+static void nss_cmd_getbyid_done(struct tevent_req *req);
+static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 {
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    int ret;
-
-    if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n"
-                  "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-
-        if (dctx->res && dctx->res->count == 1) {
-            ret = nss_cmd_getpw_send_reply(dctx, true);
-            goto done;
-        }
-
-        /* no previous results, just loop to next domain if possible */
-        if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
-            dctx->domain = get_next_domain(dctx->domain, false);
-            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-        } else {
-            /* nothing available */
-            ret = ENOENT;
-            goto done;
-        }
-    }
-
-    /* ok the backend returned, search to see if we have updated results */
-    ret = nss_cmd_getpwuid_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, true);
-    }
-
-done:
-    ret = nss_cmd_done(cmdctx, ret);
-    if (ret) {
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
+    return nss_cmd_getbyid(SSS_NSS_GETPWUID, cctx);
 }
 
-static void nss_cmd_getpwuid_cb(struct tevent_req *req);
-static int nss_cmd_getpwuid(struct cli_ctx *cctx)
+static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
@@ -1187,6 +1275,11 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     int ret;
     struct tevent_req *req;
 
+    if (cmd != SSS_NSS_GETPWUID && cmd != SSS_NSS_GETGRGID) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command type [%d].\n", cmd));
+        return EINVAL;
+    }
+
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
@@ -1194,6 +1287,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         return ENOMEM;
     }
     cmdctx->cctx = cctx;
+    cmdctx->cmd = cmd;
 
     dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
     if (!dctx) {
@@ -1202,7 +1296,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     }
     dctx->cmdctx = cmdctx;
 
-    /* get uid to query */
+    /* get id to query */
     sss_packet_get_body(cctx->creq->in, &body, &blen);
 
     if (blen != sizeof(uint32_t)) {
@@ -1211,16 +1305,37 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     }
     cmdctx->id = *((uint32_t *)body);
 
-    ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
-    if (ret == EEXIST) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              ("Uid [%lu] does not exist! (negative cache)\n",
-               (unsigned long)cmdctx->id));
-        ret = ENOENT;
+    DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with id [%d].\n",
+                              dctx->cmdctx->cmd, cmdctx->id));
+
+    switch(dctx->cmdctx->cmd) {
+    case SSS_NSS_GETPWUID:
+        ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Uid [%lu] does not exist! (negative cache)\n",
+                   (unsigned long)cmdctx->id));
+            ret = ENOENT;
+            goto done;
+        }
+        break;
+    case SSS_NSS_GETGRGID:
+        ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Gid [%lu] does not exist! (negative cache)\n",
+                   (unsigned long)cmdctx->id));
+            ret = ENOENT;
+            goto done;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        ret = EINVAL;
         goto done;
     }
 
-    /* uid searches are always multidomain */
+    /* id searches are always multidomain */
     dctx->domain = cctx->rctx->domains;
     cmdctx->check_next = true;
 
@@ -1231,24 +1346,38 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         if (req == NULL) {
             ret = ENOMEM;
         } else {
-            tevent_req_set_callback(req, nss_cmd_getpwuid_cb, dctx);
+            tevent_req_set_callback(req, nss_cmd_getbyid_done, dctx);
             ret = EAGAIN;
         }
         goto done;
     }
 
     /* ok, find it ! */
-    ret = nss_cmd_getpwuid_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, true);
+    switch(dctx->cmdctx->cmd) {
+    case SSS_NSS_GETPWUID:
+        ret = nss_cmd_getpwuid_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getpw_send_reply(dctx, true);
+        }
+        break;
+    case SSS_NSS_GETGRGID:
+        ret = nss_cmd_getgrgid_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getgr_send_reply(dctx, true);
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        ret = EINVAL;
     }
 
 done:
     return nss_cmd_done(cmdctx, ret);
 }
 
-static void nss_cmd_getpwuid_cb(struct tevent_req *req)
+static void nss_cmd_getbyid_done(struct tevent_req *req)
 {
     struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -1261,10 +1390,24 @@ static void nss_cmd_getpwuid_cb(struct tevent_req *req)
     }
 
     /* ok, find it ! */
-    ret = nss_cmd_getpwuid_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getpw_send_reply(dctx, true);
+    switch(dctx->cmdctx->cmd) {
+    case SSS_NSS_GETPWUID:
+        ret = nss_cmd_getpwuid_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getpw_send_reply(dctx, true);
+        }
+        break;
+    case SSS_NSS_GETGRGID:
+        ret = nss_cmd_getgrgid_search(dctx);
+        if (ret == EOK) {
+            /* we have results to return */
+            ret = nss_cmd_getgr_send_reply(dctx, true);
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        ret = EINVAL;
     }
 
 done:
@@ -2268,9 +2411,6 @@ static int nss_cmd_getgr_send_reply(struct nss_dom_ctx *dctx, bool filter)
     return EOK;
 }
 
-static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr);
-
 /* search for a group.
  * Returns:
  *   ENOENT, if group is definitely not found
@@ -2385,7 +2525,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_GROUP, name, 0,
-                              nss_cmd_getgrnam_dp_callback,
+                              nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
@@ -2406,204 +2546,10 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
     return ENOENT;
 }
 
-static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr)
-{
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    int ret;
-
-    if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n"
-                  "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-
-        if (dctx->res && dctx->res->count == 1) {
-            ret = nss_cmd_getgr_send_reply(dctx, false);
-            goto done;
-        }
-
-        /* no previous results, just loop to next domain if possible */
-        if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
-            dctx->domain = get_next_domain(dctx->domain, false);
-            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-        } else {
-            /* nothing available */
-            ret = ENOENT;
-            goto done;
-        }
-    }
-
-    /* ok the backend returned, search to see if we have updated results */
-    ret = nss_cmd_getgrnam_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getgr_send_reply(dctx, false);
-    }
-
-done:
-    ret = nss_cmd_done(cmdctx, ret);
-    if (ret) {
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-}
-
-static void nss_cmd_getgrnam_cb(struct tevent_req *req);
 static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 {
-    struct tevent_req *req;
-    struct nss_cmd_ctx *cmdctx;
-    struct nss_dom_ctx *dctx;
-    const char *rawname;
-    char *domname;
-    uint8_t *body;
-    size_t blen;
-    int ret;
-
-    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
-
-    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
-    if (!dctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-    dctx->cmdctx = cmdctx;
-
-    /* get user name to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
-
-    /* if not terminated fail */
-    if (body[blen -1] != '\0') {
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* If the body isn't valid UTF-8, fail */
-    if (!sss_utf8_check(body, blen -1)) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    rawname = (const char *)body;
-
-    domname = NULL;
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
-                                     cctx->rctx->default_domain, rawname,
-                                     &domname, &cmdctx->name);
-    if (ret == EAGAIN) {
-        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
-        if (req == NULL) {
-            ret = ENOMEM;
-        } else {
-            dctx->rawname = rawname;
-            tevent_req_set_callback(req, nss_cmd_getgrnam_cb, dctx);
-            ret = EAGAIN;
-        }
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(2, ("Invalid name received [%s]\n", rawname));
-        ret = ENOENT;
-        goto done;
-    }
-
-    DEBUG(4, ("Requesting info for [%s] from [%s]\n",
-              cmdctx->name, domname?domname:"<ALL>"));
-
-    if (domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
-        if (!dctx->domain) {
-            ret = ENOENT;
-            goto done;
-        }
-    } else {
-        /* this is a multidomain search */
-        dctx->rawname = rawname;
-        dctx->domain = cctx->rctx->domains;
-        cmdctx->check_next = true;
-        if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
-            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, false, NULL);
-            if (req == NULL) {
-                ret = ENOMEM;
-            } else {
-                tevent_req_set_callback(req, nss_cmd_getgrnam_cb, dctx);
-                ret = EAGAIN;
-            }
-            goto done;
-        }
-    }
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    /* ok, find it ! */
-    ret = nss_cmd_getgrnam_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getgr_send_reply(dctx, false);
-    }
-
-done:
-    return nss_cmd_done(cmdctx, ret);
+    return nss_cmd_getbynam(SSS_NSS_GETGRNAM, cctx);
 }
-
-static void nss_cmd_getgrnam_cb(struct tevent_req *req)
-{
-    struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    char *domname = NULL;
-    const char *rawname = dctx->rawname;
-    errno_t ret;
-
-    ret = sss_dp_get_domains_recv(req);
-    talloc_free(req);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
-                                     cctx->rctx->default_domain, rawname,
-                                     &domname, &cmdctx->name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
-        ret = ENOENT;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s] from [%s]\n",
-                              cmdctx->name, domname?domname:"<ALL>"));
-    if (domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
-        if (!dctx->domain) {
-            ret = ENOENT;
-            goto done;
-        }
-    } else {
-        /* this is a multidomain search */
-        dctx->domain = cctx->rctx->domains;
-        cmdctx->check_next = true;
-    }
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    /* ok, find it ! */
-    ret = nss_cmd_getgrnam_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getgr_send_reply(dctx, false);
-    }
-
-done:
-    nss_cmd_done(cmdctx, ret);
-}
-
-static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr);
 
 /* search for a gid.
  * Returns:
@@ -2690,7 +2636,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_GROUP, NULL, cmdctx->id,
-                              nss_cmd_getgrgid_dp_callback,
+                              nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
@@ -2710,143 +2656,9 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
     return ENOENT;
 }
 
-static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr)
-{
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    int ret;
-
-    if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n"
-                  "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-
-        if (dctx->res && dctx->res->count == 1) {
-            ret = nss_cmd_getgr_send_reply(dctx, true);
-            goto done;
-        }
-
-        /* no previous results, just loop to next domain if possible */
-        if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
-            dctx->domain = get_next_domain(dctx->domain, false);
-            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-        } else {
-            /* nothing available */
-            ret = ENOENT;
-            goto done;
-        }
-    }
-
-    /* ok the backend returned, search to see if we have updated results */
-    ret = nss_cmd_getgrgid_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getgr_send_reply(dctx, true);
-    }
-
-done:
-    ret = nss_cmd_done(cmdctx, ret);
-    if (ret) {
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-}
-
-static void nss_cmd_getgrgid_cb(struct tevent_req *req);
 static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *cmdctx;
-    struct nss_dom_ctx *dctx;
-    struct nss_ctx *nctx;
-    uint8_t *body;
-    size_t blen;
-    int ret;
-    struct tevent_req *req;
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-
-    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
-
-    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
-    if (!dctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-    dctx->cmdctx = cmdctx;
-
-    /* get uid to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
-
-    if (blen != sizeof(uint32_t)) {
-        ret = EINVAL;
-        goto done;
-    }
-    cmdctx->id = *((uint32_t *)body);
-
-    ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
-    if (ret == EEXIST) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              ("Gid [%lu] does not exist! (negative cache)\n",
-               (unsigned long)cmdctx->id));
-        ret = ENOENT;
-        goto done;
-    }
-
-    /* gid searches are always multidomain */
-    dctx->domain = cctx->rctx->domains;
-    cmdctx->check_next = true;
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
-        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, false, NULL);
-        if (req == NULL) {
-            ret = ENOMEM;
-        } else {
-            tevent_req_set_callback(req, nss_cmd_getgrgid_cb, dctx);
-            ret = EAGAIN;
-        }
-        goto done;
-    }
-
-    /* ok, find it ! */
-    ret = nss_cmd_getgrgid_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getgr_send_reply(dctx, true);
-    }
-
-done:
-    return nss_cmd_done(cmdctx, ret);
-}
-
-static void nss_cmd_getgrgid_cb(struct tevent_req *req)
-{
-    struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    errno_t ret;
-
-    ret = sss_dp_get_domains_recv(req);
-    talloc_free(req);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* ok, find it ! */
-    ret = nss_cmd_getgrgid_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_getgr_send_reply(dctx, true);
-    }
-
-done:
-    nss_cmd_done(cmdctx, ret);
+    return nss_cmd_getbyid(SSS_NSS_GETGRGID, cctx);
 }
 
 /* to keep it simple at this stage we are retrieving the
@@ -3562,9 +3374,6 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
     return EOK;
 }
 
-static void nss_cmd_initgroups_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                           const char *err_msg, void *ptr);
-
 static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -3658,7 +3467,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_INITGROUPS, name, 0,
-                              nss_cmd_initgroups_dp_callback,
+                              nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
@@ -3677,202 +3486,10 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
     return ENOENT;
 }
 
-static void nss_cmd_initgroups_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                           const char *err_msg, void *ptr)
-{
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    int ret;
-
-    if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n"
-                  "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-
-        if (dctx->res && dctx->res->count != 0) {
-            ret = nss_cmd_initgr_send_reply(dctx);
-            goto done;
-        }
-
-        /* no previous results, just loop to next domain if possible */
-        if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
-            dctx->domain = get_next_domain(dctx->domain, false);
-            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-        } else {
-            /* nothing available */
-            ret = ENOENT;
-            goto done;
-        }
-    }
-
-    /* ok the backend returned, search to see if we have updated results */
-    ret = nss_cmd_initgroups_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_initgr_send_reply(dctx);
-    }
-
-done:
-    ret = nss_cmd_done(cmdctx, ret);
-    if (ret) {
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-}
-
 /* for now, if we are online, try to always query the backend */
-static void nss_cmd_initgroups_cb(struct tevent_req *req);
 static int nss_cmd_initgroups(struct cli_ctx *cctx)
 {
-    struct tevent_req *req;
-    struct nss_cmd_ctx *cmdctx;
-    struct nss_dom_ctx *dctx;
-    const char *rawname;
-    char *domname;
-    uint8_t *body;
-    size_t blen;
-    int ret;
-
-    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
-
-    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
-    if (!dctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-    dctx->cmdctx = cmdctx;
-
-    /* get user name to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
-
-    /* if not terminated fail */
-    if (body[blen -1] != '\0') {
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* If the body isn't valid UTF-8, fail */
-    if (!sss_utf8_check(body, blen -1)) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    rawname = (const char *)body;
-
-    domname = NULL;
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
-                                     cctx->rctx->default_domain, rawname,
-                                     &domname, &cmdctx->name);
-    if (ret == EAGAIN) {
-        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, domname);
-        if (req == NULL) {
-            ret = ENOMEM;
-        } else {
-            dctx->rawname = rawname;
-            tevent_req_set_callback(req, nss_cmd_initgroups_cb, dctx);
-            ret = EAGAIN;
-        }
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(2, ("Invalid name received [%s]\n", rawname));
-        ret = ENOENT;
-        goto done;
-    }
-
-    DEBUG(4, ("Requesting info for [%s] from [%s]\n",
-              cmdctx->name, domname?domname:"<ALL>"));
-
-    if (domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
-        if (!dctx->domain) {
-            ret = ENOENT;
-            goto done;
-        }
-    } else {
-        /* this is a multidomain search */
-        dctx->rawname = rawname;
-        dctx->domain = cctx->rctx->domains;
-        cmdctx->check_next = true;
-        if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
-            req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, false, NULL);
-            if (req == NULL) {
-                ret = ENOMEM;
-            } else {
-                tevent_req_set_callback(req, nss_cmd_initgroups_cb, dctx);
-                ret = EAGAIN;
-            }
-            goto done;
-        }
-    }
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    /* ok, find it ! */
-    ret = nss_cmd_initgroups_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_initgr_send_reply(dctx);
-    }
-
-done:
-    return nss_cmd_done(cmdctx, ret);
-}
-
-static void nss_cmd_initgroups_cb(struct tevent_req *req)
-{
-    struct nss_dom_ctx *dctx = tevent_req_callback_data(req, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    char *domname = NULL;
-    const char *rawname = dctx->rawname;
-    errno_t ret;
-
-    ret = sss_dp_get_domains_recv(req);
-    talloc_free(req);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
-                                     cctx->rctx->default_domain, rawname,
-                                     &domname, &cmdctx->name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", rawname));
-        ret = ENOENT;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s] from [%s]\n",
-                              cmdctx->name, domname?domname:"<ALL>"));
-
-    if (domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
-        if (!dctx->domain) {
-            ret = ENOENT;
-            goto done;
-        }
-    } else {
-        /* this is a multidomain search */
-        dctx->domain = cctx->rctx->domains;
-        cmdctx->check_next = true;
-    }
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    /* ok, find it ! */
-    ret = nss_cmd_initgroups_search(dctx);
-    if (ret == EOK) {
-        /* we have results to return */
-        ret = nss_cmd_initgr_send_reply(dctx);
-    }
-
-done:
-    nss_cmd_done(cmdctx, ret);
+    return nss_cmd_getbynam(SSS_NSS_INITGR, cctx);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)
