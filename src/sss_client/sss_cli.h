@@ -32,6 +32,8 @@
 #include <stdint.h>
 #include <limits.h>
 
+#include "util/util_safealign.h"
+
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
@@ -525,40 +527,6 @@ int sss_ssh_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
                          int *errnop);
-
-#ifndef SAFEALIGN_COPY_UINT32
-static inline void
-safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
-{
-    memcpy(dest, src, n);
-    if (counter) {
-        *counter += n;
-    }
-}
-
-#define SAFEALIGN_SET_VALUE(dest, value, type, pctr) do { \
-    type CV_MACRO_val = (type)(value); \
-    safealign_memcpy(dest, &CV_MACRO_val, sizeof(type), pctr); \
-} while(0)
-
-#ifndef SAFEALIGN_SET_UINT32
-#define SAFEALIGN_SET_UINT32(dest, value, pctr) \
-    SAFEALIGN_SET_VALUE(dest, value, uint32_t, pctr)
-#endif
-
-#define SAFEALIGN_COPY_UINT32(dest, src, pctr) \
-    safealign_memcpy(dest, src, sizeof(uint32_t), pctr)
-#endif
-
-#ifndef SAFEALIGN_SET_UINT16
-#define SAFEALIGN_SET_UINT16(dest, value, pctr) \
-    SAFEALIGN_SET_VALUE(dest, value, uint16_t, pctr)
-#endif
-
-#ifndef SAFEALIGN_COPY_UINT16
-#define SAFEALIGN_COPY_UINT16(dest, src, pctr) \
-    safealign_memcpy(dest, src, sizeof(uint16_t), pctr)
-#endif
 
 #if 0
 

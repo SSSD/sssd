@@ -404,6 +404,7 @@ dist_noinst_HEADERS = \
     src/util/atomic_io.h \
     src/util/auth_utils.h \
     src/util/authtok.h \
+    src/util/util_safealign.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/responder/common/responder.h \
