@@ -32,6 +32,7 @@ struct nss_cmd_ctx {
     enum sss_cli_command cmd;
     char *name;
     uint32_t id;
+    char *secid;
 
     bool immediate;
     bool check_next;

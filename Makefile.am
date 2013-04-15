@@ -1227,6 +1227,7 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_cmd_done
 nss_srv_tests_LDADD = \
     $(CMOCKA_LIBS) \
+    libsss_idmap.la \
     libsss_util.la
 
 test_find_uid_DEPENDENCIES = \

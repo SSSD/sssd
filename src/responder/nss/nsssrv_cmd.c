@@ -29,6 +29,7 @@
 #include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
+#include "sss_client/idmap/sss_nss_idmap.h"
 #include <time.h>
 
 static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
@@ -833,6 +834,9 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx);
 static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx);
 static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx);
 static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx);
+static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx);
+static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx);
+static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx);
 
 static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr)
@@ -841,6 +845,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
+    bool check_subdomains;
 
     if (err_maj) {
         DEBUG(2, ("Unable to get information from Data Provider\n"
@@ -867,6 +872,12 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
             case SSS_NSS_GETGRGID:
                 ret = nss_cmd_getgr_send_reply(dctx, true);
                 break;
+            case SSS_NSS_GETNAMEBYSID:
+            case SSS_NSS_GETIDBYSID:
+            case SSS_NSS_GETSIDBYNAME:
+            case SSS_NSS_GETSIDBYID:
+                ret = nss_cmd_getbysid_send_reply(dctx);
+                break;
             default:
                 DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
                                             dctx->cmdctx->cmd));
@@ -875,9 +886,24 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
             goto done;
         }
 
+        /* Since subdomain users and groups are fully qualified they are
+         * typically not subject of multi-domain searches. But since POSIX
+         * ID do not contain a domain name we have to decend to subdomains
+         * here. */
+        switch (dctx->cmdctx->cmd) {
+        case SSS_NSS_GETPWUID:
+        case SSS_NSS_GETGRGID:
+        case SSS_NSS_GETSIDBYID:
+            check_subdomains = true;
+            break;
+        default:
+            check_subdomains = false;
+        }
+
         /* no previous results, just loop to next domain if possible */
-        if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
-            dctx->domain = get_next_domain(dctx->domain, false);
+        if (cmdctx->check_next &&
+            get_next_domain(dctx->domain, check_subdomains)) {
+            dctx->domain = get_next_domain(dctx->domain, check_subdomains);
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         } else {
             /* nothing available */
@@ -923,6 +949,25 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
             ret = nss_cmd_getgr_send_reply(dctx, true);
         }
         break;
+    case SSS_NSS_GETNAMEBYSID:
+    case SSS_NSS_GETIDBYSID:
+        ret = nss_cmd_getbysid_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
+    case SSS_NSS_GETSIDBYNAME:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
+    case SSS_NSS_GETSIDBYID:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
                                     dctx->cmdctx->cmd));
@@ -959,6 +1004,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     case SSS_NSS_GETPWNAM:
     case SSS_NSS_GETGRNAM:
     case SSS_NSS_INITGR:
+    case SSS_NSS_GETSIDBYNAME:
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command type [%d].\n", cmd));
@@ -1070,6 +1116,12 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
             ret = nss_cmd_initgr_send_reply(dctx);
         }
         break;
+    case SSS_NSS_GETSIDBYNAME:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
         ret = EINVAL;
@@ -1141,6 +1193,12 @@ static void nss_cmd_getbynam_done(struct tevent_req *req)
         if (ret == EOK) {
             /* we have results to return */
             ret = nss_cmd_initgr_send_reply(dctx);
+        }
+        break;
+    case SSS_NSS_GETSIDBYNAME:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
         }
         break;
     default:
@@ -1275,7 +1333,12 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     int ret;
     struct tevent_req *req;
 
-    if (cmd != SSS_NSS_GETPWUID && cmd != SSS_NSS_GETGRGID) {
+    switch (cmd) {
+    case SSS_NSS_GETPWUID:
+    case SSS_NSS_GETGRGID:
+    case SSS_NSS_GETSIDBYID:
+        break;
+    default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command type [%d].\n", cmd));
         return EINVAL;
     }
@@ -1329,6 +1392,20 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
             goto done;
         }
         break;
+    case SSS_NSS_GETSIDBYID:
+        ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
+        if (ret != EEXIST) {
+            ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
+                                       cmdctx->id);
+        }
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Id [%lu] does not exist! (negative cache)\n",
+                   (unsigned long)cmdctx->id));
+            ret = ENOENT;
+            goto done;
+        }
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
         ret = EINVAL;
@@ -1368,6 +1445,12 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
             ret = nss_cmd_getgr_send_reply(dctx, true);
         }
         break;
+    case SSS_NSS_GETSIDBYID:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
         ret = EINVAL;
@@ -1403,6 +1486,30 @@ static void nss_cmd_getbyid_done(struct tevent_req *req)
         if (ret == EOK) {
             /* we have results to return */
             ret = nss_cmd_getgr_send_reply(dctx, true);
+        }
+        break;
+    case SSS_NSS_GETNAMEBYSID:
+    case SSS_NSS_GETIDBYSID:
+        ret = responder_get_domain_by_id(cmdctx->cctx->rctx, cmdctx->secid,
+                                         &dctx->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot find domain for SID [%s].\n",
+                                      cmdctx->secid));
+            ret = ENOENT;
+            goto done;
+        }
+
+        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+
+        ret = nss_cmd_getbysid_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
+    case SSS_NSS_GETSIDBYID:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
         }
         break;
     default:
@@ -3492,6 +3599,686 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     return nss_cmd_getbynam(SSS_NSS_INITGR, cctx);
 }
 
+static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
+{
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct sss_domain_info *dom = dctx->domain;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
+    struct nss_ctx *nctx;
+    int ret;
+    const char *attrs[] = {SYSDB_NAME, SYSDB_OBJECTCLASS, SYSDB_SID_STR, NULL};
+    bool user_found = false;
+    bool group_found = false;
+    struct ldb_message *msg = NULL;
+    char *sysdb_name = NULL;
+    char *name = NULL;
+    char *req_name;
+    uint32_t req_id;
+    int req_type;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    while (dom) {
+
+        if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+            /* check that the uid is valid for this domain */
+            if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
+                (dom->id_max && (cmdctx->id > dom->id_max))) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      ("Uid [%lu] does not exist in domain [%s]! "
+                       "(id out of range)\n",
+                       (unsigned long)cmdctx->id, dom->name));
+                if (cmdctx->check_next) {
+                    dom = get_next_domain(dom, true);
+                    continue;
+                }
+                return ENOENT;
+            }
+        } else {
+           /* if it is a domainless search, skip domains that require fully
+            * qualified names instead */
+            while (dom && cmdctx->check_next && dom->fqnames) {
+                dom = get_next_domain(dom, false);
+            }
+
+            if (!dom) break;
+        }
+
+        if (dom != dctx->domain) {
+            /* make sure we reset the check_provider flag when we check
+             * a new domain */
+            dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
+        }
+
+        /* make sure to update the dctx if we changed domain */
+        dctx->domain = dom;
+
+        if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%d@%s]\n",
+                                      cmdctx->id, dom->name));
+        } else {
+            talloc_free(name);
+            talloc_zfree(sysdb_name);
+
+            name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
+            if (name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sss_get_cased_name failed.\n"));
+                return ENOMEM;
+            }
+
+            /* For subdomains a fully qualified name is needed for
+             * sysdb_search_user_by_name and sysdb_search_group_by_name. */
+            if (IS_SUBDOMAIN(dom)) {
+                sysdb_name = talloc_asprintf(cmdctx, dom->names->fq_fmt,
+                                             name, dom->name);
+                if (sysdb_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+                    return ENOMEM;
+                }
+            }
+
+
+            /* verify this user has not yet been negatively cached,
+            * or has been permanently filtered */
+            ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+                                        dom, name);
+
+            /* if neg cached, return we didn't find it */
+            if (ret == EEXIST) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      ("User [%s] does not exist in [%s]! (negative cache)\n",
+                       name, dom->name));
+                /* if a multidomain search, try with next */
+                if (cmdctx->check_next) {
+                    dom = get_next_domain(dom, false);
+                    continue;
+                }
+                /* There are no further domains or this was a
+                 * fully-qualified user request.
+                 */
+                return ENOENT;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s@%s]\n",
+                                      name, dom->name));
+        }
+
+
+        sysdb = dom->sysdb;
+        if (sysdb == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Fatal: Sysdb CTX not found for this domain!\n"));
+            return EIO;
+        }
+
+        if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+            ret = sysdb_search_user_by_uid(cmdctx, sysdb, dom, cmdctx->id,
+                                           attrs, &msg);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to make request to our cache!\n"));
+                return EIO;
+            }
+
+            if (ret == EOK) {
+                user_found = true;
+            } else {
+                talloc_free(msg);
+                ret = sysdb_search_group_by_gid(cmdctx, sysdb, dom, cmdctx->id,
+                                                attrs, &msg);
+                if (ret != EOK && ret != ENOENT) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("Failed to make request to our cache!\n"));
+                    return EIO;
+                }
+
+                if (ret == EOK) {
+                    group_found = true;
+                }
+            }
+        } else {
+            ret = sysdb_search_user_by_name(cmdctx, sysdb, dom,
+                                            sysdb_name ? sysdb_name : name,
+                                            attrs, &msg);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to make request to our cache!\n"));
+                return EIO;
+            }
+
+            if (ret == EOK) {
+                user_found = true;
+            } else {
+                talloc_free(msg);
+                ret = sysdb_search_group_by_name(cmdctx, sysdb, dom,
+                                                 sysdb_name ? sysdb_name : name,
+                                                 attrs, &msg);
+                if (ret != EOK && ret != ENOENT) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("Failed to make request to our cache!\n"));
+                    return EIO;
+                }
+
+                if (ret == EOK) {
+                    group_found = true;
+                }
+            }
+        }
+
+        dctx->res = talloc_zero(cmdctx, struct ldb_result);
+        if (dctx->res == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+            return ENOMEM;
+        }
+
+        if (user_found || group_found) {
+            dctx->res->count = 1;
+            dctx->res->msgs = talloc_array(dctx->res, struct ldb_message *, 1);
+            if (dctx->res->msgs == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+                return ENOMEM;
+            }
+            dctx->res->msgs[0] = talloc_steal(dctx->res, msg);
+        }
+
+        if (dctx->res->count == 0 && !dctx->check_provider) {
+            if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME) {
+                ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
+                if (ret != EOK) {
+                    return ret;
+                }
+
+                ret = sss_ncache_set_group(nctx->ncache, false, dom, name);
+                if (ret != EOK) {
+                    return ret;
+                }
+            }
+            /* if a multidomain search, try with next */
+            if (cmdctx->check_next) {
+                dom = get_next_domain(dom, true);
+                continue;
+            }
+
+            DEBUG(SSSDBG_OP_FAILURE, ("No matching user or group found.\n"));
+
+            if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+                ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+                if (ret != EOK) {
+                    return ret;
+                }
+
+                ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+                if (ret != EOK) {
+                    return ret;
+                }
+            }
+
+            return ENOENT;
+        }
+
+        /* if this is a caching provider (or if we haven't checked the cache
+         * yet) then verify that the cache is uptodate */
+        if (dctx->check_provider) {
+            if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+                req_name = NULL;
+                req_id = cmdctx->id;
+            } else {
+                req_name = name;
+                req_id = 0;
+            }
+            if (user_found) {
+                req_type = SSS_DP_USER;
+            } else if (group_found) {
+                req_type = SSS_DP_GROUP;
+            } else {
+                req_type = SSS_DP_USER_AND_GROUP;
+            }
+
+            ret = check_cache(dctx, nctx, dctx->res,
+                              req_type, req_name, req_id,
+                              nss_cmd_getby_dp_callback,
+                              dctx);
+            if (ret != EOK) {
+                /* Anything but EOK means we should reenter the mainloop
+                 * because we may be refreshing the cache
+                 */
+                return ret;
+            }
+        }
+
+        /* One result found */
+        if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Returning info for id [%d@%s]\n",
+                                     cmdctx->id, dom->name));
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Returning info for user/group [%s@%s]\n",
+                                      name, dom->name));
+        }
+
+        return EOK;
+    }
+
+    if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("No matching domain found for [%d], fail!\n", cmdctx->id));
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("No matching domain found for [%s], fail!\n", cmdctx->name));
+    }
+    return ENOENT;
+}
+
+static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
+{
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct sss_domain_info *dom = dctx->domain;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
+    struct nss_ctx *nctx;
+    int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s@%s]\n", cmdctx->secid,
+                                                               dom->name));
+
+    sysdb = dom->sysdb;
+    if (sysdb == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Fatal: Sysdb CTX not found for this " \
+                                     "domain!\n"));
+        return EIO;
+    }
+
+    ret = sysdb_search_object_by_sid(cmdctx, sysdb, dom, cmdctx->secid, NULL,
+                                     &dctx->res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to make request to our cache!\n"));
+        return EIO;
+    }
+
+    if (dctx->res->count > 1) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("getbysid call returned more than one " \
+                                     "result !?!\n"));
+        return ENOENT;
+    }
+
+    if (dctx->res->count == 0 && !dctx->check_provider) {
+        DEBUG(2, ("No results for getbysid call.\n"));
+
+        /* set negative cache only if not result of cache check */
+        ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        return ENOENT;
+    }
+
+    /* if this is a caching provider (or if we haven't checked the cache
+     * yet) then verify that the cache is uptodate */
+    if (dctx->check_provider) {
+        ret = check_cache(dctx, nctx, dctx->res,
+                          SSS_DP_SECID, cmdctx->secid, 0,
+                          nss_cmd_getby_dp_callback,
+                          dctx);
+        if (ret != EOK) {
+            /* Anything but EOK means we should reenter the mainloop
+             * because we may be refreshing the cache
+             */
+            return ret;
+        }
+    }
+
+    /* One result found */
+    DEBUG(SSSDBG_TRACE_FUNC, ("Returning info for sid [%s@%s]\n", cmdctx->secid,
+                                                                  dom->name));
+
+    return EOK;
+}
+
+static errno_t find_sss_id_type(struct ldb_message *msg,
+                                bool mpg,
+                                enum sss_id_type *id_type)
+{
+    size_t c;
+    struct ldb_message_element *el;
+    struct ldb_val *val = NULL;
+
+    el = ldb_msg_find_element(msg, SYSDB_OBJECTCLASS);
+    if (el == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Objectclass attribute not found.\n"));
+        return EINVAL;
+    }
+
+    for (c = 0; c < el->num_values; c++) {
+        val = &(el->values[c]);
+        if (strncasecmp(SYSDB_USER_CLASS,
+                        (char *)val->data, val->length) == 0) {
+            break;
+        }
+    }
+
+    if (c == el->num_values) {
+        *id_type = SSS_ID_TYPE_GID;
+    } else {
+        if (mpg) {
+            *id_type = SSS_ID_TYPE_BOTH;
+        } else {
+            *id_type = SSS_ID_TYPE_UID;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t fill_sid(struct sss_packet *packet,
+                        enum sss_id_type id_type,
+                        struct ldb_message *msg)
+{
+    int ret;
+    const char *sid_str;
+    struct sized_string sid;
+    uint8_t *body;
+    size_t blen;
+
+    sid_str = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
+    if (sid_str == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing SID.\n"));
+        return EINVAL;
+    }
+
+    to_sized_string(&sid, sid_str);
+
+    ret = sss_packet_grow(packet, sid.len +  3* sizeof(uint32_t));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_packet_grow failed.\n"));
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)body)[0] = 1; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+    ((uint32_t *)body)[2] = id_type;
+    memcpy(&body[3*sizeof(uint32_t)], sid.str, sid.len);
+
+    return EOK;
+}
+
+static errno_t fill_name(struct sss_packet *packet,
+                         struct sss_domain_info *dom,
+                         enum sss_id_type id_type,
+                         struct ldb_message *msg)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *orig_name;
+    const char *cased_name;
+    const char *fq_name;
+    struct sized_string name;
+    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
+    uint8_t *body;
+    size_t blen;
+
+    orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (orig_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing name.\n"));
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    cased_name= sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+    if (cased_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_get_cased_name failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (add_domain) {
+        fq_name = talloc_asprintf(tmp_ctx, dom->names->fq_fmt, cased_name,
+                                  dom->name);
+        if (fq_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        to_sized_string(&name, fq_name);
+    } else {
+        to_sized_string(&name, cased_name);
+    }
+
+    ret = sss_packet_grow(packet, name.len + 3 * sizeof(uint32_t));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_packet_grow failed.\n"));
+        goto done;
+    }
+
+    sss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)body)[0] = 1; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+    ((uint32_t *)body)[2] = id_type;
+    memcpy(&body[3*sizeof(uint32_t)], name.str, name.len);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t fill_id(struct sss_packet *packet,
+                       enum sss_id_type id_type,
+                       struct ldb_message *msg)
+{
+    int ret;
+    uint8_t *body;
+    size_t blen;
+    uint64_t id;
+
+    if (id_type == SSS_ID_TYPE_GID) {
+        id = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+    } else {
+        id = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+    }
+
+    if (id == 0 || id >= UINT32_MAX) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid POSIX ID.\n"));
+        return EINVAL;
+    }
+
+    ret = sss_packet_grow(packet, 4 * sizeof(uint32_t));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_packet_grow failed.\n"));
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)body)[0] = 1; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+    ((uint32_t *)body)[2] = (uint32_t) id_type;
+    ((uint32_t *)body)[3] = (uint32_t) id;
+
+    return EOK;
+}
+
+static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
+{
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int ret;
+    enum sss_id_type id_type;
+
+    if (dctx->res->count > 1) {
+        return EINVAL;
+    } else if (dctx->res->count == 0) {
+        return ENOENT;
+    }
+
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return EFAULT;
+    }
+
+    ret = find_sss_id_type(dctx->res->msgs[0], dctx->domain->mpg, &id_type);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("find_sss_id_type failed.\n"));
+        return ret;
+    }
+
+    switch(cmdctx->cmd) {
+    case SSS_NSS_GETNAMEBYSID:
+        ret = fill_name(cctx->creq->out,
+                        dctx->domain,
+                        id_type,
+                        dctx->res->msgs[0]);
+        break;
+    case SSS_NSS_GETIDBYSID:
+        ret = fill_id(cctx->creq->out, id_type, dctx->res->msgs[0]);
+        break;
+    case SSS_NSS_GETSIDBYNAME:
+    case SSS_NSS_GETSIDBYID:
+        ret = fill_sid(cctx->creq->out, id_type, dctx->res->msgs[0]);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported request type.\n"));
+        return EINVAL;
+    }
+    if (ret != EOK) {
+        return ret;
+    }
+
+    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_cmd_done(cctx, cmdctx);
+    return EOK;
+}
+
+static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
+{
+
+    struct tevent_req *req;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
+    const char *sid_str;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+    struct nss_ctx *nctx;
+    enum idmap_error_code err;
+    uint8_t *bin_sid = NULL;
+    size_t bin_sid_length;
+
+    if (cmd != SSS_NSS_GETNAMEBYSID && cmd != SSS_NSS_GETIDBYSID) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command type [%d].\n", cmd));
+        return EINVAL;
+    }
+
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
+    cmdctx->cmd = cmd;
+
+    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+    if (!dctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+    dctx->cmdctx = cmdctx;
+
+    /* get SID to query */
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
+
+    /* if not terminated fail */
+    if (body[blen -1] != '\0') {
+        ret = EINVAL;
+        goto done;
+    }
+
+    sid_str = (const char *) body;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    /* If the body isn't a SID, fail */
+    err = sss_idmap_sid_to_bin_sid(nctx->idmap_ctx, sid_str,
+                                   &bin_sid, &bin_sid_length);
+    talloc_free(bin_sid);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_sid_to_bin_sid failed for [%s].\n",
+                                  body));
+        ret = EINVAL;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with SID [%s].\n",
+                               dctx->cmdctx->cmd, sid_str));
+
+    cmdctx->secid = talloc_strdup(cmdctx, sid_str);
+    if (cmdctx->secid == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = responder_get_domain_by_id(cctx->rctx, cmdctx->secid, &dctx->domain);
+    if (ret == EAGAIN || ret == ENOENT) {
+        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, NULL);
+        if (req == NULL) {
+            ret = ENOMEM;
+        } else {
+            dctx->rawname = sid_str;
+            tevent_req_set_callback(req, nss_cmd_getbyid_done, dctx);
+            ret = EAGAIN;
+        }
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("responder_get_domain_by_id failed.\n"));
+        goto done;
+    }
+
+    DEBUG(4, ("Requesting info for [%s] from [%s]\n",
+              cmdctx->secid, dctx->domain->name));
+
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+
+    /* ok, find it ! */
+    ret = nss_cmd_getbysid_search(dctx);
+    if (ret == EOK) {
+        ret = nss_cmd_getbysid_send_reply(dctx);
+    }
+
+done:
+    return nss_cmd_done(cmdctx, ret);
+}
+
+static int nss_cmd_getsidbyname(struct cli_ctx *cctx)
+{
+    return nss_cmd_getbynam(SSS_NSS_GETSIDBYNAME, cctx);
+}
+
+static int nss_cmd_getsidbyid(struct cli_ctx *cctx)
+{
+    return nss_cmd_getbyid(SSS_NSS_GETSIDBYID, cctx);
+}
+
+static int nss_cmd_getnamebysid(struct cli_ctx *cctx)
+{
+    return nss_cmd_getbysid(SSS_NSS_GETNAMEBYSID, cctx);
+}
+
+static int nss_cmd_getidbysid(struct cli_ctx *cctx)
+{
+    return nss_cmd_getbysid(SSS_NSS_GETIDBYSID, cctx);
+}
+
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version nss_cli_protocol_version[] = {
@@ -3523,6 +4310,10 @@ static struct sss_cmd_table nss_cmds[] = {
     {SSS_NSS_SETSERVENT, nss_cmd_setservent},
     {SSS_NSS_GETSERVENT, nss_cmd_getservent},
     {SSS_NSS_ENDSERVENT, nss_cmd_endservent},
+    {SSS_NSS_GETSIDBYNAME, nss_cmd_getsidbyname},
+    {SSS_NSS_GETSIDBYID, nss_cmd_getsidbyid},
+    {SSS_NSS_GETNAMEBYSID, nss_cmd_getnamebysid},
+    {SSS_NSS_GETIDBYSID, nss_cmd_getidbysid},
     {SSS_CLI_NULL, NULL}
 };
 
