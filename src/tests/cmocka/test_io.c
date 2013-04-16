@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -32,10 +33,12 @@
 #include <cmocka.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "limits.h"
 #include "util/io.h"
 #include "util/util.h"
+#include "tests/common.h"
 
 #define FILE_PATH TEST_DIR"/test_io.XXXXXX"
 #define NON_EX_PATH "non-existent-path"
@@ -49,8 +52,11 @@ static char *get_filepath(char path[])
     ret = mkstemp(path);
 
     if (ret == -1) {
-        fprintf(stderr, "mkstemp failed\n");
+        int err = errno;
+        fprintf(stderr, "mkstemp failed with path:'%s' [%s]\n",
+                path, strerror(err));
     }
+    assert_false(ret == -1);
 
     return path;
 }
@@ -58,9 +64,13 @@ static char *get_filepath(char path[])
 void setup_dirp(void **state)
 {
     DIR *dirp = opendir(TEST_DIR);
-    if (dirp != NULL){
-        *state = (void *)dirp;
+    if (dirp == NULL) {
+        int err = errno;
+        fprintf(stderr, "Could not open directory:'%s' [%s]\n",
+                TEST_DIR, strerror(err));
     }
+    assert_non_null(dirp);
+    *state = (void *)dirp;
 }
 
 void teardown_dirp(void **state)
@@ -111,11 +121,15 @@ void test_sss_openat_cloexec_success(void **state)
     int dir_fd;
     int flags = O_RDWR;
     char path[PATH_MAX] = {'\0'};
+    char *basec;
     const char *relativepath;
 
-    relativepath = strchr(get_filepath(path), 't');
     dir_fd = dirfd((DIR *)*state);
+    basec = strdup(get_filepath(path));
+    assert_non_null(basec);
+    relativepath = basename(basec);
     fd = sss_openat_cloexec(dir_fd, relativepath, flags, &ret);
+    free(basec);
     assert_true(fd != -1);
 
     ret_flag = fcntl(fd, F_GETFD, 0);
@@ -153,5 +167,6 @@ int main(void)
                                  teardown_dirp)
     };
 
+    tests_set_cwd();
     return run_tests(tests);
 }

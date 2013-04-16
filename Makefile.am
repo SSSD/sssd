@@ -1249,7 +1249,8 @@ test_find_uid_LDADD = \
 
 test_io_SOURCES = \
     src/tests/cmocka/test_io.c \
-    src/util/io.c
+    src/util/io.c \
+    src/tests/common.c
 test_io_CFLAGS = \
     $(AM_CFLAGS)
 test_io_LDADD = \
