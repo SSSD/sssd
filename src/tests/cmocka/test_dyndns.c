@@ -210,6 +210,7 @@ void dyndns_test_ok(void **state)
     dyndns_test_ctx->state = MOCK_NSUPDATE_OK;
 
     req = be_nsupdate_send(tmp_ctx, dyndns_test_ctx->tctx->ev,
+                           BE_NSUPDATE_AUTH_GSS_TSIG,
                            discard_const("test message"), false);
     assert_non_null(req);
     tevent_req_set_callback(req, dyndns_test_done, dyndns_test_ctx);
@@ -240,6 +241,7 @@ void dyndns_test_error(void **state)
     dyndns_test_ctx->state = MOCK_NSUPDATE_ERR;
 
     req = be_nsupdate_send(tmp_ctx, dyndns_test_ctx->tctx->ev,
+                           BE_NSUPDATE_AUTH_GSS_TSIG,
                            discard_const("test message"), false);
     assert_non_null(req);
     tevent_req_set_callback(req, dyndns_test_done, dyndns_test_ctx);
@@ -270,6 +272,7 @@ void dyndns_test_timeout(void **state)
     dyndns_test_ctx->state = MOCK_NSUPDATE_TIMEOUT;
 
     req = be_nsupdate_send(tmp_ctx, dyndns_test_ctx->tctx->ev,
+                           BE_NSUPDATE_AUTH_GSS_TSIG,
                            discard_const("test message"), false);
     assert_non_null(req);
     tevent_req_set_callback(req, dyndns_test_done, dyndns_test_ctx);

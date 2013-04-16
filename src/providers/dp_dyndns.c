@@ -932,9 +932,13 @@ struct be_nsupdate_state {
 };
 
 static void be_nsupdate_done(struct tevent_req *subreq);
+static char **be_nsupdate_args(TALLOC_CTX *mem_ctx,
+                               enum be_nsupdate_auth auth_type,
+                               bool force_tcp);
 
 struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
+                                    enum be_nsupdate_auth auth_type,
                                     char *nsupdate_msg,
                                     bool force_tcp)
 {
@@ -944,7 +948,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct be_nsupdate_state *state;
-    char *args[4];
+    char **args;
 
     req = tevent_req_create(mem_ctx, &state, struct be_nsupdate_state);
     if (req == NULL) {
@@ -963,30 +967,18 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     child_pid = fork();
 
     if (child_pid == 0) { /* child */
-        memset(args, 0, 4 * sizeof(char *));
-
-        args[0] = talloc_strdup(state, NSUPDATE_PATH);
-        args[1] = talloc_strdup(state, "-g");
-        if (args[0] == NULL || args[1] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        if (force_tcp) {
-            DEBUG(SSSDBG_FUNC_DATA, ("TCP is set to on\n"));
-            args[2] = talloc_strdup(state, "-v");
-            if (args[2] == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
         close(pipefd_to_child[1]);
         ret = dup2(pipefd_to_child[0], STDIN_FILENO);
         if (ret == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("dup2 failed [%d][%s].\n", ret, strerror(ret)));
+            goto done;
+        }
+
+        args = be_nsupdate_args(state, auth_type, force_tcp);
+        if (args == NULL) {
+            ret = ENOMEM;
             goto done;
         }
 
@@ -1020,6 +1012,58 @@ done:
         tevent_req_post(req, ev);
     }
     return req;
+}
+
+static char **
+be_nsupdate_args(TALLOC_CTX *mem_ctx,
+                 enum be_nsupdate_auth auth_type,
+                 bool force_tcp)
+{
+    char **argv;
+    int argc = 0;
+
+    argv = talloc_zero_array(mem_ctx, char *, 4);
+    if (argv == NULL) {
+        return NULL;
+    }
+
+    argv[argc] = talloc_strdup(argv, NSUPDATE_PATH);
+    if (argv[argc] == NULL) {
+        goto fail;
+    }
+    argc++;
+
+    switch (auth_type) {
+    case BE_NSUPDATE_AUTH_NONE:
+        DEBUG(SSSDBG_FUNC_DATA, ("nsupdate auth type: none\n"));
+        break;
+    case BE_NSUPDATE_AUTH_GSS_TSIG:
+        DEBUG(SSSDBG_FUNC_DATA, ("nsupdate auth type: GSS-TSIG\n"));
+        argv[argc] = talloc_strdup(argv, "-g");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown nsupdate auth type\n"));
+        goto fail;
+    }
+
+    if (force_tcp) {
+        DEBUG(SSSDBG_FUNC_DATA, ("TCP is set to on\n"));
+        argv[argc] = talloc_strdup(argv, "-v");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+    }
+
+    return argv;
+
+fail:
+    talloc_free(argv);
+    return NULL;
 }
 
 static void
@@ -1129,6 +1173,7 @@ static struct dp_option default_dyndns_opts[] = {
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
 
     DP_OPTION_TERMINATOR
 };
@@ -1143,6 +1188,7 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
     errno_t ret;
     struct dp_option *src_opts;
     struct be_nsupdate_ctx *ctx;
+    char *strauth;
 
     ctx = talloc_zero(mem_ctx, struct be_nsupdate_ctx);
     if (ctx == NULL) return ENOMEM;
@@ -1154,6 +1200,16 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve dynamic DNS options\n"));
         return ret;
+    }
+
+    strauth = dp_opt_get_string(ctx->opts, DP_OPT_DYNDNS_AUTH);
+    if (strcasecmp(strauth, "gss-tsig") == 0) {
+        ctx->auth_type = BE_NSUPDATE_AUTH_GSS_TSIG;
+    } else if (strcasecmp(strauth, "none") == 0) {
+        ctx->auth_type = BE_NSUPDATE_AUTH_NONE;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, ("Uknown dyndns auth type %s\n", strauth));
+        return EINVAL;
     }
 
     ctx->timer_callback = timer_callback;

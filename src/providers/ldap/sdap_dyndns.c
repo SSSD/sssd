@@ -57,6 +57,7 @@ struct sdap_dyndns_update_state {
 
     bool update_ptr;
     bool check_diff;
+    enum be_nsupdate_auth auth_type;
     bool use_server_with_nsupdate;
     char *update_msg;
 };
@@ -76,6 +77,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct be_ctx *be_ctx,
                         struct dp_option *opts,
                         struct sdap_id_ctx *sdap_ctx,
+                        enum be_nsupdate_auth auth_type,
                         const char *ifname,
                         const char *hostname,
                         const char *dns_zone,
@@ -104,6 +106,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->be_res = be_ctx->be_res;
     state->ev = ev;
     state->opts = opts;
+    state->auth_type = auth_type;
 
     if (ifname) {
        /* Unless one family is restricted, just replace all
@@ -323,7 +326,8 @@ sdap_dyndns_update_step(struct tevent_req *req)
     }
 
     /* Fork a child process to perform the DNS update */
-    subreq = be_nsupdate_send(state, state->ev, state->update_msg,
+    subreq = be_nsupdate_send(state, state->ev, state->auth_type,
+                              state->update_msg,
                               dp_opt_get_bool(state->opts,
                                               DP_OPT_DYNDNS_FORCE_TCP));
     if (subreq == NULL) {
@@ -406,7 +410,7 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
     }
 
     /* Fork a child process to perform the DNS update */
-    subreq = be_nsupdate_send(state, state->ev,
+    subreq = be_nsupdate_send(state, state->ev, state->auth_type,
                               state->update_msg,
                               dp_opt_get_bool(state->opts,
                                               DP_OPT_DYNDNS_FORCE_TCP));

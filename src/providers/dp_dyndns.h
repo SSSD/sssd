@@ -31,8 +31,14 @@ struct sss_iface_addr;
 
 typedef void (*nsupdate_timer_fn_t)(void *pvt);
 
+enum be_nsupdate_auth {
+    BE_NSUPDATE_AUTH_NONE,
+    BE_NSUPDATE_AUTH_GSS_TSIG,
+};
+
 struct be_nsupdate_ctx {
     struct dp_option *opts;
+    enum be_nsupdate_auth auth_type;
 
     time_t last_refresh;
     bool timer_in_progress;
@@ -48,6 +54,7 @@ enum dp_dyndns_opts {
     DP_OPT_DYNDNS_TTL,
     DP_OPT_DYNDNS_UPDATE_PTR,
     DP_OPT_DYNDNS_FORCE_TCP,
+    DP_OPT_DYNDNS_AUTH,
 
     DP_OPT_DYNDNS /* attrs counter */
 };
@@ -104,6 +111,7 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
  */
 struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
+                                    enum be_nsupdate_auth auth_type,
                                     char *nsupdate_msg,
                                     bool force_tcp);
 errno_t be_nsupdate_recv(struct tevent_req *req, int *child_status);

@@ -245,6 +245,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
                                      sdap_ctx->be,
                                      ctx->dyndns_ctx->opts,
                                      sdap_ctx,
+                                     ctx->dyndns_ctx->auth_type,
                                      dp_opt_get_string(ctx->dyndns_ctx->opts,
                                                        DP_OPT_DYNDNS_IFACE),
                                      dp_opt_get_string(ctx->basic,

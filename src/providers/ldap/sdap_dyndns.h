@@ -27,6 +27,7 @@
 
 #include "util/util.h"
 #include "providers/dp_backend.h"
+#include "providers/dp_dyndns.h"
 #include "providers/ldap/ldap_common.h"
 
 struct tevent_req *
@@ -35,6 +36,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct be_ctx *be_ctx,
                         struct dp_option *opts,
                         struct sdap_id_ctx *sdap_ctx,
+                        enum be_nsupdate_auth auth_type,
                         const char *ifname,
                         const char *hostname,
                         const char *dns_zone,
