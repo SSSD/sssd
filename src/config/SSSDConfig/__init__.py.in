@@ -149,6 +149,7 @@ option_strings = {
     'ad_server' : _('Active Directory server address'),
     'ad_backup_server' : _('Active Directory backup server address'),
     'ad_hostname' : _('Active Directory client hostname'),
+    'ad_enable_dns_sites' : _('Enable DNS sites - location based service discovery'),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

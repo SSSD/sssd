@@ -131,6 +131,27 @@ ldap_id_mapping = False
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ad_enable_dns_sites (boolean)</term>
+                    <listitem>
+                        <para>
+                            Enables DNS sites - location based
+                            service discovery.
+                        </para>
+                        <para>
+                            If true and service discovery (see Service
+                            Discovery paragraph at the bottom of the man page)
+                            is enabled, the SSSD will first attempt to discover
+                            the Active Directory server to connect to using the
+                            Active Directory Site Discovery and fall back to
+                            the DNS SRV records if no AD site is found.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/override_homedir.xml" />
 
                 <varlistentry>

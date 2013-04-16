@@ -35,6 +35,7 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_init_shared.h"
 #include "providers/ad/ad_id.h"
+#include "providers/ad/ad_srv.h"
 
 struct ad_options *ad_options = NULL;
 
@@ -108,6 +109,8 @@ sssm_ad_id_init(struct be_ctx *bectx,
     struct ad_id_ctx *ad_ctx;
     struct sdap_id_ctx *sdap_ctx;
     const char *hostname;
+    const char *ad_domain;
+    struct ad_srv_plugin_ctx *srv_ctx;
 
     if (!ad_options) {
         ret = common_ad_init(bectx);
@@ -178,11 +181,28 @@ sssm_ad_id_init(struct be_ctx *bectx,
 
     /* setup SRV lookup plugin */
     hostname = dp_opt_get_string(ad_options->basic, AD_HOSTNAME);
-    ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
-                                    "[%d]: %s\n", ret, strerror(ret)));
-        goto done;
+    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES)) {
+        /* use AD plugin */
+        ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
+        srv_ctx = ad_srv_plugin_ctx_init(bectx, bectx->be_res,
+                                         default_host_dbs, ad_options->id,
+                                         hostname, ad_domain);
+        if (srv_ctx == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        be_fo_set_srv_lookup_plugin(bectx, ad_srv_plugin_send,
+                                    ad_srv_plugin_recv, srv_ctx, "AD");
+    } else {
+        /* fall back to standard plugin */
+        ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
+                                        "[%d]: %s\n", ret, strerror(ret)));
+            goto done;
+        }
     }
 
     *ops = &ad_id_ops;

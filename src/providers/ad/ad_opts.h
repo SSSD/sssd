@@ -34,6 +34,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_hostname", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING},
+    { "ad_enable_dns_sites", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     DP_OPTION_TERMINATOR
 };
 

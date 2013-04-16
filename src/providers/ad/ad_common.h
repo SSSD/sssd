@@ -37,6 +37,7 @@ enum ad_basic_opt {
     AD_HOSTNAME,
     AD_KEYTAB,
     AD_KRB5_REALM,
+    AD_ENABLE_DNS_SITES,
 
     AD_OPTS_BASIC /* opts counter */
 };

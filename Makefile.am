@@ -467,6 +467,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_hostid.h \
     src/providers/ipa/ipa_opts.h \
     src/providers/ipa/ipa_srv.h \
+    src/providers/ad/ad_srv.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
@@ -1562,6 +1563,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_access.c \
     src/providers/ad/ad_access.h \
     src/providers/ad/ad_opts.h \
+    src/providers/ad/ad_srv.c \
     src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
@@ -1571,12 +1573,14 @@ libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
-    $(KRB5_CFLAGS)
+    $(KRB5_CFLAGS) \
+    $(NDR_NBT_CFLAGS)
 libsss_ad_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
+    $(NDR_NBT_LIBS) \
     libsss_util.la \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
