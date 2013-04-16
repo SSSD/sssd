@@ -768,6 +768,9 @@ done:
  * initialization
  ***************************************************************************/
 
+/* Copy of sss_mc_set_recycled is present in the src/tools/tools_mc_util.c.
+ * If you modify this function, you should modify the duplicated function
+ * too. */
 static errno_t sss_mc_set_recycled(int fd)
 {
     uint32_t w = SSS_MC_HEADER_RECYCLED;

@@ -28,6 +28,9 @@
 #include "util/mmap_cache.h"
 #include "sss_client/sss_cli.h"
 
+/* This is a copy of sss_mc_set_recycled present in
+ * src/responder/nss/nsssrv_mmap_cache.c. If you modify this function,
+ * you should modify the original function too. */
 static errno_t sss_mc_set_recycled(int fd)
 {
     uint32_t w = SSS_MC_HEADER_RECYCLED;
