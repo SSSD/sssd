@@ -617,6 +617,7 @@ sssd_nss_SOURCES = \
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
+    libsss_idmap.la \
     libsss_util.la
 
 sssd_pam_SOURCES = \

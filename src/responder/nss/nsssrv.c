@@ -391,6 +391,16 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
     /* nss_shutdown(rctx); */
 }
 
+static void *idmap_talloc(size_t size, void *pvt)
+{
+    return talloc_size(pvt, size);
+}
+
+static void idmap_free(void *ptr, void *pvt)
+{
+    talloc_free(ptr);
+}
+
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -401,6 +411,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct nss_ctx *nctx;
     int memcache_timeout;
     int ret, max_retries;
+    enum idmap_error_code err;
     int hret;
     int fd_limit;
 
@@ -455,6 +466,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     for (iter = nctx->rctx->be_conns; iter; iter = iter->next) {
         sbus_reconnect_init(iter->conn, max_retries,
                             nss_dp_reconnect_init, iter);
+    }
+
+    err = sss_idmap_init(idmap_talloc, nctx, idmap_free,
+                         &nctx->idmap_ctx);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));
+        ret = EFAULT;
+        goto fail;
     }
 
     /* Create the lookup table for netgroup results */

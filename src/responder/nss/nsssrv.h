@@ -32,6 +32,7 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
+#include "lib/idmap/sss_idmap.h"
 
 #define NSS_PACKET_MAX_RECV_SIZE 1024
 
@@ -68,6 +69,8 @@ struct nss_ctx {
 
     struct sss_mc_ctx *pwd_mc_ctx;
     struct sss_mc_ctx *grp_mc_ctx;
+
+    struct sss_idmap_ctx *idmap_ctx;
 };
 
 struct nss_packet;
