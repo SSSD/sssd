@@ -23,6 +23,7 @@
 
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_opts.h"
+#include "providers/dp_dyndns.h"
 
 errno_t
 ad_get_common_options(TALLOC_CTX *mem_ctx,
@@ -697,4 +698,21 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+errno_t ad_get_dyndns_options(struct be_ctx *be_ctx,
+                              struct ad_options *ad_opts)
+{
+    errno_t ret;
+
+    ret = be_nsupdate_init(ad_opts, be_ctx, ad_dyndns_opts, ad_dyndns_timer,
+                           ad_opts, &ad_opts->dyndns_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot initialize AD dyndns opts [%d]: %s\n",
+               ret, sss_strerror(ret)));
+        return ret;
+    }
+
+    return EOK;
 }

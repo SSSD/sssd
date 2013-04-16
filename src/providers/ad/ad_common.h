@@ -64,6 +64,10 @@ struct ad_options {
     /* Auth and chpass Provider */
     struct dp_option *auth;
     struct krb5_ctx *auth_ctx;
+
+    /* Dynamic DNS updates */
+    struct be_resolv_ctx *be_res;
+    struct be_nsupdate_ctx *dyndns_ctx;
 };
 
 errno_t
@@ -90,5 +94,14 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
                     struct ad_options *ad_opts,
                     struct be_ctx *bectx,
                     struct dp_option **_opts);
+
+errno_t
+ad_get_dyndns_options(struct be_ctx *be_ctx,
+                      struct ad_options *ad_opts);
+
+/* AD dynamic DNS updates */
+errno_t ad_dyndns_init(struct be_ctx *be_ctx,
+                       struct ad_options *ctx);
+void ad_dyndns_timer(void *pvt);
 
 #endif /* AD_COMMON_H_ */

@@ -32,6 +32,8 @@
 #include "providers/ldap/ldap_opts.h"
 #include "providers/krb5/krb5_opts.h"
 #include "providers/krb5/krb5_common.h"
+#include "providers/ad/ad_opts.h"
+#include "providers/dp_dyndns.h"
 #include "tests/common.h"
 
 struct test_domain {
@@ -87,6 +89,10 @@ START_TEST(test_compare_opts)
 
     ret = compare_dp_options(default_krb5_opts, KRB5_OPTS,
                              ipa_def_krb5_opts);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    ret = compare_dp_options(ipa_dyndns_opts, DP_OPT_DYNDNS,
+                             ad_dyndns_opts);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
 }
 END_TEST

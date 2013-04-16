@@ -238,4 +238,15 @@ struct sdap_attr_map ad_autofs_entry_map[] = {
     SDAP_ATTR_MAP_TERMINATOR
 };
 
+struct dp_option ad_dyndns_opts[] = {
+    { "dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_refresh_interval", DP_OPT_NUMBER, { .number = 86400 }, NULL_NUMBER },
+    { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "dyndns_ttl", DP_OPT_NUMBER, { .number = 3600 }, NULL_NUMBER },
+    { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
+    { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
+    DP_OPTION_TERMINATOR
+};
+
 #endif /* AD_OPTS_H_ */

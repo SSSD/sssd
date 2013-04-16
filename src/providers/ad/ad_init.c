@@ -36,6 +36,7 @@
 #include "providers/krb5/krb5_init_shared.h"
 #include "providers/ad/ad_id.h"
 #include "providers/ad/ad_srv.h"
+#include "providers/dp_dyndns.h"
 
 struct ad_options *ad_options = NULL;
 
@@ -164,6 +165,13 @@ sssm_ad_id_init(struct be_ctx *bectx,
         /* Set up the ID mapping object */
         ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
         if (ret != EOK) goto done;
+    }
+
+    ret = ad_dyndns_init(sdap_ctx->be, ad_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+             ("Failure setting up automatic DNS update\n"));
+        /* Continue without DNS updates */
     }
 
     ret = sdap_id_setup_tasks(sdap_ctx);

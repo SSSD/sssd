@@ -152,6 +152,96 @@ ldap_id_mapping = False
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>dyndns_update (boolean)</term>
+                    <listitem>
+                        <para>
+                            Optional. This option tells SSSD to automatically
+                            update the Active Directory DNS server with
+                            the IP address of this client.
+                        </para>
+                        <para>
+                            NOTE: On older systems (such as RHEL 5), for this
+                            behavior to work reliably, the default Kerberos
+                            realm must be set properly in /etc/krb5.conf
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_ttl (integer)</term>
+                    <listitem>
+                        <para>
+                            The TTL to apply to the client DNS record when updating it.
+                            If dyndns_update is false this has no effect. This will
+                            override the TTL serverside if set by an administrator.
+                        </para>
+                        <para>
+                            Default: 3600 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_iface (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Applicable only when dyndns_update
+                            is true. Choose the interface whose IP address
+                            should be used for dynamic DNS updates.
+                        </para>
+                        <para>
+                            Default: Use the IP address of the IPA LDAP connection
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_refresh_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            How often should the back end perform periodic DNS update in
+                            addition to the automatic update performed when the back end
+                            goes online.
+                            This option is optional and applicable only when dyndns_update
+                            is true.
+                        </para>
+                        <para>
+                            Default: 86400 (24 hours)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_update_ptr (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether the PTR record should also be explicitly
+                            updated when updating the client's DNS records.
+                            Applicable only when dyndns_update is true.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_force_tcp (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should default to using
+                            TCP for communicating with the DNS server.
+                        </para>
+                        <para>
+                            Default: False (let nsupdate choose the protocol)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/override_homedir.xml" />
 
                 <varlistentry>
