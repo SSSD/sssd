@@ -130,6 +130,7 @@ option_strings = {
     'dyndns_iface' : _("The interface whose IP should be used for dynamic DNS updates"),
     'dyndns_refresh_interval' : _("How often to periodically update the client's DNS entry"),
     'dyndns_update_ptr' : _("Whether the provider should explicitly update the PTR record as well"),
+    'dyndns_force_tcp' : _("Whether the nsupdate utility should default to using TCP"),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

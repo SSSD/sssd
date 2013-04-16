@@ -57,6 +57,7 @@ struct dp_option ipa_dyndns_opts[] = {
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     DP_OPTION_TERMINATOR
 };
 

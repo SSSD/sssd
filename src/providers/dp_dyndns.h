@@ -47,6 +47,7 @@ enum dp_dyndns_opts {
     DP_OPT_DYNDNS_IFACE,
     DP_OPT_DYNDNS_TTL,
     DP_OPT_DYNDNS_UPDATE_PTR,
+    DP_OPT_DYNDNS_FORCE_TCP,
 
     DP_OPT_DYNDNS /* attrs counter */
 };
@@ -103,7 +104,8 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
  */
 struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
-                                    char *nsupdate_msg);
+                                    char *nsupdate_msg,
+                                    bool force_tcp);
 errno_t be_nsupdate_recv(struct tevent_req *req, int *child_status);
 
 struct tevent_req * nsupdate_get_addrs_send(TALLOC_CTX *mem_ctx,

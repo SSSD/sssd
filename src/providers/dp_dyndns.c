@@ -935,7 +935,8 @@ static void be_nsupdate_done(struct tevent_req *subreq);
 
 struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
-                                    char *nsupdate_msg)
+                                    char *nsupdate_msg,
+                                    bool force_tcp)
 {
     int pipefd_to_child[2];
     pid_t child_pid;
@@ -943,7 +944,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct be_nsupdate_state *state;
-    char *args[3];
+    char *args[4];
 
     req = tevent_req_create(mem_ctx, &state, struct be_nsupdate_state);
     if (req == NULL) {
@@ -962,12 +963,22 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     child_pid = fork();
 
     if (child_pid == 0) { /* child */
+        memset(args, 0, 4 * sizeof(char *));
+
         args[0] = talloc_strdup(state, NSUPDATE_PATH);
         args[1] = talloc_strdup(state, "-g");
-        args[2] = NULL;
         if (args[0] == NULL || args[1] == NULL) {
             ret = ENOMEM;
             goto done;
+        }
+
+        if (force_tcp) {
+            DEBUG(SSSDBG_FUNC_DATA, ("TCP is set to on\n"));
+            args[2] = talloc_strdup(state, "-v");
+            if (args[2] == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
         }
 
         close(pipefd_to_child[1]);
@@ -1117,6 +1128,7 @@ static struct dp_option default_dyndns_opts[] = {
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
+    { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
 
     DP_OPTION_TERMINATOR
 };

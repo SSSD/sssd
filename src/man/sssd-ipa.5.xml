@@ -240,6 +240,19 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dyndns_force_tcp (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should default to using
+                            TCP for communicating with the DNS server.
+                        </para>
+                        <para>
+                            Default: False (let nsupdate choose the protocol)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_hbac_search_base (string)</term>
                     <listitem>
                         <para>

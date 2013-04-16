@@ -323,7 +323,9 @@ sdap_dyndns_update_step(struct tevent_req *req)
     }
 
     /* Fork a child process to perform the DNS update */
-    subreq = be_nsupdate_send(state, state->ev, state->update_msg);
+    subreq = be_nsupdate_send(state, state->ev, state->update_msg,
+                              dp_opt_get_bool(state->opts,
+                                              DP_OPT_DYNDNS_FORCE_TCP));
     if (subreq == NULL) {
         return EIO;
     }
@@ -405,7 +407,9 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
 
     /* Fork a child process to perform the DNS update */
     subreq = be_nsupdate_send(state, state->ev,
-                              state->update_msg);
+                              state->update_msg,
+                              dp_opt_get_bool(state->opts,
+                                              DP_OPT_DYNDNS_FORCE_TCP));
     if (subreq == NULL) {
         return EIO;
     }
