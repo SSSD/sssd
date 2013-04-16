@@ -43,6 +43,21 @@ int sdap_connect_recv(struct tevent_req *req,
                       TALLOC_CTX *memctx,
                       struct sdap_handle **sh);
 
+struct tevent_req *sdap_connect_host_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_options *opts,
+                                          struct resolv_ctx *resolv_ctx,
+                                          enum restrict_family family_order,
+                                          enum host_database *host_db,
+                                          const char *protocol,
+                                          const char *host,
+                                          int port,
+                                          bool use_start_tls);
+
+errno_t sdap_connect_host_recv(TALLOC_CTX *mem_ctx,
+                               struct tevent_req *req,
+                               struct sdap_handle **_sh);
+
 struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
                                        struct sss_domain_info *dom,

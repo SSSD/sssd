@@ -434,6 +434,192 @@ int sdap_connect_recv(struct tevent_req *req,
     return EOK;
 }
 
+struct sdap_connect_host_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    char *uri;
+    char *protocol;
+    char *host;
+    int port;
+    bool use_start_tls;
+
+    struct sdap_handle *sh;
+};
+
+static void sdap_connect_host_resolv_done(struct tevent_req *subreq);
+static void sdap_connect_host_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_connect_host_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_options *opts,
+                                          struct resolv_ctx *resolv_ctx,
+                                          enum restrict_family family_order,
+                                          enum host_database *host_db,
+                                          const char *protocol,
+                                          const char *host,
+                                          int port,
+                                          bool use_start_tls)
+{
+    struct sdap_connect_host_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_connect_host_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->opts = opts;
+    state->port = port;
+    state->use_start_tls = use_start_tls;
+
+    state->protocol = talloc_strdup(state, protocol);
+    if (state->protocol == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->host = talloc_strdup(state, host);
+    if (state->host == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->uri = talloc_asprintf(state, "%s://%s:%d", protocol, host, port);
+    if (state->uri == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Resolving host %s\n", host));
+
+    subreq = resolv_gethostbyname_send(state, state->ev, resolv_ctx,
+                                       host, family_order, host_db);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_connect_host_resolv_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_connect_host_state *state = NULL;
+    struct resolv_hostent *hostent = NULL;
+    struct sockaddr_storage *sockaddr = NULL;
+    int status;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_connect_host_state);
+
+    ret = resolv_gethostbyname_recv(subreq, state, &status, NULL, &hostent);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to resolve host %s: %s\n",
+                                  state->host, resolv_strerror(status)));
+        goto done;
+    }
+
+    sockaddr = resolv_get_sockaddr_address(state, hostent, state->port);
+    if (sockaddr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("resolv_get_sockaddr_address() failed\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Connecting to %s\n", state->uri));
+
+    subreq = sdap_connect_send(state, state->ev, state->opts,
+                               state->uri, sockaddr, state->use_start_tls);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sdap_connect_host_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+static void sdap_connect_host_done(struct tevent_req *subreq)
+{
+    struct sdap_connect_host_state *state = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_connect_host_state);
+
+    ret = sdap_connect_recv(subreq, state, &state->sh);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* if TLS was used, the sdap handle is already marked as connected */
+    if (!state->use_start_tls) {
+        /* we need to mark handle as connected to allow anonymous bind */
+        ret = sdap_set_connected(state->sh, state->ev);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_set_connected() failed\n"));
+            goto done;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Successful connection to %s\n", state->uri));
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t sdap_connect_host_recv(TALLOC_CTX *mem_ctx,
+                               struct tevent_req *req,
+                               struct sdap_handle **_sh)
+{
+    struct sdap_connect_host_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_connect_host_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_sh = talloc_steal(mem_ctx, state->sh);
+
+    return EOK;
+}
+
+
 /* ==Simple-Bind========================================================== */
 
 struct simple_bind_state {
