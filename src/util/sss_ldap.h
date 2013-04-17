@@ -74,4 +74,6 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
                                  struct sdap_search_base **search_bases,
                                  char **_filter);
 
+char *sss_ldap_encode_ndr_uint32(TALLOC_CTX *mem_ctx, uint32_t flags);
+
 #endif /* __SSS_LDAP_H__ */

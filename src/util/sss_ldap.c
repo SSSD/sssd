@@ -587,3 +587,18 @@ done:
     talloc_free(filter);
     return ret;
 }
+
+char *sss_ldap_encode_ndr_uint32(TALLOC_CTX *mem_ctx, uint32_t flags)
+{
+    char hex[9]; /* 4 bytes in hex + terminating zero */
+    errno_t ret;
+
+    ret = snprintf(hex, 9, "%08x", flags);
+    if (ret != 8) {
+        return NULL;
+    }
+
+    return talloc_asprintf(mem_ctx, "\\%c%c\\%c%c\\%c%c\\%c%c",
+                           hex[6], hex[7], hex[4], hex[5],
+                           hex[2], hex[3], hex[0], hex[1]);
+}
