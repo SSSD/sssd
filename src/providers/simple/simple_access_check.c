@@ -190,7 +190,8 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
         goto done;
     } else if (ret != EAGAIN) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot check if group was already updated\n"));
+              ("Cannot check if group was already updated [%d]: %s\n",
+               ret, sss_strerror(ret)));
         goto done;
     }
     /* EAGAIN - still needs update */
@@ -245,14 +246,14 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
                ("Could not look up group by gid [%lu]: [%d][%s]\n",
-               state->gid, ret, strerror(ret)));
+               state->gid, ret, sss_strerror(ret)));
         return ret;
     }
 
     state->name = ldb_msg_find_attr_as_string(group, SYSDB_NAME, NULL);
     if (!state->name) {
         DEBUG(SSSDBG_OP_FAILURE, ("No group name\n"));
-        return ENOENT;
+        return ERR_ACCOUNT_UNKNOWN;
     }
 
     if (is_posix(group) == false) {
@@ -371,11 +372,12 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
                                     username, attrs, &user);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("No such user %s\n", username));
+        ret = ERR_ACCOUNT_UNKNOWN;
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Could not look up username [%s]: [%d][%s]\n",
-              username, ret, strerror(ret)));
+              username, ret, sss_strerror(ret)));
         goto done;
     }
 
@@ -563,7 +565,7 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
                ("Could not look up primary group [%lu]: [%d][%s]\n",
-               gid, ret, strerror(ret)));
+               gid, ret, sss_strerror(ret)));
         /* We have to treat this as non-fatal, because the primary
          * group may be local to the machine and not available in
          * our ID provider.
@@ -629,10 +631,14 @@ struct tevent_req *simple_access_check_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_FUNC_DATA, ("Simple access check for %s\n", username));
 
     ret = simple_check_users(ctx, username, &state->access_granted);
-    if (ret != EAGAIN) {
-        /* Both access denied and an error */
+    if (ret == EOK) {
+        goto immediate;
+    } else if (ret != EAGAIN) {
+        ret = ERR_INTERNAL;
         goto immediate;
     }
+
+    /* EAGAIN -- check groups */
 
     if (!ctx->allow_groups && !ctx->deny_groups) {
         /* There are no group restrictions, so just return
@@ -648,7 +654,7 @@ struct tevent_req *simple_access_check_send(TALLOC_CTX *mem_ctx,
      */
     subreq = simple_check_get_groups_send(state, ev, ctx, username);
     if (!subreq) {
-        ret = EIO;
+        ret = ENOMEM;
         goto immediate;
     }
     tevent_req_set_callback(subreq, simple_access_check_done, req);
@@ -692,7 +698,9 @@ static void simple_access_check_done(struct tevent_req *subreq)
     ret = simple_check_groups(state->ctx, state->group_names,
                               &state->access_granted);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not check group access [%d]: %s\n",
+              ret, sss_strerror(ret)));
+        tevent_req_error(req, ERR_INTERNAL);
         return;
     }
 
