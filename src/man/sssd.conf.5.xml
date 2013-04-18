@@ -117,6 +117,8 @@
                                 must be configured or SSSD won't start.
                                 This parameter described the list of domains
                                 in the order you want them to be queried.
+                                A domain name should only consist of alphanumeric
+                                ASCII characters, dashes and underscores.
                             </para>
                         </listitem>
                     </varlistentry>
