@@ -905,6 +905,10 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
     struct sss_domain_info *ret_dom = NULL;
 
     for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
+        if (dom->disabled) {
+            continue;
+        }
+
         if (!IS_SUBDOMAIN(dom)) {
             time_diff = now - dom->subdomains_last_checked.tv_sec;
         }
