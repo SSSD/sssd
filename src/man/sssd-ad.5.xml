@@ -68,6 +68,9 @@
             <programlisting>
 ldap_id_mapping = False
             </programlisting>
+            Users, groups and other entities served by SSSD are always treated as
+            case-insensitive in the AD provider for compatibility with Active
+            Directory's LDAP implementation.
         </para>
     </refsect1>
 
