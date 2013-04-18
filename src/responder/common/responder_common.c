@@ -899,8 +899,6 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
 struct sss_domain_info *
 responder_get_domain(struct resp_ctx *rctx, const char *name)
 {
-    time_t now = time(NULL);
-    time_t time_diff = 0;
     struct sss_domain_info *dom;
     struct sss_domain_info *ret_dom = NULL;
 
@@ -909,19 +907,12 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
             continue;
         }
 
-        if (!IS_SUBDOMAIN(dom)) {
-            time_diff = now - dom->subdomains_last_checked.tv_sec;
-        }
         if (strcasecmp(dom->name, name) == 0 ||
             (dom->flat_name != NULL &&
              strcasecmp(dom->flat_name, name) == 0)) {
             ret_dom = dom;
-            if (!IS_SUBDOMAIN(dom) ||
-                (IS_SUBDOMAIN(dom) && time_diff < rctx->domains_timeout)) {
-                break;
-            }
+            break;
         }
-
     }
 
     if (!ret_dom) {
