@@ -169,8 +169,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
 int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
                            struct be_conn **_conn);
 struct sss_domain_info *
-responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
-                     const char *domain);
+responder_get_domain(struct resp_ctx *rctx, const char *domain);
 
 /* responder_cmd.c */
 int sss_cmd_empty_packet(struct sss_packet *packet);

@@ -897,8 +897,7 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
 }
 
 struct sss_domain_info *
-responder_get_domain(TALLOC_CTX *sd_mem_ctx, struct resp_ctx *rctx,
-                     const char *name)
+responder_get_domain(struct resp_ctx *rctx, const char *name)
 {
     time_t now = time(NULL);
     time_t time_diff = 0;

@@ -412,7 +412,7 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
     if (domainname != NULL) {
         /* mem_ctx because it duplicates only subdomains not domains
          * so I cannot easily steal it */
-        domain = responder_get_domain(mem_ctx, state->rctx, domainname);
+        domain = responder_get_domain(state->rctx, domainname);
         if (domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("Corresponding domain [%s] has not been "
                                       "found\n", domainname));

@@ -143,7 +143,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
         goto done;
     }
 
-    pr_ctx->dom = responder_get_domain(pr_ctx, cctx->rctx, pr_ctx->domain_name);
+    pr_ctx->dom = responder_get_domain(cctx->rctx, pr_ctx->domain_name);
     if (pr_ctx->dom == NULL) {
         req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true,
                                       pr_ctx->domain_name);
@@ -178,7 +178,7 @@ static void pac_get_domains_done(struct tevent_req *req)
         goto done;
     }
 
-    pr_ctx->dom = responder_get_domain(pr_ctx, cctx->rctx, pr_ctx->domain_name);
+    pr_ctx->dom = responder_get_domain(cctx->rctx, pr_ctx->domain_name);
     if (pr_ctx->dom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Corresponding domain [%s] has not been "
                                   "found\n", pr_ctx->domain_name));

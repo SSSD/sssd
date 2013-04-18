@@ -842,7 +842,7 @@ int nss_cmd_getservbyname(struct cli_ctx *cctx)
            domname ? domname : "<ALL>"));
 
     if (domname) {
-        dctx->domain = responder_get_domain(dctx, cctx->rctx, domname);
+        dctx->domain = responder_get_domain(cctx->rctx, domname);
         if (!dctx->domain) {
             ret = ENOENT;
             goto done;

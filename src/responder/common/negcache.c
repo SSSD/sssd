@@ -652,7 +652,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            dom = responder_get_domain(tmpctx, rctx, domainname);
+            dom = responder_get_domain(rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Invalid domain name [%s]\n", domainname));
@@ -750,7 +750,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            dom = responder_get_domain(tmpctx, rctx, domainname);
+            dom = responder_get_domain(rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Invalid domain name [%s]\n", domainname));

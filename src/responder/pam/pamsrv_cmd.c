@@ -795,7 +795,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     /* now check user is valid */
     if (pd->domain) {
-        preq->domain = responder_get_domain(preq, cctx->rctx, pd->domain);
+        preq->domain = responder_get_domain(cctx->rctx, pd->domain);
         if (!preq->domain) {
             ret = ENOENT;
             goto done;
@@ -867,7 +867,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
     }
 
     if (preq->pd->domain) {
-        preq->domain = responder_get_domain(preq, cctx->rctx, preq->pd->domain);
+        preq->domain = responder_get_domain(cctx->rctx, preq->pd->domain);
         if (preq->domain == NULL) {
             ret = ENOENT;
             goto done;
