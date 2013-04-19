@@ -233,10 +233,10 @@ done:
  * Return information about the local domain from the main PAC responder
  * context or try to read it from cache and store it in the context.
  */
-errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
-                           struct sss_domain_info *dom,
-                           struct dom_sid **_sid,
-                           struct local_mapping_ranges **_range_map)
+errno_t get_parent_domain_data(struct pac_ctx *pac_ctx,
+                               struct sss_domain_info *dom,
+                               struct dom_sid **_sid,
+                               struct local_mapping_ranges **_range_map)
 {
     struct sysdb_ctx *sysdb;
     int ret;
@@ -270,7 +270,9 @@ errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
             goto done;
         }
 
-        basedn = sysdb_domain_dn(sysdb, tmp_ctx, dom);
+        /* The data of the parent domain should be read here. */
+        basedn = sysdb_domain_dn(sysdb, tmp_ctx,
+                                 IS_SUBDOMAIN(dom) ? dom->parent : dom);
         if (basedn == NULL) {
             ret = ENOMEM;
             goto done;

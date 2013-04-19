@@ -93,10 +93,10 @@ errno_t domsid_rid_to_uid(struct pac_ctx *pac_ctx,
                           struct dom_sid2 *domsid, uint32_t rid,
                           uid_t *uid);
 
-errno_t get_my_domain_data(struct pac_ctx *pac_ctx,
-                           struct sss_domain_info *dom,
-                           struct dom_sid **_sid,
-                           struct local_mapping_ranges **_range_map);
+errno_t get_parent_domain_data(struct pac_ctx *pac_ctx,
+                               struct sss_domain_info *dom,
+                               struct dom_sid **_sid,
+                               struct local_mapping_ranges **_range_map);
 
 errno_t get_gids_from_pac(TALLOC_CTX *mem_ctx,
                           struct pac_ctx *pac_ctx,

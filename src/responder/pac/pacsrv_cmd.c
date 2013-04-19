@@ -225,10 +225,10 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = get_my_domain_data(pr_ctx->pac_ctx, pr_ctx->dom,
-                             &my_dom_sid, &my_range_map);
+    ret = get_parent_domain_data(pr_ctx->pac_ctx, pr_ctx->dom,
+                                 &my_dom_sid, &my_range_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_my_domain_sid failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("get_parent_domain_data failed.\n"));
         goto done;
     }
 
