@@ -25,16 +25,36 @@
 #ifndef SSS_IDMAP_PRIVATE_H_
 #define SSS_IDMAP_PRIVATE_H_
 
+#define SSS_IDMAP_DEFAULT_LOWER 200000
+#define SSS_IDMAP_DEFAULT_UPPER 2000200000
+#define SSS_IDMAP_DEFAULT_RANGESIZE 200000
+#define SSS_IDMAP_DEFAULT_AUTORID false
+
 #define CHECK_IDMAP_CTX(ctx, ret) do { \
     if (ctx == NULL || ctx->alloc_func == NULL || ctx->free_func == NULL) { \
         return ret; \
     } \
 } while(0)
 
+struct sss_idmap_opts {
+    /* true if autorid compatibility mode is used */
+    bool autorid_mode;
+
+    /* smallest available id (for all domains) */
+    id_t idmap_lower;
+
+    /* highest available id (for all domains) */
+    id_t idmap_upper;
+
+    /* number of available UIDs (for single domain) */
+    id_t rangesize;
+};
+
 struct sss_idmap_ctx {
     idmap_alloc_func *alloc_func;
     void *alloc_pvt;
     idmap_free_func *free_func;
+    struct sss_idmap_opts idmap_opts;
     struct idmap_domain_info *idmap_domain_info;
 };
 

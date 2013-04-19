@@ -71,7 +71,10 @@ enum idmap_error_code {
     IDMAP_NO_RANGE,
 
     /** The provided SID is a built-in one */
-    IDMAP_BUILTIN_SID
+    IDMAP_BUILTIN_SID,
+
+    /* No more free slices */
+    IDMAP_OUT_OF_SLICES
 };
 
 /**
@@ -124,6 +127,100 @@ enum idmap_error_code sss_idmap_init(idmap_alloc_func *alloc_func,
                                      void *alloc_pvt,
                                      idmap_free_func *free_func,
                                      struct sss_idmap_ctx **ctx);
+
+/**
+ * @brief Set/unset autorid compatibility mode
+ *
+ * @param[in] ctx           idmap context
+ * @param[in] use_autorid   If true, autorid compatibility mode will be used
+ */
+enum idmap_error_code
+sss_idmap_ctx_set_autorid(struct sss_idmap_ctx *ctx, bool use_autorid);
+
+/**
+ * @brief Set the lower bound of the range of POSIX IDs
+ *
+ * @param[in] ctx           idmap context
+ * @param[in] lower         lower bound of the range
+ */
+enum idmap_error_code
+sss_idmap_ctx_set_lower(struct sss_idmap_ctx *ctx, id_t lower);
+
+/**
+ * @brief Set the upper bound of the range of POSIX IDs
+ *
+ * @param[in] ctx           idmap context
+ * @param[in] upper         upper bound of the range
+ */
+enum idmap_error_code
+sss_idmap_ctx_set_upper(struct sss_idmap_ctx *ctx, id_t upper);
+
+/**
+ * @brief Set the range size of POSIX IDs available for single domain
+ *
+ * @param[in] ctx           idmap context
+ * @param[in] rangesize     range size of IDs
+ */
+enum idmap_error_code
+sss_idmap_ctx_set_rangesize(struct sss_idmap_ctx *ctx, id_t rangesize);
+
+/**
+ * @brief Check if autorid compatibility mode is set
+ *
+ * @param[in] ctx           idmap context
+ * @param[out] _autorid     true if autorid is used
+ */
+enum idmap_error_code
+sss_idmap_ctx_get_autorid(struct sss_idmap_ctx *ctx, bool *_autorid);
+
+/**
+ * @brief Get the lower bound of the range of POSIX IDs
+ *
+ * @param[in] ctx           idmap context
+ * @param[out] _lower       returned lower bound
+ */
+enum idmap_error_code
+sss_idmap_ctx_get_lower(struct sss_idmap_ctx *ctx, id_t *_lower);
+
+/**
+ * @brief Get the upper bound of the range of POSIX IDs
+ *
+ * @param[in] ctx           idmap context
+ * @param[out] _upper       returned upper bound
+ */
+enum idmap_error_code
+sss_idmap_ctx_get_upper(struct sss_idmap_ctx *ctx, id_t *_upper);
+
+/**
+ * @brief Get the range size of POSIX IDs available for single domain
+ *
+ * @param[in] ctx           idmap context
+ * @param[out] _rangesize   returned range size
+ */
+enum idmap_error_code
+sss_idmap_ctx_get_rangesize(struct sss_idmap_ctx *ctx, id_t *rangesize);
+
+/**
+ * @brief Calculate new range of available POSIX IDs
+ *
+ * @param[in] ctx           Idmap context
+ * @param[in] dom_sid       Zero-terminated string representation of the domain
+ *                          SID (S-1-15-.....)
+ * @param[in/out] slice_num Slice number to be used. Set this pointer to NULL or
+ *                          the addressed value to -1 to calculate slice number
+ *                          automatically. The calculated value will be
+ *                          returned in this parameter.
+ * @param[out] range        Structure containing upper and lower bound of the
+ *                          range of POSIX IDs
+ *
+ * @return
+ *  - #IDMAP_OUT_OF_SLICES: Cannot calculate new range because all slices are
+ *                          used.
+ */
+enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
+                                                const char *dom_sid,
+                                                id_t *slice_num,
+                                                struct sss_idmap_range *range);
 
 /**
  * @brief Add a domain to the idmap context

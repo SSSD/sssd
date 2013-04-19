@@ -26,16 +26,8 @@
 #include "src/providers/ldap/sdap.h"
 #include "src/providers/ldap/ldap_common.h"
 
-struct sdap_idmap_slice {
-    struct sdap_idmap_slice *prev;
-    struct sdap_idmap_slice *next;
-
-    id_t slice_num;
-};
-
 struct sdap_idmap_ctx {
     struct sss_idmap_ctx *map;
-    struct sdap_idmap_slice *slices;
 
     struct sdap_id_ctx *id_ctx;
 };

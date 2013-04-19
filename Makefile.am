@@ -583,9 +583,10 @@ libipa_hbac_la_LDFLAGS = \
 dist_pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
 libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap.c \
-    src/lib/idmap/sss_idmap_conv.c
+    src/lib/idmap/sss_idmap_conv.c \
+    src/util/murmurhash3.c
 libsss_idmap_la_LDFLAGS = \
-    -version-info 0:1:0
+    -version-info 1:0:1
 
 
 include_HEADERS = \

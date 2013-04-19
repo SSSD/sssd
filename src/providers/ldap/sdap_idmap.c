@@ -50,6 +50,10 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     const char *dom_name;
     const char *sid_str;
     id_t slice_num;
+    id_t idmap_lower;
+    id_t idmap_upper;
+    id_t rangesize;
+    bool autorid_mode;
     struct sdap_idmap_ctx *idmap_ctx = NULL;
     struct sysdb_ctx *sysdb = id_ctx->be->domain->sysdb;
 
@@ -62,6 +66,32 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
     idmap_ctx->id_ctx = id_ctx;
+
+    idmap_lower = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
+                                 SDAP_IDMAP_LOWER);
+    idmap_upper = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
+                                 SDAP_IDMAP_UPPER);
+    rangesize = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
+                               SDAP_IDMAP_RANGESIZE);
+    autorid_mode = dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic,
+                                   SDAP_IDMAP_AUTORID_COMPAT);
+
+    /* Validate that the values make sense */
+    if (rangesize <= 0
+            || idmap_upper <= idmap_lower
+            || (idmap_upper-idmap_lower) < rangesize)
+    {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Invalid settings for range selection: [%d][%d][%d]\n",
+               idmap_lower, idmap_upper, rangesize));
+        ret = EINVAL;
+    }
+
+    if (((idmap_upper - idmap_lower) % rangesize) != 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Range size does not divide evenly. Uppermost range will "
+               "not be used\n"));
+    }
 
     /* Initialize the map */
     err = sss_idmap_init(sdap_idmap_talloc, idmap_ctx,
@@ -77,6 +107,16 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
         }
         goto done;
+    }
+
+    err = sss_idmap_ctx_set_autorid(idmap_ctx->map, autorid_mode);
+    err |= sss_idmap_ctx_set_lower(idmap_ctx->map, idmap_lower);
+    err |= sss_idmap_ctx_set_upper(idmap_ctx->map, idmap_upper);
+    err |= sss_idmap_ctx_set_rangesize(idmap_ctx->map, rangesize);
+    if (err != IDMAP_SUCCESS) {
+        /* This should never happen */
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_idmap_ctx corrupted\n"));
+        return EIO;
     }
 
     /* Read in any existing mappings from the cache */
@@ -182,116 +222,26 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
                       id_t slice)
 {
     errno_t ret;
-    struct sdap_idmap_slice *new_slice;
-    id_t idmap_lower;
-    id_t idmap_upper;
-    id_t rangesize;
-    id_t max_slices;
-    id_t orig_slice;
-    uint32_t hash_val;
-    struct sdap_idmap_slice *s;
     struct sss_idmap_range range;
     enum idmap_error_code err;
+    id_t idmap_upper;
 
-    idmap_lower = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
-                                 SDAP_IDMAP_LOWER);
-    idmap_upper = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
-                                 SDAP_IDMAP_UPPER);
-    rangesize = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
-                               SDAP_IDMAP_RANGESIZE);
-
-    /* Validate that the values make sense */
-    if (rangesize <= 0
-            || idmap_upper <= idmap_lower
-            || (idmap_upper-idmap_lower) < rangesize)
-    {
+    ret = sss_idmap_ctx_get_upper(idmap_ctx->map, &idmap_upper);
+    if (ret != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Invalid settings for range selection: [%d][%d][%d]\n",
-               idmap_lower, idmap_upper, rangesize));
-        return EINVAL;
+              ("Failed to get upper bound of available ID range.\n"));
+        ret = EIO;
+        goto done;
     }
 
-    max_slices = (idmap_upper - idmap_lower) / rangesize;
-    if (((idmap_upper - idmap_lower) % rangesize) != 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Range size does not divide evenly. Uppermost range will "
-               "not be used\n"));
+    ret = sss_idmap_calculate_range(idmap_ctx->map, dom_sid, &slice, &range);
+    if (ret != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to calculate range for domain [%s]: [%d]\n", dom_name,
+               ret));
+        ret = EIO;
+        goto done;
     }
-
-    new_slice = talloc_zero(idmap_ctx, struct sdap_idmap_slice);
-    if (!new_slice) return ENOMEM;
-
-    if (slice != -1) {
-        /* The slice is being set explicitly.
-         * This may happen at system startup when we're loading
-         * previously-determined slices. In the future, we may also
-         * permit configuration to select the slice for a domain
-         * explicitly.
-         */
-        new_slice->slice_num = slice;
-    } else {
-        /* If slice is -1, we're being asked to pick a new slice */
-
-        if (dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_AUTORID_COMPAT)) {
-            /* In autorid compatibility mode, always start at 0 and find the first
-             * free value.
-             */
-            orig_slice = 0;
-        } else {
-            /* Hash the domain sid string */
-            hash_val = murmurhash3(dom_sid, strlen(dom_sid), 0xdeadbeef);
-
-            /* Now get take the modulus of the hash val and the max_slices
-             * to determine its optimal position in the range.
-             */
-            new_slice->slice_num = hash_val % max_slices;
-            orig_slice = new_slice->slice_num;
-        }
-        /* Verify that this slice is not already in use */
-        do {
-            DLIST_FOR_EACH(s, idmap_ctx->slices) {
-                if (s->slice_num == new_slice->slice_num) {
-                    /* This slice number matches one already registered
-                     * We'll try the next available slot
-                     */
-                    new_slice->slice_num++;
-                    if (new_slice->slice_num > max_slices) {
-                        /* loop around to the beginning if necessary */
-                        new_slice->slice_num = 0;
-                    }
-                    break;
-                }
-            }
-
-            /* Keep trying until s is NULL (meaning we got to the end
-             * without matching) or we have run out of slices and gotten
-             * back to the first one we tried.
-             */
-        } while (s && new_slice->slice_num != orig_slice);
-
-        if (s) {
-            /* We looped all the way through and found no empty slots */
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not add domain [%s]: no free slices\n",
-                   dom_name));
-            ret = ENOSPC;
-            goto done;
-        }
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Adding domain [%s] as slice [%d]\n",
-           dom_name, new_slice->slice_num));
-
-    DLIST_ADD_END(idmap_ctx->slices, new_slice, struct sdap_idmap_slice *);
-    /* Not adding a destructor to remove from this list, because it
-     * should never be possible. Removal from this list can only
-     * destabilize the system.
-     */
-
-    /* Create a range object to add to the mapping */
-    range.min = (rangesize * new_slice->slice_num) + idmap_lower;
-    range.max = range.min + rangesize;
 
     if (range.max > idmap_upper) {
         /* This should never happen */
@@ -316,11 +266,8 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->domain->sysdb,
                                     idmap_ctx->id_ctx->be->domain,
                                     dom_name, dom_sid,
-                                    new_slice->slice_num);
+                                    slice);
 done:
-    if (ret != EOK) {
-        talloc_free(new_slice);
-    }
     return ret;
 }
 

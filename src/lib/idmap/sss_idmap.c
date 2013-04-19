@@ -28,6 +28,7 @@
 
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
+#include "util/murmurhash3.h"
 
 #define SID_FMT "%s-%d"
 #define SID_STR_MAX_LEN 1024
@@ -198,6 +199,12 @@ enum idmap_error_code sss_idmap_init(idmap_alloc_func *alloc_func,
     ctx->alloc_pvt = alloc_pvt;
     ctx->free_func = (free_func == NULL) ? default_free : free_func;
 
+    /* Set default values. */
+    ctx->idmap_opts.autorid_mode = SSS_IDMAP_DEFAULT_AUTORID;
+    ctx->idmap_opts.idmap_lower = SSS_IDMAP_DEFAULT_LOWER;
+    ctx->idmap_opts.idmap_upper = SSS_IDMAP_DEFAULT_UPPER;
+    ctx->idmap_opts.rangesize = SSS_IDMAP_DEFAULT_RANGESIZE;
+
     *_ctx = ctx;
 
     return IDMAP_SUCCESS;
@@ -221,6 +228,104 @@ enum idmap_error_code sss_idmap_free(struct sss_idmap_ctx *ctx)
     }
 
     ctx->free_func(ctx, ctx->alloc_pvt);
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
+                                                const char *dom_sid,
+                                                id_t *slice_num,
+                                                struct sss_idmap_range *_range)
+{
+    id_t max_slices;
+    id_t orig_slice;
+    id_t new_slice;
+    id_t min;
+    id_t max;
+    id_t idmap_lower;
+    id_t idmap_upper;
+    id_t rangesize;
+    bool autorid_mode;
+    uint32_t hash_val;
+    struct idmap_domain_info *dom;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    idmap_lower = ctx->idmap_opts.idmap_lower;
+    idmap_upper = ctx->idmap_opts.idmap_upper;
+    rangesize = ctx->idmap_opts.rangesize;
+    autorid_mode = ctx->idmap_opts.autorid_mode;
+
+    max_slices = (idmap_upper - idmap_lower) / rangesize;
+
+    if (slice_num && *slice_num != -1) {
+        /* The slice is being set explicitly.
+         * This may happen at system startup when we're loading
+         * previously-determined slices. In the future, we may also
+         * permit configuration to select the slice for a domain
+         * explicitly.
+         */
+        new_slice = *slice_num;
+    } else {
+        /* If slice is -1, we're being asked to pick a new slice */
+
+        if (autorid_mode) {
+            /* In autorid compatibility mode, always start at 0 and find the
+             * first free value.
+             */
+            orig_slice = 0;
+        } else {
+            /* Hash the domain sid string */
+            hash_val = murmurhash3(dom_sid, strlen(dom_sid), 0xdeadbeef);
+
+            /* Now get take the modulus of the hash val and the max_slices
+             * to determine its optimal position in the range.
+             */
+            new_slice = hash_val % max_slices;
+            orig_slice = new_slice;
+        }
+
+        min = (rangesize * new_slice) + idmap_lower;
+        max = min + rangesize;
+        /* Verify that this slice is not already in use */
+        do {
+            for (dom = ctx->idmap_domain_info; dom != NULL; dom = dom->next) {
+                if ((dom->range->min <= min && dom->range->max >= max) ||
+                    (dom->range->min >= min && dom->range->min <= max) ||
+                    (dom->range->max >= min && dom->range->max <= max)) {
+                    /* This range overlaps one already registered
+                     * We'll try the next available slot
+                     */
+                    new_slice++;
+                    if (new_slice >= max_slices) {
+                        /* loop around to the beginning if necessary */
+                        new_slice = 0;
+                    }
+
+                    min = (rangesize * new_slice) + idmap_lower;
+                    max = min + rangesize;
+                    break;
+                }
+            }
+
+            /* Keep trying until dom is NULL (meaning we got to the end
+             * without matching) or we have run out of slices and gotten
+             * back to the first one we tried.
+             */
+        } while (dom && new_slice != orig_slice);
+
+        if (dom) {
+            /* We looped all the way through and found no empty slots */
+            return IDMAP_OUT_OF_SLICES;
+        }
+    }
+
+    _range->min = (rangesize * new_slice) + idmap_lower;
+    _range->max = _range->min + rangesize;
+
+    if (slice_num) {
+        *slice_num = new_slice;
+    }
 
     return IDMAP_SUCCESS;
 }
@@ -510,4 +615,68 @@ done:
 
     return err;
 
+}
+
+enum idmap_error_code
+sss_idmap_ctx_set_autorid(struct sss_idmap_ctx *ctx, bool use_autorid)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    ctx->idmap_opts.autorid_mode = use_autorid;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_set_lower(struct sss_idmap_ctx *ctx, id_t lower)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    ctx->idmap_opts.idmap_lower = lower;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_set_upper(struct sss_idmap_ctx *ctx, id_t upper)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    ctx->idmap_opts.idmap_upper = upper;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_set_rangesize(struct sss_idmap_ctx *ctx, id_t rangesize)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    ctx->idmap_opts.rangesize = rangesize;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_get_autorid(struct sss_idmap_ctx *ctx, bool *_autorid)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+     *_autorid = ctx->idmap_opts.autorid_mode;
+     return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_get_lower(struct sss_idmap_ctx *ctx, id_t *_lower)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    *_lower = ctx->idmap_opts.idmap_lower;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_get_upper(struct sss_idmap_ctx *ctx, id_t *_upper)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    *_upper = ctx->idmap_opts.idmap_upper;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_get_rangesize(struct sss_idmap_ctx *ctx, id_t *_rangesize)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    *_rangesize =  ctx->idmap_opts.rangesize;
+    return IDMAP_SUCCESS;
 }
