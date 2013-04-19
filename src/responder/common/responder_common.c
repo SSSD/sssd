@@ -923,6 +923,55 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
     return ret_dom;
 }
 
+errno_t responder_get_domain_by_id(struct resp_ctx *rctx, const char *id,
+                                   struct sss_domain_info **_ret_dom)
+{
+    struct sss_domain_info *dom;
+    struct sss_domain_info *ret_dom = NULL;
+    size_t id_len;
+    size_t dom_id_len;
+    int ret;
+
+    if (id == NULL || _ret_dom == NULL) {
+        return EINVAL;
+    }
+
+    id_len = strlen(id);
+
+    for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
+        if (dom->disabled || dom->domain_id == NULL) {
+            continue;
+        }
+
+        dom_id_len = strlen(dom->domain_id);
+        if ((id_len >= dom_id_len) &&
+            strncasecmp(dom->domain_id, id, dom_id_len) == 0) {
+            if (IS_SUBDOMAIN(dom) &&
+                ((time(NULL) - dom->parent->subdomains_last_checked.tv_sec) >
+                                                      rctx->domains_timeout)) {
+                DEBUG(SSSDBG_TRACE_FUNC, ("Domain entry with id [%s] " \
+                                          "is expired.\n", id));
+                ret = EAGAIN;
+                goto done;
+            }
+            ret_dom = dom;
+            break;
+        }
+    }
+
+    if (ret_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown domain id [%s], checking for"
+                                  "possible subdomains!\n", id));
+        ret = ENOENT;
+    } else {
+        *_ret_dom = ret_dom;
+        ret = EOK;
+    }
+
+done:
+    return ret;
+}
+
 int responder_logrotate(DBusMessage *message,
                         struct sbus_connection *conn)
 {

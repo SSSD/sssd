@@ -171,6 +171,9 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
 struct sss_domain_info *
 responder_get_domain(struct resp_ctx *rctx, const char *domain);
 
+errno_t responder_get_domain_by_id(struct resp_ctx *rctx, const char *id,
+                                   struct sss_domain_info **_ret_dom);
+
 /* responder_cmd.c */
 int sss_cmd_empty_packet(struct sss_packet *packet);
 int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx);
