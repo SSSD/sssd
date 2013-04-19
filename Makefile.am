@@ -1019,6 +1019,7 @@ simple_access_tests_CFLAGS = \
     $(CHECK_CFLAGS) \
     -DUNIT_TESTING
 simple_access_tests_LDADD = \
+    -ldl \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(CHECK_LIBS) \
