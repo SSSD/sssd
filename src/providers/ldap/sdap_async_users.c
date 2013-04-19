@@ -132,22 +132,40 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
 
+    /* Always store SID string if available */
+    ret = sdap_attrs_get_sid_str(tmpctx, opts->idmap_ctx, attrs,
+                                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
+                                &sid_str);
+    if (ret == EOK) {
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR, sid_str);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not add SID string: [%s]\n",
+                                         strerror(ret)));
+            goto done;
+        }
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for group [%s].\n",
+                                 name));
+        sid_str = NULL;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
+                                     strerror(ret)));
+        sid_str = NULL;
+    }
+
+
     /* Retrieve or map the UID as appropriate */
     if (use_id_mapping) {
+
+        if (sid_str == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("SID not available, cannot map a " \
+                                         "unix ID to user [%s].\n", name));
+            ret = ENOENT;
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Mapping user [%s] objectSID to unix ID\n", name));
-
-        ret = sdap_attrs_get_sid_str(
-                tmpctx, opts->idmap_ctx, attrs,
-                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
-                &sid_str);
-        if (ret != EOK) goto done;
-
-        /* Add string representation to the cache for easier
-         * debugging
-         */
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR, sid_str);
-        if (ret != EOK) goto done;
+              ("Mapping user [%s] objectSID [%s] to unix ID\n", name, sid_str));
 
         /* Convert the SID into a UNIX user ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &uid);
