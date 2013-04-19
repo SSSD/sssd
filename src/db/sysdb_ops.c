@@ -3174,3 +3174,57 @@ done:
     talloc_free(msg);
     return ret;
 }
+
+errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
+                                   struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
+                                   const char *sid_str,
+                                   const char **attrs,
+                                   struct ldb_result **msg)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                                SYSDB_OBJECTCLASS, NULL };
+    struct ldb_dn *basedn;
+    int ret;
+    struct ldb_result *res = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
+    if (basedn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ldb_dn_new_fmt failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
+                     basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
+                     SYSDB_SID_FILTER, sid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ldb_search failed.\n"));
+        goto done;
+    }
+
+    if (res->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Search for SID [%s] returned more than " \
+                                    "one object.\n", sid_str));
+        ret = EINVAL;
+        goto done;
+    }
+
+    *msg = talloc_steal(mem_ctx, res);
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry.\n"));
+    } else if (ret) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+
+    talloc_zfree(tmp_ctx);
+    return ret;
+}

@@ -154,6 +154,8 @@
 #define SYSDB_NETGR_FILTER "(&("SYSDB_NC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_NETGR_TRIPLES_FILTER "(|("SYSDB_NAME"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_MEMBEROF"=%s))"
 
+#define SYSDB_SID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_SID_STR"=%s))"
+
 #define SYSDB_HAS_ENUMERATED "has_enumerated"
 
 #define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
@@ -848,4 +850,10 @@ errno_t sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
                                  struct ldb_result **_result);
 
+errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
+                                   struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
+                                   const char *sid_str,
+                                   const char **attrs,
+                                   struct ldb_result **msg);
 #endif /* __SYS_DB_H__ */
