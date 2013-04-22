@@ -608,7 +608,7 @@ static void simple_bind_done(struct sdap_op *op,
                               ("Password was reset. "
                                "User must set a new password.\n"));
                         state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
-                    } else if (pp_grace > 0) {
+                    } else if (pp_grace >= 0) {
                         DEBUG(SSSDBG_TRACE_LIBS,
                               ("Password expired. "
                                "[%d] grace logins remaining.\n",

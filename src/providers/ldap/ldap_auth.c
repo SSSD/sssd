@@ -209,7 +209,7 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
                                    enum sdap_result *result,
                                    int pwd_exp_warning)
 {
-    if (ppolicy->grace > 0 || ppolicy->expire > 0) {
+    if (ppolicy->grace >= 0 || ppolicy->expire > 0) {
         uint32_t *data;
         uint32_t *ptr;
         int ret;
@@ -225,7 +225,7 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
         }
 
         ptr = data;
-        if (ppolicy->grace > 0) {
+        if (ppolicy->grace >= 0) {
             *ptr = SSS_PAM_USER_INFO_GRACE_LOGIN;
             ptr++;
             *ptr = ppolicy->grace;
