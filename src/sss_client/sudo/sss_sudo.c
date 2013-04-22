@@ -217,10 +217,6 @@ void sss_sudo_free_rules(unsigned int num_rules, struct sss_sudo_rule *rules)
     for (i = 0; i < num_rules; i++) {
         rule = rules + i;
 
-        if (rule == NULL) {
-            continue;
-        }
-
         sss_sudo_free_attrs(rule->num_attrs, rule->attrs);
         rule->attrs = NULL;
     }
@@ -239,10 +235,6 @@ void sss_sudo_free_attrs(unsigned int num_attrs, struct sss_sudo_attr *attrs)
 
     for (i = 0; i < num_attrs; i++) {
         attr = attrs + i;
-
-        if (attr == NULL) {
-            continue;
-        }
 
         free(attr->name);
         attr->name = NULL;
