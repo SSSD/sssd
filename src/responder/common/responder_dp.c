@@ -541,6 +541,12 @@ sss_dp_get_account_msg(void *pvt)
         case SSS_DP_SERVICES:
             be_type = BE_REQ_SERVICES;
             break;
+        case SSS_DP_SECID:
+            be_type = BE_REQ_BY_SECID;
+            break;
+        case SSS_DP_USER_AND_GROUP:
+            be_type = BE_REQ_USER_AND_GROUP;
+            break;
     }
 
     if (info->fast_reply) {

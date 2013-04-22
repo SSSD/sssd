@@ -151,6 +151,8 @@
 #define BE_REQ_SUDO_RULES    0x0007
 #define BE_REQ_AUTOFS        0x0009
 #define BE_REQ_HOST          0x0010
+#define BE_REQ_BY_SECID      0x0011
+#define BE_REQ_USER_AND_GROUP 0x0012
 #define BE_REQ_TYPE_MASK     0x00FF
 #define BE_REQ_FAST          0x1000
 
