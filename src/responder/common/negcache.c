@@ -33,6 +33,7 @@
 #define NC_SERVICE_PREFIX NC_ENTRY_PREFIX"SERVICE"
 #define NC_UID_PREFIX NC_ENTRY_PREFIX"UID"
 #define NC_GID_PREFIX NC_ENTRY_PREFIX"GID"
+#define NC_SID_PREFIX NC_ENTRY_PREFIX"SID"
 
 struct sss_nc_ctx {
     struct tdb_context *tdb;
@@ -401,6 +402,20 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid)
     return ret;
 }
 
+int sss_ncache_check_sid(struct sss_nc_ctx *ctx, int ttl, const char *sid)
+{
+    char *str;
+    int ret;
+
+    str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_check_str(ctx, str, ttl);
+
+    talloc_free(str);
+    return ret;
+}
+
 static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
                                    const char *domain, const char *name)
 {
@@ -510,6 +525,20 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid)
     int ret;
 
     str = talloc_asprintf(ctx, "%s/%u", NC_GID_PREFIX, gid);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_set_str(ctx, str, permanent);
+
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent, const char *sid)
+{
+    char *str;
+    int ret;
+
+    str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent);
