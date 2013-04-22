@@ -28,6 +28,8 @@
 #include "providers/dp_backend.h"
 #include "providers/ipa/ipa_common.h"
 
+struct be_ctx *ipa_get_subdomains_be_ctx(struct be_ctx *be_ctx);
+
 const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
                                               const char *name);
 

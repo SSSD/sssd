@@ -36,6 +36,7 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 #ifdef HAVE_SELINUX_LOGIN_DIR
 
@@ -94,6 +95,8 @@ void ipa_selinux_handler(struct be_req *be_req)
     struct tevent_req *req;
     struct pam_data *pd;
     const char *hostname;
+    struct sss_domain_info *user_domain;
+    struct be_ctx *subdom_be_ctx;
 
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
@@ -107,8 +110,28 @@ void ipa_selinux_handler(struct be_req *be_req)
         goto fail;
     }
 
-    op_ctx = ipa_selinux_create_op_ctx(be_req, be_ctx->domain->sysdb,
-                                       be_ctx->domain,
+    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
+        subdom_be_ctx = ipa_get_subdomains_be_ctx(be_ctx);
+        if (subdom_be_ctx == NULL) {
+            DEBUG(SSSDBG_CONF_SETTINGS, ("Subdomains are not configured, " \
+                                         "cannot lookup domain [%s].\n",
+                                         pd->domain));
+            goto fail;
+        } else {
+            user_domain = find_subdomain_by_name(subdom_be_ctx->domain,
+                                                 pd->domain, true);
+            if (user_domain == NULL) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("No domain entry found " \
+                                             "for [%s].\n", pd->domain));
+                goto fail;
+            }
+        }
+    } else {
+        user_domain = be_ctx->domain;
+    }
+
+    op_ctx = ipa_selinux_create_op_ctx(be_req, user_domain->sysdb,
+                                       user_domain,
                                        be_req, pd->user, hostname,
                                        selinux_ctx);
     if (op_ctx == NULL) {

@@ -79,6 +79,20 @@ struct ipa_subdomains_ctx {
     time_t disabled_until;
 };
 
+struct be_ctx *ipa_get_subdomains_be_ctx(struct be_ctx *be_ctx)
+{
+    struct ipa_subdomains_ctx *subdom_ctx;
+
+    subdom_ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
+                                 struct ipa_subdomains_ctx);
+    if (subdom_ctx == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Subdomains are not configured.\n"));
+        return NULL;
+    }
+
+    return subdom_ctx->be_ctx;
+}
+
 const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
                                               const char *name)
 {
