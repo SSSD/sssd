@@ -228,7 +228,8 @@ if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
     pysss.la \
     pyhbac.la \
-    pysss_murmur.la
+    pysss_murmur.la \
+    pysss_nss_idmap.la
 endif
 
 dist_noinst_SCRIPTS = \
@@ -1748,6 +1749,18 @@ pysss_murmur_la_CFLAGS = \
 pysss_murmur_la_LIBADD = \
     $(PYTHON_LIBS)
 pysss_murmur_la_LDFLAGS = \
+    -avoid-version \
+    -module
+
+pysss_nss_idmap_la_SOURCES = \
+    src/python/pysss_nss_idmap.c
+pysss_nss_idmap_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON_CFLAGS)
+pysss_nss_idmap_la_LIBADD = \
+    $(PYTHON_LIBS) \
+    libsss_nss_idmap.la
+pysss_nss_idmap_la_LDFLAGS = \
     -avoid-version \
     -module
 endif

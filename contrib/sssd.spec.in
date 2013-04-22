@@ -249,6 +249,16 @@ Requires: libsss_nss_idmap = %{version}-%{release}
 %description -n libsss_nss_idmap-devel
 Utility library for SID based lookups
 
+%package -n libsss_nss_idmap-python
+Summary: Python bindings for libsss_nss_idmap
+Group: Development/Libraries
+License: LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
+
+%description -n libsss_nss_idmap-python
+The libsss_nss_idmap-python contains the bindings so that libsss_nss_idmap can
+be used by Python applications.
+
 %package -n libsss_sudo
 Summary: A library to allow communication between SUDO and SSSD
 Group: Development/Libraries
@@ -557,6 +567,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/sss_nss_idmap.h
 %{_libdir}/libsss_nss_idmap.so
 %{_libdir}/pkgconfig/sss_nss_idmap.pc
+
+%files -n libsss_nss_idmap-python
+%defattr(-,root,root,-)
+%{python_sitearch}/pysss_nss_idmap.so
 
 %package -n libsss_autofs
 Summary: A library to allow communication between Autofs and SSSD
