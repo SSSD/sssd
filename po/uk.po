@@ -3,14 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# sgallagh <sgallagh@redhat.com>, 2011.
-# Yuri Chornoivan <yurchor@ukr.net>, 2011-2012.
+# sgallagh <sgallagh@redhat.com>, 2011
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2012
+# Yuri Chornoivan <yurchor@ukr.net>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-05 18:20+0000\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-02 19:22+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -1124,7 +1125,7 @@ msgstr "Показувати мікросекунди у часових позн
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1435,6 +1436,8 @@ msgstr "Група %1$s не належить визначеному діапа�
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 msgstr ""
+"Спроба запиту NSS зазнала невдачі (%1$d). Запис може залишитися у кеші у "
+"пам’яті.\n"
 
 #: src/tools/sss_groupdel.c:129
 msgid ""
@@ -1683,14 +1686,14 @@ msgid "No cache object matched the specified search\n"
 msgstr "Вказаному критерію пошуку не відповідає жоден об’єкт у кеші\n"
 
 #: src/tools/sss_cache.c:318
-#, fuzzy, c-format
+#, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
-msgstr "Немає %1$s з назвою %2$s, пропускаємо\n"
+msgstr "У домені %3$s немає %1$s з назвою %2$s, пропускаємо\n"
 
 #: src/tools/sss_cache.c:321
-#, fuzzy, c-format
+#, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
-msgstr "У кеші немає об’єктів типу %1$s, пропускаємо\n"
+msgstr "У кеші немає об’єктів типу %1$s з домену %2$s, пропускаємо\n"
 
 #: src/tools/sss_cache.c:333
 #, c-format
@@ -1781,5 +1784,20 @@ msgstr "%1$s слід запускати від імені користувач�
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
 
-#~ msgid "SSSD is already running\n"
-#~ msgstr "SSSD вже запущено\n"
+#~ msgid "Don't include group members in group lookups"
+#~ msgstr "Не включати учасників групи у пошуки групи"
+
+#~ msgid "The TTL to apply to the client's DNS entry after updating it"
+#~ msgstr ""
+#~ "TTL, який слід застосовувати до запису DNS клієнта після його оновлення"
+
+#~ msgid ""
+#~ "The amount of time in seconds between lookups of the SELinux maps against "
+#~ "the IPA server"
+#~ msgstr "Час, у секундах, між пошуками у картах SELinux на сервері IPA"
+
+#~ msgid "Only one argument expected\n"
+#~ msgstr "Мало бути вказано лише один аргумент\n"
+
+#~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
+#~ msgstr "Здається, назва «%1$s» не є FQDN (встановлено «%2$s = TRUE»)\n"

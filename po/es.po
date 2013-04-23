@@ -3,17 +3,18 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Adolfo Jayme Barrientos <fitoschido@gmail.com>, 2012.
-# Daniel Cabrera <logan@fedoraproject.org>, 2011.
-# Héctor Daniel Cabrera <logan@fedoraproject.org>, 2011.
-# Hugo Jiménez Hernández <hjimenezhdez@gmail.com>, 2011.
-#   <sgallagh@redhat.com>, 2011.
+# Adolfo Jayme <fitoschido@gmail.com>, 2012
+# Daniel Cabrera <logan@fedoraproject.org>, 2011
+# vareli <ehespinosa@ya.com>, 2013
+# Daniel Cabrera <logan@fedoraproject.org>, 2011
+# Hugo Jiménez Hernández <hjimenezhdez@gmail.com>, 2011
+# sgallagh <sgallagh@redhat.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-05 17:31+0000\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-02 16:37+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Spanish <trans-es@lists.fedoraproject.org>\n"
 "Language: es\n"
@@ -205,7 +206,7 @@ msgstr "Cuanto días se debe mostrar un aviso de expiración de contraseña"
 
 #: src/config/SSSDConfig/__init__.py.in:85
 msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr ""
+msgstr "Ya sea para evaluar los atributos basados en el tiempo en reglas sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:91
 msgid "Whether to hash host names and addresses in the known_hosts file"
@@ -247,11 +248,11 @@ msgstr "Proveedor de Autofs"
 
 #: src/config/SSSDConfig/__init__.py.in:104
 msgid "Session-loading provider"
-msgstr ""
+msgstr "Suministrador de carga de sesión"
 
 #: src/config/SSSDConfig/__init__.py.in:105
 msgid "Host identity provider"
-msgstr ""
+msgstr "Suministrador de identidad de host"
 
 #: src/config/SSSDConfig/__init__.py.in:108
 msgid "Minimum user ID"
@@ -604,7 +605,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:210
 msgid "Disable the LDAP paging control"
-msgstr ""
+msgstr "Deshabilita el control de paginación LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:213
 msgid "Length of time to wait for a search request"
@@ -843,23 +844,23 @@ msgstr "Atributo de modificación de tiempo para grupos de red"
 
 #: src/config/SSSDConfig/__init__.py.in:280
 msgid "Base DN for service lookups"
-msgstr ""
+msgstr "Base DN para servicio de búsquedas"
 
 #: src/config/SSSDConfig/__init__.py.in:281
 msgid "Objectclass for services"
-msgstr ""
+msgstr "Clase de objeto para servicio"
 
 #: src/config/SSSDConfig/__init__.py.in:282
 msgid "Service name attribute"
-msgstr ""
+msgstr "Atributo de nombre de servicio"
 
 #: src/config/SSSDConfig/__init__.py.in:283
 msgid "Service port attribute"
-msgstr ""
+msgstr "Atributo de puerto de servicio"
 
 #: src/config/SSSDConfig/__init__.py.in:284
 msgid "Service protocol attribute"
-msgstr ""
+msgstr "Atributo de protocolo de servidor"
 
 #: src/config/SSSDConfig/__init__.py.in:287
 msgid "Lower bound for ID-mapping"
@@ -933,7 +934,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:312
 msgid "Base DN for sudo rules lookups"
-msgstr ""
+msgstr "Base DN para búsquedas de reglas sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:313
 msgid "Automatic full refresh period"
@@ -968,71 +969,71 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:320
 msgid "Object class for sudo rules"
-msgstr ""
+msgstr "Objeto clase para reglas sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:321
 msgid "Sudo rule name"
-msgstr ""
+msgstr "Nombre de regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:322
 msgid "Sudo rule command attribute"
-msgstr ""
+msgstr "Atributo de regla de comando sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:323
 msgid "Sudo rule host attribute"
-msgstr ""
+msgstr "Atributo de la regla host de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:324
 msgid "Sudo rule user attribute"
-msgstr ""
+msgstr "Atributo de la regla usuario de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Sudo rule option attribute"
-msgstr ""
+msgstr "Atributo de la regla opción de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:326
 msgid "Sudo rule runasuser attribute"
-msgstr ""
+msgstr "Atributo de la regla suda runasuser"
 
 #: src/config/SSSDConfig/__init__.py.in:327
 msgid "Sudo rule runasgroup attribute"
-msgstr ""
+msgstr "Atributo de regla runasgroup de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:328
 msgid "Sudo rule notbefore attribute"
-msgstr ""
+msgstr "Atributo de regla notbefore de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:329
 msgid "Sudo rule notafter attribute"
-msgstr ""
+msgstr "Atributo de regla noafter de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:330
 msgid "Sudo rule order attribute"
-msgstr ""
+msgstr "Atributo de regla orden de sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:333
 msgid "Object class for automounter maps"
-msgstr ""
+msgstr "Objeto clase para mapas automontador"
 
 #: src/config/SSSDConfig/__init__.py.in:334
 msgid "Automounter map name attribute"
-msgstr ""
+msgstr "Atributo de nombre de mapa de automontador"
 
 #: src/config/SSSDConfig/__init__.py.in:335
 msgid "Object class for automounter map entries"
-msgstr ""
+msgstr "Objeto clase para entradas de mapa de automontador"
 
 #: src/config/SSSDConfig/__init__.py.in:336
 msgid "Automounter map entry key attribute"
-msgstr ""
+msgstr "Atributo de clave de entrada para mapa de automontador"
 
 #: src/config/SSSDConfig/__init__.py.in:337
 msgid "Automounter map entry value attribute"
-msgstr ""
+msgstr "Atributo de valor de entrada para mapa de automontador"
 
 #: src/config/SSSDConfig/__init__.py.in:338
 msgid "Base DN for automounter map lookups"
-msgstr ""
+msgstr "Base DN para búsquedas de mapa de automontador"
 
 #: src/config/SSSDConfig/__init__.py.in:341
 msgid "Comma separated list of allowed users"
@@ -1097,7 +1098,7 @@ msgstr "Mostrar marcas de tiempo con microsegundos"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
@@ -1200,7 +1201,7 @@ msgstr "Nivel de depuración en que se debe ejecutar"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:196
 msgid "The SSSD domain to use"
-msgstr ""
+msgstr "El dominio SSSD a usar"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:58 src/tools/sss_useradd.c:73
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
@@ -1213,19 +1214,19 @@ msgstr "Error al poner la región\n"
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:65
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:91
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "Nos hay suficiente memoria\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:84
 msgid "User not specified\n"
-msgstr ""
+msgstr "Usuario no especificado\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:105
 msgid "Error looking up public keys\n"
-msgstr ""
+msgstr "Error buscando claves públicas\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:194
 msgid "The port to use to connect to the host"
-msgstr ""
+msgstr "El puerto a usar para conectar al host"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:238
 msgid "Invalid port\n"
@@ -1233,11 +1234,11 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:243
 msgid "Host not specified\n"
-msgstr ""
+msgstr "Host no especificado\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
 msgid "The path to the proxy command must be absolute\n"
-msgstr ""
+msgstr "La ruta al comando proxy debe ser absoluta\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1665,11 +1666,11 @@ msgstr ""
 
 #: src/tools/sss_cache.c:471
 msgid "Invalidate particular user"
-msgstr ""
+msgstr "Usuario particular invalidado"
 
 #: src/tools/sss_cache.c:473
 msgid "Invalidate all users"
-msgstr ""
+msgstr "Todos los usuarios invalidados"
 
 #: src/tools/sss_cache.c:475
 msgid "Invalidate particular group"

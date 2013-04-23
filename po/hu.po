@@ -3,14 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-#   <ptr@ulx.hu>, 2011.
+# ptr <ptr@ulx.hu>, 2013
+# ptr <ptr@ulx.hu>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-05 17:31+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-10 21:30+0000\n"
+"Last-Translator: ptr <ptr@ulx.hu>\n"
 "Language-Team: Hungarian <trans-hu@lists.fedoraproject.org>\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
@@ -61,7 +62,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "Elindítandó SSSD szolgáltatások"
 
 #: src/config/SSSDConfig/__init__.py.in:52
 msgid "SSSD Domains to start"
@@ -262,7 +263,7 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:125
 #: src/config/SSSDConfig/__init__.py.in:126
 msgid "Entry cache timeout length (seconds)"
-msgstr ""
+msgstr "Bejegyzés-gyorsítótár érvényessége (másodperc)"
 
 #: src/config/SSSDConfig/__init__.py.in:115
 msgid ""
@@ -373,7 +374,7 @@ msgstr "Kerberos-tartomány"
 
 #: src/config/SSSDConfig/__init__.py.in:154
 msgid "Authentication timeout"
-msgstr ""
+msgstr "Időtúllépés azonosításkor"
 
 #: src/config/SSSDConfig/__init__.py.in:157
 msgid "Directory to store credential caches"
@@ -426,7 +427,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "ldap_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_uri, az LDAP szerver URI-ja"
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "ldap_backup_uri, The URI of the LDAP server"
@@ -438,11 +439,11 @@ msgstr "Alapértelmezett LDAP alap-DN-je"
 
 #: src/config/SSSDConfig/__init__.py.in:177
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr ""
+msgstr "Az LDAP szerveren használt séma-típus, rfc2307"
 
 #: src/config/SSSDConfig/__init__.py.in:178
 msgid "The default bind DN"
-msgstr ""
+msgstr "Az alapértelmezett bind DN"
 
 #: src/config/SSSDConfig/__init__.py.in:179
 msgid "The type of the authentication token of the default bind DN"
@@ -454,7 +455,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:181
 msgid "Length of time to attempt connection"
-msgstr ""
+msgstr "A kapcsolódási próbálkozás időtartama"
 
 #: src/config/SSSDConfig/__init__.py.in:182
 msgid "Length of time to attempt synchronous LDAP operations"
@@ -470,7 +471,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:185
 msgid "File that contains CA certificates"
-msgstr ""
+msgstr "A CA tanusítványokat tartalmazó fájl"
 
 #: src/config/SSSDConfig/__init__.py.in:186
 msgid "Path to CA certificate directory"
@@ -624,11 +625,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:229
 msgid "Shell attribute"
-msgstr ""
+msgstr "Shell attribútum"
 
 #: src/config/SSSDConfig/__init__.py.in:230
 msgid "UUID attribute"
-msgstr ""
+msgstr "UUID attribútum"
 
 #: src/config/SSSDConfig/__init__.py.in:231
 #: src/config/SSSDConfig/__init__.py.in:267
@@ -649,7 +650,7 @@ msgstr "Teljes név"
 
 #: src/config/SSSDConfig/__init__.py.in:235
 msgid "memberOf attribute"
-msgstr ""
+msgstr "memberOf attribútum"
 
 #: src/config/SSSDConfig/__init__.py.in:236
 msgid "Modification time attribute"
@@ -994,7 +995,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:345
 msgid "Default shell, /bin/bash"
-msgstr ""
+msgstr "Alapértelmezett shell, /bin/bash"
 
 #: src/config/SSSDConfig/__init__.py.in:346
 msgid "Base for home directories"
@@ -1036,7 +1037,7 @@ msgstr ""
 #: src/providers/krb5/krb5_child.c:1990 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:99
 msgid "Add debug timestamps"
-msgstr ""
+msgstr "Időbélyegek a hibakeresési kimenetben"
 
 #: src/providers/krb5/krb5_child.c:1992 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:101
@@ -1047,7 +1048,7 @@ msgstr "Mikroszekundum pontosságú időbélyegek"
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -1065,11 +1066,11 @@ msgstr ""
 
 #: src/sss_client/common.c:955
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "Az SSSD nem root-ként fut."
 
 #: src/sss_client/common.c:960
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Hiba lépett fel, de nem érhetőek el részletek."
 
 #: src/sss_client/common.c:966
 msgid "Unexpected error while looking for an error description"
@@ -1081,7 +1082,7 @@ msgstr "A jelszavak nem egyeznek"
 
 #: src/sss_client/pam_sss.c:575
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "A jelszó root általi visszaállítása nem támogatott."
 
 #: src/sss_client/pam_sss.c:616
 msgid "Authenticated with cached credentials"
@@ -1107,7 +1108,7 @@ msgstr "A bejelentkezés tiltott eddig:"
 
 #: src/sss_client/pam_sss.c:763
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "A rendszer nem érhető el, a jelszó megváltoztatása nem lehetséges"
 
 #: src/sss_client/pam_sss.c:793 src/sss_client/pam_sss.c:806
 msgid "Password change failed. "

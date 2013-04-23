@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Kjartan Maraas <kmaraas@gnome.org>, 2012.
+# Kjartan Maraas <kmaraas@gnome.org>, 2012
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-05 17:31+0000\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-02 16:37+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Norwegian Bokmål <i18n-nb@lister.ping.uio.no>\n"
 "Language: nb\n"
@@ -1047,7 +1047,7 @@ msgstr ""
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 

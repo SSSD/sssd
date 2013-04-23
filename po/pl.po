@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Piotr Drąg <piotrdrag@gmail.com>, 2011-2012.
-# sgallagh <sgallagh@redhat.com>, 2011.
+# Piotr Drąg <piotrdrag@gmail.com>, 2011-2013
+# sgallagh <sgallagh@redhat.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-05 17:48+0000\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-02 16:50+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "Language: pl\n"
@@ -1103,7 +1103,7 @@ msgstr "Wyświetlanie dat z mikrosekundami"
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
@@ -1412,6 +1412,7 @@ msgstr "Grupa %1$s jest poza określonym zakresem identyfikatorów dla domeny\n"
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 msgstr ""
+"Żądanie NSS się nie powiodło (%1$d). Wpis może zostać w pamięci podręcznej.\n"
 
 #: src/tools/sss_groupdel.c:129
 msgid ""
@@ -1659,14 +1660,15 @@ msgid "No cache object matched the specified search\n"
 msgstr "Żaden obiekt pamięci podręcznej nie pasuje do podanego wyszukiwania\n"
 
 #: src/tools/sss_cache.c:318
-#, fuzzy, c-format
+#, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
-msgstr "Nie ma %1$s o nazwie %2$s, pomijanie\n"
+msgstr "Brak %1$s o nazwie %2$s w domenie %3$s, pomijanie\n"
 
 #: src/tools/sss_cache.c:321
-#, fuzzy, c-format
+#, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
-msgstr "Nie ma obiektów typu %1$s w pamięci podręcznej, pomijanie\n"
+msgstr ""
+"Brak obiektów typu %1$s z domeny %2$s w pamięci podręcznej, pomijanie\n"
 
 #: src/tools/sss_cache.c:333
 #, c-format
@@ -1757,5 +1759,19 @@ msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
 
-#~ msgid "SSSD is already running\n"
-#~ msgstr "Usługa SSSD jest już uruchomiona\n"
+#~ msgid "Don't include group members in group lookups"
+#~ msgstr "Bez dołączania członków grup w wyszukiwaniach grup"
+
+#~ msgid "The TTL to apply to the client's DNS entry after updating it"
+#~ msgstr "TTL do zastosowania do wpisu DNS klienta po jego zaktualizowaniu"
+
+#~ msgid ""
+#~ "The amount of time in seconds between lookups of the SELinux maps against "
+#~ "the IPA server"
+#~ msgstr "Czas w sekundach między wyszukiwaniami map SELinuksa w serwerze IPA"
+
+#~ msgid "Only one argument expected\n"
+#~ msgstr "Oczekiwano tylko jednego parametru\n"
+
+#~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
+#~ msgstr "Nazwa \"%1$s\" nie jest FQDN (ustawione jest \"%2$s = TRUE\")\n"

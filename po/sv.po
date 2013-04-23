@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-05 17:31+0000\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-02 16:37+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/fedora/language/"
 "sv/)\n"
@@ -1072,7 +1072,7 @@ msgstr "Visa tidsstämplar med mikrosekunder"
 msgid "An open file descriptor for the debug logs"
 msgstr "Ett öppet filhandtag för felsökningsloggarna"
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domän för informationsleverantören (obligatoriskt)"
 
@@ -1622,14 +1622,14 @@ msgid "No cache object matched the specified search\n"
 msgstr "Inga cache-objekt matchade den angivna sökningen\n"
 
 #: src/tools/sss_cache.c:318
-#, fuzzy, c-format
+#, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
-msgstr "Ingen sådan %1$s med namnet %2$s, hoppar över\n"
+msgstr ""
 
 #: src/tools/sss_cache.c:321
-#, fuzzy, c-format
+#, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
-msgstr "Inga objekt av typen %1$s i cachen, hoppar över\n"
+msgstr ""
 
 #: src/tools/sss_cache.c:333
 #, c-format

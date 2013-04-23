@@ -3,15 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Fabien Archambault <marbolangos@gmail.com>, 2012.
-# Jérôme Fenal <jfenal@gmail.com>, 2012.
-# Mariko Vincent <dweu60@gmail.com>, 2012.
+# MarbolanGos Fabien <marbolangos@gmail.com>, 2012
+# Jérôme Fenal <jfenal@gmail.com>, 2012-2013
+# Mariko Vincent <dweu60@gmail.com>, 2012
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-01-28 21:37+0100\n"
-"PO-Revision-Date: 2012-10-06 13:02+0000\n"
+"POT-Creation-Date: 2013-04-23 14:12+0200\n"
+"PO-Revision-Date: 2013-04-02 18:00+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
@@ -1119,7 +1119,7 @@ msgstr "Afficher l'horodatage en microsecondes"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
-#: src/providers/data_provider_be.c:2553
+#: src/providers/data_provider_be.c:2669
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -1436,6 +1436,8 @@ msgstr ""
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 msgstr ""
+"Échec de requête NSS (%1$d). L'entrée peut persister dans le cache en "
+"mémoire.\n"
 
 #: src/tools/sss_groupdel.c:129
 msgid ""
@@ -1689,14 +1691,14 @@ msgid "No cache object matched the specified search\n"
 msgstr "Aucun object trouvé dans le cache pour la recherche spécifiée\n"
 
 #: src/tools/sss_cache.c:318
-#, fuzzy, c-format
+#, c-format
 msgid "No such %1$s named %2$s in domain %3$s, skipping\n"
-msgstr "Aucun %1$s nommé %2$s, on passe\n"
+msgstr "Aucun objet %1$s nommé %2$s dans le domaine %3$s, on passe\n"
 
 #: src/tools/sss_cache.c:321
-#, fuzzy, c-format
+#, c-format
 msgid "No objects of type %1$s from domain %2$s in the cache, skipping\n"
-msgstr "Aucun objet de type %1$s dans le cache, on passe\n"
+msgstr "Aucun objet de type %1$s du domaine %2$s dans le cache, on passe\n"
 
 #: src/tools/sss_cache.c:333
 #, c-format
@@ -1788,5 +1790,22 @@ msgstr ""
 "Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "
 "standard"
 
-#~ msgid "SSSD is already running\n"
-#~ msgstr "SSSD est déjà en cours d'exécution\n"
+#~ msgid "Don't include group members in group lookups"
+#~ msgstr ""
+#~ "Ne pas inclure les membres des groupes dans les recherches de groupes."
+
+#~ msgid "The TTL to apply to the client's DNS entry after updating it"
+#~ msgstr "Le TTL à appliquer à l'entrée DNS du client après modification"
+
+#~ msgid ""
+#~ "The amount of time in seconds between lookups of the SELinux maps against "
+#~ "the IPA server"
+#~ msgstr "Délai entre les recherches de cartes SELinux sur le serveur IPA"
+
+#~ msgid "Only one argument expected\n"
+#~ msgstr "Un seul argument est attendu\n"
+
+#~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
+#~ msgstr ""
+#~ "Le nom « %1$s » ne semble pas être un FQDN (« %2$s = TRUE » est "
+#~ "configuré)\n"
