@@ -88,6 +88,14 @@ GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
         </variablelist>
     </refsect1>
 
+    <refsect1 id='exit_status'>
+        <title>EXIT STATUS</title>
+        <para>
+            In case of success, an exit value of 0 is returned. Otherwise,
+            1 is returned.
+        </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
