@@ -511,7 +511,6 @@ struct ipa_s2n_get_user_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
-    const char **expected_attrs;
 };
 
 static void ipa_s2n_get_user_done(struct tevent_req *subreq);
@@ -521,7 +520,6 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                                               struct sdap_options *opts,
                                               struct sss_domain_info *dom,
                                               struct sdap_handle *sh,
-                                              const char **attrs,
                                               int entry_type,
                                               const char *name,
                                               uint32_t id)
@@ -547,7 +545,6 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
-    state->expected_attrs = attrs;
 
     ret = s2n_encode_request(state, dom->name, entry_type, name, id, &bv_req);
     if (ret != EOK) {

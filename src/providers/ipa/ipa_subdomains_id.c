@@ -43,8 +43,6 @@ struct ipa_get_subdom_acct {
     const char *filter;
     int filter_type;
 
-    const char **attrs;
-
     int dp_error;
 };
 
@@ -92,14 +90,8 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
 
     switch (state->entry_type) {
         case BE_REQ_USER:
-            ret = build_attrs_from_map(state, ctx->opts->user_map,
-                                       SDAP_OPTS_USER, NULL,
-                                       &state->attrs, NULL);
-            break;
         case BE_REQ_GROUP:
-            ret = build_attrs_from_map(state, ctx->opts->group_map,
-                                       SDAP_OPTS_GROUP, NULL,
-                                       &state->attrs, NULL);
+            ret = EOK;
             break;
         case BE_REQ_INITGROUPS:
             ret = ENOTSUP;
@@ -173,7 +165,6 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                                         state->ctx->opts,
                                         state->domain,
                                         sdap_id_op_handle(state->op),
-                                        state->attrs,
                                         state->entry_type,
                                         name, id);
     if (!subreq) {
