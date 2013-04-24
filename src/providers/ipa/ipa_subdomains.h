@@ -38,4 +38,18 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
                     struct bet_ops **ops,
                     void **pvt_data);
 
+enum req_input_type {
+    REQ_INP_NAME,
+    REQ_INP_ID,
+    REQ_INP_SECID
+};
+
+struct req_input {
+    enum req_input_type type;
+    union {
+        const char *name;
+        uint32_t id;
+        const char *secid;
+    } inp;
+};
 #endif /* _IPA_SUBDOMAINS_H_ */

@@ -128,9 +128,8 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                                                 struct ipa_get_subdom_acct);
     int dp_error = DP_ERR_FATAL;
     int ret;
-    const char *name;
-    uint32_t id;
     char *endptr;
+    struct req_input *req_input;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -140,14 +139,26 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
         return;
     }
 
+    req_input = talloc(state, struct req_input);
+    if (req_input == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     switch (state->filter_type) {
         case BE_FILTER_NAME:
-            name = state->filter;
-            id = 0;
+            req_input->type = REQ_INP_NAME;
+            req_input->inp.name = talloc_strdup(req_input, state->filter);
+            if (req_input->inp.name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
             break;
         case BE_FILTER_IDNUM:
-            name = NULL;
-            id = strtouint32(state->filter, &endptr, 10);
+            req_input->type = REQ_INP_ID;
+            req_input->inp.id = strtouint32(state->filter, &endptr, 10);
             if (errno || *endptr || (state->filter == endptr)) {
                 tevent_req_error(req, errno ? errno : EINVAL);
                 return;
@@ -166,7 +177,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                                         state->domain,
                                         sdap_id_op_handle(state->op),
                                         state->entry_type,
-                                        name, id);
+                                        req_input);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

@@ -29,6 +29,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 void ipa_account_info_handler(struct be_req *breq);
 struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
@@ -55,8 +56,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                                               struct sss_domain_info *dom,
                                               struct sdap_handle *sh,
                                               int entry_type,
-                                              const char *user_name,
-                                              uid_t uid);
+                                              struct req_input *req_input);
 int ipa_s2n_get_acct_info_recv(struct tevent_req *req);
 
 struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,

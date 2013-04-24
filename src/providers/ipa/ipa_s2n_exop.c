@@ -24,6 +24,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ipa/ipa_subdomains.h"
 
 enum input_types {
     INP_SID = 1,
@@ -279,8 +280,7 @@ done:
 static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                   const char *domain_name,
                                   int entry_type,
-                                  const char *name,
-                                  uint32_t id,
+                                  struct req_input *req_input,
                                   struct berval **_bv)
 {
     BerElement *ber = NULL;
@@ -293,21 +293,25 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
 
     switch (entry_type) {
         case BE_REQ_USER:
-            if (name != NULL) {
+            if (req_input->type == REQ_INP_NAME) {
                 ret = ber_printf(ber, "{ee{ss}}", INP_NAME, REQ_FULL,
-                                                  domain_name, name);
+                                                  domain_name,
+                                                  req_input->inp.name);
             } else {
                 ret = ber_printf(ber, "{ee{si}}", INP_POSIX_UID, REQ_FULL,
-                                                  domain_name, id);
+                                                  domain_name,
+                                                  req_input->inp.id);
             }
             break;
         case BE_REQ_GROUP:
-            if (name != NULL) {
+            if (req_input->type == REQ_INP_NAME) {
                 ret = ber_printf(ber, "{ee{ss}}", INP_NAME, REQ_FULL,
-                                                  domain_name, name);
+                                                  domain_name,
+                                                  req_input->inp.name);
             } else {
                 ret = ber_printf(ber, "{ee{si}}", INP_POSIX_GID, REQ_FULL,
-                                                  domain_name, id);
+                                                  domain_name,
+                                                  req_input->inp.id);
             }
             break;
         default:
@@ -521,20 +525,13 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                                               struct sss_domain_info *dom,
                                               struct sdap_handle *sh,
                                               int entry_type,
-                                              const char *name,
-                                              uint32_t id)
+                                              struct req_input *req_input)
 {
     struct ipa_s2n_get_user_state *state;
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct berval *bv_req = NULL;
     int ret = EFAULT;
-
-    if ((name == NULL && id == 0) || (name != NULL && id != 0)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Either a user name or a uid expected, "
-                                  "not both or nothing.\n"));
-        return NULL;
-    }
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_s2n_get_user_state);
     if (req == NULL) {
@@ -546,7 +543,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->dom = dom;
     state->sh = sh;
 
-    ret = s2n_encode_request(state, dom->name, entry_type, name, id, &bv_req);
+    ret = s2n_encode_request(state, dom->name, entry_type, req_input, &bv_req);
     if (ret != EOK) {
         goto fail;
     }
