@@ -91,6 +91,8 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     switch (state->entry_type) {
         case BE_REQ_USER:
         case BE_REQ_GROUP:
+        case BE_REQ_BY_SECID:
+        case BE_REQ_USER_AND_GROUP:
             ret = EOK;
             break;
         case BE_REQ_INITGROUPS:
@@ -161,6 +163,15 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             req_input->inp.id = strtouint32(state->filter, &endptr, 10);
             if (errno || *endptr || (state->filter == endptr)) {
                 tevent_req_error(req, errno ? errno : EINVAL);
+                return;
+            }
+            break;
+        case BE_FILTER_SECID:
+            req_input->type = REQ_INP_SECID;
+            req_input->inp.secid = talloc_strdup(req_input, state->filter);
+            if (req_input->inp.secid == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                tevent_req_error(req, ENOMEM);
                 return;
             }
             break;
