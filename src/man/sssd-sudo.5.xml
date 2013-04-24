@@ -89,33 +89,9 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
 </programlisting>
         </para>
         <para>
-            The following example illustrates setting up SSSD to download
-            sudo rules from an IPA server. It is necessary to use the LDAP
-            provider and set appropriate connection parameters to authenticate
-            correctly against the IPA server, because SSSD does not have native
-            support of IPA provider for sudo yet.
-        </para>
-        <para>
-<programlisting>
-[sssd]
-config_file_version = 2
-services = nss, pam, sudo
-domains = EXAMPLE
-
-[domain/EXAMPLE]
-id_provider = ipa
-ipa_domain = example.com
-ipa_server = ipa.example.com
-ldap_tls_cacert = /etc/ipa/ca.crt
-
-sudo_provider = ldap
-ldap_uri = ldap://ipa.example.com
-ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
-ldap_sasl_mech = GSSAPI
-ldap_sasl_authid = host/hostname.example.com
-ldap_sasl_realm = EXAMPLE.COM
-krb5_server = ipa.example.com
-</programlisting>
+            When the SSSD is configured to use the IPA provider, the sudo
+            provider is automatically enabled. The sudo search base
+            is configured to use the compat tree (ou=sudoers,$DC).
         </para>
     </refsect1>
 

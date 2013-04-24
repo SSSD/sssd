@@ -526,3 +526,27 @@ int sssm_ipa_subdomains_init(struct be_ctx *bectx,
 
     return EOK;
 }
+
+int sssm_ipa_sudo_init(struct be_ctx *bectx,
+                       struct bet_ops **ops,
+                       void **pvt_data)
+{
+#ifdef BUILD_SUDO
+    struct ipa_id_ctx *id_ctx;
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing IPA sudo handler\n"));
+
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        return ret;
+    }
+
+    return ipa_sudo_init(bectx, id_ctx, ops, pvt_data);
+#else
+    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
+                                 "built without sudo support, ignoring\n"));
+    return EOK;
+#endif
+}

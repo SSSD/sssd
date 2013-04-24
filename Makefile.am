@@ -1551,6 +1551,11 @@ libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_autofs.c
 endif
 
+if BUILD_SUDO
+libsss_ipa_la_SOURCES += \
+    src/providers/ipa/ipa_sudo.c
+endif
+
 if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif

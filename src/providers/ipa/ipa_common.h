@@ -180,4 +180,9 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      struct ipa_options *options,
                      struct ipa_service **_service);
 
+int ipa_sudo_init(struct be_ctx *be_ctx,
+                  struct ipa_id_ctx *id_ctx,
+                  struct bet_ops **ops,
+                  void **pvt_data);
+
 #endif /* _IPA_COMMON_H_ */
