@@ -21,6 +21,10 @@
 #ifndef _SSS_SSH_H_
 #define _SSS_SSH_H_
 
+#define SSS_SSH_REQ_ALIAS   0x01
+#define SSS_SSH_REQ_DOMAIN  0x02
+#define SSS_SSH_REQ_MASK    0x03
+
 struct sss_ssh_pubkey {
     uint8_t *data;
     size_t data_len;

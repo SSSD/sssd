@@ -282,19 +282,9 @@ int main(int argc, const char **argv)
     }
 
     if (host) {
-        /* append domain to hostname if domain is specified */
-        if (pc_domain) {
-            host = talloc_asprintf(mem_ctx, "%s@%s", host, pc_domain);
-            if (!host) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Not enough memory\n"));
-                ret = EXIT_FAILURE;
-                goto fini;
-            }
-        }
-
         /* look up public keys */
         ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_HOST_PUBKEYS,
-                              host, pc_host, &ent);
+                              host, pc_domain, pc_host, &ent);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));

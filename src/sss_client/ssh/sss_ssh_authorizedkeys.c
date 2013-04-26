@@ -43,7 +43,6 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    const char *user;
     struct sss_ssh_ent *ent;
     size_t i;
     char *repr;
@@ -84,21 +83,9 @@ int main(int argc, const char **argv)
         BAD_POPT_PARAMS(pc, _("User not specified\n"), ret, fini);
     }
 
-    /* append domain to username if domain is specified */
-    if (pc_domain) {
-        user = talloc_asprintf(mem_ctx, "%s@%s", pc_user, pc_domain);
-        if (!user) {
-            ERROR("Not enough memory\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-        }
-    } else {
-        user = pc_user;
-    }
-
     /* look up public keys */
     ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_USER_PUBKEYS,
-                          user, NULL, &ent);
+                          pc_user, pc_domain, NULL, &ent);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));

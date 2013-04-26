@@ -685,12 +685,14 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     uint32_t name_len;
     char *name;
     uint32_t alias_len;
-    char *alias;
+    char *alias = NULL;
+    uint32_t domain_len;
+    char *domain = cctx->rctx->default_domain;
 
     sss_packet_get_body(cctx->creq->in, &body, &body_len);
 
     SAFEALIGN_COPY_UINT32_CHECK(&flags, body+c, body_len, &c);
-    if (flags > 1) {
+    if (flags & ~(uint32_t)SSS_SSH_REQ_MASK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid flags received [0x%x]\n", flags));
         return EINVAL;
     }
@@ -709,28 +711,7 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     }
     c += name_len;
 
-    ret = sss_parse_name(cmd_ctx, ssh_ctx->snctx, name,
-                         &cmd_ctx->domname, &cmd_ctx->name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", name));
-        return ENOENT;
-    }
-
-    if (cmd_ctx->is_user && cmd_ctx->domname == NULL) {
-        name = cmd_ctx->name;
-
-        ret = sss_parse_name_for_domains(cmd_ctx, cctx->rctx->domains,
-                                         cctx->rctx->default_domain, name,
-                                         &cmd_ctx->domname,
-                                         &cmd_ctx->name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Invalid name received [%s]\n", name));
-            return ENOENT;
-        }
-    }
-
-    if (flags & 1) {
+    if (flags & SSS_SSH_REQ_ALIAS) {
         SAFEALIGN_COPY_UINT32_CHECK(&alias_len, body+c, body_len, &c);
         if (alias_len == 0 || alias_len > body_len - c) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid alias length\n"));
@@ -744,11 +725,67 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
             return EINVAL;
         }
         c += alias_len;
+    }
 
-        if (strcmp(cmd_ctx->name, alias) != 0) {
-            cmd_ctx->alias = talloc_strdup(cmd_ctx, alias);
-            if (!cmd_ctx->alias) return ENOMEM;
+    if (flags & SSS_SSH_REQ_DOMAIN) {
+        SAFEALIGN_COPY_UINT32_CHECK(&domain_len, body+c, body_len, &c);
+        if (domain_len > 0) {
+            if (domain_len > body_len - c) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid domain length\n"));
+                return EINVAL;
+            }
+
+            domain = (char *)(body+c);
+            if (!sss_utf8_check((const uint8_t *)domain, domain_len-1) ||
+                    domain[domain_len-1] != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Domain is not valid UTF-8 string\n"));
+                return EINVAL;
+            }
+            c += domain_len;
         }
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Requested domain [%s]\n", domain ? domain : "<ALL>"));
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Splitting domain from name [%s]\n", name));
+
+        ret = sss_parse_name(cmd_ctx, ssh_ctx->snctx, name,
+                             &cmd_ctx->domname, &cmd_ctx->name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", name));
+            return ENOENT;
+        }
+
+        name = cmd_ctx->name;
+    }
+
+    if (cmd_ctx->is_user && cmd_ctx->domname == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Parsing name [%s][%s]\n", name, domain ? domain : "<ALL>"));
+
+        ret = sss_parse_name_for_domains(cmd_ctx, cctx->rctx->domains,
+                                         domain, name,
+                                         &cmd_ctx->domname,
+                                         &cmd_ctx->name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Invalid name received [%s]\n", name));
+            return ENOENT;
+        }
+    } else if (cmd_ctx->name == NULL && cmd_ctx->domname == NULL) {
+        cmd_ctx->name = talloc_strdup(cmd_ctx, name);
+        if (!cmd_ctx->name) return ENOMEM;
+
+        if (domain != NULL) {
+            cmd_ctx->domname = talloc_strdup(cmd_ctx, domain);
+            if (!cmd_ctx->domname) return ENOMEM;
+        }
+    }
+
+    if (alias != NULL && strcmp(cmd_ctx->name, alias) != 0) {
+        cmd_ctx->alias = talloc_strdup(cmd_ctx, alias);
+        if (!cmd_ctx->alias) return ENOMEM;
     }
 
     return EOK;

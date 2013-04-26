@@ -70,29 +70,34 @@ int set_locale(void)
 
 /* SSH public key request:
  * 
- * 0..3:     flags (unsigned int, must be 0 or 1)
- * 4..7:     name length (unsigned int)
- * 8..(X-1): name (null-terminated UTF-8 string)
- * if (flags & 1) {
- *   X..(X+3): alias length (unsigned int)
- *   (X+4)..Y: alias (null-terminated UTF-8 string)
- * }
+ * header:
+ *   0..3: flags (unsigned int, must be combination of SSS_SSH_REQ_* flags)
+ *   4..7: name length (unsigned int)
+ *   8..X: name (null-terminated UTF-8 string)
+ * alias (only included if flags & SSS_SSH_REQ_ALIAS):
+ *   0..3: alias length (unsigned int)
+ *   4..X: alias (null-terminated UTF-8 string)
+ * domain (ony included if flags & SSS_SSH_REQ_DOMAIN):
+ *   0..3: domain length (unsigned int, 0 means default domain)
+ *   4..X: domain (null-terminated UTF-8 string)
  * 
  * SSH public key reply:
  * 
- * 0..3: number of results (unsigned int)
- * 4..7: reserved (unsigned int, must be 0)
- * 8..$: array of results:
+ * header:
+ *   0..3: number of results (unsigned int)
+ *   4..7: reserved (unsigned int, must be 0)
+ * results (repeated for each result):
  *   0..3:     flags (unsigned int, must be 0)
  *   4..7:     name length (unsigned int)
  *   8..(X-1): name (null-terminated UTF-8 string)
  *   X..(X+3): key length (unsigned int)
- *   (X+4)..Y: key (public key blob as defined in RFC4253, section 6.6)
+ *   (X+4)..Y: key (public key data)
  */
 errno_t
 sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
                 enum sss_cli_command command,
                 const char *name,
+                const char *domain,
                 const char *alias,
                 struct sss_ssh_ent **result)
 {
@@ -102,6 +107,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     uint32_t flags;
     uint32_t name_len;
     uint32_t alias_len;
+    uint32_t domain_len;
     size_t req_len;
     uint8_t *req = NULL;
     size_t c = 0;
@@ -122,10 +128,14 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     req_len = 2*sizeof(uint32_t) + name_len;
 
     if (alias) {
-        flags |= 1;
+        flags |= SSS_SSH_REQ_ALIAS;
         alias_len = strlen(alias)+1;
         req_len += sizeof(uint32_t) + alias_len;
     }
+
+    flags |= SSS_SSH_REQ_DOMAIN;
+    domain_len = domain ? (strlen(domain)+1) : 0;
+    req_len += sizeof(uint32_t) + domain_len;
 
     req = talloc_array(tmp_ctx, uint8_t, req_len);
     if (!req) {
@@ -139,6 +149,10 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     if (alias) {
         SAFEALIGN_SET_UINT32(req+c, alias_len, &c);
         safealign_memcpy(req+c, alias, alias_len, &c);
+    }
+    SAFEALIGN_SET_UINT32(req+c, domain_len, &c);
+    if (domain_len > 0) {
+        safealign_memcpy(req+c, domain, domain_len, &c);
     }
 
     /* send request */
