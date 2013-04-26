@@ -135,13 +135,11 @@ done:
 #endif
 }
 
-int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
-                   const char *domain, struct sss_names_ctx **out)
+int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
+                             const char *fq_fmt, struct sss_names_ctx **out)
 {
     struct sss_names_ctx *ctx;
-    TALLOC_CTX *tmpctx = NULL;
     const char *errstr;
-    char *conf_path;
     int errval;
     int errpos;
     int ret;
@@ -150,74 +148,18 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     if (!ctx) return ENOMEM;
     talloc_set_destructor(ctx, sss_names_ctx_destructor);
 
-    tmpctx = talloc_new(NULL);
-    if (tmpctx == NULL) {
+    ctx->re_pattern = talloc_strdup(ctx, re_pattern);
+    if (ctx->re_pattern == NULL) {
         ret = ENOMEM;
         goto done;
-    }
-
-    conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, domain);
-    if (conf_path == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = confdb_get_string(cdb, ctx, conf_path,
-                            CONFDB_NAME_REGEX, NULL, &ctx->re_pattern);
-    if (ret != EOK) goto done;
-
-    /* If not found in the domain, look in globals */
-    if (ctx->re_pattern == NULL) {
-        ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
-                                CONFDB_NAME_REGEX, NULL, &ctx->re_pattern);
-        if (ret != EOK) goto done;
-    }
-
-    if (ctx->re_pattern == NULL) {
-        ret = get_id_provider_default_re(ctx, cdb, conf_path, &ctx->re_pattern);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get provider default regular " \
-                                      "expression for domain [%s].\n", domain));
-            goto done;
-        }
-    }
-
-    if (!ctx->re_pattern) {
-        ctx->re_pattern = talloc_strdup(ctx,
-                                "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
-        if (!ctx->re_pattern) {
-            ret = ENOMEM;
-            goto done;
-        }
-#ifdef HAVE_LIBPCRE_LESSER_THAN_7
-    } else {
-        DEBUG(2, ("This binary was build with a version of libpcre that does "
-                  "not support non-unique named subpatterns.\n"));
-        DEBUG(2, ("Please make sure that your pattern [%s] only contains "
-                  "subpatterns with a unique name and uses "
-                  "the Python syntax (?P<name>).\n", ctx->re_pattern));
-#endif
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS, ("Using re [%s].\n", ctx->re_pattern));
 
-    ret = confdb_get_string(cdb, ctx, conf_path,
-                            CONFDB_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
-    if (ret != EOK) goto done;
-
-    /* If not found in the domain, look in globals */
+    ctx->fq_fmt = talloc_strdup(ctx, fq_fmt);
     if (ctx->fq_fmt == NULL) {
-        ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
-                                CONFDB_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
-        if (ret != EOK) goto done;
-    }
-
-    if (!ctx->fq_fmt) {
-        ctx->fq_fmt = talloc_strdup(ctx, "%1$s@%2$s");
-        if (!ctx->fq_fmt) {
-            ret = ENOMEM;
-            goto done;
-        }
+        ret = ENOMEM;
+        goto done;
     }
 
     ctx->re = pcre_compile2(ctx->re_pattern,
@@ -234,10 +176,93 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     ret = EOK;
 
 done:
-    talloc_free(tmpctx);
     if (ret != EOK) {
         talloc_free(ctx);
     }
+    return ret;
+}
+
+int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
+                   const char *domain, struct sss_names_ctx **out)
+{
+    TALLOC_CTX *tmpctx = NULL;
+    char *conf_path;
+    char *re_pattern;
+    char *fq_fmt;
+    int ret;
+
+    tmpctx = talloc_new(NULL);
+    if (tmpctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, domain);
+    if (conf_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_string(cdb, tmpctx, conf_path,
+                            CONFDB_NAME_REGEX, NULL, &re_pattern);
+    if (ret != EOK) goto done;
+
+    /* If not found in the domain, look in globals */
+    if (re_pattern == NULL) {
+        ret = confdb_get_string(cdb, tmpctx, CONFDB_MONITOR_CONF_ENTRY,
+                                CONFDB_NAME_REGEX, NULL, &re_pattern);
+        if (ret != EOK) goto done;
+    }
+
+    if (re_pattern == NULL) {
+        ret = get_id_provider_default_re(tmpctx, cdb, conf_path, &re_pattern);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get provider default regular " \
+                                      "expression for domain [%s].\n", domain));
+            goto done;
+        }
+    }
+
+    if (!re_pattern) {
+        re_pattern = talloc_strdup(tmpctx,
+                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
+        if (!re_pattern) {
+            ret = ENOMEM;
+            goto done;
+        }
+#ifdef HAVE_LIBPCRE_LESSER_THAN_7
+    } else {
+        DEBUG(2, ("This binary was build with a version of libpcre that does "
+                  "not support non-unique named subpatterns.\n"));
+        DEBUG(2, ("Please make sure that your pattern [%s] only contains "
+                  "subpatterns with a unique name and uses "
+                  "the Python syntax (?P<name>).\n", re_pattern));
+#endif
+    }
+
+    ret = confdb_get_string(cdb, tmpctx, conf_path,
+                            CONFDB_FULL_NAME_FORMAT, NULL, &fq_fmt);
+    if (ret != EOK) goto done;
+
+    /* If not found in the domain, look in globals */
+    if (fq_fmt == NULL) {
+        ret = confdb_get_string(cdb, tmpctx, CONFDB_MONITOR_CONF_ENTRY,
+                                CONFDB_FULL_NAME_FORMAT, NULL, &fq_fmt);
+        if (ret != EOK) goto done;
+    }
+
+    if (!fq_fmt) {
+        fq_fmt = talloc_strdup(tmpctx, "%1$s@%2$s");
+        if (!fq_fmt) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = sss_names_init_from_args(mem_ctx, re_pattern, fq_fmt, out);
+
+done:
+    talloc_free(tmpctx);
     return ret;
 }
 

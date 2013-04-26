@@ -401,6 +401,13 @@ struct sss_names_ctx {
     pcre *re;
 };
 
+/* initialize sss_names_ctx directly from arguments */
+int sss_names_init_from_args(TALLOC_CTX *mem_ctx,
+                             const char *re_pattern,
+                             const char *fq_fmt,
+                             struct sss_names_ctx **out);
+
+/* initialize sss_names_ctx from domain configuration */
 int sss_names_init(TALLOC_CTX *mem_ctx,
                    struct confdb_ctx *cdb,
                    const char *domain,
