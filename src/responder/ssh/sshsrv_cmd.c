@@ -300,12 +300,6 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
     struct tevent_req *req;
     struct dp_callback_ctx *cb_ctx;
 
-    /* if it is a domainless search, skip domains that require fully
-     * qualified names instead */
-    while (cmd_ctx->domain && cmd_ctx->check_next && cmd_ctx->domain->fqnames) {
-        cmd_ctx->domain = get_next_domain(cmd_ctx->domain, false);
-    }
-
     if (!cmd_ctx->domain) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("No matching domain found for [%s], fail!\n", cmd_ctx->name));
