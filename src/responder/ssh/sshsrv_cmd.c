@@ -55,6 +55,7 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
         return ENOMEM;
     }
     cmd_ctx->cctx = cctx;
+    cmd_ctx->is_user = true;
 
     ret = ssh_cmd_parse_request(cmd_ctx);
     if (ret != EOK) {
@@ -101,6 +102,7 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
         return ENOMEM;
     }
     cmd_ctx->cctx = cctx;
+    cmd_ctx->is_user = false;
 
     ret = ssh_cmd_parse_request(cmd_ctx);
     if (ret != EOK) {
@@ -673,6 +675,8 @@ static errno_t
 ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
 {
     struct cli_ctx *cctx = cmd_ctx->cctx;
+    struct ssh_ctx *ssh_ctx = talloc_get_type(cctx->rctx->pvt_ctx,
+                                              struct ssh_ctx);
     errno_t ret;
     uint8_t *body;
     size_t body_len;
@@ -705,12 +709,25 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     }
     c += name_len;
 
-    ret = sss_parse_name_for_domains(cmd_ctx, cctx->rctx->domains,
-                                     cctx->rctx->default_domain,name,
-                                     &cmd_ctx->domname, &cmd_ctx->name);
+    ret = sss_parse_name(cmd_ctx, ssh_ctx->snctx, name,
+                         &cmd_ctx->domname, &cmd_ctx->name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", name));
         return ENOENT;
+    }
+
+    if (cmd_ctx->is_user && cmd_ctx->domname == NULL) {
+        name = cmd_ctx->name;
+
+        ret = sss_parse_name_for_domains(cmd_ctx, cctx->rctx->domains,
+                                         cctx->rctx->default_domain, name,
+                                         &cmd_ctx->domname,
+                                         &cmd_ctx->name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("Invalid name received [%s]\n", name));
+            return ENOENT;
+        }
     }
 
     if (flags & 1) {

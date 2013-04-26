@@ -118,6 +118,14 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     ssh_ctx->rctx = rctx;
     ssh_ctx->rctx->pvt_ctx = ssh_ctx;
 
+    ret = sss_names_init_from_args(ssh_ctx,
+                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   "%1$s@%2$s", &ssh_ctx->snctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing regex data\n"));
+        goto fail;
+    }
+
     /* Enable automatic reconnection to the Data Provider */
     ret = confdb_get_int(ssh_ctx->rctx->cdb,
                          CONFDB_SSH_CONF_ENTRY,

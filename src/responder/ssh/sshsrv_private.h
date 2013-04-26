@@ -28,6 +28,7 @@
 
 struct ssh_ctx {
     struct resp_ctx *rctx;
+    struct sss_names_ctx *snctx;
 
     bool hash_known_hosts;
     int known_hosts_timeout;
@@ -38,6 +39,7 @@ struct ssh_cmd_ctx {
     char *name;
     char *alias;
     char *domname;
+    bool is_user;
 
     struct sss_domain_info *domain;
     bool check_next;
