@@ -113,9 +113,9 @@ void ipa_selinux_handler(struct be_req *be_req)
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         subdom_be_ctx = ipa_get_subdomains_be_ctx(be_ctx);
         if (subdom_be_ctx == NULL) {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Subdomains are not configured, " \
-                                         "cannot lookup domain [%s].\n",
-                                         pd->domain));
+            DEBUG(SSSDBG_OP_FAILURE, ("Subdomains are not configured, " \
+                                      "cannot lookup domain [%s].\n",
+                                       pd->domain));
             goto fail;
         } else {
             user_domain = find_subdomain_by_name(subdom_be_ctx->domain,
