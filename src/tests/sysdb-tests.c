@@ -60,7 +60,7 @@ struct sysdb_test_ctx {
     struct sss_domain_info *domain;
 };
 
-static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
+static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
 {
     struct sysdb_test_ctx *test_ctx;
     char *conf_db;
@@ -127,7 +127,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
-    val[0] = "TRUE";
+    val[0] = enumerate ? "TRUE" : "FALSE";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/LOCAL", "enumerate", val);
     if (ret != EOK) {
@@ -157,6 +157,8 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     *ctx = test_ctx;
     return EOK;
 }
+
+#define setup_sysdb_tests(ctx) _setup_sysdb_tests((ctx), false)
 
 struct test_data {
     struct tevent_context *ev;
@@ -2976,8 +2978,10 @@ START_TEST (test_sysdb_memberof_check_convert)
     struct ldb_message_element *members;
     int exp_mem, exp_gh;
 
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
+    /* Eplicitly disable enumeration during setup as converting the ghost
+     * users into real ones work only when enumeration is disabled
+     */
+    ret = _setup_sysdb_tests(&test_ctx, false);
     if (ret != EOK) {
         fail("Could not set up the test");
         return;

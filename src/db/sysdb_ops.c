@@ -1071,6 +1071,15 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
         goto done;
     }
 
+    /* If we're not enumerating, previous getgr{nam,gid} calls might
+     * have stored ghost users into the cache, so we need to link them
+     * with the newly-created user entry
+     */
+    if (domain->enumerate == true) {
+        ret = EOK;
+        goto done;
+    }
+
     /* We need to find all groups that contain this object as a ghost user
      * and replace the ghost user by actual member record in direct parents.
      * Note that this object can be referred to either by its name or any
