@@ -1199,10 +1199,15 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
     ret = sysdb_set_user_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
     if (ret) goto done;
 
-    /* remove all ghost users */
-    ret = sysdb_remove_ghostattr_from_groups(sysdb, domain,
-                                             orig_dn, attrs, name);
-    if (ret) goto done;
+    if (domain->enumerate == false) {
+        /* If we're not enumerating, previous getgr{nam,gid} calls might
+         * have stored ghost users into the cache, so we need to link them
+         * with the newly-created user entry
+         */
+        ret = sysdb_remove_ghostattr_from_groups(sysdb, domain,
+                                                 orig_dn, attrs, name);
+        if (ret) goto done;
+    }
 
     ret = EOK;
 
