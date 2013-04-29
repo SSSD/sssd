@@ -479,7 +479,8 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                  sdap_id_op_handle(state->op),
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
-                                                SDAP_ENUM_SEARCH_TIMEOUT));
+                                                SDAP_ENUM_SEARCH_TIMEOUT),
+                                 true); /* Enumeration */
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -589,7 +590,8 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                  state->ctx->opts, sdap_id_op_handle(state->op),
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
-                                                SDAP_ENUM_SEARCH_TIMEOUT));
+                                                SDAP_ENUM_SEARCH_TIMEOUT),
+                                 true); /* Enumeration */
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

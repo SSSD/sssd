@@ -125,7 +125,8 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
                                    LDAP_SCOPE_SUB, host_filter,
                                    state->attrs, NULL, 0,
                                    dp_opt_get_int(opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(1, ("Error requesting host info\n"));
         ret = EIO;
@@ -211,7 +212,8 @@ ipa_hbac_host_info_done(struct tevent_req *subreq)
                                        hostgroup_filter, state->attrs, hostgroup_map,
                                        HOSTGROUP_MAP_ATTRS_COUNT,
                                        dp_opt_get_int(state->opts->basic,
-                                                      SDAP_ENUM_SEARCH_TIMEOUT));
+                                                      SDAP_ENUM_SEARCH_TIMEOUT),
+                                       true);
         if (subreq == NULL) {
             DEBUG(1, ("Error requesting host info\n"));
             goto error;
@@ -372,7 +374,8 @@ ipa_hbac_get_hostgroups_send(TALLOC_CTX *mem_ctx,
                     LDAP_SCOPE_BASE, NULL, state->attrs,
                     hostgroup_map, HOSTGROUP_MAP_ATTRS_COUNT,
                     dp_opt_get_int(state->opts->basic,
-                                   SDAP_ENUM_SEARCH_TIMEOUT));
+                                   SDAP_ENUM_SEARCH_TIMEOUT),
+                    false);
         if (!subreq) {
             ret = ENOMEM;
             goto error;
@@ -437,7 +440,8 @@ next:
                     LDAP_SCOPE_BASE, NULL, state->attrs,
                     hostgroup_map, HOSTGROUP_MAP_ATTRS_COUNT,
                     dp_opt_get_int(state->opts->basic,
-                                   SDAP_ENUM_SEARCH_TIMEOUT));
+                                   SDAP_ENUM_SEARCH_TIMEOUT),
+                    false);
         if (!subreq) {
             ret = ENOMEM;
             goto done;

@@ -98,7 +98,8 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
                                    LDAP_SCOPE_SUB, service_filter,
                                    state->attrs, NULL, 0,
                                    dp_opt_get_int(opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(1, ("Error requesting service info\n"));
         ret = EIO;
@@ -170,7 +171,8 @@ ipa_hbac_service_info_done(struct tevent_req *subreq)
                                    state->search_base, LDAP_SCOPE_SUB,
                                    servicegroup_filter, state->attrs, NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(1, ("Error requesting host info\n"));
         ret = EIO;

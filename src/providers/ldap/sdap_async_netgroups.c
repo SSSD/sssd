@@ -469,7 +469,8 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
                                    cn_attr, state->opts->netgroup_map,
                                    SDAP_OPTS_NETGROUP,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (!subreq) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
         return ENOMEM;
@@ -610,7 +611,7 @@ struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
                                    LDAP_SCOPE_SUBTREE,
                                    state->filter, state->attrs,
                                    state->opts->netgroup_map,
-                                   SDAP_OPTS_NETGROUP, timeout);
+                                   SDAP_OPTS_NETGROUP, timeout, false);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;

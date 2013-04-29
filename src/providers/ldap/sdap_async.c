@@ -681,7 +681,8 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
                                    "", LDAP_SCOPE_BASE,
                                    "(objectclass=*)", attrs, NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_SEARCH_TIMEOUT));
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -757,6 +758,7 @@ struct sdap_get_generic_state {
     struct sdap_attr_map *map;
     int map_num_attrs;
     int timeout;
+    bool allow_paging;
 
     struct sdap_op *op;
 
@@ -784,7 +786,8 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          const char **attrs,
                                          struct sdap_attr_map *map,
                                          int map_num_attrs,
-                                         int timeout)
+                                         int timeout,
+                                         bool allow_paging)
 {
     errno_t ret;
     struct sdap_get_generic_state *state;
@@ -809,6 +812,15 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     state->timeout = timeout;
     state->cookie.bv_len = 0;
     state->cookie.bv_val = NULL;
+
+    /* Be extra careful and never allow paging for BASE searches,
+     * even if requested.
+     */
+    if (scope == LDAP_SCOPE_BASE) {
+        state->allow_paging = false;
+    } else {
+        state->allow_paging = allow_paging;
+    }
 
     ret = sdap_get_generic_step(req);
     if (ret != EOK) {
@@ -854,9 +866,9 @@ static errno_t sdap_get_generic_step(struct tevent_req *req)
 
     disable_paging = dp_opt_get_bool(state->opts->basic, SDAP_DISABLE_PAGING);
 
-    if (!disable_paging
-            && sdap_is_control_supported(state->sh,
-                                         LDAP_CONTROL_PAGEDRESULTS)) {
+    if (!disable_paging && state->allow_paging &&
+        sdap_is_control_supported(state->sh,
+                                  LDAP_CONTROL_PAGEDRESULTS)) {
         lret = ldap_create_page_control(state->sh->ldap,
                                         state->sh->page_size,
                                         state->cookie.bv_val ?

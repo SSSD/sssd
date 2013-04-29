@@ -171,7 +171,8 @@ static void users_get_connect_done(struct tevent_req *subreq)
                                  sdap_id_op_handle(state->op),
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
-                                                SDAP_SEARCH_TIMEOUT));
+                                                SDAP_SEARCH_TIMEOUT),
+                                 false); /* No enumeration */
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -407,7 +408,8 @@ static void groups_get_connect_done(struct tevent_req *subreq)
                                   state->ctx->opts, sdap_id_op_handle(state->op),
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->ctx->opts->basic,
-                                                 SDAP_SEARCH_TIMEOUT));
+                                                 SDAP_SEARCH_TIMEOUT),
+                                  false);   /* No enumeration */
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

@@ -162,7 +162,8 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
                                    LDAP_SCOPE_SUB, rule_filter, rule_attrs,
                                    NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT));
+                                                  SDAP_ENUM_SEARCH_TIMEOUT),
+                                   true);
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
         ret = ENOMEM;
