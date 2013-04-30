@@ -585,7 +585,7 @@ static errno_t fo_resolve_srv_dns_discover(struct tevent_req *req)
             goto done;
         }
 
-        if (strcmp(ctx->detected_domain, ctx->sssd_domain) != 0) {
+        if (strcasecmp(ctx->detected_domain, ctx->sssd_domain) != 0) {
             domains[1] = talloc_strdup(domains, ctx->sssd_domain);
             if (domains[1] == NULL) {
                 ret = ENOMEM;
