@@ -121,6 +121,10 @@ resolv_get_string_address_index(TALLOC_CTX *mem_ctx,
                                 struct resolv_hostent *hostent,
                                 unsigned int addrindex);
 
+char *
+resolv_get_string_ptr_address(TALLOC_CTX *mem_ctx,
+                              int family, uint8_t *address);
+
 #define resolv_get_string_address(mem_ctx, hostent) \
         resolv_get_string_address_index(mem_ctx, hostent, 0)
 

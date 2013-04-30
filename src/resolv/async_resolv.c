@@ -1416,6 +1416,42 @@ resolv_get_string_address_index(TALLOC_CTX *mem_ctx,
     return address;
 }
 
+char *
+resolv_get_string_ptr_address(TALLOC_CTX *mem_ctx,
+                              int family, uint8_t *address)
+{
+    char *straddr;
+
+    if (family == AF_INET6) {
+        int i;
+        char hexbyte[3];
+
+        straddr = talloc_strdup(mem_ctx, "\0");
+        if (!straddr) {
+            return NULL;
+        }
+
+        for (i = 15; i >= 0; i--) {
+            snprintf(hexbyte, 3, "%02x", address[i]);
+            straddr = talloc_asprintf_append(straddr, "%c.%c.",
+                                             hexbyte[1], hexbyte[0]);
+        }
+        straddr = talloc_asprintf_append(straddr, "ip6.arpa.");
+    } else if (family == AF_INET) {
+        straddr = talloc_asprintf(mem_ctx,
+                                  "%u.%u.%u.%u.in-addr.arpa.",
+                                  (address[3]),
+                                  (address[2]),
+                                  (address[1]),
+                                  (address[0]));
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+        return NULL;
+    }
+
+    return straddr;
+}
+
 struct sockaddr_storage *
 resolv_get_sockaddr_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
                             int port)

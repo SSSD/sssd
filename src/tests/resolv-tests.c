@@ -95,6 +95,62 @@ static int test_loop(struct resolv_test_ctx *data)
     return data->error;
 }
 
+struct resolv_hostent *
+test_create_rhostent(TALLOC_CTX *mem_ctx,
+                     const char *hostname, const char *address)
+{
+    struct resolv_hostent *rhostent;
+    int ret;
+    int family;
+
+    rhostent = talloc_zero(mem_ctx, struct resolv_hostent);
+    if (!rhostent) {
+        return NULL;
+    }
+
+    rhostent->name = talloc_strdup(rhostent, hostname);
+    rhostent->addr_list = talloc_array(rhostent, struct resolv_addr *, 2);
+    if (!rhostent->name ||
+        !rhostent->addr_list) {
+        goto fail;
+    }
+
+    rhostent->addr_list[0] = talloc_zero(rhostent->addr_list,
+                                         struct resolv_addr);
+    if (!rhostent->addr_list[0]) {
+        goto fail;
+    }
+    rhostent->addr_list[0]->ipaddr = talloc_array(rhostent->addr_list[0],
+                                                  uint8_t,
+                                                  sizeof(struct in6_addr));
+    if (!rhostent->addr_list[0]->ipaddr) {
+        goto fail;
+    }
+
+    family = AF_INET;
+    ret = inet_pton(family, address,
+                    rhostent->addr_list[0]->ipaddr);
+    if (ret != 1) {
+        family = AF_INET6;
+        ret = inet_pton(family, address,
+                        rhostent->addr_list[0]->ipaddr);
+        if (ret != 1) {
+            goto fail;
+        }
+    }
+
+    rhostent->addr_list[0]->ttl = RESOLV_DEFAULT_TTL;
+    rhostent->addr_list[1] = NULL;
+    rhostent->family = family;
+    rhostent->aliases = NULL;
+
+    return rhostent;
+
+fail:
+    talloc_free(rhostent);
+    return NULL;
+}
+
 START_TEST(test_copy_hostent)
 {
     void *ctx;
@@ -151,6 +207,53 @@ START_TEST(test_copy_hostent)
 
     talloc_free(rhe);
 
+    ck_leaks_pop(ctx);
+}
+END_TEST
+
+START_TEST(test_address_to_string)
+{
+    void *ctx;
+    struct resolv_hostent *rhe;
+    char *str_addr;
+    char *ptr_addr;
+
+    ctx = talloc_new(global_talloc_context);
+    fail_if(ctx == NULL);
+    ck_leaks_push(ctx);
+
+    rhe = test_create_rhostent(ctx, "www.example.com", "1.2.3.4");
+    fail_if(rhe == NULL);
+
+    str_addr = resolv_get_string_address_index(ctx, rhe, 0);
+    fail_if(str_addr == NULL);
+    fail_unless(strcmp(str_addr, "1.2.3.4") == 0, "Unexpected address\n");
+    talloc_free(str_addr);
+
+    ptr_addr = resolv_get_string_ptr_address(ctx, rhe->family,
+                                             rhe->addr_list[0]->ipaddr);
+    fail_if(ptr_addr == NULL);
+    fail_unless(strcmp(ptr_addr, "4.3.2.1.in-addr.arpa.") == 0, "Unexpected PTR address\n");
+    talloc_free(ptr_addr);
+
+    talloc_free(rhe);
+
+    rhe = test_create_rhostent(ctx, "www6.example.com", "2607:f8b0:400c:c03::6a");
+    fail_if(rhe == NULL);
+
+    str_addr = resolv_get_string_address_index(ctx, rhe, 0);
+    fail_if(str_addr == NULL);
+    fail_unless(strcmp(str_addr, "2607:f8b0:400c:c03::6a") == 0, "Unexpected address\n");
+    talloc_free(str_addr);
+
+    ptr_addr = resolv_get_string_ptr_address(ctx, rhe->family,
+                                             rhe->addr_list[0]->ipaddr);
+    fail_if(ptr_addr == NULL);
+    fail_unless(strcmp(ptr_addr,
+                       "a.6.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.c.0.c.0.0.4.0.b.8.f.7.0.6.2.ip6.arpa.") == 0, "Unexpected PTR address\n");
+    talloc_free(ptr_addr);
+
+    talloc_free(rhe);
     ck_leaks_pop(ctx);
 }
 END_TEST
@@ -791,6 +894,7 @@ Suite *create_resolv_suite(void)
     tcase_add_checked_fixture(tc_resolv, ck_leak_check_setup, ck_leak_check_teardown);
     /* Do some testing */
     tcase_add_test(tc_resolv, test_copy_hostent);
+    tcase_add_test(tc_resolv, test_address_to_string);
     tcase_add_test(tc_resolv, test_resolv_ip_addr);
     tcase_add_test(tc_resolv, test_resolv_sort_srv_reply);
     if (use_net_test) {
