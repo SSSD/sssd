@@ -69,81 +69,33 @@ void ipa_dyndns_timer(void *pvt)
     struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
     struct tevent_req *req;
-    struct ipa_dyndns_timer_ctx *timer_ctx;
-    errno_t ret;
 
-    timer_ctx = talloc_zero(ctx, struct ipa_dyndns_timer_ctx);
-    if (timer_ctx == NULL) {
+    req = sdap_dyndns_timer_conn_send(ctx, sdap_ctx->be->ev, sdap_ctx,
+                                      ctx->dyndns_ctx);
+    if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
-        /* Not much we can do */
+        /* Not much we can do. Just attempt to reschedule */
+        be_nsupdate_timer_schedule(sdap_ctx->be->ev, ctx->dyndns_ctx);
         return;
     }
-    timer_ctx->ev = sdap_ctx->be->ev;
-    timer_ctx->ctx = ctx;
-
-    /* In order to prevent the connection triggering an
-     * online callback which would in turn trigger a concurrent DNS
-     * update
-     */
-    ctx->dyndns_ctx->timer_in_progress = true;
-
-    /* Make sure to have a valid LDAP connection */
-    timer_ctx->sdap_op = sdap_id_op_create(timer_ctx, sdap_ctx->conn_cache);
-    if (timer_ctx->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
-        goto fail;
-    }
-
-    req = sdap_id_op_connect_send(timer_ctx->sdap_op, timer_ctx, &ret);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: [%d](%s)\n",
-              ret, sss_strerror(ret)));
-        goto fail;
-    }
-    tevent_req_set_callback(req, ipa_dyndns_timer_connected, timer_ctx);
-    return;
-
-fail:
-    ctx->dyndns_ctx->timer_in_progress = false;
-    be_nsupdate_timer_schedule(timer_ctx->ev, ctx->dyndns_ctx);
-    talloc_free(timer_ctx);
+    tevent_req_set_callback(req, ipa_dyndns_timer_connected, ctx);
 }
 
 static void ipa_dyndns_timer_connected(struct tevent_req *req)
 {
     errno_t ret;
-    int dp_error;
-    struct ipa_dyndns_timer_ctx *timer_ctx = tevent_req_callback_data(req,
-                                     struct ipa_dyndns_timer_ctx);
-    struct tevent_context *ev;
-    struct ipa_options *ctx;
+    struct ipa_options *ctx = tevent_req_callback_data(req,
+                                                struct ipa_options);
 
-    ctx = timer_ctx->ctx;
-    ev = timer_ctx->ev;
-    ctx->dyndns_ctx->timer_in_progress = false;
-
-    ret = sdap_id_op_connect_recv(req, &dp_error);
+    ret = sdap_dyndns_timer_conn_recv(req);
     talloc_zfree(req);
-    talloc_free(timer_ctx);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("No IPA server is available, "
-                  "dynamic DNS update is skipped in offline mode.\n"));
-            /* Another timer will be scheduled when provider goes online
-             * and ipa_dyndns_update() is called */
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to connect to LDAP server: [%d](%s)\n",
-                  ret, sss_strerror(ret)));
-
-            /* Just schedule another dyndns retry */
-            be_nsupdate_timer_schedule(ev, ctx->dyndns_ctx);
-        }
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to connect to IPA: [%d](%s)\n",
+              ret, sss_strerror(ret)));
         return;
     }
 
-    /* all OK just call ipa_dyndns_update and schedule another refresh */
-    be_nsupdate_timer_schedule(ev, ctx->dyndns_ctx);
     return ipa_dyndns_update(ctx);
 }
 
