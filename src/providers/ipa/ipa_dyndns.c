@@ -242,7 +242,9 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     }
 
     subreq = sdap_dyndns_update_send(state, sdap_ctx->be->ev,
-                                     sdap_ctx->be, sdap_ctx,
+                                     sdap_ctx->be,
+                                     ctx->dyndns_ctx->opts,
+                                     sdap_ctx,
                                      dp_opt_get_string(ctx->dyndns_ctx->opts,
                                                        DP_OPT_DYNDNS_IFACE),
                                      dp_opt_get_string(ctx->basic,

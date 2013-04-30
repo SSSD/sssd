@@ -220,6 +220,26 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dyndns_update_ptr (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether the PTR record should also be explicitly
+                            updated when updating the client's DNS records.
+                            Applicable only when dyndns_update is true.
+                        </para>
+                        <para>
+                            This options should be False in most IPA
+                            deployments as the IPA server generates the
+                            PTR records automatically when forward records
+                            are changed.
+                        </para>
+                        <para>
+                            Default: False (disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_hbac_search_base (string)</term>
                     <listitem>
                         <para>

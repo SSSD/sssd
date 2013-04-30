@@ -1453,8 +1453,8 @@ resolv_get_string_ptr_address(TALLOC_CTX *mem_ctx,
 }
 
 struct sockaddr_storage *
-resolv_get_sockaddr_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
-                            int port)
+resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
+                                  int port, int index)
 {
     struct sockaddr_storage *sockaddr;
 

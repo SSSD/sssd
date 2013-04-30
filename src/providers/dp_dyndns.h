@@ -46,6 +46,7 @@ enum dp_dyndns_opts {
     DP_OPT_DYNDNS_REFRESH_INTERVAL,
     DP_OPT_DYNDNS_IFACE,
     DP_OPT_DYNDNS_TTL,
+    DP_OPT_DYNDNS_UPDATE_PTR,
 
     DP_OPT_DYNDNS /* attrs counter */
 };
@@ -79,11 +80,20 @@ sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
                                 char ***_straddrs);
 
 errno_t
-be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                       const char *zone, const char *servername,
-                       const char *hostname, const unsigned int ttl,
-                       uint8_t remove_af, struct sss_iface_addr *addresses,
-                       char **_update_msg);
+be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
+                           const char *zone, const char *servername,
+                           const char *hostname, const unsigned int ttl,
+                           uint8_t remove_af, struct sss_iface_addr *addresses,
+                           struct sss_iface_addr *old_addresses,
+                           char **_update_msg);
+
+errno_t
+be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
+                           const char *servername, const char *hostname,
+                           const unsigned int ttl, uint8_t remove_af,
+                           struct sss_iface_addr *addresses,
+                           struct sss_iface_addr *old_addresses,
+                           char **_update_msg);
 
 /* Returns:
  *    * ERR_OK              - on success
@@ -100,8 +110,10 @@ struct tevent_req * nsupdate_get_addrs_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct be_resolv_ctx *be_res,
                                             const char *hostname);
-errno_t nsupdate_get_addrs_recv(struct tevent_req *req,
-                                TALLOC_CTX *mem_ctx,
-                                char ***_addrlist);
+errno_t
+nsupdate_get_addrs_recv(struct tevent_req *req,
+                        TALLOC_CTX *mem_ctx,
+                        struct sss_iface_addr **_addrlist,
+                        size_t *_count);
 
 #endif /* DP_DYNDNS_H_ */

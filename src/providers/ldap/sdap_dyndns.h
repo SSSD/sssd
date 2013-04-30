@@ -33,6 +33,7 @@ struct tevent_req *
 sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct be_ctx *be_ctx,
+                        struct dp_option *opts,
                         struct sdap_id_ctx *sdap_ctx,
                         const char *ifname,
                         const char *hostname,

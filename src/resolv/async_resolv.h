@@ -129,8 +129,11 @@ resolv_get_string_ptr_address(TALLOC_CTX *mem_ctx,
         resolv_get_string_address_index(mem_ctx, hostent, 0)
 
 struct sockaddr_storage *
-resolv_get_sockaddr_address(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
-                            int port);
+resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx, struct resolv_hostent *hostent,
+                                  int port, int index);
+
+#define resolv_get_sockaddr_address(mem_ctx, rhostent, port) \
+        resolv_get_sockaddr_address_index(mem_ctx, rhostent, port, 0)
 
 /** Get SRV record **/
 struct tevent_req *resolv_getsrv_send(TALLOC_CTX *mem_ctx,

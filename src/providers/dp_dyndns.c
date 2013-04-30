@@ -262,64 +262,14 @@ done:
     return ret;
 }
 
-errno_t
-be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                       const char *zone, const char *servername,
-                       const char *hostname, const unsigned int ttl,
-                       uint8_t remove_af, struct sss_iface_addr *addresses,
-                       char **_update_msg)
+static char *
+nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
+                     const char *hostname, int ttl, uint8_t remove_af)
 {
-    int ret;
-    char *realm_directive;
+    struct sss_iface_addr *new_record;
     char ip_addr[INET6_ADDRSTRLEN];
     const char *ip;
-    struct sss_iface_addr *new_record;
-    char *update_msg;
-    TALLOC_CTX *tmp_ctx;
-
-    /* in some cases realm could have been NULL if we weren't using TSIG */
-    if (zone == NULL || hostname == NULL) {
-        return EINVAL;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) return ENOMEM;
-
-#ifdef HAVE_NSUPDATE_REALM
-    realm_directive = talloc_asprintf(tmp_ctx, "realm %s\n", realm);
-#else
-    realm_directive = talloc_asprintf(tmp_ctx, "");
-#endif
-    if (!realm_directive) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* The realm_directive would now either contain an empty string or be
-     * completely empty so we don't need to add another newline here
-     */
-    if (servername) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              ("Creating update message for server [%s], realm [%s] "
-               "and zone [%s].\n", servername, realm, zone));
-
-        /* Add the server, realm and zone headers */
-        update_msg = talloc_asprintf(tmp_ctx, "server %s\n%szone %s.\n",
-                                     servername, realm_directive, zone);
-    } else {
-        DEBUG(SSSDBG_FUNC_DATA,
-              ("Creating update message for realm [%s] and zone [%s].\n",
-               realm, zone));
-
-        /* Add the realm and zone headers */
-        update_msg = talloc_asprintf(tmp_ctx, "%szone %s.\n",
-                                     realm_directive, zone);
-    }
-    talloc_free(realm_directive);
-    if (update_msg == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
+    errno_t ret;
 
     /* Remove existing entries as needed */
     if (remove_af & DYNDNS_REMOVE_A) {
@@ -327,8 +277,7 @@ be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
                                             "update delete %s. in A\nsend\n",
                                             hostname);
         if (update_msg == NULL) {
-            ret = ENOMEM;
-            goto done;
+            return NULL;
         }
     }
     if (remove_af & DYNDNS_REMOVE_AAAA) {
@@ -336,8 +285,7 @@ be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
                                             "update delete %s. in AAAA\nsend\n",
                                             hostname);
         if (update_msg == NULL) {
-            ret = ENOMEM;
-            goto done;
+            return NULL;
         }
     }
 
@@ -349,7 +297,9 @@ be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            ip_addr, INET6_ADDRSTRLEN);
             if (ip == NULL) {
                 ret = errno;
-                goto done;
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("inet_ntop failed [%d]: %s\n", ret, strerror(ret)));
+                return NULL;
             }
             break;
 
@@ -359,14 +309,15 @@ be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            ip_addr, INET6_ADDRSTRLEN);
             if (ip == NULL) {
                 ret = errno;
-                goto done;
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("inet_ntop failed [%d]: %s\n", ret, strerror(ret)));
+                return NULL;
             }
             break;
 
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
-            ret = EINVAL;
-            goto done;
+            return NULL;
         }
 
         /* Format the record update */
@@ -376,12 +327,179 @@ be_nsupdate_create_msg(TALLOC_CTX *mem_ctx, const char *realm,
                 new_record->addr->ss_family == AF_INET ? "A" : "AAAA",
                 ip_addr);
         if (update_msg == NULL) {
+            return NULL;
+        }
+
+    }
+
+    return talloc_asprintf_append(update_msg, "send\n");
+}
+
+static char *
+nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
+                     const char *hostname, int ttl, uint8_t remove_af,
+                     struct sss_iface_addr *old_addresses)
+{
+    struct sss_iface_addr *new_record, *old_record;
+    char *strptr;
+    uint8_t *addr;
+
+    DLIST_FOR_EACH(old_record, old_addresses) {
+        switch(old_record->addr->ss_family) {
+        case AF_INET:
+            if (!(remove_af & DYNDNS_REMOVE_A)) {
+                continue;
+            }
+            addr = (uint8_t *) &((struct sockaddr_in *) old_record->addr)->sin_addr;
+            break;
+        case AF_INET6:
+            if (!(remove_af & DYNDNS_REMOVE_AAAA)) {
+                continue;
+            }
+            addr = (uint8_t *) &((struct sockaddr_in6 *) old_record->addr)->sin6_addr;
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+            return NULL;
+        }
+
+        strptr = resolv_get_string_ptr_address(update_msg, old_record->addr->ss_family,
+                                               addr);
+        if (strptr == NULL) {
+            return NULL;
+        }
+
+        /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
+        update_msg = talloc_asprintf_append(update_msg,
+                                            "update delete %s in PTR\n", strptr);
+        talloc_free(strptr);
+        if (update_msg == NULL) {
+            return NULL;
+        }
+    }
+
+    /* example: update add 11.78.16.10.in-addr.arpa. 85000 in PTR testvm.example.com */
+    DLIST_FOR_EACH(new_record, addresses) {
+        switch(new_record->addr->ss_family) {
+        case AF_INET:
+            addr = (uint8_t *) &((struct sockaddr_in *) new_record->addr)->sin_addr;
+            break;
+        case AF_INET6:
+            addr = (uint8_t *) &((struct sockaddr_in6 *) new_record->addr)->sin6_addr;
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+            return NULL;
+        }
+
+        strptr = resolv_get_string_ptr_address(update_msg, new_record->addr->ss_family,
+                                               addr);
+        if (strptr == NULL) {
+            return NULL;
+        }
+
+        /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
+        update_msg = talloc_asprintf_append(update_msg,
+                                            "update add %s %d in PTR %s.\n",
+                                            strptr, ttl, hostname);
+        talloc_free(strptr);
+        if (update_msg == NULL) {
+            return NULL;
+        }
+    }
+
+    return talloc_asprintf_append(update_msg, "send\n");
+}
+
+static char *
+nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
+                           const char *servername)
+{
+    char *realm_directive;
+    char *update_msg;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) return NULL;
+
+#ifdef HAVE_NSUPDATE_REALM
+    realm_directive = talloc_asprintf(tmp_ctx, "realm %s\n", realm);
+#else
+    realm_directive = talloc_asprintf(tmp_ctx, "");
+#endif
+    if (!realm_directive) {
+        goto fail;
+    }
+
+    /* The realm_directive would now either contain an empty string or be
+     * completely empty so we don't need to add another newline here
+     */
+    if (servername) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("Creating update message for server [%s] and realm [%s]\n.",
+               servername, realm));
+
+        /* Add the server, realm and headers */
+        update_msg = talloc_asprintf(tmp_ctx, "server %s\n%s",
+                                     servername, realm_directive);
+    } else {
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("Creating update message for realm [%s].\n", realm));
+        /* Add the realm headers */
+        update_msg = talloc_asprintf(tmp_ctx, "%s", realm_directive);
+    }
+    talloc_free(realm_directive);
+    if (update_msg == NULL) {
+        goto fail;
+    }
+
+    update_msg = talloc_steal(mem_ctx, update_msg);
+    talloc_free(tmp_ctx);
+    return update_msg;
+
+fail:
+    talloc_free(tmp_ctx);
+    return NULL;
+}
+
+errno_t
+be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
+                           const char *zone, const char *servername,
+                           const char *hostname, const unsigned int ttl,
+                           uint8_t remove_af, struct sss_iface_addr *addresses,
+                           struct sss_iface_addr *old_addresses,
+                           char **_update_msg)
+{
+    int ret;
+    char *update_msg;
+    TALLOC_CTX *tmp_ctx;
+
+    /* in some cases realm could have been NULL if we weren't using TSIG */
+    if (hostname == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    update_msg = nsupdate_msg_create_common(tmp_ctx, realm, servername);
+    if (update_msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (zone) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("Setting the zone explicitly to [%s].\n", zone));
+        update_msg = talloc_asprintf_append(update_msg, "zone %s.\n", zone);
+        if (update_msg == NULL) {
             ret = ENOMEM;
             goto done;
         }
     }
 
-    update_msg = talloc_asprintf_append(update_msg, "send\n");
+    update_msg = nsupdate_msg_add_fwd(update_msg, addresses, hostname,
+                                      ttl, remove_af);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
@@ -400,6 +518,47 @@ done:
     return ret;
 }
 
+errno_t
+be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
+                           const char *servername, const char *hostname,
+                           const unsigned int ttl, uint8_t remove_af,
+                           struct sss_iface_addr *addresses,
+                           struct sss_iface_addr *old_addresses,
+                           char **_update_msg)
+{
+    errno_t ret;
+    char *update_msg;
+
+    /* in some cases realm could have been NULL if we weren't using TSIG */
+    if (hostname == NULL) {
+        return EINVAL;
+    }
+
+    update_msg = nsupdate_msg_create_common(mem_ctx, realm, servername);
+    if (update_msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    update_msg = nsupdate_msg_add_ptr(update_msg, addresses, hostname,
+                                      ttl, remove_af, old_addresses);
+    if (update_msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          (" -- Begin nsupdate message -- \n%s",
+           update_msg));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          (" -- End nsupdate message -- \n"));
+
+    ret = ERR_OK;
+    *_update_msg = talloc_steal(mem_ctx, update_msg);
+done:
+    return ret;
+}
+
 struct nsupdate_get_addrs_state {
     struct tevent_context *ev;
     struct be_resolv_ctx *be_res;
@@ -407,7 +566,7 @@ struct nsupdate_get_addrs_state {
     const char *hostname;
 
     /* Use sss_addr in this request */
-    char **addrlist;
+    struct sss_iface_addr *addrlist;
     size_t count;
 };
 
@@ -472,6 +631,7 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
     struct nsupdate_get_addrs_state *state = tevent_req_data(req,
                                      struct nsupdate_get_addrs_state);
     struct resolv_hostent *rhostent;
+    struct sss_iface_addr *addr;
     int i;
     int resolv_status;
 
@@ -509,25 +669,25 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
         count = 0;
     }
 
-    state->addrlist = talloc_realloc(state, state->addrlist, char *,
-                                     state->count + count + 1);
-    if (!state->addrlist) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     for (i=0; i < count; i++) {
-        state->addrlist[state->count + i] = \
-                        resolv_get_string_address_index(state->addrlist,
-                                                        rhostent, i);
-
-        if (state->addrlist[state->count + i] == NULL) {
+        addr = talloc(state, struct sss_iface_addr);
+        if (addr == NULL) {
             ret = ENOMEM;
             goto done;
         }
+
+        addr->addr = resolv_get_sockaddr_address_index(addr, rhostent, 0, i);
+        if (addr == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (state->addrlist) {
+            talloc_steal(state->addrlist, addr);
+        }
+        DLIST_ADD(state->addrlist, addr);
     }
     state->count += count;
-    state->addrlist[state->count] = NULL;
 
     /* If the resolver is set to honor both address families
      * and the first one matched, retry the second one to
@@ -576,14 +736,22 @@ done:
 errno_t
 nsupdate_get_addrs_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx,
-                        char ***_addrlist)
+                        struct sss_iface_addr **_addrlist,
+                        size_t *_count)
 {
     struct nsupdate_get_addrs_state *state = tevent_req_data(req,
                                     struct nsupdate_get_addrs_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *_addrlist = talloc_steal(mem_ctx, state->addrlist);
+    if (_addrlist) {
+        *_addrlist = talloc_steal(mem_ctx, state->addrlist);
+    }
+
+    if (_count) {
+        *_count = state->count;
+    }
+
     return EOK;
 }
 
@@ -948,6 +1116,7 @@ static struct dp_option default_dyndns_opts[] = {
     { "dyndns_refresh_interval", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER },
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 1200 }, NULL_NUMBER },
+    { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
 
     DP_OPTION_TERMINATOR
 };

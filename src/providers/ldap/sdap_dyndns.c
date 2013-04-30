@@ -43,6 +43,7 @@ sdap_dyndns_get_addrs_recv(struct tevent_req *req,
 struct sdap_dyndns_update_state {
     struct tevent_context *ev;
     struct be_resolv_ctx *be_res;
+    struct dp_option *opts;
 
     const char *hostname;
     const char *dns_zone;
@@ -51,22 +52,29 @@ struct sdap_dyndns_update_state {
     int ttl;
 
     struct sss_iface_addr *addresses;
+    struct sss_iface_addr *dns_addrlist;
     uint8_t remove_af;
 
+    bool update_ptr;
     bool check_diff;
     bool use_server_with_nsupdate;
     char *update_msg;
 };
 
 static void sdap_dyndns_update_addrs_done(struct tevent_req *subreq);
-static void sdap_dyndns_addrs_check_done(struct tevent_req *subreq);
+static void sdap_dyndns_dns_addrs_done(struct tevent_req *subreq);
+static errno_t sdap_dyndns_addrs_diff(struct sdap_dyndns_update_state *state,
+                                      bool *_do_update);
 static errno_t sdap_dyndns_update_step(struct tevent_req *req);
+static errno_t sdap_dyndns_update_ptr_step(struct tevent_req *req);
 static void sdap_dyndns_update_done(struct tevent_req *subreq);
+static void sdap_dyndns_update_ptr_done(struct tevent_req *subreq);
 
 struct tevent_req *
 sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct be_ctx *be_ctx,
+                        struct dp_option *opts,
                         struct sdap_id_ctx *sdap_ctx,
                         const char *ifname,
                         const char *hostname,
@@ -86,6 +94,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     state->check_diff = check_diff;
+    state->update_ptr = dp_opt_get_bool(opts, DP_OPT_DYNDNS_UPDATE_PTR);
     state->hostname = hostname;
     state->dns_zone = dns_zone;
     state->realm = realm;
@@ -94,6 +103,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->ttl = ttl;
     state->be_res = be_ctx->be_res;
     state->ev = ev;
+    state->opts = opts;
 
     if (ifname) {
        /* Unless one family is restricted, just replace all
@@ -155,8 +165,10 @@ sdap_dyndns_update_addrs_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->check_diff) {
-        /* Check if we need the update at all */
+    if (state->check_diff || state->update_ptr) {
+        /* Check if we need the update at all. In case we are updating the PTR
+         * records as well, we need to know the old addresses to be able to
+         * reliably delete the PTR records */
         subreq = nsupdate_get_addrs_send(state, state->ev,
                                          state->be_res, state->hostname);
         if (subreq == NULL) {
@@ -164,7 +176,7 @@ sdap_dyndns_update_addrs_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, sdap_dyndns_addrs_check_done, req);
+        tevent_req_set_callback(subreq, sdap_dyndns_dns_addrs_done, req);
         return;
     }
 
@@ -178,20 +190,17 @@ sdap_dyndns_update_addrs_done(struct tevent_req *subreq)
 }
 
 static void
-sdap_dyndns_addrs_check_done(struct tevent_req *subreq)
+sdap_dyndns_dns_addrs_done(struct tevent_req *subreq)
 {
-    errno_t ret;
-    int i;
     struct tevent_req *req;
     struct sdap_dyndns_update_state *state;
-    char **str_dnslist = NULL, **str_local_list = NULL;
-    char **dns_only = NULL, **local_only = NULL;
+    errno_t ret;
     bool do_update;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
-    ret = nsupdate_get_addrs_recv(subreq, state, &str_dnslist);
+    ret = nsupdate_get_addrs_recv(subreq, state, &state->dns_addrlist, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -201,14 +210,61 @@ sdap_dyndns_addrs_check_done(struct tevent_req *subreq)
         return;
     }
 
+    if (state->check_diff) {
+        ret = sdap_dyndns_addrs_diff(state, &do_update);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not check the diff between DNS "
+                  "and current addresses [%d]: %s\n", ret, strerror(ret)));
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        if (do_update == false) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("No DNS update needed, addresses did not change\n"));
+            tevent_req_done(req);
+            return;
+        }
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Detected IP addresses change, will perform an update\n"));
+    }
+
+    /* Either we needed the addresses for updating PTR records only or
+     * the addresses have changed (or both) */
+    ret = sdap_dyndns_update_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not start the update [%d]: %s\n",
+              ret, sss_strerror(ret)));
+        tevent_req_error(req, ret);
+    }
+    return;
+}
+
+static errno_t
+sdap_dyndns_addrs_diff(struct sdap_dyndns_update_state *state, bool *_do_update)
+{
+    errno_t ret;
+    int i;
+    char **str_dnslist = NULL, **str_local_list = NULL;
+    char **dns_only = NULL, **local_only = NULL;
+    bool do_update;
+
     ret = sss_iface_addr_list_as_str_list(state,
-                                          state->addresses, &str_local_list);
+                                          state->dns_addrlist, &str_dnslist);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
                ("Converting DNS IP addresses to strings failed: [%d]: %s\n",
                ret, sss_strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+        return ret;
+    }
+
+    ret = sss_iface_addr_list_as_str_list(state,
+                                          state->addresses, &str_local_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+               ("Converting local IP addresses to strings failed: [%d]: %s\n",
+               ret, sss_strerror(ret)));
+        return ret;
     }
 
     /* Compare the lists */
@@ -217,8 +273,7 @@ sdap_dyndns_addrs_check_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("diff_string_lists failed: [%d]: %s\n", ret, sss_strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+        return ret;
     }
 
     if (dns_only) {
@@ -237,22 +292,8 @@ sdap_dyndns_addrs_check_done(struct tevent_req *subreq)
         }
     }
 
-    if (do_update) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              ("Detected IP addresses change, will perform an update\n"));
-        ret = sdap_dyndns_update_step(req);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not start the update [%d]: %s\n",
-                  ret, sss_strerror(ret)));
-            tevent_req_error(req, ret);
-        }
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          ("No DNS update needed, addresses did not change\n"));
-    tevent_req_done(req);
-    return;
+    *_do_update = do_update;
+    return EOK;
 }
 
 static errno_t
@@ -271,11 +312,11 @@ sdap_dyndns_update_step(struct tevent_req *req)
         servername = state->servername;
     }
 
-    ret = be_nsupdate_create_msg(state, state->realm, state->dns_zone,
-                                 servername, state->hostname,
-                                 state->ttl, state->remove_af,
-                                 state->addresses,
-                                 &state->update_msg);
+    ret = be_nsupdate_create_fwd_msg(state, state->realm, state->dns_zone,
+                                     servername, state->hostname,
+                                     state->ttl, state->remove_af,
+                                     state->addresses, state->dns_addrlist,
+                                     &state->update_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Can't get addresses for DNS update\n"));
         return ret;
@@ -312,6 +353,88 @@ sdap_dyndns_update_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_MINOR_FAILURE,
                    ("nsupdate failed, retrying with server name\n"));
             ret = sdap_dyndns_update_step(req);
+            if (ret == EOK) {
+                return;
+            }
+        }
+
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->update_ptr == false) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No PTR update requested, done\n"));
+        tevent_req_done(req);
+        return;
+    }
+
+    talloc_free(state->update_msg);
+    ret = sdap_dyndns_update_ptr_step(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    /* Execution will resume in sdap_dyndns_update_ptr_done */
+}
+
+static errno_t
+sdap_dyndns_update_ptr_step(struct tevent_req *req)
+{
+    errno_t ret;
+    struct sdap_dyndns_update_state *state;
+    const char *servername;
+    struct tevent_req *subreq;
+
+    state = tevent_req_data(req, struct sdap_dyndns_update_state);
+
+    servername = NULL;
+    if (state->use_server_with_nsupdate == true &&
+        state->servername) {
+        servername = state->servername;
+    }
+
+    ret = be_nsupdate_create_ptr_msg(state, state->realm,
+                                     servername, state->hostname,
+                                     state->ttl, state->remove_af,
+                                     state->addresses, state->dns_addrlist,
+                                     &state->update_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Can't get addresses for DNS update\n"));
+        return ret;
+    }
+
+    /* Fork a child process to perform the DNS update */
+    subreq = be_nsupdate_send(state, state->ev,
+                              state->update_msg);
+    if (subreq == NULL) {
+        return EIO;
+    }
+
+    tevent_req_set_callback(subreq, sdap_dyndns_update_ptr_done, req);
+    return EOK;
+}
+
+static void
+sdap_dyndns_update_ptr_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int child_status;
+    struct tevent_req *req;
+    struct sdap_dyndns_update_state *state;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_dyndns_update_state);
+
+    ret = be_nsupdate_recv(subreq, &child_status);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* If the update didn't succeed, we can retry using the server name */
+        if (state->use_server_with_nsupdate == false && state->servername &&
+            WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
+            state->use_server_with_nsupdate = true;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                   ("nsupdate failed, retrying with server name\n"));
+            ret = sdap_dyndns_update_ptr_step(req);
             if (ret == EOK) {
                 return;
             }

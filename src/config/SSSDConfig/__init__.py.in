@@ -129,6 +129,7 @@ option_strings = {
     'dyndns_ttl' : _("The TTL to apply to the client's DNS entry after updating it"),
     'dyndns_iface' : _("The interface whose IP should be used for dynamic DNS updates"),
     'dyndns_refresh_interval' : _("How often to periodically update the client's DNS entry"),
+    'dyndns_update_ptr' : _("Whether the provider should explicitly update the PTR record as well"),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),
