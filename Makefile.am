@@ -1621,6 +1621,8 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_access.h \
     src/providers/ad/ad_opts.h \
     src/providers/ad/ad_srv.c \
+    src/providers/ad/ad_subdomains.c \
+    src/providers/ad/ad_subdomains.h \
     src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \

@@ -95,6 +95,10 @@ ldap_id_mapping = False
                             specified as the lower-case version of the long
                             version of the Active Directory domain.
                         </para>
+                        <para>
+                            The short domain name (also known as the NetBIOS
+                            or the flat name) is autodetected by the SSSD.
+                        </para>
                     </listitem>
                 </varlistentry>
 

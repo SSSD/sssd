@@ -37,6 +37,7 @@
 #include "providers/ad/ad_id.h"
 #include "providers/ad/ad_srv.h"
 #include "providers/dp_dyndns.h"
+#include "providers/ad/ad_subdomains.h"
 
 struct ad_options *ad_options = NULL;
 
@@ -360,4 +361,34 @@ ad_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
     sdap_handler_done(req, DP_ERR_OK, EOK, NULL);
+}
+
+int sssm_ad_subdomains_init(struct be_ctx *bectx,
+                            struct bet_ops **ops,
+                            void **pvt_data)
+{
+    int ret;
+    struct ad_id_ctx *id_ctx;
+    const char *ad_domain;
+
+    ret = sssm_ad_id_init(bectx, ops, (void **) &id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ad_id_init failed.\n"));
+        return ret;
+    }
+
+    if (ad_options == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Global AD options not available.\n"));
+        return EINVAL;
+    }
+
+    ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
+
+    ret = ad_subdom_init(bectx, id_ctx, ad_domain, ops, pvt_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("ad_subdom_init failed.\n"));
+        return ret;
+    }
+
+    return EOK;
 }

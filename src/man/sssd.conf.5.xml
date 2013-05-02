@@ -1481,6 +1481,10 @@ override_homedir = /home/%u
                             Regular expression for this domain that describes
                             how to parse the string containing user name and
                             domain into these components.
+                            The "domain" can match either the SSSD
+                            configuration domain name, or, in the case
+                            of IPA trust subdomains and Active Directory
+                            domains, the flat (NetBIOS) name of the domain.
                         </para>
                         <para>
                             Default for the AD and IPA provider:
