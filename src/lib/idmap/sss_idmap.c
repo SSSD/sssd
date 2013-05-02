@@ -239,7 +239,7 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
 {
     id_t max_slices;
     id_t orig_slice;
-    id_t new_slice;
+    id_t new_slice = 0;
     id_t min;
     id_t max;
     id_t idmap_lower;
