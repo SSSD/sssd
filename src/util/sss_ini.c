@@ -255,7 +255,6 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
                          &init_data->sssd_config,
                          INI_STOP_ON_ANY,
                          &init_data->error_list);
-    close(init_data->file);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
