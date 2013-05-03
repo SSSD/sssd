@@ -161,11 +161,9 @@ sssm_ad_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    if (dp_opt_get_bool(sdap_ctx->opts->basic, SDAP_ID_MAPPING)) {
-        /* Set up the ID mapping object */
-        ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
-        if (ret != EOK) goto done;
-    }
+    /* Set up the ID mapping object */
+    ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
+    if (ret != EOK) goto done;
 
     ret = ad_dyndns_init(sdap_ctx->be, ad_options);
     if (ret != EOK) {
