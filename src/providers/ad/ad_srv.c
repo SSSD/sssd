@@ -360,9 +360,11 @@ static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (response.data.nt5_ex.client_site != NULL) {
+    if (response.data.nt5_ex.client_site != NULL
+        && response.data.nt5_ex.client_site[0] != '\0') {
         site = talloc_strdup(tmp_ctx, response.data.nt5_ex.client_site);
-    } else if (response.data.nt5_ex.next_closest_site != NULL) {
+    } else if (response.data.nt5_ex.next_closest_site != NULL
+               && response.data.nt5_ex.next_closest_site[0] != '\0') {
         site = talloc_strdup(tmp_ctx, response.data.nt5_ex.next_closest_site);
     } else {
         ret = ENOENT;
