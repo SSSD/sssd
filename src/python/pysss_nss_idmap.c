@@ -64,6 +64,22 @@ static int add_dict(PyObject *py_result, PyObject *key, PyObject *res_type,
     return ret;
 }
 
+static char *py_string_or_unicode_as_string(PyObject *inp)
+{
+    PyObject *py_str = NULL;
+
+    if (PyUnicode_Check(inp)) {
+        py_str = PyUnicode_AsUTF8String(inp);
+    } else if (PyString_Check(inp)) {
+        py_str = inp;
+    } else {
+        PyErr_Format(PyExc_TypeError, "input must be unicode or a string");
+        return NULL;
+    }
+
+    return PyString_AS_STRING(py_str);
+}
+
 static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
 {
     int ret;
@@ -71,7 +87,7 @@ static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
     char *sid = NULL;
     enum sss_id_type id_type;
 
-    name = PyString_AS_STRING(py_name);
+    name = py_string_or_unicode_as_string(py_name);
     if (name == NULL) {
         return EINVAL;
     }
@@ -79,7 +95,7 @@ static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
     ret = sss_nss_getsidbyname(name, &sid, &id_type);
     if (ret == 0) {
         ret = add_dict(py_result, py_name, PyString_FromString(SSS_SID_KEY),
-                       PyString_FromString(sid), PyInt_FromLong(id_type));
+                       PyUnicode_FromString(sid), PyInt_FromLong(id_type));
     }
     free(sid);
 
@@ -93,7 +109,7 @@ static int do_getnamebysid(PyObject *py_result, PyObject *py_sid)
     char *name = NULL;
     enum sss_id_type id_type;
 
-    sid = PyString_AS_STRING(py_sid);
+    sid = py_string_or_unicode_as_string(py_sid);
     if (sid == NULL) {
         return EINVAL;
     }
@@ -101,7 +117,7 @@ static int do_getnamebysid(PyObject *py_result, PyObject *py_sid)
     ret = sss_nss_getnamebysid(sid, &name, &id_type);
     if (ret == 0) {
         ret = add_dict(py_result, py_sid, PyString_FromString(SSS_NAME_KEY),
-                       PyString_FromString(name), PyInt_FromLong(id_type));
+                       PyUnicode_FromString(name), PyInt_FromLong(id_type));
     }
     free(name);
 
@@ -121,15 +137,16 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
         id = PyInt_AS_LONG(py_id);
     } else if (PyLong_Check(py_id)) {
         id = PyLong_AsLong(py_id);
-    } else if (PyString_Check(py_id)) {
-        id_str = PyString_AS_STRING(py_id);
+    } else {
+        id_str = py_string_or_unicode_as_string(py_id);
+        if (id_str == NULL) {
+            return EINVAL;
+        }
         errno = 0;
         id = strtol(id_str, &endptr, 10);
         if (errno != 0 || *endptr != '\0') {
             return EINVAL;
         }
-    } else {
-        return EINVAL;
     }
 
     if (id < 0 || id > UINT32_MAX) {
@@ -139,7 +156,7 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
     ret = sss_nss_getsidbyid((uint32_t) id, &sid, &id_type);
     if (ret == 0) {
         ret = add_dict(py_result, py_id, PyString_FromString(SSS_SID_KEY),
-                       PyString_FromString(sid), PyInt_FromLong(id_type));
+                       PyUnicode_FromString(sid), PyInt_FromLong(id_type));
     }
     free(sid);
 
@@ -153,7 +170,7 @@ static int do_getidbysid(PyObject *py_result, PyObject *py_sid)
     enum sss_id_type id_type;
     int ret;
 
-    sid = PyString_AS_STRING(py_sid);
+    sid = py_string_or_unicode_as_string(py_sid);
     if (sid == NULL) {
         return EINVAL;
     }
@@ -202,10 +219,12 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
         return NULL;
     }
 
-    if (!(PyList_Check(obj) || PyString_Check(obj) ||
+    if (!(PyList_Check(obj) || PyTuple_Check(obj) ||
+          PyString_Check(obj) || PyUnicode_Check(obj) ||
           (type == SIDBYID && (PyInt_Check(obj) || PyLong_Check(obj))))) {
         PyErr_Format(PyExc_ValueError,
-                     "Only string, long or list of them are accepted\n");
+                     "Only string, long or list or tuples of them " \
+                     "are accepted\n");
         return NULL;
     }
 
@@ -217,12 +236,12 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
         return NULL;
     }
 
-    if (PyList_Check(obj)) {
-        len = PyList_Size(obj);
+    if (PySequence_Check(obj)) {
+        len = PySequence_Size(obj);
         for(i=0; i < len; i++) {
-            py_value = PyList_GetItem(obj, i);
+            py_value = PySequence_GetItem(obj, i);
             if ((py_value != NULL) &&
-                (PyString_Check(py_value) ||
+                (PyString_Check(py_value) || PyUnicode_Check(py_value) ||
                  (type == SIDBYID &&
                   (PyInt_Check(py_value) || PyLong_Check(py_value))))) {
                 ret = do_lookup(type, py_result, py_value);
@@ -256,7 +275,7 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
 }
 
 PyDoc_STRVAR(getsidbyname_doc,
-"getsidbyname(name or list of names) -> dict(name => dict(results))\n\
+"getsidbyname(name or list/tuple of names) -> dict(name => dict(results))\n\
 \n\
 Returns a dictionary with a dictonary of results for each given name.\n\
 The result dictonary contain the SID and the type of the object which can be\n\
@@ -275,7 +294,7 @@ static PyObject * py_getsidbyname(PyObject *module, PyObject *args)
 }
 
 PyDoc_STRVAR(getsidbyid_doc,
-"getsidbyid(id or list of id) -> dict(id => dict(results))\n\
+"getsidbyid(id or list/tuple of id) -> dict(id => dict(results))\n\
 \n\
 Returns a dictionary with a dictonary of results for each given POSIX ID.\n\
 The result dictonary contain the SID and the type of the object which can be\n\
@@ -288,7 +307,7 @@ static PyObject * py_getsidbyid(PyObject *module, PyObject *args)
 }
 
 PyDoc_STRVAR(getnamebysid_doc,
-"getnamebysid(sid or list of sid) -> dict(sid => dict(results))\n\
+"getnamebysid(sid or list/tuple of sid) -> dict(sid => dict(results))\n\
 \n\
 Returns a dictionary with a dictonary of results for each given SID.\n\
 The result dictonary contain the name and the type of the object which can be\n\
@@ -304,7 +323,7 @@ PyDoc_STRVAR(getidbysid_doc,
 "getidbysid(sid) -> POSIX ID\n\
 \n\
 Returns the POSIX ID of the object with the given SID."
-"getidbysid(sid or list of sid) -> dict(sid => dict(results))\n\
+"getidbysid(sid or list/tuple of sid) -> dict(sid => dict(results))\n\
 \n\
 Returns a dictionary with a dictonary of results for each given SID.\n\
 The result dictonary contain the POSIX ID and the type of the object which\n\
