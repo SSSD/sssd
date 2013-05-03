@@ -295,6 +295,17 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
         goto done;
     }
 
+    if (state->backup_domain == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No backup domain specified\n"));
+
+        if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to retrieve primary nor "
+                  "backup servers [%d]: %s\n", ret, sss_strerror(ret)));
+        }
+
+        goto done;
+    }
+
     if (strcasecmp(state->dns_domain, state->backup_domain) == 0) {
         /* primary domain was unreachable, we will use servers from backup
          * domain as primary */
