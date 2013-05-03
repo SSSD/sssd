@@ -840,6 +840,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     krb5_deltat renew_interval_delta;
     char *renew_interval_str;
     time_t renew_interval_time = 0;
+    bool use_enterprise_principal;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -908,9 +909,13 @@ static void krb5_auth_done(struct tevent_req *subreq)
         }
     }
 
+    use_enterprise_principal = dp_opt_get_bool(kr->krb5_ctx->opts,
+                                               KRB5_USE_ENTERPRISE_PRINCIPAL);
+
     /* Check if the cases of our upn are correct and update it if needed.
      * Fail if the upn differs by more than just the case. */
     if (res->correct_upn != NULL &&
+        use_enterprise_principal == false &&
         strcmp(kr->upn, res->correct_upn) != 0) {
         if (strcasecmp(kr->upn, res->correct_upn) == 0) {
             talloc_free(kr->upn);
