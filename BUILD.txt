@@ -17,7 +17,7 @@ http://samba.org/ftp/tevent/
 http://samba.org/ftp/ldb/
 
 Additionally the ding-libs are needed. These used to be included in the sssd
-release but are now a separate project. The lastest ding-libs release can be
+release but are now a separate project. The latest ding-libs release can be
 downloaded from https://fedorahosted.org/sssd/wiki/Releases#DING-LIBSReleases .
 
 To install all of the dependencies in Fedora before building sssd:

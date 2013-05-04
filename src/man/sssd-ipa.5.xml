@@ -228,7 +228,7 @@
                             Applicable only when dyndns_update is true.
                         </para>
                         <para>
-                            This options should be False in most IPA
+                            This option should be False in most IPA
                             deployments as the IPA server generates the
                             PTR records automatically when forward records
                             are changed.
