@@ -1583,15 +1583,26 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
         return ENOENT;
     }
 
-    err = sss_idmap_bin_sid_to_sid(idmap_ctx->map,
-                                   el->values[0].data,
-                                   el->values[0].length,
-                                   &sid_str);
-    if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not convert SID: [%s]\n",
-               idmap_error_string(err)));
-        return EIO;
+    if (el->values[0].length > 2 &&
+        el->values[0].data[0] == 'S' &&
+        el->values[0].data[1] == '-') {
+        sid_str = talloc_strndup(mem_ctx, (char *) el->values[0].data,
+                                 el->values[0].length);
+        if (sid_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strndup failed.\n"));
+            return ENOMEM;
+        }
+    } else {
+        err = sss_idmap_bin_sid_to_sid(idmap_ctx->map,
+                                       el->values[0].data,
+                                       el->values[0].length,
+                                       &sid_str);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not convert SID: [%s]\n",
+                   idmap_error_string(err)));
+            return EIO;
+        }
     }
 
     *_sid_str = talloc_steal(mem_ctx, sid_str);
