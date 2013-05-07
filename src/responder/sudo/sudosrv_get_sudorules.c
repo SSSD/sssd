@@ -136,7 +136,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
              goto done;
         }
 
-        ret = sysdb_getpwnam(dctx, sysdb, name, &user);
+        ret = sysdb_subdom_getpwnam(dctx, sysdb, name, &user);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Failed to make request to our cache!\n"));
