@@ -38,6 +38,7 @@
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ipa/ipa_selinux.h"
 #include "providers/ldap/sdap_access.h"
+#include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_srv.h"
 #include "providers/dp_dyndns.h"
@@ -192,6 +193,10 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         goto done;
     }
 
+    /* Set up the ID mapping object */
+    ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
+    if (ret != EOK) goto done;
+
     ret = sdap_id_setup_tasks(sdap_ctx);
     if (ret != EOK) {
         goto done;
@@ -306,13 +311,14 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     }
     sdap_auth_ctx->be =  bectx;
     sdap_auth_ctx->service = ipa_options->service->sdap;
-    ipa_options->auth_ctx->sdap_auth_ctx = sdap_auth_ctx;
 
-    ret = ipa_get_id_options(ipa_options, bectx->cdb, bectx->conf_path,
-                             &sdap_auth_ctx->opts);
-    if (ret != EOK) {
+    if (ipa_options->id == NULL) {
+        ret = EINVAL;
         goto done;
     }
+    sdap_auth_ctx->opts = ipa_options->id;
+
+    ipa_options->auth_ctx->sdap_auth_ctx = sdap_auth_ctx;
 
     ret = setup_tls_config(sdap_auth_ctx->opts->basic);
     if (ret != EOK) {
