@@ -638,6 +638,11 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_FUNC_DATA, ("Searching sysdb with [%s]\n", filter));
 
+    if (IS_SUBDOMAIN(domain)) {
+        /* rules are stored inside parent domain tree */
+        domain = domain->parent;
+    }
+
     ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
