@@ -65,7 +65,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct users_get_state *state;
-    const char *attr_name;
+    const char *attr_name = NULL;
     char *clean_name;
     char *endptr;
     int ret;
@@ -136,7 +136,21 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             }
         }
         break;
+    case BE_FILTER_SECID:
+        attr_name = ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
+
+        ret = sss_filter_sanitize(state, name, &clean_name);
+        if (ret != EOK) {
+            goto fail;
+        }
+        break;
     default:
+        ret = EINVAL;
+        goto fail;
+    }
+
+    if (attr_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing search attribute name.\n"));
         ret = EINVAL;
         goto fail;
     }
@@ -372,7 +386,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct groups_get_state *state;
-    const char *attr_name;
+    const char *attr_name = NULL;
     char *clean_name;
     char *endptr;
     int ret;
@@ -446,14 +460,28 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             }
         }
         break;
+    case BE_FILTER_SECID:
+        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
+
+        ret = sss_filter_sanitize(state, name, &clean_name);
+        if (ret != EOK) {
+            goto fail;
+        }
+        break;
     default:
         ret = EINVAL;
         goto fail;
     }
 
-    if (use_id_mapping) {
-        /* When mapping IDs, we don't want to limit ourselves
-         * to groups with a GID value
+    if (attr_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Missing search attribute name.\n"));
+        ret = EINVAL;
+        goto fail;
+    }
+
+    if (use_id_mapping || filter_type == BE_FILTER_SECID) {
+        /* When mapping IDs or looking for SIDs, we don't want to limit
+         * ourselves to groups with a GID value
          */
 
         state->filter = talloc_asprintf(state,
@@ -950,6 +978,14 @@ static void sdap_account_info_netgroups_done(struct tevent_req *req);
 static void sdap_account_info_services_done(struct tevent_req *req);
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
 
+static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
+                                                  struct tevent_context *ev,
+                                                  struct sdap_id_ctx *ctx,
+                                                  const char *name,
+                                                  int filter_type,
+                                                  int attrs_type);
+static void sdap_get_user_and_group_done(struct tevent_req *req);
+
 void sdap_account_info_handler(struct be_req *breq)
 {
     struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
@@ -1076,6 +1112,46 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
 
         break;
 
+    case BE_REQ_BY_SECID:
+        if (ar->filter_type != BE_FILTER_SECID) {
+            ret = EINVAL;
+            err = "Invalid filter type";
+            break;
+        }
+
+        req = get_user_and_group_send(breq, be_ctx->ev, ctx,
+                                      ar->filter_value,
+                                      ar->filter_type,
+                                      ar->attr_type);
+        if (!req) {
+            return sdap_handler_done(breq, DP_ERR_FATAL,
+                                     ENOMEM,"Out of memory");
+        }
+
+        tevent_req_set_callback(req, sdap_get_user_and_group_done, breq);
+
+        break;
+
+    case BE_REQ_USER_AND_GROUP:
+        if (!(ar->filter_type == BE_FILTER_NAME ||
+              ar->filter_type == BE_FILTER_IDNUM)) {
+            ret = EINVAL;
+            err = "Invalid filter type";
+            break;
+        }
+
+        req = get_user_and_group_send(breq, be_ctx->ev, ctx,
+                                      ar->filter_value,
+                                      ar->filter_type,
+                                      ar->attr_type);
+        if (!req) {
+            return sdap_handler_done(breq, DP_ERR_FATAL,
+                                     ENOMEM,"Out of memory");
+        }
+
+        tevent_req_set_callback(req, sdap_get_user_and_group_done, breq);
+
+        break;
     default: /*fail*/
         ret = EINVAL;
         err = "Invalid request type";
@@ -1161,4 +1237,153 @@ static void sdap_account_info_services_done(struct tevent_req *req)
     talloc_zfree(req);
 
     sdap_account_info_complete(breq, dp_error, ret, "Service lookup failed");
+}
+
+struct get_user_and_group_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *id_ctx;
+    struct sdap_id_op *op;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
+    const char *filter_val;
+    int filter_type;
+    int attrs_type;
+
+    char *filter;
+    const char **attrs;
+
+    int dp_error;
+};
+
+static void get_user_and_group_users_done(struct tevent_req *subreq);
+static void get_user_and_group_groups_done(struct tevent_req *subreq);
+
+static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
+                                                  struct tevent_context *ev,
+                                                  struct sdap_id_ctx *id_ctx,
+                                                  const char *filter_val,
+                                                  int filter_type,
+                                                  int attrs_type)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct get_user_and_group_state *state;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct get_user_and_group_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->id_ctx = id_ctx;
+    state->dp_error = DP_ERR_FATAL;
+
+    state->op = sdap_id_op_create(state, state->id_ctx->conn_cache);
+    if (!state->op) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->sysdb = state->id_ctx->be->domain->sysdb;
+    state->domain = state->id_ctx->be->domain;
+    state->filter_val = filter_val;
+    state->filter_type = filter_type;
+    state->attrs_type = attrs_type;
+
+    subreq = users_get_send(req, state->ev, state->id_ctx, state->filter_val,
+                            state->filter_type, state->attrs_type);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("users_get_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, get_user_and_group_users_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void get_user_and_group_users_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct get_user_and_group_state *state = tevent_req_data(req,
+                                               struct get_user_and_group_state);
+    int ret;
+
+    ret = users_get_recv(subreq, &state->dp_error);
+    talloc_zfree(subreq);
+
+    if (ret == EOK) { /* Matching user found */
+        tevent_req_done(req);
+        return;
+    } else if (ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = groups_get_send(req, state->ev, state->id_ctx, state->filter_val,
+                            state->filter_type, state->attrs_type);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("groups_get_send failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, get_user_and_group_groups_done, req);
+}
+
+static void get_user_and_group_groups_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct get_user_and_group_state *state = tevent_req_data(req,
+                                               struct get_user_and_group_state);
+    int ret;
+
+    ret = groups_get_recv(subreq, &state->dp_error);
+    talloc_zfree(subreq);
+
+    if (ret == EOK) { /* Matching group found */
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+errno_t sdap_get_user_and_group_recv(struct tevent_req *req, int *dp_error_out)
+{
+    struct get_user_and_group_state *state = tevent_req_data(req,
+                                               struct get_user_and_group_state);
+
+    if (dp_error_out) {
+        *dp_error_out = state->dp_error;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+static void sdap_get_user_and_group_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    int ret;
+    int dp_error;
+
+    ret = sdap_get_user_and_group_recv(req, &dp_error);
+    talloc_zfree(req);
+
+    sdap_account_info_complete(breq, dp_error, ret, "Lookup by SID failed");
 }
