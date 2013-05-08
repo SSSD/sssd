@@ -113,7 +113,7 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
     long id;
     const char *id_str;
     char *endptr;
-    char *sid;
+    char *sid = NULL;
     int ret;
     enum sss_id_type id_type;
 
