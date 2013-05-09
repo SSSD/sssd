@@ -135,6 +135,45 @@ done:
 #endif
 }
 
+static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
+{
+    struct pattern_desc {
+        const char *pattern;
+        const char *desc;
+    };
+
+    struct pattern_desc fqname_patterns[] = {
+        { "%1$s", "user name" },
+        { "%2$s", "domain name" },
+        { NULL, NULL }
+    };
+
+    nctx->fq_fmt = talloc_strdup(nctx, fq_fmt);
+    if (nctx->fq_fmt == NULL) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Using fq format [%s].\n", nctx->fq_fmt));
+
+    /* Fail if the name specifier is missing and warn if the domain
+     * specifier is missing
+     */
+    if (strstr(fq_fmt, fqname_patterns[0].pattern) == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Username pattern not found in [%s]\n", nctx->fq_fmt));
+        return ENOENT;
+    }
+
+    if (strstr(fq_fmt, fqname_patterns[1].pattern) == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("The pattern for %s was not found, fully-qualified names "
+               "might not work as expected\n", fqname_patterns[1].desc));
+        /* Ignore this error */
+    }
+
+    return EOK;
+}
+
 int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
                              const char *fq_fmt, struct sss_names_ctx **out)
 {
@@ -156,9 +195,10 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
 
     DEBUG(SSSDBG_CONF_SETTINGS, ("Using re [%s].\n", ctx->re_pattern));
 
-    ctx->fq_fmt = talloc_strdup(ctx, fq_fmt);
-    if (ctx->fq_fmt == NULL) {
-        ret = ENOMEM;
+    ret = sss_fqnames_init(ctx, fq_fmt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not check the FQ names format"
+              "[%d]: %s\n", ret, sss_strerror(ret)));
         goto done;
     }
 
