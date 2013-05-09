@@ -198,7 +198,7 @@ ldap_id_mapping = False
                             should be used for dynamic DNS updates.
                         </para>
                         <para>
-                            Default: Use the IP address of the IPA LDAP connection
+                            Default: Use the IP address of the AD LDAP connection
                         </para>
                     </listitem>
                 </varlistentry>
