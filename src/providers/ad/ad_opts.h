@@ -239,7 +239,7 @@ struct sdap_attr_map ad_autofs_entry_map[] = {
 };
 
 struct dp_option ad_dyndns_opts[] = {
-    { "dyndns_update", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "dyndns_update", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "dyndns_refresh_interval", DP_OPT_NUMBER, { .number = 86400 }, NULL_NUMBER },
     { "dyndns_iface", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_ttl", DP_OPT_NUMBER, { .number = 3600 }, NULL_NUMBER },

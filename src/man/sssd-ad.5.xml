@@ -170,7 +170,7 @@ ldap_id_mapping = False
                             realm must be set properly in /etc/krb5.conf
                         </para>
                         <para>
-                            Default: false
+                            Default: true
                         </para>
                     </listitem>
                 </varlistentry>
