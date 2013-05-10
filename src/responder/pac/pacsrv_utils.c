@@ -94,7 +94,7 @@ struct sss_domain_info *find_domain_by_id(struct sss_domain_info *domains,
     }
 
     if (!ret_dom) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No domain with domain ID [%s] found",
+        DEBUG(SSSDBG_OP_FAILURE, ("No domain with domain ID [%s] found.\n",
                                   id_str));
     }
 
