@@ -2,7 +2,7 @@
     Authors:
         Sumit Bose <sbose@redhat.com>
 
-    Copyright (C) 2011 Red Hat
+    Copyright (C) 2011, 2012, 2013 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,7 @@ sssdpac_flags(krb5_context kcontext,
               krb5_authdatatype ad_type,
               krb5_flags *flags)
 {
-    *flags = AD_USAGE_KDC_ISSUED | AD_INFORMATIONAL | AD_USAGE_TGS_REQ;
+    *flags = AD_USAGE_KDC_ISSUED | AD_USAGE_TGS_REQ;
 }
 
 static void
@@ -81,23 +81,11 @@ sssdpac_import_authdata(krb5_context kcontext,
                         krb5_boolean kdc_issued,
                         krb5_const_principal kdc_issuer)
 {
-    struct sss_cli_req_data sss_data;
-    int ret;
-    int errnop;
     char *data = NULL;
     struct sssd_context *sssdctx = (struct sssd_context *)request_context;
 
     if (authdata[0] == NULL) {
         return EINVAL;
-    }
-
-    sss_data.len = authdata[0]->length;
-    sss_data.data = authdata[0]->contents;
-
-    ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
-                               NULL, NULL, &errnop);
-    if (ret != 0) {
-        /* Ignore the error */
     }
 
     if (authdata[0]->length > 0) {
@@ -132,6 +120,50 @@ sssdpac_request_fini(krb5_context kcontext,
 
         free(sssdctx);
     }
+}
+
+static krb5_error_code sssdpac_verify(krb5_context kcontext,
+                                      krb5_authdata_context context,
+                                      void *plugin_context,
+                                      void *request_context,
+                                      const krb5_auth_context *auth_context,
+                                      const krb5_keyblock *key,
+                                      const krb5_ap_req *req)
+{
+    krb5_error_code kerr;
+    int ret;
+    krb5_pac pac;
+    struct sssd_context *sssdctx = (struct sssd_context *)request_context;
+    struct sss_cli_req_data sss_data;
+    int errnop;
+
+    if (sssdctx == NULL || sssdctx->data.data == NULL) {
+        return EINVAL;
+    }
+
+    kerr = krb5_pac_parse(kcontext, sssdctx->data.data,
+                          sssdctx->data.length, &pac);
+    if (kerr != 0) {
+        return EINVAL;
+    }
+
+    kerr = krb5_pac_verify(kcontext, pac,
+                           req->ticket->enc_part2->times.authtime,
+                           req->ticket->enc_part2->client, key, NULL);
+    if (kerr != 0) {
+        return EINVAL;
+    }
+
+    sss_data.len = sssdctx->data.length;
+    sss_data.data = sssdctx->data.data;
+
+    ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
+                               NULL, NULL, &errnop);
+    if (ret != 0) {
+        /* Ignore the error */
+    }
+
+    return 0;
 }
 
 static krb5_error_code
@@ -272,7 +304,7 @@ krb5plugin_authdata_client_ftable_v0 authdata_client_0 = {
     sssdpac_import_authdata,
     NULL,
     NULL,
-    NULL,
+    sssdpac_verify,
     sssdpac_size,
     sssdpac_externalize,
     sssdpac_internalize,

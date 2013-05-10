@@ -848,16 +848,16 @@ override_homedir = /home/%u
                 following operations are done:
                 <itemizedlist>
                     <listitem><para>If the remote user does not exist in the
-                    cache, it is created. The uid is calculated based on the
-                    SID, trusted domains will have UPGs and the gid will have
-                    the same value as the uid. The home directory is set based
-                    on the subdomain_homedir parameter. The shell will be empty
-                    by default, i.e. the system defaults are used, but can be
-                    overwritten with the default_shell parameter.</para>
+                    cache, it is created. The uid is determined with the help
+                    of the SID, trusted domains will have UPGs and the gid
+                    will have the same value as the uid. The home directory is
+                    set based on the subdomain_homedir parameter. The shell will
+                    be empty by default, i.e. the system defaults are used, but
+                    can be overwritten with the default_shell parameter.</para>
                     </listitem>
-                    <listitem><para>If there are SIDs of groups from the domain
-                    the sssd client belongs to, the user will be added to those
-                    groups.</para></listitem>
+                    <listitem><para>If there are SIDs of groups from domains
+                    sssd knows about, the user will be added to those groups.
+                    </para></listitem>
                 </itemizedlist>
             </para>
             <para>

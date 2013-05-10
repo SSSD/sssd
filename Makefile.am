@@ -134,10 +134,6 @@ if HAVE_CHECK
         sss_idmap-tests \
         responder_socket_access-tests
 
-if BUILD_PAC_RESPONDER
-    non_interactive_check_based_tests += pac_responder-tests
-endif
-
 if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
 endif
@@ -1151,23 +1147,6 @@ sss_idmap_tests_LDADD = \
     $(TALLOC_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la
-
-pac_responder_tests_SOURCES = \
-    src/tests/pac_responder-tests.c \
-    src/responder/pac/pacsrv_utils.c
-pac_responder_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NDR_KRB5PAC_CFLAGS) \
-    $(CHECK_CFLAGS)
-pac_responder_tests_LDADD = \
-    $(CHECK_LIBS) \
-    $(TALLOC_LIBS) \
-    $(NDR_KRB5PAC_LIBS) \
-    $(SSSD_LIBS) \
-    -lm \
-    libsss_idmap.la \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la
 
 responder_socket_access_tests_SOURCES = \
     src/tests/responder_socket_access-tests.c \
