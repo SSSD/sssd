@@ -414,7 +414,6 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
     test_dom_suite_setup(TESTS_PATH);
 
-    tests_set_cwd();
     rv = run_tests(tests);
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
