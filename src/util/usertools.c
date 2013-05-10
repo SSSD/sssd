@@ -507,3 +507,28 @@ sss_get_cased_name_list(TALLOC_CTX *mem_ctx, const char * const *orig,
     *_cased = out;
     return EOK;
 }
+
+static inline const char *
+safe_fq_str(struct sss_names_ctx *nctx, uint8_t part, const char *str)
+{
+
+    return nctx->fq_flags & part ? str : "";
+}
+
+char *
+sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
+              struct sss_domain_info *domain, const char *name)
+{
+    if (domain == NULL || nctx == NULL) return NULL;
+
+    return talloc_asprintf(mem_ctx, nctx->fq_fmt, name, domain->name);
+}
+
+int
+sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
+           struct sss_domain_info *domain, const char *name)
+{
+    if (domain == NULL || nctx == NULL) return -EINVAL;
+
+    return snprintf(str, size, nctx->fq_fmt, name, domain->name);
+}

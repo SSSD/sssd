@@ -43,6 +43,7 @@
 #include <ldb.h>
 #include <dhash.h>
 
+#include "confdb/confdb.h"
 #include "util/atomic_io.h"
 #include "util/util_errors.h"
 #include "util/util_safealign.h"
@@ -364,6 +365,21 @@ sss_get_cased_name(TALLOC_CTX *mem_ctx, const char *orig_name,
 errno_t
 sss_get_cased_name_list(TALLOC_CTX *mem_ctx, const char * const *orig,
                         bool case_sensitive, const char ***_cased);
+
+/* Return fully-qualified name according to the fq_fmt. The name is allocated using
+ * talloc on top of mem_ctx
+ */
+char *
+sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
+              struct sss_domain_info *domain, const char *name);
+
+/* Return fully-qualified name formatted according to the fq_fmt. The buffer in "str" is
+ * "size" bytes long. Returns the number of bytes written on success or a negative
+ * value of failure.
+ */
+int
+sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
+           struct sss_domain_info *domain, const char *name);
 
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);

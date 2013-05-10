@@ -57,8 +57,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
      * search as well by default */
     if (IS_SUBDOMAIN(domain) && domain->fqnames) {
         ret = ENOMEM;
-        src_name = talloc_asprintf(tmp_ctx, domain->names->fq_fmt,
-                                   name, domain->name);
+        src_name = sss_tc_fqname(tmp_ctx, domain->names, domain, name);
     } else {
         ret = EINVAL;
         src_name = name;
@@ -245,8 +244,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
      * search as well by default */
     if (IS_SUBDOMAIN(domain) && domain->fqnames) {
         ret = ENOMEM;
-        src_name = talloc_asprintf(tmp_ctx, domain->names->fq_fmt,
-                                   name, domain->name);
+        src_name = sss_tc_fqname(tmp_ctx, domain->names, domain, name);
     } else {
         ret = EINVAL;
         src_name = name;

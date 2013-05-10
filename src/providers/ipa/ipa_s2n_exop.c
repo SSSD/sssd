@@ -757,8 +757,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             }
 
             /* we always use the fully qualified name for subdomain users */
-            name = talloc_asprintf(state, state->dom->names->fq_fmt,
-                                   attrs->a.user.pw_name, state->dom->name);
+            name = sss_tc_fqname(state, state->dom->names, state->dom,
+                                 attrs->a.user.pw_name);
             if (!name) {
                 DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name.\n"));
                 ret = ENOMEM;
@@ -822,8 +822,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             break;
         case RESP_GROUP:
             /* we always use the fully qualified name for subdomain users */
-            name = talloc_asprintf(state, state->dom->names->fq_fmt,
-                                   attrs->a.group.gr_name, state->dom->name);
+            name = sss_tc_fqname(state, state->dom->names, state->dom,
+                                 attrs->a.group.gr_name);
             if (!name) {
                 DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
                 ret = ENOMEM;

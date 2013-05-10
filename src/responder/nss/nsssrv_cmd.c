@@ -303,12 +303,9 @@ static int fill_pwent(struct sss_packet *packet,
     int i, ret, num, t;
     bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
-    const char *namefmt;
     bool packet_initialized = false;
     int ncret;
     TALLOC_CTX *tmp_ctx = NULL;
-
-    namefmt = dom->names->fq_fmt;
 
     if (add_domain) dom_len = strlen(domain);
 
@@ -394,9 +391,8 @@ static int fill_pwent(struct sss_packet *packet,
         SAFEALIGN_SET_UINT32(&body[rp], gid, &rp);
 
         if (add_domain) {
-            ret = snprintf((char *)&body[rp],
-                            name.len + delim + dom_len,
-                            namefmt, name.str, domain);
+            ret = sss_fqname((char *) &body[rp], name.len + delim + dom_len,
+                             dom->names, dom, name.str);
             if (ret >= (name.len + delim + dom_len)) {
                 /* need more space, got creative with the print format ? */
                 t = ret - (name.len + delim + dom_len) + 1;
@@ -409,9 +405,8 @@ static int fill_pwent(struct sss_packet *packet,
                 sss_packet_get_body(packet, &body, &blen);
 
                 /* retry */
-                ret = snprintf((char *)&body[rp],
-                            name.len + delim + dom_len,
-                            namefmt, name.str, domain);
+                ret = sss_fqname((char *) &body[rp], name.len + delim + dom_len,
+                                 dom->names, dom, name.str);
             }
 
             if (ret != name.len + delim + dom_len - 1) {
@@ -665,7 +660,7 @@ static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
     }
 
     if (dom->fqnames) {
-        fqdn = talloc_asprintf(tmp_ctx, dom->names->fq_fmt, name, dom->name);
+        fqdn = sss_tc_fqname(tmp_ctx, dom->names, dom, name);
         if (fqdn == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
             ret = ENOMEM;
@@ -2153,7 +2148,6 @@ static int fill_members(struct sss_packet *packet,
     size_t rsize = *_rsize;
     char *tmpstr;
     struct sized_string name;
-    const char *namefmt = dom->names->fq_fmt;
     TALLOC_CTX *tmp_ctx = NULL;
 
     size_t delim;
@@ -2214,9 +2208,9 @@ static int fill_members(struct sss_packet *packet,
         sss_packet_get_body(packet, &body, &blen);
 
         if (add_domain) {
-            ret = snprintf((char *)&body[rzero + rsize],
-                           name.len + delim + dom_len,
-                           namefmt, name.str, domain);
+            ret = sss_fqname((char *)&body[rzero + rsize],
+                             name.len + delim + dom_len,
+                             dom->names, dom, name.str);
             if (ret >= (name.len + delim + dom_len)) {
                 /* need more space,
                  * got creative with the print format ? */
@@ -2229,9 +2223,9 @@ static int fill_members(struct sss_packet *packet,
                 delim += t;
 
                 /* retry */
-                ret = snprintf((char *)&body[rzero + rsize],
-                               name.len + delim + dom_len,
-                               namefmt, name.str, domain);
+                ret = sss_fqname((char *)&body[rzero + rsize],
+                                name.len + delim + dom_len,
+                                dom->names, dom, name.str);
             }
 
             if (ret != name.len + delim + dom_len - 1) {
@@ -2294,10 +2288,7 @@ static int fill_grent(struct sss_packet *packet,
     size_t rzero, rsize;
     bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
-    const char *namefmt;
     TALLOC_CTX *tmp_ctx = NULL;
-
-    namefmt = dom->names->fq_fmt;
 
     if (add_domain) {
         delim = 1;
@@ -2384,9 +2375,9 @@ static int fill_grent(struct sss_packet *packet,
 
         /*  8-X: sequence of strings (name, passwd, mem..) */
         if (add_domain) {
-            ret = snprintf((char *)&body[rzero+STRS_ROFFSET],
-                            name.len + delim + dom_len,
-                            namefmt, name.str, domain);
+            ret = sss_fqname((char *)&body[rzero+STRS_ROFFSET],
+                             name.len + delim + dom_len,
+                             dom->names, dom, name.str);
             if (ret >= (name.len + delim + dom_len)) {
                 /* need more space, got creative with the print format ? */
                 int t = ret - (name.len + delim + dom_len) + 1;
@@ -2400,9 +2391,9 @@ static int fill_grent(struct sss_packet *packet,
                 delim += t;
 
                 /* retry */
-                ret = snprintf((char *)&body[rzero+STRS_ROFFSET],
-                                name.len + delim + dom_len,
-                                namefmt, name.str, domain);
+                ret = sss_fqname((char *)&body[rzero+STRS_ROFFSET],
+                                 name.len + delim + dom_len,
+                                 dom->names, dom, name.str);
             }
 
             if (ret != name.len + delim + dom_len - 1) {
@@ -3675,8 +3666,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             /* For subdomains a fully qualified name is needed for
              * sysdb_search_user_by_name and sysdb_search_group_by_name. */
             if (IS_SUBDOMAIN(dom)) {
-                sysdb_name = talloc_asprintf(cmdctx, dom->names->fq_fmt,
-                                             name, dom->name);
+                sysdb_name = sss_tc_fqname(cmdctx, dom->names, dom, name);
                 if (sysdb_name == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
                     return ENOMEM;
@@ -4045,8 +4035,7 @@ static errno_t fill_name(struct sss_packet *packet,
     }
 
     if (add_domain) {
-        fq_name = talloc_asprintf(tmp_ctx, dom->names->fq_fmt, cased_name,
-                                  dom->name);
+        fq_name = sss_tc_fqname(tmp_ctx, dom->names, dom, cased_name);
         if (fq_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
             ret = ENOMEM;

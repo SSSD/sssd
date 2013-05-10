@@ -765,8 +765,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    pwd->pw_name = talloc_asprintf(pwd, dom->names->fq_fmt,
-                                   lname, dom->name);
+    pwd->pw_name = sss_tc_fqname(pwd, dom->names, dom, lname);
     if (!pwd->pw_name) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
         ret = ENOMEM;

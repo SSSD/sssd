@@ -204,8 +204,8 @@ static errno_t pac_add_user_next(struct pac_req_ctx *pr_ctx)
 
     /* this is a subdomain so we need to search for the fully qualified
      * name in the database */
-    pr_ctx->fq_name = talloc_asprintf(pr_ctx, pr_ctx->dom->names->fq_fmt,
-                                      pr_ctx->user_name, pr_ctx->dom->name);
+    pr_ctx->fq_name= sss_tc_fqname(pr_ctx, pr_ctx->dom->names,
+                                   pr_ctx->dom, pr_ctx->user_name);
     if (!pr_ctx->fq_name) {
         ret = ENOMEM;
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
