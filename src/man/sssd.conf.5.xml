@@ -143,12 +143,41 @@
                         <term>full_name_format (string)</term>
                         <listitem>
                             <para>
-                                The default <citerefentry>
+                                A <citerefentry>
                                     <refentrytitle>printf</refentrytitle>
                                     <manvolnum>3</manvolnum>
                                 </citerefentry>-compatible format that describes how to
-                                translate a (name, domain) tuple into a fully qualified
-                                name.
+                                compose a fully qualified name from user name
+                                and domain name components.
+                            </para>
+                            <para>
+                                The following expansions are supported:
+                                <variablelist>
+                                    <varlistentry>
+                                        <term>%1$s</term>
+                                        <listitem><para>user name</para></listitem>
+                                    </varlistentry>
+                                    <varlistentry>
+                                        <term>%2$s</term>
+                                        <listitem>
+                                            <para>
+                                                domain name as specified in the
+                                                SSSD config file.
+                                            </para>
+                                        </listitem>
+                                    </varlistentry>
+                                    <varlistentry>
+                                        <term>%3$s</term>
+                                        <listitem>
+                                            <para>
+                                                domain flat name. Mostly usable
+                                                for Active Directory domains, both
+                                                directly configured or disovered
+                                                via IPA trusts.
+                                            </para>
+                                        </listitem>
+                                    </varlistentry>
+                                </variablelist>
                             </para>
                             <para>
                                 Each domain can have an individual format string configured.
@@ -1533,8 +1562,37 @@ override_homedir = /home/%u
                                 <refentrytitle>printf</refentrytitle>
                                 <manvolnum>3</manvolnum>
                             </citerefentry>-compatible format that describes how to
-                             translate a (name, domain) tuple for this domain into a fully
-                             qualified name.
+                            compose a fully qualified name from user name
+                            and domain name components.
+                        </para>
+                        <para>
+                            The following expansions are supported:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>%1$s</term>
+                                    <listitem><para>user name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>%2$s</term>
+                                    <listitem>
+                                        <para>
+                                            domain name as specified in the
+                                            SSSD config file.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>%3$s</term>
+                                    <listitem>
+                                        <para>
+                                            domain flat name. Mostly usable
+                                            for Active Directory domains, both
+                                            directly configured or disovered
+                                            via IPA trusts.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                            </variablelist>
                         </para>
                         <para>
                             Default: <quote>%1$s@%2$s</quote>.

@@ -307,7 +307,7 @@ static int fill_pwent(struct sss_packet *packet,
     int ncret;
     TALLOC_CTX *tmp_ctx = NULL;
 
-    if (add_domain) dom_len = strlen(domain);
+    if (add_domain) dom_len = sss_fqdom_len(dom->names, dom);
 
     to_sized_string(&pwfield, nctx->pwfield);
 
@@ -2161,7 +2161,7 @@ static int fill_members(struct sss_packet *packet,
 
     if (add_domain) {
         delim = 1;
-        dom_len = strlen(domain);
+        dom_len = sss_fqdom_len(dom->names, dom);
     } else {
         delim = 0;
         dom_len = 0;
@@ -2292,7 +2292,7 @@ static int fill_grent(struct sss_packet *packet,
 
     if (add_domain) {
         delim = 1;
-        dom_len = strlen(domain);
+        dom_len = sss_fqdom_len(dom->names, dom);
     } else {
         delim = 0;
         dom_len = 0;

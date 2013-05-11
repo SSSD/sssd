@@ -411,14 +411,109 @@ void test_nss_getpwnam_update(void **state)
     assert_string_equal(shell, "/bin/ksh");
 }
 
-/* Testsuite setup and teardown */
-void nss_test_setup(void **state)
+/* Check that a FQDN is returned if the domain is FQDN-only and a
+ * FQDN is requested
+ */
+static int test_nss_getpwnam_check_fqdn(uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 124);
+    assert_int_equal(pwd.pw_gid, 457);
+    assert_string_equal(pwd.pw_name, "testuser_fqdn@"TEST_DOM_NAME);
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    return EOK;
+}
+
+void test_nss_getpwnam_fqdn(void **state)
 {
     errno_t ret;
-    struct sss_test_conf_param params[] = {
-        { "enumerate", "false" },
-        { NULL, NULL },             /* Sentinel */
-    };
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
+                         nss_test_ctx->tctx->dom,
+                         "testuser_fqdn", 124, 457, "test user",
+                         "/home/testuser", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user("testuser_fqdn@"TEST_DOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_check_fqdn);
+    nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/*
+ * Check that FQDN processing is able to handle arbitrarily sized
+ * delimeter
+ */
+static int test_nss_getpwnam_check_resize_fqdn(uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 125);
+    assert_int_equal(pwd.pw_gid, 458);
+    assert_string_equal(pwd.pw_name, "testuser_fqdn_resize@@@@@"TEST_DOM_NAME);
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    return EOK;
+}
+
+void test_nss_getpwnam_fqdn_resize(void **state)
+{
+    errno_t ret;
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
+                         nss_test_ctx->tctx->dom,
+                         "testuser_fqdn_resize", 125, 458, "test user",
+                         "/home/testuser", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user("testuser_fqdn_resize@"TEST_DOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_check_resize_fqdn);
+    nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Testsuite setup and teardown */
+void test_nss_setup(struct sss_test_conf_param params[],
+                    void **state)
+{
+    errno_t ret;
 
     nss_test_ctx = talloc_zero(NULL, struct nss_test_ctx);
     assert_non_null(nss_test_ctx);
@@ -451,6 +546,38 @@ void nss_test_setup(void **state)
     assert_non_null(nss_test_ctx->cctx);
 }
 
+void nss_test_setup(void **state)
+{
+    struct sss_test_conf_param params[] = {
+        { "enumerate", "false" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_nss_setup(params, state);
+}
+
+void nss_fqdn_test_setup(void **state)
+{
+    struct sss_test_conf_param params[] = {
+        { "enumerate", "false" },
+        { "full_name_format", "%1$s@%2$s" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_nss_setup(params, state);
+}
+
+void nss_fqdn_resize_test_setup(void **state)
+{
+    struct sss_test_conf_param params[] = {
+        { "enumerate", "false" },
+        { "full_name_format", "%1$s@@@@@%2$s" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_nss_setup(params, state);
+}
+
 void nss_test_teardown(void **state)
 {
     talloc_free(nss_test_ctx);
@@ -479,6 +606,10 @@ int main(int argc, const char *argv[])
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_update,
                                  nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwnam_fqdn,
+                                 nss_fqdn_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwnam_fqdn_resize,
+                                 nss_fqdn_resize_test_setup, nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

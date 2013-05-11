@@ -335,9 +335,14 @@ char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);
 
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name);
 
+#define FQ_FMT_NAME         0x01
+#define FQ_FMT_DOMAIN       0x02
+#define FQ_FMT_FLAT_NAME    0x04
+
 struct sss_names_ctx {
     char *re_pattern;
     char *fq_fmt;
+    uint8_t fq_flags;
 
     pcre *re;
 };
@@ -380,6 +385,10 @@ sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
 int
 sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
            struct sss_domain_info *domain, const char *name);
+
+size_t
+sss_fqdom_len(struct sss_names_ctx *nctx,
+              struct sss_domain_info *domain);
 
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);

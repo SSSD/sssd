@@ -140,12 +140,14 @@ static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
     struct pattern_desc {
         const char *pattern;
         const char *desc;
+        int flag;
     };
 
     struct pattern_desc fqname_patterns[] = {
-        { "%1$s", "user name" },
-        { "%2$s", "domain name" },
-        { NULL, NULL }
+        { "%1$s", "user name", FQ_FMT_NAME },
+        { "%2$s", "domain name", FQ_FMT_DOMAIN },
+        { "%3$s", "domain flat name", FQ_FMT_FLAT_NAME },
+        { NULL, NULL, 0 }
     };
 
     nctx->fq_fmt = talloc_strdup(nctx, fq_fmt);
@@ -163,12 +165,24 @@ static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
               ("Username pattern not found in [%s]\n", nctx->fq_fmt));
         return ENOENT;
     }
+    nctx->fq_flags = FQ_FMT_NAME;
 
-    if (strstr(fq_fmt, fqname_patterns[1].pattern) == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("The pattern for %s was not found, fully-qualified names "
-               "might not work as expected\n", fqname_patterns[1].desc));
-        /* Ignore this error */
+    for (int i = 1; fqname_patterns[i].pattern; i++) {
+        char *s;
+        s = strstr(fq_fmt, fqname_patterns[i].pattern);
+        if (s == NULL) {
+            /* Append the format specifier */
+            nctx->fq_fmt = talloc_strdup_append(nctx->fq_fmt,
+                                                fqname_patterns[i].pattern);
+            if (nctx->fq_fmt == NULL) {
+                return ENOMEM;
+            }
+            continue;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("Found the pattern for %s\n", fqname_patterns[i].desc));
+        nctx->fq_flags |= fqname_patterns[i].flag;
     }
 
     return EOK;
@@ -551,8 +565,34 @@ sss_get_cased_name_list(TALLOC_CTX *mem_ctx, const char * const *orig,
 static inline const char *
 safe_fq_str(struct sss_names_ctx *nctx, uint8_t part, const char *str)
 {
-
     return nctx->fq_flags & part ? str : "";
+}
+
+static inline const char *
+safe_flat_name(struct sss_names_ctx *nctx, struct sss_domain_info *domain)
+{
+    const char *s;
+
+    s = safe_fq_str(nctx, FQ_FMT_FLAT_NAME, domain->flat_name);
+    if (s == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Flat name requested but domain has no"
+              "flat name set, falling back to domain name\n"));
+        s = domain->name;
+    }
+
+    return s;
+}
+
+static inline size_t
+fq_part_len(struct sss_names_ctx *nctx, struct sss_domain_info *dom,
+            uint8_t part, const char *str)
+{
+    const char *s = str;
+
+    if (part == FQ_FMT_FLAT_NAME) {
+        s = safe_flat_name(nctx, dom);
+    }
+    return nctx->fq_flags & part ? strlen(s) : 0;
 }
 
 char *
@@ -561,7 +601,10 @@ sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
 {
     if (domain == NULL || nctx == NULL) return NULL;
 
-    return talloc_asprintf(mem_ctx, nctx->fq_fmt, name, domain->name);
+    return talloc_asprintf(mem_ctx, nctx->fq_fmt,
+                           safe_fq_str(nctx, FQ_FMT_NAME, name),
+                           safe_fq_str(nctx, FQ_FMT_DOMAIN, domain->name),
+                           safe_flat_name(nctx, domain));
 }
 
 int
@@ -570,5 +613,17 @@ sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
 {
     if (domain == NULL || nctx == NULL) return -EINVAL;
 
-    return snprintf(str, size, nctx->fq_fmt, name, domain->name);
+    return snprintf(str, size, nctx->fq_fmt,
+                    safe_fq_str(nctx, FQ_FMT_NAME, name),
+                    safe_fq_str(nctx, FQ_FMT_DOMAIN, domain->name),
+                    safe_flat_name(nctx, domain));
+}
+
+size_t
+sss_fqdom_len(struct sss_names_ctx *nctx,
+              struct sss_domain_info *domain)
+{
+    size_t len = fq_part_len(nctx, domain, FQ_FMT_DOMAIN, domain->name);
+    len += fq_part_len(nctx, domain, FQ_FMT_FLAT_NAME, domain->flat_name);
+    return len;
 }

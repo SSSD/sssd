@@ -150,7 +150,8 @@ if HAVE_CMOCKA
         test-find-uid \
         test-io \
         sss_nss_idmap-tests \
-        dyndns-tests
+        dyndns-tests \
+        fqnames-tests
 endif
 
 check_PROGRAMS = \
@@ -1299,6 +1300,16 @@ dyndns_tests_LDADD = \
     $(CMOCKA_LIBS) \
     libsss_test_common.la \
     libsss_util.la
+
+fqnames_tests_SOURCES = \
+    $(TEST_MOCK_OBJ) \
+    src/tests/cmocka/test_fqnames.c
+fqnames_tests_CFLAGS = \
+    $(AM_CFLAGS)
+fqnames_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    libsss_util.la
+
 endif
 
 noinst_PROGRAMS = pam_test_client
