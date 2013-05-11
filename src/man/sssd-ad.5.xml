@@ -148,7 +148,9 @@ ldap_id_mapping = False
                             is enabled, the SSSD will first attempt to discover
                             the Active Directory server to connect to using the
                             Active Directory Site Discovery and fall back to
-                            the DNS SRV records if no AD site is found.
+                            the DNS SRV records if no AD site is found. The
+                            DNS SRV configuration, including the discovery
+                            domain, is used during site discovery as well.
                         </para>
                         <para>
                             Default: true
