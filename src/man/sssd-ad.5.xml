@@ -162,7 +162,10 @@ ldap_id_mapping = False
                         <para>
                             Optional. This option tells SSSD to automatically
                             update the Active Directory DNS server with
-                            the IP address of this client.
+                            the IP address of this client. The update is
+                            secured using GSS-TSIG. As a consequence, the
+                            Active Directory administrator only needs to
+                            allow secure updates for the DNS zone.
                         </para>
                         <para>
                             NOTE: On older systems (such as RHEL 5), for this
