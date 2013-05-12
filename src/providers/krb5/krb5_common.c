@@ -470,11 +470,11 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     return;
 }
 
-errno_t krb5_servers_init(struct be_ctx *ctx,
-                          struct krb5_service *service,
-                          const char *service_name,
-                          const char *servers,
-                          bool primary)
+static errno_t _krb5_servers_init(struct be_ctx *ctx,
+                                  struct krb5_service *service,
+                                  const char *service_name,
+                                  const char *servers,
+                                  bool primary)
 {
     TALLOC_CTX *tmp_ctx;
     char **list = NULL;
@@ -597,6 +597,20 @@ done:
     return ret;
 }
 
+static inline errno_t
+krb5_primary_servers_init(struct be_ctx *ctx, struct krb5_service *service,
+                          const char *service_name, const char *servers)
+{
+    return _krb5_servers_init(ctx, service, service_name, servers, true);
+}
+
+static inline errno_t
+krb5_backup_servers_init(struct be_ctx *ctx, struct krb5_service *service,
+                         const char *service_name, const char *servers)
+{
+    return _krb5_servers_init(ctx, service, service_name, servers, false);
+}
+
 static int krb5_user_data_cmp(void *ud1, void *ud2)
 {
     return strcasecmp((char*) ud1, (char*) ud2);
@@ -647,13 +661,14 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
-    ret = krb5_servers_init(ctx, service, service_name, primary_servers, true);
+    ret = krb5_primary_servers_init(ctx, service, service_name, primary_servers);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_servers) {
-        ret = krb5_servers_init(ctx, service, service_name, backup_servers, false);
+        ret = krb5_backup_servers_init(ctx, service, service_name,
+                                       backup_servers);
         if (ret != EOK) {
             goto done;
         }

@@ -1194,12 +1194,12 @@ done:
     return ret;
 }
 
-errno_t sdap_urls_init(struct be_ctx *ctx,
-                       struct sdap_service *service,
-                       const char *service_name,
-                       const char *dns_service_name,
-                       const char *urls,
-                       bool primary)
+static errno_t _sdap_urls_init(struct be_ctx *ctx,
+                               struct sdap_service *service,
+                               const char *service_name,
+                               const char *dns_service_name,
+                               const char *urls,
+                               bool primary)
 {
     TALLOC_CTX *tmp_ctx;
     char *srv_user_data;
@@ -1294,6 +1294,25 @@ done:
     return ret;
 }
 
+
+static inline errno_t
+sdap_primary_urls_init(struct be_ctx *ctx, struct sdap_service *service,
+                       const char *service_name, const char *dns_service_name,
+                       const char *urls)
+{
+    return _sdap_urls_init(ctx, service, service_name,
+                           dns_service_name, urls, true);
+}
+
+static inline errno_t
+sdap_backup_urls_init(struct be_ctx *ctx, struct sdap_service *service,
+                      const char *service_name, const char *dns_service_name,
+                      const char *urls)
+{
+    return _sdap_urls_init(ctx, service, service_name,
+                           dns_service_name, urls, false);
+}
+
 static int ldap_user_data_cmp(void *ud1, void *ud2)
 {
     return strcasecmp((char*) ud1, (char*) ud2);
@@ -1337,15 +1356,15 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         urls = BE_SRV_IDENTIFIER;
     }
 
-    ret = sdap_urls_init(ctx, service, service_name, dns_service_name,
-                         urls, true);
+    ret = sdap_primary_urls_init(ctx, service, service_name, dns_service_name,
+                                 urls);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_urls) {
-        ret = sdap_urls_init(ctx, service, service_name, dns_service_name,
-                             backup_urls, false);
+        ret = sdap_backup_urls_init(ctx, service, service_name,
+                                    dns_service_name, backup_urls);
         if (ret != EOK) {
             goto done;
         }

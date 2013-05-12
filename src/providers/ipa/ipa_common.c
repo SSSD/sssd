@@ -754,11 +754,11 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     talloc_free(tmp_ctx);
 }
 
-errno_t ipa_servers_init(struct be_ctx *ctx,
-                         struct ipa_service *service,
-                         struct ipa_options *options,
-                         const char *servers,
-                         bool primary)
+static errno_t _ipa_servers_init(struct be_ctx *ctx,
+                                 struct ipa_service *service,
+                                 struct ipa_options *options,
+                                 const char *servers,
+                                 bool primary)
 {
     TALLOC_CTX *tmp_ctx;
     char **list = NULL;
@@ -823,6 +823,20 @@ errno_t ipa_servers_init(struct be_ctx *ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+static inline errno_t
+ipa_primary_servers_init(struct be_ctx *ctx, struct ipa_service *service,
+                         struct ipa_options *options, const char *servers)
+{
+    return _ipa_servers_init(ctx, service, options, servers, true);
+}
+
+static inline errno_t
+ipa_backup_servers_init(struct be_ctx *ctx, struct ipa_service *service,
+                        struct ipa_options *options, const char *servers)
+{
+    return _ipa_servers_init(ctx, service, options, servers, false);
 }
 
 static int ipa_user_data_cmp(void *ud1, void *ud2)
@@ -900,13 +914,13 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
-    ret = ipa_servers_init(ctx, service, options, primary_servers, true);
+    ret = ipa_primary_servers_init(ctx, service, options, primary_servers);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_servers) {
-        ret = ipa_servers_init(ctx, service, options, backup_servers, false);
+        ret = ipa_backup_servers_init(ctx, service, options, backup_servers);
         if (ret != EOK) {
             goto done;
         }

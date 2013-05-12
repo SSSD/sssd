@@ -141,11 +141,11 @@ static void
 ad_resolve_callback(void *private_data, struct fo_server *server);
 
 static errno_t
-ad_servers_init(TALLOC_CTX *mem_ctx,
-                struct be_ctx *bectx,
-                const char *servers,
-                struct ad_options *options,
-                bool primary)
+_ad_servers_init(TALLOC_CTX *mem_ctx,
+                 struct be_ctx *bectx,
+                 const char *servers,
+                 struct ad_options *options,
+                 bool primary)
 {
     size_t i;
     errno_t ret = 0;
@@ -208,6 +208,20 @@ ad_servers_init(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+static inline errno_t
+ad_primary_servers_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
+                        const char *servers, struct ad_options *options)
+{
+    return _ad_servers_init(mem_ctx, bectx, servers, options, true);
+}
+
+static inline errno_t
+ad_backup_servers_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
+                       const char *servers, struct ad_options *options)
+{
+    return _ad_servers_init(mem_ctx, bectx, servers, options, false);
 }
 
 static int ad_user_data_cmp(void *ud1, void *ud2)
@@ -286,13 +300,13 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
-    ret = ad_servers_init(mem_ctx, bectx, primary_servers, options, true);
+    ret = ad_primary_servers_init(mem_ctx, bectx, primary_servers, options);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_servers) {
-        ret = ad_servers_init(mem_ctx, bectx, backup_servers, options, false);
+        ret = ad_backup_servers_init(mem_ctx, bectx, backup_servers, options);
         if (ret != EOK) {
             goto done;
         }
