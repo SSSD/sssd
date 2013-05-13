@@ -118,7 +118,8 @@
                         <para>
                             Optional. This option tells SSSD to automatically
                             update the DNS server built into FreeIPA v2 with
-                            the IP address of this client.
+                            the IP address of this client. The update is
+                            secured using GSS-TSIG.
                         </para>
                         <para>
                             NOTE: On older systems (such as RHEL 5), for this
