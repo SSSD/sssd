@@ -242,6 +242,8 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         ret = EIO;
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_LIBS,
+          ("Adding domain [%s] as slice [%llu]\n", dom_sid, slice));
 
     if (range.max > idmap_upper) {
         /* This should never happen */
