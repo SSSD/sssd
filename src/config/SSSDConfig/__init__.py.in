@@ -125,6 +125,7 @@ option_strings = {
     'entry_cache_service_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_autofs_timeout' : _('Entry cache timeout length (seconds)'),
     'entry_cache_sudo_timeout' : _('Entry cache timeout length (seconds)'),
+    'refresh_expired_interval' : _('How often should expired entries be refreshed in background'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

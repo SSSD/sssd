@@ -27,6 +27,9 @@
 #include "providers/dp_backend.h"
 #include "providers/dp_ptask.h"
 
+/* solve circular dependency */
+struct be_ctx;
+
 /**
  * name_list contains SYSDB_NAME of all expired records.
  */

@@ -1017,6 +1017,8 @@ simple_access_tests_SOURCES = \
     src/providers/data_provider_be.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_callbacks.c \
+    src/providers/dp_ptask.c \
+    src/providers/dp_refresh.c \
     $(SSSD_FAILOVER_OBJ)
 simple_access_tests_CFLAGS = \
     $(AM_CFLAGS) \

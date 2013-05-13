@@ -27,6 +27,9 @@
 
 #include "providers/dp_backend.h"
 
+/* solve circular dependency */
+struct be_ctx;
+
 struct be_ptask;
 
 /**

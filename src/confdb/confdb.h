@@ -171,6 +171,7 @@
 #define CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT "entry_cache_autofs_timeout"
 #define CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT "entry_cache_sudo_timeout"
 #define CONFDB_DOMAIN_PWD_EXPIRATION_WARNING "pwd_expiration_warning"
+#define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -222,6 +223,8 @@ struct sss_domain_info {
     uint32_t service_timeout;
     uint32_t autofsmap_timeout;
     uint32_t sudo_timeout;
+
+    uint32_t refresh_expired_interval;
 
     int pwd_expiration_warning;
 
