@@ -155,11 +155,9 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    if (dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING)) {
-        /* Set up the ID mapping object */
-        ret = sdap_idmap_init(ctx, ctx, &ctx->opts->idmap_ctx);
-        if (ret != EOK) goto done;
-    }
+    /* Set up the ID mapping object */
+    ret = sdap_idmap_init(ctx, ctx, &ctx->opts->idmap_ctx);
+    if (ret != EOK) goto done;
 
     ret = sdap_id_setup_tasks(ctx);
     if (ret != EOK) {
