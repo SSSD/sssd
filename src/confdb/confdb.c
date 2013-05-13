@@ -1020,6 +1020,17 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    /* Set refresh_expired_interval, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->refresh_expired_interval,
+                              CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL,
+                              0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n",
+               CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL));
+        goto done;
+    }
+
     /* Set the PAM warning time, if specified. If not specified, pass on
      * the "not set" value of "-1" which means "use provider default". The
      * value 0 means "always display the warning if server sends one" */

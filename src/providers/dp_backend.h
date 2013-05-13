@@ -24,6 +24,7 @@
 
 #include "providers/data_provider.h"
 #include "providers/fail_over.h"
+#include "providers/dp_refresh.h"
 #include "util/child_common.h"
 #include "db/sysdb.h"
 
@@ -140,6 +141,8 @@ struct be_ctx {
 
     struct loaded_be loaded_be[BET_MAX];
     struct bet_info bet_info[BET_MAX];
+
+    struct be_refresh_ctx *refresh_ctx;
 
     size_t check_online_ref_count;
 };

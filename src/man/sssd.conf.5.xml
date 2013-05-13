@@ -1078,6 +1078,24 @@ override_homedir = /home/%u
                 </varlistentry>
 
                 <varlistentry>
+                    <term>refresh_expired_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies how many seconds SSSD has to wait
+                            before refreshing expired records. Currently
+                            only refreshing expired netgroups is supported.
+                        </para>
+                        <para>
+                            You can consider setting this value to
+                            3/4 * entry_cache_timeout.
+                        </para>
+                        <para>
+                            Default: 0 (disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>cache_credentials (bool)</term>
                     <listitem>
                         <para>

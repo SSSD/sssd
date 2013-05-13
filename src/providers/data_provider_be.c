@@ -42,6 +42,8 @@
 #include "sbus/sssd_dbus.h"
 #include "providers/dp_backend.h"
 #include "providers/fail_over.h"
+#include "providers/dp_refresh.h"
+#include "providers/dp_ptask.h"
 #include "util/child_common.h"
 #include "resolv/async_resolv.h"
 #include "monitor/monitor_interfaces.h"
@@ -2655,6 +2657,27 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error setting up server bus\n"));
         goto fail;
+    }
+
+    /* Initialize be_refresh periodic task. */
+    ctx->refresh_ctx = be_refresh_ctx_init(ctx);
+    if (ctx->refresh_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to initialize refresh_ctx\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (ctx->domain->refresh_expired_interval > 0) {
+        ret = be_ptask_create(ctx, ctx, ctx->domain->refresh_expired_interval,
+                              30, 5, ctx->domain->refresh_expired_interval,
+                              BE_PTASK_OFFLINE_SKIP,
+                              be_refresh_send, be_refresh_recv,
+                              ctx->refresh_ctx, "Refresh Records", NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Unable to initialize refresh periodic task\n"));
+            goto fail;
+        }
     }
 
     ret = load_backend_module(ctx, BET_ID,
