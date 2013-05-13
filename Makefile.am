@@ -407,6 +407,7 @@ dist_noinst_HEADERS = \
     src/providers/data_provider.h \
     src/providers/dp_backend.h \
     src/providers/dp_ptask.h \
+    src/providers/dp_refresh.h \
     src/providers/fail_over.h \
     src/providers/providers.h \
     src/util/child_common.h \
@@ -649,6 +650,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
     src/providers/dp_ptask.c \
+    src/providers/dp_refresh.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     -ldl \
