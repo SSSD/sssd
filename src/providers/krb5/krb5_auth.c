@@ -913,11 +913,12 @@ static void krb5_auth_done(struct tevent_req *subreq)
                                                KRB5_USE_ENTERPRISE_PRINCIPAL);
 
     /* Check if the cases of our upn are correct and update it if needed.
-     * Fail if the upn differs by more than just the case. */
+     * Fail if the upn differs by more than just the case for non-enterprise
+     * principals. */
     if (res->correct_upn != NULL &&
-        use_enterprise_principal == false &&
         strcmp(kr->upn, res->correct_upn) != 0) {
-        if (strcasecmp(kr->upn, res->correct_upn) == 0) {
+        if (strcasecmp(kr->upn, res->correct_upn) == 0 ||
+            use_enterprise_principal == true) {
             talloc_free(kr->upn);
             kr->upn = talloc_strdup(kr, res->correct_upn);
             if (kr->upn == NULL) {
