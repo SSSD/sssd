@@ -228,6 +228,16 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         }
     }
 
+    /* setup periodical refresh of expired records */
+    ret = be_refresh_add_cb(bectx->refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
+                            sdap_refresh_netgroups_send,
+                            sdap_refresh_netgroups_recv,
+                            sdap_ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret)));
+    }
+
     *ops = &ipa_id_ops;
     *pvt_data = ipa_ctx;
     ret = EOK;

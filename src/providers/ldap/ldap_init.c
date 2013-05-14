@@ -30,6 +30,7 @@
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/fail_over_srv.h"
+#include "providers/dp_refresh.h"
 
 static void sdap_shutdown(struct be_req *req);
 
@@ -177,6 +178,16 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
                                     "[%d]: %s\n", ret, strerror(ret)));
         goto done;
+    }
+
+    /* setup periodical refresh of expired records */
+    ret = be_refresh_add_cb(bectx->refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
+                            sdap_refresh_netgroups_send,
+                            sdap_refresh_netgroups_recv,
+                            ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret)));
     }
 
     *ops = &sdap_id_ops;
