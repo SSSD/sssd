@@ -727,7 +727,7 @@ done:
     } else if (ret != EAGAIN) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("nsupdate_get_addrs_done failed: [%d]: [%s]\n",
-               sss_strerror(ret)));
+               ret, sss_strerror(ret)));
         tevent_req_error(req, ret);
     }
     /* EAGAIN - another lookup in progress */
