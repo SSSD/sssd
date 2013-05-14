@@ -221,6 +221,7 @@ option_strings = {
     'ldap_connection_expiration_timeout' : _('How long to retain a connection to the LDAP server before disconnecting'),
 
     'ldap_disable_paging' : _('Disable the LDAP paging control'),
+    'ldap_disable_range_retrieval' : _('Disable Active Directory range retrieval'),
 
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),

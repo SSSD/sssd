@@ -1201,6 +1201,27 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_disable_range_retrieval (boolean)</term>
+                    <listitem>
+                        <para>
+                            Disable Active Directory range retrieval.
+                        </para>
+                        <para>
+                            Active Directory limits the number of members to be
+                            retrieved in a single lookup using the MaxValRange
+                            policy (which defaults to 1500 members). If a group
+                            contains more members, the reply would include an
+                            AD-specific range extension. This option disables
+                            parsing of the range extension, therefore large
+                            groups will appear as having no members.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_sasl_minssf (integer)</term>
                     <listitem>
                         <para>

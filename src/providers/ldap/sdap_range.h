@@ -28,6 +28,7 @@
 errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
                          const char *attr_desc,
                          char **base_attr,
-                         uint32_t *range_offset);
+                         uint32_t *range_offset,
+                         bool disable_range_retrieval);
 
 #endif /* SDAP_RANGE_H_ */
