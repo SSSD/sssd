@@ -229,6 +229,7 @@ enum sdap_basic_opt {
     SDAP_AD_MATCHING_RULE_GROUPS,
     SDAP_AD_MATCHING_RULE_INITGROUPS,
     SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS,
+    SDAP_DISABLE_RANGE_RETRIEVAL,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
@@ -445,7 +446,8 @@ int sdap_get_map(TALLOC_CTX *memctx,
 int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sdap_attr_map *map, int attrs_num,
-                     struct sysdb_attrs **_attrs, char **_dn);
+                     struct sysdb_attrs **_attrs, char **_dn,
+                     bool disable_range_retrieval);
 
 errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,

@@ -97,7 +97,8 @@ int sdap_get_map(TALLOC_CTX *memctx,
 int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sdap_attr_map *map, int attrs_num,
-                     struct sysdb_attrs **_attrs, char **_dn)
+                     struct sysdb_attrs **_attrs, char **_dn,
+                     bool disable_range_retrieval)
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
@@ -192,22 +193,26 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     while (str) {
         base64 = false;
 
-        ret = sdap_parse_range(tmp_ctx, str, &base_attr, &range_offset);
-        if (ret == EAGAIN) {
+        ret = sdap_parse_range(tmp_ctx, str, &base_attr, &range_offset,
+                               disable_range_retrieval);
+        switch(ret) {
+        case EAGAIN:
             /* This attribute contained range values and needs more to
              * be retrieved
              */
             /* TODO: return the set of attributes that need additional retrieval
              * For now, we'll continue below and treat it as regular values.
              */
-
-        } else if (ret != EOK) {
+            /* FALLTHROUGH */
+        case ECANCELED:
+            /* FALLTHROUGH */
+        case EOK:
+            break;
+        default:
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not determine if attribute [%s] was ranged\n",
-                   str));
+                  ("Could not determine if attribute [%s] was ranged\n", str));
             goto done;
         }
-
 
         if (map) {
             for (a = 1; a < attrs_num; a++) {
@@ -230,6 +235,11 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         } else {
             name = base_attr;
             store = true;
+        }
+
+        if (ret == ECANCELED) {
+            ret = EOK;
+            store = false;
         }
 
         if (store) {

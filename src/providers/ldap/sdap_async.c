@@ -1469,6 +1469,7 @@ struct sdap_get_generic_state {
     int map_num_attrs;
 
     struct sdap_reply sreply;
+    struct sdap_options *opts;
 };
 
 static void sdap_get_generic_done(struct tevent_req *subreq);
@@ -1498,6 +1499,7 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 
     state->map = map;
     state->map_num_attrs = map_num_attrs;
+    state->opts = opts;
 
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
                                        scope, filter, attrs, false, NULL,
@@ -1521,9 +1523,12 @@ static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
     struct sdap_get_generic_state *state =
                 talloc_get_type(pvt, struct sdap_get_generic_state);
 
+    bool disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
+                                               SDAP_DISABLE_RANGE_RETRIEVAL);
+
     ret = sdap_parse_entry(state, sh, msg,
                            state->map, state->map_num_attrs,
-                           &attrs, NULL);
+                           &attrs, NULL, disable_range_rtrvl);
     if (ret != EOK) {
         DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
         return ret;
@@ -1811,6 +1816,7 @@ struct sdap_asq_search_state {
     struct sdap_attr_map_info *maps;
     int num_maps;
     LDAPControl **ctrls;
+    struct sdap_options *opts;
 
     struct sdap_deref_reply dreply;
 };
@@ -1842,6 +1848,7 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->maps = maps;
     state->num_maps = num_maps;
     state->ctrls = talloc_zero_array(state, LDAPControl *, 2);
+    state->opts = opts;
     if (state->ctrls == NULL) {
         talloc_zfree(req);
         return NULL;
@@ -1925,6 +1932,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     char *tmp;
     char *dn;
     TALLOC_CTX *tmp_ctx;
+    bool disable_range_rtrvl;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -1984,9 +1992,12 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
             continue;
         }
 
+        disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
+                                              SDAP_DISABLE_RANGE_RETRIEVAL);
+
         ret = sdap_parse_entry(res[mi], sh, msg,
                                map, num_attrs,
-                               &res[mi]->attrs, NULL);
+                               &res[mi]->attrs, NULL, disable_range_rtrvl);
         if (ret != EOK) {
             DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
             goto done;

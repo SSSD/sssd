@@ -29,7 +29,8 @@
 errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
                          const char *attr_desc,
                          char **base_attr,
-                         uint32_t *range_offset)
+                         uint32_t *range_offset,
+                         bool disable_range_retrieval)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
@@ -83,6 +84,16 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_LIBS,
               ("[%s] contains sub-attribute other than a range, returning whole\n",
                attr_desc));
+        goto done;
+    } else if (disable_range_retrieval) {
+        /* This is range sub-attribute, but we want to ignore it.
+         */
+        *base_attr = talloc_strdup(mem_ctx, attr_desc);
+        if (!*base_attr) {
+            ret = ENOMEM;
+        } else {
+            ret = ECANCELED;
+        }
         goto done;
     }
 
