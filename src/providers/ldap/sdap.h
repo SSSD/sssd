@@ -447,14 +447,6 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_attr_map *map, int attrs_num,
                      struct sysdb_attrs **_attrs, char **_dn);
 
-int sdap_parse_user(TALLOC_CTX *memctx, struct sdap_options *opts,
-                    struct sdap_handle *sh, struct sdap_msg *sm,
-                    struct sysdb_attrs **_attrs, char **_dn);
-
-int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
-                     struct sdap_handle *sh, struct sdap_msg *sm,
-                     struct sysdb_attrs **_attrs, char **_dn);
-
 errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,
                          size_t num_maps,

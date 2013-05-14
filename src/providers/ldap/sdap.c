@@ -302,34 +302,6 @@ done:
     return ret;
 }
 
-/* This function converts an ldap message into a sysdb_attrs structure.
- * It converts only known user attributes, the rest are ignored.
- * If the entry is not that of an user an error is returned.
- * The original DN is stored as an attribute named originalDN */
-
-int sdap_parse_user(TALLOC_CTX *memctx, struct sdap_options *opts,
-                    struct sdap_handle *sh, struct sdap_msg *sm,
-                    struct sysdb_attrs **_attrs, char **_dn)
-{
-
-    return sdap_parse_entry(memctx, sh, sm, opts->user_map,
-                            SDAP_OPTS_USER, _attrs, _dn);
-}
-
-/* This function converts an ldap message into a sysdb_attrs structure.
- * It converts only known group attributes, the rest are ignored.
- * If the entry is not that of an user an error is returned.
- * The original DN is stored as an attribute named originalDN */
-
-int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
-                     struct sdap_handle *sh, struct sdap_msg *sm,
-                     struct sysdb_attrs **_attrs, char **_dn)
-{
-
-    return sdap_parse_entry(memctx, sh, sm, opts->group_map,
-                            SDAP_OPTS_GROUP, _attrs, _dn);
-}
-
 /* Parses an LDAPDerefRes into sdap_deref_attrs structure */
 errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,
