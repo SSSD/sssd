@@ -164,7 +164,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = setup_child(ctx);
+    ret = sdap_setup_child();
     if (ret != EOK) {
         DEBUG(1, ("setup_child failed [%d][%s].\n",
                   ret, strerror(ret)));

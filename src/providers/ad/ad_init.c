@@ -178,7 +178,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = setup_child(sdap_ctx);
+    ret = sdap_setup_child();
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("setup_child failed [%d][%s].\n",

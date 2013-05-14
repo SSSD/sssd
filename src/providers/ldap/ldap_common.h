@@ -186,7 +186,7 @@ errno_t
 services_get_recv(struct tevent_req *req, int *dp_error_out);
 
 /* setup child logging */
-int setup_child(struct sdap_id_ctx *ctx);
+int sdap_setup_child(void);
 
 
 errno_t string_to_shadowpw_days(const char *s, long *d);

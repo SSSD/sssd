@@ -450,7 +450,7 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
 
 
 /* Setup child logging */
-int setup_child(struct sdap_id_ctx *ctx)
+int sdap_setup_child(void)
 {
     int ret;
     FILE *debug_filep;
