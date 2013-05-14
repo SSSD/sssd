@@ -37,7 +37,8 @@
 #include "providers/ipa/ipa_selinux_maps.h"
 #include "providers/ipa/ipa_subdomains.h"
 
-#ifdef HAVE_SELINUX_LOGIN_DIR
+#if defined HAVE_SELINUX && defined HAVE_SELINUX_LOGIN_DIR
+#include <selinux/selinux.h>
 
 static struct tevent_req *
 ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
@@ -1297,6 +1298,7 @@ ipa_get_selinux_recv(struct tevent_req *req,
     return EOK;
 }
 
+/*end of #if defined HAVE_SELINUX && defined HAVE_SELINUX_LOGIN_DIR */
 #else
 /* Simply return success if HAVE_SELINUX_LOGIN_DIR is not defined. */
 void ipa_selinux_handler(struct be_req *be_req)

@@ -32,7 +32,7 @@
 #define ALL_SERVICES "*"
 #define selogin_path(mem_ctx, username) \
     talloc_asprintf(mem_ctx, "%s/logins/%s", selinux_policy_root(), username)
-#endif
+#endif /* HAVE_SELINUX_LOGIN_DIR */
 
 struct ipa_selinux_ctx {
     struct ipa_id_ctx *id_ctx;
