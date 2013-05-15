@@ -307,6 +307,8 @@ static void ad_subdomains_get_netlogon_done(struct tevent_req *req)
 
     if (reply_count == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, ("No netlogon data available.\n"));
+        ret = ENOENT;
+        goto done;
     } else if (reply_count > 1) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("More than one netlogon info returned.\n"));
