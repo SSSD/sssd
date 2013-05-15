@@ -27,6 +27,8 @@
 #include "providers/ldap/ldap_common.h"
 
 #define AD_SERVICE_NAME "AD"
+/* The port the Global Catalog runs on */
+#define AD_GC_PORT      3268
 
 struct ad_options;
 
@@ -44,11 +46,14 @@ enum ad_basic_opt {
 
 struct ad_id_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
+    struct sdap_id_conn_ctx *ldap_ctx;
+    struct sdap_id_conn_ctx *gc_ctx;
     struct ad_options *ad_options;
 };
 
 struct ad_service {
     struct sdap_service *sdap;
+    struct sdap_service *gc;
     struct krb5_service *krb5_service;
 };
 

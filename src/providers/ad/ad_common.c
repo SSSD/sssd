@@ -25,6 +25,10 @@
 #include "providers/ad/ad_opts.h"
 #include "providers/dp_dyndns.h"
 
+struct ad_server_data {
+    bool gc;
+};
+
 errno_t
 ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct confdb_ctx *cdb,
@@ -142,6 +146,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server);
 
 static errno_t
 _ad_servers_init(TALLOC_CTX *mem_ctx,
+                 struct ad_service *service,
                  struct be_ctx *bectx,
                  const char *servers,
                  struct ad_options *options,
@@ -151,6 +156,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
     errno_t ret = 0;
     char **list;
     char *ad_domain;
+    struct ad_server_data *sdata;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -176,9 +182,33 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
                 continue;
             }
 
+            sdata = talloc(service, struct ad_server_data);
+            if (sdata == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            sdata->gc = true;
+
+            ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "gc",
+                                       ad_domain, BE_FO_PROTO_TCP,
+                                       false, sdata);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Failed to add service discovery to failover: [%s]",
+                       strerror(ret)));
+                goto done;
+            }
+
+            sdata = talloc(service, struct ad_server_data);
+            if (sdata == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            sdata->gc = false;
+
             ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "ldap",
                                        ad_domain, BE_FO_PROTO_TCP,
-                                       false, NULL);
+                                       false, sdata);
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
                       ("Failed to add service discovery to failover: [%s]",
@@ -197,7 +227,27 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, NULL, primary);
+        sdata = talloc(service, struct ad_server_data);
+        if (sdata == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        sdata->gc = true;
+
+        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, sdata, primary);
+        if (ret && ret != EEXIST) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            goto done;
+        }
+
+        sdata = talloc(service, struct ad_server_data);
+        if (sdata == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        sdata->gc = false;
+
+        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, sdata, primary);
         if (ret && ret != EEXIST) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
             goto done;
@@ -211,22 +261,53 @@ done:
 }
 
 static inline errno_t
-ad_primary_servers_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
-                        const char *servers, struct ad_options *options)
+ad_primary_servers_init(TALLOC_CTX *mem_ctx, struct ad_service *service,
+                        struct be_ctx *bectx, const char *servers,
+                        struct ad_options *options)
 {
-    return _ad_servers_init(mem_ctx, bectx, servers, options, true);
+    return _ad_servers_init(mem_ctx, service, bectx, servers, options, true);
 }
 
 static inline errno_t
-ad_backup_servers_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
-                       const char *servers, struct ad_options *options)
+ad_backup_servers_init(TALLOC_CTX *mem_ctx, struct ad_service *service,
+                        struct be_ctx *bectx, const char *servers,
+                        struct ad_options *options)
 {
-    return _ad_servers_init(mem_ctx, bectx, servers, options, false);
+    return _ad_servers_init(mem_ctx, service, bectx, servers, options, false);
 }
 
 static int ad_user_data_cmp(void *ud1, void *ud2)
 {
-    return strcasecmp((char*) ud1, (char*) ud2);
+    struct ad_server_data *sd1, *sd2;
+
+    sd1 = talloc_get_type(ud1, struct ad_server_data);
+    sd2 = talloc_get_type(ud2, struct ad_server_data);
+    if (sd1 == NULL || sd2 == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No user data\n"));
+        return sd1 == sd2 ? 0 : 1;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("Comparing %s with %s\n",
+          sd1->gc ? "GC" : "LDAP",
+          sd2->gc ? "GC" : "LDAP"));
+
+    if (sd1->gc == sd2->gc) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static void ad_online_cb(void *pvt)
+{
+    struct ad_service *service = talloc_get_type(pvt, struct ad_service);
+
+    if (service == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid private pointer\n"));
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("The AD provider is online\n"));
 }
 
 errno_t
@@ -251,7 +332,15 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     }
 
     service->sdap = talloc_zero(service, struct sdap_service);
-    if (!service->sdap) {
+    service->gc = talloc_zero(service, struct sdap_service);
+    if (!service->sdap || !service->gc) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    service->sdap->name = talloc_strdup(service->sdap, AD_SERVICE_NAME);
+    service->gc->name = talloc_strdup(service->gc, AD_SERVICE_NAME);
+    if (!service->sdap->name || !service->gc->name) {
         ret = ENOMEM;
         goto done;
     }
@@ -268,18 +357,14 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    service->sdap->name = talloc_strdup(service, AD_SERVICE_NAME);
-    if (!service->sdap->name) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->krb5_service->name = talloc_strdup(service, AD_SERVICE_NAME);
+    service->krb5_service->name = talloc_strdup(service->krb5_service,
+                                                AD_SERVICE_NAME);
     if (!service->krb5_service->name) {
         ret = ENOMEM;
         goto done;
     }
     service->sdap->kinit_service_name = service->krb5_service->name;
+    service->gc->kinit_service_name = service->krb5_service->name;
 
     realm = dp_opt_get_string(options->basic, AD_KRB5_REALM);
     if (!realm) {
@@ -300,16 +385,24 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
-    ret = ad_primary_servers_init(mem_ctx, bectx, primary_servers, options);
+    ret = ad_primary_servers_init(mem_ctx, service, bectx,
+                                  primary_servers, options);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_servers) {
-        ret = ad_backup_servers_init(mem_ctx, bectx, backup_servers, options);
+        ret = ad_backup_servers_init(mem_ctx, service, bectx,
+                                     backup_servers, options);
         if (ret != EOK) {
             goto done;
         }
+    }
+
+    ret = be_add_online_cb(bectx, bectx, ad_online_cb, service, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up AD online callback\n"));
+        return ret;
     }
 
     ret = be_fo_service_add_callback(mem_ctx, bectx, AD_SERVICE_NAME,
@@ -341,10 +434,17 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     const char *safe_address;
     char *new_uri;
     const char *srv_name;
+    struct ad_server_data *sdata = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        return;
+    }
+
+    sdata = fo_get_server_user_data(server);
+    if (fo_is_srv_lookup(server) == false && sdata == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No user data?\n"));
         return;
     }
 
@@ -363,13 +463,6 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
-    if (sockaddr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("resolv_get_sockaddr_address failed.\n"));
-        ret = EIO;
-        goto done;
-    }
-
     address = resolv_get_string_address(tmp_ctx, srvaddr);
     if (address == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("resolv_get_string_address failed.\n"));
@@ -384,7 +477,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    new_uri = talloc_asprintf(service, "ldap://%s", srv_name);
+    new_uri = talloc_asprintf(service->sdap, "ldap://%s", srv_name);
     if (!new_uri) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to copy URI\n"));
         ret = ENOMEM;
@@ -392,12 +485,53 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     }
     DEBUG(SSSDBG_CONF_SETTINGS, ("Constructed uri '%s'\n", new_uri));
 
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
+    if (sockaddr == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("resolv_get_sockaddr_address failed.\n"));
+        ret = EIO;
+        goto done;
+    }
+
     /* free old one and replace with new one */
     talloc_zfree(service->sdap->uri);
     service->sdap->uri = new_uri;
     talloc_zfree(service->sdap->sockaddr);
-    service->sdap->sockaddr = talloc_steal(service, sockaddr);
+    service->sdap->sockaddr = talloc_steal(service->sdap, sockaddr);
 
+    talloc_zfree(service->gc->uri);
+    talloc_zfree(service->gc->sockaddr);
+    if (sdata && sdata->gc) {
+        service->gc->uri = talloc_asprintf(service->gc, "%s:%d",
+                                           new_uri, AD_GC_PORT);
+
+        service->gc->sockaddr = resolv_get_sockaddr_address(service->gc,
+                                                            srvaddr,
+                                                            AD_GC_PORT);
+    } else {
+        /* Make sure there always is an URI even if we know that this
+         * server doesn't support GC. That way the lookup would go through
+         * just not return anything
+         */
+        service->gc->uri = talloc_strdup(service->gc, service->sdap->uri);
+        service->gc->sockaddr = talloc_memdup(service->gc, service->sdap->sockaddr,
+                                              sizeof(struct sockaddr_storage));
+    }
+
+    if (!service->gc->uri) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to append to URI\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Constructed GC uri '%s'\n", service->gc->uri));
+
+    if (service->gc->sockaddr == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                ("resolv_get_sockaddr_address failed.\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    /* Write krb5 info files */
     safe_address = sss_escape_ip_address(tmp_ctx,
                                          srvaddr->family,
                                          address);

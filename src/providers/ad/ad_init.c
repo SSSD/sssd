@@ -140,17 +140,18 @@ sssm_ad_id_init(struct be_ctx *bectx,
         return ENOMEM;
     }
     ad_ctx->sdap_id_ctx = sdap_ctx;
+    ad_ctx->ldap_ctx = sdap_ctx->conn;
+
+    ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_options->service->gc);
+    if (sdap_ctx == NULL) {
+        return ENOMEM;
+    }
 
     ret = ad_dyndns_init(sdap_ctx->be, ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
              ("Failure setting up automatic DNS update\n"));
         /* Continue without DNS updates */
-    }
-
-    ret = sdap_id_setup_tasks(sdap_ctx);
-    if (ret != EOK) {
-        goto done;
     }
 
     ret = sdap_setup_child();
@@ -165,6 +166,11 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ret = ad_get_id_options(ad_options, bectx->cdb,
                             bectx->conf_path,
                             &sdap_ctx->opts);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_id_setup_tasks(sdap_ctx);
     if (ret != EOK) {
         goto done;
     }
