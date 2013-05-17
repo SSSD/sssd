@@ -208,7 +208,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             if (parent_dev && parent_dev != statres.st_dev) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Directory %s is on different filesystem, "
-                       "will not follow\n"));
+                       "will not follow\n", result->d_name));
                 ret = EFAULT;
                 goto fail;
             }
@@ -588,8 +588,8 @@ copy_entry(struct copy_ctx *cctx,
                        &st);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                    ("Could recursively copy '%s' to '%s': %s\n",
-                    src_ent_path, dest_dir_fd, strerror(ret)));
+                    ("Couldn't recursively copy '%s' to '%s': %s\n",
+                    src_ent_path, dest_ent_path, strerror(ret)));
             goto done;
         }
     } else if (S_ISREG(st.st_mode)) {

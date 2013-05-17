@@ -569,7 +569,7 @@ done:
         sret = sysdb_transaction_cancel(state->sysdb);
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Could not cancel transaction! [%s]\n",
-               sret));
+               strerror(sret)));
     }
 
     if (ret == EOK) {

@@ -462,8 +462,9 @@ static void accept_fd_handler(struct tevent_context *ev,
     if (!cctx->cfde) {
         close(cctx->cfd);
         talloc_free(cctx);
-        DEBUG(2, ("Failed to queue client handler%\n",
-                accept_ctx->is_private ? " on privileged pipe" : ""));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to queue client handler%s\n",
+               accept_ctx->is_private ? " on privileged pipe" : ""));
         return;
     }
 

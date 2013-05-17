@@ -532,8 +532,9 @@ int run_userdel_cmd(struct tools_ctx *tctx)
     } else {
         /* parent */
         if (pid == -1) {
-            DEBUG(1, ("fork failed [%d]: %s\n"));
             ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("fork failed [%d]: %s\n", ret, strerror(ret)));
             goto done;
         }
 

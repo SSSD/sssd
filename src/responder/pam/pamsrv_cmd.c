@@ -416,7 +416,9 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
 
                     break;
                 default:
-                    DEBUG(7, ("User info type [%d] not filtered.\n"));
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          ("User info type [%d] not filtered.\n",
+                           user_info_type));
             }
         } else if (resp->type & SSS_SERVER_INFO) {
             resp->do_not_send_to_client = true;

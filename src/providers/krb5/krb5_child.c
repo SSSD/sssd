@@ -2029,7 +2029,9 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         } else if (strcasecmp(use_fast_str, "demand") == 0) {
             kerr = k5c_setup_fast(kr, lifetime_str, true);
         } else {
-            DEBUG(1, ("Unsupported value [%s] for krb5_use_fast.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Unsupported value [%s] for krb5_use_fast.\n",
+                   use_fast_str));
             return EINVAL;
         }
     }

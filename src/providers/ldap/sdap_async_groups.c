@@ -2052,7 +2052,8 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
         }
         if (ret != EOK) {
-            DEBUG(1, ("User entry %s has no originalDN attribute\n", i));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("User entry %d has no originalDN attribute\n", i));
             goto done;
         }
         original_dn = (const char *) el->values[0].data;

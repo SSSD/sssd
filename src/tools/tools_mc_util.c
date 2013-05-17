@@ -117,7 +117,8 @@ done:
             if (pret == -1) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Failed to unlink file %s. "
-                       "Will be unlinked later by sssd_nss.\n"));
+                       "Will be unlinked later by sssd_nss.\n",
+                       mc_filename));
             }
         }
     }

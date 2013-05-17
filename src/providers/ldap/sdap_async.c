@@ -2228,7 +2228,8 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
     ret = sysdb_attrs_get_el(ldap_attrs, attr_name, &el);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not get %s from the "
-              "list of the LDAP attributes [%d]: %s\n", ret, strerror(ret)));
+              "list of the LDAP attributes [%d]: %s\n",
+              attr_name, ret, strerror(ret)));
         return ret;
     }
 

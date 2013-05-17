@@ -317,7 +317,9 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
     }
 
     if (order_list_len > LDAP_ACCESS_LAST) {
-        DEBUG(1, ("Currently only [%d] different access rules are supported.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Currently only [%d] different access rules are supported.\n",
+               LDAP_ACCESS_LAST));
         ret = EINVAL;
         goto done;
     }

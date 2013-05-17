@@ -858,7 +858,7 @@ cc_file_check_existing(const char *location, uid_t uid,
 
     filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
     if (!filename) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n", location));
         return EINVAL;
     }
 
@@ -922,7 +922,7 @@ cc_file_remove(const char *location)
 
     filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
     if (!filename) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n", location));
         return EINVAL;
     }
 

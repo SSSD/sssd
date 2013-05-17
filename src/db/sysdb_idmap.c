@@ -196,7 +196,8 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
         if (slice_num != old_slice) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Detected attempt to change slice value for sid [%s] "
-                   "This will break existing users. Refusing to perform.\n"));
+                   "This will break existing users. Refusing to perform.\n",
+                   dom_sid));
             ret = EINVAL;
             goto done;
         }

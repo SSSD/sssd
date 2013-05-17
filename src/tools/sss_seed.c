@@ -789,7 +789,7 @@ int main(int argc, const char **argv)
     /* initialize seed context and parse options */
     ret = seed_init(sctx, argc, argv, &sctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,("Seed init failed [%d][%d]\n",
+        DEBUG(SSSDBG_OP_FAILURE,("Seed init failed [%d][%s]\n",
                                  ret, strerror(ret)));
         goto done;
     }

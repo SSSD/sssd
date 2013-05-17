@@ -165,8 +165,9 @@ remove_socket_symlink(const char *symlink_name)
     ret = unlink(symlink_name);
     if (ret != 0) {
         ret = errno;
-        DEBUG(2, ("unlink failed to remove [%s] [%d]: %s\n",
-                   symlink, ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("unlink failed to remove [%s] [%d]: %s\n",
+               symlink_name, ret, strerror(ret)));
         return ret;
     }
 

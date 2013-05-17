@@ -658,7 +658,7 @@ fill_service(struct sss_packet *packet,
         port = (uint16_t) ldb_msg_find_attr_as_uint(msg, SYSDB_SVC_PORT, 0);
         if (!port) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("No port for service [%s]. Skipping\n"));
+                  ("No port for service [%s]. Skipping\n", tmpstr));
 
         }
 

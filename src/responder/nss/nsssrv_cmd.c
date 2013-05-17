@@ -1123,7 +1123,8 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                    dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1202,7 +1203,8 @@ static void nss_cmd_getbynam_done(struct tevent_req *req)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                     dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1407,7 +1409,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                    dctx->cmdctx->cmd));
         ret = EINVAL;
         goto done;
     }
@@ -1452,7 +1455,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                    dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1513,7 +1517,8 @@ static void nss_cmd_getbyid_done(struct tevent_req *req)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n", dctx->cmdctx));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid command [%d].\n",
+                                    dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 

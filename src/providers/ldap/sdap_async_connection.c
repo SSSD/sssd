@@ -850,8 +850,8 @@ static void simple_bind_done(struct sdap_op *op,
                 talloc_zfree(nval);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          ("Could not convert control response to an integer. ",
-                           "[%s]\n", strerror(ret)));
+                          ("Couldn't convert control response "
+                           "to an integer [%s].\n", strerror(ret)));
                     goto done;
                 }
 

@@ -96,8 +96,10 @@ static int kick_user(struct tools_ctx *tctx)
     } else {
         /* parent */
         if (pid == -1) {
-            DEBUG(1, ("fork failed [%d]: %s\n"));
-            return errno;
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("fork failed [%d]: %s\n", ret, strerror(ret)));
+            return ret;
         }
 
         while((child_pid = waitpid(pid, &status, 0)) > 0) {

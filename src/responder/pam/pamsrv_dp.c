@@ -117,8 +117,10 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     res = sss_dp_get_domain_conn(preq->cctx->rctx,
                                  preq->domain->conn_name, &be_conn);
     if (res != EOK) {
-        DEBUG(1, ("The Data Provider connection for %s is not available!"
-                  " This maybe a bug, it shouldn't happen!\n", preq->domain));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("The Data Provider connection for %s is not available!"
+               " This maybe a bug, it shouldn't happen!\n",
+               preq->domain->conn_name));
         return EIO;
     }
 

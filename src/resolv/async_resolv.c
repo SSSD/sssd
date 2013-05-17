@@ -645,7 +645,8 @@ resolv_copy_hostent_ares(TALLOC_CTX *mem_ctx, struct hostent *src,
                                 &((struct ares_addr6ttl *) ares_ttl_data)[i]);
                 break;
             default:
-                DEBUG(1, ("Unknown address family %d\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Unknown address family %d\n", family));
                 goto fail;
             }
 
@@ -1484,7 +1485,8 @@ resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
             ((struct sockaddr_in6 *) sockaddr)->sin6_port = (in_port_t) htons(port);
             break;
         default:
-            DEBUG(1, ("Unknown address family %d\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Unknown address family %d\n", hostent->family));
             return NULL;
     }
 

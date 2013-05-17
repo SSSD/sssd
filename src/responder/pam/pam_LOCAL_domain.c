@@ -332,7 +332,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
             break;
         default:
             lreq->error = EINVAL;
-            DEBUG(1, ("Unknown PAM task [%d].\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown PAM task [%d].\n", pd->cmd));
     }
 
 done:

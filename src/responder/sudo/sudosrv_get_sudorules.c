@@ -564,7 +564,8 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
                                        NULL, &groupnames);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                 ("Unable to retrieve user info [%d]: %s\n", strerror(ret)));
+                 ("Unable to retrieve user info [%d]: %s\n",
+                  ret, strerror(ret)));
             goto done;
         }
         flags = SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
@@ -582,7 +583,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
                                             &rules, &num_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Unable to retrieve sudo rules [%d]: %s\n", strerror(ret)));
+             ("Unable to retrieve sudo rules [%d]: %s\n", ret, strerror(ret)));
         goto done;
     }
 
