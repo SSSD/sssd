@@ -650,12 +650,24 @@ static bool fo_server_match(struct fo_server *server,
         return true;
     }
 
-    if (name != NULL && server->common != NULL) {
+    if (name != NULL &&
+        server->common != NULL && server->common->name != NULL) {
         if (!strcasecmp(name, server->common->name))
             return true;
     }
 
     return false;
+}
+
+static bool fo_server_cmp(struct fo_server *s1, struct fo_server *s2)
+{
+    char *name = NULL;
+
+    if (s2->common != NULL) {
+        name = s2->common->name;
+    }
+
+    return fo_server_match(s1, name, s2->port, s2->user_data);
 }
 
 static bool fo_server_exists(struct fo_server *list,
@@ -1371,14 +1383,11 @@ fo_set_port_status(struct fo_server *server, enum port_status status)
      * into fo_server structures. Find the duplicates and set the same
      * status */
     DLIST_FOR_EACH(siter, server->service->server_list) {
-        if (siter == server) continue;
-        if (!siter->common || !siter->common->name) continue;
-
-        if (siter->port == server->port &&
-            (strcasecmp(siter->common->name, server->common->name) == 0)) {
-            DEBUG(7, ("Marking port %d of duplicate server '%s' as '%s'\n",
-                      siter->port, SERVER_NAME(siter),
-                      str_port_status(status)));
+        if (fo_server_cmp(siter, server)) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Marking port %d of duplicate server '%s' as '%s'\n",
+                   siter->port, SERVER_NAME(siter),
+                   str_port_status(status)));
             siter->port_status = status;
             gettimeofday(&siter->last_status_change, NULL);
         }
