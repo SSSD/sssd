@@ -705,8 +705,8 @@ errno_t ad_get_dyndns_options(struct be_ctx *be_ctx,
 {
     errno_t ret;
 
-    ret = be_nsupdate_init(ad_opts, be_ctx, ad_dyndns_opts, ad_dyndns_timer,
-                           ad_opts, &ad_opts->dyndns_ctx);
+    ret = be_nsupdate_init(ad_opts, be_ctx, ad_dyndns_opts,
+                           &ad_opts->dyndns_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot initialize AD dyndns opts [%d]: %s\n",

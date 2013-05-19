@@ -67,9 +67,12 @@ errno_t be_nsupdate_check(void);
 errno_t
 be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                  struct dp_option *defopts,
-                 nsupdate_timer_fn_t timer_callback,
-                 void *timer_pvt,
                  struct be_nsupdate_ctx **_ctx);
+
+errno_t be_nsupdate_init_timer(struct be_nsupdate_ctx *ctx,
+                               struct tevent_context *ev,
+                               nsupdate_timer_fn_t timer_callback,
+                               void *timer_pvt);
 
 void be_nsupdate_timer_schedule(struct tevent_context *ev,
                                 struct be_nsupdate_ctx *ctx);

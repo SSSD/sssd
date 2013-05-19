@@ -70,6 +70,13 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
         return EINVAL;
     }
 
+    ret = be_nsupdate_init_timer(ad_opts->dyndns_ctx, be_ctx->ev,
+                                 ad_dyndns_timer, ad_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up periodic update\n"));
+        return ret;
+    }
+
     ret = be_add_online_cb(be_ctx, be_ctx,
                            ad_dyndns_update,
                            ad_opts, NULL);

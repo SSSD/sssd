@@ -44,6 +44,13 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
         return EINVAL;
     }
 
+    ret = be_nsupdate_init_timer(ctx->dyndns_ctx, be_ctx->ev,
+                                 ipa_dyndns_timer, ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up periodic update\n"));
+        return ret;
+    }
+
     ret = be_add_online_cb(be_ctx, be_ctx,
                            ipa_dyndns_update,
                            ctx, NULL);

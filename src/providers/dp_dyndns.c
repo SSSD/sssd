@@ -1181,8 +1181,6 @@ static struct dp_option default_dyndns_opts[] = {
 errno_t
 be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                  struct dp_option *defopts,
-                 nsupdate_timer_fn_t timer_callback,
-                 void *timer_pvt,
                  struct be_nsupdate_ctx **_ctx)
 {
     errno_t ret;
@@ -1212,10 +1210,20 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
         return EINVAL;
     }
 
+    *_ctx = ctx;
+    return ERR_OK;
+}
+
+errno_t be_nsupdate_init_timer(struct be_nsupdate_ctx *ctx,
+                               struct tevent_context *ev,
+                               nsupdate_timer_fn_t timer_callback,
+                               void *timer_pvt)
+{
+    if (ctx == NULL) return EINVAL;
+
     ctx->timer_callback = timer_callback;
     ctx->timer_pvt = timer_pvt;
-    be_nsupdate_timer_schedule(be_ctx->ev, ctx);
+    be_nsupdate_timer_schedule(ev, ctx);
 
-    *_ctx = ctx;
     return ERR_OK;
 }

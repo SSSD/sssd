@@ -311,8 +311,12 @@ void dyndns_test_interval(void **state)
     check_leaks_push(tmp_ctx);
 
     ret = be_nsupdate_init(tmp_ctx, dyndns_test_ctx->be_ctx, NULL,
-                           dyndns_test_timer, dyndns_test_ctx,
                            &dyndns_test_ctx->update_ctx);
+    assert_int_equal(ret, EOK);
+
+    ret = be_nsupdate_init_timer(dyndns_test_ctx->update_ctx,
+                                 dyndns_test_ctx->be_ctx->ev,
+                                 dyndns_test_timer, dyndns_test_ctx);
     assert_int_equal(ret, EOK);
 
     /* Wait until the timer hits */
