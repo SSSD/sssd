@@ -1067,7 +1067,6 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
         req = groups_by_user_send(breq, be_ctx->ev, ctx,
                                   ar->filter_value);
         if (!req) ret = ENOMEM;
-        /* tevent_req_set_callback(req, groups_by_user_done, breq); */
 
         tevent_req_set_callback(req, sdap_account_info_initgr_done, breq);
 
