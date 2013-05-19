@@ -971,11 +971,6 @@ static void sdap_check_online_reinit_done(struct tevent_req *req)
 /* FIXME: embed this function in sssd_be and only call out
  * specific functions from modules ? */
 
-static void sdap_account_info_users_done(struct tevent_req *req);
-static void sdap_account_info_groups_done(struct tevent_req *req);
-static void sdap_account_info_initgr_done(struct tevent_req *req);
-static void sdap_account_info_netgroups_done(struct tevent_req *req);
-static void sdap_account_info_services_done(struct tevent_req *req);
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
 
 static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
@@ -984,7 +979,8 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   const char *name,
                                                   int filter_type,
                                                   int attrs_type);
-static void sdap_get_user_and_group_done(struct tevent_req *req);
+
+errno_t sdap_get_user_and_group_recv(struct tevent_req *req, int *dp_error_out);
 
 void sdap_account_info_handler(struct be_req *breq)
 {
@@ -1000,242 +996,304 @@ void sdap_account_info_handler(struct be_req *breq)
     return sdap_handle_account_info(breq, ctx);
 }
 
-void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
+/* A generic LDAP account info handler */
+struct sdap_handle_acct_req_state {
+    struct be_req *breq;
     struct be_acct_req *ar;
+    const char *err;
+    int dp_error;
+};
+
+static void sdap_handle_acct_req_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
+                          struct be_req *breq,
+                          struct be_acct_req *ar,
+                          struct sdap_id_ctx *id_ctx)
+{
     struct tevent_req *req;
-    const char *err = "Unknown Error";
-    int ret = EOK;
+    struct tevent_req *subreq;
+    struct be_ctx *be_ctx;
+    struct sdap_handle_acct_req_state *state;
+    errno_t ret;
 
-    if (be_is_offline(ctx->be)) {
-        return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
+    be_ctx = be_req_get_be_ctx(breq);
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_handle_acct_req_state);
+    if (!req) {
+        ret = ENOMEM;
+        goto done;
     }
+    state->breq = breq;
+    state->ar = ar;
 
-    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
+    if (ar == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
 
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
 
         /* skip enumerations on demand */
         if (ar->filter_type == BE_FILTER_ENUM) {
-            return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  ("Skipping user enumeration on demand\n"));
+            state->err = "Success";
+            ret = EOK;
+            goto done;
         }
 
-        req = users_get_send(breq, be_ctx->ev, ctx,
-                             ar->filter_value,
-                             ar->filter_type,
-                             ar->attr_type);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
-        }
-
-        tevent_req_set_callback(req, sdap_account_info_users_done, breq);
-
+        subreq = users_get_send(breq, be_ctx->ev, id_ctx,
+                                ar->filter_value,
+                                ar->filter_type,
+                                ar->attr_type);
         break;
 
     case BE_REQ_GROUP: /* group */
 
         /* skip enumerations on demand */
         if (ar->filter_type == BE_FILTER_ENUM) {
-            return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  ("Skipping group enumeration on demand\n"));
+            state->err = "Success";
+            ret = EOK;
+            goto done;
         }
 
-        req = groups_get_send(breq, be_ctx->ev, ctx,
-                              ar->filter_value,
-                              ar->filter_type,
-                              ar->attr_type);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
-        }
-
-        tevent_req_set_callback(req, sdap_account_info_groups_done, breq);
-
+        subreq = groups_get_send(breq, be_ctx->ev, id_ctx,
+                                 ar->filter_value,
+                                 ar->filter_type,
+                                 ar->attr_type);
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (ar->filter_type != BE_FILTER_NAME) {
             ret = EINVAL;
-            err = "Invalid filter type";
-            break;
+            state->err = "Invalid filter type";
+            goto done;
         }
         if (ar->attr_type != BE_ATTR_CORE) {
             ret = EINVAL;
-            err = "Invalid attr type";
-            break;
+            state->err = "Invalid attr type";
+            goto done;
         }
-        req = groups_by_user_send(breq, be_ctx->ev, ctx,
-                                  ar->filter_value);
-        if (!req) ret = ENOMEM;
 
-        tevent_req_set_callback(req, sdap_account_info_initgr_done, breq);
-
+        subreq = groups_by_user_send(breq, be_ctx->ev, id_ctx,
+                                     ar->filter_value);
         break;
 
     case BE_REQ_NETGROUP:
         if (ar->filter_type != BE_FILTER_NAME) {
             ret = EINVAL;
-            err = "Invalid filter type";
-            break;
+            state->err = "Invalid filter type";
+            goto done;
         }
 
-        req = ldap_netgroup_get_send(breq, be_ctx->ev, ctx, ar->filter_value);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
-        }
-
-        tevent_req_set_callback(req, sdap_account_info_netgroups_done, breq);
+        subreq = ldap_netgroup_get_send(breq, be_ctx->ev, id_ctx,
+                                        ar->filter_value);
         break;
 
     case BE_REQ_SERVICES:
         /* skip enumerations on demand */
         if (ar->filter_type == BE_FILTER_ENUM) {
-            return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  ("Skipping service enumeration on demand\n"));
+            state->err = "Success";
+            ret = EOK;
+            goto done;
         }
 
         if (ar->filter_type == BE_FILTER_SECID) {
             ret = EINVAL;
-            err = "Invalid filter type";
-            break;
+            state->err = "Invalid filter type";
+            goto done;
         }
 
-        req = services_get_send(breq, be_ctx->ev, ctx,
-                                ar->filter_value,
-                                ar->extra_value,
-                                ar->filter_type);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL,
-                                     ENOMEM, "Out of memory");
-        }
-        tevent_req_set_callback(req, sdap_account_info_services_done, breq);
-
+        subreq = services_get_send(breq, be_ctx->ev, id_ctx,
+                                   ar->filter_value,
+                                   ar->extra_value,
+                                   ar->filter_type);
         break;
 
     case BE_REQ_BY_SECID:
         if (ar->filter_type != BE_FILTER_SECID) {
             ret = EINVAL;
-            err = "Invalid filter type";
-            break;
+            state->err = "Invalid filter type";
+            goto done;
         }
 
-        req = get_user_and_group_send(breq, be_ctx->ev, ctx,
-                                      ar->filter_value,
-                                      ar->filter_type,
-                                      ar->attr_type);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL,
-                                     ENOMEM,"Out of memory");
-        }
-
-        tevent_req_set_callback(req, sdap_get_user_and_group_done, breq);
-
+        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx,
+                                         ar->filter_value,
+                                         ar->filter_type,
+                                         ar->attr_type);
         break;
 
     case BE_REQ_USER_AND_GROUP:
         if (!(ar->filter_type == BE_FILTER_NAME ||
               ar->filter_type == BE_FILTER_IDNUM)) {
             ret = EINVAL;
-            err = "Invalid filter type";
-            break;
+            state->err = "Invalid filter type";
+            goto done;
         }
 
-        req = get_user_and_group_send(breq, be_ctx->ev, ctx,
-                                      ar->filter_value,
-                                      ar->filter_type,
-                                      ar->attr_type);
-        if (!req) {
-            return sdap_handler_done(breq, DP_ERR_FATAL,
-                                     ENOMEM,"Out of memory");
-        }
+        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx,
+                                         ar->filter_value,
+                                         ar->filter_type,
+                                         ar->attr_type);
+        break;
 
-        tevent_req_set_callback(req, sdap_get_user_and_group_done, breq);
+    default: /*fail*/
+        ret = EINVAL;
+        state->err = "Invalid request type";
+        goto done;
+    }
 
+    if (!subreq) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sdap_handle_acct_req_done, req);
+    return req;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+
+    tevent_req_post(req, be_ctx->ev);
+    return req;
+}
+
+static void
+sdap_handle_acct_req_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_handle_acct_req_state *state;
+    errno_t ret;
+    const char *err = "Invalid request type";
+
+    state = tevent_req_data(req, struct sdap_handle_acct_req_state);
+
+    switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
+    case BE_REQ_USER: /* user */
+        err = "User lookup failed";
+        ret = users_get_recv(subreq, &state->dp_error);
+        break;
+    case BE_REQ_GROUP: /* group */
+        err = "Group lookup failed";
+        ret = groups_get_recv(subreq, &state->dp_error);
+        break;
+    case BE_REQ_INITGROUPS: /* init groups for user */
+        err = "Init group lookup failed";
+        ret = groups_by_user_recv(subreq, &state->dp_error);
+        break;
+    case BE_REQ_NETGROUP:
+        err = "Netgroup lookup failed";
+        ret = ldap_netgroup_get_recv(subreq, &state->dp_error);
+        break;
+    case BE_REQ_SERVICES:
+        err = "Service lookup failed";
+        ret = services_get_recv(subreq, &state->dp_error);
+        break;
+    case BE_REQ_BY_SECID:
+        /* Fallthrough */
+    case BE_REQ_USER_AND_GROUP:
+        err = "Lookup by SID failed";
+        ret = sdap_get_user_and_group_recv(subreq, &state->dp_error);
         break;
     default: /*fail*/
         ret = EINVAL;
-        err = "Invalid request type";
+        break;
+    }
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        state->err = err;
+        tevent_req_error(req, ret);
+        return;
     }
 
-    if (ret != EOK) return sdap_handler_done(breq, DP_ERR_FATAL, ret, err);
+    state->err = "Success";
+    tevent_req_done(req);
 }
 
-static void sdap_account_info_complete(struct be_req *breq, int dp_error,
-                                       int ret, const char *default_error_text)
+errno_t
+sdap_handle_acct_req_recv(struct tevent_req *req,
+                          int *_dp_error, const char **_err)
 {
-    const char* error_text;
+    struct sdap_handle_acct_req_state *state;
 
+    state = tevent_req_data(req, struct sdap_handle_acct_req_state);
+
+    if (_dp_error) {
+        *_dp_error = state->dp_error;
+    }
+
+    if (_err) {
+        *_err = state->err;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+static void sdap_account_info_complete(struct tevent_req *req);
+
+void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
+{
+    struct be_acct_req *ar;
+    struct tevent_req *req;
+
+    if (be_is_offline(ctx->be)) {
+        return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
+    }
+
+    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
+    if (ar == NULL) {
+        return sdap_handler_done(breq, DP_ERR_FATAL,
+                                 EINVAL, "Invalid private data");
+    }
+
+    req = sdap_handle_acct_req_send(breq, breq, ar, ctx);
+    if (req == NULL) {
+        return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
+    }
+    tevent_req_set_callback(req, sdap_account_info_complete, breq);
+}
+
+static void sdap_account_info_complete(struct tevent_req *req)
+{
+    const char *error_text;
+    const char *req_error_text;
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    int ret, dp_error;
+
+    ret = sdap_handle_acct_req_recv(req, &dp_error, &req_error_text);
+    talloc_zfree(req);
     if (dp_error == DP_ERR_OK) {
         if (ret == EOK) {
             error_text = NULL;
         } else {
-            DEBUG(1, ("Bug: dp_error is OK on failed request"));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Bug: dp_error is OK on failed request"));
             dp_error = DP_ERR_FATAL;
-            error_text = default_error_text;
+            error_text = req_error_text;
         }
     } else if (dp_error == DP_ERR_OFFLINE) {
         error_text = "Offline";
     } else if (dp_error == DP_ERR_FATAL && ret == ENOMEM) {
         error_text = "Out of memory";
     } else {
-        error_text = default_error_text;
+        error_text = req_error_text;
     }
 
     sdap_handler_done(breq, dp_error, ret, error_text);
-}
-
-static void sdap_account_info_users_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = users_get_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    sdap_account_info_complete(breq, dp_error, ret, "User lookup failed");
-}
-
-static void sdap_account_info_groups_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = groups_get_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    sdap_account_info_complete(breq, dp_error, ret, "Group lookup failed");
-}
-
-static void sdap_account_info_initgr_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = groups_by_user_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    sdap_account_info_complete(breq, dp_error, ret, "Init Groups Failed");
-}
-
-static void sdap_account_info_netgroups_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = ldap_netgroup_get_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    sdap_account_info_complete(breq, dp_error, ret, "Netgroup lookup failed");
-}
-
-static void sdap_account_info_services_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = services_get_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    sdap_account_info_complete(breq, dp_error, ret, "Service lookup failed");
 }
 
 struct get_user_and_group_state {
@@ -1370,16 +1428,4 @@ errno_t sdap_get_user_and_group_recv(struct tevent_req *req, int *dp_error_out)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
-}
-
-static void sdap_get_user_and_group_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret;
-    int dp_error;
-
-    ret = sdap_get_user_and_group_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    sdap_account_info_complete(breq, dp_error, ret, "Lookup by SID failed");
 }

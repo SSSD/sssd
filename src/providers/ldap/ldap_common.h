@@ -96,6 +96,15 @@ void sdap_account_info_handler(struct be_req *breq);
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx);
 
+struct tevent_req *
+sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
+                          struct be_req *breq,
+                          struct be_acct_req *ar,
+                          struct sdap_id_ctx *id_ctx);
+errno_t
+sdap_handle_acct_req_recv(struct tevent_req *req,
+                          int *_dp_error, const char **_err);
+
 /* auth */
 void sdap_pam_auth_handler(struct be_req *breq);
 
@@ -159,14 +168,6 @@ struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx);
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
-
-struct tevent_req *users_get_send(TALLOC_CTX *memctx,
-                                  struct tevent_context *ev,
-                                  struct sdap_id_ctx *ctx,
-                                  const char *name,
-                                  int filter_type,
-                                  int attrs_type);
-int users_get_recv(struct tevent_req *req, int *dp_error_out);
 
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
