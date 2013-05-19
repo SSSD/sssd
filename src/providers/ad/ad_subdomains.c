@@ -33,7 +33,24 @@
 #define AD_AT_NT_VERSION "NtVer"
 #define AD_AT_NETLOGON "netlogon"
 
+/* Attributes of AD trusted domains */
+#define AD_AT_FLATNAME      "flatName"
+#define AD_AT_SID           "securityIdentifier"
+#define AD_AT_TRUST_TYPE    "trustType"
+#define AD_AT_TRUST_PARTNER "trustPartner"
+#define AD_AT_TRUST_ATTRS   "trustAttributes"
+
 #define MASTER_DOMAIN_SID_FILTER "objectclass=domain"
+
+/* trustType=2 denotes uplevel (NT5 and later) trusted domains. See
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/ms680342%28v=vs.85%29.aspx
+ * for example.
+ *
+ * The absence of msDS-TrustForestTrustInfo attribute denotes a domain from
+ * the same forest. See http://msdn.microsoft.com/en-us/library/cc223786.aspx
+ * for more information.
+ */
+#define SLAVE_DOMAIN_FILTER "(&(objectclass=trustedDomain)(trustType=2)(!(msDS-TrustForestTrustInfo=*)))"
 
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
@@ -45,6 +62,7 @@ struct ad_subdomains_ctx {
     struct be_ctx *be_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_domain *sdom;
+    struct sdap_id_conn_ctx *ldap_ctx;
     struct sss_idmap_ctx *idmap_ctx;
     char *domain_name;
 
@@ -67,10 +85,250 @@ struct ad_subdomains_req_ctx {
     char *flat_name;
 };
 
+static errno_t
+ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
+                      struct sss_domain_info *parent)
+{
+    struct sss_domain_info *dom;
+    struct sdap_domain *sdom, *sditer;
+    char *basedn;
+    errno_t ret;
+
+    for (dom = get_next_domain(parent, true);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, false)) {
+
+        DLIST_FOR_EACH(sditer, ctx->sdom) {
+            if (sditer->dom == dom) {
+                break;
+            }
+        }
+
+        if (sditer == NULL) {
+            /* New sdap domain */
+            DEBUG(SSSDBG_TRACE_FUNC, ("subdomain %s is a new one, will "
+                  "create a new sdap domain object\n", dom->name));
+
+            ret = sdap_domain_add(ctx->sdap_id_ctx->opts, dom, &sdom);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    ("Cannot add new sdap domain for domain %s [%d]: %s\n",
+                    parent->name, ret, strerror(ret)));
+                return ret;
+            }
+            sditer = sdom;
+        }
+
+        /* Convert the domain name into search base */
+        ret = domain_to_basedn(sdom, sditer->dom->name, &basedn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("Cannot convert domain name [%s] to base DN [%d]: %s\n",
+                dom->name, ret, strerror(ret)));
+            talloc_free(basedn);
+            return ret;
+        }
+
+        /* Update search bases */
+        talloc_zfree(sdom->search_bases);
+        sdom->search_bases = talloc_array(sdom, struct sdap_search_base *, 2);
+        if (sdom->search_bases == NULL) {
+            return ret;
+        }
+        sdom->search_bases[1] = NULL;
+
+        ret = sdap_create_search_base(sdom, basedn, LDAP_SCOPE_SUBTREE, NULL,
+                                      &sdom->search_bases[0]);
+        talloc_free(basedn);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot create new sdap search base\n"));
+            return ret;
+        }
+
+        sdom->user_search_bases = sdom->search_bases;
+        sdom->group_search_bases = sdom->search_bases;
+        sdom->netgroup_search_bases = sdom->search_bases;
+        sdom->sudo_search_bases = sdom->search_bases;
+        sdom->service_search_bases = sdom->search_bases;
+        sdom->autofs_search_bases = sdom->search_bases;
+    }
+
+    return EOK;
+}
+
+static errno_t
+ad_subdom_store(struct ad_subdomains_ctx *ctx,
+                struct sss_domain_info *domain,
+                struct sysdb_attrs *subdom_attrs)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *name;
+    char *realm;
+    const char *flat;
+    errno_t ret;
+    enum idmap_error_code err;
+    struct ldb_message_element *el;
+    char *sid_str;
+    uint32_t trust_type;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_uint32_t(subdom_attrs, AD_AT_TRUST_TYPE,
+                                   &trust_type);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_uint32_t failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_string(subdom_attrs, AD_AT_TRUST_PARTNER, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("failed to get subdomain name\n"));
+        goto done;
+    }
+
+    realm = get_uppercase_realm(tmp_ctx, name);
+    if (!realm) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_string(subdom_attrs, AD_AT_FLATNAME, &flat);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("failed to get flat name of subdomain %s\n",
+                                  name));
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_el(subdom_attrs, AD_AT_SID, &el);
+    if (ret != EOK || el->num_values != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_attrs_get_el failed.\n"));
+        goto done;
+    }
+
+    err = sss_idmap_bin_sid_to_sid(ctx->idmap_ctx,
+                                   el->values[0].data,
+                                   el->values[0].length,
+                                   &sid_str);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not convert SID: [%s].\n", idmap_error_string(err)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
+                                     int count, struct sysdb_attrs **reply,
+                                     bool *changes)
+{
+    struct sss_domain_info *domain, *dom;
+    bool handled[count];
+    const char *value;
+    int c, h;
+    int ret;
+
+    domain = ctx->be_ctx->domain;
+    memset(handled, 0, sizeof(bool) * count);
+    h = 0;
+
+    /* check existing subdomains */
+    for (dom = get_next_domain(domain, true);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, false)) {
+        for (c = 0; c < count; c++) {
+            if (handled[c]) {
+                continue;
+            }
+            ret = sysdb_attrs_get_string(reply[c], AD_AT_TRUST_PARTNER, &value);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+                goto done;
+            }
+            if (strcmp(value, dom->name) == 0) {
+                break;
+            }
+        }
+
+        if (c >= count) {
+            /* ok this subdomain does not exist anymore, let's clean up */
+            dom->disabled = true;
+            ret = sysdb_subdomain_delete(dom->sysdb, dom->name);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            /* Remove the subdomain from the list of LDAP domains */
+            sdap_domain_remove(ctx->sdap_id_ctx->opts, dom);
+        } else {
+            /* ok let's try to update it */
+            ret = ad_subdom_store(ctx, domain, reply[c]);
+            if (ret) {
+                /* Nothing we can do about the error. Let's at least try
+                 * to reuse the existing domains
+                 */
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
+                      "will try to use cached subdomain\n"));
+            }
+            handled[c] = true;
+            h++;
+        }
+    }
+
+    if (count == h) {
+        /* all domains were already accounted for and have been updated */
+        ret = EOK;
+        goto done;
+    }
+
+    /* if we get here it means we have changes to the subdomains list */
+    *changes = true;
+
+    for (c = 0; c < count; c++) {
+        if (handled[c]) {
+            continue;
+        }
+        /* Nothing we can do about the error. Let's at least try
+         * to reuse the existing domains.
+         */
+        ret = ad_subdom_store(ctx, domain, reply[c]);
+        if (ret) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
+                  "will try to use cached subdomain\n"));
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        ctx->last_refreshed = 0;
+    } else {
+        ctx->last_refreshed = time(NULL);
+    }
+
+    return ret;
+}
+
 static void ad_subdomains_get_conn_done(struct tevent_req *req);
 static errno_t ad_subdomains_get_master_sid(struct ad_subdomains_req_ctx *ctx);
 static void ad_subdomains_get_master_sid_done(struct tevent_req *req);
 static void ad_subdomains_get_netlogon_done(struct tevent_req *req);
+static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx);
 
 static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
                                    struct be_req *be_req)
@@ -94,7 +352,7 @@ static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
     req_ctx->reply = NULL;
 
     req_ctx->sdap_op = sdap_id_op_create(req_ctx,
-                                         ctx->sdap_id_ctx->conn->conn_cache);
+                                         ctx->ldap_ctx->conn_cache);
     if (req_ctx->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
         ret = ENOMEM;
@@ -375,10 +633,113 @@ static void ad_subdomains_get_netlogon_done(struct tevent_req *req)
     ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
                                        NULL, ctx->flat_name, ctx->master_sid);
 
-    ret = EOK;
+    ret = ad_subdomains_get_slave(ctx);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
+        goto done;
+    }
 
 done:
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
+}
 
+static void ad_subdomains_get_slave_domain_done(struct tevent_req *req);
+
+static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx)
+{
+    struct tevent_req *req;
+    struct sdap_search_base *base;
+    const char *slave_dom_attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
+                                      AD_AT_SID, AD_AT_TRUST_TYPE,
+                                      AD_AT_TRUST_ATTRS, NULL };
+
+    base = ctx->sd_ctx->sdap_id_ctx->opts->sdom->search_bases[ctx->base_iter];
+    if (base == NULL) {
+        return EOK;
+    }
+
+    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
+                           ctx->sd_ctx->sdap_id_ctx->opts,
+                           sdap_id_op_handle(ctx->sdap_op),
+                           base->basedn, LDAP_SCOPE_SUBTREE,
+                           SLAVE_DOMAIN_FILTER, slave_dom_attrs,
+                           NULL, 0,
+                           dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
+                                          SDAP_SEARCH_TIMEOUT),
+                           false);
+
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send failed.\n"));
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ad_subdomains_get_slave_domain_done, ctx);
+    return EAGAIN;
+}
+
+static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
+{
+    int ret;
+    size_t reply_count;
+    struct sysdb_attrs **reply = NULL;
+    struct ad_subdomains_req_ctx *ctx;
+    int dp_error = DP_ERR_FATAL;
+    bool refresh_has_changes = false;
+
+    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
+
+    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        goto done;
+    }
+
+    if (reply_count) {
+        ctx->reply = talloc_realloc(ctx, ctx->reply, struct sysdb_attrs *,
+                                    ctx->reply_count + reply_count);
+        if (ctx->reply == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        memcpy(ctx->reply+ctx->reply_count, reply,
+               reply_count * sizeof(struct sysdb_attrs *));
+        ctx->reply_count += reply_count;
+    }
+
+    ctx->base_iter++;
+    ret = ad_subdomains_get_slave(ctx);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    /* Got all the subdomains, let's process them */
+    ret = ad_subdomains_refresh(ctx->sd_ctx, ctx->reply_count, ctx->reply,
+                                &refresh_has_changes);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to refresh subdomains.\n"));
+        goto done;
+    }
+
+    if (refresh_has_changes) {
+        ret = sysdb_update_subdomains(ctx->sd_ctx->be_ctx->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+            goto done;
+        }
+
+        ret = ads_store_sdap_subdom(ctx->sd_ctx, ctx->sd_ctx->be_ctx->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("ads_store_sdap_subdom failed.\n"));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
     if (ret == EOK) {
         ctx->sd_ctx->last_refreshed = time(NULL);
         dp_error = DP_ERR_OK;
@@ -499,6 +860,7 @@ int ad_subdom_init(struct be_ctx *be_ctx,
 
     ctx->be_ctx = be_ctx;
     ctx->sdom = id_ctx->sdap_id_ctx->opts->sdom;
+    ctx->ldap_ctx = id_ctx->ldap_ctx;
     ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
     ctx->domain_name = talloc_strdup(ctx, ad_domain);
     if (ctx->domain_name == NULL) {
