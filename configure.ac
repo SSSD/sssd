@@ -166,6 +166,10 @@ fi
 
 WITH_LIBNL
 
+if test x$HAVE_NSCD; then
+    WITH_NSCD_CONF
+fi
+
 WITH_INITSCRIPT
 if test x$initscript = xsystemd; then
     WITH_SYSTEMD_UNIT_DIR

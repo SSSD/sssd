@@ -499,6 +499,8 @@ enum nscd_db {
 
 int flush_nscd_cache(enum nscd_db flush_db);
 
+errno_t sss_nscd_parse_conf(const char *conf_path);
+
 /* from sss_tc_utf8.c */
 char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);

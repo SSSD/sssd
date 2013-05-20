@@ -352,6 +352,20 @@ AC_DEFUN([WITH_NSCD],
     AC_DEFINE_UNQUOTED(HAVE_NSCD, $NSCD_PATH, [flush nscd cache after local domain operations])
   ])
 
+AC_DEFUN([WITH_NSCD_CONF],
+  [ AC_ARG_WITH([nscd_conf],
+                [AC_HELP_STRING([--with-nscd-conf=PATH], [Path to nscd.conf file [/etc/nscd.conf]])
+                ]
+               )
+
+    NSCD_CONF_PATH="/etc/nscd.conf"
+    if test x"$with_nscd_conf" != x; then
+        NSCD_CONF_PATH=$with_nscd_conf
+    fi
+    AC_DEFINE_UNQUOTED([NSCD_CONF_PATH], ["$NSCD_CONF_PATH"], [NSCD configuration file])
+  ])
+
+
 AC_DEFUN([WITH_SEMANAGE],
   [ AC_ARG_WITH([semanage],
                 [AC_HELP_STRING([--with-semanage],

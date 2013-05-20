@@ -617,7 +617,8 @@ include_HEADERS = \
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_netlink.c \
-    src/confdb/confdb_setup.c
+    src/confdb/confdb_setup.c \
+    src/util/nscd.c
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(LIBNL_LIBS) \
