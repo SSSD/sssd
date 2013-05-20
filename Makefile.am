@@ -311,7 +311,7 @@ SSSD_TOOLS_OBJ = \
     src/tools/tools_util.c \
     src/tools/files.c \
     src/tools/selinux.c \
-    src/tools/nscd.c
+    src/util/nscd.c
 
 SSSD_LCL_TOOLS_OBJ = \
     src/sss_client/common.c \

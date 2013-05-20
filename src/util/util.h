@@ -491,6 +491,14 @@ bool string_in_list(const char *string, char **list, bool case_sensitive);
  */
 void safezero(void *data, size_t size);
 
+/* from nscd.c */
+enum nscd_db {
+    NSCD_DB_PASSWD,
+    NSCD_DB_GROUP
+};
+
+int flush_nscd_cache(enum nscd_db flush_db);
+
 /* from sss_tc_utf8.c */
 char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);

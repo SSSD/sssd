@@ -120,14 +120,6 @@ int remove_tree(const char *root);
 int copy_tree(const char *src_root, const char *dst_root,
               mode_t mode_root, uid_t uid, gid_t gid);
 
-/* from nscd.c */
-enum nscd_db {
-    NSCD_DB_PASSWD,
-    NSCD_DB_GROUP
-};
-
-int flush_nscd_cache(enum nscd_db flush_db);
-
 /* from selinux.c */
 int selinux_file_context(const char *dst_name);
 int reset_selinux_file_context(void);
