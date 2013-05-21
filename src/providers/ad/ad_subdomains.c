@@ -295,6 +295,7 @@ static void ad_subdomains_get_netlogon_done(struct tevent_req *req)
     enum ndr_err_code ndr_err;
     struct ndr_pull *ndr_pull = NULL;
     struct netlogon_samlogon_response response;
+    int dp_error = DP_ERR_FATAL;
 
     ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
 
@@ -379,8 +380,9 @@ done:
 
     if (ret == EOK) {
         ctx->sd_ctx->last_refreshed = time(NULL);
+        dp_error = DP_ERR_OK;
     }
-    be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
 static void ad_subdom_online_cb(void *pvt);
