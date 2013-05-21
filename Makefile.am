@@ -566,10 +566,7 @@ libsss_util_la_SOURCES = \
     src/util/io.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
-    $(UNICODE_LIBS) \
-    libsss_child.la \
-    libsss_crypt.la \
-    libsss_debug.la
+    $(UNICODE_LIBS)
 if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c
 endif
@@ -579,6 +576,12 @@ libsss_util_la_SOURCES += \
     src/util/sss_ssh.c
 endif
 libsss_util_la_LDFLAGS = -avoid-version
+
+SSSD_INTERNAL_LTLIBS = \
+    libsss_crypt.la \
+    libsss_debug.la \
+    libsss_child.la \
+    libsss_util.la
 
 lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
@@ -623,7 +626,7 @@ sssd_LDADD = \
     $(SSSD_LIBS) \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
@@ -636,7 +639,7 @@ sssd_nss_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -649,7 +652,7 @@ sssd_pam_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 
 if BUILD_SUDO
 sssd_sudo_SOURCES = \
@@ -661,7 +664,7 @@ sssd_sudo_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_sudo_LDADD = \
     $(SSSD_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 endif
 
 if BUILD_AUTOFS
@@ -672,7 +675,7 @@ sssd_autofs_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
     $(SSSD_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 endif
 
 if BUILD_SSH
@@ -683,7 +686,7 @@ sssd_ssh_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_ssh_LDADD = \
     $(SSSD_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 endif
 
 sssd_pac_SOURCES = \
@@ -700,7 +703,7 @@ sssd_pac_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \
@@ -713,7 +716,7 @@ sssd_be_LDADD = \
     -ldl \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -export-dynamic \
@@ -744,16 +747,16 @@ sss_useradd_SOURCES = \
     src/tools/sss_useradd.c \
     $(SSSD_TOOLS_OBJ)
 sss_useradd_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 
 sss_userdel_SOURCES = \
     src/tools/sss_userdel.c \
     src/util/find_uid.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_userdel_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 sss_userdel_CFLAGS = $(AM_CFLAGS)
 sss_userdel_LDFLAGS = \
     $(CLIENT_LIBS)
@@ -762,15 +765,15 @@ sss_groupadd_SOURCES = \
     src/tools/sss_groupadd.c \
     $(SSSD_TOOLS_OBJ)
 sss_groupadd_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 
 sss_groupdel_SOURCES = \
     src/tools/sss_groupdel.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_groupdel_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 sss_groupdel_CFLAGS = $(AM_CFLAGS)
 sss_groupdel_LDFLAGS = \
     $(CLIENT_LIBS)
@@ -779,8 +782,8 @@ sss_usermod_SOURCES = \
     src/tools/sss_usermod.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_usermod_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 sss_usermod_CFLAGS = $(AM_CFLAGS)
 sss_usermod_LDFLAGS = \
     $(CLIENT_LIBS)
@@ -789,8 +792,8 @@ sss_groupmod_SOURCES = \
     src/tools/sss_groupmod.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_groupmod_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 sss_groupmod_CFLAGS = $(AM_CFLAGS)
 sss_groupmod_LDFLAGS = \
     $(CLIENT_LIBS)
@@ -799,15 +802,15 @@ sss_groupshow_SOURCES = \
     src/tools/sss_groupshow.c \
     $(SSSD_TOOLS_OBJ)
 sss_groupshow_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 
 sss_cache_SOURCES = \
     src/tools/sss_cache.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_cache_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 sss_cache_CFLAGS = $(AM_CFLAGS)
 sss_cache_LDFLAGS = \
     $(CLIENT_LIBS)
@@ -816,15 +819,15 @@ sss_debuglevel_SOURCES = \
     src/tools/sss_debuglevel.c \
     $(SSSD_TOOLS_OBJ)
 sss_debuglevel_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 
 sss_seed_SOURCES = \
     src/tools/sss_seed.c \
     $(SSSD_TOOLS_OBJ)
 sss_seed_LDADD = \
-    libsss_util.la \
-    $(TOOLS_LIBS)
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 
 if BUILD_SUDO
 sss_sudo_cli_SOURCES = \
@@ -843,8 +846,8 @@ sss_ssh_authorizedkeys_SOURCES = \
     src/sss_client/ssh/sss_ssh_authorizedkeys.c
 sss_ssh_authorizedkeys_CFLAGS = $(AM_CFLAGS)
 sss_ssh_authorizedkeys_LDADD = \
-    libsss_util.la
-sss_ssh_authorizedkeys_LDFLAGS = $(CLIENT_LIBS)
+    $(SSSD_INTERNAL_LTLIBS)
+sss_ssh_authorizedkeys_LDFLAGS = $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
 
 sss_ssh_knownhostsproxy_SOURCES = \
     src/sss_client/common.c \
@@ -852,8 +855,8 @@ sss_ssh_knownhostsproxy_SOURCES = \
     src/sss_client/ssh/sss_ssh_knownhostsproxy.c
 sss_ssh_knownhostsproxy_CFLAGS = $(AM_CFLAGS)
 sss_ssh_knownhostsproxy_LDADD = \
-    libsss_util.la
-sss_ssh_knownhostsproxy_LDFLAGS = $(CLIENT_LIBS)
+    $(SSSD_INTERNAL_LTLIBS)
+sss_ssh_knownhostsproxy_LDFLAGS = $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
 endif
 
 #################
@@ -888,7 +891,7 @@ sysdb_tests_CFLAGS = \
 sysdb_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 sysdb_ssh_tests_DEPENDENCIES = \
@@ -901,7 +904,7 @@ sysdb_ssh_tests_CFLAGS = \
 sysdb_ssh_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 strtonum_tests_SOURCES = \
@@ -934,7 +937,7 @@ krb5_utils_tests_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 
@@ -971,10 +974,9 @@ files_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 files_tests_LDADD = \
-    libsss_debug.la \
     $(FILES_TESTS_LIBS) \
     libsss_test_common.la \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 
 SSSD_RESOLV_TESTS_OBJ = \
     $(SSSD_RESOLV_OBJ)
@@ -995,7 +997,7 @@ resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS) \
-    libsss_util.la \
+    libsss_debug.la \
     libsss_test_common.la
 
 refcount_tests_SOURCES = \
@@ -1006,7 +1008,7 @@ refcount_tests_CFLAGS = \
 refcount_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 fail_over_tests_SOURCES = \
@@ -1019,7 +1021,7 @@ fail_over_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 find_uid_tests_SOURCES = \
@@ -1047,7 +1049,7 @@ auth_tests_CFLAGS = \
 auth_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 ipa_ldap_opt_tests_SOURCES = \
@@ -1089,7 +1091,7 @@ simple_access_tests_LDADD = \
     $(CARES_LIBS) \
     $(CHECK_LIBS) \
     $(PAM_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 util_tests_SOURCES = \
@@ -1100,7 +1102,7 @@ util_tests_CFLAGS = \
 util_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 debug_tests_SOURCES = \
@@ -1112,7 +1114,7 @@ debug_tests_CFLAGS = \
 debug_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la
+    libsss_debug.la
 
 crypto_tests_SOURCES = \
     $(SSS_CRYPT_SOURCES) \
@@ -1136,7 +1138,6 @@ ipa_hbac_tests_CFLAGS = \
 ipa_hbac_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
     libsss_test_common.la \
     libipa_hbac.la
 
@@ -1165,8 +1166,7 @@ pac_responder_tests_LDADD = \
     $(SSSD_LIBS) \
     -lm \
     libsss_idmap.la \
-    libsss_debug.la \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 responder_socket_access_tests_SOURCES = \
@@ -1179,16 +1179,15 @@ responder_socket_access_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 responder_socket_access_tests_LDADD = \
     $(CHECK_LIBS) \
-    $(TALLOC_LIBS) \
-    libsss_test_common.la \
-    libsss_util.la
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 endif
 
 stress_tests_SOURCES = \
     src/tests/stress-tests.c
 stress_tests_LDADD = \
     $(SSSD_LIBS) \
-    libsss_util.la \
     libsss_test_common.la
 
 krb5_child_test_SOURCES = \
@@ -1208,11 +1207,11 @@ krb5_child_test_CFLAGS = \
     -DKRB5_CHILD_DIR=\"$(builddir)\" \
     $(CHECK_CFLAGS)
 krb5_child_test_LDADD = \
-    $(SSSD_LIBS)\
+    $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
-    libsss_util.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 if HAVE_CMOCKA
@@ -1243,9 +1242,10 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_cmd_done
 nss_srv_tests_LDADD = \
     $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
-    libsss_idmap.la \
-    libsss_util.la
+    libsss_idmap.la
 
 test_find_uid_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
@@ -1259,11 +1259,10 @@ test_find_uid_CFLAGS = \
     $(TALLOC_CFLAGS) \
     $(DHASH_CFLAGS)
 test_find_uid_LDADD = \
-    libsss_debug.la \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(CMOCKA_LIBS) \
-    libsss_util.la
+    libsss_debug.la
 
 test_io_SOURCES = \
     src/tests/cmocka/test_io.c \
@@ -1298,8 +1297,9 @@ dyndns_tests_LDFLAGS = \
 dyndns_tests_LDADD = \
     $(CARES_LIBS) \
     $(CMOCKA_LIBS) \
-    libsss_test_common.la \
-    libsss_util.la
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 
 fqnames_tests_SOURCES = \
     $(TEST_MOCK_OBJ) \
@@ -1308,8 +1308,9 @@ fqnames_tests_CFLAGS = \
     $(AM_CFLAGS)
 fqnames_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    libsss_test_common.la \
-    libsss_util.la
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 
 endif
 
@@ -1504,7 +1505,6 @@ libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
-    libsss_util.la \
     libsss_ldap_common.la \
     libsss_idmap.la
 libsss_ldap_la_LDFLAGS = \
@@ -1521,7 +1521,6 @@ libsss_proxy_la_SOURCES = \
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
-    libsss_util.la \
     $(PAM_LIBS)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
@@ -1533,8 +1532,7 @@ libsss_simple_la_SOURCES = \
 libsss_simple_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_simple_la_LIBADD = \
-    $(PAM_LIBS) \
-    libsss_util.la
+    $(PAM_LIBS)
 libsss_simple_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -1550,7 +1548,6 @@ libsss_krb5_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
-    libsss_util.la \
     libsss_krb5_common.la
 libsss_krb5_la_LDFLAGS = \
     -avoid-version \
@@ -1595,7 +1592,6 @@ libsss_ipa_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
-    libsss_util.la \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libipa_hbac.la \
@@ -1648,7 +1644,6 @@ libsss_ad_la_LIBADD = \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
-    libsss_util.la \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libsss_idmap.la
@@ -1710,7 +1705,7 @@ proxy_child_CFLAGS = \
 proxy_child_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
-    libsss_util.la
+    $(SSSD_INTERNAL_LTLIBS)
 
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \
@@ -1760,8 +1755,7 @@ pysss_la_CFLAGS = \
     $(PYTHON_CFLAGS)
 pysss_la_LIBADD = \
     $(PYTHON_BINDINGS_LIBS) \
-    $(PYTHON_LIBS) \
-    libsss_util.la
+    $(PYTHON_LIBS)
 pysss_la_LDFLAGS = \
     -avoid-version \
     -module
