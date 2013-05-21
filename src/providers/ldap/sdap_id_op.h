@@ -26,6 +26,7 @@
 #define _SDAP_ID_OP_H_
 
 struct sdap_id_ctx;
+struct sdap_id_conn_ctx;
 
 /* LDAP async connection cache */
 struct sdap_id_conn_cache;
@@ -38,6 +39,7 @@ struct sdap_id_op;
 /* Create a connection cache */
 int sdap_id_conn_cache_create(TALLOC_CTX *memctx,
                               struct sdap_id_ctx *id_ctx,
+                              struct sdap_id_conn_ctx *id_conn,
                               struct sdap_id_conn_cache** conn_cache_out);
 
 /* Create an operation object */

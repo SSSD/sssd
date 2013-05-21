@@ -1628,3 +1628,50 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+struct sdap_id_conn_ctx *
+sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
+                     struct sdap_service *sdap_service)
+{
+    struct sdap_id_conn_ctx *conn;
+    errno_t ret;
+
+    conn = talloc_zero(id_ctx, struct sdap_id_conn_ctx);
+    if (conn == NULL) {
+        return NULL;
+    }
+    conn->service = talloc_steal(conn, sdap_service);
+    conn->id_ctx = id_ctx;
+
+    /* Create a connection cache */
+    ret = sdap_id_conn_cache_create(conn, id_ctx, conn, &conn->conn_cache);
+    if (ret != EOK) {
+        talloc_free(conn);
+        return NULL;
+    }
+    DLIST_ADD_END(id_ctx->conn, conn, struct sdap_id_conn_ctx *);
+
+    return conn;
+}
+
+struct sdap_id_ctx *
+sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
+                struct sdap_service *sdap_service)
+{
+    struct sdap_id_ctx *sdap_ctx;
+
+    sdap_ctx = talloc_zero(mem_ctx, struct sdap_id_ctx);
+    if (sdap_ctx == NULL) {
+        return NULL;
+    }
+    sdap_ctx->be = bectx;
+
+    /* There should be at least one connection context */
+    sdap_ctx->conn = sdap_id_ctx_conn_add(sdap_ctx, sdap_service);
+    if (sdap_ctx->conn == NULL) {
+        talloc_free(sdap_ctx);
+        return NULL;
+    }
+
+    return sdap_ctx;
+}

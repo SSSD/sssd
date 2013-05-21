@@ -154,7 +154,7 @@ sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
     state->dp_error = DP_ERR_FATAL;
     state->map_name = map_name;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

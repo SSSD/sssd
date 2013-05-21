@@ -82,7 +82,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->protocol = protocol;
     state->filter_type = filter_type;
 
-    state->op = sdap_id_op_create(state, state->id_ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->id_ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

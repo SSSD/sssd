@@ -138,12 +138,10 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     ipa_options->id_ctx = ipa_ctx;
     ipa_ctx->ipa_options = ipa_options;
 
-    sdap_ctx = talloc_zero(ipa_options, struct sdap_id_ctx);
-    if (!sdap_ctx) {
+    sdap_ctx = sdap_id_ctx_new(ipa_options, bectx, ipa_options->service->sdap);
+    if (sdap_ctx == NULL) {
         return ENOMEM;
     }
-    sdap_ctx->be = bectx;
-    sdap_ctx->service = ipa_options->service->sdap;
     ipa_ctx->sdap_id_ctx = sdap_ctx;
 
     ret = ipa_get_id_options(ipa_options, bectx->cdb,
@@ -188,10 +186,6 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = sdap_id_conn_cache_create(sdap_ctx, sdap_ctx, &sdap_ctx->conn_cache);
-    if (ret != EOK) {
-        goto done;
-    }
 
     /* Set up the ID mapping object */
     ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);

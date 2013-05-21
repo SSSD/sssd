@@ -718,7 +718,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(6, ("Checking filter against LDAP\n"));
 
-    state->sdap_op = sdap_id_op_create(state, state->sdap_ctx->conn_cache);
+    state->sdap_op = sdap_id_op_create(state,
+                                       state->sdap_ctx->conn->conn_cache);
     if (!state->sdap_op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

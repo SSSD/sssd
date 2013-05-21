@@ -87,11 +87,13 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
                       struct bet_ops **ops,
                       void **pvt_data)
 {
-    struct sdap_id_ctx *ctx;
+    struct sdap_id_ctx *ctx = NULL;
     const char *urls;
     const char *backup_urls;
     const char *dns_service_name;
     const char *sasl_mech;
+    struct sdap_service *sdap_service;
+    struct sdap_options *opts;
     int ret;
 
     /* If we're already set up, just return that */
@@ -103,37 +105,40 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         return EOK;
     }
 
-    ctx = talloc_zero(bectx, struct sdap_id_ctx);
-    if (!ctx) return ENOMEM;
-
-    ctx->be = bectx;
-
-    ret = ldap_get_options(ctx, bectx->cdb,
-                           bectx->conf_path, &ctx->opts);
+    ret = ldap_get_options(bectx, bectx->cdb,
+                           bectx->conf_path, &opts);
     if (ret != EOK) {
         goto done;
     }
 
-    dns_service_name = dp_opt_get_string(ctx->opts->basic,
+    dns_service_name = dp_opt_get_string(opts->basic,
                                          SDAP_DNS_SERVICE_NAME);
-    DEBUG(7, ("Service name for discovery set to %s\n", dns_service_name));
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Service name for discovery set to %s\n", dns_service_name));
 
-    urls = dp_opt_get_string(ctx->opts->basic, SDAP_URI);
-    backup_urls = dp_opt_get_string(ctx->opts->basic, SDAP_BACKUP_URI);
+    urls = dp_opt_get_string(opts->basic, SDAP_URI);
+    backup_urls = dp_opt_get_string(opts->basic, SDAP_BACKUP_URI);
 
-    ret = sdap_service_init(ctx, ctx->be, "LDAP",
+    ret = sdap_service_init(bectx, bectx, "LDAP",
                             dns_service_name, urls, backup_urls,
-                            &ctx->service);
+                            &sdap_service);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to initialize failover service!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to initialize failover service!\n"));
         goto done;
     }
+
+    ctx = sdap_id_ctx_new(bectx, bectx, sdap_service);
+    if (!ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ctx->opts = talloc_steal(ctx, opts);
 
     sasl_mech = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_MECH);
     if (sasl_mech && strcasecmp(sasl_mech, "GSSAPI") == 0) {
         if (dp_opt_get_bool(ctx->opts->basic, SDAP_KRB5_KINIT)) {
             ret = sdap_gssapi_init(ctx, ctx->opts->basic,
-                                   ctx->be, ctx->service,
+                                   ctx->be, ctx->conn->service,
                                    &ctx->krb5_service);
             if (ret !=  EOK) {
                 DEBUG(1, ("sdap_gssapi_init failed [%d][%s].\n",
@@ -147,11 +152,6 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     if (ret != EOK) {
         DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
                   ret, strerror(ret)));
-        goto done;
-    }
-
-    ret = sdap_id_conn_cache_create(ctx, ctx, &ctx->conn_cache);
-    if (ret != EOK) {
         goto done;
     }
 
@@ -185,6 +185,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 
 done:
     if (ret != EOK) {
+        talloc_free(opts);
         talloc_free(ctx);
     }
     return ret;
@@ -208,7 +209,7 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
 
         ctx->be = bectx;
         ctx->opts = id_ctx->opts;
-        ctx->service = id_ctx->service;
+        ctx->service = id_ctx->conn->service;
         ctx->chpass_service = NULL;
 
         *ops = &sdap_auth_ops;

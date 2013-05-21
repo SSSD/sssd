@@ -135,36 +135,11 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ad_ctx->ad_options = ad_options;
     ad_options->id_ctx = ad_ctx;
 
-    sdap_ctx = talloc_zero(ad_options, struct sdap_id_ctx);
-    if (!sdap_ctx) {
+    sdap_ctx = sdap_id_ctx_new(ad_options, bectx, ad_options->service->sdap);
+    if (sdap_ctx == NULL) {
         return ENOMEM;
     }
-    sdap_ctx->be = bectx;
-    sdap_ctx->service = ad_options->service->sdap;
     ad_ctx->sdap_id_ctx = sdap_ctx;
-
-    ret = ad_get_id_options(ad_options, bectx->cdb,
-                            bectx->conf_path,
-                            &sdap_ctx->opts);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = setup_tls_config(sdap_ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("setup_tls_config failed [%s]\n", strerror(ret)));
-        goto done;
-    }
-
-    ret = sdap_id_conn_cache_create(sdap_ctx, sdap_ctx, &sdap_ctx->conn_cache);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Set up the ID mapping object */
-    ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
-    if (ret != EOK) goto done;
 
     ret = ad_dyndns_init(sdap_ctx->be, ad_options);
     if (ret != EOK) {
@@ -183,6 +158,26 @@ sssm_ad_id_init(struct be_ctx *bectx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("setup_child failed [%d][%s].\n",
                ret, strerror(ret)));
+        goto done;
+    }
+
+    /* Set up various SDAP options */
+    ret = ad_get_id_options(ad_options, bectx->cdb,
+                            bectx->conf_path,
+                            &sdap_ctx->opts);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Set up the ID mapping object */
+    ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
+    if (ret != EOK) goto done;
+
+
+    ret = setup_tls_config(sdap_ctx->opts->basic);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("setup_tls_config failed [%s]\n", strerror(ret)));
         goto done;
     }
 

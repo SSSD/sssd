@@ -42,17 +42,26 @@
 /* a fd the child process would log into */
 extern int ldap_child_debug_fd;
 
+struct sdap_id_ctx;
+
+struct sdap_id_conn_ctx {
+    struct sdap_id_ctx *id_ctx;
+
+    struct sdap_service *service;
+    /* LDAP connection cache */
+    struct sdap_id_conn_cache *conn_cache;
+    /* dlinklist pointers */
+    struct sdap_id_conn_ctx *prev, *next;
+};
+
 struct sdap_id_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;
-    struct fo_service *fo_service;
-    struct sdap_service *service;
 
     /* If using GSSAPI */
     struct krb5_service *krb5_service;
-
-    /* LDAP connection cache */
-    struct sdap_id_conn_cache *conn_cache;
+    /* connection to a server */
+    struct sdap_id_conn_ctx *conn;
 
     /* enumeration loop timer */
     struct timeval last_enum;
@@ -234,5 +243,13 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
                       char *default_primary,
                       char *default_realm,
                       const char *keytab_path);
+
+struct sdap_id_conn_ctx *
+sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
+                     struct sdap_service *sdap_service);
+
+struct sdap_id_ctx *
+sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
+                struct sdap_service *sdap_service);
 
 #endif /* _LDAP_COMMON_H_ */

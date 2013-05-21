@@ -174,7 +174,7 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
     state->ctx = ipa_ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, ctx->conn_cache);
+    state->op = sdap_id_op_create(state, ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

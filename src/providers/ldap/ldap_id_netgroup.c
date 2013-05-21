@@ -70,7 +70,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

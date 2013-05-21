@@ -66,7 +66,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

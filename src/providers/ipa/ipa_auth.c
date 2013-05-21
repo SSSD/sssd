@@ -71,7 +71,8 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
     state->password_migration = false;
     state->ipa_realm = ipa_realm;
 
-    state->sdap_op = sdap_id_op_create(state, state->sdap_id_ctx->conn_cache);
+    state->sdap_op = sdap_id_op_create(state,
+                                       state->sdap_id_ctx->conn->conn_cache);
     if (state->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
         goto fail;

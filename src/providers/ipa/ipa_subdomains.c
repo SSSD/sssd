@@ -558,7 +558,7 @@ static void ipa_subdomains_retrieve(struct ipa_subdomains_ctx *ctx, struct be_re
     req_ctx->reply = NULL;
 
     req_ctx->sdap_op = sdap_id_op_create(req_ctx,
-                                         ctx->sdap_id_ctx->conn_cache);
+                                         ctx->sdap_id_ctx->conn->conn_cache);
     if (req_ctx->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
         ret = ENOMEM;

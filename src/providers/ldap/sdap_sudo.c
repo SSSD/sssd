@@ -508,7 +508,7 @@ void sdap_sudo_handler(struct be_req *be_req)
     case BE_REQ_SUDO_RULES:
         DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a refresh of specific sudo rules\n"));
         req = sdap_sudo_rules_refresh_send(be_req, sudo_ctx, id_ctx->be,
-                                           id_ctx->opts, id_ctx->conn_cache,
+                                           id_ctx->opts, id_ctx->conn->conn_cache,
                                            sudo_req->rules);
         break;
     default:
@@ -585,7 +585,7 @@ static struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, ("Issuing a full refresh of sudo rules\n"));
 
     subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
-                                    id_ctx->conn_cache,
+                                    id_ctx->conn->conn_cache,
                                     ldap_full_filter, sysdb_filter);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -901,7 +901,7 @@ static struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
                               "(USN > %s)\n", (usn == NULL ? "0" : usn)));
 
     subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
-                                    id_ctx->conn_cache,
+                                    id_ctx->conn->conn_cache,
                                     ldap_full_filter, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;

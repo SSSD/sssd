@@ -208,7 +208,7 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
     if (!offline) {
         if (hbac_ctx->sdap_op == NULL) {
             hbac_ctx->sdap_op = sdap_id_op_create(hbac_ctx,
-                                            hbac_ctx->sdap_ctx->conn_cache);
+                                          hbac_ctx->sdap_ctx->conn->conn_cache);
             if (hbac_ctx->sdap_op == NULL) {
                 DEBUG(1, ("sdap_id_op_create failed.\n"));
                 return EIO;

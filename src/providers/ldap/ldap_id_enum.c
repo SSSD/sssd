@@ -212,7 +212,7 @@ struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         talloc_zfree(req);

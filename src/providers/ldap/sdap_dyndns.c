@@ -500,7 +500,7 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Detect DYNDNS address from LDAP connection */
-    state->sdap_op = sdap_id_op_create(state, sdap_ctx->conn_cache);
+    state->sdap_op = sdap_id_op_create(state, sdap_ctx->conn->conn_cache);
     if (!state->sdap_op) {
         ret = ENOMEM;
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
@@ -664,7 +664,7 @@ sdap_dyndns_timer_conn_send(TALLOC_CTX *mem_ctx,
     state->dyndns_ctx->timer_in_progress = true;
 
     /* Make sure to have a valid LDAP connection */
-    state->sdap_op = sdap_id_op_create(state, state->sdap_ctx->conn_cache);
+    state->sdap_op = sdap_id_op_create(state, state->sdap_ctx->conn->conn_cache);
     if (state->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

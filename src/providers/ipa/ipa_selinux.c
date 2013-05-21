@@ -864,7 +864,8 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     }
 
     if (!offline) {
-        state->op = sdap_id_op_create(state, selinux_ctx->id_ctx->sdap_id_ctx->conn_cache);
+        state->op = sdap_id_op_create(state,
+                        selinux_ctx->id_ctx->sdap_id_ctx->conn->conn_cache);
         if (!state->op) {
             DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
             ret = ENOMEM;

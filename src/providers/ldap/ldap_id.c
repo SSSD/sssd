@@ -80,7 +80,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -403,7 +403,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -698,7 +698,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -862,7 +862,7 @@ void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx)
     check_ctx->be_req = be_req;
 
     req = sdap_cli_connect_send(be_req, be_ctx->ev, ctx->opts,
-                                be_ctx, ctx->service, false,
+                                be_ctx, ctx->conn->service, false,
                                 CON_TLS_DFL, false);
     if (req == NULL) {
         DEBUG(1, ("sdap_cli_connect_send failed.\n"));
@@ -1280,7 +1280,7 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
     state->id_ctx = id_ctx;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->id_ctx->conn_cache);
+    state->op = sdap_id_op_create(state, state->id_ctx->conn->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
