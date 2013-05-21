@@ -241,6 +241,7 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
             ini_config_free_errors(init_data->error_list);
         }
         ini_config_destroy(init_data->sssd_config);
+        init_data->sssd_config = NULL;
         return ret;
     }
 
