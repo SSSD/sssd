@@ -150,7 +150,6 @@ if HAVE_CMOCKA
         test-find-uid \
         test-io \
         sss_nss_idmap-tests \
-        test-io	      \
         dyndns-tests
 endif
 
@@ -869,12 +868,14 @@ noinst_LTLIBRARIES += \
     libsss_test_common.la
 
 libsss_test_common_la_SOURCES = \
+    src/tests/common_tev.c \
+    src/tests/common_dom.c \
+    src/tests/leak_check.c \
     src/tests/common.c
 
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
-    src/tests/common_check.c	 \
-    src/tests/leak_check.c
+    src/tests/common_check.c
 
 sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
@@ -1149,14 +1150,6 @@ sss_idmap_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la
 
-sss_nss_idmap_tests_SOURCES = \
-    src/tests/sss_nss_idmap-tests.c
-sss_nss_idmap_tests_CFLAGS = \
-    $(AM_CFLAGS)
-sss_nss_idmap_tests_LDADD = \
-    $(CMOCKA_LIBS) \
-    libsss_nss_idmap.la
-
 pac_responder_tests_SOURCES = \
     src/tests/pac_responder-tests.c \
     src/responder/pac/pacsrv_utils.c
@@ -1222,14 +1215,8 @@ krb5_child_test_LDADD = \
     libsss_test_common.la
 
 if HAVE_CMOCKA
-TEST_MOCK_OBJ = 		\
-     src/tests/common.c		\
-     src/tests/leak_check.c
 
 TEST_MOCK_RESP_OBJ = \
-     $(TEST_MOCK_OBJ) \
-     src/tests/common_tev.c \
-     src/tests/common_dom.c \
      src/tests/cmocka/common_mock_resp.c \
      src/responder/common/responder_packet.c \
      src/responder/common/responder_cmd.c \
@@ -1255,6 +1242,7 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_cmd_done
 nss_srv_tests_LDADD = \
     $(CMOCKA_LIBS) \
+    libsss_test_common.la \
     libsss_idmap.la \
     libsss_util.la
 
@@ -1285,13 +1273,18 @@ test_io_CFLAGS = \
 test_io_LDADD = \
     $(CMOCKA_LIBS)
 
+sss_nss_idmap_tests_SOURCES = \
+    src/tests/cmocka/sss_nss_idmap-tests.c
+sss_nss_idmap_tests_CFLAGS = \
+    $(AM_CFLAGS)
+sss_nss_idmap_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    libsss_nss_idmap.la
+
 dyndns_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
 dyndns_tests_SOURCES = \
-     $(TEST_MOCK_OBJ) \
      $(SSSD_RESOLV_OBJ) \
-     src/tests/common_tev.c \
-     src/tests/common_dom.c \
      src/tests/cmocka/test_dyndns.c \
      src/providers/data_provider_opts.c
 dyndns_tests_CFLAGS = \
@@ -1304,6 +1297,7 @@ dyndns_tests_LDFLAGS = \
 dyndns_tests_LDADD = \
     $(CARES_LIBS) \
     $(CMOCKA_LIBS) \
+    libsss_test_common.la \
     libsss_util.la
 endif
 

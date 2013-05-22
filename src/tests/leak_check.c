@@ -23,7 +23,6 @@
 */
 
 #include <stdio.h>
-#include <check.h>
 #include "tests/common.h"
 #include "util/util.h"
 #include "util/dlinklist.h"
