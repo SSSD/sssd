@@ -1999,7 +1999,6 @@ endif
 srpm: rpmbrprep
 	cd $(RPMBUILD); \
 	rpmbuild --define "_topdir $(RPMBUILD)" \
-	         --define _source_filedigest_algorithm=1 \
 	         -bs SPECS/sssd.spec
 
 if GIT_CHECKOUT
