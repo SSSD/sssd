@@ -236,7 +236,7 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
         return NULL;
     }
 
-    if (PySequence_Check(obj)) {
+    if (PyList_Check(obj) || PyTuple_Check(obj)) {
         len = PySequence_Size(obj);
         for(i=0; i < len; i++) {
             py_value = PySequence_GetItem(obj, i);
