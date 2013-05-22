@@ -216,6 +216,9 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
     int ret;
 
     tmp_ctx = talloc_new(domain);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     ret = sysdb_attrs_get_string(attrs, IPA_CN, &name);
     if (ret != EOK) {
