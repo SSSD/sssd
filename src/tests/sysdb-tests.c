@@ -5293,20 +5293,7 @@ int main(int argc, const char *argv[]) {
     failure_count = srunner_ntests_failed(sr);
     srunner_free(sr);
     if (failure_count == 0 && !no_cleanup) {
-        ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
-        if (ret != EOK) {
-            fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
-                    errno, strerror(errno));
-            return EXIT_FAILURE;
-        }
-        ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);
-        if (ret != EOK) {
-            fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
-                    errno, strerror(errno));
-            return EXIT_FAILURE;
-        }
-
-        return EXIT_SUCCESS;
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
     }
-    return  EXIT_FAILURE;
+    return (failure_count==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

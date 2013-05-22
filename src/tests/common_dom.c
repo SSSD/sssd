@@ -156,6 +156,14 @@ void test_dom_suite_cleanup(const char *tests_path,
                errno, strerror(errno)));
     }
 
+    errno = 0;
+    ret = rmdir(tests_path);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not delete the test dir (%d) (%s)\n",
+               errno, strerror(errno)));
+    }
+
     talloc_free(conf_db);
     talloc_free(sys_db);
 }

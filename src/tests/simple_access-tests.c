@@ -540,7 +540,6 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int number_failed;
-    int ret;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -573,17 +572,8 @@ int main(int argc, const char *argv[])
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
 
-    ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
-    if (ret != EOK) {
-        fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
-                errno, strerror(errno));
-        return EXIT_FAILURE;
-    }
-    ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);
-    if (ret != EOK) {
-        fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
-                errno, strerror(errno));
-        return EXIT_FAILURE;
+    if (number_failed == 0) {
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
     }
 
     return (number_failed==0 ? EXIT_SUCCESS : EXIT_FAILURE);
