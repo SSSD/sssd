@@ -34,7 +34,7 @@ ad_account_info_handler(struct be_req *be_req)
                              struct ad_id_ctx);
     sdap_id_ctx = ad_ctx->sdap_id_ctx;
 
-    return sdap_handle_account_info(be_req, sdap_id_ctx);
+    return sdap_handle_account_info(be_req, sdap_id_ctx, sdap_id_ctx->conn);
 }
 
 void

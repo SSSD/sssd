@@ -34,6 +34,7 @@ struct ldap_netgroup_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     struct sdap_id_op *op;
+    struct sdap_id_conn_ctx *conn;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
@@ -54,9 +55,10 @@ static void ldap_netgroup_get_connect_done(struct tevent_req *subreq);
 static void ldap_netgroup_get_done(struct tevent_req *subreq);
 
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
-                                     struct tevent_context *ev,
-                                     struct sdap_id_ctx *ctx,
-                                     const char *name)
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx,
+                                          struct sdap_id_conn_ctx *conn,
+                                          const char *name)
 {
     struct tevent_req *req;
     struct ldap_netgroup_get_state *state;
@@ -68,9 +70,10 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
+    state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

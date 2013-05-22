@@ -2510,6 +2510,7 @@ struct sdap_get_initgr_state {
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
     struct sdap_id_ctx *id_ctx;
+    struct sdap_id_conn_ctx *conn;
     const char *name;
     const char **grp_attrs;
     const char **user_attrs;
@@ -2531,6 +2532,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
+                                        struct sdap_id_conn_ctx *conn,
                                         const char *name,
                                         const char **grp_attrs)
 {
@@ -2550,6 +2552,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->dom = id_ctx->be->domain;
     state->sh = sh;
     state->id_ctx = id_ctx;
+    state->conn = conn;
     state->name = name;
     state->grp_attrs = grp_attrs;
     state->orig_user = NULL;
@@ -2947,7 +2950,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    subreq = groups_get_send(req, state->ev, state->id_ctx, gid,
+    subreq = groups_get_send(req, state->ev, state->id_ctx, state->conn, gid,
                              BE_FILTER_IDNUM, BE_ATTR_ALL);
     if (!subreq) {
         ret = ENOMEM;

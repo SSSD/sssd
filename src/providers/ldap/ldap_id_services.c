@@ -36,6 +36,7 @@ struct sdap_services_get_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
+    struct sdap_id_conn_ctx *conn;
 
     const char *name;
     const char *protocol;
@@ -59,6 +60,7 @@ struct tevent_req *
 services_get_send(TALLOC_CTX *mem_ctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
+                  struct sdap_id_conn_ctx *conn,
                   const char *name,
                   const char *protocol,
                   int filter_type)
@@ -75,6 +77,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
+    state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
     state->sysdb = id_ctx->be->domain->sysdb;
     state->domain = state->id_ctx->be->domain;
@@ -82,7 +85,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->protocol = protocol;
     state->filter_type = filter_type;
 
-    state->op = sdap_id_op_create(state, state->id_ctx->conn->conn_cache);
+    state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;

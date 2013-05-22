@@ -117,6 +117,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
+                                        struct sdap_id_conn_ctx *conn,
                                         const char *name,
                                         const char **grp_attrs);
 int sdap_get_initgr_recv(struct tevent_req *req);

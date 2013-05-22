@@ -97,7 +97,7 @@ void ipa_account_info_handler(struct be_req *breq)
     } else {
         /* any account request is handled by sdap,
          * any invalid request is caught there. */
-        return sdap_handle_account_info(breq, ctx);
+        return sdap_handle_account_info(breq, ctx, ctx->conn);
     }
 
     if (!req) {

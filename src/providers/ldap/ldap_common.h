@@ -93,14 +93,16 @@ errno_t sdap_reinit_cleanup_recv(struct tevent_req *req);
 
 /* id */
 void sdap_account_info_handler(struct be_req *breq);
-void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
+void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
+                              struct sdap_id_conn_ctx *conn);
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx);
 
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_req *breq,
                           struct be_acct_req *ar,
-                          struct sdap_id_ctx *id_ctx);
+                          struct sdap_id_ctx *id_ctx,
+                          struct sdap_id_conn_ctx *conn);
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
                           int *_dp_error, const char **_err);
@@ -172,15 +174,16 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx);
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_id_ctx *ctx,
+                                   struct sdap_id_conn_ctx *conn,
                                    const char *name,
                                    int filter_type,
                                    int attrs_type);
 int groups_get_recv(struct tevent_req *req, int *dp_error_out);
 
-
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_id_conn_ctx *conn,
                                           const char *name);
 int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out);
 
@@ -188,6 +191,7 @@ struct tevent_req *
 services_get_send(TALLOC_CTX *mem_ctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
+                  struct sdap_id_conn_ctx *conn,
                   const char *name,
                   const char *protocol,
                   int filter_type);

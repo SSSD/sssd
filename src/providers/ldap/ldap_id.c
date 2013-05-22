@@ -39,6 +39,7 @@
 struct users_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
@@ -59,6 +60,7 @@ static void users_get_done(struct tevent_req *subreq);
 struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_id_ctx *ctx,
+                                  struct sdap_id_conn_ctx *conn,
                                   const char *name,
                                   int filter_type,
                                   int attrs_type)
@@ -78,9 +80,10 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
+    state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -360,6 +363,7 @@ int users_get_recv(struct tevent_req *req, int *dp_error_out)
 struct groups_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
@@ -380,6 +384,7 @@ static void groups_get_done(struct tevent_req *subreq);
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_id_ctx *ctx,
+                                   struct sdap_id_conn_ctx *conn,
                                    const char *name,
                                    int filter_type,
                                    int attrs_type)
@@ -401,9 +406,10 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
+    state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -671,6 +677,7 @@ int groups_get_recv(struct tevent_req *req, int *dp_error_out)
 struct groups_by_user_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *op;
     const char *name;
     const char **attrs;
@@ -685,6 +692,7 @@ static void groups_by_user_done(struct tevent_req *subreq);
 static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct sdap_id_ctx *ctx,
+                                              struct sdap_id_conn_ctx *conn,
                                               const char *name)
 {
     struct tevent_req *req;
@@ -697,8 +705,9 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
     state->dp_error = DP_ERR_FATAL;
+    state->conn = conn;
 
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
+    state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -762,6 +771,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   state->ev,
                                   sdap_id_op_handle(state->op),
                                   state->ctx,
+                                  state->conn,
                                   state->name,
                                   state->attrs);
     if (!subreq) {
@@ -971,11 +981,13 @@ static void sdap_check_online_reinit_done(struct tevent_req *req)
 /* FIXME: embed this function in sssd_be and only call out
  * specific functions from modules ? */
 
-void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx);
+void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
+                              struct sdap_id_conn_ctx *conn);
 
 static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   struct tevent_context *ev,
                                                   struct sdap_id_ctx *ctx,
+                                                  struct sdap_id_conn_ctx *conn,
                                                   const char *name,
                                                   int filter_type,
                                                   int attrs_type);
@@ -993,7 +1005,7 @@ void sdap_account_info_handler(struct be_req *breq)
         return sdap_handler_done(breq, DP_ERR_FATAL,
                                  EINVAL, "Invalid request data\n");
     }
-    return sdap_handle_account_info(breq, ctx);
+    return sdap_handle_account_info(breq, ctx, ctx->conn);
 }
 
 /* A generic LDAP account info handler */
@@ -1010,7 +1022,8 @@ struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_req *breq,
                           struct be_acct_req *ar,
-                          struct sdap_id_ctx *id_ctx)
+                          struct sdap_id_ctx *id_ctx,
+                          struct sdap_id_conn_ctx *conn)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -1046,7 +1059,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = users_get_send(breq, be_ctx->ev, id_ctx,
+        subreq = users_get_send(breq, be_ctx->ev, id_ctx, conn,
                                 ar->filter_value,
                                 ar->filter_type,
                                 ar->attr_type);
@@ -1063,7 +1076,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = groups_get_send(breq, be_ctx->ev, id_ctx,
+        subreq = groups_get_send(breq, be_ctx->ev, id_ctx, conn,
                                  ar->filter_value,
                                  ar->filter_type,
                                  ar->attr_type);
@@ -1081,7 +1094,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = groups_by_user_send(breq, be_ctx->ev, id_ctx,
+        subreq = groups_by_user_send(breq, be_ctx->ev, id_ctx, conn,
                                      ar->filter_value);
         break;
 
@@ -1092,7 +1105,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = ldap_netgroup_get_send(breq, be_ctx->ev, id_ctx,
+        subreq = ldap_netgroup_get_send(breq, be_ctx->ev, id_ctx, conn,
                                         ar->filter_value);
         break;
 
@@ -1112,7 +1125,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = services_get_send(breq, be_ctx->ev, id_ctx,
+        subreq = services_get_send(breq, be_ctx->ev, id_ctx, conn,
                                    ar->filter_value,
                                    ar->extra_value,
                                    ar->filter_type);
@@ -1125,7 +1138,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx,
+        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx, conn,
                                          ar->filter_value,
                                          ar->filter_type,
                                          ar->attr_type);
@@ -1139,7 +1152,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx,
+        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx, conn,
                                          ar->filter_value,
                                          ar->filter_type,
                                          ar->attr_type);
@@ -1245,7 +1258,8 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
 
 static void sdap_account_info_complete(struct tevent_req *req);
 
-void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
+void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
+                              struct sdap_id_conn_ctx *conn)
 {
     struct be_acct_req *ar;
     struct tevent_req *req;
@@ -1260,7 +1274,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx)
                                  EINVAL, "Invalid private data");
     }
 
-    req = sdap_handle_acct_req_send(breq, breq, ar, ctx);
+    req = sdap_handle_acct_req_send(breq, breq, ar, ctx, conn);
     if (req == NULL) {
         return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
     }
@@ -1299,6 +1313,7 @@ static void sdap_account_info_complete(struct tevent_req *req)
 struct get_user_and_group_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
+    struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
@@ -1319,6 +1334,7 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq);
 static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   struct tevent_context *ev,
                                                   struct sdap_id_ctx *id_ctx,
+                                                  struct sdap_id_conn_ctx *conn,
                                                   const char *filter_val,
                                                   int filter_type,
                                                   int attrs_type)
@@ -1336,9 +1352,10 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
+    state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
 
-    state->op = sdap_id_op_create(state, state->id_ctx->conn->conn_cache);
+    state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -1351,8 +1368,9 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
     state->filter_type = filter_type;
     state->attrs_type = attrs_type;
 
-    subreq = users_get_send(req, state->ev, state->id_ctx, state->filter_val,
-                            state->filter_type, state->attrs_type);
+    subreq = users_get_send(req, state->ev, state->id_ctx, state->conn,
+                            state->filter_val, state->filter_type,
+                            state->attrs_type);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("users_get_send failed.\n"));
         ret = ENOMEM;
@@ -1385,8 +1403,9 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = groups_get_send(req, state->ev, state->id_ctx, state->filter_val,
-                            state->filter_type, state->attrs_type);
+    subreq = groups_get_send(req, state->ev, state->id_ctx, state->conn,
+                             state->filter_val, state->filter_type,
+                             state->attrs_type);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("groups_get_send failed.\n"));
         tevent_req_error(req, ENOMEM);
