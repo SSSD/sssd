@@ -288,7 +288,8 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'command',
             'reconnection_retries',
             'fd_limit',
-            'client_idle_timeout']
+            'client_idle_timeout',
+            'description']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
