@@ -55,13 +55,19 @@
 
 #define CLEAR_MC_FLAG "clear_mc_flag"
 
+#ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
+#define SSS_ATTRIBUTE_PRINTF(a1, a2) __attribute__ ((format (printf, a1, a2)))
+#else
+#define SSS_ATTRIBUTE_PRINTF(a1, a2)
+#endif
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
 extern int debug_microseconds;
 extern int debug_to_file;
 extern const char *debug_log_file;
-void debug_fn(const char *format, ...);
+void debug_fn(const char *format, ...) SSS_ATTRIBUTE_PRINTF(1, 2);
 int debug_get_level(int old_level);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
@@ -274,7 +280,7 @@ void talloc_log_fn(const char *msg);
 #define SSS_LOG_INFO    6   /* informational */
 #define SSS_LOG_DEBUG   7   /* debug-level messages */
 
-void sss_log(int priority, const char *format, ...);
+void sss_log(int priority, const char *format, ...) SSS_ATTRIBUTE_PRINTF(2, 3);
 
 /* from server.c */
 struct main_context {

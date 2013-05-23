@@ -268,6 +268,24 @@ if test x"$sss_client_cv_attribute_destructor" = xyes ; then
              [whether compiler supports __attribute__((destructor))])
 fi
 
+AC_CACHE_CHECK([whether compiler supports __attribute__((format))],
+               sss_cv_attribute_format,
+               [AC_COMPILE_IFELSE(
+                    [AC_LANG_SOURCE(
+                        [void debug_fn(const char *format, ...) __attribute__ ((format (printf, 1, 2)));]
+                    )],
+                    [sss_cv_attribute_format=yes],
+                    [
+                        AC_MSG_RESULT([no])
+                        AC_MSG_WARN([compiler does NOT support __attribute__((format))])
+                    ])
+               ])
+
+if test x"$sss_cv_attribute_format" = xyes ; then
+   AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_FORMAT, 1,
+             [whether compiler supports __attribute__((format))])
+fi
+
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
 if test x$have_check = x; then
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
