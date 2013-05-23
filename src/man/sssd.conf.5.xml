@@ -1663,6 +1663,15 @@ override_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>realmd_tags (string)</term>
+                    <listitem>
+                        <para>
+                            Various tags stored by the realmd configuration service
+                            for this domain.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 
