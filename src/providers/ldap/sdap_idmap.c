@@ -81,10 +81,11 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
             || idmap_upper <= idmap_lower
             || (idmap_upper-idmap_lower) < rangesize)
     {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_FATAL_FAILURE,
               ("Invalid settings for range selection: [%d][%d][%d]\n",
                idmap_lower, idmap_upper, rangesize));
         ret = EINVAL;
+        goto done;
     }
 
     if (((idmap_upper - idmap_lower) % rangesize) != 0) {
