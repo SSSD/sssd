@@ -38,11 +38,10 @@ static errno_t
 ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx);
 
 static errno_t
-ssh_cmd_done(struct ssh_cmd_ctx *cmd_ctx,
-             errno_t ret);
-
-static errno_t
 ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
+static errno_t
+ssh_cmd_get_user_pubkeys_done(struct ssh_cmd_ctx *cmd_ctx,
+                              errno_t ret);
 
 int
 sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
@@ -85,11 +84,14 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
     ret = ssh_user_pubkeys_search(cmd_ctx);
 
 done:
-    return ssh_cmd_done(cmd_ctx, ret);
+    return ssh_cmd_get_user_pubkeys_done(cmd_ctx, ret);
 }
 
 static errno_t
 ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
+static errno_t
+ssh_cmd_get_host_pubkeys_done(struct ssh_cmd_ctx *cmd_ctx,
+                              errno_t ret);
 
 static int
 sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
@@ -128,7 +130,7 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
     ret = ssh_host_pubkeys_search(cmd_ctx);
 
 done:
-    return ssh_cmd_done(cmd_ctx, ret);
+    return ssh_cmd_get_host_pubkeys_done(cmd_ctx, ret);
 }
 
 static void
@@ -283,7 +285,7 @@ ssh_user_pubkeys_search_dp_callback(uint16_t err_maj,
     }
 
     ret = ssh_user_pubkeys_search_next(cmd_ctx);
-    ssh_cmd_done(cmd_ctx, ret);
+    ssh_cmd_get_user_pubkeys_done(cmd_ctx, ret);
 }
 
 static errno_t
@@ -338,9 +340,6 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
 }
 
 static errno_t
-ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx);
-
-static errno_t
 ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
@@ -379,9 +378,6 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         return ENOENT;
     }
 
-    /* one result found */
-    ssh_host_pubkeys_update_known_hosts(cmd_ctx);
-
     return EOK;
 }
 
@@ -402,7 +398,7 @@ ssh_host_pubkeys_search_dp_callback(uint16_t err_maj,
     }
 
     ret = ssh_host_pubkeys_search_next(cmd_ctx);
-    ssh_cmd_done(cmd_ctx, ret);
+    ssh_cmd_get_host_pubkeys_done(cmd_ctx, ret);
 }
 
 static char *
@@ -568,12 +564,14 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         return ENOMEM;
     }
 
-    ret = sysdb_update_ssh_known_host_expire(cmd_ctx->domain->sysdb,
-                                             cmd_ctx->domain,
-                                             cmd_ctx->name, now,
-                                             ssh_ctx->known_hosts_timeout);
-    if (ret != EOK) {
-        goto done;
+    if (cmd_ctx->domain) {
+        ret = sysdb_update_ssh_known_host_expire(cmd_ctx->domain->sysdb,
+                                                 cmd_ctx->domain,
+                                                 cmd_ctx->name, now,
+                                                 ssh_ctx->known_hosts_timeout);
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
     }
 
     /* write known_hosts file */
@@ -934,6 +932,24 @@ ssh_cmd_done(struct ssh_cmd_ctx *cmd_ctx,
     }
 
     return EOK;
+}
+
+static errno_t
+ssh_cmd_get_user_pubkeys_done(struct ssh_cmd_ctx *cmd_ctx,
+                              errno_t ret)
+{
+    return ssh_cmd_done(cmd_ctx, ret);
+}
+
+static errno_t
+ssh_cmd_get_host_pubkeys_done(struct ssh_cmd_ctx *cmd_ctx,
+                              errno_t ret)
+{
+    if (ret == EOK || ret == ENOENT) {
+        ssh_host_pubkeys_update_known_hosts(cmd_ctx);
+    }
+
+    return ssh_cmd_done(cmd_ctx, ret);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)
