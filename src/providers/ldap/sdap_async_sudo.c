@@ -298,7 +298,7 @@ static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->sh = sh;
     state->base_iter = 0;
-    state->search_bases = opts->sudo_search_bases;
+    state->search_bases = opts->sdom->sudo_search_bases;
     state->filter = ldap_filter;
     state->timeout = dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT);
     state->ldap_rules = NULL;

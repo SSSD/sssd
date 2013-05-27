@@ -366,6 +366,22 @@ enum dc_functional_level {
     DS_BEHAVIOR_WIN2012 = 5
 };
 
+struct sdap_domain {
+    struct sss_domain_info *dom;
+
+    struct sdap_search_base **search_bases;
+    struct sdap_search_base **user_search_bases;
+    struct sdap_search_base **group_search_bases;
+    struct sdap_search_base **netgroup_search_bases;
+    struct sdap_search_base **sudo_search_bases;
+    struct sdap_search_base **service_search_bases;
+    struct sdap_search_base **autofs_search_bases;
+
+    struct sdap_domain *next, *prev;
+    /* Need to modify the list from a talloc destructor */
+    struct sdap_domain **head;
+};
+
 struct sdap_options {
     struct dp_option *basic;
     struct sdap_attr_map *gen_map;
@@ -390,13 +406,8 @@ struct sdap_options {
         SDAP_SCHEMA_AD = 4          /* AD's member/memberof */
     } schema_type;
 
-    struct sdap_search_base **search_bases;
-    struct sdap_search_base **user_search_bases;
-    struct sdap_search_base **group_search_bases;
-    struct sdap_search_base **netgroup_search_bases;
-    struct sdap_search_base **sudo_search_bases;
-    struct sdap_search_base **service_search_bases;
-    struct sdap_search_base **autofs_search_bases;
+    /* The search bases for the domain or its subdomain */
+    struct sdap_domain *sdom;
 
     bool support_matching_rule;
     enum dc_functional_level dc_functional_level;
@@ -474,7 +485,8 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
 int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val);
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
-                                             struct sdap_options *opts);
+                                             struct sdap_options *opts,
+                                             struct sdap_domain *sdom);
 int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                                       const char *server,
                                       struct sysdb_attrs *rootdse,

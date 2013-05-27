@@ -716,7 +716,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_automntmap_send(state, ev, dom,
                                       sysdb, state->opts,
-                                      state->opts->autofs_search_bases,
+                                      state->opts->sdom->autofs_search_bases,
                                       state->sh,
                                       state->attrs, state->filter,
                                       dp_opt_get_int(state->opts->basic,

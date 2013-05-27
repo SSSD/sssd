@@ -352,7 +352,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     state->ldap_groups = NULL;
     state->ldap_groups_count = 0;
     state->base_iter = 0;
-    state->search_bases = opts->group_search_bases;
+    state->search_bases = opts->sdom->group_search_bases;
 
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1486,7 +1486,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     state->num_direct_parents = 0;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->base_iter = 0;
-    state->search_bases = opts->group_search_bases;
+    state->search_bases = opts->sdom->group_search_bases;
     state->orig_dn = orig_dn;
 
     if (!state->search_bases) {
@@ -2118,7 +2118,7 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     state->timeout = dp_opt_get_int(state->opts->basic,
                                     SDAP_SEARCH_TIMEOUT);
     state->base_iter = 0;
-    state->search_bases = opts->group_search_bases;
+    state->search_bases = opts->sdom->group_search_bases;
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Initgroups nested lookup request "
@@ -2530,6 +2530,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
+                                        struct sdap_domain *sdom,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_id_conn_ctx *conn,
@@ -2548,8 +2549,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = id_ctx->opts;
-    state->sysdb = id_ctx->be->domain->sysdb;
-    state->dom = id_ctx->be->domain;
+    state->dom = sdom->dom;
+    state->sysdb = sdom->dom->sysdb;
     state->sh = sh;
     state->id_ctx = id_ctx;
     state->conn = conn;
@@ -2558,7 +2559,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->orig_user = NULL;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->user_base_iter = 0;
-    state->user_search_bases = id_ctx->opts->user_search_bases;
+    state->user_search_bases = sdom->user_search_bases;
     if (!state->user_search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Initgroups lookup request without a user search base\n"));
@@ -2950,8 +2951,9 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    subreq = groups_get_send(req, state->ev, state->id_ctx, state->conn, gid,
-                             BE_FILTER_IDNUM, BE_ATTR_ALL);
+    subreq = groups_get_send(req, state->ev, state->id_ctx,
+                             state->id_ctx->opts->sdom, state->conn,
+                             gid, BE_FILTER_IDNUM, BE_ATTR_ALL);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

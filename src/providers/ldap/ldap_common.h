@@ -102,6 +102,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_req *breq,
                           struct be_acct_req *ar,
                           struct sdap_id_ctx *id_ctx,
+                          struct sdap_domain *sdom,
                           struct sdap_id_conn_ctx *conn);
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
@@ -146,6 +147,7 @@ void sdap_remove_kdcinfo_files_callback(void *pvt);
 
 /* options parser */
 int ldap_get_options(TALLOC_CTX *memctx,
+                     struct sss_domain_info *dom,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
                      struct sdap_options **_opts);
@@ -174,6 +176,7 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx);
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_id_ctx *ctx,
+                                   struct sdap_domain *sdom,
                                    struct sdap_id_conn_ctx *conn,
                                    const char *name,
                                    int filter_type,
@@ -183,6 +186,7 @@ int groups_get_recv(struct tevent_req *req, int *dp_error_out);
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_domain *sdom,
                                           struct sdap_id_conn_ctx *conn,
                                           const char *name);
 int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out);
@@ -191,6 +195,7 @@ struct tevent_req *
 services_get_send(TALLOC_CTX *mem_ctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
+                  struct sdap_domain *sdom,
                   struct sdap_id_conn_ctx *conn,
                   const char *name,
                   const char *protocol,
@@ -226,6 +231,17 @@ char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
 errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
                          struct ldb_message **msgs,
                          struct sysdb_attrs ***attrs);
+
+errno_t sdap_domain_add(struct sdap_options *opts,
+                        struct sss_domain_info *dom,
+                        struct sdap_domain **_sdom);
+
+void
+sdap_domain_remove(struct sdap_options *opts,
+                   struct sss_domain_info *dom);
+
+struct sdap_domain *sdap_domain_get(struct sdap_options *opts,
+                                    struct sss_domain_info *dom);
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,

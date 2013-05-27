@@ -44,6 +44,7 @@
 struct ad_subdomains_ctx {
     struct be_ctx *be_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
+    struct sdap_domain *sdom;
     struct sss_idmap_ctx *idmap_ctx;
     char *domain_name;
 
@@ -164,7 +165,7 @@ static errno_t ad_subdomains_get_master_sid(struct ad_subdomains_req_ctx *ctx)
     const char *master_sid_attrs[] = {AD_AT_OBJECT_SID, NULL};
 
 
-    base = ctx->sd_ctx->sdap_id_ctx->opts->search_bases[ctx->base_iter];
+    base = ctx->sd_ctx->sdom->search_bases[ctx->base_iter];
     if (base == NULL) {
         return EOK;
     }
@@ -497,6 +498,7 @@ int ad_subdom_init(struct be_ctx *be_ctx,
     }
 
     ctx->be_ctx = be_ctx;
+    ctx->sdom = id_ctx->sdap_id_ctx->opts->sdom;
     ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
     ctx->domain_name = talloc_strdup(ctx, ad_domain);
     if (ctx->domain_name == NULL) {

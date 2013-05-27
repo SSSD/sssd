@@ -56,6 +56,8 @@ struct sdap_nested_group_member {
 struct sdap_nested_group_ctx {
     struct sss_domain_info *domain;
     struct sdap_options *opts;
+    struct sdap_search_base **user_search_bases;
+    struct sdap_search_base **group_search_bases;
     struct sdap_handle *sh;
     hash_table_t *users;
     hash_table_t *groups;
@@ -466,10 +468,12 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
         if (type == SDAP_NESTED_GROUP_DN_UNKNOWN) {
             /* user */
             is_user = sss_ldap_dn_in_search_bases(tmp_ctx, dn,
-                           group_ctx->opts->user_search_bases, &user_filter);
+                           group_ctx->user_search_bases,
+                           &user_filter);
 
             is_group = sss_ldap_dn_in_search_bases(tmp_ctx, dn,
-                           group_ctx->opts->group_search_bases, &group_filter);
+                           group_ctx->group_search_bases,
+                           &group_filter);
 
             if (is_user && is_group) {
                 /* search bases overlap */
@@ -551,12 +555,13 @@ struct sdap_nested_group_state {
 
 static void sdap_nested_group_done(struct tevent_req *subreq);
 
-struct tevent_req *sdap_nested_group_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sss_domain_info *domain,
-                                          struct sdap_options *opts,
-                                          struct sdap_handle *sh,
-                                          struct sysdb_attrs *group)
+struct tevent_req *
+sdap_nested_group_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct sdap_domain *sdom,
+                       struct sdap_options *opts,
+                       struct sdap_handle *sh,
+                       struct sysdb_attrs *group)
 {
     struct sdap_nested_group_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -596,8 +601,10 @@ struct tevent_req *sdap_nested_group_send(TALLOC_CTX *mem_ctx,
                                                       SDAP_DEREF_THRESHOLD);
     state->group_ctx->max_nesting_level = dp_opt_get_int(opts->basic,
                                                          SDAP_NESTING_LEVEL);
-    state->group_ctx->domain = domain;
+    state->group_ctx->domain = sdom->dom;
     state->group_ctx->opts = opts;
+    state->group_ctx->user_search_bases = sdom->user_search_bases;
+    state->group_ctx->group_search_bases = sdom->group_search_bases;
     state->group_ctx->sh = sh;
     state->group_ctx->try_deref = sdap_has_deref_support(sh, opts);
 
@@ -608,8 +615,8 @@ struct tevent_req *sdap_nested_group_send(TALLOC_CTX *mem_ctx,
 
     /* if any search base contains filter, disable dereference. */
     if (state->group_ctx->try_deref) {
-        for (i = 0; opts->user_search_bases[i] != NULL; i++) {
-            if (opts->user_search_bases[i]->filter != NULL) {
+        for (i = 0; opts->sdom->user_search_bases[i] != NULL; i++) {
+            if (opts->sdom->user_search_bases[i]->filter != NULL) {
                 DEBUG(SSSDBG_TRACE_FUNC, ("User search base contains filter, "
                                           "dereference will be disabled\n"));
                 state->group_ctx->try_deref = false;
@@ -619,8 +626,8 @@ struct tevent_req *sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     }
 
     if (state->group_ctx->try_deref) {
-        for (i = 0; opts->group_search_bases[i] != NULL; i++) {
-            if (opts->group_search_bases[i]->filter != NULL) {
+        for (i = 0; opts->sdom->group_search_bases[i] != NULL; i++) {
+            if (opts->sdom->group_search_bases[i]->filter != NULL) {
                 DEBUG(SSSDBG_TRACE_FUNC, ("Group search base contains filter, "
                                           "dereference will be disabled\n"));
                 state->group_ctx->try_deref = false;
@@ -2092,7 +2099,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 
             /* skip the user if it is not amongst configured search bases */
             bret = sss_ldap_dn_in_search_bases(state, orig_dn,
-                                               opts->user_search_bases, NULL);
+                                               opts->sdom->user_search_bases, NULL);
             if (!bret) {
                 continue;
             }
@@ -2119,7 +2126,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 
             /* skip the group if it is not amongst configured search bases */
             bret = sss_ldap_dn_in_search_bases(state, orig_dn,
-                                               opts->group_search_bases, NULL);
+                                               opts->sdom->group_search_bases, NULL);
             if (!bret) {
                 continue;
             }

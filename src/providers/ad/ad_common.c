@@ -448,6 +448,13 @@ ad_get_id_options(struct ad_options *ad_opts,
         goto done;
     }
 
+    ret = sdap_domain_add(id_opts,
+                          ad_opts->id_ctx->sdap_id_ctx->be->domain,
+                          NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = dp_get_options(id_opts, cdb, conf_path,
                          ad_def_ldap_opts,
                          SDAP_OPTS_BASIC,
@@ -619,31 +626,31 @@ ad_set_search_bases(struct sdap_options *id_opts)
     /* Default search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_SEARCH_BASE,
-                                 &id_opts->search_bases);
+                                 &id_opts->sdom->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_USER_SEARCH_BASE,
-                                 &id_opts->user_search_bases);
+                                 &id_opts->sdom->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
-                                 &id_opts->group_search_bases);
+                                 &id_opts->sdom->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
-                                 &id_opts->netgroup_search_bases);
+                                 &id_opts->sdom->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
-                                 &id_opts->service_search_bases);
+                                 &id_opts->sdom->service_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     ret = EOK;

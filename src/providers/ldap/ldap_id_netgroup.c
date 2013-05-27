@@ -33,6 +33,7 @@
 struct ldap_netgroup_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_domain *sdom;
     struct sdap_id_op *op;
     struct sdap_id_conn_ctx *conn;
     struct sysdb_ctx *sysdb;
@@ -57,6 +58,7 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq);
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_domain *sdom,
                                           struct sdap_id_conn_ctx *conn,
                                           const char *name)
 {
@@ -70,6 +72,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->sdom = sdom;
     state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
 
@@ -80,8 +83,8 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sysdb = ctx->be->domain->sysdb;
-    state->domain = state->ctx->be->domain;
+    state->domain = sdom->dom;
+    state->sysdb = sdom->dom->sysdb;
     state->name = name;
     state->timeout = dp_opt_get_int(ctx->opts->basic, SDAP_SEARCH_TIMEOUT);
 
@@ -155,7 +158,7 @@ static void ldap_netgroup_get_connect_done(struct tevent_req *subreq)
     subreq = sdap_get_netgroups_send(state, state->ev,
                                      state->domain, state->sysdb,
                                      state->ctx->opts,
-                                     state->ctx->opts->netgroup_search_bases,
+                                     state->sdom->netgroup_search_bases,
                                      sdap_id_op_handle(state->op),
                                      state->attrs, state->filter,
                                      state->timeout);

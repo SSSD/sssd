@@ -187,6 +187,13 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
+    ret = sdap_domain_add(ipa_opts->id,
+                          ipa_opts->id_ctx->sdap_id_ctx->be->domain,
+                          NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
     /* get sdap options */
     ret = dp_get_options(ipa_opts->id, cdb, conf_path,
                          ipa_def_ldap_opts,
@@ -223,7 +230,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SEARCH_BASE,
-                                 &ipa_opts->id->search_bases);
+                                 &ipa_opts->id->sdom->search_bases);
     if (ret != EOK) goto done;
 
     /* set krb realm */
@@ -277,7 +284,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_USER_SEARCH_BASE,
-                                 &ipa_opts->id->user_search_bases);
+                                 &ipa_opts->id->sdom->user_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
@@ -296,7 +303,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_GROUP_SEARCH_BASE,
-                                 &ipa_opts->id->group_search_bases);
+                                 &ipa_opts->id->sdom->group_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
@@ -334,7 +341,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SUDO_SEARCH_BASE,
-                                 &ipa_opts->id->sudo_search_bases);
+                                 &ipa_opts->id->sdom->sudo_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
@@ -357,7 +364,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
-                                 &ipa_opts->id->netgroup_search_bases);
+                                 &ipa_opts->id->sdom->netgroup_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->basic,
@@ -450,7 +457,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
-                                 &ipa_opts->id->service_search_bases);
+                                 &ipa_opts->id->sdom->service_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->basic,
@@ -992,7 +999,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
 
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
-                                 &ipa_opts->id->autofs_search_bases);
+                                 &ipa_opts->id->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not parse autofs search base\n"));
         goto done;

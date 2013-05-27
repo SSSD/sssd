@@ -215,7 +215,7 @@ struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
     state->netgr_base_iter = 0;
     state->dom = dom;
 
-    if (!ipa_options->id->netgroup_search_bases) {
+    if (!ipa_options->id->sdom->netgroup_search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Netgroup lookup request without a search base\n"));
         ret = EINVAL;
@@ -248,7 +248,7 @@ static errno_t ipa_netgr_next_base(struct tevent_req *req)
     struct sdap_search_base **netgr_bases;
 
     state = tevent_req_data(req, struct ipa_get_netgroups_state);
-    netgr_bases = state->ipa_opts->id->netgroup_search_bases;
+    netgr_bases = state->ipa_opts->id->sdom->netgroup_search_bases;
 
     talloc_zfree(state->filter);
     state->filter = sdap_get_id_specific_filter(
@@ -307,7 +307,7 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
     hash_key_t key;
     hash_value_t value;
 
-    netgr_bases = state->ipa_opts->id->netgroup_search_bases;
+    netgr_bases = state->ipa_opts->id->sdom->netgroup_search_bases;
 
     ret = sdap_get_generic_recv(subreq, state, &netgroups_count, &netgroups);
     talloc_zfree(subreq);
@@ -432,7 +432,7 @@ static int ipa_netgr_fetch_netgroups(struct ipa_get_netgroups_state *state,
     struct tevent_req *subreq;
     struct sdap_search_base **bases;
 
-    bases = state->ipa_opts->id->netgroup_search_bases;
+    bases = state->ipa_opts->id->sdom->netgroup_search_bases;
     if (bases[state->netgr_base_iter] == NULL) {
         /* No more bases to try */
         return ENOENT;
@@ -473,7 +473,7 @@ static int ipa_netgr_fetch_users(struct ipa_get_netgroups_state *state,
     struct tevent_req *subreq;
     struct sdap_search_base **bases;
 
-    bases = state->ipa_opts->id->user_search_bases;
+    bases = state->ipa_opts->id->sdom->user_search_bases;
     if (bases[state->user_base_iter] == NULL) {
         return ENOENT;
     }

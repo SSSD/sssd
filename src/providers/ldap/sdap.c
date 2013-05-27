@@ -732,6 +732,7 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t sdap_set_search_base(struct sdap_options *opts,
+                                    struct sdap_domain *sdom,
                                     enum sdap_basic_opt class,
                                     char *naming_context)
 {
@@ -740,25 +741,25 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
 
     switch(class) {
     case SDAP_SEARCH_BASE:
-        bases = &opts->search_bases;
+        bases = &sdom->search_bases;
         break;
     case SDAP_USER_SEARCH_BASE:
-        bases = &opts->user_search_bases;
+        bases = &sdom->user_search_bases;
         break;
     case SDAP_GROUP_SEARCH_BASE:
-        bases = &opts->group_search_bases;
+        bases = &sdom->group_search_bases;
         break;
     case SDAP_NETGROUP_SEARCH_BASE:
-        bases = &opts->netgroup_search_bases;
+        bases = &sdom->netgroup_search_bases;
         break;
     case SDAP_SUDO_SEARCH_BASE:
-        bases = &opts->sudo_search_bases;
+        bases = &sdom->sudo_search_bases;
         break;
     case SDAP_SERVICE_SEARCH_BASE:
-        bases = &opts->service_search_bases;
+        bases = &sdom->service_search_bases;
         break;
     case SDAP_AUTOFS_SEARCH_BASE:
-        bases = &opts->autofs_search_bases;
+        bases = &sdom->autofs_search_bases;
         break;
     default:
         return EINVAL;
@@ -783,17 +784,18 @@ done:
 }
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
-                                             struct sdap_options *opts)
+                                             struct sdap_options *opts,
+                                             struct sdap_domain *sdom)
 {
     int ret;
     char *naming_context = NULL;
 
-    if (!opts->search_bases
-            ||!opts->user_search_bases
-            || !opts->group_search_bases
-            || !opts->netgroup_search_bases
-            || !opts->sudo_search_bases
-            || !opts->autofs_search_bases) {
+    if (!sdom->search_bases
+            || !sdom->user_search_bases
+            || !sdom->group_search_bases
+            || !sdom->netgroup_search_bases
+            || !sdom->sudo_search_bases
+            || !sdom->autofs_search_bases) {
         naming_context = get_naming_context(opts->basic, rootdse);
         if (naming_context == NULL) {
             DEBUG(1, ("get_naming_context failed.\n"));
@@ -808,56 +810,56 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     }
 
     /* Default */
-    if (!opts->search_bases) {
-        ret = sdap_set_search_base(opts,
+    if (!sdom->search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
     }
 
     /* Users */
-    if (!opts->user_search_bases) {
-        ret = sdap_set_search_base(opts,
+    if (!sdom->user_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_USER_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
     }
 
     /* Groups */
-    if (!opts->group_search_bases) {
-        ret = sdap_set_search_base(opts,
+    if (!sdom->group_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_GROUP_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
     }
 
     /* Netgroups */
-    if (!opts->netgroup_search_bases) {
-        ret = sdap_set_search_base(opts,
+    if (!sdom->netgroup_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_NETGROUP_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
     }
 
     /* Sudo */
-    if (!opts->sudo_search_bases) {
-       ret = sdap_set_search_base(opts,
+    if (!sdom->sudo_search_bases) {
+       ret = sdap_set_search_base(opts, sdom,
                                    SDAP_SUDO_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
     }
 
     /* Services */
-    if (!opts->service_search_bases) {
-       ret = sdap_set_search_base(opts,
+    if (!sdom->service_search_bases) {
+       ret = sdap_set_search_base(opts, sdom,
                                   SDAP_SERVICE_SEARCH_BASE,
                                   naming_context);
         if (ret != EOK) goto done;
     }
 
     /* autofs */
-    if (!opts->autofs_search_bases) {
-       ret = sdap_set_search_base(opts,
+    if (!sdom->autofs_search_bases) {
+       ret = sdap_set_search_base(opts, sdom,
                                   SDAP_AUTOFS_SEARCH_BASE,
                                   naming_context);
         if (ret != EOK) goto done;

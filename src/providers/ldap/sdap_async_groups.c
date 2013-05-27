@@ -1451,6 +1451,7 @@ struct sdap_get_groups_state {
     struct sdap_options *opts;
     struct sdap_handle *sh;
     struct sss_domain_info *dom;
+    struct sdap_domain *sdom;
     struct sysdb_ctx *sysdb;
     const char **attrs;
     const char *base_filter;
@@ -1476,10 +1477,8 @@ static void sdap_get_groups_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
-                                       struct sss_domain_info *dom,
-                                       struct sysdb_ctx *sysdb,
+                                       struct sdap_domain *sdom,
                                        struct sdap_options *opts,
-                                       struct sdap_search_base **search_bases,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
@@ -1495,9 +1494,10 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
-    state->dom = dom;
+    state->sdom = sdom;
+    state->dom = sdom->dom;
     state->sh = sh;
-    state->sysdb = sysdb;
+    state->sysdb = sdom->dom->sysdb;
     state->attrs = attrs;
     state->higher_usn = NULL;
     state->groups =  NULL;
@@ -1506,9 +1506,9 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->enumeration = enumeration;
     state->base_filter = filter;
     state->base_iter = 0;
-    state->search_bases = search_bases;
+    state->search_bases = sdom->group_search_bases;
 
-    if (!search_bases) {
+    if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Group lookup request without a search base\n"));
         ret = EINVAL;
@@ -1653,7 +1653,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         if ((state->opts->schema_type != SDAP_SCHEMA_RFC2307)
                 && (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)
                 && !dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_GROUPS)) {
-            subreq = sdap_nested_group_send(state, state->ev, state->dom,
+            subreq = sdap_nested_group_send(state, state->ev, state->sdom,
                                             state->opts, state->sh,
                                             state->groups[0]);
             if (!subreq) {

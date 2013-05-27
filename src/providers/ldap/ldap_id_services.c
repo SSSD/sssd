@@ -33,6 +33,7 @@
 struct sdap_services_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
+    struct sdap_domain *sdom;
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
@@ -60,6 +61,7 @@ struct tevent_req *
 services_get_send(TALLOC_CTX *mem_ctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
+                  struct sdap_domain *sdom,
                   struct sdap_id_conn_ctx *conn,
                   const char *name,
                   const char *protocol,
@@ -77,10 +79,11 @@ services_get_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
+    state->sdom = sdom;
     state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
-    state->sysdb = id_ctx->be->domain->sysdb;
-    state->domain = state->id_ctx->be->domain;
+    state->domain = sdom->dom;
+    state->sysdb = sdom->dom->sysdb;
     state->name = name;
     state->protocol = protocol;
     state->filter_type = filter_type;
@@ -192,7 +195,7 @@ services_get_connect_done(struct tevent_req *subreq)
     subreq = sdap_get_services_send(state, state->ev,
                                     state->domain, state->sysdb,
                                     state->id_ctx->opts,
-                                    state->id_ctx->opts->service_search_bases,
+                                    state->sdom->service_search_bases,
                                     sdap_id_op_handle(state->op),
                                     state->attrs, state->filter,
                                     dp_opt_get_int(state->id_ctx->opts->basic,

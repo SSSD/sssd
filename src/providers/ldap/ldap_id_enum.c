@@ -188,12 +188,14 @@ struct global_enum_state {
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_domain *sdom,
                                           struct sdap_id_op *op,
                                           bool purge);
 static void ldap_id_enum_users_done(struct tevent_req *subreq);
 static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_domain *sdom,
                                           struct sdap_id_op *op,
                                           bool purge);
 static void ldap_id_enum_groups_done(struct tevent_req *subreq);
@@ -277,8 +279,8 @@ static void ldap_id_enumerate_connect_done(struct tevent_req *subreq)
     }
 
     subreq = enum_users_send(state, state->ev,
-                             state->ctx, state->op,
-                             state->purge);
+                             state->ctx, state->ctx->opts->sdom,
+                             state->op, state->purge);
     if(!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -332,7 +334,9 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = enum_groups_send(state, state->ev, state->ctx, state->op, state->purge);
+    subreq = enum_groups_send(state, state->ev, state->ctx,
+                              state->ctx->opts->sdom,
+                              state->op, state->purge);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -465,6 +469,7 @@ static void ldap_id_enum_cleanup_done(struct tevent_req *subreq)
 struct enum_users_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_domain *sdom;
     struct sdap_id_op *op;
 
     char *filter;
@@ -476,6 +481,7 @@ static void enum_users_op_done(struct tevent_req *subreq);
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_domain *sdom,
                                           struct sdap_id_op *op,
                                           bool purge)
 {
@@ -488,6 +494,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->ev = ev;
+    state->sdom = sdom;
     state->ctx = ctx;
     state->op = op;
 
@@ -564,10 +571,10 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
      */
 
     subreq = sdap_get_users_send(state, state->ev,
-                                 state->ctx->be->domain,
-                                 state->ctx->be->domain->sysdb,
+                                 state->sdom->dom,
+                                 state->sdom->dom->sysdb,
                                  state->ctx->opts,
-                                 state->ctx->opts->user_search_bases,
+                                 state->sdom->user_search_bases,
                                  sdap_id_op_handle(state->op),
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
@@ -627,6 +634,7 @@ static void enum_users_op_done(struct tevent_req *subreq)
 struct enum_groups_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_domain *sdom;
     struct sdap_id_op *op;
 
     char *filter;
@@ -638,6 +646,7 @@ static void enum_groups_op_done(struct tevent_req *subreq);
 static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
+                                          struct sdap_domain *sdom,
                                           struct sdap_id_op *op,
                                           bool purge)
 {
@@ -650,6 +659,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->ev = ev;
+    state->sdom = sdom;
     state->ctx = ctx;
     state->op = op;
 
@@ -723,15 +733,13 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
      */
 
     subreq = sdap_get_groups_send(state, state->ev,
-                                 state->ctx->be->domain,
-                                 state->ctx->be->domain->sysdb,
-                                 state->ctx->opts,
-                                 state->ctx->opts->group_search_bases,
-                                 sdap_id_op_handle(state->op),
-                                 state->attrs, state->filter,
-                                 dp_opt_get_int(state->ctx->opts->basic,
-                                                SDAP_ENUM_SEARCH_TIMEOUT),
-                                 true);
+                                  state->sdom,
+                                  state->ctx->opts,
+                                  sdap_id_op_handle(state->op),
+                                  state->attrs, state->filter,
+                                  dp_opt_get_int(state->ctx->opts->basic,
+                                                 SDAP_ENUM_SEARCH_TIMEOUT),
+                                  true);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

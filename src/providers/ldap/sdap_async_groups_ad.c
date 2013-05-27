@@ -69,7 +69,7 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
     state->timeout = timeout;
     state->count = 0;
     state->base_iter = 0;
-    state->search_bases = opts->user_search_bases;
+    state->search_bases = opts->sdom->user_search_bases;
 
     /* Request all of the user attributes that we know about. */
     ret = build_attrs_from_map(state, opts->user_map, SDAP_OPTS_USER,

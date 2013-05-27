@@ -105,7 +105,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         return EOK;
     }
 
-    ret = ldap_get_options(bectx, bectx->cdb,
+    ret = ldap_get_options(bectx, bectx->domain, bectx->cdb,
                            bectx->conf_path, &opts);
     if (ret != EOK) {
         goto done;

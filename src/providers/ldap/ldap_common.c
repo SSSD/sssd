@@ -39,8 +39,75 @@
 /* a fd the child process would log into */
 int ldap_child_debug_fd = -1;
 
+int
+sdap_domain_destructor(void *mem)
+{
+    struct sdap_domain *dom =
+            talloc_get_type(mem, struct sdap_domain);
+    DLIST_REMOVE(*(dom->head), dom);
+    return 0;
+}
+
+struct sdap_domain *
+sdap_domain_get(struct sdap_options *opts,
+                struct sss_domain_info *dom)
+{
+    struct sdap_domain *sditer = NULL;
+
+    DLIST_FOR_EACH(sditer, opts->sdom) {
+        if (sditer->dom == dom) {
+            break;
+        }
+    }
+
+    return sditer;
+}
+
+errno_t
+sdap_domain_add(struct sdap_options *opts,
+                struct sss_domain_info *dom,
+                struct sdap_domain **_sdom)
+{
+    struct sdap_domain *sdom;
+
+    sdom = talloc_zero(opts, struct sdap_domain);
+    if (sdom == NULL) {
+        return ENOMEM;
+    }
+    sdom->dom = dom;
+    sdom->head = &opts->sdom;
+
+    if (opts->sdom) {
+        /* Only allow subdomains of the parent domain */
+        if (dom->parent == NULL ||
+            dom->parent != opts->sdom->dom) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Domain %s is not a subdomain of %s\n",
+                  dom->name, opts->sdom->dom->name));
+            return EINVAL;
+        }
+    }
+
+    talloc_set_destructor((TALLOC_CTX *)sdom, sdap_domain_destructor);
+    DLIST_ADD_END(opts->sdom, sdom, struct sdap_domain *);
+
+    if (_sdom) *_sdom = sdom;
+    return EOK;
+}
+
+void
+sdap_domain_remove(struct sdap_options *opts,
+                   struct sss_domain_info *dom)
+{
+    struct sdap_domain *sdom;
+
+    sdom = sdap_domain_get(opts, dom);
+    if (sdom == NULL) return;
+
+    DLIST_REMOVE(*(sdom->head), sdom);
+}
 
 int ldap_get_options(TALLOC_CTX *memctx,
+                     struct sss_domain_info *dom,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
                      struct sdap_options **_opts)
@@ -71,6 +138,11 @@ int ldap_get_options(TALLOC_CTX *memctx,
 
     opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
+
+    ret = sdap_domain_add(opts, dom, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
 
     ret = dp_get_options(opts, cdb, conf_path,
                          default_basic_opts,
@@ -105,31 +177,31 @@ int ldap_get_options(TALLOC_CTX *memctx,
     /* Default search */
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_SEARCH_BASE,
-                                 &opts->search_bases);
+                                 &opts->sdom->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_USER_SEARCH_BASE,
-                                 &opts->user_search_bases);
+                                 &opts->sdom->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
-                                 &opts->group_search_bases);
+                                 &opts->sdom->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
-                                 &opts->netgroup_search_bases);
+                                 &opts->sdom->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
-                                 &opts->service_search_bases);
+                                 &opts->sdom->service_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
@@ -377,7 +449,7 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
 
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_SUDO_SEARCH_BASE,
-                                 &opts->sudo_search_bases);
+                                 &opts->sdom->sudo_search_bases);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not parse SUDO search base\n"));
         return ret;
@@ -435,7 +507,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
-                                 &opts->autofs_search_bases);
+                                 &opts->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not parse autofs search base\n"));
         return ret;
