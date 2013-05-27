@@ -299,7 +299,7 @@ static int fill_pwent(struct sss_packet *packet,
     uint32_t gid;
     size_t rsize, rp, blen;
     size_t dom_len = 0;
-    int delim = 1;
+    int delim = 0;
     int i, ret, num, t;
     bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
@@ -307,7 +307,10 @@ static int fill_pwent(struct sss_packet *packet,
     int ncret;
     TALLOC_CTX *tmp_ctx = NULL;
 
-    if (add_domain) dom_len = sss_fqdom_len(dom->names, dom);
+    if (add_domain) {
+        delim = 1;
+        dom_len = sss_fqdom_len(dom->names, dom);
+    }
 
     to_sized_string(&pwfield, nctx->pwfield);
 
@@ -2150,8 +2153,8 @@ static int fill_members(struct sss_packet *packet,
     struct sized_string name;
     TALLOC_CTX *tmp_ctx = NULL;
 
-    size_t delim;
-    size_t dom_len;
+    size_t delim = 0;
+    size_t dom_len = 0;
 
     uint8_t *body;
     size_t blen;
@@ -2162,9 +2165,6 @@ static int fill_members(struct sss_packet *packet,
     if (add_domain) {
         delim = 1;
         dom_len = sss_fqdom_len(dom->names, dom);
-    } else {
-        delim = 0;
-        dom_len = 0;
     }
 
     tmp_ctx = talloc_new(NULL);
@@ -2197,11 +2197,7 @@ static int fill_members(struct sss_packet *packet,
 
         to_sized_string(&name, tmpstr);
 
-        if (add_domain) {
-            ret = sss_packet_grow(packet, name.len + delim + dom_len);
-        } else {
-            ret = sss_packet_grow(packet, name.len);
-        }
+        ret = sss_packet_grow(packet, name.len + delim + dom_len);
         if (ret != EOK) {
             goto done;
         }
@@ -2245,12 +2241,7 @@ static int fill_members(struct sss_packet *packet,
             memcpy(&body[rzero + rsize], name.str, name.len);
         }
 
-        if (add_domain) {
-            rsize += name.len + delim + dom_len;
-        } else {
-            rsize += name.len;
-        }
-
+        rsize += name.len + delim + dom_len;
         memnum++;
     }
 
@@ -2281,8 +2272,8 @@ static int fill_grent(struct sss_packet *packet,
     struct sized_string name;
     struct sized_string pwfield;
     struct sized_string fullname;
-    size_t delim;
-    size_t dom_len;
+    size_t delim = 0;
+    size_t dom_len = 0;
     int i = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
@@ -2293,9 +2284,6 @@ static int fill_grent(struct sss_packet *packet,
     if (add_domain) {
         delim = 1;
         dom_len = sss_fqdom_len(dom->names, dom);
-    } else {
-        delim = 0;
-        dom_len = 0;
     }
 
     to_sized_string(&pwfield, nctx->pwfield);
