@@ -1049,7 +1049,6 @@ auth_tests_LDADD = \
     libsss_test_common.la
 
 ipa_ldap_opt_tests_SOURCES = \
-    src/providers/ipa/ipa_utils.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1057,6 +1056,7 @@ ipa_ldap_opt_tests_CFLAGS = \
 ipa_ldap_opt_tests_LDADD = \
     $(CHECK_LIBS) \
     $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 ad_ldap_opt_tests_SOURCES = \
@@ -1536,7 +1536,6 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_init.c \
     src/providers/ipa/ipa_common.c \
     src/providers/ipa/ipa_config.c \
-    src/providers/ipa/ipa_utils.c \
     src/providers/ipa/ipa_id.c \
     src/providers/ipa/ipa_netgroups.c \
     src/providers/ipa/ipa_auth.c \

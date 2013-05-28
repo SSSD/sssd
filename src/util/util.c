@@ -688,3 +688,38 @@ void safezero(void *data, size_t size)
         *p++ = 0;
     }
 }
+
+int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
+{
+    const char *s;
+    char *dn;
+    char *p;
+    int l;
+
+    if (!domain || !basedn) {
+        return EINVAL;
+    }
+
+    s = domain;
+    dn = talloc_strdup(memctx, "dc=");
+
+    while ((p = strchr(s, '.'))) {
+        l = p - s;
+        dn = talloc_asprintf_append_buffer(dn, "%.*s,dc=", l, s);
+        if (!dn) {
+            return ENOMEM;
+        }
+        s = p + 1;
+    }
+    dn = talloc_strdup_append_buffer(dn, s);
+    if (!dn) {
+        return ENOMEM;
+    }
+
+    for (p=dn; *p; ++p) {
+        *p = tolower(*p);
+    }
+
+    *basedn = dn;
+    return EOK;
+}

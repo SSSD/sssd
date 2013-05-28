@@ -516,6 +516,8 @@ bool string_in_list(const char *string, char **list, bool case_sensitive);
  */
 void safezero(void *data, size_t size);
 
+int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
+
 /* from nscd.c */
 enum nscd_db {
     NSCD_DB_PASSWD,

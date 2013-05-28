@@ -143,8 +143,6 @@ struct ipa_options {
     struct ipa_auth_ctx *auth_ctx;
 };
 
-int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
-
 /* options parsers */
 int ipa_get_options(TALLOC_CTX *memctx,
                     struct confdb_ctx *cdb,
