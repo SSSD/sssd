@@ -247,6 +247,12 @@ sdap_domain_remove(struct sdap_options *opts,
 
 struct sdap_domain *sdap_domain_get(struct sdap_options *opts,
                                     struct sss_domain_info *dom);
+errno_t
+sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        const char *unparsed_base,
+                        int scope,
+                        const char *filter,
+                        struct sdap_search_base **_base);
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
