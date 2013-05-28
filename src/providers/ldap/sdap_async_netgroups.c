@@ -121,7 +121,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for netgroup %s\n", name));
 
-    ret = sdap_save_all_names(name, attrs, !dom->case_sensitive,
+    ret = sdap_save_all_names(name, attrs, dom,
                               netgroup_attrs);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save netgroup names\n"));

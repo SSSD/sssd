@@ -44,6 +44,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     struct ldb_message_element *el;
     int ret;
     const char *name = NULL;
+    const char *user_name = NULL;
     const char *fullname = NULL;
     const char *pwd;
     const char *gecos;
@@ -381,7 +382,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, user_attrs);
+    ret = sdap_save_all_names(name, attrs, dom, user_attrs);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save user names\n"));
         goto done;
@@ -398,7 +399,14 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for user %s\n", name));
 
-    ret = sysdb_store_user(ctx, dom, name, pwd, uid, gid,
+    user_name = sss_get_domain_name(tmpctx, name, dom);
+    if (!user_name) {
+        DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_store_user(ctx, dom, user_name, pwd, uid, gid,
                            gecos, homedir, shell, orig_dn,
                            user_attrs, missing, cache_timeout, now);
     if (ret) goto done;

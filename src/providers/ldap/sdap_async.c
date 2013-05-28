@@ -2273,13 +2273,15 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
 errno_t
 sdap_save_all_names(const char *name,
                     struct sysdb_attrs *ldap_attrs,
-                    bool lowercase,
+                    struct sss_domain_info *dom,
                     struct sysdb_attrs *attrs)
 {
     const char **aliases = NULL;
+    const char *domname;
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     int i;
+    bool lowercase = !dom->case_sensitive;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -2295,8 +2297,13 @@ sdap_save_all_names(const char *name,
     }
 
     for (i = 0; aliases[i]; i++) {
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS,
-                                     aliases[i]);
+        domname = sss_get_domain_name(tmp_ctx, aliases[i], dom);
+        if (domname == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, domname);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to add alias [%s] into the "
                                       "attribute list\n", aliases[i]));

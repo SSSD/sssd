@@ -429,6 +429,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
     const char *name = NULL;
+    char *group_name;
     gid_t gid;
     errno_t ret;
     char *usn_value = NULL;
@@ -614,7 +615,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sdap_save_all_names(name, attrs, !dom->case_sensitive, group_attrs);
+    ret = sdap_save_all_names(name, attrs, dom, group_attrs);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save group names\n"));
         goto done;
@@ -622,8 +623,15 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for group %s\n", name));
 
+    group_name = sss_get_domain_name(tmpctx, name, dom);
+    if (!group_name) {
+        DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = sdap_store_group_with_gid(ctx, dom,
-                                    name, gid, group_attrs,
+                                    group_name, gid, group_attrs,
                                     dom->group_timeout,
                                     posix_group, now);
     if (ret) {

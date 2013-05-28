@@ -210,10 +210,11 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
     sdap_attrs_add_ldap_attr(ldap_attrs, attr_name, attr_desc,   \
                              true, name, attrs)
 
-errno_t sdap_save_all_names(const char *name,
-                            struct sysdb_attrs *ldap_attrs,
-                            bool lowercase,
-                            struct sysdb_attrs *attrs);
+errno_t
+sdap_save_all_names(const char *name,
+                    struct sysdb_attrs *ldap_attrs,
+                    struct sss_domain_info *dom,
+                    struct sysdb_attrs *attrs);
 
 struct tevent_req *
 sdap_get_services_send(TALLOC_CTX *memctx,
