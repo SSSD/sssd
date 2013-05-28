@@ -627,3 +627,20 @@ sss_fqdom_len(struct sss_names_ctx *nctx,
     len += fq_part_len(nctx, domain, FQ_FMT_FLAT_NAME, domain->flat_name);
     return len;
 }
+
+char *
+sss_get_domain_name(TALLOC_CTX *mem_ctx,
+                    const char *orig_name,
+                    struct sss_domain_info *dom)
+{
+    char *user_name;
+
+    if (IS_SUBDOMAIN(dom) && dom->fqnames) {
+        /* we always use the fully qualified name for subdomain users */
+        user_name = sss_tc_fqname(mem_ctx, dom->names, dom, orig_name);
+    } else {
+        user_name = talloc_strdup(mem_ctx, orig_name);
+    }
+
+    return user_name;
+}

@@ -623,7 +623,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     struct sss_domain_info *dom = pr_ctx->dom;
     struct tevent_req *req;
     errno_t ret;
-    char *fq_name = NULL;
+    char *dom_name = NULL;
 
     req = tevent_req_create(pr_ctx, &state, struct pac_save_memberships_state);
     if (req == NULL) {
@@ -631,20 +631,15 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     }
 
     state->sid_iter = 0;
-    if (IS_SUBDOMAIN(dom)) {
-        fq_name = sss_tc_fqname(pr_ctx, pr_ctx->dom->names, pr_ctx->dom,
-                                pr_ctx->user_name);
-        if (fq_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
 
-        state->user_dn = sysdb_user_dn(dom->sysdb, state, dom, fq_name);
-    } else {
-        state->user_dn = sysdb_user_dn(dom->sysdb, state, dom,
-                                       pr_ctx->user_name);
+    dom_name = sss_get_domain_name(state, pr_ctx->user_name, dom);
+    if (dom_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
     }
+
+    state->user_dn = sysdb_user_dn(dom->sysdb, state, dom, dom_name);
     if (state->user_dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -664,7 +659,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     }
 
 done:
-    talloc_free(fq_name);
+    talloc_free(dom_name);
     if (ret != EOK && ret != EAGAIN) {
         tevent_req_error(req, ret);
         tevent_req_post(req, pr_ctx->cctx->ev);

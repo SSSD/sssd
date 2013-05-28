@@ -390,6 +390,13 @@ size_t
 sss_fqdom_len(struct sss_names_ctx *nctx,
               struct sss_domain_info *domain);
 
+/* Subdomains use fully qualified names in the cache while primary domains use
+ * just the name. Return either of these for a specified domain or subdomain
+ */
+char *
+sss_get_domain_name(TALLOC_CTX *mem_ctx, const char *orig_name,
+                    struct sss_domain_info *dom);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
