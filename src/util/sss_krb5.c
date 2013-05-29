@@ -996,7 +996,10 @@ sss_krb5_cc_file_path(const char *full_location)
 #ifdef HAVE_KRB5_DIRCACHE
         case SSS_KRB5_TYPE_DIR:
             /* DIR::/run/user/tkt_foo */
-            if (residual[0] == ':') return residual+1;
+            if (residual[0] == ':') {
+                ++residual;
+            }
+            return residual;
 #endif
         case SSS_KRB5_TYPE_UNKNOWN:
             break;
