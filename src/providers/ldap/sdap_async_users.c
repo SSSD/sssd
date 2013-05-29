@@ -267,13 +267,20 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
 
     if (use_id_mapping) {
-        ret = sdap_get_idmap_primary_gid(opts, attrs, sid_str, dom_sid_str,
-                                         &gid);
-        if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Cannot get the GID for [%s] in domain [%s].\n",
-                   name, dom->name));
-            goto done;
+        if (IS_SUBDOMAIN(dom) == false) {
+            ret = sdap_get_idmap_primary_gid(opts, attrs, sid_str, dom_sid_str,
+                                             &gid);
+            if (ret) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                    ("Cannot get the GID for [%s] in domain [%s].\n",
+                    name, dom->name));
+                goto done;
+            }
+        } else {
+            /* For subdomain users, only create the private group as
+             * the subdomain is an MPG domain
+             */
+            gid = 0;
         }
 
         /* Store the GID in the ldap_attrs so it doesn't get
@@ -294,9 +301,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
 
     /* check that the gid is valid for this domain */
-    if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
-            DEBUG(2, ("User [%s] filtered out! (primary gid out of range)\n",
-                      name));
+    if (IS_SUBDOMAIN(dom) == false &&
+            OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("User [%s] filtered out! (primary gid out of range)\n", name));
         ret = EINVAL;
         goto done;
     }
