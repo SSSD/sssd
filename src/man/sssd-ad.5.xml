@@ -167,7 +167,10 @@ ldap_id_mapping = False
                             the IP address of this client. The update is
                             secured using GSS-TSIG. As a consequence, the
                             Active Directory administrator only needs to
-                            allow secure updates for the DNS zone.
+                            allow secure updates for the DNS zone. The IP
+                            address of the AD LDAP connection is used for
+                            the updates, if it is not otherwise specified
+                            by using the <quote>dyndns_iface</quote> option.
                         </para>
                         <para>
                             NOTE: On older systems (such as RHEL 5), for this

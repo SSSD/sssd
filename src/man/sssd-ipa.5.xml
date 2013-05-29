@@ -119,7 +119,10 @@
                             Optional. This option tells SSSD to automatically
                             update the DNS server built into FreeIPA v2 with
                             the IP address of this client. The update is
-                            secured using GSS-TSIG.
+                            secured using GSS-TSIG. The IP address of the IPA
+                            LDAP connection is used for the updates, if it is
+                            not otherwise specified by using the
+                            <quote>dyndns_iface</quote> option.
                         </para>
                         <para>
                             NOTE: On older systems (such as RHEL 5), for this
