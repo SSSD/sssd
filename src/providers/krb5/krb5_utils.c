@@ -1163,6 +1163,9 @@ cc_dir_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
         return NULL;
     }
 
+    /* This function is called only as a way to validate that,
+     * we have the right cache
+     */
     krberr = krb5_cc_get_full_name(context, ccache, &name);
     if (ccache) krb5_cc_close(context, ccache);
     krb5_free_context(context);
@@ -1172,7 +1175,7 @@ cc_dir_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
         return NULL;
     }
 
-    return talloc_strdup(mem_ctx, name);
+    return talloc_strdup(mem_ctx, location);
 }
 
 errno_t
