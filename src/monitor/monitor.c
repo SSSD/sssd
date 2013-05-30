@@ -516,6 +516,7 @@ static void tasks_check_handler(struct tevent_context *ev,
 
     case ENXIO:
         DEBUG(1,("Child (%s) not responding! (yet)\n", svc->name));
+        break;
 
     default:
         /* TODO: should we tear it down ? */
