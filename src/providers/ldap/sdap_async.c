@@ -1970,6 +1970,12 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
 
     /* Find all suitable maps in the list */
     vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
+    if (!vals) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Unknown entry type, no objectClass found for DN [%s]!\n", dn));
+        ret = EINVAL;
+        goto done;
+    }
     for (mi =0; mi < state->num_maps; mi++) {
         map = NULL;
         for (i = 0; vals[i]; i++) {
