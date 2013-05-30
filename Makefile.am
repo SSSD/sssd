@@ -1308,6 +1308,7 @@ fqnames_tests_CFLAGS = \
     $(AM_CFLAGS)
 fqnames_tests_LDADD = \
     $(CMOCKA_LIBS) \
+    libsss_test_common.la \
     libsss_util.la
 
 endif
