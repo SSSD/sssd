@@ -303,6 +303,10 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
 errno_t sss_dp_get_domains_recv(struct tevent_req *req);
 
+errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct resp_ctx *rctx);
+
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
                                 bool allow_sss_loop,
                                 size_t *_uid_count, uid_t **_uids);

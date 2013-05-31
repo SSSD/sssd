@@ -166,6 +166,12 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = schedule_get_domains_task(rctx, rctx->ev, rctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("schedule_get_domains_tasks failed.\n"));
+        goto fail;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, ("SSH Initialization complete\n"));
 
     return EOK;

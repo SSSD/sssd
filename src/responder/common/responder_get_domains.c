@@ -369,3 +369,52 @@ static errno_t check_last_request(struct resp_ctx *rctx, const char *hint)
 
     return EOK;
 }
+
+static void get_domains_at_startup_done(struct tevent_req *req)
+{
+    int ret;
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_dp_get_domains request failed.\n"));
+    }
+
+    return;
+}
+
+static void get_domains_at_startup(struct tevent_context *ev,
+                                   struct tevent_immediate *imm,
+                                   void *pvt)
+{
+    struct tevent_req *req;
+    struct resp_ctx *rctx;
+
+    rctx = talloc_get_type(pvt, struct resp_ctx);
+
+    req = sss_dp_get_domains_send(rctx, rctx, true, NULL);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_dp_get_domains_send failed.\n"));
+        return;
+    }
+
+    tevent_req_set_callback(req, get_domains_at_startup_done, NULL);
+    return;
+}
+
+errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct resp_ctx *rctx)
+{
+    struct tevent_immediate *imm;
+
+    imm = tevent_create_immediate(mem_ctx);
+    if (imm == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("tevent_create_immediate failed.\n"));
+        return ENOMEM;
+    }
+
+    tevent_schedule_immediate(imm, ev, get_domains_at_startup, rctx);
+
+    return EOK;
+}
