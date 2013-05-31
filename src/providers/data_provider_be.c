@@ -301,6 +301,125 @@ static errno_t be_file_request(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t be_queue_request(TALLOC_CTX *queue_mem_ctx,
+                                struct bet_queue_item **req_queue,
+                                TALLOC_CTX *req_mem_ctx,
+                                struct be_req *be_req,
+                                be_req_fn_t fn)
+{
+    struct bet_queue_item *item;
+    int ret;
+
+    if (*req_queue == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Queue is empty, " \
+                                 "running request immediately.\n"));
+        ret = be_file_request(req_mem_ctx, be_req, fn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("be_file_request failed.\n"));
+            return ret;
+        }
+    }
+
+    item = talloc_zero(queue_mem_ctx, struct bet_queue_item);
+    if (item == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed, cannot add item to " \
+                                  "request queue.\n"));
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, ("Adding request to queue.\n"));
+        item->mem_ctx = req_mem_ctx;
+        item->be_req = be_req;
+        item->fn = fn;
+
+        DLIST_ADD_END(*req_queue, item, struct bet_queue_item *);
+    }
+
+    return EOK;
+}
+
+static void be_queue_next_request(struct be_req *be_req, enum bet_type type)
+{
+    struct bet_queue_item *item;
+    struct bet_queue_item *current = NULL;
+    struct bet_queue_item **req_queue;
+    int ret;
+    DBusMessage *reply;
+    uint16_t err_maj;
+    uint32_t err_min;
+    const char *err_msg = "Cannot file back end request";
+    struct be_req *next_be_req = NULL;
+    dbus_bool_t dbret;
+    DBusConnection *dbus_conn;
+
+    req_queue = &be_req->becli->bectx->bet_info[type].req_queue;
+
+    if (*req_queue == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Queue is empty, nothing to do.\n"));
+        return;
+    }
+
+    DLIST_FOR_EACH(item, *req_queue) {
+        if (item->be_req == be_req) {
+            current = item;
+            break;
+        }
+    }
+
+    if (current != NULL) {
+        DLIST_REMOVE(*req_queue, current);
+    }
+
+    if (*req_queue == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Request queue is empty.\n"));
+        return;
+    }
+
+    next_be_req = (*req_queue)->be_req;
+
+    ret = be_file_request((*req_queue)->mem_ctx, next_be_req, (*req_queue)->fn);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Queued request filed successfully.\n"));
+        return;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE, ("be_file_request failed.\n"));
+
+    be_queue_next_request(next_be_req, type);
+
+    reply = (DBusMessage *) next_be_req->pvt;
+
+    if (reply) {
+        /* Return a reply if one was requested
+         * There may not be one if this request began
+         * while we were offline
+         */
+        err_maj = DP_ERR_FATAL;
+        err_min = ret;
+
+        dbret = dbus_message_append_args(reply,
+                                         DBUS_TYPE_UINT16, &err_maj,
+                                         DBUS_TYPE_UINT32, &err_min,
+                                         DBUS_TYPE_STRING, &err_msg,
+                                         DBUS_TYPE_INVALID);
+
+        if (!dbret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            dbus_message_unref(reply);
+            goto done;
+        }
+
+        dbus_conn = sbus_get_connection(next_be_req->becli->conn);
+        if (dbus_conn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            goto done;
+        }
+        dbus_connection_send(dbus_conn, reply, NULL);
+        dbus_message_unref(reply);
+    }
+
+done:
+    talloc_free(next_be_req);
+}
+
 bool be_is_offline(struct be_ctx *ctx)
 {
     time_t now = time(NULL);

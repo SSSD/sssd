@@ -68,11 +68,22 @@ struct loaded_be {
     void *handle;
 };
 
+struct bet_queue_item {
+    struct bet_queue_item *prev;
+    struct bet_queue_item *next;
+
+    TALLOC_CTX *mem_ctx;
+    struct be_req *be_req;
+    be_req_fn_t fn;
+
+};
+
 struct bet_info {
     enum bet_type bet_type;
     struct bet_ops *bet_ops;
     void *pvt_bet_data;
     char *mod_name;
+    struct bet_queue_item *req_queue;
 };
 
 struct be_offline_status {
