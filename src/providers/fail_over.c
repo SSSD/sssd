@@ -564,8 +564,10 @@ fo_add_srv_server(struct fo_service *service, const char *srv,
                                                            discovery_domain);
         if (server->srv_data->discovery_domain == NULL)
             return ENOMEM;
-        server->srv_data->dns_domain =
-                server->srv_data->discovery_domain;
+        server->srv_data->dns_domain = talloc_strdup(server->srv_data,
+                                                     discovery_domain);
+        if (server->srv_data->dns_domain == NULL)
+            return ENOMEM;
     }
 
     server->srv_data->sssd_domain =
