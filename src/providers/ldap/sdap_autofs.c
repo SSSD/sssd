@@ -30,6 +30,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/dp_backend.h"
+#include "providers/data_provider.h"
 #include "db/sysdb_autofs.h"
 #include "util/util.h"
 
@@ -82,6 +83,7 @@ void sdap_autofs_handler(struct be_req *be_req)
     struct sdap_id_ctx *id_ctx;
     struct be_autofs_req *autofs_req;
     struct tevent_req *req;
+    const char *master_map;
     int ret = EOK;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, ("sdap autofs handler called\n"));
@@ -97,6 +99,16 @@ void sdap_autofs_handler(struct be_req *be_req)
 
     DEBUG(SSSDBG_FUNC_DATA, ("Requested refresh for: %s\n",
           autofs_req->mapname ? autofs_req->mapname : "<ALL>\n"));
+
+    if (autofs_req->mapname != NULL) {
+        master_map = dp_opt_get_string(id_ctx->opts->basic,
+                                       SDAP_AUTOFS_MAP_MASTER_NAME);
+        if (strcmp(master_map, autofs_req->mapname) == 0) {
+            autofs_req->invalidate = true;
+            DEBUG(SSSDBG_FUNC_DATA, ("Refresh of automount master map triggered: %s\n",
+                  autofs_req->mapname));
+        }
+    }
 
     if (autofs_req->invalidate) {
         ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain->sysdb,

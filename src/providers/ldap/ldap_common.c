@@ -571,6 +571,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
                             struct sdap_options *opts)
 {
     const char *search_base;
+    const char *master_map;
     struct sdap_attr_map *default_entry_map;
     struct sdap_attr_map *default_mobject_map;
     int ret;

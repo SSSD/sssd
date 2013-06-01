@@ -2244,6 +2244,19 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
         <para>
             <variablelist>
                 <varlistentry>
+                    <term>ldap_autofs_map_master_name (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the automount master map in LDAP.
+                        </para>
+                        <para>
+                            Default: auto.master
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+            <variablelist>
+                <varlistentry>
                     <term>ldap_autofs_map_object_class (string)</term>
                     <listitem>
                         <para>

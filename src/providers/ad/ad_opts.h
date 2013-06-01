@@ -66,6 +66,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_sudo_include_netgroups", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_sudo_include_regexp", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_autofs_map_master_name", DP_OPT_STRING, { "auto.master" }, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ad" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },

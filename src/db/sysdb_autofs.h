@@ -28,8 +28,8 @@
 #define AUTOFS_MAP_SUBDIR   "autofsmaps"
 #define AUTOFS_ENTRY_SUBDIR "autofsentries"
 
-#define SYSDB_AUTOFS_MAP_OC     "automountMap"
-#define SYSDB_AUTOFS_MAP_NAME   "automountMapName"
+#define SYSDB_AUTOFS_MAP_OC            "automountMap"
+#define SYSDB_AUTOFS_MAP_NAME          "automountMapName"
 
 #define SYSDB_AUTOFS_ENTRY_OC     "automount"
 #define SYSDB_AUTOFS_ENTRY_KEY    "automountKey"

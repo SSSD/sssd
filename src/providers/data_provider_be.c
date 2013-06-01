@@ -1857,13 +1857,6 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
         goto done;
     }
 
-    /* If a request for auto.master comes in, the automounter deamon
-     * has been reloaded. Expire all autofs maps to force reload
-     */
-    if (strcmp(be_autofs_req->mapname, "auto.master") == 0) {
-        be_autofs_req->invalidate = true;
-    }
-
     be_req->req_data = be_autofs_req;
 
     if (!be_cli->bectx->bet_info[BET_AUTOFS].bet_ops) {
