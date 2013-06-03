@@ -496,6 +496,8 @@ static void get_subdomains_callback(struct be_req *req,
               dp_err_type, errnum, errstr?errstr:"<NULL>",
               dp_pam_err_to_string(req, dp_err_type, errnum)));
 
+    be_queue_next_request(req, BET_SUBDOMAINS);
+
     reply = (DBusMessage *)req->pvt;
 
     if (reply) {
@@ -629,9 +631,11 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
 
     be_req->req_data = req;
 
-    ret = be_file_request(becli->bectx,
-                          be_req,
-                          becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops->handler);
+    ret = be_queue_request(becli->bectx,
+                           &becli->bectx->bet_info[BET_SUBDOMAINS].req_queue,
+                           becli->bectx,
+                           be_req,
+                           becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops->handler);
     if (ret != EOK) {
         err_maj = DP_ERR_FATAL;
         err_min = ret;
