@@ -158,6 +158,16 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
     int ret;
     TALLOC_CTX *tmp_ctx;
 
+    /* if both or none are set, skip */
+    if ((range->trusted_dom_sid == NULL && range->secondary_base_rid == 0) ||
+        (range->trusted_dom_sid != NULL && range->secondary_base_rid != 0)) {
+
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid range, skipping. Expected that "
+                    "either the secondary base RID or the SID of the trusted "
+                    "domain is set, but not both or none of them.\n"));
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
@@ -197,13 +207,6 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
         ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_DOMAIN_ID,
                          range->trusted_dom_sid);
         if (ret) goto done;
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid range, expected that either "
-                                  "the secondary base rid or the SID of the "
-                                  "trusted domain is set, but not both or "
-                                  "none of them.\n"));
-        ret = EINVAL;
-        goto done;
     }
 
     ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, range->name);
