@@ -2953,7 +2953,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     subreq = groups_get_send(req, state->ev, state->id_ctx,
                              state->id_ctx->opts->sdom, state->conn,
-                             gid, BE_FILTER_IDNUM, BE_ATTR_ALL);
+                             gid, BE_FILTER_IDNUM, BE_ATTR_ALL, NULL);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -2976,7 +2976,7 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     errno_t ret;
 
-    ret = groups_get_recv(subreq, NULL);
+    ret = groups_get_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);

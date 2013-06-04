@@ -103,10 +103,12 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_acct_req *ar,
                           struct sdap_id_ctx *id_ctx,
                           struct sdap_domain *sdom,
-                          struct sdap_id_conn_ctx *conn);
+                          struct sdap_id_conn_ctx *conn,
+                          bool noexist_delete);
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err);
+                          int *_dp_error, const char **_err,
+                          int *sdap_ret);
 
 /* auth */
 void sdap_pam_auth_handler(struct be_req *breq);
@@ -180,16 +182,18 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct sdap_id_conn_ctx *conn,
                                    const char *name,
                                    int filter_type,
-                                   int attrs_type);
-int groups_get_recv(struct tevent_req *req, int *dp_error_out);
+                                   int attrs_type,
+                                   bool noexist_delete);
+int groups_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
                                           struct sdap_domain *sdom,
                                           struct sdap_id_conn_ctx *conn,
-                                          const char *name);
-int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out);
+                                          const char *name,
+                                          bool noexist_delete);
+int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
 struct tevent_req *
 services_get_send(TALLOC_CTX *mem_ctx,
@@ -199,10 +203,11 @@ services_get_send(TALLOC_CTX *mem_ctx,
                   struct sdap_id_conn_ctx *conn,
                   const char *name,
                   const char *protocol,
-                  int filter_type);
+                  int filter_type,
+                  bool noexist_delete);
 
 errno_t
-services_get_recv(struct tevent_req *req, int *dp_error_out);
+services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
 /* setup child logging */
 int sdap_setup_child(void);
