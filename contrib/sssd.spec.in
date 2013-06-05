@@ -41,6 +41,10 @@
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 
+%if (0%{?fedora} > 15 || 0%{?rhel} >= 7)
+%define _hardened_build 1
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
