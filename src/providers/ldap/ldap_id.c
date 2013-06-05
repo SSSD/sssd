@@ -1325,9 +1325,6 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
     if (ret == EOK) { /* Matching user found */
         tevent_req_done(req);
         return;
-    } else if (ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
     }
 
     subreq = groups_get_send(req, state->ev, state->id_ctx, state->filter_val,
