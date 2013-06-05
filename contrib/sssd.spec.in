@@ -60,30 +60,13 @@ Patch0001:  sssd-1.9-man-change-default-ccache.patch
 
 ### Dependencies ###
 
-Requires: libldb >= 0.9.3
-Requires: libtdb >= 1.1.3
-Requires: sssd-client%{?_isa} = %{version}-%{release}
-Requires: libipa_hbac = %{version}-%{release}
-Requires: libsss_idmap = %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+Requires: sssd-ldap = %{version}-%{release}
+Requires: sssd-krb5 = %{version}-%{release}
+Requires: sssd-ipa = %{version}-%{release}
+Requires: sssd-ad = %{version}-%{release}
+Requires: sssd-proxy = %{version}-%{release}
 Requires: python-sssdconfig = %{version}-%{release}
-Requires: cyrus-sasl-gssapi
-%if (0%{?use_systemd} == 1)
-Requires(post): systemd-units systemd-sysv
-Requires(preun): systemd-units
-Requires(postun): systemd-units
-%else
-Requires(post): initscripts chkconfig
-Requires(preun):  initscripts chkconfig
-Requires(postun): initscripts chkconfig
-%endif
-
-### Provides ###
-Provides: libsss_sudo = %{version}-%{release}
-Obsoletes: libsss_sudo < %{version}-%{release}
-Provides: libsss_sudo-devel = %{version}-%{release}
-Obsoletes: libsss_sudo-devel < %{version}-%{release}
-Provides: libsss_autofs = %{version}-%{release}
-Obsoletes: libsss_autofs < %{version}-%{release}
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -159,6 +142,40 @@ the system and a pluggable backend system to connect to multiple different
 account sources. It is also the basis to provide client auditing and policy
 services for projects like FreeIPA.
 
+The sssd subpackage is a meta-package that contains the deamon as well as all
+the existing back ends.
+
+%package common
+Summary: Common files for the SSSD
+Group: Applications/System
+License: GPLv3+
+Requires: libldb >= 0.9.3
+Requires: libtdb >= 1.1.3
+Requires: sssd-client%{?_isa} = %{version}-%{release}
+Conflicts: sssd < %{version}-%{release}
+%if (0%{?use_systemd} == 1)
+Requires(post): systemd-units systemd-sysv
+Requires(preun): systemd-units
+Requires(postun): systemd-units
+%else
+Requires(post): initscripts chkconfig
+Requires(preun):  initscripts chkconfig
+Requires(postun): initscripts chkconfig
+%endif
+
+### Provides ###
+Provides: libsss_sudo = %{version}-%{release}
+Obsoletes: libsss_sudo <= 1.9.93
+Provides: libsss_sudo-devel = %{version}-%{release}
+Obsoletes: libsss_sudo-devel <= 1.9.93
+Provides: libsss_autofs = %{version}-%{release}
+Obsoletes: libsss_autofs <= 1.9.93
+
+%description common
+Common files for the SSSD. The common package includes all the files needed
+to run a particular back end, however, the back ends are packaged in separate
+subpackages such as sssd-ldap.
+
 %package client
 Summary: SSSD Client libraries for NSS and PAM
 Group: Applications/System
@@ -174,7 +191,7 @@ service.
 Summary: Userspace tools for use with the SSSD
 Group: Applications/System
 License: GPLv3+
-Requires: sssd = %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
 
 %description tools
 Provides userspace tools for manipulating users, groups, and nested groups in
@@ -193,6 +210,83 @@ BuildArch: noarch
 
 %description -n python-sssdconfig
 Provides python files for manipulation SSSD and IPA configuration files.
+
+%package ldap
+Summary: The LDAP back end of the SSSD
+Group: Applications/System
+License: GPLv3+
+Conflicts: sssd < %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
+Requires: sssd-krb5-common = %{version}-%{release}
+
+%description ldap
+Provides the LDAP back end that the SSSD can utilize to fetch identity data
+from and authenticate against an LDAP server.
+
+%package krb5-common
+Summary: SSSD helpers needed for Kerberos and GSSAPI authentication
+Group: Applications/System
+License: GPLv3+
+Conflicts: sssd < %{version}-%{release}
+Requires: cyrus-sasl-gssapi
+Requires: sssd-common = %{version}-%{release}
+
+%description krb5-common
+Provides helper processes that the LDAP and Kerberos back ends can use for
+Kerberos user or host authentication.
+
+%package krb5
+Summary: The Kerberos authentication back end for the SSSD
+Group: Applications/System
+License: GPLv3+
+Conflicts: sssd < %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+Requires: sssd-krb5-common = %{version}-%{release}
+
+%description krb5
+Provides the Kerberos back end that the SSSD can utilize authenticate
+against a Kerberos server.
+
+%package ipa
+Summary: The IPA back end of the SSSD
+Group: Applications/System
+License: GPLv3+
+Conflicts: sssd < %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+Requires: sssd-krb5-common = %{version}-%{release}
+Requires: libipa_hbac = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
+Requires: bind-utils
+
+%description ipa
+Provides the IPA back end that the SSSD can utilize to fetch identity data
+from and authenticate against an IPA server.
+
+%package ad
+Summary: The AD back end of the SSSD
+Group: Applications/System
+License: GPLv3+
+Conflicts: sssd < %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+Requires: sssd-krb5-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
+Requires: bind-utils
+
+%description ad
+Provides the Active Directory back end that the SSSD can utilize to fetch
+identity data from and authenticate against an Active Directory server.
+
+%package proxy
+Summary: The proxy back end of the SSSD
+Group: Applications/System
+License: GPLv3+
+Conflicts: sssd < %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+
+%description proxy
+Provides the proxy back end which can be used to wrap an existing NSS and/or
+PAM modules to leverage SSSD caching.
 
 %package -n libsss_idmap
 Summary: FreeIPA Idmap library
@@ -272,7 +366,7 @@ The libsss_nss_idmap-python contains the bindings so that libsss_nss_idmap can
 be used by Python applications.
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}
 %if (0%{?fedora} >= 17)
 %patch0001 -p1
 %endif
@@ -359,6 +453,11 @@ done
 touch sssd.lang
 touch sssd_tools.lang
 touch sssd_client.lang
+for provider in ldap krb5 ipa ad proxy
+do
+    touch sssd_$provider.lang
+done
+
 for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`
 do
     lang=`echo $man | cut -c 1-2`
@@ -371,6 +470,21 @@ do
             ;;
         sssd_krb5_*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_client.lang
+            ;;
+        sssd-ldap*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_ldap.lang
+            ;;
+        sssd-krb5*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_krb5.lang
+            ;;
+        sssd-ipa*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_ipa.lang
+            ;;
+        sssd-ad*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_ad.lang
+            ;;
+        sssd-proxy*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_proxy.lang
             ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
@@ -386,7 +500,11 @@ touch $RPM_BUILD_ROOT/%{mcpath}/group
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files -f sssd.lang
+%files
+%defattr(-,root,root,-)
+%doc COPYING
+
+%files common -f sssd.lang
 %defattr(-,root,root,-)
 %doc COPYING
 %doc src/examples/sssd-example.conf
@@ -398,9 +516,6 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 
 %dir %{_libexecdir}/%{servicename}
-%{_libexecdir}/%{servicename}/krb5_child
-%{_libexecdir}/%{servicename}/ldap_child
-%{_libexecdir}/%{servicename}/proxy_child
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
 %{_libexecdir}/%{servicename}/sssd_pam
@@ -409,25 +524,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 
-# RHEL 5 is too old to support the PAC responder
-%if !0%{?is_rhel5}
-%{_libexecdir}/%{servicename}/sssd_pac
-
-%endif
-
 %dir %{_libdir}/%{name}
-%{_libdir}/%{name}/libsss_ad.so
-%{_libdir}/%{name}/libsss_ipa.so
-%{_libdir}/%{name}/libsss_krb5.so
-%{_libdir}/%{name}/libsss_ldap.so
-%{_libdir}/%{name}/libsss_proxy.so
 %{_libdir}/%{name}/libsss_simple.so
 
 #Internal shared libraries
 %{_libdir}/%{name}/libsss_child.so
 %{_libdir}/%{name}/libsss_crypt.so
 %{_libdir}/%{name}/libsss_debug.so
-%{_libdir}/%{name}/libsss_krb5_common.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
 
@@ -448,7 +551,6 @@ rm -rf $RPM_BUILD_ROOT
 %ghost %attr(0644,root,root) %verify(not md5 size mtime) %{mcpath}/group
 %attr(755,root,root) %dir %{pipepath}
 %attr(755,root,root) %dir %{pubconfpath}
-%attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(711,root,root) %dir %{_sysconfdir}/sssd
@@ -459,10 +561,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/sssd/sssd.api.conf
 %{_datadir}/sssd/sssd.api.d
 %{_mandir}/man5/sssd.conf.5*
-%{_mandir}/man5/sssd-ipa.5*
-%{_mandir}/man5/sssd-ad.5*
-%{_mandir}/man5/sssd-krb5.5*
-%{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man8/sssd.8*
@@ -471,6 +569,49 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{python_sitearch}/pysss.so
 %{python_sitearch}/pysss_murmur.so
+
+%files ldap -f sssd_ldap.lang
+%defattr(-,root,root,-)
+%doc COPYING
+%{_libdir}/%{name}/libsss_ldap.so
+%{_mandir}/man5/sssd-ldap.5*
+
+%files krb5-common
+%defattr(-,root,root,-)
+%doc COPYING
+%{_libdir}/%{name}/libsss_krb5_common.so
+%{_libexecdir}/%{servicename}/ldap_child
+%{_libexecdir}/%{servicename}/krb5_child
+
+%files krb5 -f sssd_krb5.lang
+%defattr(-,root,root,-)
+%doc COPYING
+%{_libdir}/%{name}/libsss_krb5.so
+%{_mandir}/man5/sssd-krb5.5*
+
+%files ipa -f sssd_ipa.lang
+%defattr(-,root,root,-)
+%doc COPYING
+# RHEL 5 is too old to support the PAC responder
+%if !0%{?is_rhel5}
+%{_libexecdir}/%{servicename}/sssd_pac
+%endif
+
+%attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
+%{_libdir}/%{name}/libsss_ipa.so
+%{_mandir}/man5/sssd-ipa.5*
+
+%files ad -f sssd_ad.lang
+%defattr(-,root,root,-)
+%doc COPYING
+%{_libdir}/%{name}/libsss_ad.so
+%{_mandir}/man5/sssd-ad.5*
+
+%files proxy
+%defattr(-,root,root,-)
+%doc COPYING
+%{_libexecdir}/%{servicename}/proxy_child
+%{_libdir}/%{name}/libsss_proxy.so
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)
