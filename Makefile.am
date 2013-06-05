@@ -483,6 +483,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock.h \
     src/tests/cmocka/common_mock_resp.h \
     src/sss_client/ssh/sss_ssh_client.h \
+    src/sss_client/sudo/sss_sudo.h \
     src/lib/idmap/sss_idmap_private.h
 
 
@@ -1370,8 +1371,6 @@ libsss_sudo_la_LDFLAGS = \
 
 sudolib_LTLIBRARIES = libsss_sudo.la
 
-include_HEADERS += \
-    src/sss_client/sudo/sss_sudo.h
 endif
 
 if BUILD_AUTOFS
@@ -1850,9 +1849,6 @@ docs:
 	$(DOXYGEN) src/doxy.config
 	$(DOXYGEN) src/providers/ipa/ipa_hbac.doxy
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
-if BUILD_SUDO
-	$(DOXYGEN) src/sss_client/sudo/sss_sudo.doxy
-endif BUILD_SUDO
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 else !HAVE_DOXYGEN
 docs:

@@ -73,6 +73,14 @@ Requires(preun):  initscripts chkconfig
 Requires(postun): initscripts chkconfig
 %endif
 
+### Provides ###
+Provides: libsss_sudo = %{version}-%{release}
+Obsoletes: libsss_sudo < %{version}-%{release}
+Provides: libsss_sudo-devel = %{version}-%{release}
+Obsoletes: libsss_sudo-devel < %{version}-%{release}
+Provides: libsss_autofs = %{version}-%{release}
+Obsoletes: libsss_autofs < %{version}-%{release}
+
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
 %global dbpath %{sssdstatedir}/db
@@ -259,26 +267,6 @@ Requires: libsss_nss_idmap = %{version}-%{release}
 The libsss_nss_idmap-python contains the bindings so that libsss_nss_idmap can
 be used by Python applications.
 
-%package -n libsss_sudo
-Summary: A library to allow communication between SUDO and SSSD
-Group: Development/Libraries
-License: LGPLv3+
-Requires: sssd = %{version}-%{release}
-Requires(post): /sbin/ldconfig
-Requires(postun): /sbin/ldconfig
-
-%description -n libsss_sudo
-A utility library to allow communication between SUDO and SSSD
-
-%package -n libsss_sudo-devel
-Summary: A library to allow communication between SUDO and SSSD
-Group: Development/Libraries
-License: LGPLv3+
-Requires: libsss_sudo = %{version}-%{release}
-
-%description -n libsss_sudo-devel
-A utility library to allow communication between SUDO and SSSD
-
 %prep
 %setup -q
 %if (0%{?fedora} >= 17)
@@ -439,6 +427,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
 
+# 3rd party application libraries
+%{_libdir}/sssd/modules/libsss_autofs.so
+%{_libdir}/libsss_sudo.so
+
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhostsproxy
@@ -572,37 +564,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{python_sitearch}/pysss_nss_idmap.so
 
-%package -n libsss_autofs
-Summary: A library to allow communication between Autofs and SSSD
-Group: Development/Libraries
-License: LGPLv3+
-
-%description -n libsss_autofs
-A utility library to allow communication between Autofs and SSSD
-
 %files -n libipa_hbac-python
 %defattr(-,root,root,-)
 %{python_sitearch}/pyhbac.so
-
-%files -n libsss_sudo
-%defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
-%{_libdir}/libsss_sudo.so*
-
-%files -n libsss_sudo-devel
-%defattr(-,root,root,-)
-%if 0%{?fedora}
-%doc libsss_sudo_doc/html
-%endif
-%if 0%{?rhel} >= 6
-%doc libsss_sudo_doc/html
-%endif
-%{_includedir}/sss_sudo.h
-
-%files -n libsss_autofs
-%defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
-%{_libdir}/sssd/modules/libsss_autofs.so*
 
 %if (0%{?use_systemd} == 1)
 # systemd
@@ -665,10 +629,6 @@ fi
 %post -n libsss_idmap -p /sbin/ldconfig
 
 %postun -n libsss_idmap -p /sbin/ldconfig
-
-%post -n libsss_sudo -p /sbin/ldconfig
-
-%postun -n libsss_sudo -p /sbin/ldconfig
 
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
