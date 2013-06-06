@@ -154,6 +154,7 @@ struct ad_get_client_site_state {
 
     struct sdap_handle *sh;
     char *site;
+    char *forest;
 };
 
 static errno_t ad_get_client_site_next_dc(struct tevent_req *req);
@@ -318,13 +319,15 @@ done:
 static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
                                             uint8_t *data,
                                             size_t length,
-                                            char **_site_name)
+                                            char **_site_name,
+                                            char **_forest_name)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ndr_pull *ndr_pull = NULL;
     struct netlogon_samlogon_response response;
     enum ndr_err_code ndr_err;
     char *site = NULL;
+    char *forest = NULL;
     DATA_BLOB blob;
     errno_t ret;
 
@@ -371,12 +374,22 @@ static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (site == NULL) {
+    if (response.data.nt5_ex.forest != NULL
+            && response.data.nt5_ex.forest[0] != '\0') {
+        forest = talloc_strdup(tmp_ctx, response.data.nt5_ex.forest);
+    } else {
+        ret = ENOENT;
+        goto done;
+    }
+
+
+    if (site == NULL || forest == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
     *_site_name = talloc_steal(mem_ctx, site);
+    *_forest_name = talloc_steal(mem_ctx, forest);
 
     ret = EOK;
 
@@ -435,7 +448,8 @@ static void ad_get_client_site_done(struct tevent_req *subreq)
     }
 
     ret = ad_get_client_site_parse_ndr(state, el->values[0].data,
-                                       el->values[0].length, &state->site);
+                                       el->values[0].length, &state->site,
+                                       &state->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Unable to retrieve site name [%d]: %s\n",
                                   ret, strerror(ret)));
@@ -456,7 +470,8 @@ done:
 
 int ad_get_client_site_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
-                            char **_site)
+                            char **_site,
+                            char **_forest)
 {
     struct ad_get_client_site_state *state = NULL;
     state = tevent_req_data(req, struct ad_get_client_site_state);
@@ -464,6 +479,7 @@ int ad_get_client_site_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *_site = talloc_steal(mem_ctx, state->site);
+    *_forest = talloc_steal(mem_ctx, state->forest);
 
     return EOK;
 }
@@ -521,6 +537,7 @@ struct ad_srv_plugin_state {
 
     char *site;
     char *dns_domain;
+    char *forest;
     struct fo_server_info *primary_servers;
     size_t num_primary_servers;
     struct fo_server_info *backup_servers;
@@ -667,17 +684,28 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_srv_plugin_state);
 
-    ret = ad_get_client_site_recv(state, subreq, &state->site);
+    ret = ad_get_client_site_recv(state, subreq, &state->site, &state->forest);
     talloc_zfree(subreq);
     if (ret == EOK) {
-        primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN,
-                                         state->site, state->discovery_domain);
-        if (primary_domain == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
+        if (strcmp(state->service, "gc") == 0) {
+            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN,
+                                             state->site, state->forest);
+            if (primary_domain == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
 
-        backup_domain = state->discovery_domain;
+            backup_domain = state->forest;
+        } else {
+            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN,
+                                             state->site, state->discovery_domain);
+            if (primary_domain == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            backup_domain = state->discovery_domain;
+        }
     } else if (ret == ENOENT) {
         primary_domain = state->discovery_domain;
         backup_domain = NULL;
