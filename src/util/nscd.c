@@ -147,10 +147,6 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
 
     while (getline(&line, &linelen, fp) != -1) {
 
-        entry = NULL;
-        service = NULL;
-        enabled = NULL;
-
         pad = strchr(line, '#');
         if (pad != NULL) {
             *pad = '\0';
@@ -191,15 +187,10 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
         }
         *pad = '\0';
 
-        if (entry   != NULL &&
-            service != NULL &&
-            enabled != NULL) {
+        if (!strcmp(entry, "enable-cache") &&
+            !strcmp(enabled, "yes")) {
 
-            if (!strcmp(entry, "enable-cache") &&
-                !strcmp(enabled, "yes")) {
-
-                occured |= sss_nscd_check_service(service);
-            }
+            occured |= sss_nscd_check_service(service);
         }
     };
 
