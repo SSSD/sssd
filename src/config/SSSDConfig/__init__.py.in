@@ -165,6 +165,7 @@ option_strings = {
     'krb5_backup_server' : _('Kerberos backup server address'),
     'krb5_realm' : _('Kerberos realm'),
     'krb5_auth_timeout' : _('Authentication timeout'),
+    'krb5_use_kdcinfo' : _('Whether to create kdcinfo files'),
 
     # [provider/krb5/auth]
     'krb5_ccachedir' : _('Directory to store credential caches'),

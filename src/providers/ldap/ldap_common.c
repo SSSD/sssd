@@ -1269,8 +1269,12 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = krb5_service_init(mem_ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
-                            krb5_backup_servers, krb5_realm, &service);
+    ret = krb5_service_init(mem_ctx, bectx,
+                            SSS_KRB5KDC_FO_SRV, krb5_servers,
+                            krb5_backup_servers, krb5_realm,
+                            dp_opt_get_bool(opts,
+                                            SDAP_KRB5_USE_KDCINFO),
+                            &service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init KRB5 failover service!\n"));
         goto done;

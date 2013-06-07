@@ -108,8 +108,12 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         return EINVAL;
     }
 
-    ret = krb5_service_init(ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
-                            krb5_backup_servers, krb5_realm, &ctx->service);
+    ret = krb5_service_init(ctx, bectx,
+                            SSS_KRB5KDC_FO_SRV, krb5_servers,
+                            krb5_backup_servers, krb5_realm,
+                            dp_opt_get_bool(krb5_options->opts,
+                                            KRB5_USE_KDCINFO),
+                            &ctx->service);
     if (ret != EOK) {
         DEBUG(0, ("Failed to init KRB5 failover service!\n"));
         return ret;
@@ -130,9 +134,12 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
                   "will use KDC for pasword change operations!\n"));
         ctx->kpasswd_service = NULL;
     } else {
-        ret = krb5_service_init(ctx, bectx, SSS_KRB5KPASSWD_FO_SRV,
-                            krb5_kpasswd_servers, krb5_backup_kpasswd_servers,
-                            krb5_realm, &ctx->kpasswd_service);
+        ret = krb5_service_init(ctx, bectx,
+                                SSS_KRB5KPASSWD_FO_SRV, krb5_kpasswd_servers,
+                                krb5_backup_kpasswd_servers, krb5_realm,
+                                dp_opt_get_bool(krb5_options->opts,
+                                                KRB5_USE_KDCINFO),
+                                &ctx->kpasswd_service);
         if (ret != EOK) {
             DEBUG(0, ("Failed to init KRB5KPASSWD failover service!\n"));
             return ret;

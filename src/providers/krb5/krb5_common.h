@@ -66,6 +66,7 @@ enum krb5_opts {
     KRB5_FAST_PRINCIPAL,
     KRB5_CANONICALIZE,
     KRB5_USE_ENTERPRISE_PRINCIPAL,
+    KRB5_USE_KDCINFO,
 
     KRB5_OPTS
 };
@@ -82,6 +83,7 @@ struct tgt_times {
 struct krb5_service {
     char *name;
     char *realm;
+    bool write_kdcinfo;
 };
 
 struct fo_service;
@@ -153,7 +155,9 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
                       const char *primary_servers,
                       const char *backup_servers,
-                      const char *realm, struct krb5_service **_service);
+                      const char *realm,
+                      bool use_kdcinfo,
+                      struct krb5_service **_service);
 
 void remove_krb5_info_files_callback(void *pvt);
 

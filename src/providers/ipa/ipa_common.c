@@ -664,6 +664,15 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->auth, KRB5_REALM)));
     }
 
+    /* Set flag that controls whether we want to write the
+     * kdcinfo files at all
+     */
+    ipa_opts->service->krb5_service->write_kdcinfo = \
+        dp_opt_get_bool(ipa_opts->auth, KRB5_USE_KDCINFO);
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+          ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
+          ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false"));
+
     *_opts = ipa_opts->auth;
     ret = EOK;
 
@@ -743,19 +752,21 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     talloc_zfree(service->sdap->sockaddr);
     service->sdap->sockaddr = talloc_steal(service, sockaddr);
 
-    safe_address = sss_escape_ip_address(tmp_ctx,
-                                         srvaddr->family,
-                                         address);
-    if (safe_address == NULL) {
-        DEBUG(1, ("sss_escape_ip_address failed.\n"));
-        talloc_free(tmp_ctx);
-        return;
-    }
+    if (service->krb5_service->write_kdcinfo) {
+        safe_address = sss_escape_ip_address(tmp_ctx,
+                                             srvaddr->family,
+                                             address);
+        if (safe_address == NULL) {
+            DEBUG(1, ("sss_escape_ip_address failed.\n"));
+            talloc_free(tmp_ctx);
+            return;
+        }
 
-    ret = write_krb5info_file(service->krb5_service->realm, safe_address,
-                              SSS_KRB5KDC_FO_SRV);
-    if (ret != EOK) {
-        DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
+        ret = write_krb5info_file(service->krb5_service->realm, safe_address,
+                                  SSS_KRB5KDC_FO_SRV);
+        if (ret != EOK) {
+            DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
+        }
     }
 
     talloc_free(tmp_ctx);

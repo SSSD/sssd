@@ -452,18 +452,20 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    safe_address = talloc_asprintf_append(safe_address, ":%d",
-                                          fo_get_server_port(server));
-    if (safe_address == NULL) {
-        DEBUG(1, ("talloc_asprintf_append failed.\n"));
-        talloc_free(tmp_ctx);
-        return;
-    }
+    if (krb5_service->write_kdcinfo) {
+        safe_address = talloc_asprintf_append(safe_address, ":%d",
+                                            fo_get_server_port(server));
+        if (safe_address == NULL) {
+            DEBUG(1, ("talloc_asprintf_append failed.\n"));
+            talloc_free(tmp_ctx);
+            return;
+        }
 
-    ret = write_krb5info_file(krb5_service->realm, safe_address,
-                              krb5_service->name);
-    if (ret != EOK) {
-        DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
+        ret = write_krb5info_file(krb5_service->realm, safe_address,
+                                  krb5_service->name);
+        if (ret != EOK) {
+            DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
+        }
     }
 
     talloc_free(tmp_ctx);
@@ -620,7 +622,9 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
                       const char *primary_servers,
                       const char *backup_servers,
-                      const char *realm, struct krb5_service **_service)
+                      const char *realm,
+                      bool use_kdcinfo,
+                      struct krb5_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
     struct krb5_service *service;
@@ -654,6 +658,8 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    service->write_kdcinfo = use_kdcinfo;
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,

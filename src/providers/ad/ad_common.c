@@ -531,21 +531,23 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    /* Write krb5 info files */
-    safe_address = sss_escape_ip_address(tmp_ctx,
-                                         srvaddr->family,
-                                         address);
-    if (safe_address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_escape_ip_address failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
+    if (service->krb5_service->write_kdcinfo) {
+        /* Write krb5 info files */
+        safe_address = sss_escape_ip_address(tmp_ctx,
+                                            srvaddr->family,
+                                            address);
+        if (safe_address == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_escape_ip_address failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
 
-    ret = write_krb5info_file(service->krb5_service->realm, safe_address,
-                              SSS_KRB5KDC_FO_SRV);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("write_krb5info_file failed, authentication might fail.\n"));
+        ret = write_krb5info_file(service->krb5_service->realm, safe_address,
+                                SSS_KRB5KDC_FO_SRV);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                ("write_krb5info_file failed, authentication might fail.\n"));
+        }
     }
 
     ret = EOK;
@@ -845,6 +847,15 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
           ("Option %s set to %s\n",
            krb5_options[KRB5_REALM].opt_name,
            krb5_realm));
+
+    /* Set flag that controls whether we want to write the
+     * kdcinfo files at all
+     */
+    ad_opts->service->krb5_service->write_kdcinfo = \
+        dp_opt_get_bool(krb5_options, KRB5_USE_KDCINFO);
+    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+          ad_opts->auth[KRB5_USE_KDCINFO].opt_name,
+          ad_opts->service->krb5_service->write_kdcinfo ? "true" : "false"));
 
     *_opts = talloc_steal(mem_ctx, krb5_options);
 

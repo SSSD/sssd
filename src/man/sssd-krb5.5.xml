@@ -452,6 +452,34 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>krb5_use_kdcinfo (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies if the SSSD should be instructing the Kerberos
+                            libraries what realm and which KDCs to use. This option
+                            is on by default, if you disable it, you need to configure
+                            the Kerberos library using the
+                            <citerefentry>
+                                <refentrytitle>krb5.conf</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>
+                            configuration file.
+                        </para>
+                        <para>
+                            See the
+                            <citerefentry>
+                                <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            manual page for more information on the locator plugin.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_use_enterprise_principal (boolean)</term>
                     <listitem>
                         <para>

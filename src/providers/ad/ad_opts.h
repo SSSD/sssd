@@ -88,6 +88,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "krb5_backup_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" }, NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_FALSE, BOOL_TRUE },
     { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
@@ -145,6 +146,7 @@ struct dp_option ad_def_krb5_opts[] = {
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_use_enterprise_principal", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     DP_OPTION_TERMINATOR
 };
 
