@@ -677,7 +677,7 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
         }
 
         addr->addr = resolv_get_sockaddr_address_index(addr, rhostent, 0, i);
-        if (addr == NULL) {
+        if (addr->addr == NULL) {
             ret = ENOMEM;
             goto done;
         }
