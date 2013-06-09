@@ -717,6 +717,13 @@
                             for allow_all (*).
                         </para>
                         <para>
+                            Please note that the ldap_access_order
+                            configuration option <emphasis>must</emphasis> include
+                            <quote>authorized_service</quote> in order for the
+                            ldap_user_authorized_service option
+                            to work.
+                        </para>
+                        <para>
                             Default: authorizedService
                         </para>
                     </listitem>
@@ -735,6 +742,13 @@
                             An explicit deny (!host) is resolved first. Second,
                             SSSD searches for explicit allow (host) and finally
                             for allow_all (*).
+                        </para>
+                        <para>
+                            Please note that the ldap_access_order
+                            configuration option <emphasis>must</emphasis>
+                            include <quote>host</quote> in order for the
+                            ldap_user_authorized_host option
+                            to work.
                         </para>
                         <para>
                             Default: host
@@ -1757,6 +1771,13 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                             check if access is allowed. If both attributes are
                             missing access is granted.
                             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
+                        </para>
+                        <para>
+                            Please note that the ldap_access_order
+                            configuration option <emphasis>must</emphasis>
+                            include <quote>expire</quote> in order for the
+                            ldap_account_expire_policy option
+                            to work.
                         </para>
                         <para>
                             Default: Empty
