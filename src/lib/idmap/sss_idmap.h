@@ -77,7 +77,10 @@ enum idmap_error_code {
     IDMAP_OUT_OF_SLICES,
 
     /** New domain collides with existing one */
-    IDMAP_COLLISION
+    IDMAP_COLLISION,
+
+    /** External source should be consulted for idmapping */
+    IDMAP_EXTERNAL
 };
 
 /**
@@ -260,6 +263,13 @@ enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
  *                        to allow updates at runtime
  * @param[in] rid         The RID that should be mapped to the first ID of the
  *                        given range.
+ * @param[in] external_mapping  If set to true the ID will not be mapped
+ *                        algorithmically, but the *_to_unix and *_unix_to_*
+ *                        calls will return IDMAP_EXTERNAL to instruct the
+ *                        caller to check external sources. For a single
+ *                        domain all ranges must be of the same type. It is
+ *                        not possible to mix algorithmic and external
+ *                        mapping.
  *
  * @return
  *  - #IDMAP_OUT_OF_MEMORY: Insufficient memory to store the data in the idmap
@@ -273,7 +283,8 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *domain_sid,
                                               struct sss_idmap_range *range,
                                               const char *range_id,
-                                              uint32_t rid);
+                                              uint32_t rid,
+                                              bool external_mapping);
 /**
  * @brief Translate SID to a unix UID or GID
  *
@@ -286,6 +297,7 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_SID_INVALID:   Invalid SID provided
  *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
  *                          idmap context
+ *  - #IDMAP_EXTERNAL:      external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                                             const char *sid,
@@ -303,6 +315,7 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_SID_INVALID:   Invalid SID provided
  *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
  *                          idmap context
+ *  - #IDMAP_EXTERNAL:      external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
                                                 struct sss_dom_sid *dom_sid,
@@ -321,6 +334,7 @@ enum idmap_error_code sss_idmap_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_SID_INVALID:   Invalid SID provided
  *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
  *                          idmap context
+ *  - #IDMAP_EXTERNAL:      external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_bin_sid_to_unix(struct sss_idmap_ctx *ctx,
                                                 uint8_t *bin_sid,
@@ -339,6 +353,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_unix(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_SID_INVALID:   Invalid SID provided
  *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
  *                          idmap context
+ *  - #IDMAP_EXTERNAL:      external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_smb_sid_to_unix(struct sss_idmap_ctx *ctx,
                                                 struct dom_sid *smb_sid,
@@ -356,6 +371,7 @@ enum idmap_error_code sss_idmap_smb_sid_to_unix(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_NO_DOMAIN: No domains are added to the idmap context
  *  - #IDMAP_NO_RANGE:  The provided ID cannot be found in the domains added
  *                      to the idmap context
+ *  - #IDMAP_EXTERNAL:  external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
                                             uint32_t id,
@@ -372,6 +388,7 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_NO_DOMAIN: No domains are added to the idmap context
  *  - #IDMAP_NO_RANGE:  The provided ID cannot be found in the domains added
  *                      to the idmap context
+ *  - #IDMAP_EXTERNAL:  external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                 uint32_t id,
@@ -390,6 +407,7 @@ enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
  *  - #IDMAP_NO_DOMAIN: No domains are added to the idmap context
  *  - #IDMAP_NO_RANGE:  The provided ID cannot be found in the domains added
  *                      to the idmap context
+ *  - #IDMAP_EXTERNAL:  external source is authoritative for mapping
  */
 enum idmap_error_code sss_idmap_unix_to_bin_sid(struct sss_idmap_ctx *ctx,
                                                 uint32_t id,
