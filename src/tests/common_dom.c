@@ -132,12 +132,19 @@ void test_dom_suite_cleanup(const char *tests_path,
     errno_t ret;
     char *conf_db;
     char *sys_db;
+    TALLOC_CTX *tmp_ctx;
 
-    conf_db = talloc_asprintf(NULL, "%s/%s", tests_path, confdb_path);
-    sys_db = talloc_asprintf(NULL, "%s/%s", tests_path, sysdb_path);
-    if (!conf_db || !sys_db) {
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed\n"));
+        return;
+    }
+
+    conf_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, confdb_path);
+    if (!conf_db) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not construct db paths\n"));
+              ("Could not construct conf_db path\n"));
+        goto done;
     }
 
     errno = 0;
@@ -146,6 +153,13 @@ void test_dom_suite_cleanup(const char *tests_path,
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not delete the test config ldb file (%d) (%s)\n",
                errno, strerror(errno)));
+    }
+
+    sys_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, sysdb_path);
+    if (!sys_db) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not construct sys_db path\n"));
+        goto done;
     }
 
     errno = 0;
@@ -164,6 +178,6 @@ void test_dom_suite_cleanup(const char *tests_path,
                errno, strerror(errno)));
     }
 
-    talloc_free(conf_db);
-    talloc_free(sys_db);
+done:
+    talloc_free(tmp_ctx);
 }
