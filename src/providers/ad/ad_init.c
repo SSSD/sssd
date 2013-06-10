@@ -143,7 +143,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ad_ctx->ldap_ctx = sdap_ctx->conn;
 
     ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_options->service->gc);
-    if (sdap_ctx == NULL) {
+    if (ad_ctx->gc_ctx == NULL) {
         return ENOMEM;
     }
 
