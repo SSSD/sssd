@@ -147,7 +147,8 @@ if HAVE_CMOCKA
         test-io \
         sss_nss_idmap-tests \
         dyndns-tests \
-        fqnames-tests
+        fqnames-tests \
+        test_sss_idmap
 endif
 
 check_PROGRAMS = \
@@ -1295,6 +1296,17 @@ fqnames_tests_CFLAGS = \
 fqnames_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
+
+test_sss_idmap_SOURCES = \
+    $(TEST_MOCK_OBJ) \
+    src/tests/cmocka/test_sss_idmap.c
+test_sss_idmap_CFLAGS = \
+    $(AM_CFLAGS)
+test_sss_idmap_LDADD = \
+    $(CMOCKA_LIBS) \
+    libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
