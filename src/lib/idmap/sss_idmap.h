@@ -360,6 +360,81 @@ enum idmap_error_code sss_idmap_smb_sid_to_unix(struct sss_idmap_ctx *ctx,
                                                 uint32_t *id);
 
 /**
+ * @brief Check if a SID and a unix UID or GID belong to the same range
+ *
+ * @param[in] ctx Idmap context
+ * @param[in] sid Zero-terminated string representation of the SID
+ * @param[in] id  Unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ *  - #IDMAP_NO_RANGE       No matching ID range found
+ */
+enum idmap_error_code sss_idmap_check_sid_unix(struct sss_idmap_ctx *ctx,
+                                               const char *sid,
+                                               uint32_t id);
+
+/**
+ * @brief Check if a SID structure and a unix UID or GID belong to the same range
+ *
+ * @param[in] ctx     Idmap context
+ * @param[in] dom_sid SID structure
+ * @param[in] id      Unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ *  - #IDMAP_NO_RANGE       No matching ID range found
+ */
+enum idmap_error_code sss_idmap_check_dom_sid_unix(struct sss_idmap_ctx *ctx,
+                                                   struct sss_dom_sid *dom_sid,
+                                                   uint32_t id);
+
+/**
+ * @brief Check if a binary SID and a unix UID or GID belong to the same range
+ *
+ * @param[in] ctx     Idmap context
+ * @param[in] bin_sid Array with the binary SID
+ * @param[in] length  Size of the array containing the binary SID
+ * @param[in] id      Unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ *  - #IDMAP_NO_RANGE       No matching ID range found
+ */
+enum idmap_error_code sss_idmap_check_bin_sid_unix(struct sss_idmap_ctx *ctx,
+                                                   uint8_t *bin_sid,
+                                                   size_t length,
+                                                   uint32_t id);
+
+/**
+ * @brief Check if a Samba dom_sid structure and a unix UID or GID belong to
+ * the same range
+ *
+ * @param[in] ctx     Idmap context
+ * @param[in] smb_sid Samba dom_sid structure
+ * @param[in] id      Unix UID or GID
+ *
+ * @return
+ *  - #IDMAP_NO_DOMAIN:     No domains are added to the idmap context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_SID_UNKNOWN:   SID cannot be found in the domains added to the
+ *                          idmap context
+ *  - #IDMAP_NO_RANGE       No matching ID range found
+ */
+enum idmap_error_code sss_idmap_check_smb_sid_unix(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *smb_sid,
+                                                   uint32_t id);
+
+/**
  * @brief Translate unix UID or GID to a SID
  *
  * @param[in] ctx  Idmap context

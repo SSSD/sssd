@@ -541,6 +541,51 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
     return no_range ? IDMAP_NO_RANGE : IDMAP_NO_DOMAIN;
 }
 
+enum idmap_error_code sss_idmap_check_sid_unix(struct sss_idmap_ctx *ctx,
+                                               const char *sid,
+                                               uint32_t id)
+{
+    struct idmap_domain_info *idmap_domain_info;
+    size_t dom_len;
+    bool no_range = false;
+
+    if (sid == NULL) {
+        return IDMAP_ERROR;
+    }
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    if (ctx->idmap_domain_info == NULL) {
+        return IDMAP_NO_DOMAIN;
+    }
+
+    idmap_domain_info = ctx->idmap_domain_info;
+
+    if (sss_idmap_sid_is_builtin(sid)) {
+        return IDMAP_BUILTIN_SID;
+    }
+
+    while (idmap_domain_info != NULL) {
+        if (idmap_domain_info->sid != NULL) {
+            dom_len = strlen(idmap_domain_info->sid);
+            if (strlen(sid) > dom_len && sid[dom_len] == '-'
+                    && strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
+
+                if (id >= idmap_domain_info->range->min
+                    && id <= idmap_domain_info->range->max) {
+                    return IDMAP_SUCCESS;
+                }
+
+                no_range = true;
+            }
+        }
+
+        idmap_domain_info = idmap_domain_info->next;
+    }
+
+    return no_range ? IDMAP_NO_RANGE : IDMAP_SID_UNKNOWN;
+}
+
 enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
                                             uint32_t id,
                                             char **_sid)
@@ -656,6 +701,72 @@ done:
     return err;
 }
 
+enum idmap_error_code sss_idmap_check_dom_sid_to_unix(struct sss_idmap_ctx *ctx,
+                                                    struct sss_dom_sid *dom_sid,
+                                                    uint32_t id)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_dom_sid_to_sid(ctx, dom_sid, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_check_sid_unix(ctx, sid, id);
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_check_bin_sid_unix(struct sss_idmap_ctx *ctx,
+                                                   uint8_t *bin_sid,
+                                                   size_t length,
+                                                   uint32_t id)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_bin_sid_to_sid(ctx, bin_sid, length, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_check_sid_unix(ctx, sid, id);
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+
+    return err;
+}
+
+enum idmap_error_code sss_idmap_check_smb_sid_unix(struct sss_idmap_ctx *ctx,
+                                                   struct dom_sid *smb_sid,
+                                                   uint32_t id)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_smb_sid_to_sid(ctx, smb_sid, &sid);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = sss_idmap_check_sid_unix(ctx, sid, id);
+
+done:
+    ctx->free_func(sid, ctx->alloc_pvt);
+
+    return err;
+}
 enum idmap_error_code sss_idmap_unix_to_dom_sid(struct sss_idmap_ctx *ctx,
                                                 uint32_t id,
                                                 struct sss_dom_sid **_dom_sid)
