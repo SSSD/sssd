@@ -256,6 +256,8 @@ enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
  *                        SID (S-1-15-.....)
  * @param[in] range       TBD Some information about the id ranges of this
  *                        domain
+ * @param[in] range_id    optional unique identifier of a range, it is needed
+ *                        to allow updates at runtime
  * @param[in] rid         The RID that should be mapped to the first ID of the
  *                        given range.
  *
@@ -270,6 +272,7 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *domain_name,
                                               const char *domain_sid,
                                               struct sss_idmap_range *range,
+                                              const char *range_id,
                                               uint32_t rid);
 /**
  * @brief Translate SID to a unix UID or GID

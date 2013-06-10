@@ -39,6 +39,7 @@ struct idmap_domain_info {
     struct sss_idmap_range *range;
     struct idmap_domain_info *next;
     uint32_t first_rid;
+    char *range_id;
 };
 
 static void *default_alloc(size_t size, void *pvt)
@@ -339,6 +340,9 @@ static enum idmap_error_code dom_check_collision(
 
     for (dom = dom_list; dom != NULL; dom = dom->next) {
 
+        /* TODO: if both ranges have the same ID check if an update is
+         * needed. */
+
         /* check if ID ranges overlap */
         if ((new_dom->range->min >= dom->range->min
                 && new_dom->range->min <= dom->range->max)
@@ -372,6 +376,7 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *domain_name,
                                               const char *domain_sid,
                                               struct sss_idmap_range *range,
+                                              const char *range_id,
                                               uint32_t rid)
 {
     struct idmap_domain_info *dom = NULL;
@@ -412,6 +417,13 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
         goto fail;
     }
 
+    if (range_id != NULL) {
+        dom->range_id = idmap_strdup(ctx, range_id);
+        if (dom->range_id == NULL) {
+            goto fail;
+        }
+    }
+
     dom->first_rid = rid;
 
     err = dom_check_collision(ctx->idmap_domain_info, dom);
@@ -438,7 +450,8 @@ enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
                                            const char *domain_sid,
                                            struct sss_idmap_range *range)
 {
-    return sss_idmap_add_domain_ex(ctx, domain_name, domain_sid, range, 0);
+    return sss_idmap_add_domain_ex(ctx, domain_name, domain_sid, range, NULL,
+                                   0);
 }
 
 static bool sss_idmap_sid_is_builtin(const char *sid)
