@@ -733,6 +733,7 @@ static errno_t fo_add_server_list(struct fo_service *service,
                                   struct fo_server **_last_server)
 {
     struct fo_server *server = NULL;
+    struct fo_server *last_server = NULL;
     struct fo_server *srv_list = NULL;
     size_t i;
     errno_t ret;
@@ -750,8 +751,11 @@ static errno_t fo_add_server_list(struct fo_service *service,
         ret = fo_add_server_to_list(&srv_list, service->server_list,
                                     server, service->name);
         if (ret != EOK) {
-            talloc_free(server);
+            talloc_zfree(server);
+            continue;
         }
+
+        last_server = server;
     }
 
     if (srv_list != NULL) {
@@ -760,7 +764,7 @@ static errno_t fo_add_server_list(struct fo_service *service,
     }
 
     if (_last_server != NULL) {
-        *_last_server = server;
+        *_last_server = last_server == NULL ? after_server : last_server;
     }
 
     return EOK;
