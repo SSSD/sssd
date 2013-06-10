@@ -38,6 +38,7 @@ struct idmap_domain_info {
     char *sid;
     struct sss_idmap_range *range;
     struct idmap_domain_info *next;
+    uint32_t first_rid;
 };
 
 static void *default_alloc(size_t size, void *pvt)
@@ -90,16 +91,16 @@ static struct sss_idmap_range *idmap_range_dup(struct sss_idmap_ctx *ctx,
     return new;
 }
 
-static bool id_is_in_range(uint32_t id, struct sss_idmap_range *range,
+static bool id_is_in_range(uint32_t id, struct idmap_domain_info *dom,
                            uint32_t *rid)
 {
-    if (id == 0 || range == NULL) {
+    if (id == 0 || dom == NULL || dom->range == NULL) {
         return false;
     }
 
-    if (id >= range->min && id <= range->max) {
+    if (id >= dom->range->min && id <= dom->range->max) {
         if (rid != NULL) {
-            *rid = id - range->min;
+            *rid = dom->first_rid + (id - dom->range->min);
         }
 
         return true;
@@ -330,12 +331,51 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
     return IDMAP_SUCCESS;
 }
 
-enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
-                                           const char *domain_name,
-                                           const char *domain_sid,
-                                           struct sss_idmap_range *range)
+static enum idmap_error_code dom_check_collision(
+                                             struct idmap_domain_info *dom_list,
+                                             struct idmap_domain_info *new_dom)
+{
+    struct idmap_domain_info *dom;
+
+    for (dom = dom_list; dom != NULL; dom = dom->next) {
+
+        /* check if ID ranges overlap */
+        if ((new_dom->range->min >= dom->range->min
+                && new_dom->range->min <= dom->range->max)
+            || (new_dom->range->max >= dom->range->min
+                && new_dom->range->max <= dom->range->max)) {
+            return IDMAP_COLLISION;
+        }
+
+        /* check if domain name and SID are consistent */
+        if ((strcasecmp(new_dom->name, dom->name) == 0
+                && strcasecmp(new_dom->sid, dom->sid) != 0)
+            || (strcasecmp(new_dom->name, dom->name) != 0
+                && strcasecmp(new_dom->sid, dom->sid) == 0)) {
+            return IDMAP_COLLISION;
+        }
+
+        /* check if RID ranges overlap */
+        if (strcasecmp(new_dom->name, dom->name) == 0
+                && strcasecmp(new_dom->sid, dom->sid) == 0
+                && new_dom->first_rid >= dom->first_rid
+                && new_dom->first_rid <=
+                    dom->first_rid + (dom->range->max - dom->range->min)) {
+            return IDMAP_COLLISION;
+        }
+    }
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
+                                              const char *domain_name,
+                                              const char *domain_sid,
+                                              struct sss_idmap_range *range,
+                                              uint32_t rid)
 {
     struct idmap_domain_info *dom = NULL;
+    enum idmap_error_code err;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
@@ -372,6 +412,14 @@ enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
         goto fail;
     }
 
+    dom->first_rid = rid;
+
+    err = dom_check_collision(ctx->idmap_domain_info, dom);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(dom, ctx->alloc_pvt);
+        return err;
+    }
+
     dom->next = ctx->idmap_domain_info;
     ctx->idmap_domain_info = dom;
 
@@ -385,6 +433,14 @@ fail:
     return IDMAP_OUT_OF_MEMORY;
 }
 
+enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
+                                           const char *domain_name,
+                                           const char *domain_sid,
+                                           struct sss_idmap_range *range)
+{
+    return sss_idmap_add_domain_ex(ctx, domain_name, domain_sid, range, 0);
+}
+
 static bool sss_idmap_sid_is_builtin(const char *sid)
 {
     if (strncmp(sid, "S-1-5-32-", 9) == 0) {
@@ -396,14 +452,16 @@ static bool sss_idmap_sid_is_builtin(const char *sid)
 
 enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                                             const char *sid,
-                                            uint32_t *id)
+                                            uint32_t *_id)
 {
     struct idmap_domain_info *idmap_domain_info;
     size_t dom_len;
     long long rid;
     char *endptr;
+    uint32_t id;
+    bool no_range = false;
 
-    if (sid == NULL || id == NULL) {
+    if (sid == NULL || _id == NULL) {
         return IDMAP_ERROR;
     }
 
@@ -417,27 +475,30 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
 
     while (idmap_domain_info != NULL) {
         dom_len = strlen(idmap_domain_info->sid);
-        if (strlen(sid) > dom_len && sid[dom_len] == '-' &&
-            strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
+        if (strlen(sid) > dom_len && sid[dom_len] == '-'
+                && strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
             errno = 0;
             rid = strtoull(sid + dom_len + 1, &endptr, 10);
             if (errno != 0 || rid > UINT32_MAX || *endptr != '\0') {
                 return IDMAP_SID_INVALID;
             }
 
-            if (rid + idmap_domain_info->range->min >
-                                                idmap_domain_info->range->max) {
-                return IDMAP_NO_RANGE;
+            if (rid >= idmap_domain_info->first_rid) {
+                id = idmap_domain_info->range->min
+                        + (rid - idmap_domain_info->first_rid);
+                if (id <= idmap_domain_info->range->max) {
+                    *_id = id;
+                    return IDMAP_SUCCESS;
+                }
             }
 
-            *id = rid + idmap_domain_info->range->min;
-            return IDMAP_SUCCESS;
+            no_range = true;
         }
 
         idmap_domain_info = idmap_domain_info->next;
     }
 
-    return IDMAP_NO_DOMAIN;
+    return no_range ? IDMAP_NO_RANGE : IDMAP_NO_DOMAIN;
 }
 
 enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
@@ -455,7 +516,7 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
     idmap_domain_info = ctx->idmap_domain_info;
 
     while (idmap_domain_info != NULL) {
-        if (id_is_in_range(id, idmap_domain_info->range, &rid)) {
+        if (id_is_in_range(id, idmap_domain_info, &rid)) {
             len = snprintf(NULL, 0, SID_FMT, idmap_domain_info->sid, rid);
             if (len <= 0 || len > SID_STR_MAX_LEN) {
                 return IDMAP_ERROR;

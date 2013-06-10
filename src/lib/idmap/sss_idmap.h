@@ -74,7 +74,10 @@ enum idmap_error_code {
     IDMAP_BUILTIN_SID,
 
     /** No more free slices */
-    IDMAP_OUT_OF_SLICES
+    IDMAP_OUT_OF_SLICES,
+
+    /** New domain collides with existing one */
+    IDMAP_COLLISION
 };
 
 /**
@@ -237,12 +240,37 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
  *                          context
  *  - #IDMAP_SID_INVALID:   Invalid SID provided
  *  - #IDMAP_NO_DOMAIN:     No domain domain name given
+ *  - #IDMAP_COLLISION:     New domain collides with existing one
  */
 enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
                                            const char *domain_name,
                                            const char *domain_sid,
                                            struct sss_idmap_range *range);
 
+/**
+ * @brief Add a domain with the first mappable RID to the idmap context
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] domain_name Zero-terminated string with the domain name
+ * @param[in] domain_sid  Zero-terminated string representation of the domain
+ *                        SID (S-1-15-.....)
+ * @param[in] range       TBD Some information about the id ranges of this
+ *                        domain
+ * @param[in] rid         The RID that should be mapped to the first ID of the
+ *                        given range.
+ *
+ * @return
+ *  - #IDMAP_OUT_OF_MEMORY: Insufficient memory to store the data in the idmap
+ *                          context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_NO_DOMAIN:     No domain domain name given
+ *  - #IDMAP_COLLISION:     New domain collides with existing one
+ */
+enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
+                                              const char *domain_name,
+                                              const char *domain_sid,
+                                              struct sss_idmap_range *range,
+                                              uint32_t rid);
 /**
  * @brief Translate SID to a unix UID or GID
  *
