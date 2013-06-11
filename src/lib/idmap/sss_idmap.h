@@ -73,7 +73,7 @@ enum idmap_error_code {
     /** The provided SID is a built-in one */
     IDMAP_BUILTIN_SID,
 
-    /* No more free slices */
+    /** No more free slices */
     IDMAP_OUT_OF_SLICES
 };
 
@@ -195,7 +195,7 @@ sss_idmap_ctx_get_upper(struct sss_idmap_ctx *ctx, id_t *_upper);
  * @brief Get the range size of POSIX IDs available for single domain
  *
  * @param[in] ctx           idmap context
- * @param[out] _rangesize   returned range size
+ * @param[out] rangesize    returned range size
  */
 enum idmap_error_code
 sss_idmap_ctx_get_rangesize(struct sss_idmap_ctx *ctx, id_t *rangesize);
@@ -206,7 +206,7 @@ sss_idmap_ctx_get_rangesize(struct sss_idmap_ctx *ctx, id_t *rangesize);
  * @param[in] ctx           Idmap context
  * @param[in] dom_sid       Zero-terminated string representation of the domain
  *                          SID (S-1-15-.....)
- * @param[in/out] slice_num Slice number to be used. Set this pointer to NULL or
+ * @param[in,out] slice_num Slice number to be used. Set this pointer to NULL or
  *                          the addressed value to -1 to calculate slice number
  *                          automatically. The calculated value will be
  *                          returned in this parameter.

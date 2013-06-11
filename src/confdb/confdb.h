@@ -374,7 +374,6 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
  * integer
  *
  * @param[in] cdb The connection object to the confdb
- * @param[in] ctx The parent memory context for the returned string
  * @param[in] section The ConfDB section to update. This is constructed from
  *                    the format of the sssd.conf file. All sections start
  *                    with 'config/'. Subsections are separated by slashes.
@@ -405,7 +404,6 @@ int confdb_get_int(struct confdb_ctx *cdb,
  * value from the ConfDB and convert it to an integral bool value.
  *
  * @param[in] cdb The connection object to the confdb
- * @param[in] ctx The parent memory context for the returned string
  * @param[in] section The ConfDB section to update. This is constructed from
  *                    the format of the sssd.conf file. All sections start
  *                    with 'config/'. Subsections are separated by slashes.
