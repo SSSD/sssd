@@ -120,7 +120,7 @@ ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
         }
 
         /* Convert the domain name into search base */
-        ret = domain_to_basedn(sdom, sditer->dom->name, &basedn);
+        ret = domain_to_basedn(sditer, sditer->dom->name, &basedn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                 ("Cannot convert domain name [%s] to base DN [%d]: %s\n",
