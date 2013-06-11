@@ -172,7 +172,7 @@
                                             <para>
                                                 domain flat name. Mostly usable
                                                 for Active Directory domains, both
-                                                directly configured or disovered
+                                                directly configured or discovered
                                                 via IPA trusts.
                                             </para>
                                         </listitem>
@@ -1605,7 +1605,7 @@ override_homedir = /home/%u
                                         <para>
                                             domain flat name. Mostly usable
                                             for Active Directory domains, both
-                                            directly configured or disovered
+                                            directly configured or discovered
                                             via IPA trusts.
                                         </para>
                                     </listitem>

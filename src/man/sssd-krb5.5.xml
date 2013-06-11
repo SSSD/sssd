@@ -455,7 +455,7 @@
                     <term>krb5_use_kdcinfo (boolean)</term>
                     <listitem>
                         <para>
-                            Specifies if the SSSD should be instructing the Kerberos
+                            Specifies if the SSSD should instruct the Kerberos
                             libraries what realm and which KDCs to use. This option
                             is on by default, if you disable it, you need to configure
                             the Kerberos library using the

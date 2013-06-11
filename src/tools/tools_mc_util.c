@@ -111,7 +111,7 @@ done:
         /* Closing the file also releases the lock */
         close(mc_fd);
 
-        /* Only unlink the file if invalidation was succesful */
+        /* Only unlink the file if invalidation was successful */
         if (ret == EOK) {
             pret = unlink(mc_filename);
             if (pret == -1) {

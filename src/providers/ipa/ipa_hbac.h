@@ -212,7 +212,7 @@ enum hbac_error_code {
     /** Unexpected error */
     HBAC_ERROR_UNKNOWN = -1,
 
-    /** Succesful evaluation */
+    /** Successful evaluation */
     HBAC_SUCCESS,
 
     /** Function is not yet implemented */
