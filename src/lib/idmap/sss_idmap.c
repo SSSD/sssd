@@ -898,3 +898,44 @@ sss_idmap_ctx_get_rangesize(struct sss_idmap_ctx *ctx, id_t *_rangesize)
     *_rangesize =  ctx->idmap_opts.rangesize;
     return IDMAP_SUCCESS;
 }
+
+enum idmap_error_code
+sss_idmap_domain_has_algorithmic_mapping(struct sss_idmap_ctx *ctx,
+                                         const char *dom_sid,
+                                         bool *has_algorithmic_mapping)
+{
+    struct idmap_domain_info *idmap_domain_info;
+    size_t len;
+    size_t dom_sid_len;
+
+    if (dom_sid == NULL) {
+        return IDMAP_SID_INVALID;
+    }
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    if (ctx->idmap_domain_info == NULL) {
+        return IDMAP_NO_DOMAIN;
+    }
+
+    idmap_domain_info = ctx->idmap_domain_info;
+
+    while (idmap_domain_info != NULL) {
+        if (idmap_domain_info->sid != NULL) {
+            len = strlen(idmap_domain_info->sid);
+            dom_sid_len = strlen(dom_sid);
+            if (((dom_sid_len > len && dom_sid[len] == '-')
+                        || dom_sid_len == len)
+                    && strncmp(dom_sid, idmap_domain_info->sid, len) == 0) {
+
+                *has_algorithmic_mapping = !idmap_domain_info->external_mapping;
+                return IDMAP_SUCCESS;
+
+            }
+        }
+
+        idmap_domain_info = idmap_domain_info->next;
+    }
+
+    return IDMAP_SID_UNKNOWN;
+}

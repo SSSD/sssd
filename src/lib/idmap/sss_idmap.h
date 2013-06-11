@@ -521,6 +521,20 @@ const char *idmap_error_string(enum idmap_error_code err);
 bool is_domain_sid(const char *str);
 
 /**
+ * @brief Check if a domain is configured with algorithmic mapping
+ *
+ * @param[in] ctx      Idmap context
+ * @param[in] dom_sid  SID string, can be either a domain SID or an object SID
+ *
+ * @return
+ * TODO ....
+ */
+enum idmap_error_code
+sss_idmap_domain_has_algorithmic_mapping(struct sss_idmap_ctx *ctx,
+                                         const char *dom_sid,
+                                         bool *has_algorithmic_mapping);
+
+/**
  * @brief Convert binary SID to SID structure
  *
  * @param[in] ctx      Idmap context
