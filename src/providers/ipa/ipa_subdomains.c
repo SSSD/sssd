@@ -382,6 +382,14 @@ ipa_subdomains_write_mappings(struct sss_domain_info *domain)
         goto done;
     }
 
+    /* touch krb5.conf to ensure that new mappings are loaded */
+    ret = sss_krb5_touch_config();
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to change last modification time "
+              "of krb5.conf. Created mappings may not be loaded.\n"));
+        /* just continue */
+    }
+
     ret = EOK;
 done:
     if (fstream) {

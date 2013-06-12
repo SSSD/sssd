@@ -291,6 +291,19 @@ AC_DEFUN([WITH_KRB5AUTHDATA_PLUGIN_PATH],
     AC_SUBST(krb5authdatapluginpath)
   ])
 
+AC_DEFUN([WITH_KRB5_CONF],
+  [ AC_ARG_WITH([krb5_conf],
+                [AC_HELP_STRING([--with-krb5-conf=PATH], [Path to krb5.conf file [/etc/krb5.conf]])
+                ]
+               )
+
+    KRB5_CONF_PATH="${sysconfdir}/krb5.conf"
+    if test x"$with_krb5_conf" != x; then
+        KRB5_CONF_PATH=$with_krb5_conf
+    fi
+    AC_DEFINE_UNQUOTED([KRB5_CONF_PATH], ["$KRB5_CONF_PATH"], [KRB5 configuration file])
+  ])
+
 AC_DEFUN([WITH_PYTHON_BINDINGS],
   [ AC_ARG_WITH([python-bindings],
                 [AC_HELP_STRING([--with-python-bindings],
