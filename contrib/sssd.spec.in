@@ -471,6 +471,9 @@ do
         sssd_krb5_*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_client.lang
             ;;
+        pam_sss*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_client.lang
+            ;;
         sssd-ldap*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_ldap.lang
             ;;
@@ -774,6 +777,10 @@ fi
 %post -n libsss_idmap -p /sbin/ldconfig
 
 %postun -n libsss_idmap -p /sbin/ldconfig
+
+%post -n libsss_nss_idmap -p /sbin/ldconfig
+
+%postun -n libsss_nss_idmap -p /sbin/ldconfig
 
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
