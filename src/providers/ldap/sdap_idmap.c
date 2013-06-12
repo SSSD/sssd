@@ -37,6 +37,64 @@ sdap_idmap_talloc_free(void *ptr, void *pvt)
     talloc_free(ptr);
 }
 
+static errno_t
+sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
+{
+    int int_id;
+    struct sss_idmap_range range;
+    struct sdap_id_ctx *id_ctx;
+    enum idmap_error_code err;
+
+    if (idmap_ctx == NULL) {
+        return EINVAL;
+    }
+
+    id_ctx = idmap_ctx->id_ctx;
+
+    int_id = dp_opt_get_int(id_ctx->opts->basic, SDAP_MIN_ID);
+    if (int_id < 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_min_id must be greater than 0.\n"));
+        return EINVAL;
+    }
+    range.min = int_id;
+
+    int_id = dp_opt_get_int(id_ctx->opts->basic, SDAP_MAX_ID);
+    if (int_id < 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_min_id must be greater than 0.\n"));
+        return EINVAL;
+    }
+    range.max = int_id;
+
+    if ((range.min == 0 && range.max != 0)
+            || (range.min != 0 && range.max == 0)) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Both ldap_min_id and ldap_max_id " \
+                                     "either must be 0 (not set) " \
+                                     "or positive integers.\n"));
+        return EINVAL;
+    }
+
+    if (range.min == 0 && range.max == 0) {
+        /* ldap_min_id and ldap_max_id not set, using min_id and max_id */
+        range.min = id_ctx->be->domain->id_min;
+        range.max = id_ctx->be->domain->id_max;
+        if (range.max == 0) {
+            range.max = UINT32_MAX;
+        }
+    }
+
+    err = sss_idmap_add_domain_ex(idmap_ctx->map, id_ctx->be->domain->name,
+                                  id_ctx->be->domain->domain_id, &range,
+                                  NULL, 0, true);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not add domain [%s] to the map: [%d]\n",
+               id_ctx->be->domain->name, err));
+        return EIO;
+    }
+
+    return EOK;
+}
+
 errno_t
 sdap_idmap_init(TALLOC_CTX *mem_ctx,
                 struct sdap_id_ctx *id_ctx,
@@ -118,6 +176,18 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
         /* This should never happen */
         DEBUG(SSSDBG_CRIT_FAILURE, ("sss_idmap_ctx corrupted\n"));
         return EIO;
+    }
+
+
+    /* Setup range for externally managed IDs, i.e. IDs are read from the
+     * ldap_user_uid_number and ldap_group_gid_number attributes. */
+    if (!dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_ID_MAPPING)) {
+        ret = sdap_idmap_add_configured_external_range(idmap_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sdap_idmap_add_configured_external_range failed.\n"));
+            goto done;
+        }
     }
 
     /* Read in any existing mappings from the cache */
