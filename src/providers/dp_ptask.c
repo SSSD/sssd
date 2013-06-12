@@ -39,8 +39,8 @@ struct be_ptask {
     time_t enabled_delay;
     time_t timeout;
     enum be_ptask_offline offline;
-    be_ptask_send_t send;
-    be_ptask_recv_t recv;
+    be_ptask_send_t send_fn;
+    be_ptask_recv_t recv_fn;
     void *pvt;
     const char *name;
 
@@ -139,7 +139,7 @@ static void be_ptask_execute(struct tevent_context *ev,
 
     task->last_execution = time(NULL);
 
-    task->req = task->send(task, task->ev, task->be_ctx, task, task->pvt);
+    task->req = task->send_fn(task, task->ev, task->be_ctx, task, task->pvt);
     if (task->req == NULL) {
         /* skip this iteration and try again later */
         DEBUG(SSSDBG_OP_FAILURE, ("Task [%s]: failed to execute task, "
@@ -178,7 +178,7 @@ static void be_ptask_done(struct tevent_req *req)
 
     task = tevent_req_callback_data(req, struct be_ptask);
 
-    ret = task->recv(req);
+    ret = task->recv_fn(req);
     talloc_zfree(req);
     task->req = NULL;
     switch (ret) {
@@ -246,8 +246,8 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t enabled_delay,
                         time_t timeout,
                         enum be_ptask_offline offline,
-                        be_ptask_send_t send,
-                        be_ptask_recv_t recv,
+                        be_ptask_send_t send_fn,
+                        be_ptask_recv_t recv_fn,
                         void *pvt,
                         const char *name,
                         struct be_ptask **_task)
@@ -255,7 +255,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     struct be_ptask *task = NULL;
     errno_t ret;
 
-    if (be_ctx == NULL || period == 0 || send == NULL || recv == NULL
+    if (be_ctx == NULL || period == 0 || send_fn == NULL || recv_fn == NULL
         || name == NULL) {
         return EINVAL;
     }
@@ -272,8 +272,8 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     task->enabled_delay = enabled_delay;
     task->timeout = timeout;
     task->offline = offline;
-    task->send = send;
-    task->recv = recv;
+    task->send_fn = send_fn;
+    task->recv_fn = recv_fn;
     task->pvt = pvt;
     task->name = talloc_strdup(task, name);
     if (task->name == NULL) {
