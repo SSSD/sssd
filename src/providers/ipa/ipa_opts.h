@@ -148,6 +148,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_initgroups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_rfc2307_fallback_to_local_users", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_disable_range_retrieval", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_min_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
+    { "ldap_max_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     DP_OPTION_TERMINATOR
 };
 

@@ -1434,6 +1434,27 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_min_id, ldap_max_id (interger)</term>
+                    <listitem>
+                        <para>
+                            In contrast to the SID based ID mapping which is
+                            used if ldap_id_mapping is set to true the allowed
+                            ID range for ldap_user_uid_number and
+                            ldap_group_gid_number is unbound. In a setup with
+                            sub/trusted-domains this might lead to ID
+                            collisions. To avoid collisions ldap_min_id and
+                            ldap_max_id can be set to restrict the allowed
+                            range for the IDs which are read directly from the
+                            server. Sub-domains can then pick other ranges to
+                            map IDs.
+                        </para>
+                        <para>
+                            Default: not set (both options are set to 0)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_sasl_mech (string)</term>
                     <listitem>
                         <para>
