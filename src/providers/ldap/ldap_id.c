@@ -79,6 +79,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     uid_t uid;
     enum idmap_error_code err;
     char *sid;
+    bool use_id_mapping;
 
     req = tevent_req_create(memctx, &state, struct users_get_state);
     if (!req) return NULL;
@@ -102,6 +103,9 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     state->name = name;
     state->filter_type = filter_type;
 
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                          ctx->opts->idmap_ctx,
+                                                          sdom->dom->domain_id);
     switch (filter_type) {
     case BE_FILTER_NAME:
         attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
@@ -111,7 +115,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         }
         break;
     case BE_FILTER_IDNUM:
-        if (dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING)) {
+        if (use_id_mapping) {
             /* If we're ID-mapping, we need to use the objectSID
              * in the search filter.
              */
@@ -416,7 +420,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     gid_t gid;
     enum idmap_error_code err;
     char *sid;
-    bool use_id_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
+    bool use_id_mapping;
     const char *member_filter[2];
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
@@ -441,6 +445,10 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     state->name = name;
     state->filter_type = filter_type;
 
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                          ctx->opts->idmap_ctx,
+                                                          sdom->dom->domain_id);
+
     switch(filter_type) {
     case BE_FILTER_NAME:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
@@ -451,7 +459,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         }
         break;
     case BE_FILTER_IDNUM:
-        if (dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING)) {
+        if (use_id_mapping) {
             /* If we're ID-mapping, we need to use the objectSID
              * in the search filter.
              */

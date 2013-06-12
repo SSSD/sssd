@@ -49,7 +49,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     bool posix;
     time_t now;
     char *sid_str;
-    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
+    bool use_id_mapping;
 
     /* There are no groups in LDAP but we should add user to groups ?? */
     if (ldap_groups_count == 0) return EOK;
@@ -88,6 +88,9 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
         ret = EOK;
         goto done;
     }
+
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                             domain->domain_id);
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
@@ -2522,6 +2525,8 @@ struct sdap_get_initgr_state {
 
     size_t user_base_iter;
     struct sdap_search_base **user_search_bases;
+
+    bool use_id_mapping;
 };
 
 static errno_t sdap_get_initgr_next_base(struct tevent_req *req);
@@ -2590,6 +2595,10 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    state->use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                         state->opts->idmap_ctx,
+                                                         state->dom->domain_id);
+
     ret = sdap_get_initgr_next_base(req);
 
 done:
@@ -2649,8 +2658,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     const char *orig_dn;
     const char *cname;
     bool in_transaction = false;
-    bool use_id_mapping =
-            dp_opt_get_bool(state->opts->basic, SDAP_ID_MAPPING);
 
     DEBUG(9, ("Receiving info for the user\n"));
 
@@ -2753,7 +2760,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
 
-        if (use_id_mapping
+        if (state->use_id_mapping
                 && state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
             /* Take advantage of AD's tokenGroups mechanism to look up all
              * parent groups in a single request.
@@ -2835,7 +2842,6 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     char *dom_sid_str;
     char *group_sid_str;
     struct sdap_options *opts = state->opts;
-    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
 
     DEBUG(9, ("Initgroups done\n"));
 
@@ -2852,7 +2858,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_AD:
-        if (use_id_mapping
+        if (state->use_id_mapping
                 && state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
             ret = sdap_get_ad_tokengroups_initgroups_recv(subreq);
         }
@@ -2886,7 +2892,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
      * the user may not be an explicit member of that group
      */
 
-    if (use_id_mapping) {
+    if (state->use_id_mapping) {
         DEBUG(SSSDBG_TRACE_LIBS,
               ("Mapping primary group to unix ID\n"));
 

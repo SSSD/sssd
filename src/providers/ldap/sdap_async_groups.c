@@ -435,7 +435,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     char *usn_value = NULL;
     TALLOC_CTX *tmpctx = NULL;
     bool posix_group;
-    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
+    bool use_id_mapping;
     char *sid_str;
 
     tmpctx = talloc_new(NULL);
@@ -480,6 +480,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         sid_str = NULL;
     }
 
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                               sid_str);
     if (use_id_mapping) {
         posix_group = true;
 

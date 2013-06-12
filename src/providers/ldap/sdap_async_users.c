@@ -122,7 +122,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *usn_value = NULL;
     char **missing = NULL;
     TALLOC_CTX *tmpctx = NULL;
-    bool use_id_mapping = dp_opt_get_bool(opts->basic, SDAP_ID_MAPPING);
+    bool use_id_mapping;
     char *sid_str;
     char *dom_sid_str = NULL;
 
@@ -215,6 +215,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
         sid_str = NULL;
     }
 
+
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                               sid_str);
 
     /* Retrieve or map the UID as appropriate */
     if (use_id_mapping) {

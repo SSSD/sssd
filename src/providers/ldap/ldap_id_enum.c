@@ -30,6 +30,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_idmap.h"
 
 extern struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
                                                struct tevent_context *ev,
@@ -498,7 +499,9 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->op = op;
 
-    use_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
+    use_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                          ctx->opts->idmap_ctx,
+                                                          sdom->dom->domain_id);
 
     /* We always want to filter on objectclass and an available name */
     state->filter = talloc_asprintf(state,
@@ -663,7 +666,9 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->op = op;
 
-    use_mapping = dp_opt_get_bool(ctx->opts->basic, SDAP_ID_MAPPING);
+    use_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                          ctx->opts->idmap_ctx,
+                                                          sdom->dom->domain_id);
 
     /* We always want to filter on objectclass and an available name */
     state->filter = talloc_asprintf(state,
