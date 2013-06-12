@@ -577,10 +577,10 @@ endif
 libsss_util_la_LDFLAGS = -avoid-version
 
 SSSD_INTERNAL_LTLIBS = \
+    libsss_util.la \
     libsss_crypt.la \
     libsss_debug.la \
-    libsss_child.la \
-    libsss_util.la
+    libsss_child.la
 
 lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
 dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
