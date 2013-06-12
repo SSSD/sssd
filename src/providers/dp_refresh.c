@@ -119,8 +119,8 @@ typedef errno_t
 struct be_refresh_cb {
     bool enabled;
     be_refresh_get_values_t get_values;
-    be_refresh_send_t send;
-    be_refresh_recv_t recv;
+    be_refresh_send_t send_fn;
+    be_refresh_recv_t recv_fn;
     void *pvt;
 };
 
@@ -145,11 +145,11 @@ struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx)
 
 errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
                           enum be_refresh_type type,
-                          be_refresh_send_t send,
-                          be_refresh_recv_t recv,
+                          be_refresh_send_t send_fn,
+                          be_refresh_recv_t recv_fn,
                           void *pvt)
 {
-    if (ctx == NULL || send == NULL || recv == NULL
+    if (ctx == NULL || send_fn == NULL || recv_fn == NULL
             || type >= BE_REFRESH_TYPE_SENTINEL) {
         return EINVAL;
     }
@@ -159,8 +159,8 @@ errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
     }
 
     ctx->callbacks[type].enabled = true;
-    ctx->callbacks[type].send = send;
-    ctx->callbacks[type].recv = recv;
+    ctx->callbacks[type].send_fn = send_fn;
+    ctx->callbacks[type].recv_fn = recv_fn;
     ctx->callbacks[type].pvt = pvt;
 
     return EOK;
@@ -246,8 +246,8 @@ static errno_t be_refresh_step(struct tevent_req *req)
         goto done;
     }
 
-    if (state->cb->get_values == NULL || state->cb->send == NULL
-        || state->cb->recv == NULL) {
+    if (state->cb->get_values == NULL || state->cb->send_fn == NULL
+        || state->cb->recv_fn == NULL) {
         ret = EINVAL;
         goto done;
     }
@@ -260,7 +260,7 @@ static errno_t be_refresh_step(struct tevent_req *req)
         goto done;
     }
 
-    subreq = state->cb->send(state, state->ev, state->be_ctx,
+    subreq = state->cb->send_fn(state, state->ev, state->be_ctx,
                              values, state->cb->pvt);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -288,7 +288,7 @@ static void be_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct be_refresh_state);
 
-    ret = state->cb->recv(subreq);
+    ret = state->cb->recv_fn(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;

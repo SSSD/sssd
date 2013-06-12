@@ -54,8 +54,8 @@ struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx);
 
 errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
                           enum be_refresh_type type,
-                          be_refresh_send_t send,
-                          be_refresh_recv_t recv,
+                          be_refresh_send_t send_fn,
+                          be_refresh_recv_t recv_fn,
                           void *pvt);
 
 struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
