@@ -26,10 +26,14 @@
 #include "src/providers/ldap/sdap.h"
 #include "src/providers/ldap/ldap_common.h"
 
+typedef errno_t (find_new_domain_fn_t)(struct sdap_idmap_ctx *idmap_ctx,
+                                       const char *dom_name,
+                                       const char *dom_sid_str);
 struct sdap_idmap_ctx {
     struct sss_idmap_ctx *map;
 
     struct sdap_id_ctx *id_ctx;
+    find_new_domain_fn_t *find_new_domain;
 };
 
 errno_t sdap_idmap_init(TALLOC_CTX *mem_ctx,

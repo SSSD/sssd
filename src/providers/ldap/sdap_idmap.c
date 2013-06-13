@@ -95,6 +95,24 @@ sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
     return EOK;
 }
 
+errno_t sdap_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
+                                   const char *dom_name,
+                                   const char *dom_sid_str)
+{
+    int ret;
+
+    ret = sdap_idmap_add_domain(idmap_ctx,
+                                dom_name, dom_sid_str,
+                                -1);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not add new domain [%s]\n", dom_name));
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t
 sdap_idmap_init(TALLOC_CTX *mem_ctx,
                 struct sdap_id_ctx *id_ctx,
@@ -124,6 +142,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
     idmap_ctx->id_ctx = id_ctx;
+    idmap_ctx->find_new_domain = sdap_idmap_find_new_domain;
 
     idmap_lower = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
                                  SDAP_IDMAP_LOWER);
@@ -418,9 +437,7 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
             goto done;
         }
 
-        ret = sdap_idmap_add_domain(idmap_ctx,
-                                    dom_sid_str, dom_sid_str,
-                                    -1);
+        ret = idmap_ctx->find_new_domain(idmap_ctx, dom_sid_str, dom_sid_str);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not add new domain for sid [%s]\n", sid_str));
