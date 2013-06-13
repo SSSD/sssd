@@ -1131,6 +1131,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         break;
     case SRV_RESOLVE_ERROR: /* query could not be resolved but don't retry yet */
         ret = EIO;
+        state->out = server;
         goto done;
     case SRV_RESOLVED:  /* The query is resolved and valid. Return. */
         state->out = server;
