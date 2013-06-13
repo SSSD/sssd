@@ -1172,9 +1172,11 @@ static errno_t map_krb5_error(krb5_error_code kerr)
         return ERR_CREDS_EXPIRED;
 
     case KRB5KRB_AP_ERR_BAD_INTEGRITY:
+        return ERR_AUTH_FAILED;
+
     case KRB5_PREAUTH_FAILED:
     case KRB5KDC_ERR_PREAUTH_FAILED:
-        return ERR_AUTH_FAILED;
+        return ERR_CREDS_INVALID;
 
     default:
         return ERR_INTERNAL;
