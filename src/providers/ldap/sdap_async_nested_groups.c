@@ -2048,6 +2048,18 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Received %d dereference results, "
           "about to process them\n", num_entries));
 
+    if (members->num_values < num_entries) {
+        /* Dereference returned more values than obtained earlier. We need
+         * to adjust group array size. */
+        state->nested_groups = talloc_realloc(state, state->nested_groups,
+                                              struct sysdb_attrs *,
+                                              num_entries);
+        if (state->nested_groups == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     for (i = 0; i < num_entries; i++) {
         ret = sysdb_attrs_get_string(entries[i]->attrs,
                                      SYSDB_ORIG_DN, &orig_dn);
@@ -2153,6 +2165,15 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
                   ("Entry does not match any known map, skipping\n"));
             continue;
         }
+    }
+
+    /* adjust size of nested groups array */
+    state->nested_groups = talloc_realloc(state, state->nested_groups,
+                                          struct sysdb_attrs *,
+                                          state->num_groups);
+    if (state->nested_groups == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = EOK;
