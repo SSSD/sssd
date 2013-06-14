@@ -854,7 +854,7 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
     ad_opts->service->krb5_service->write_kdcinfo = \
         dp_opt_get_bool(krb5_options, KRB5_USE_KDCINFO);
     DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
-          ad_opts->auth[KRB5_USE_KDCINFO].opt_name,
+          krb5_options[KRB5_USE_KDCINFO].opt_name,
           ad_opts->service->krb5_service->write_kdcinfo ? "true" : "false"));
 
     *_opts = talloc_steal(mem_ctx, krb5_options);
