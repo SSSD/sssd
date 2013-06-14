@@ -67,7 +67,6 @@ struct ad_options {
     struct ad_id_ctx *id_ctx;
 
     /* Auth and chpass Provider */
-    struct dp_option *auth;
     struct krb5_ctx *auth_ctx;
 
     /* Dynamic DNS updates */
