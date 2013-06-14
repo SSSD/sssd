@@ -130,6 +130,7 @@
 #define SYSDB_BASE_RID "baseRID"
 #define SYSDB_SECONDARY_BASE_RID "secondaryBaseRID"
 #define SYSDB_DOMAIN_ID "domainID"
+#define SYSDB_ID_RANGE_TYPE "idRangeType"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
@@ -245,6 +246,7 @@ struct range_info {
     uint32_t base_rid;
     uint32_t secondary_base_rid;
     char *trusted_dom_sid;
+    char *range_type;
 };
 
 

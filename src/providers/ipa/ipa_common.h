@@ -142,6 +142,10 @@ struct ipa_options {
     struct ipa_auth_ctx *auth_ctx;
 };
 
+#define IPA_RANGE_LOCAL "ipa-local"
+#define IPA_RANGE_AD_TRUST "ipa-ad-trust"
+#define IPA_RANGE_AD_TRUST_POSIX "ipa-ad-trust-posix"
+
 /* options parsers */
 int ipa_get_options(TALLOC_CTX *memctx,
                     struct confdb_ctx *cdb,

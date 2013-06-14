@@ -53,6 +53,7 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                            SYSDB_BASE_RID,
                            SYSDB_SECONDARY_BASE_RID,
                            SYSDB_DOMAIN_ID,
+                           SYSDB_ID_RANGE_TYPE,
                            NULL};
     struct range_info **list;
     struct ldb_dn *basedn;
@@ -140,6 +141,17 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE, ("find_attr_as_uint32_t failed.\n"));
             goto done;
         }
+
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[c], SYSDB_ID_RANGE_TYPE,
+                                              NULL);
+        if (tmp_str != NULL) {
+            list[c]->range_type = talloc_strdup(list, tmp_str);
+            if (list[c]->range_type == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
     }
     list[res->count] = NULL;
 
@@ -226,6 +238,10 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
                     (unsigned long)time(NULL));
+    if (ret) goto done;
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_ID_RANGE_TYPE,
+                     range->range_type);
     if (ret) goto done;
 
     ret = ldb_add(sysdb->ldb, msg);

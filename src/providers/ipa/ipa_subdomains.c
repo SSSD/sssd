@@ -35,6 +35,7 @@
 #define IPA_FLATNAME "ipaNTFlatName"
 #define IPA_SID "ipaNTSecurityIdentifier"
 #define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
+#define IPA_RANGE_TYPE "ipaRangeType"
 
 #define IPA_BASE_ID "ipaBaseID"
 #define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
@@ -60,7 +61,7 @@ enum ipa_subdomains_req_type {
 struct ipa_subdomains_req_params {
     const char *filter;
     tevent_req_fn cb;
-    const char *attrs[8];
+    const char *attrs[9];
 };
 
 struct ipa_subdomains_ctx {
@@ -186,6 +187,34 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
                                        &range_list[c]->secondary_base_rid);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_RANGE_TYPE, &value);
+        if (ret == EOK) {
+            range_list[c]->range_type = talloc_strdup(range_list[c], value);
+            if (range_list[c]->range_type == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (ret == ENOENT) {
+            /* Older IPA servers might not have the range_type attribute, but
+             * only support local ranges and trusts with algorithmic mapping. */
+            if (range_list[c]->trusted_dom_sid == NULL) {
+                range_list[c]->range_type = talloc_strdup(range_list[c],
+                                                          IPA_RANGE_LOCAL);
+            } else {
+                range_list[c]->range_type = talloc_strdup(range_list[c],
+                                                          IPA_RANGE_AD_TRUST);
+            }
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            goto done;
+        }
+        if (range_list[c]->range_type == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            ret = ENOMEM;
             goto done;
         }
     }
@@ -377,7 +406,7 @@ static struct ipa_subdomains_req_params subdomain_requests[] = {
       ipa_subdomains_handler_ranges_done,
       { OBJECTCLASS, IPA_CN,
         IPA_BASE_ID, IPA_BASE_RID, IPA_SECONDARY_BASE_RID,
-        IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID, NULL
+        IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID, IPA_RANGE_TYPE, NULL
       }
     }
 };

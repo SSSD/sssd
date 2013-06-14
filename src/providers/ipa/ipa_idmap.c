@@ -23,10 +23,7 @@
 
 #include "util/util.h"
 #include "providers/ldap/sdap_idmap.h"
-
-#define IPA_RANGE_LOCAL "ipa-local"
-#define IPA_RANGE_AD_TRUST "ipa-ad-trust"
-#define IPA_RANGE_AD_TRUST_POSIX "ipa-ad-trust-posix"
+#include "providers/ipa/ipa_common.h"
 
 static void *
 ipa_idmap_talloc(size_t size, void *pvt)
