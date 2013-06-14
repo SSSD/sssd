@@ -183,4 +183,7 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
                   struct bet_ops **ops,
                   void **pvt_data);
 
+errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
+                       struct sdap_id_ctx *id_ctx,
+                       struct sdap_idmap_ctx **_idmap_ctx);
 #endif /* _IPA_COMMON_H_ */

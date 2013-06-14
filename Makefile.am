@@ -1574,6 +1574,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_selinux_maps.c \
     src/providers/ipa/ipa_selinux_common.c \
     src/providers/ipa/ipa_srv.c \
+    src/providers/ipa/ipa_idmap.c \
     src/util/user_info_msg.c \
     src/util/find_uid.c \
     src/util/sss_ldap.c \

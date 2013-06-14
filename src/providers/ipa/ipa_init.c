@@ -188,7 +188,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
 
     /* Set up the ID mapping object */
-    ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
+    ret = ipa_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
     if (ret != EOK) goto done;
 
     ret = sdap_id_setup_tasks(sdap_ctx);
