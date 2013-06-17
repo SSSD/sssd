@@ -129,6 +129,10 @@ static void ipa_hbac_check(struct tevent_req *req)
         pd->pam_status = PAM_PERM_DENIED;
         be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
         return;
+    case ERR_ACCOUNT_EXPIRED:
+        pd->pam_status = PAM_ACCT_EXPIRED;
+        be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
+        return;
     default:
         /* We got an unexpected error. Return it as-is */
         pd->pam_status = PAM_SYSTEM_ERR;

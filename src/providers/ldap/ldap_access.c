@@ -34,7 +34,8 @@ static void sdap_access_reply(struct be_req *be_req, int pam_status)
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
     pd->pam_status = pam_status;
 
-    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
+    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED
+            || pam_status == PAM_ACCT_EXPIRED) {
         be_req_terminate(be_req, DP_ERR_OK, pam_status, NULL);
     } else {
         be_req_terminate(be_req, DP_ERR_FATAL, pam_status, NULL);
@@ -81,6 +82,9 @@ static void sdap_access_done(struct tevent_req *req)
         break;
     case ERR_ACCESS_DENIED:
         pam_status = PAM_PERM_DENIED;
+        break;
+    case ERR_ACCOUNT_EXPIRED:
+        pam_status = PAM_ACCT_EXPIRED;
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error retrieving access check result.\n"));

@@ -86,6 +86,10 @@ ad_access_done(struct tevent_req *req)
         pd->pam_status = PAM_PERM_DENIED;
         be_req_terminate(breq, DP_ERR_OK, PAM_PERM_DENIED, NULL);
         return;
+    case ERR_ACCOUNT_EXPIRED:
+        pd->pam_status = PAM_ACCT_EXPIRED;
+        be_req_terminate(breq, DP_ERR_OK, PAM_ACCT_EXPIRED, NULL);
+        return;
     default:
         /* Something went wrong */
         pd->pam_status = PAM_SYSTEM_ERR;
