@@ -338,6 +338,8 @@ static enum idmap_error_code dom_check_collision(
                                              struct idmap_domain_info *new_dom)
 {
     struct idmap_domain_info *dom;
+    bool names_equal;
+    bool sids_equal;
 
     for (dom = dom_list; dom != NULL; dom = dom->next) {
 
@@ -352,24 +354,24 @@ static enum idmap_error_code dom_check_collision(
             return IDMAP_COLLISION;
         }
 
+        names_equal = (strcasecmp(new_dom->name, dom->name) == 0);
+        sids_equal = ((new_dom->sid == NULL && dom->sid == NULL)
+                        || (new_dom->sid != NULL && dom->sid != NULL
+                            && strcasecmp(new_dom->sid, dom->sid) == 0));
+
         /* check if domain name and SID are consistent */
-        if ((strcasecmp(new_dom->name, dom->name) == 0
-                && strcasecmp(new_dom->sid, dom->sid) != 0)
-            || (strcasecmp(new_dom->name, dom->name) != 0
-                && strcasecmp(new_dom->sid, dom->sid) == 0)) {
+        if ((names_equal && !sids_equal) || (!names_equal && sids_equal)) {
             return IDMAP_COLLISION;
         }
 
         /* check if external_mapping is consistent */
-        if (strcasecmp(new_dom->name, dom->name) == 0
-                && strcasecmp(new_dom->sid, dom->sid) == 0
+        if (names_equal && sids_equal
                 && new_dom->external_mapping != dom->external_mapping) {
             return IDMAP_COLLISION;
         }
 
         /* check if RID ranges overlap */
-        if (strcasecmp(new_dom->name, dom->name) == 0
-                && strcasecmp(new_dom->sid, dom->sid) == 0
+        if (names_equal && sids_equal
                 && new_dom->external_mapping == false
                 && new_dom->first_rid >= dom->first_rid
                 && new_dom->first_rid <=
@@ -402,7 +404,12 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
         return IDMAP_NO_RANGE;
     }
 
-    if (!is_domain_sid(domain_sid)) {
+    /* For algorithmic mapping a valid domain SID is required, for external
+     * mapping it may be NULL, but if set it should be valid. */
+    if ((!external_mapping && !is_domain_sid(domain_sid))
+            || (external_mapping
+                && domain_sid != NULL
+                && !is_domain_sid(domain_sid))) {
         return IDMAP_SID_INVALID;
     }
 
@@ -417,9 +424,11 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
         goto fail;
     }
 
-    dom->sid = idmap_strdup(ctx, domain_sid);
-    if (dom->sid == NULL) {
-        goto fail;
+    if (domain_sid != NULL) {
+        dom->sid = idmap_strdup(ctx, domain_sid);
+        if (dom->sid == NULL) {
+            goto fail;
+        }
     }
 
     dom->range = idmap_range_dup(ctx, range);
@@ -498,30 +507,32 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
     }
 
     while (idmap_domain_info != NULL) {
-        dom_len = strlen(idmap_domain_info->sid);
-        if (strlen(sid) > dom_len && sid[dom_len] == '-'
-                && strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
+        if (idmap_domain_info->sid != NULL) {
+            dom_len = strlen(idmap_domain_info->sid);
+            if (strlen(sid) > dom_len && sid[dom_len] == '-'
+                    && strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
 
-            if (idmap_domain_info->external_mapping == true) {
-                return IDMAP_EXTERNAL;
-            }
-
-            errno = 0;
-            rid = strtoull(sid + dom_len + 1, &endptr, 10);
-            if (errno != 0 || rid > UINT32_MAX || *endptr != '\0') {
-                return IDMAP_SID_INVALID;
-            }
-
-            if (rid >= idmap_domain_info->first_rid) {
-                id = idmap_domain_info->range->min
-                        + (rid - idmap_domain_info->first_rid);
-                if (id <= idmap_domain_info->range->max) {
-                    *_id = id;
-                    return IDMAP_SUCCESS;
+                if (idmap_domain_info->external_mapping == true) {
+                    return IDMAP_EXTERNAL;
                 }
-            }
 
-            no_range = true;
+                errno = 0;
+                rid = strtoull(sid + dom_len + 1, &endptr, 10);
+                if (errno != 0 || rid > UINT32_MAX || *endptr != '\0') {
+                    return IDMAP_SID_INVALID;
+                }
+
+                if (rid >= idmap_domain_info->first_rid) {
+                    id = idmap_domain_info->range->min
+                            + (rid - idmap_domain_info->first_rid);
+                    if (id <= idmap_domain_info->range->max) {
+                        *_id = id;
+                        return IDMAP_SUCCESS;
+                    }
+                }
+
+                no_range = true;
+            }
         }
 
         idmap_domain_info = idmap_domain_info->next;
@@ -547,7 +558,8 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
     while (idmap_domain_info != NULL) {
         if (id_is_in_range(id, idmap_domain_info, &rid)) {
 
-            if (idmap_domain_info->external_mapping == true) {
+            if (idmap_domain_info->external_mapping == true
+                    || idmap_domain_info->sid == NULL) {
                 return IDMAP_EXTERNAL;
             }
 
