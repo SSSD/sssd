@@ -2168,12 +2168,16 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     }
 
     /* adjust size of nested groups array */
-    state->nested_groups = talloc_realloc(state, state->nested_groups,
-                                          struct sysdb_attrs *,
-                                          state->num_groups);
-    if (state->nested_groups == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (state->num_groups > 0) {
+        state->nested_groups = talloc_realloc(state, state->nested_groups,
+                                              struct sysdb_attrs *,
+                                              state->num_groups);
+        if (state->nested_groups == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        talloc_zfree(state->nested_groups);
     }
 
     ret = EOK;
