@@ -124,7 +124,6 @@ sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
                              struct sdap_nested_group_ctx *group_ctx,
                              struct ldb_message_element *members,
                              const char *group_dn,
-                             int num_groups_max,
                              int nesting_level);
 
 static errno_t sdap_nested_group_deref_recv(struct tevent_req *req);
@@ -830,7 +829,6 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
         state->deref = true;
         subreq = sdap_nested_group_deref_send(state, ev, group_ctx, members,
                                               orig_dn,
-                                              state->num_missing_groups,
                                               state->nesting_level);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Members of group [%s] will be "
@@ -1932,7 +1930,6 @@ sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
                              struct sdap_nested_group_ctx *group_ctx,
                              struct ldb_message_element *members,
                              const char *group_dn,
-                             int num_groups_max,
                              int nesting_level)
 {
     struct sdap_nested_group_deref_state *state = NULL;
@@ -1956,12 +1953,6 @@ sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
     state->group_ctx = group_ctx;
     state->members = members;
     state->nesting_level = nesting_level;
-    state->nested_groups = talloc_zero_array(state, struct sysdb_attrs *,
-                                             num_groups_max);
-    if (state->nested_groups == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
     state->num_groups = 0; /* we will count exact number of the groups */
 
     maps = talloc_array(state, struct sdap_attr_map_info, num_maps);
@@ -2048,16 +2039,16 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Received %d dereference results, "
           "about to process them\n", num_entries));
 
-    if (members->num_values < num_entries) {
-        /* Dereference returned more values than obtained earlier. We need
-         * to adjust group array size. */
-        state->nested_groups = talloc_realloc(state, state->nested_groups,
-                                              struct sysdb_attrs *,
-                                              num_entries);
-        if (state->nested_groups == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
+    /*
+     * We don't have any knowledge about possible number of groups when
+     * dereferencing. We expect that every member is a group and we will
+     * allocate enough space to hold it. We will shrink the memory later.
+     */
+    state->nested_groups = talloc_zero_array(state, struct sysdb_attrs *,
+                                             num_entries);
+    if (state->nested_groups == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
     for (i = 0; i < num_entries; i++) {
