@@ -129,7 +129,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
     }
 
     ad_ctx = talloc_zero(ad_options, struct ad_id_ctx);
-    if (!ad_options) {
+    if (ad_ctx == NULL) {
         return ENOMEM;
     }
     ad_ctx->ad_options = ad_options;
