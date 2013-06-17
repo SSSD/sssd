@@ -931,7 +931,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
         }
         memset(&entry, 0, sizeof(entry));
 
-        if (krb5_realm_compare(kr->ctx, validation_princ, kr->princ)) {
+        if (krb5_realm_compare(kr->ctx, validation_princ, kr->creds->client)) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   ("Found keytab entry with the realm of the credential.\n"));
             realm_entry_found = true;
