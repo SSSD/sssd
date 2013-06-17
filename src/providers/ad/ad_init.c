@@ -109,7 +109,6 @@ sssm_ad_id_init(struct be_ctx *bectx,
 {
     errno_t ret;
     struct ad_id_ctx *ad_ctx;
-    struct sdap_id_ctx *sdap_ctx;
     const char *hostname;
     const char *ad_domain;
     struct ad_srv_plugin_ctx *srv_ctx;
@@ -128,26 +127,14 @@ sssm_ad_id_init(struct be_ctx *bectx,
         return EOK;
     }
 
-    ad_ctx = talloc_zero(ad_options, struct ad_id_ctx);
+
+    ad_ctx = ad_id_ctx_init(ad_options, bectx);
     if (ad_ctx == NULL) {
         return ENOMEM;
     }
-    ad_ctx->ad_options = ad_options;
     ad_options->id_ctx = ad_ctx;
 
-    sdap_ctx = sdap_id_ctx_new(ad_options, bectx, ad_options->service->sdap);
-    if (sdap_ctx == NULL) {
-        return ENOMEM;
-    }
-    ad_ctx->sdap_id_ctx = sdap_ctx;
-    ad_ctx->ldap_ctx = sdap_ctx->conn;
-
-    ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_options->service->gc);
-    if (ad_ctx->gc_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    ret = ad_dyndns_init(sdap_ctx->be, ad_options);
+    ret = ad_dyndns_init(ad_ctx->sdap_id_ctx->be, ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
              ("Failure setting up automatic DNS update\n"));
@@ -165,22 +152,23 @@ sssm_ad_id_init(struct be_ctx *bectx,
     /* Set up various SDAP options */
     ret = ad_get_id_options(ad_options, bectx->cdb,
                             bectx->conf_path,
-                            &sdap_ctx->opts);
+                            &ad_ctx->sdap_id_ctx->opts);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = sdap_id_setup_tasks(sdap_ctx);
+    ret = sdap_id_setup_tasks(ad_ctx->sdap_id_ctx);
     if (ret != EOK) {
         goto done;
     }
 
     /* Set up the ID mapping object */
-    ret = sdap_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
+    ret = sdap_idmap_init(ad_ctx->sdap_id_ctx, ad_ctx->sdap_id_ctx,
+                          &ad_ctx->sdap_id_ctx->opts->idmap_ctx);
     if (ret != EOK) goto done;
 
 
-    ret = setup_tls_config(sdap_ctx->opts->basic);
+    ret = setup_tls_config(ad_ctx->sdap_id_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("setup_tls_config failed [%s]\n", strerror(ret)));
@@ -217,7 +205,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ret = be_refresh_add_cb(bectx->refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
                             sdap_refresh_netgroups_send,
                             sdap_refresh_netgroups_recv,
-                            sdap_ctx);
+                            ad_ctx->sdap_id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Periodical refresh of netgroups "
               "will not work [%d]: %s\n", ret, strerror(ret)));

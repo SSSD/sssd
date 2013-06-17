@@ -29,6 +29,214 @@ struct ad_server_data {
     bool gc;
 };
 
+errno_t ad_set_search_bases(struct sdap_options *id_opts);
+static errno_t ad_set_ad_id_options(struct ad_options *ad_opts,
+                                    struct sdap_options *id_opts);
+
+static struct sdap_options *
+ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
+{
+    struct sdap_options *id_opts;
+    errno_t ret;
+
+    id_opts = talloc_zero(mem_ctx, struct sdap_options);
+    if (!id_opts) {
+        return NULL;
+    }
+
+    ret = dp_copy_options(id_opts,
+                          ad_def_ldap_opts,
+                          SDAP_OPTS_BASIC,
+                          &id_opts->basic);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* Get sdap option maps */
+
+    /* General Attribute Map */
+    ret = sdap_copy_map(id_opts,
+                       ad_2008r2_attr_map,
+                       SDAP_AT_GENERAL,
+                       &id_opts->gen_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* User map */
+    ret = sdap_copy_map(id_opts,
+                       ad_2008r2_user_map,
+                       SDAP_OPTS_USER,
+                       &id_opts->user_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* Group map */
+    ret = sdap_copy_map(id_opts,
+                       ad_2008r2_group_map,
+                       SDAP_OPTS_GROUP,
+                       &id_opts->group_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* Netgroup map */
+    ret = sdap_copy_map(id_opts,
+                       ad_netgroup_map,
+                       SDAP_OPTS_NETGROUP,
+                       &id_opts->netgroup_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    /* Services map */
+    ret = sdap_copy_map(id_opts,
+                       ad_service_map,
+                       SDAP_OPTS_SERVICES,
+                       &id_opts->service_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    return id_opts;
+
+fail:
+    talloc_free(id_opts);
+    return NULL;
+}
+
+struct ad_options *
+ad_create_default_options(TALLOC_CTX *mem_ctx,
+                          const char *realm,
+                          const char *hostname)
+{
+    struct ad_options *ad_options;
+    errno_t ret;
+
+    ad_options = talloc_zero(mem_ctx, struct ad_options);
+    if (ad_options == NULL) return NULL;
+
+    ret = dp_copy_options(ad_options,
+                          ad_basic_opts,
+                          AD_OPTS_BASIC,
+                          &ad_options->basic);
+    if (ret != EOK) {
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ad_options->id = ad_create_default_sdap_options(ad_options);
+    if (ad_options->id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD LDAP options\n"));
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM, realm);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_HOSTNAME, hostname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = ad_set_ad_id_options(ad_options, ad_options->id);
+    if (ret != EOK) {
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    return ad_options;
+}
+
+static errno_t
+ad_create_sdap_options(TALLOC_CTX *mem_ctx,
+                       struct confdb_ctx *cdb,
+                       const char *conf_path,
+                       struct sdap_options **_id_opts)
+{
+    struct sdap_options *id_opts;
+    errno_t ret;
+
+    id_opts = talloc_zero(mem_ctx, struct sdap_options);
+    if (!id_opts) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = dp_get_options(id_opts, cdb, conf_path,
+                         ad_def_ldap_opts,
+                         SDAP_OPTS_BASIC,
+                         &id_opts->basic);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get sdap option maps */
+
+    /* General Attribute Map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_2008r2_attr_map,
+                       SDAP_AT_GENERAL,
+                       &id_opts->gen_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* User map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_2008r2_user_map,
+                       SDAP_OPTS_USER,
+                       &id_opts->user_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Group map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_2008r2_group_map,
+                       SDAP_OPTS_GROUP,
+                       &id_opts->group_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Netgroup map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_netgroup_map,
+                       SDAP_OPTS_NETGROUP,
+                       &id_opts->netgroup_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Services map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_service_map,
+                       SDAP_OPTS_SERVICES,
+                       &id_opts->service_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+    *_id_opts = id_opts;
+done:
+    return ret;
+}
+
 errno_t
 ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct confdb_ctx *cdb,
@@ -576,48 +784,13 @@ done:
     return;
 }
 
-errno_t
-ad_set_search_bases(struct sdap_options *id_opts);
-
-errno_t
-ad_get_id_options(struct ad_options *ad_opts,
-                   struct confdb_ctx *cdb,
-                   const char *conf_path,
-                   struct sdap_options **_opts)
+static errno_t
+ad_set_ad_id_options(struct ad_options *ad_opts,
+                     struct sdap_options *id_opts)
 {
     errno_t ret;
-    TALLOC_CTX *tmp_ctx;
-    struct sdap_options *id_opts;
     char *krb5_realm;
     char *keytab_path;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
-    id_opts = talloc_zero(tmp_ctx, struct sdap_options);
-    if (!id_opts) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sdap_domain_add(id_opts,
-                          ad_opts->id_ctx->sdap_id_ctx->be->domain,
-                          NULL);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = dp_get_options(id_opts, cdb, conf_path,
-                         ad_def_ldap_opts,
-                         SDAP_OPTS_BASIC,
-                         &id_opts->basic);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Set up search bases if they were assigned explicitly */
-    ret = ad_set_search_bases(id_opts);
-    if (ret != EOK) goto done;
 
     /* We only support Kerberos password policy with AD, so
      * force that on.
@@ -671,64 +844,49 @@ ad_get_id_options(struct ad_options *ad_opts,
     /* fix schema to AD  */
     id_opts->schema_type = SDAP_SCHEMA_AD;
 
-    /* Get sdap option maps */
-
-    /* General Attribute Map */
-    ret = sdap_get_map(id_opts,
-                       cdb, conf_path,
-                       ad_2008r2_attr_map,
-                       SDAP_AT_GENERAL,
-                       &id_opts->gen_map);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* User map */
-    ret = sdap_get_map(id_opts,
-                       cdb, conf_path,
-                       ad_2008r2_user_map,
-                       SDAP_OPTS_USER,
-                       &id_opts->user_map);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Group map */
-    ret = sdap_get_map(id_opts,
-                       cdb, conf_path,
-                       ad_2008r2_group_map,
-                       SDAP_OPTS_GROUP,
-                       &id_opts->group_map);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Netgroup map */
-    ret = sdap_get_map(id_opts,
-                       cdb, conf_path,
-                       ad_netgroup_map,
-                       SDAP_OPTS_NETGROUP,
-                       &id_opts->netgroup_map);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Services map */
-    ret = sdap_get_map(id_opts,
-                       cdb, conf_path,
-                       ad_service_map,
-                       SDAP_OPTS_SERVICES,
-                       &id_opts->service_map);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ad_opts->id = talloc_steal(ad_opts, id_opts);
-    *_opts = id_opts;
+    ad_opts->id = id_opts;
     ret = EOK;
 done:
-    talloc_free(tmp_ctx);
     return ret;
+}
+
+errno_t
+ad_get_id_options(struct ad_options *ad_opts,
+                  struct confdb_ctx *cdb,
+                  const char *conf_path,
+                  struct sdap_options **_opts)
+{
+    struct sdap_options *id_opts;
+    errno_t ret;
+
+    ret = ad_create_sdap_options(ad_opts, cdb, conf_path, &id_opts);
+    if (ret != EOK) {
+        return ENOMEM;
+    }
+
+    ret = ad_set_ad_id_options(ad_opts, id_opts);
+    if (ret != EOK) {
+        talloc_free(id_opts);
+        return ret;
+    }
+
+    ret = sdap_domain_add(id_opts,
+                          ad_opts->id_ctx->sdap_id_ctx->be->domain,
+                          NULL);
+    if (ret != EOK) {
+        talloc_free(id_opts);
+        return ret;
+    }
+
+    /* Set up search bases if they were assigned explicitly */
+    ret = ad_set_search_bases(id_opts);
+    if (ret != EOK) {
+        talloc_free(id_opts);
+        return ret;
+    }
+
+    *_opts = id_opts;
+    return EOK;
 }
 
 errno_t
@@ -897,4 +1055,34 @@ errno_t ad_get_dyndns_options(struct be_ctx *be_ctx,
     }
 
     return EOK;
+}
+
+
+struct ad_id_ctx *
+ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
+{
+    struct sdap_id_ctx *sdap_ctx;
+    struct ad_id_ctx *ad_ctx;
+
+    ad_ctx = talloc_zero(ad_opts, struct ad_id_ctx);
+    if (ad_ctx == NULL) {
+        return NULL;
+    }
+    ad_ctx->ad_options = ad_opts;
+
+    sdap_ctx = sdap_id_ctx_new(ad_ctx, bectx, ad_opts->service->sdap);
+    if (sdap_ctx == NULL) {
+        talloc_free(ad_ctx);
+        return NULL;
+    }
+    ad_ctx->sdap_id_ctx = sdap_ctx;
+    ad_ctx->ldap_ctx = sdap_ctx->conn;
+
+    ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_opts->service->gc);
+    if (ad_ctx->gc_ctx == NULL) {
+        talloc_free(ad_ctx);
+        return NULL;
+    }
+
+    return ad_ctx;
 }

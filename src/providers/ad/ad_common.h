@@ -82,6 +82,10 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *dom,
                       struct ad_options **_opts);
 
+struct ad_options *ad_create_default_options(TALLOC_CTX *mem_ctx,
+                                             const char *realm,
+                                             const char *hostname);
+
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  const char *primary_servers,
@@ -103,6 +107,9 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
 errno_t
 ad_get_dyndns_options(struct be_ctx *be_ctx,
                       struct ad_options *ad_opts);
+
+struct ad_id_ctx *
+ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx);
 
 /* AD dynamic DNS updates */
 errno_t ad_dyndns_init(struct be_ctx *be_ctx,
