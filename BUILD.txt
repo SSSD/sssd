@@ -1,73 +1,7 @@
-Very Quick Guide to build sssd components
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The instructions on how to build the SSSD and contribute to the
+project can be found here:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the following instructions to build the libraries and the binaries.
+https://fedorahosted.org/sssd/wiki/DevelTutorials
 
-External library requirements:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sssd depends on 4 libraries originated in the samba project:
-talloc, tdb, tevent, ldb
-
-They are now available in major distribution development branches.
-
-If you want to build them from source download them from the following links:
-http://samba.org/ftp/talloc/
-http://samba.org/ftp/tdb/
-http://samba.org/ftp/tevent/
-http://samba.org/ftp/ldb/
-
-Additionally the ding-libs are needed. These used to be included in the sssd
-release but are now a separate project. The latest ding-libs release can be
-downloaded from https://fedorahosted.org/sssd/wiki/Releases#DING-LIBSReleases .
-
-To install all of the dependencies in Fedora before building sssd:
-yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
-    dbus-devel libxslt docbook-style-xsl krb5-devel nspr-devel \
-    libxml2 pam-devel nss-devel libtevent python-devel \
-    libtevent-devel libtdb libtdb-devel libtalloc libtalloc-devel \
-    libldb libldb-devel popt-devel c-ares-devel check-devel \
-    doxygen libselinux-devel libsemanage-devel bind-utils libnl3-devel \
-    gettext-devel glib2-devel
-
-ding-libs are available in Fedora 14 and later version:
-yum install  libcollection-devel  libdhash-devel  libini_config-devel \
-     libpath_utils-devel  libref_array-devel
-
-Some features, notably password caching, require the presence of a crypto
-library. The default, tested by SSSD upstream, is Mozilla NSS. An alternative
-crypto library can be selected during configure time using the --with-crypto
-switch. Please note that alternative crypto back ends may not provide all
-features -  as of this writing, password obfuscation is only supported with the
-NSS back end.
-
-How to build:
-~~~~~~~~~~~~~
-From the root of the source, run:
-autoreconf -i -f && \
-./configure && \
-make
-
-Optionally, parallel builds are possible with:
-autoreconf -i -f && \
-mkdir parallelbuilddir && cd parallelbuilddir && \
-../configure && \
-make
-
-Now you have to copy libnss_sss* into /lib (or /lib64) and add the 'sss' target
-to nsswitch.conf passwd database
-
-For pam copy pam_sss.so into /lib/security (or /lib64/security) and add
-pam_sss.so to your pam configuration. To use the pam_test_client from
-sss_client create the following file:
-
-/etc/pam.d/sss_test:
-auth     required pam_sss.so
-account  required pam_sss.so
-password required pam_sss.so
-session  required pam_sss.so
-
-Now you can call pam_test_client:
-./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
-
-~~~~~
-Simo and Steve (Last updated for 1.5.2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
