@@ -1943,6 +1943,18 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         }
     }
 
+    /* Enterprise principals require that a default realm is available. To
+     * make SSSD more robust in the case that the default realm option is
+     * missing in krb5.conf or to allow SSSD to work with multiple unconnected
+     * realms (e.g. AD domains without trust between them) the default realm
+     * will be set explicitly. */
+    if (kr->use_enterprise_princ) {
+        kerr = krb5_set_default_realm(kr->ctx, kr->realm);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_set_default_realm failed.\n"));
+        }
+    }
+
     parse_flags = kr->use_enterprise_princ ? KRB5_PRINCIPAL_PARSE_ENTERPRISE : 0;
     kerr = sss_krb5_parse_name_flags(kr->ctx, kr->upn, parse_flags, &kr->princ);
     if (kerr != 0) {
