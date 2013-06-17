@@ -457,6 +457,7 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
                 <varlistentry>
                     <term>ipa_hbac_support_srchost (boolean)</term>
                     <listitem>
@@ -468,6 +469,24 @@
                             Note that if set to <emphasis>False</emphasis>,
                             this option casuses filters given in
                             <emphasis>ipa_host_search_base</emphasis> to be ignored;
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_server_mode (boolean)</term>
+                    <listitem>
+                        <para>
+                            This options should only be set by the IPA
+                            installer.
+                        </para>
+                        <para>
+                            The option denotes that the SSSD is running on
+                            IPA server and should perform lookups of users
+                            and groups from trusted domains differently.
                         </para>
                         <para>
                             Default: false

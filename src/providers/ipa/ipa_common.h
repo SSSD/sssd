@@ -50,6 +50,7 @@ enum ipa_basic_opt {
     IPA_AUTOMOUNT_LOCATION,
     IPA_RANGES_SEARCH_BASE,
     IPA_ENABLE_DNS_SITES,
+    IPA_SERVER_MODE,
 
     IPA_OPTS_BASIC /* opts counter */
 };
