@@ -216,10 +216,11 @@ int fo_is_srv_lookup(struct fo_server *s)
 }
 
 static struct fo_server *
-collapse_srv_lookup(struct fo_server *server)
+collapse_srv_lookup(struct fo_server **_server)
 {
-    struct fo_server *tmp, *meta;
+    struct fo_server *tmp, *meta, *server;
 
+    server = *_server;
     meta = server->srv_data->meta;
     DEBUG(4, ("Need to refresh SRV lookup for domain %s\n",
               meta->srv_data->dns_domain));
@@ -251,6 +252,8 @@ collapse_srv_lookup(struct fo_server *server)
 
     meta->srv_data->srv_lookup_status = SRV_NEUTRAL;
     meta->srv_data->last_status_change.tv_sec = 0;
+
+    *_server = NULL;
 
     return meta;
 }
@@ -1189,7 +1192,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
           str_srv_data_status(status)));
     switch(status) {
     case SRV_EXPIRED: /* Need a refresh */
-        state->meta = collapse_srv_lookup(server);
+        state->meta = collapse_srv_lookup(&server);
         /* FALLTHROUGH.
          * "server" might be invalid now if the SRV
          * query collapsed
@@ -1202,9 +1205,9 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         }
 
         subreq = ctx->srv_send_fn(state, ev,
-                                  server->srv_data->srv,
-                                  server->srv_data->proto,
-                                  server->srv_data->discovery_domain,
+                                  state->meta->srv_data->srv,
+                                  state->meta->srv_data->proto,
+                                  state->meta->srv_data->discovery_domain,
                                   ctx->srv_pvt);
         if (subreq == NULL) {
             ret = ENOMEM;
