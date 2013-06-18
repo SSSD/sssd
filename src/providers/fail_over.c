@@ -227,10 +227,11 @@ get_srv_query(TALLOC_CTX *mem_ctx, struct fo_server *server)
 }
 
 static struct fo_server *
-collapse_srv_lookup(struct fo_server *server)
+collapse_srv_lookup(struct fo_server **_server)
 {
-    struct fo_server *tmp, *meta;
+    struct fo_server *tmp, *meta, *server;
 
+    server = *_server;
     meta = server->srv_data->meta;
     DEBUG(4, ("Need to refresh SRV lookup for domain %s\n",
               meta->srv_data->dns_domain));
@@ -262,6 +263,8 @@ collapse_srv_lookup(struct fo_server *server)
 
     meta->srv_data->srv_lookup_status = SRV_NEUTRAL;
     meta->srv_data->last_status_change.tv_sec = 0;
+
+    *_server = NULL;
 
     return meta;
 }
@@ -1102,7 +1105,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
           str_srv_data_status(status)));
     switch(status) {
     case SRV_EXPIRED: /* Need a refresh */
-        state->meta = collapse_srv_lookup(server);
+        state->meta = collapse_srv_lookup(&server);
         /* FALLTHROUGH.
          * "server" might be invalid now if the SRV
          * query collapsed
@@ -1113,7 +1116,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
             DEBUG(SSSDBG_TRACE_FUNC,
                   ("SRV resolution of service '%s'. "
                    "dns_discovery_domain not specified. Need to look it up.\n",
-                   server->service->name));
+                   state->meta->service->name));
             subreq = resolve_get_domain_send(state, ev, ctx, resolv);
             if (subreq == NULL) {
                 ret = ENOMEM;
@@ -1126,7 +1129,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         DEBUG(SSSDBG_TRACE_FUNC,
               ("SRV resolution of service '%s'. "
                "Will use DNS discovery domain '%s'\n",
-               server->service->name, state->meta->srv_data->dns_domain));
+               state->meta->service->name, state->meta->srv_data->dns_domain));
         resolve_srv_cont(req);
         break;
     case SRV_RESOLVE_ERROR: /* query could not be resolved but don't retry yet */
