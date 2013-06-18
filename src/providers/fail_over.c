@@ -1111,6 +1111,13 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
          * query collapsed
          * */
     case SRV_NEUTRAL: /* Request SRV lookup */
+        if (server != NULL && server != state->meta) {
+            /* A server created by expansion of meta server was marked as
+             * neutral. We have to collapse the servers and issue new
+             * SRV resolution. */
+            state->meta = collapse_srv_lookup(&server);
+        }
+
         if (state->meta->srv_data->dns_domain == NULL) {
             /* we need to look up our DNS domain first */
             DEBUG(SSSDBG_TRACE_FUNC,
