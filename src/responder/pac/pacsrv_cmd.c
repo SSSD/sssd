@@ -288,16 +288,16 @@ static void pac_lookup_sids_done(struct tevent_req *req)
             ret = sysdb_search_object_by_sid(pr_ctx, dom->sysdb, dom,
                                              entries[c].key.str, NULL, &msg);
             if (ret != EOK) {
-                if (ret == ENOENT) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("No entry found for SID [%s].\n",
-                                              entries[c].key.str));
-                } else {
-                    DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_object_by_sid " \
-                                              "failed.\n"));
-                }
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_object_by_sid " \
+                                          "failed.\n"));
                 continue;
             }
-            if (msg->count > 1) {
+
+            if (msg->count == 0) {
+                DEBUG(SSSDBG_OP_FAILURE, ("No entry found for SID [%s].\n",
+                                          entries[c].key.str));
+                continue;
+            } else if (msg->count > 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE, ("More then one result returned " \
                                             "for SID [%s].\n",
                                             entries[c].key.str));
