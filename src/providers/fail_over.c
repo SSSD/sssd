@@ -1288,21 +1288,40 @@ resolve_srv_done(struct tevent_req *subreq)
                                      backup_servers, num_backup_servers,
                                      state->meta->srv_data,
                                      state->meta->user_data,
-                                     false, NULL);
+                                     false, &last_server);
             if (ret != EOK) {
                 goto done;
             }
         }
 
+        if (last_server == state->meta) {
+            /* SRV lookup returned only those servers
+             * that are already present. */
+            DEBUG(SSSDBG_TRACE_FUNC, ("SRV lookup did not return "
+                                      "any new server.\n"));
+            ret = ERR_SRV_DUPLICATES;
+            goto done;
+        }
+
+        /* At least one new server was inserted.
+         * We will return the first new server. */
+        if (state->meta->next == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                 ("BUG: state->meta->next is NULL\n"));
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
         state->out = state->meta->next;
 
+        /* And remove meta server from the server list. It will be
+         * inserted again during srv collapse. */
         DLIST_REMOVE(state->service->server_list, state->meta);
         if (state->service->last_tried_server == state->meta) {
             state->service->last_tried_server = state->out;
         }
 
         set_srv_data_status(state->meta->srv_data, SRV_RESOLVED);
-
         ret = EOK;
         break;
     case ERR_SRV_NOT_FOUND:
