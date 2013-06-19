@@ -1202,6 +1202,10 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                                   server->srv_data->proto,
                                   server->srv_data->discovery_domain,
                                   ctx->srv_pvt);
+        if (subreq == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
 
         tevent_req_set_callback(subreq, resolve_srv_done, req);
         break;
