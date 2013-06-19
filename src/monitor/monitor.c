@@ -1120,14 +1120,8 @@ static int monitor_cleanup(void)
     return EOK;
 }
 
-static void monitor_quit(struct tevent_context *ev,
-                         struct tevent_signal *se,
-                         int signum,
-                         int count,
-                         void *siginfo,
-                         void *private_data)
+static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
 {
-    struct mt_ctx *mt_ctx = talloc_get_type(private_data, struct mt_ctx);
     struct mt_svc *svc;
     pid_t pid;
     int status;
@@ -1135,10 +1129,7 @@ static void monitor_quit(struct tevent_context *ev,
     int kret;
     bool killed;
 
-    DEBUG(8, ("Received shutdown command\n"));
-
-    DEBUG(0, ("Monitor received %s: terminating children\n",
-              strsignal(signum)));
+    DEBUG(SSSDBG_OP_FAILURE, ("Returned with: %d\n", ret));
 
     /* Kill all of our known children manually */
     DLIST_FOR_EACH(svc, mt_ctx->svc_list) {
@@ -1213,7 +1204,24 @@ static void monitor_quit(struct tevent_context *ev,
 
     monitor_cleanup();
 
-    exit(0);
+    exit(ret);
+}
+
+static void monitor_quit_signal(struct tevent_context *ev,
+                                struct tevent_signal *se,
+                                int signum,
+                                int count,
+                                void *siginfo,
+                                void *private_data)
+{
+    struct mt_ctx *mt_ctx = talloc_get_type(private_data, struct mt_ctx);
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Received shutdown command\n"));
+
+    DEBUG(SSSDBG_OP_FAILURE, ("Monitor received %s: terminating "
+                                  "children\n", strsignal(signum)));
+
+    monitor_quit(mt_ctx, 0);
 }
 
 static void signal_offline(struct tevent_context *ev,
@@ -1866,14 +1874,14 @@ int monitor_process_init(struct mt_ctx *ctx,
     /* Set up an event handler for a SIGINT */
     BlockSignals(false, SIGINT);
     tes = tevent_add_signal(ctx->ev, ctx, SIGINT, 0,
-                            monitor_quit, ctx);
+                            monitor_quit_signal, ctx);
     if (tes == NULL) {
         return EIO;
     }
 
     /* Set up an event handler for a SIGTERM */
     tes = tevent_add_signal(ctx->ev, ctx, SIGTERM, 0,
-                            monitor_quit, ctx);
+                            monitor_quit_signal, ctx);
     if (tes == NULL) {
         return EIO;
     }
@@ -2285,6 +2293,7 @@ static void mt_svc_restart(struct tevent_context *ev,
 static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
 {
     struct mt_svc *svc = talloc_get_type(pvt, struct mt_svc);
+    struct mt_ctx *mt_ctx = svc->mt_ctx;
     time_t now = time(NULL);
     struct tevent_timer *te;
     struct timeval tv;
@@ -2315,6 +2324,9 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
     if (svc->restarts > MONITOR_MAX_SVC_RESTARTS) {
         DEBUG(0, ("Process [%s], definitely stopped!\n", svc->name));
         talloc_free(svc);
+
+        /* exit with error */
+        monitor_quit(mt_ctx, 1);
         return;
     }
 
