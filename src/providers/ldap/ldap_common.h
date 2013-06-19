@@ -240,6 +240,10 @@ errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
 errno_t sdap_domain_add(struct sdap_options *opts,
                         struct sss_domain_info *dom,
                         struct sdap_domain **_sdom);
+errno_t
+sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
+                       struct sdap_domain *sdom_list,
+                       struct sss_domain_info *parent);
 
 void
 sdap_domain_remove(struct sdap_options *opts,

@@ -94,6 +94,79 @@ sdap_domain_add(struct sdap_options *opts,
     return EOK;
 }
 
+errno_t
+sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
+                       struct sdap_domain *sdom_list,
+                       struct sss_domain_info *parent)
+{
+    struct sss_domain_info *dom;
+    struct sdap_domain *sdom, *sditer;
+    char *basedn;
+    errno_t ret;
+
+    for (dom = get_next_domain(parent, true);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, false)) {
+
+        DLIST_FOR_EACH(sditer, sdom_list) {
+            if (sditer->dom == dom) {
+                break;
+            }
+        }
+
+        if (sditer == NULL) {
+            /* New sdap domain */
+            DEBUG(SSSDBG_TRACE_FUNC, ("subdomain %s is a new one, will "
+                  "create a new sdap domain object\n", dom->name));
+
+            ret = sdap_domain_add(sdap_id_ctx->opts, dom, &sdom);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    ("Cannot add new sdap domain for domain %s [%d]: %s\n",
+                    parent->name, ret, strerror(ret)));
+                return ret;
+            }
+        } else {
+            sdom = sditer;
+        }
+
+        /* Convert the domain name into search base */
+        ret = domain_to_basedn(sdom, sdom->dom->name, &basedn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("Cannot convert domain name [%s] to base DN [%d]: %s\n",
+                dom->name, ret, strerror(ret)));
+            talloc_free(basedn);
+            return ret;
+        }
+
+        /* Update search bases */
+        talloc_zfree(sdom->search_bases);
+        sdom->search_bases = talloc_array(sdom, struct sdap_search_base *, 2);
+        if (sdom->search_bases == NULL) {
+            return ret;
+        }
+        sdom->search_bases[1] = NULL;
+
+        ret = sdap_create_search_base(sdom, basedn, LDAP_SCOPE_SUBTREE, NULL,
+                                      &sdom->search_bases[0]);
+        talloc_free(basedn);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot create new sdap search base\n"));
+            return ret;
+        }
+
+        sdom->user_search_bases = sdom->search_bases;
+        sdom->group_search_bases = sdom->search_bases;
+        sdom->netgroup_search_bases = sdom->search_bases;
+        sdom->sudo_search_bases = sdom->search_bases;
+        sdom->service_search_bases = sdom->search_bases;
+        sdom->autofs_search_bases = sdom->search_bases;
+    }
+
+    return EOK;
+}
+
 void
 sdap_domain_remove(struct sdap_options *opts,
                    struct sss_domain_info *dom)
