@@ -258,6 +258,69 @@ done:
     return kerr;
 }
 
+#ifdef HAVE_KRB5_DIRCACHE
+static bool need_switch_to_principal(krb5_context ctx, krb5_principal princ)
+{
+    krb5_error_code kerr;
+    krb5_ccache default_cc = NULL;
+    krb5_principal default_princ = NULL;
+    char *default_full_name = NULL;
+    char *full_name = NULL;
+    bool ret = false;
+
+    kerr = krb5_cc_default(ctx, &default_cc);
+    if (kerr !=0) {
+        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
+        goto done;
+    }
+
+    kerr = krb5_cc_get_principal(ctx, default_cc, &default_princ);
+    if (kerr == KRB5_FCC_NOFILE) {
+        /* There is not any default cache. */
+        ret = true;
+        goto done;
+    } else if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
+        goto done;
+    }
+
+    kerr = krb5_unparse_name(ctx, default_princ, &default_full_name);
+    if (kerr !=0) {
+        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
+        goto done;
+    }
+
+    kerr = krb5_unparse_name(ctx, princ, &full_name);
+    if (kerr !=0) {
+        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          ("Comparing default principal [%s] and new principal [%s].\n",
+           default_full_name, full_name));
+    if (0 == strcmp(default_full_name, full_name)) {
+        ret = true;
+    }
+
+done:
+    if (default_cc != NULL) {
+        kerr = krb5_cc_close(ctx, default_cc);
+        if (kerr != 0) {
+            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
+            goto done;
+        }
+    }
+
+    /* all functions can be safely called with NULL. */
+    krb5_free_principal(ctx, default_princ);
+    krb5_free_unparsed_name(ctx, default_full_name);
+    krb5_free_unparsed_name(ctx, full_name);
+
+    return ret;
+}
+#endif /* HAVE_KRB5_DIRCACHE */
+
 static krb5_error_code
 store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
                       krb5_ccache cc, krb5_creds *creds)
@@ -288,10 +351,12 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
     }
 
 #ifdef HAVE_KRB5_DIRCACHE
-    kerr = krb5_cc_switch(ctx, cc);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-        goto done;
+    if (need_switch_to_principal(ctx, princ)) {
+        kerr = krb5_cc_switch(ctx, cc);
+        if (kerr != 0) {
+            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
+            goto done;
+        }
     }
 #endif /* HAVE_KRB5_DIRCACHE */
 
