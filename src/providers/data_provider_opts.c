@@ -201,7 +201,7 @@ int dp_copy_options(TALLOC_CTX *memctx,
             if (src_opts[i].val.boolean) {
                 ret = dp_opt_set_bool(opts, i, src_opts[i].val.boolean);
             } else if (src_opts[i].def_val.boolean) {
-                ret = dp_opt_set_int(opts, i, src_opts[i].def_val.boolean);
+                ret = dp_opt_set_bool(opts, i, src_opts[i].def_val.boolean);
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
