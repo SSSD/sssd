@@ -67,6 +67,7 @@ struct ipa_subdomains_req_params {
 
 struct ipa_subdomains_ctx {
     struct be_ctx *be_ctx;
+    struct ipa_id_ctx *id_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_search_base **search_bases;
     struct sdap_search_base **master_search_bases;
@@ -90,6 +91,175 @@ struct be_ctx *ipa_get_subdomains_be_ctx(struct be_ctx *be_ctx)
     }
 
     return subdom_ctx->be_ctx;
+}
+
+static errno_t
+ipa_ad_ctx_new(struct be_ctx *be_ctx,
+               struct ipa_id_ctx *id_ctx,
+               struct sss_domain_info *subdom,
+               struct ad_id_ctx **_ad_id_ctx)
+{
+    struct ad_options *ad_options;
+    struct ad_id_ctx *ad_id_ctx;
+    const char *gc_service_name;
+    errno_t ret;
+
+    ad_options = ad_create_default_options(id_ctx, id_ctx->server_mode->realm,
+                                           id_ctx->server_mode->hostname);
+    if (ad_options == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD options\n"));
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, subdom->name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM,
+                            id_ctx->server_mode->realm);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD realm\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    gc_service_name = talloc_asprintf(ad_options, "%s%s", "gc_", subdom->name);
+    if (gc_service_name == NULL) {
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    /* Set KRB5 realm to same as the one of IPA when IPA
+     * is able to attach PAC. For testing, use hardcoded. */
+    ret = ad_failover_init(ad_options, be_ctx, NULL, NULL,
+                           id_ctx->server_mode->realm,
+                           subdom->name, gc_service_name,
+                           subdom->name, &ad_options->service);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD failover\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    ad_id_ctx = ad_id_ctx_init(ad_options, be_ctx);
+    if (ad_id_ctx == NULL) {
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+    ad_id_ctx->sdap_id_ctx->opts = ad_options->id;
+    ad_options->id_ctx = ad_id_ctx;
+
+    ret = sdap_domain_subdom_add(ad_id_ctx->sdap_id_ctx,
+                                 ad_id_ctx->sdap_id_ctx->opts->sdom,
+                                 subdom->parent);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize sdap domain\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    /* Set up the ID mapping object */
+    ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
+        id_ctx->sdap_id_ctx->opts->idmap_ctx;
+
+    *_ad_id_ctx = ad_id_ctx;
+    return EOK;
+}
+
+static errno_t
+ipa_server_trust_add(struct be_ctx *be_ctx,
+                     struct ipa_id_ctx *id_ctx,
+                     struct sss_domain_info *subdom)
+{
+    struct ipa_ad_server_ctx *trust_ctx;
+    struct ad_id_ctx *ad_id_ctx;
+    errno_t ret;
+
+    ret = ipa_ad_ctx_new(be_ctx, id_ctx, subdom, &ad_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Cannot create ad_id_ctx for subdomain %s\n", subdom->name));
+        return ret;
+    }
+
+    trust_ctx = talloc(id_ctx->server_mode, struct ipa_ad_server_ctx);
+    if (trust_ctx == NULL) {
+        return ENOMEM;
+    }
+    trust_ctx->dom = subdom;
+    trust_ctx->ad_id_ctx = ad_id_ctx;
+
+    DLIST_ADD(id_ctx->server_mode->trusts, trust_ctx);
+    return EOK;
+}
+
+static errno_t
+ipa_ad_subdom_refresh(struct be_ctx *be_ctx,
+                      struct ipa_id_ctx *id_ctx,
+                      struct sss_domain_info *parent)
+{
+    struct sss_domain_info *dom;
+    struct ipa_ad_server_ctx *trust_iter;
+    errno_t ret;
+
+    if (dp_opt_get_bool(id_ctx->ipa_options->basic,
+                        IPA_SERVER_MODE) == false) {
+        return EOK;
+    }
+
+    for (dom = get_next_domain(parent, true);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, false)) {
+
+        /* Check if we already have an ID context for this subdomain */
+        DLIST_FOR_EACH(trust_iter, id_ctx->server_mode->trusts) {
+            if (trust_iter->dom == dom) {
+                break;
+            }
+        }
+
+        /* Newly detected trust */
+        if (trust_iter == NULL) {
+            ret = ipa_server_trust_add(be_ctx, id_ctx, dom);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("Cannot create ad_id_ctx for subdomain %s\n",
+                       dom->name));
+                continue;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+static void
+ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
+                     struct sss_domain_info *subdom)
+{
+    struct ipa_ad_server_ctx *iter;
+
+    if (dp_opt_get_bool(ctx->id_ctx->ipa_options->basic,
+                        IPA_SERVER_MODE) == false) {
+        return;
+    }
+
+    DLIST_FOR_EACH(iter, ctx->id_ctx->server_mode->trusts) {
+        if (iter->dom == subdom) break;
+    }
+
+    if (iter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No IPA-AD context for subdomain %s\n",
+              subdom->name));
+        return;
+    }
+
+    sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
+    DLIST_REMOVE(ctx->id_ctx->server_mode->trusts, iter);
 }
 
 const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
@@ -326,6 +496,9 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             if (ret != EOK) {
                 goto done;
             }
+
+            /* Remove the AD ID ctx from the list of LDAP domains */
+            ipa_ad_subdom_remove(ctx, dom);
         } else {
             /* ok let's try to update it */
             ret = ipa_subdom_store(domain, ctx->sdap_id_ctx->opts->idmap_ctx,
@@ -597,6 +770,13 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         ret = sysdb_update_subdomains(domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+            goto done;
+        }
+
+        ret = ipa_ad_subdom_refresh(ctx->sd_ctx->be_ctx, ctx->sd_ctx->id_ctx,
+                                    domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
             goto done;
         }
 
@@ -904,6 +1084,7 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
     }
 
     ctx->be_ctx = be_ctx;
+    ctx->id_ctx = id_ctx;
     ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
     ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
     ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
@@ -955,6 +1136,7 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
     }
     id_ctx->server_mode->realm = realm;
     id_ctx->server_mode->hostname = hostname;
+    id_ctx->server_mode->trusts = NULL;
 
     return EOK;
 }
