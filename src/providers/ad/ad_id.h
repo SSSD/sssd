@@ -26,6 +26,17 @@
 void
 ad_account_info_handler(struct be_req *breq);
 
+struct tevent_req *
+ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
+                         struct be_req *breq,
+                         struct be_acct_req *ar,
+                         struct sdap_id_ctx *ctx,
+                         struct sdap_domain *sdom,
+                         struct sdap_id_conn_ctx **conn);
+errno_t
+ad_handle_acct_info_recv(struct tevent_req *req,
+                         int *_dp_error, const char **_err);
+
 void
 ad_check_online(struct be_req *be_req);
 #endif /* AD_ID_H_ */

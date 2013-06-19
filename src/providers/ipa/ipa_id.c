@@ -83,9 +83,15 @@ void ipa_account_info_handler(struct be_req *breq)
     ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
 
     if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
-        /* if domain names do not match, this is a subdomain case */
-        req = ipa_get_subdom_acct_send(breq, be_ctx->ev, ctx, ar);
-
+        /* if domain names do not match, this is a subdomain case
+         * subdomain lookups are handled differently on the server
+         * and the client
+         */
+        if (dp_opt_get_bool(ipa_ctx->ipa_options->basic, IPA_SERVER_MODE)) {
+            req = ipa_get_ad_acct_send(breq, be_ctx->ev, ipa_ctx, breq, ar);
+        } else {
+            req = ipa_get_subdom_acct_send(breq, be_ctx->ev, ctx, ar);
+        }
     } else if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         /* netgroups are handled by a separate request function */
         if (ar->filter_type != BE_FILTER_NAME) {
@@ -110,15 +116,24 @@ void ipa_account_info_handler(struct be_req *breq)
 static void ipa_account_info_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
+    struct ipa_id_ctx *ipa_ctx;
     struct be_acct_req *ar = talloc_get_type(be_req_get_data(breq),
                                              struct be_acct_req);
     const char *error_text;
     int ret, dp_error;
 
+    ipa_ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
+                              struct ipa_id_ctx);
+
     if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         ret = ipa_id_get_netgroup_recv(req, &dp_error);
     } else {
-        ret = ipa_get_subdom_acct_recv(req, &dp_error);
+        if (dp_opt_get_bool(ipa_ctx->ipa_options->basic, IPA_SERVER_MODE)) {
+            ret = ipa_get_ad_acct_recv(req, &dp_error);
+        } else {
+            ret = ipa_get_subdom_acct_recv(req, &dp_error);
+        }
     }
     talloc_zfree(req);
 

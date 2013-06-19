@@ -64,4 +64,13 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct sdap_id_ctx *ctx,
                                             struct be_acct_req *ar);
 int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out);
+
+struct tevent_req *ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct ipa_id_ctx *ipa_ctx,
+                                        struct be_req *be_req,
+                                        struct be_acct_req *ar);
+
+errno_t ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out);
+
 #endif

@@ -30,6 +30,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
+#include "providers/ad/ad_id.h"
 #include "providers/ipa/ipa_subdomains.h"
 
 struct ipa_get_subdom_acct {
@@ -246,3 +247,128 @@ int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
+/* IPA lookup for server mode. Directly to AD. */
+struct ipa_get_ad_acct_state {
+    int dp_error;
+};
+
+static void ipa_get_ad_acct_done(struct tevent_req *subreq);
+static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
+                                           struct sss_domain_info *dom);
+
+struct tevent_req *
+ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct ipa_id_ctx *ipa_ctx,
+                     struct be_req *be_req,
+                     struct be_acct_req *ar)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct ipa_get_ad_acct_state *state;
+    struct sss_domain_info *dom;
+    struct sdap_domain *sdom;
+    struct sdap_id_conn_ctx **clist;
+    struct sdap_id_ctx *sdap_id_ctx;;
+    struct ad_id_ctx *ad_id_ctx;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_get_ad_acct_state);
+    if (req == NULL) return NULL;
+
+    /* This can only be a subdomain request, verify subdomain */
+    dom = find_subdomain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
+                                 ar->domain, true);
+    if (dom == NULL) {
+        ret = EINVAL;
+        goto fail;
+    }
+
+    /* Let's see if this subdomain has a ad_id_ctx */
+    ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, dom);
+    if (ad_id_ctx == NULL) {
+        ret = EINVAL;
+        goto fail;
+    }
+    sdap_id_ctx = ad_id_ctx->sdap_id_ctx;
+
+    /* Currently only LDAP port for AD is used because POSIX
+     * attributes are not replicated to GC by default
+     */
+    clist = talloc_zero_array(req, struct sdap_id_conn_ctx *, 2);
+    if (clist == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    clist[0] = ad_id_ctx->ldap_ctx;
+    clist[1] = NULL;
+
+    /* Now we already need ad_id_ctx in particular sdap_id_conn_ctx */
+    sdom = sdap_domain_get(sdap_id_ctx->opts, dom);
+    if (sdom == NULL) {
+        ret = EIO;
+        goto fail;
+    }
+
+    subreq = ad_handle_acct_info_send(req, be_req, ar, sdap_id_ctx,
+                                      sdom, clist);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_get_ad_acct_done, req);
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static struct ad_id_ctx *
+ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
+                  struct sss_domain_info *dom)
+{
+    struct ipa_ad_server_ctx *iter;
+
+    DLIST_FOR_EACH(iter, ipa_ctx->server_mode->trusts) {
+        if (iter->dom == dom) break;
+    }
+
+    return iter->ad_id_ctx;
+}
+
+static void
+ipa_get_ad_acct_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+    errno_t ret;
+
+    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("AD lookup failed: %d\n", ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t
+ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out)
+{
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+
+    if (dp_error_out) {
+        *dp_error_out = state->dp_error;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}

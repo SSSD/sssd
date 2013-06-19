@@ -26,6 +26,7 @@
 #include "confdb/confdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/krb5/krb5_common.h"
+#include "providers/ad/ad_common.h"
 
 struct ipa_service {
     struct sdap_service *sdap;

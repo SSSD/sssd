@@ -38,7 +38,7 @@ struct ad_handle_acct_info_state {
 static errno_t ad_handle_acct_info_step(struct tevent_req *req);
 static void ad_handle_acct_info_done(struct tevent_req *subreq);
 
-static struct tevent_req *
+struct tevent_req *
 ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct be_req *breq,
                          struct be_acct_req *ar,
@@ -152,7 +152,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     /* Another lookup in progress */
 }
 
-static errno_t
+errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
                          int *_dp_error, const char **_err)
 {
