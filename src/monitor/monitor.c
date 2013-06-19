@@ -1195,7 +1195,9 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                 if (pid == -1) {
                     /* An error occurred while waiting */
                     error = errno;
-                    if (error != EINTR) {
+                    if (error == ECHILD) {
+                        killed = true;
+                    } else if (error != EINTR) {
                         DEBUG(0, ("[%d][%s] while waiting for [%s]\n",
                                   error, strerror(error), svc->name));
                         /* Forcibly kill this child */
