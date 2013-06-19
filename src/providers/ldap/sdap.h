@@ -438,6 +438,11 @@ struct sdap_deref_attrs {
     struct sysdb_attrs *attrs;
 };
 
+int sdap_copy_map(TALLOC_CTX *memctx,
+                 struct sdap_attr_map *src_map,
+                 int num_entries,
+                 struct sdap_attr_map **_map);
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,

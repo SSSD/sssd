@@ -28,6 +28,46 @@
 
 /* =Retrieve-Options====================================================== */
 
+int sdap_copy_map(TALLOC_CTX *memctx,
+                 struct sdap_attr_map *src_map,
+                 int num_entries,
+                 struct sdap_attr_map **_map)
+{
+    struct sdap_attr_map *map;
+    int i;
+
+    map = talloc_array(memctx, struct sdap_attr_map, num_entries);
+    if (!map) {
+        return ENOMEM;
+    }
+
+    for (i = 0; i < num_entries; i++) {
+        map[i].opt_name = talloc_strdup(map, src_map[i].opt_name);
+        map[i].sys_name = talloc_strdup(map, src_map[i].sys_name);
+        if (map[i].opt_name == NULL || map[i].sys_name == NULL) {
+            return ENOMEM;
+        }
+
+        if (src_map[i].def_name != NULL) {
+            map[i].def_name = talloc_strdup(map, src_map[i].def_name);
+            map[i].name = talloc_strdup(map, src_map[i].def_name);
+            if (map[i].def_name == NULL || map[i].name == NULL) {
+                return ENOMEM;
+            }
+        } else {
+            map[i].def_name = NULL;
+            map[i].name = NULL;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+              map[i].opt_name, map[i].name ? "" : " no",
+              map[i].name ? map[i].name : ""));
+    }
+
+    *_map = map;
+    return EOK;
+}
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
