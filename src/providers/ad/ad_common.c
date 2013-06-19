@@ -356,14 +356,15 @@ static errno_t
 _ad_servers_init(TALLOC_CTX *mem_ctx,
                  struct ad_service *service,
                  struct be_ctx *bectx,
+                 const char *fo_service,
+                 const char *fo_gc_service,
                  const char *servers,
-                 struct ad_options *options,
+                 const char *ad_domain,
                  bool primary)
 {
     size_t i;
     errno_t ret = 0;
     char **list;
-    char *ad_domain;
     struct ad_server_data *sdata;
     TALLOC_CTX *tmp_ctx;
 
@@ -376,8 +377,6 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
         goto done;
     }
-
-    ad_domain = dp_opt_get_string(options->basic, AD_DOMAIN);
 
     /* Add each of these servers to the failover service */
     for (i = 0; list[i]; i++) {
@@ -397,7 +396,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
             }
             sdata->gc = true;
 
-            ret = be_fo_add_srv_server(bectx, AD_GC_SERVICE_NAME, "gc",
+            ret = be_fo_add_srv_server(bectx, fo_gc_service, "gc",
                                        ad_domain, BE_FO_PROTO_TCP,
                                        false, sdata);
             if (ret != EOK) {
@@ -414,7 +413,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
             }
             sdata->gc = false;
 
-            ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "ldap",
+            ret = be_fo_add_srv_server(bectx, fo_service, "ldap",
                                        ad_domain, BE_FO_PROTO_TCP,
                                        false, sdata);
             if (ret != EOK) {
@@ -442,7 +441,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
         }
         sdata->gc = true;
 
-        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, sdata, primary);
+        ret = be_fo_add_server(bectx, fo_service, list[i], 0, sdata, primary);
         if (ret && ret != EEXIST) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
             goto done;
@@ -455,7 +454,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
         }
         sdata->gc = false;
 
-        ret = be_fo_add_server(bectx, AD_SERVICE_NAME, list[i], 0, sdata, primary);
+        ret = be_fo_add_server(bectx, fo_service, list[i], 0, sdata, primary);
         if (ret && ret != EEXIST) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
             goto done;
@@ -471,17 +470,21 @@ done:
 static inline errno_t
 ad_primary_servers_init(TALLOC_CTX *mem_ctx, struct ad_service *service,
                         struct be_ctx *bectx, const char *servers,
-                        struct ad_options *options)
+                        const char *fo_service, const char *fo_gc_service,
+                        const char *ad_domain)
 {
-    return _ad_servers_init(mem_ctx, service, bectx, servers, options, true);
+    return _ad_servers_init(mem_ctx, service, bectx, fo_service,
+                            fo_gc_service, servers, ad_domain, true);
 }
 
 static inline errno_t
 ad_backup_servers_init(TALLOC_CTX *mem_ctx, struct ad_service *service,
                         struct be_ctx *bectx, const char *servers,
-                        struct ad_options *options)
+                        const char *fo_service, const char *fo_gc_service,
+                        const char *ad_domain)
 {
-    return _ad_servers_init(mem_ctx, service, bectx, servers, options, false);
+    return _ad_servers_init(mem_ctx, service, bectx, fo_service,
+                            fo_gc_service, servers, ad_domain, false);
 }
 
 static int ad_user_data_cmp(void *ud1, void *ud2)
@@ -522,13 +525,15 @@ errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *primary_servers,
                  const char *backup_servers,
-                 struct ad_options *options,
+                 const char *krb5_realm,
+                 const char *ad_service,
+                 const char *ad_gc_service,
+                 const char *ad_domain,
                  struct ad_service **_service)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     struct ad_service *service;
-    char *realm;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -546,8 +551,8 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    service->sdap->name = talloc_strdup(service->sdap, AD_SERVICE_NAME);
-    service->gc->name = talloc_strdup(service->gc, AD_GC_SERVICE_NAME);
+    service->sdap->name = talloc_strdup(service->sdap, ad_service);
+    service->gc->name = talloc_strdup(service->gc, ad_gc_service);
     if (!service->sdap->name || !service->gc->name) {
         ret = ENOMEM;
         goto done;
@@ -559,20 +564,20 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    ret = be_fo_add_service(bectx, AD_SERVICE_NAME, ad_user_data_cmp);
+    ret = be_fo_add_service(bectx, ad_service, ad_user_data_cmp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
         goto done;
     }
 
-    ret = be_fo_add_service(bectx, AD_GC_SERVICE_NAME, ad_user_data_cmp);
+    ret = be_fo_add_service(bectx, ad_gc_service, ad_user_data_cmp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create GC failover service!\n"));
         goto done;
     }
 
     service->krb5_service->name = talloc_strdup(service->krb5_service,
-                                                AD_SERVICE_NAME);
+                                                ad_service);
     if (!service->krb5_service->name) {
         ret = ENOMEM;
         goto done;
@@ -580,14 +585,13 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     service->sdap->kinit_service_name = service->krb5_service->name;
     service->gc->kinit_service_name = service->krb5_service->name;
 
-    realm = dp_opt_get_string(options->basic, AD_KRB5_REALM);
-    if (!realm) {
+    if (!krb5_realm) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("No Kerberos realm set\n"));
         ret = EINVAL;
         goto done;
     }
     service->krb5_service->realm =
-        talloc_strdup(service->krb5_service, realm);
+        talloc_strdup(service->krb5_service, krb5_realm);
     if (!service->krb5_service->realm) {
         ret = ENOMEM;
         goto done;
@@ -600,14 +604,16 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     }
 
     ret = ad_primary_servers_init(mem_ctx, service, bectx,
-                                  primary_servers, options);
+                                  primary_servers, ad_service,
+                                  ad_gc_service, ad_domain);
     if (ret != EOK) {
         goto done;
     }
 
     if (backup_servers) {
         ret = ad_backup_servers_init(mem_ctx, service, bectx,
-                                     backup_servers, options);
+                                     backup_servers, ad_service,
+                                     ad_gc_service, ad_domain);
         if (ret != EOK) {
             goto done;
         }
@@ -619,7 +625,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         return ret;
     }
 
-    ret = be_fo_service_add_callback(mem_ctx, bectx, AD_SERVICE_NAME,
+    ret = be_fo_service_add_callback(mem_ctx, bectx, ad_service,
                                      ad_resolve_callback, service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -627,7 +633,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    ret = be_fo_service_add_callback(mem_ctx, bectx, AD_GC_SERVICE_NAME,
+    ret = be_fo_service_add_callback(mem_ctx, bectx, ad_gc_service,
                                      ad_resolve_callback, service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,

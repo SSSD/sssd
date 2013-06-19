@@ -71,6 +71,7 @@ common_ad_init(struct be_ctx *bectx)
     errno_t ret;
     char *ad_servers = NULL;
     char *ad_backup_servers = NULL;
+    char *ad_realm;
 
     /* Get AD-specific options */
     ret = ad_get_common_options(bectx, bectx->cdb,
@@ -86,9 +87,12 @@ common_ad_init(struct be_ctx *bectx)
 
     ad_servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
     ad_backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
+    ad_realm = dp_opt_get_string(ad_options->basic, AD_KRB5_REALM);
 
     /* Set up the failover service */
-    ret = ad_failover_init(ad_options, bectx, ad_servers, ad_backup_servers, ad_options,
+    ret = ad_failover_init(ad_options, bectx, ad_servers, ad_backup_servers, ad_realm,
+                           AD_SERVICE_NAME, AD_GC_SERVICE_NAME,
+                           dp_opt_get_string(ad_options->basic, AD_DOMAIN),
                            &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,

@@ -90,7 +90,10 @@ errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  const char *primary_servers,
                  const char *backup_servers,
-                 struct ad_options *options,
+                 const char *krb5_realm,
+                 const char *ad_service,
+                 const char *ad_gc_service,
+                 const char *ad_domain,
                  struct ad_service **_service);
 
 errno_t
