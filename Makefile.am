@@ -1575,6 +1575,11 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_selinux_common.c \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
+    src/providers/ad/ad_common.c \
+    src/providers/ad/ad_common.h \
+    src/providers/ad/ad_dyndns.c \
+    src/providers/ad/ad_id.c \
+    src/providers/ad/ad_srv.c \
     src/util/user_info_msg.c \
     src/util/find_uid.c \
     src/util/sss_ldap.c \
@@ -1583,10 +1588,12 @@ libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
+    $(NDR_NBT_CFLAGS)
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
+    $(NDR_NBT_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     libsss_ldap_common.la \

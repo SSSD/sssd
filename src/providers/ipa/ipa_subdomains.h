@@ -38,6 +38,24 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
                     struct bet_ops **ops,
                     void **pvt_data);
 
+/* The following are used in server mode only */
+struct ipa_ad_server_ctx {
+    struct sss_domain_info *dom;
+    struct ad_id_ctx *ad_id_ctx;
+
+    struct ipa_ad_server_ctx *next, *prev;
+};
+
+struct ipa_server_mode_ctx {
+    const char *realm;
+    const char *hostname;
+
+    struct ipa_ad_server_ctx *trusts;
+};
+
+int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+                       struct ipa_id_ctx *id_ctx);
+
 enum req_input_type {
     REQ_INP_NAME,
     REQ_INP_ID,

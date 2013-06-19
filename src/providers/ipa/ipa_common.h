@@ -112,9 +112,14 @@ struct ipa_auth_ctx {
     struct dp_option *ipa_options;
 };
 
+/* In server mode, each subdomain corresponds to an AD context */
+
 struct ipa_id_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
     struct ipa_options *ipa_options;
+
+    /* Only used with server mode */
+    struct ipa_server_mode_ctx *server_mode;
 };
 
 struct ipa_options {

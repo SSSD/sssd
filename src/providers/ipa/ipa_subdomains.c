@@ -925,3 +925,36 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
 
     return EOK;
 }
+
+int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+                       struct ipa_id_ctx *id_ctx)
+{
+    char *realm;
+    char *hostname;
+
+    if (dp_opt_get_bool(id_ctx->ipa_options->basic,
+                        IPA_SERVER_MODE) == false) {
+        return EOK;
+    }
+
+    realm = dp_opt_get_string(id_ctx->ipa_options->basic, IPA_KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No Kerberos realm for IPA?\n"));
+        return EINVAL;
+    }
+
+    hostname = dp_opt_get_string(id_ctx->ipa_options->basic, IPA_HOSTNAME);
+    if (hostname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No host name for IPA?\n"));
+        return EINVAL;
+    }
+
+    id_ctx->server_mode = talloc(id_ctx, struct ipa_server_mode_ctx);
+    if (id_ctx->server_mode == NULL) {
+        return ENOMEM;
+    }
+    id_ctx->server_mode->realm = realm;
+    id_ctx->server_mode->hostname = hostname;
+
+    return EOK;
+}
