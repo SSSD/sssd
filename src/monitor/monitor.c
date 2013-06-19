@@ -142,6 +142,8 @@ struct mt_ctx {
     struct sss_domain_info *domains;
     TALLOC_CTX *service_ctx; /* Memory context for services */
     char **services;
+    int num_services;
+    int started_services;
     struct mt_svc *svc_list;
     struct sbus_connection *sbus_srv;
     struct config_file_ctx *file_ctx;
@@ -151,6 +153,8 @@ struct mt_ctx {
     bool services_started;
     struct netlink_ctx *nlctx;
     struct sss_sigchild_ctx *sigchld_ctx;
+    bool is_daemon;
+    pid_t parent_pid;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -419,6 +423,34 @@ static int mark_service_as_started(struct mt_svc *svc)
         /* then start all services */
         for (i = 0; ctx->services[i]; i++) {
             add_new_service(ctx, ctx->services[i], 0);
+        }
+    }
+
+    if (svc->type == MT_SVC_SERVICE) {
+        ctx->started_services++;
+    }
+
+    if (ctx->started_services == ctx->num_services) {
+        /* Initialization is complete, terminate parent process if in daemon
+         * mode. Make sure we send the signal to the right process */
+        if (ctx->is_daemon) {
+            if (ctx->parent_pid <= 1 || ctx->parent_pid != getppid()) {
+                /* the parent process was already terminated */
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid parent pid: %d\n",
+                      ctx->parent_pid));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("SSSD is initialized, "
+                                      "terminating parent process\n"));
+
+            errno = 0;
+            ret = kill(ctx->parent_pid, SIGTERM);
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to terminate parent "
+                      "process [%d]: %s\n", ret, strerror(ret)));
+            }
         }
     }
 
@@ -783,6 +815,7 @@ int get_monitor_config(struct mt_ctx *ctx)
     int ret;
     int timeout_seconds;
     char *badsrv = NULL;
+    int i;
 
     ret = confdb_get_int(ctx->cdb, ctx,
                          CONFDB_MONITOR_CONF_ENTRY,
@@ -811,6 +844,12 @@ int get_monitor_config(struct mt_ctx *ctx)
     if (badsrv != NULL) {
         DEBUG(0, ("Invalid service %s\n", badsrv));
         return EINVAL;
+    }
+
+    ctx->started_services = 0;
+    ctx->num_services = 0;
+    for (i = 0; ctx->services[i] != NULL; i++) {
+        ctx->num_services++;
     }
 
     ctx->domain_ctx = talloc_new(ctx);
@@ -2460,6 +2499,8 @@ int main(int argc, const char *argv[])
     ret = server_setup("sssd", flags, CONFDB_MONITOR_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
+    monitor->is_daemon = !opt_interactive;
+    monitor->parent_pid = main_ctx->parent_pid;
     monitor->ev = main_ctx->event_ctx;
     talloc_steal(main_ctx, monitor);
 

@@ -276,6 +276,7 @@ void sss_log(int priority, const char *format, ...);
 struct main_context {
     struct tevent_context *event_ctx;
     struct confdb_ctx *confdb_ctx;
+    pid_t parent_pid;
 };
 
 int die_if_parent_died(void);
