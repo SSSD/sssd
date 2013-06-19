@@ -39,6 +39,16 @@
         <variablelist remap='IP'>
             <varlistentry>
                 <term>
+                    <option>-E</option>,<option>--everything</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all cached entries except for sudo rules.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>-u</option>,<option>--user</option>
                     <replaceable>login</replaceable>
                 </term>

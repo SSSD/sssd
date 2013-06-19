@@ -38,6 +38,15 @@
 #define INVALIDATE_SERVICES 8
 #define INVALIDATE_AUTOFSMAPS 16
 
+#ifdef BUILD_AUTOFS
+#define INVALIDATE_EVERYTHING (INVALIDATE_USERS | INVALIDATE_GROUPS | \
+                               INVALIDATE_NETGROUPS | INVALIDATE_SERVICES | \
+                               INVALIDATE_AUTOFSMAPS)
+#else
+#define INVALIDATE_EVERYTHING (INVALIDATE_USERS | INVALIDATE_GROUPS | \
+                               INVALIDATE_NETGROUPS | INVALIDATE_SERVICES)
+#endif
+
 enum sss_cache_entry {
     TYPE_USER=0,
     TYPE_GROUP,
@@ -517,6 +526,8 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &debug,
             0, _("The debug level to run with"), NULL },
+        { "everything", 'E', POPT_ARG_NONE, NULL, 'e',
+            _("Invalidate all cached entries except for sudo rulese"), NULL },
         { "user", 'u', POPT_ARG_STRING, &user, 0,
             _("Invalidate particular user"), NULL },
         { "users", 'U', POPT_ARG_NONE, NULL, 'u',
@@ -568,6 +579,9 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
                 break;
             case 'a':
                 idb |= INVALIDATE_AUTOFSMAPS;
+                break;
+            case 'e':
+                idb = INVALIDATE_EVERYTHING;
                 break;
         }
     }
