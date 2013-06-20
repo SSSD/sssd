@@ -23,8 +23,8 @@ prog="sssd"
 . /etc/rc.status
 rc_reset
 
-SSSD=/usr/sbin/sssd
-PID_FILE=/var/run/sssd.pid
+SSSD=@sbindir@/sssd
+PID_FILE=@localstatedir@/run/sssd.pid
 
 case "$1" in
     start)
@@ -75,4 +75,3 @@ case "$1" in
     exit 1
 esac
 rc_exit
-

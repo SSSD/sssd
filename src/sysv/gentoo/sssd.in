@@ -7,12 +7,12 @@ depend(){
 
 start(){
     ebegin "Starting sssd"
-    start-stop-daemon --start --exec /usr/sbin/sssd -- -D
+    start-stop-daemon --start --exec @sbindir@/sssd -- -D
     eend ${?}
 }
 
 stop(){
     ebegin "Stopping sssd"
-    start-stop-daemon --stop --pidfile /var/run/sssd.pid
+    start-stop-daemon --stop --pidfile @localstatedir@/run/sssd.pid
     eend ${?}
 }
