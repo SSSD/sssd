@@ -224,7 +224,6 @@ struct sdap_attr_map ipa_host_map[] = {
 struct sdap_attr_map ipa_hostgroup_map[] = {
     { "ipa_hostgroup_objectclass", "ipaHostgroup", SYSDB_HOSTGROUP_CLASS, NULL},
     { "ipa_hostgroup_name", "cn", SYSDB_NAME, NULL},
-    { "ipa_hostgroup_member", "member", SYSDB_MEMBER, NULL},
     { "ipa_hostgroup_memberof", "memberOf", SYSDB_ORIG_MEMBEROF, NULL},
     { "ipa_hostgroup_uuid", "ipaUniqueID", SYSDB_UUID, NULL},
     SDAP_ATTR_MAP_TERMINATOR

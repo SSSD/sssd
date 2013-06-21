@@ -83,7 +83,6 @@ enum ipa_host_attrs {
 enum ipa_hostgroup_attrs {
     IPA_OC_HOSTGROUP = 0,
     IPA_AT_HOSTGROUP_NAME,
-    IPA_AT_HOSTGROUP_MEMBER,
     IPA_AT_HOSTGROUP_MEMBER_OF,
     IPA_AT_HOSTGROUP_UUID,
 
