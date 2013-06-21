@@ -292,17 +292,16 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
                                &state->num_primary_servers);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        goto done;
+        DEBUG(SSSDBG_OP_FAILURE, ("Unable to retrieve primary servers "
+                                  "[%d]: %s\n", ret, sss_strerror(ret)));
+        if (ret != ERR_SRV_NOT_FOUND && ret != ERR_SRV_LOOKUP_ERROR) {
+            /* abort on system error */
+            goto done;
+        }
     }
 
     if (state->backup_domain == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, ("No backup domain specified\n"));
-
-        if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to retrieve primary nor "
-                  "backup servers [%d]: %s\n", ret, sss_strerror(ret)));
-        }
-
         goto done;
     }
 
@@ -360,12 +359,14 @@ static void fo_discover_servers_backup_done(struct tevent_req *subreq)
                                &state->backup_servers,
                                &state->num_backup_servers);
     talloc_zfree(subreq);
-    if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
-        /* we have successfully fetched primary servers, so we will
-         * finish the request normally */
+    if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to retrieve backup servers "
                                      "[%d]: %s\n", ret, sss_strerror(ret)));
-        ret = EOK;
+        if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
+            /* we have successfully fetched primary servers, so we will
+             * finish the request normally on non system error */
+            ret = EOK;
+        }
     }
 
     if (ret != EOK) {
