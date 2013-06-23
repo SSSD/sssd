@@ -106,7 +106,7 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    state->attrs = talloc_array(state, const char *, 8);
+    state->attrs = talloc_array(state, const char *, 7);
     if (state->attrs == NULL) {
         DEBUG(1, ("Failed to allocate host attribute list.\n"));
         ret = ENOMEM;
@@ -116,10 +116,9 @@ ipa_hbac_host_info_send(TALLOC_CTX *mem_ctx,
     state->attrs[1] = IPA_HOST_SERVERHOSTNAME;
     state->attrs[2] = IPA_HOST_FQDN;
     state->attrs[3] = IPA_UNIQUE_ID;
-    state->attrs[4] = IPA_MEMBER;
-    state->attrs[5] = IPA_MEMBEROF;
-    state->attrs[6] = IPA_CN;
-    state->attrs[7] = NULL;
+    state->attrs[4] = IPA_MEMBEROF;
+    state->attrs[5] = IPA_CN;
+    state->attrs[6] = NULL;
 
     subreq = sdap_get_generic_send(state, ev, opts, sh, search_base,
                                    LDAP_SCOPE_SUB, host_filter,
