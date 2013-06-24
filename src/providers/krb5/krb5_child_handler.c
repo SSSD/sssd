@@ -148,8 +148,13 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     } else {
         send_pac = 1;
     }
-    use_enterprise_principal = dp_opt_get_bool(kr->krb5_ctx->opts,
+
+    if (kr->pd->cmd == SSS_CMD_RENEW) {
+        use_enterprise_principal = false;
+    } else {
+        use_enterprise_principal = dp_opt_get_bool(kr->krb5_ctx->opts,
                                          KRB5_USE_ENTERPRISE_PRINCIPAL) ? 1 : 0;
+    }
 
     buf = talloc(kr, struct io_buffer);
     if (buf == NULL) {
