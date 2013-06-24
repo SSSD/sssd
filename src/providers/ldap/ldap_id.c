@@ -1472,13 +1472,24 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
                                                struct get_user_and_group_state);
     int ret;
 
-    ret = users_get_recv(subreq, &state->dp_error, NULL);
+    ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
     talloc_zfree(subreq);
 
-    if (ret == EOK) { /* Matching user found */
-        tevent_req_done(req);
+    if (ret != EOK) {           /* Fatal error while looking up user */
+        tevent_req_error(req, ret);
         return;
     }
+
+    if (state->sdap_ret == EOK) {   /* Matching user found */
+        tevent_req_done(req);
+        return;
+    } else if (state->sdap_ret != ENOENT) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    /* Now the search finished fine but did not find an entry.
+     * Retry with groups. */
 
     subreq = groups_get_send(req, state->ev, state->id_ctx,
                              state->sdom, state->conn,
