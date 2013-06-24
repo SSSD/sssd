@@ -493,10 +493,13 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
-        case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK:
             if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
-                DEBUG(1, ("Missing authtok for user [%s].\n", pd->user));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Wrong authtok type for user [%s]. " \
+                       "Expected [%d], got [%d]\n", pd->user,
+                          SSS_AUTHTOK_TYPE_PASSWORD,
+                          sss_authtok_get_type(pd->authtok)));
                 state->pam_status = PAM_SYSTEM_ERR;
                 state->dp_err = DP_ERR_FATAL;
                 ret = EINVAL;
@@ -506,10 +509,24 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         case SSS_PAM_CHAUTHTOK_PRELIM:
             if (pd->priv == 1 &&
                 sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
-                DEBUG(4, ("Password reset by root is not supported.\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("Password reset by root is not supported.\n"));
                 state->pam_status = PAM_PERM_DENIED;
                 state->dp_err = DP_ERR_OK;
                 ret = EOK;
+                goto done;
+            }
+            break;
+        case SSS_CMD_RENEW:
+            if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_CCFILE) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Wrong authtok type for user [%s]. " \
+                       "Expected [%d], got [%d]\n", pd->user,
+                          SSS_AUTHTOK_TYPE_CCFILE,
+                          sss_authtok_get_type(pd->authtok)));
+                state->pam_status = PAM_SYSTEM_ERR;
+                state->dp_err = DP_ERR_FATAL;
+                ret = EINVAL;
                 goto done;
             }
             break;
