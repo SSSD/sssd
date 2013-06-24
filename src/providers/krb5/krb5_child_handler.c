@@ -106,7 +106,7 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
         auth_token_length = len + 1;
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
-        ret = sss_authtok_get_password(tok, &data, &len);
+        ret = sss_authtok_get_ccfile(tok, &data, &len);
         auth_token_length = len + 1;
         break;
     default:
