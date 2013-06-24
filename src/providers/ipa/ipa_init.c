@@ -300,6 +300,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         goto done;
     }
     krb5_auth_ctx->service = ipa_options->service->krb5_service;
+    krb5_auth_ctx->is_ipa = true;
     ipa_options->auth_ctx->krb5_auth_ctx = krb5_auth_ctx;
 
     ret = ipa_get_auth_options(ipa_options, bectx->cdb, bectx->conf_path,

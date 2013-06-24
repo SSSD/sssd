@@ -55,6 +55,7 @@ struct krb5child_req {
     bool valid_tgt;
     bool run_as_user;
     bool upn_from_different_realm;
+    bool send_pac;
 };
 
 errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,

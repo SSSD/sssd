@@ -53,7 +53,7 @@ struct krb5_req {
     char *ccname;
     char *keytab;
     bool validate;
-    bool upn_from_different_realm;
+    bool send_pac;
     bool use_enterprise_princ;
     char *fast_ccname;
 
@@ -987,9 +987,9 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
         goto done;
     }
 
-    /* Try to find and send the PAC to the PAC responder for principals which
-     * do not belong to our realm. Failures are not critical. */
-    if (kr->upn_from_different_realm) {
+    /* Try to find and send the PAC to the PAC responder.
+     * Failures are not critical. */
+    if (kr->send_pac) {
         kerr = sss_extract_pac(kr->ctx, validation_ccache, validation_princ,
                                kr->creds->client, keytab, &pac_authdata);
         if (kerr != 0) {
@@ -1551,7 +1551,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     size_t p = 0;
     uint32_t len;
     uint32_t validate;
-    uint32_t different_realm;
+    uint32_t send_pac;
     uint32_t use_enterprise_princ;
     struct pam_data *pd;
     errno_t ret;
@@ -1573,8 +1573,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     SAFEALIGN_COPY_UINT32_CHECK(&validate, buf + p, size, &p);
     kr->validate = (validate == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(offline, buf + p, size, &p);
-    SAFEALIGN_COPY_UINT32_CHECK(&different_realm, buf + p, size, &p);
-    kr->upn_from_different_realm = (different_realm == 0) ? false : true;
+    SAFEALIGN_COPY_UINT32_CHECK(&send_pac, buf + p, size, &p);
+    kr->send_pac = (send_pac == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(&use_enterprise_princ, buf + p, size, &p);
     kr->use_enterprise_princ = (use_enterprise_princ == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);

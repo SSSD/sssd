@@ -129,6 +129,8 @@ struct krb5_ctx {
     bool use_fast;
 
     hash_table_t *wait_queue_hash;
+
+    bool is_ipa;
 };
 
 struct remove_info_files_ctx {
