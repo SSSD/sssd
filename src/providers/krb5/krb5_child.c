@@ -1451,12 +1451,18 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
     switch (ret) {
-        if (ret == EACCES) {
+        case EOK:
+            break;
+
+        case EACCES:
             DEBUG(SSSDBG_OP_FAILURE, ("Invalid authtok type\n"));
             return ERR_INVALID_CRED_TYPE;
-        }
-        DEBUG(SSSDBG_OP_FAILURE, ("No credentials available\n"));
-        return ERR_NO_CREDS;
+            break;
+
+        default:
+            DEBUG(SSSDBG_OP_FAILURE, ("No credentials available\n"));
+            return ERR_NO_CREDS;
+            break;
     }
 
     kerr = get_and_save_tgt(kr, password);
