@@ -544,11 +544,12 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
     int ret;
     const char *attrs[] = {SYSDB_NAME, SYSDB_NAME_ALIAS, SYSDB_UIDNUM,
                            SYSDB_GIDNUM, SYSDB_GECOS, SYSDB_HOMEDIR,
-                           SYSDB_SHELL, NULL};
+                           SYSDB_SHELL, SYSDB_ORIG_DN, SYSDB_CACHEDPWD, NULL};
     struct ldb_message *msg;
     struct passwd *pwd = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     struct sysdb_attrs *user_attrs = NULL;
+    const char *tmp_str;
 
     sysdb = pr_ctx->dom->sysdb;
     if (sysdb == NULL) {
@@ -580,6 +581,30 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_user failed.\n"));
                 goto done;
+            }
+
+            /* If the entry is delete we might loose the information about the
+             * original DN of e.g. an IPA user or a chache password. */
+            tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_ORIG_DN, NULL);
+            if (tmp_str != NULL) {
+                ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN,
+                                             tmp_str);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("sysdb_attrs_add_string failed.\n"));
+                    goto done;
+                }
+            }
+
+            tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_CACHEDPWD, NULL);
+            if (tmp_str != NULL) {
+                ret = sysdb_attrs_add_string(user_attrs, SYSDB_CACHEDPWD,
+                                             tmp_str);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          ("sysdb_attrs_add_string failed.\n"));
+                    goto done;
+                }
             }
         } else {
             goto done;
