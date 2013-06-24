@@ -4,6 +4,7 @@ Description=System Security Services Daemon
 After=syslog.target
 
 [Service]
+EnvironmentFile=-@environment_file@
 ExecStart=@sbindir@/sssd -D -f
 # These two should be used with traditional UNIX forking daemons
 # consult systemd.service(5) for more details

@@ -152,6 +152,19 @@ AC_DEFUN([WITH_INITSCRIPT],
   AC_MSG_NOTICE([Will use init script type: $initscript])
   ])
 
+AC_DEFUN([WITH_ENVIRONMENT_FILE],
+  [ AC_ARG_WITH([environment_file],
+                [AC_HELP_STRING([--with-environment-file=PATH], [Path to environment file [/etc/sysconfig/sssd]])
+                ]
+               )
+
+    ENVIRONMENT_FILE_PATH="${sysconfdir}/sysconfig/sssd"
+    if test x"$with_environment_file" != x; then
+        ENVIRONMENT_FILE_PATH=$with_environment_file
+    fi
+    AC_SUBST(environment_file, [$ENVIRONMENT_FILE_PATH])
+  ])
+
 AC_DEFUN([WITH_INIT_DIR],
   [ AC_ARG_WITH([init-dir],
                 [AC_HELP_STRING([--with-init-dir=DIR],
