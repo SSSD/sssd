@@ -279,6 +279,18 @@ void dyndns_test_timeout(void **state)
 
     /* Wait until the test finishes with EIO (child error) */
     ret = test_ev_loop(dyndns_test_ctx->tctx);
+
+    /* The event queue may not be empty. We need to make sure that all events
+     * are processed. Unfortunately, tevent_loop_wait() contains a bug that
+     * prevents exiting the loop even if there are no remaining events, thus
+     * we have to use tevent_loop_once().
+     *
+     * FIXME: use tevent_loop_wait() when the bug is fixed
+     * https://bugzilla.samba.org/show_bug.cgi?id=10012
+     */
+    tevent_loop_once(dyndns_test_ctx->tctx->ev); /* SIGCHLD handler */
+    tevent_loop_once(dyndns_test_ctx->tctx->ev); /* nsupdate_child_handler */
+
     DEBUG(SSSDBG_TRACE_LIBS,
           ("Child request returned [%d]: %s\n", ret, strerror(ret)));
     assert_int_equal(ret, ERR_DYNDNS_TIMEOUT);
