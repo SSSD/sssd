@@ -764,6 +764,7 @@ nsupdate_get_addrs_recv(struct tevent_req *req,
 struct nsupdate_child_state {
     int pipefd_to_child;
     struct tevent_timer *timeout_handler;
+    struct sss_child_ctx_old *child_ctx;
 
     int child_status;
 };
@@ -799,7 +800,8 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
     state->pipefd_to_child = pipefd_to_child;
 
     /* Set up SIGCHLD handler */
-    ret = child_handler_setup(ev, child_pid, nsupdate_child_handler, req);
+    ret = child_handler_setup(ev, child_pid, nsupdate_child_handler, req,
+                              &state->child_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not set up child handlers [%d]: %s\n",
               ret, sss_strerror(ret)));
@@ -847,6 +849,8 @@ nsupdate_child_timeout(struct tevent_context *ev,
             tevent_req_data(req, struct nsupdate_child_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, ("Timeout reached for dynamic DNS update\n"));
+    child_handler_destroy(state->child_ctx);
+    state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
     tevent_req_error(req, ERR_DYNDNS_TIMEOUT);
 }
