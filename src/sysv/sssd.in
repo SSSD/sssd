@@ -31,6 +31,10 @@ prog="sssd"
 # Source function library.
 . /etc/init.d/functions
 
+if [ -f @environment_file@ ]; then
+    . @environment_file@
+fi
+
 SSSD=@sbindir@/sssd
 
 LOCK_FILE=@localstatedir@/lock/subsys/sssd
