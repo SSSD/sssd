@@ -65,8 +65,12 @@ static int extract_authtok_v2(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
         sss_authtok_set_empty(tok);
         break;
     case SSS_AUTHTOK_TYPE_PASSWORD:
-        ret = sss_authtok_set_password(tok, (const char *)auth_token_data,
-                                       auth_token_length);
+        if (auth_token_length == 0) {
+            sss_authtok_set_empty(tok);
+        } else {
+            ret = sss_authtok_set_password(tok, (const char *)auth_token_data,
+                                           auth_token_length);
+        }
         break;
     default:
         return EINVAL;
