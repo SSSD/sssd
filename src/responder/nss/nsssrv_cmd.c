@@ -492,7 +492,6 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
 static void nsssrv_dp_send_acct_req_done(struct tevent_req *req);
 
 /* FIXME: do not check res->count, but get in a msgs and check in parent */
-/* FIXME: do not sss_cmd_done, but return error and let parent do it */
 errno_t check_cache(struct nss_dom_ctx *dctx,
                     struct nss_ctx *nctx,
                     struct ldb_result *res,
@@ -516,11 +515,6 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
             (res->count > 1)) {
         DEBUG(1, ("getpwXXX call returned more than one result!"
                   " DB Corrupted?\n"));
-        ret = nss_cmd_send_error(cmdctx, ENOENT);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR_CODE(cctx, ENOENT);
-        }
-        sss_cmd_done(cctx, cmdctx);
         return ENOENT;
     }
 
