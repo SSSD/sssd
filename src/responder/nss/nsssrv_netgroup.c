@@ -369,7 +369,14 @@ static errno_t setnetgrent_retry(struct tevent_req *req)
         }
 
         ret = lookup_netgr_step(step_ctx);
-        if (ret != EOK) {
+        switch (ret) {
+        case EOK:
+            break;
+        case EMSGSIZE:
+            state->netgr->ready = true;
+            ret = ENOENT;
+            /* FALLTHROUGH */
+        default:
             goto done;
         }
         tevent_req_done(req);
@@ -465,6 +472,11 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         /* Look up the netgroup in the cache */
         ret = sysdb_getnetgr(step_ctx->dctx, sysdb, name,
                              &step_ctx->dctx->res);
+        if (step_ctx->dctx->res->count > 1) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("getnetgr call returned more than one result !?!\n"));
+            return EMSGSIZE;
+        }
         if (ret == ENOENT) {
             /* This netgroup was not found in this domain */
             if (!step_ctx->dctx->check_provider) {
