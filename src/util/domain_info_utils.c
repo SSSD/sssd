@@ -18,9 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <utime.h>
+
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include "util/util.h"
+
+/* the directory domain - realm mappings are written to */
+#define KRB5_MAPPING_DIR PUBCONF_PATH"/krb5.include.d"
 
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         bool descend)
@@ -189,4 +194,184 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
     *_domain = dom;
 
     return EOK;
+}
+
+static errno_t
+sss_krb5_touch_config(void)
+{
+    const char *config = NULL;
+    errno_t ret;
+
+    config = getenv("KRB5_CONFIG");
+    if (config == NULL) {
+        config = KRB5_CONF_PATH;
+    }
+
+    ret = utime(config, NULL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to change mtime of \"%s\" "
+                                    "[%d]: %s\n", config, strerror(ret)));
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t
+sss_write_domain_mappings(struct sss_domain_info *domain)
+{
+    struct sss_domain_info *dom;
+    errno_t ret;
+    errno_t err;
+    TALLOC_CTX *tmp_ctx;
+    const char *mapping_file;
+    char *sanitized_domain;
+    char *tmp_file = NULL;
+    int fd = -1;
+    mode_t old_mode;
+    FILE *fstream = NULL;
+    int i;
+
+    if (domain == NULL || domain->name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("No domain name provided\n"));
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    sanitized_domain = talloc_strdup(tmp_ctx, domain->name);
+    if (sanitized_domain == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        return ENOMEM;
+    }
+
+    /* only alpha-numeric chars, dashes and underscores are allowed in
+     * krb5 include directory */
+    for (i = 0; sanitized_domain[i] != '\0'; i++) {
+        if (!isalnum(sanitized_domain[i])
+                && sanitized_domain[i] != '-' && sanitized_domain[i] != '_') {
+            sanitized_domain[i] = '_';
+        }
+    }
+
+    mapping_file = talloc_asprintf(tmp_ctx, "%s/domain_realm_%s",
+                                   KRB5_MAPPING_DIR, sanitized_domain);
+    if (!mapping_file) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Mapping file for domain [%s] is [%s]\n",
+                             domain->name, mapping_file));
+
+    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", mapping_file);
+    if (tmp_file == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    old_mode = umask(077);
+    fd = mkstemp(tmp_file);
+    umask(old_mode);
+    if (fd < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("creating the temp file [%s] for domain-realm "
+                                  "mappings failed.", tmp_file));
+        ret = EIO;
+        talloc_zfree(tmp_ctx);
+        goto done;
+    }
+
+    fstream = fdopen(fd, "a");
+    if (!fstream) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, ("fdopen failed [%d]: %s\n",
+                                  ret, strerror(ret)));
+        ret = close(fd);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                ("fclose failed [%d][%s].\n", ret, strerror(ret)));
+            /* Nothing to do here, just report the failure */
+        }
+        ret = EIO;
+        goto done;
+    }
+
+    ret = fprintf(fstream, "[domain_realm]\n");
+    if (ret < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("fprintf failed\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    for (dom = get_next_domain(domain, true);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, false)) {
+        ret = fprintf(fstream, ".%s = %s\n%s = %s\n",
+                               dom->name, dom->realm, dom->name, dom->realm);
+        if (ret < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("fprintf failed\n"));
+            goto done;
+        }
+    }
+
+    ret = fclose(fstream);
+    fstream = NULL;
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("fclose failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = rename(tmp_file, mapping_file);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("rename failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    talloc_zfree(tmp_file);
+
+    ret = chmod(mapping_file, 0644);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("fchmod failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    err = sss_krb5_touch_config();
+    if (err != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to change last modification time "
+              "of krb5.conf. Created mappings may not be loaded.\n"));
+        /* Ignore */
+    }
+
+    if (fstream) {
+        err = fclose(fstream);
+        if (err != 0) {
+            err = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                ("fclose failed [%d][%s].\n", err, strerror(err)));
+            /* Nothing to do here, just report the failure */
+        }
+    }
+
+    if (tmp_file) {
+        err = unlink(tmp_file);
+        if (err < 0) {
+            err = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not remove file [%s]: [%d]: %s",
+                   tmp_file, err, strerror(err)));
+        }
+    }
+    talloc_free(tmp_ctx);
+    return ret;
 }

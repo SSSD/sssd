@@ -192,6 +192,4 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
                                 krb5_keytab keytab,
                                 krb5_authdata ***_pac_authdata);
 
-errno_t sss_krb5_touch_config(void);
-
 #endif /* __SSS_KRB5_H__ */

@@ -736,6 +736,13 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
             DEBUG(SSSDBG_OP_FAILURE, ("ads_store_sdap_subdom failed.\n"));
             goto done;
         }
+
+        ret = sss_write_domain_mappings(ctx->sd_ctx->be_ctx->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("sss_krb5_write_mappings failed.\n"));
+            /* Just continue */
+        }
     }
 
     ret = EOK;

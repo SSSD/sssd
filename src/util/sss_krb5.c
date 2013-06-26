@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <talloc.h>
-#include <utime.h>
 
 #include "config.h"
 
@@ -1179,25 +1178,4 @@ done:
 #else
     return ENOTSUP;
 #endif
-}
-
-errno_t sss_krb5_touch_config(void)
-{
-    const char *config = NULL;
-    errno_t ret;
-
-    config = getenv("KRB5_CONFIG");
-    if (config == NULL) {
-        config = KRB5_CONF_PATH;
-    }
-
-    ret = utime(config, NULL);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to change mtime of \"%s\" "
-                                    "[%d]: %s\n", config, strerror(ret)));
-        return ret;
-    }
-
-    return EOK;
 }
