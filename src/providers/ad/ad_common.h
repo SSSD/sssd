@@ -26,7 +26,8 @@
 #include "util/util.h"
 #include "providers/ldap/ldap_common.h"
 
-#define AD_SERVICE_NAME "AD"
+#define AD_SERVICE_NAME    "AD"
+#define AD_GC_SERVICE_NAME "AD_GC"
 /* The port the Global Catalog runs on */
 #define AD_GC_PORT      3268
 

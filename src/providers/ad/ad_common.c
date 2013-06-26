@@ -189,7 +189,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
             }
             sdata->gc = true;
 
-            ret = be_fo_add_srv_server(bectx, AD_SERVICE_NAME, "gc",
+            ret = be_fo_add_srv_server(bectx, AD_GC_SERVICE_NAME, "gc",
                                        ad_domain, BE_FO_PROTO_TCP,
                                        false, sdata);
             if (ret != EOK) {
@@ -339,7 +339,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     }
 
     service->sdap->name = talloc_strdup(service->sdap, AD_SERVICE_NAME);
-    service->gc->name = talloc_strdup(service->gc, AD_SERVICE_NAME);
+    service->gc->name = talloc_strdup(service->gc, AD_GC_SERVICE_NAME);
     if (!service->sdap->name || !service->gc->name) {
         ret = ENOMEM;
         goto done;
@@ -354,6 +354,12 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     ret = be_fo_add_service(bectx, AD_SERVICE_NAME, ad_user_data_cmp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
+        goto done;
+    }
+
+    ret = be_fo_add_service(bectx, AD_GC_SERVICE_NAME, ad_user_data_cmp);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create GC failover service!\n"));
         goto done;
     }
 
@@ -406,6 +412,14 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     }
 
     ret = be_fo_service_add_callback(mem_ctx, bectx, AD_SERVICE_NAME,
+                                     ad_resolve_callback, service);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to add failover callback! [%s]\n", strerror(ret)));
+        goto done;
+    }
+
+    ret = be_fo_service_add_callback(mem_ctx, bectx, AD_GC_SERVICE_NAME,
                                      ad_resolve_callback, service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -531,7 +545,9 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    if (service->krb5_service->write_kdcinfo) {
+    /* Only write kdcinfo files for local servers */
+    if ((sdata == NULL || sdata->gc == false) &&
+        service->krb5_service->write_kdcinfo) {
         /* Write krb5 info files */
         safe_address = sss_escape_ip_address(tmp_ctx,
                                             srvaddr->family,
