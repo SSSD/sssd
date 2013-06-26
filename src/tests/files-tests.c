@@ -245,7 +245,6 @@ START_TEST(test_copy_node)
     int ret;
     char origpath[PATH_MAX+1];
     char *tmp;
-    struct stat statbuf;
 
     errno = 0;
     fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
@@ -267,14 +266,13 @@ START_TEST(test_copy_node)
     ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
-    /* check if really copied */
+    /* check if really copied and without special files */
     ret = access(dst_path, F_OK);
     fail_unless(ret == 0, "destination directory not there\n");
 
     tmp = talloc_asprintf(test_ctx, "%s/testnode", dst_path);
-    ret = lstat(tmp, &statbuf);
-    fail_unless(ret == 0, "cannot stat the node %s\n", tmp);
-    fail_unless(S_ISFIFO(statbuf.st_mode), "%s not a char device??\n", tmp);
+    ret = access(tmp, F_OK);
+    fail_unless(ret == -1, "special file %s exists, it shouldn't\n", tmp);
     talloc_free(tmp);
 }
 END_TEST

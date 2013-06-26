@@ -140,6 +140,10 @@
                         created by <command>sss_useradd</command>.
                     </para>
                     <para>
+                        Special files (block devices, character devices, named
+                        pipes and unix sockets) will not be copied.
+                    </para>
+                    <para>
                         This option is only valid if the <option>-m</option>
                         (or <option>--create-home</option>) option is
                         specified, or creation of home directories is set to TRUE
