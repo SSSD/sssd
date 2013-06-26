@@ -491,11 +491,6 @@ sudosrv_dp_req_done(struct tevent_req *req)
     dbus_uint32_t err_min;
     char *err_msg;
 
-    if (cb_ctx == NULL) {
-        /* we are not interested in returned values */
-        talloc_free(req);
-        return;
-    }
     cli_ctx = talloc_get_type(cb_ctx->cctx, struct cli_ctx);
 
     ret = sss_dp_get_sudoers_recv(cb_ctx->mem_ctx, req,
@@ -509,6 +504,13 @@ sudosrv_dp_req_done(struct tevent_req *req)
     }
 
     cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
+}
+
+static void
+sudosrv_dp_oob_req_done(struct tevent_req *req)
+{
+    DEBUG(SSSDBG_TRACE_FUNC, ("Out of band refresh finished\n"));
+    talloc_free(req);
 }
 
 static void
@@ -553,7 +555,7 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Cannot issue DP request.\n"));
         } else {
-            tevent_req_set_callback(dpreq, sudosrv_dp_req_done, NULL);
+            tevent_req_set_callback(dpreq, sudosrv_dp_oob_req_done, NULL);
         }
     }
 
