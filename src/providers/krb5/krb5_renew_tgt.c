@@ -442,7 +442,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
         }
 
         ret = find_or_guess_upn(tmp_ctx, msgs[c], renew_tgt_ctx->krb5_ctx,
-                                renew_tgt_ctx->be_ctx->domain->name,
+                                renew_tgt_ctx->be_ctx->domain,
                                 user_name, user_dom, &upn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("find_or_guess_upn failed.\n"));

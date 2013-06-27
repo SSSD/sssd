@@ -884,41 +884,66 @@ errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
 }
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
-                            const char *domain_name, const char *username,
+                            struct sss_domain_info *dom, const char *username,
                             const char *user_dom, char **_upn)
 {
     const char *realm = NULL;
     char *uc_dom = NULL;
     char *upn;
+    char *name;
+    char *domname;
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
 
-    if (user_dom != NULL && domain_name != NULL &&
-        strcasecmp(domain_name,user_dom) != 0) {
-        uc_dom = get_uppercase_realm(mem_ctx, user_dom);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    if (user_dom != NULL && dom->name != NULL &&
+        strcasecmp(dom->name, user_dom) != 0) {
+        uc_dom = get_uppercase_realm(tmp_ctx, user_dom);
         if (uc_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("get_uppercase_realm failed.\n"));
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
     } else {
         realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
         if (realm == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("Missing Kerberos realm.\n"));
-            return ENOENT;
+            ret = ENOMEM;
+            goto done;
         }
     }
 
+    /* Subdomains already have a fully qualified name, which contains
+     * the domain name. We need to replace it with the realm name
+     */
+    ret = sss_parse_name(tmp_ctx, dom->names, username, &domname, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse %s into name and " \
+                                  "domain components, login might fail\n"));
+        name = username;
+    }
+
     /* NOTE: this is a hack, works only in some environments */
-    upn = talloc_asprintf(mem_ctx, "%s@%s",  username,
+    upn = talloc_asprintf(tmp_ctx, "%s@%s",  name,
                                              realm != NULL ? realm : uc_dom);
-    talloc_free(uc_dom);
     if (upn == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     DEBUG(9, ("Using simple UPN [%s].\n", upn));
 
-    *_upn = upn;
-    return EOK;
+    *_upn = talloc_steal(mem_ctx, upn);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t compare_principal_realm(const char *upn, const char *realm,

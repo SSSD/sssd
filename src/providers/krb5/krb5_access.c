@@ -103,7 +103,7 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         break;
     case 1:
         ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx,
-                                be_ctx->domain->name, pd->user, pd->domain,
+                                be_ctx->domain, pd->user, pd->domain,
                                 &state->kr->upn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("find_or_guess_upn failed.\n"));

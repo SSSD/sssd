@@ -182,7 +182,7 @@ errno_t write_krb5info_file(const char *realm, const char *kdc,
 errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm);
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
-                            const char *domain_name, const char *username,
+                            struct sss_domain_info *dom, const char *username,
                             const char *user_dom, char **_upn);
 
 errno_t compare_principal_realm(const char *upn, const char *realm,
