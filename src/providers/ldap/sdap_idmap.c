@@ -477,3 +477,62 @@ done:
     talloc_free(dom_sid_str);
     return ret;
 }
+
+bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
+                                               const char *dom_sid)
+{
+    enum idmap_error_code err;
+    bool has_algorithmic_mapping;
+    char *new_dom_sid;
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    err = sss_idmap_domain_has_algorithmic_mapping(ctx->map, dom_sid,
+                                                   &has_algorithmic_mapping);
+    if (err == IDMAP_SUCCESS) {
+        return has_algorithmic_mapping;
+    } else if (err != IDMAP_SID_UNKNOWN && err != IDMAP_NO_DOMAIN) {
+        return false;
+    }
+
+    /* This is the first time we've seen this domain
+     * Create a new domain for it. We'll use the dom-sid
+     * as the domain name for now, since we don't have
+     * any way to get the real name.
+     */
+
+    if (is_domain_sid(dom_sid)) {
+        new_dom_sid = discard_const(dom_sid);
+    } else {
+        tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+            return false;
+        }
+
+        ret = sdap_idmap_get_dom_sid_from_object(tmp_ctx, dom_sid,
+                                                 &new_dom_sid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not parse domain SID from [%s]\n", dom_sid));
+            talloc_free(tmp_ctx);
+            return false;
+        }
+    }
+
+    ret = ctx->find_new_domain(ctx, new_dom_sid, new_dom_sid);
+    talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not add new domain for sid [%s]\n", dom_sid));
+        return false;
+    }
+
+    err = sss_idmap_domain_has_algorithmic_mapping(ctx->map, dom_sid,
+                                                   &has_algorithmic_mapping);
+    if (err == IDMAP_SUCCESS) {
+        return has_algorithmic_mapping;
+    }
+
+    return false;
+}
