@@ -908,7 +908,8 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
         }
     }
 
-    if (dp_opt_get_bool(state->ctx->opts->basic,
+    if (state->pd->pam_status == PAM_SUCCESS &&
+        dp_opt_get_bool(state->ctx->opts->basic,
                         SDAP_CHPASS_UPDATE_LAST_CHANGE)) {
         lastchanged_name = state->ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name;
 
