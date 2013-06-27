@@ -192,4 +192,8 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
                                 krb5_keytab keytab,
                                 krb5_authdata ***_pac_authdata);
 
+char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
+                                         krb5_context ctx,
+                                         krb5_principal principal,
+                                         const char *location);
 #endif /* __SSS_KRB5_H__ */

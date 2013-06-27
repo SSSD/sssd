@@ -1147,51 +1147,6 @@ done:
 
 }
 
-static char * get_ccache_name_by_principal(TALLOC_CTX *mem_ctx,
-                                           krb5_context ctx,
-                                           krb5_principal principal,
-                                           const char *ccname)
-{
-    krb5_error_code kerr;
-    krb5_ccache tmp_cc = NULL;
-    char *tmp_ccname = NULL;
-    char *ret_ccname = NULL;
-
-    kerr = krb5_cc_set_default_name(ctx, ccname);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
-        return NULL;
-    }
-
-    kerr = krb5_cc_cache_match(ctx, principal, &tmp_cc);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
-        return NULL;
-    }
-
-    kerr = krb5_cc_get_full_name(ctx, tmp_cc, &tmp_ccname);
-    if (kerr !=0) {
-        KRB5_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
-        goto done;
-    }
-
-    ret_ccname = talloc_strdup(mem_ctx, tmp_ccname);
-    if (ret_ccname == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed (ENOMEM).\n"));
-    }
-
-done:
-    if (tmp_cc != NULL) {
-        kerr = krb5_cc_close(ctx, tmp_cc);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
-        }
-    }
-    krb5_free_string(ctx, tmp_ccname);
-
-    return ret_ccname;
-}
-
 static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         const char *password)
 {
@@ -1250,8 +1205,8 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
      * directly with file ccache (DIR::/...), but cache collection
      * should be returned back to back end.
      */
-    cc_name = get_ccache_name_by_principal(kr->pd, kr->ctx, principal,
-                                           kr->ccname);
+    cc_name = sss_get_ccache_name_for_principal(kr->pd, kr->ctx, principal,
+                                                kr->ccname);
     if (cc_name == NULL) {
         cc_name = kr->ccname;
     }

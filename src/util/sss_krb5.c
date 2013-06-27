@@ -1179,3 +1179,55 @@ done:
     return ENOTSUP;
 #endif
 }
+
+char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
+                                         krb5_context ctx,
+                                         krb5_principal principal,
+                                         const char *location)
+{
+#ifdef HAVE_KRB5_DIRCACHE
+    krb5_error_code kerr;
+    krb5_ccache tmp_cc = NULL;
+    char *tmp_ccname = NULL;
+    char *ret_ccname = NULL;
+
+    kerr = krb5_cc_set_default_name(ctx, location);
+    if (kerr != 0) {
+        KRB5_DEBUG(SSSDBG_MINOR_FAILURE, ctx, kerr);
+        return NULL;
+    }
+
+    kerr = krb5_cc_cache_match(ctx, principal, &tmp_cc);
+    if (kerr != 0) {
+        const char *err_msg = sss_krb5_get_error_message(ctx, kerr);
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              ("krb5_cc_cache_match failed: [%d][%s]\n", kerr, err_msg));
+        sss_krb5_free_error_message(ctx, err_msg);
+        return NULL;
+    }
+
+    kerr = krb5_cc_get_full_name(ctx, tmp_cc, &tmp_ccname);
+    if (kerr != 0) {
+        KRB5_DEBUG(SSSDBG_MINOR_FAILURE, ctx, kerr);
+        goto done;
+    }
+
+    ret_ccname = talloc_strdup(mem_ctx, tmp_ccname);
+    if (ret_ccname == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed (ENOMEM).\n"));
+    }
+
+done:
+    if (tmp_cc != NULL) {
+        kerr = krb5_cc_close(ctx, tmp_cc);
+        if (kerr != 0) {
+            KRB5_DEBUG(SSSDBG_MINOR_FAILURE, ctx, kerr);
+        }
+    }
+    krb5_free_string(ctx, tmp_ccname);
+
+    return ret_ccname;
+#else
+    return NULL;
+#endif /* HAVE_KRB5_DIRCACHE */
+}
