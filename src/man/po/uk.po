@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-11 17:02+0300\n"
-"PO-Revision-Date: 2013-05-03 20:40+0000\n"
+"POT-Creation-Date: 2013-06-27 21:10+0300\n"
+"PO-Revision-Date: 2013-06-11 16:20+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -353,67 +353,63 @@ msgstr "full_name_format (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:1579
-#, fuzzy
-#| msgid ""
-#| "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
-#| "manvolnum> </citerefentry>-compatible format that describes how to "
-#| "translate a (name, domain) tuple for this domain into a fully qualified "
-#| "name."
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
 "fully qualified name from user name and domain name components."
 msgstr ""
-"Формат, сумісний з <citerefentry> <refentrytitle>printf</refentrytitle> "
-"<manvolnum>3</manvolnum> </citerefentry>, який описує спосіб перетворення "
-"кортежу (назва, домен) для цього домену у назву належного формату."
+"Сумісний з <citerefentry> <refentrytitle>printf</refentrytitle> "
+"<manvolnum>3</manvolnum> </citerefentry> формат, який описує спосіб "
+"створення повного імені на основі імені користувача та компонентів назви "
+"домену."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:157 sssd.conf.5.xml:1590
 msgid "%1$s"
-msgstr ""
+msgstr "%1$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:158 sssd.conf.5.xml:1591
-#, fuzzy
-#| msgid "username"
 msgid "user name"
-msgstr "користувач"
+msgstr "ім’я користувача"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:161 sssd.conf.5.xml:1594
 msgid "%2$s"
-msgstr ""
+msgstr "%2$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:164 sssd.conf.5.xml:1597
 msgid "domain name as specified in the SSSD config file."
-msgstr ""
+msgstr "назва домену у форматі, вказаному у файлі налаштувань SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:170 sssd.conf.5.xml:1603
 msgid "%3$s"
-msgstr ""
+msgstr "%3$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:173 sssd.conf.5.xml:1606
+#, fuzzy
+#| msgid ""
+#| "domain flat name. Mostly usable for Active Directory domains, both "
+#| "directly configured or disovered via IPA trusts."
 msgid ""
 "domain flat name. Mostly usable for Active Directory domains, both directly "
-"configured or disovered via IPA trusts."
+"configured or discovered via IPA trusts."
 msgstr ""
+"проста назва домену. Здебільшого використовується для доменів Active "
+"Directory обох типів: безпосередньо налаштованих та виявлених за допомогою "
+"зв’язків довіри IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:154 sssd.conf.5.xml:1587
-#, fuzzy
-#| msgid ""
-#| "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
-#| "\"0\"/>"
 msgid ""
 "The following expansions are supported: <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
 msgstr ""
-"Параметри, які є чинними для доменів проксі.  <placeholder type="
-"\"variablelist\" id=\"0\"/>"
+"Передбачено використання таких замінників: <placeholder type=\"variablelist"
+"\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:183
@@ -1392,14 +1388,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:850
-#, fuzzy
-#| msgid ""
-#| "If the remote user does not exist in the cache, it is created. The uid is "
-#| "calculated based on the SID, trusted domains will have UPGs and the gid "
-#| "will have the same value as the uid. The home directory is set based on "
-#| "the subdomain_homedir parameter. The shell will be empty by default, i.e. "
-#| "the system defaults are used, but can be overwritten with the "
-#| "default_shell parameter."
 msgid ""
 "If the remote user does not exist in the cache, it is created. The uid is "
 "determined with the help of the SID, trusted domains will have UPGs and the "
@@ -1409,8 +1397,8 @@ msgid ""
 "parameter."
 msgstr ""
 "Якщо у кеші немає даних віддаленого користувача, запис цих даних буде "
-"створено. UID буде обчислено на основі SID, надійні домени матимуть UPG, а "
-"gid матиме те саме значення, що і UID. Дані домашнього каталогу буде "
+"створено. UID буде визначено за допомогою SID, надійні домени матимуть UPG, "
+"а gid матиме те саме значення, що і UID. Дані домашнього каталогу буде "
 "засновано на значенні параметра subdomain_homedir. Типово, для командної "
 "оболонки буде вибрано порожнє значення, тобто використовуватимуться типові "
 "параметри системи. Значення для оболонки можна змінити за допомогою "
@@ -1418,16 +1406,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:858
-#, fuzzy
-#| msgid ""
-#| "If there are SIDs of groups from the domain the sssd client belongs to, "
-#| "the user will be added to those groups."
 msgid ""
 "If there are SIDs of groups from domains sssd knows about, the user will be "
 "added to those groups."
 msgstr ""
-"Якщо існують SID груп з домену, до якого належить клієнт SSSD, запис "
-"користувача буде додано до цих груп."
+"Якщо існують SID груп з доменів, про які відомо SSSD, запис користувача буде "
+"додано до цих груп."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:864
@@ -1702,28 +1686,24 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1081
-#, fuzzy
-#| msgid "dyndns_refresh_interval (integer)"
 msgid "refresh_expired_interval (integer)"
-msgstr "dyndns_refresh_interval (ціле число)"
+msgstr "refresh_expired_interval (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1084
-#, fuzzy
-#| msgid ""
-#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
-#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing expired "
 "records. Currently only refreshing expired netgroups is supported."
 msgstr ""
 "Визначає кількість секунд, протягом яких SSSD має очікувати до оновлення "
-"свого кешу нумерованих записів."
+"застаріших записів. У поточній версії передбачено підтримку оновлення лише "
+"застарілих записів мережевих груп."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1089
 msgid "You can consider setting this value to 3/4 * entry_cache_timeout."
 msgstr ""
+"Варто визначити для цього параметра значення 3/4 * entry_cache_timeout."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1093 sssd-ipa.5.xml:221
@@ -2264,6 +2244,10 @@ msgid ""
 "trust subdomains and Active Directory domains, the flat (NetBIOS) name of "
 "the domain."
 msgstr ""
+"Формальний вираз для цього домену, який описує спосіб поділи рядка, що "
+"містить ім’я користувача та назву домену на ці компоненти. «Домен» може "
+"відповідати назві домену налаштувань SSSD або, у випадку піддоменів довіри "
+"IPA та доменів Active Directory, простій назві (NetBIOS) домену."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1537
@@ -2520,16 +2504,16 @@ msgstr "Типове значення: <filename>/home/%d/%u</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1743
-#, fuzzy
-#| msgid "krb5_realm (string)"
 msgid "realmd_tags (string)"
-msgstr "krb5_realm (рядок)"
+msgstr "realmd_tags (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1746
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Різноманітні теґи, що зберігаються службою налаштовування realmd для цього "
+"домену."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:897
@@ -3773,6 +3757,9 @@ msgid ""
 "emphasis> include <quote>authorized_service</quote> in order for the "
 "ldap_user_authorized_service option to work."
 msgstr ""
+"Будь ласка, зауважте, що параметр налаштування ldap_access_order "
+"<emphasis>має</emphasis> включати <quote>authorized_service</quote>, щоб "
+"система змогла скористатися параметром ldap_user_authorized_service."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:727
@@ -3811,6 +3798,9 @@ msgid ""
 "emphasis> include <quote>host</quote> in order for the "
 "ldap_user_authorized_host option to work."
 msgstr ""
+"Будь ласка, зауважте, що параметр налаштування ldap_access_order "
+"<emphasis>має</emphasis> включати <quote>host</quote>, щоб можна було "
+"скористатися параметром ldap_user_authorized_host."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:754
@@ -4326,15 +4316,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1218
-#, fuzzy
-#| msgid "ldap_disable_paging (boolean)"
 msgid "ldap_disable_range_retrieval (boolean)"
-msgstr "ldap_disable_paging (булеве значення)"
+msgstr "ldap_disable_range_retrieval (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1221
 msgid "Disable Active Directory range retrieval."
-msgstr ""
+msgstr "Вимкнути отримання діапазону Active Directory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1224
@@ -4345,6 +4333,12 @@ msgid ""
 "extension. This option disables parsing of the range extension, therefore "
 "large groups will appear as having no members."
 msgstr ""
+"У Active Directory за допомогою правила MaxValRange (типове значення 1500 "
+"записів) обмежується кількість записів, які може бути отримано під час "
+"пошуку. Якщо у певній групі міститься більше записів учасників, до відповіді "
+"буде включено специфічне для AD розширення діапазону. За допомогою цього "
+"параметра можна вимкнути обробку розширення діапазону, отже великі групи "
+"буде представлено як такі, у яких немає учасників."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1239
@@ -4812,36 +4806,41 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1592 sssd-krb5.5.xml:455
-#, fuzzy
-#| msgid "krb5_canonicalize (boolean)"
 msgid "krb5_use_kdcinfo (boolean)"
-msgstr "krb5_canonicalize (булеве значення)"
+msgstr "krb5_use_kdcinfo (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1595 sssd-krb5.5.xml:458
+#, fuzzy
+#| msgid ""
+#| "Specifies if the SSSD should be instructing the Kerberos libraries what "
+#| "realm and which KDCs to use. This option is on by default, if you disable "
+#| "it, you need to configure the Kerberos library using the <citerefentry> "
+#| "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#| "citerefentry> configuration file."
 msgid ""
-"Specifies if the SSSD should be instructing the Kerberos libraries what "
-"realm and which KDCs to use. This option is on by default, if you disable "
-"it, you need to configure the Kerberos library using the <citerefentry> "
+"Specifies if the SSSD should instruct the Kerberos libraries what realm and "
+"which KDCs to use. This option is on by default, if you disable it, you need "
+"to configure the Kerberos library using the <citerefentry> "
 "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> configuration file."
 msgstr ""
+"Визначає, чи слід SSSD вказувати бібліотекам Kerberos, яку область і які "
+"значення KDC слід використовувати. Типово, дію параметра увімкнено. Якщо ви "
+"вимкнете його, вам слід налаштувати бібліотеку Kerberos за допомогою файла "
+"налаштувань <citerefentry> <refentrytitle>krb5.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1606 sssd-krb5.5.xml:469
-#, fuzzy
-#| msgid ""
-#| "<quote>ldap</quote>: LDAP provider. See <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> for more information on configuring LDAP."
 msgid ""
 "See the <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> manual page for more "
 "information on the locator plugin."
 msgstr ""
-"<quote>ldap</quote>: засіб LDAP. Докладніше про налаштовування LDAP можна "
-"дізнатися з довідки до <citerefentry> <refentrytitle>sssd-ldap</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+"Див. сторінку підручника (man) <citerefentry> "
+"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>, щоб дізнатися більше про додаток пошуку."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1620
@@ -5126,6 +5125,9 @@ msgid ""
 "emphasis> include <quote>expire</quote> in order for the "
 "ldap_account_expire_policy option to work."
 msgstr ""
+"Будь ласка, зауважте, що параметр налаштування ldap_access_order "
+"<emphasis>має</emphasis> включати <quote>expire</quote>, щоб можна було "
+"користуватися параметром ldap_account_expire_policy."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1817
@@ -6493,6 +6495,11 @@ msgid ""
 "for the updates, if it is not otherwise specified by using the "
 "<quote>dyndns_iface</quote> option."
 msgstr ""
+"Необов’язковий. За допомогою цього параметра можна наказати SSSD автоматично "
+"оновити на сервері DNS, вбудованому до FreeIPA v2, IP-адресу клієнта. Захист "
+"оновлення буде забезпечено за допомогою GSS-TSIG. Для оновлення буде "
+"використано IP-адресу з’єднання LDAP IPA, якщо не вказано іншу адресу за "
+"допомогою параметра «dyndns_iface»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:128 sssd-ad.5.xml:176
@@ -6641,10 +6648,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:235
-#, fuzzy
-#| msgid ""
-#| "This options should be False in most IPA deployments as the IPA server "
-#| "generates the PTR records automatically when forward records are changed."
 msgid ""
 "This option should be False in most IPA deployments as the IPA server "
 "generates the PTR records automatically when forward records are changed."
@@ -7419,6 +7422,8 @@ msgid ""
 "The short domain name (also known as the NetBIOS or the flat name) is "
 "autodetected by the SSSD."
 msgstr ""
+"Скорочена назва домену (також відома як назва NetBIOS або проста назва) "
+"автоматично визначається засобами SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:106
@@ -7474,13 +7479,6 @@ msgstr "ad_enable_dns_sites (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:146
-#, fuzzy
-#| msgid ""
-#| "If true and service discovery (see Service Discovery paragraph at the "
-#| "bottom of the man page)  is enabled, the SSSD will first attempt to "
-#| "discover the Active Directory server to connect to using the Active "
-#| "Directory Site Discovery and fall back to the DNS SRV records if no AD "
-#| "site is found."
 msgid ""
 "If true and service discovery (see Service Discovery paragraph at the bottom "
 "of the man page)  is enabled, the SSSD will first attempt to discover the "
@@ -7493,7 +7491,9 @@ msgstr ""
 "пошуку служб у нижній частині сторінки підручника (man)), SSSD спочатку "
 "спробує визначити сервер Active Directory для встановлення з’єднання на "
 "основі використання визначення сайтів Active Directory і повертається до "
-"визначення за записами SRV DNS, якщо сайт AD не буде знайдено."
+"визначення за записами SRV DNS, якщо сайт AD не буде знайдено. Налаштування "
+"SRV DNS, зокрема домен пошуку, використовуються також під час визначення "
+"сайтів."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:165
@@ -7505,6 +7505,12 @@ msgid ""
 "AD LDAP connection is used for the updates, if it is not otherwise specified "
 "by using the <quote>dyndns_iface</quote> option."
 msgstr ""
+"Необов’язковий. За допомогою цього параметра можна наказати SSSD автоматично "
+"оновити IP-адресу цього клієнта на сервері DNS Active Directory. Захист "
+"оновлення буде забезпечено за допомогою GSS-TSIG. Як наслідок, "
+"адміністраторові Active Directory достатньо буде дозволити оновлення безпеки "
+"для зони DNS. Для оновлення буде використано IP-адресу з’єднання LDAP AD, "
+"якщо цю адресу не було змінено за допомогою параметра «dyndns_iface»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:195
@@ -7513,10 +7519,8 @@ msgstr "Типове значення: 3600 (секунд)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:209
-#, fuzzy
-#| msgid "Default: Use the IP address of the IPA LDAP connection"
 msgid "Default: Use the IP address of the AD LDAP connection"
-msgstr "Типове значення: використовувати IP-адресу з’єднання LDAP IPA"
+msgstr "Типове значення: використовувати IP-адресу з’єднання LDAP AD"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:260 sssd-krb5.5.xml:483
@@ -10780,35 +10784,3 @@ msgid "Default: Not set (SSSD will use the value retrieved from LDAP)"
 msgstr ""
 "Типове значення: не встановлено (SSSD використовуватиме значення, отримане "
 "від LDAP)"
-
-#~ msgid ""
-#~ "The default <citerefentry> <refentrytitle>printf</refentrytitle> "
-#~ "<manvolnum>3</manvolnum> </citerefentry>-compatible format that describes "
-#~ "how to translate a (name, domain) tuple into a fully qualified name."
-#~ msgstr ""
-#~ "Типовий формат, сумісний з <citerefentry> <refentrytitle>printf</"
-#~ "refentrytitle> <manvolnum>3</manvolnum> </citerefentry>, який описує "
-#~ "спосіб перетворення кортежу (назва, домен) у назву належного формату."
-
-#~ msgid ""
-#~ "Regular expression for this domain that describes how to parse the string "
-#~ "containing user name and domain into these components."
-#~ msgstr ""
-#~ "Формальний вираз, який описує для цього домену спосіб поділу рядка з "
-#~ "іменем користувача і доменом на його частини."
-
-#~ msgid ""
-#~ "Optional. This option tells SSSD to automatically update the DNS server "
-#~ "built into FreeIPA v2 with the IP address of this client."
-#~ msgstr ""
-#~ "Необов’язковий. За допомогою цього параметра можна наказати SSSD "
-#~ "автоматично оновлювати на сервері DNS, вбудованому до FreeIPA версії 2, "
-#~ "IP-адресу цього клієнтського комп’ютера."
-
-#~ msgid ""
-#~ "Optional. This option tells SSSD to automatically update the Active "
-#~ "Directory DNS server with the IP address of this client."
-#~ msgstr ""
-#~ "Необов’язковий. За допомогою цього параметра можна наказати SSSD "
-#~ "автоматично оновлювати дані на сервері DNS Active Directory за IP-адресою "
-#~ "цього клієнтського комп’ютера."

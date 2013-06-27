@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-11 17:02+0300\n"
-"PO-Revision-Date: 2013-05-07 06:30+0000\n"
-"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
+"POT-Creation-Date: 2013-06-27 21:10+0300\n"
+"PO-Revision-Date: 2013-06-11 15:21+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -333,19 +333,11 @@ msgstr "full_name_format (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:1579
-#, fuzzy
-#| msgid ""
-#| "Used by <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
-#| "<manvolnum>8</manvolnum> </citerefentry> to specify the default "
-#| "permissions on a newly created home directory."
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
 "fully qualified name from user name and domain name components."
 msgstr ""
-"新規に作成されるホームディレクトリーにパーミッションの初期値を指定するために "
-"<citerefentry> <refentrytitle>sss_useradd</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry> により使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:157 sssd.conf.5.xml:1590
@@ -354,10 +346,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:158 sssd.conf.5.xml:1591
-#, fuzzy
-#| msgid "username"
 msgid "user name"
-msgstr "username"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:161 sssd.conf.5.xml:1594
@@ -378,21 +368,15 @@ msgstr ""
 #: sssd.conf.5.xml:173 sssd.conf.5.xml:1606
 msgid ""
 "domain flat name. Mostly usable for Active Directory domains, both directly "
-"configured or disovered via IPA trusts."
+"configured or discovered via IPA trusts."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:154 sssd.conf.5.xml:1587
-#, fuzzy
-#| msgid ""
-#| "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
-#| "\"0\"/>"
 msgid ""
 "The following expansions are supported: <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
 msgstr ""
-"プロキシドメインに対して有効なオプションです。 <placeholder type="
-"\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:183
@@ -1560,22 +1544,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1081
-#, fuzzy
-#| msgid "ldap_sudo_full_refresh_interval (integer)"
 msgid "refresh_expired_interval (integer)"
-msgstr "ldap_sudo_full_refresh_interval (整数)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1084
-#, fuzzy
-#| msgid ""
-#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
-#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing expired "
 "records. Currently only refreshing expired netgroups is supported."
 msgstr ""
-"SSSD が列挙レコードのキャッシュを更新する前に待つ必要がある秒数を指定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1089
@@ -2307,10 +2284,8 @@ msgstr "初期値: <filename>/home/%d/%u</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1743
-#, fuzzy
-#| msgid "krb5_realm (string)"
 msgid "realmd_tags (string)"
-msgstr "krb5_realm (文字列)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1746
@@ -4028,10 +4003,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1218
-#, fuzzy
-#| msgid "ldap_disable_paging (boolean)"
 msgid "ldap_disable_range_retrieval (boolean)"
-msgstr "ldap_disable_paging (論理値)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1221
@@ -4465,36 +4438,26 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1592 sssd-krb5.5.xml:455
-#, fuzzy
-#| msgid "krb5_canonicalize (boolean)"
 msgid "krb5_use_kdcinfo (boolean)"
-msgstr "krb5_canonicalize (論理値)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1595 sssd-krb5.5.xml:458
 msgid ""
-"Specifies if the SSSD should be instructing the Kerberos libraries what "
-"realm and which KDCs to use. This option is on by default, if you disable "
-"it, you need to configure the Kerberos library using the <citerefentry> "
+"Specifies if the SSSD should instruct the Kerberos libraries what realm and "
+"which KDCs to use. This option is on by default, if you disable it, you need "
+"to configure the Kerberos library using the <citerefentry> "
 "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> configuration file."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1606 sssd-krb5.5.xml:469
-#, fuzzy
-#| msgid ""
-#| "<quote>ldap</quote>: LDAP provider. See <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> for more information on configuring LDAP."
 msgid ""
 "See the <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> manual page for more "
 "information on the locator plugin."
 msgstr ""
-"<quote>ldap</quote>: LDAP プロバイダー。LDAP の設定に関する詳細は "
-"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1620
@@ -6927,10 +6890,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:209
-#, fuzzy
-#| msgid "Default: Use the IP address of the IPA LDAP connection"
 msgid "Default: Use the IP address of the AD LDAP connection"
-msgstr "初期値: IPA LDAP 接続の IP アドレスを使用します"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:260 sssd-krb5.5.xml:483
@@ -9777,10 +9738,3 @@ msgstr ""
 #: include/override_homedir.xml:50
 msgid "Default: Not set (SSSD will use the value retrieved from LDAP)"
 msgstr "初期値: 設定なし (SSSD は LDAP から取得された値を使用します)"
-
-#~ msgid ""
-#~ "Optional. This option tells SSSD to automatically update the DNS server "
-#~ "built into FreeIPA v2 with the IP address of this client."
-#~ msgstr ""
-#~ "オプションです。このオプションは FreeIPA v2 の中にこのクライアントの IP ア"
-#~ "ドレスを組み込む DNS サーバーを自動的に更新するよう SSSD に通知します。"

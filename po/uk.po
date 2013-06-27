@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-11 17:03+0200\n"
-"PO-Revision-Date: 2013-05-03 19:50+0000\n"
+"POT-Creation-Date: 2013-06-27 21:10+0200\n"
+"PO-Revision-Date: 2013-06-11 15:30+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
 "Language: uk\n"
@@ -330,7 +330,7 @@ msgstr "Враховувати регістр у іменах користува
 
 #: src/config/SSSDConfig/__init__.py.in:128
 msgid "How often should expired entries be refreshed in background"
-msgstr ""
+msgstr "Наскільки часто має виконувати оновлення у тлі застарілих записів"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid "Whether to automatically update the client's DNS entry"
@@ -467,7 +467,7 @@ msgstr "Час очікування на розпізнавання"
 
 #: src/config/SSSDConfig/__init__.py.in:168
 msgid "Whether to create kdcinfo files"
-msgstr ""
+msgstr "Визначає, чи слід створювати файли kdcinfo"
 
 #: src/config/SSSDConfig/__init__.py.in:171
 msgid "Directory to store credential caches"
@@ -670,9 +670,8 @@ msgid "Disable the LDAP paging control"
 msgstr "Вимкнути контроль сторінок у LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:226
-#, fuzzy
 msgid "Disable Active Directory range retrieval"
-msgstr "Адреса сервера Active Directory"
+msgstr "Вимкнути отримання діапазонів Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:229
 msgid "Length of time to wait for a search request"
@@ -1152,38 +1151,38 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: src/monitor/monitor.c:2645
+#: src/monitor/monitor.c:2644
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2647
+#: src/monitor/monitor.c:2646
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2649 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2648 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2651
+#: src/monitor/monitor.c:2650
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/providers/krb5/krb5_child.c:2063 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2201 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:93
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:2065 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2203 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:97
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:2067 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2205 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:99
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
-#: src/providers/krb5/krb5_child.c:2069 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2207 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 

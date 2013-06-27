@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-11 17:03+0200\n"
-"PO-Revision-Date: 2013-05-03 19:30+0000\n"
+"POT-Creation-Date: 2013-06-27 21:10+0200\n"
+"PO-Revision-Date: 2013-06-11 15:20+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/fedora/language/"
 "sv/)\n"
@@ -637,9 +637,8 @@ msgid "Disable the LDAP paging control"
 msgstr "Avaktivera flödesstyrningen (paging) av LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:226
-#, fuzzy
 msgid "Disable Active Directory range retrieval"
-msgstr "Adress till Active Directory-server"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:229
 msgid "Length of time to wait for a search request"
@@ -1101,38 +1100,38 @@ msgstr "Huruvida kanoniska gruppnamn skall slås upp från cachen om möjligt"
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/monitor/monitor.c:2645
+#: src/monitor/monitor.c:2644
 msgid "Become a daemon (default)"
 msgstr "Bli en demon (standard)"
 
-#: src/monitor/monitor.c:2647
+#: src/monitor/monitor.c:2646
 msgid "Run interactive (not a daemon)"
 msgstr "Kör interaktivt (inte en demon)"
 
-#: src/monitor/monitor.c:2649 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2648 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Ange en konfigurationsfil annan än standard"
 
-#: src/monitor/monitor.c:2651
+#: src/monitor/monitor.c:2650
 msgid "Print version number and exit"
 msgstr "Skriv ut versionsnumret och avsluta"
 
-#: src/providers/krb5/krb5_child.c:2063 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2201 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:93
 msgid "Debug level"
 msgstr "Felsökningsnivå"
 
-#: src/providers/krb5/krb5_child.c:2065 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2203 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:97
 msgid "Add debug timestamps"
 msgstr "Lägg till felsökningstidstämplar"
 
-#: src/providers/krb5/krb5_child.c:2067 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2205 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:99
 msgid "Show timestamps with microseconds"
 msgstr "Visa tidsstämplar med mikrosekunder"
 
-#: src/providers/krb5/krb5_child.c:2069 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2207 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Ett öppet filhandtag för felsökningsloggarna"
 

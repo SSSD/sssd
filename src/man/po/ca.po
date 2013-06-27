@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-11 17:02+0300\n"
-"PO-Revision-Date: 2013-05-03 19:30+0000\n"
+"POT-Creation-Date: 2013-06-27 21:10+0300\n"
+"PO-Revision-Date: 2013-06-11 15:21+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Catalan <fedora@llistes.softcatala.org>\n"
 "Language: ca\n"
@@ -330,19 +330,11 @@ msgstr "full_name_format (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:1579
-#, fuzzy
-#| msgid ""
-#| "Used by <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
-#| "<manvolnum>8</manvolnum> </citerefentry> to specify the default "
-#| "permissions on a newly created home directory."
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
 "fully qualified name from user name and domain name components."
 msgstr ""
-"Utilitzat per <citerefentry><refentrytitle>sss_useradd</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry> per especificar els permisos per "
-"defecte en un directori personal acabat de crear."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:157 sssd.conf.5.xml:1590
@@ -373,21 +365,15 @@ msgstr ""
 #: sssd.conf.5.xml:173 sssd.conf.5.xml:1606
 msgid ""
 "domain flat name. Mostly usable for Active Directory domains, both directly "
-"configured or disovered via IPA trusts."
+"configured or discovered via IPA trusts."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:154 sssd.conf.5.xml:1587
-#, fuzzy
-#| msgid ""
-#| "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
-#| "\"0\"/>"
 msgid ""
 "The following expansions are supported: <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
 msgstr ""
-"Opcions vàlides per a servidors intermediaris de domini.  <placeholder type="
-"\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:183
@@ -1520,10 +1506,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1081
-#, fuzzy
-#| msgid "offline_failed_login_delay (integer)"
 msgid "refresh_expired_interval (integer)"
-msgstr "offline_failed_login_delay (Enter)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1084
@@ -2231,10 +2215,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1743
-#, fuzzy
-#| msgid "krb5_realm (string)"
 msgid "realmd_tags (string)"
-msgstr "krb5_realm (cadena)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1746
@@ -3917,10 +3899,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1218
-#, fuzzy
-#| msgid "ldap_referrals (boolean)"
 msgid "ldap_disable_range_retrieval (boolean)"
-msgstr "ldap_referrals (booleà)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1221
@@ -4353,36 +4333,26 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1592 sssd-krb5.5.xml:455
-#, fuzzy
-#| msgid "krb5_validate (boolean)"
 msgid "krb5_use_kdcinfo (boolean)"
-msgstr "krb5_validate (booleà)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1595 sssd-krb5.5.xml:458
 msgid ""
-"Specifies if the SSSD should be instructing the Kerberos libraries what "
-"realm and which KDCs to use. This option is on by default, if you disable "
-"it, you need to configure the Kerberos library using the <citerefentry> "
+"Specifies if the SSSD should instruct the Kerberos libraries what realm and "
+"which KDCs to use. This option is on by default, if you disable it, you need "
+"to configure the Kerberos library using the <citerefentry> "
 "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> configuration file."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1606 sssd-krb5.5.xml:469
-#, fuzzy
-#| msgid ""
-#| "<quote>krb5</quote> for Kerberos authentication. See <citerefentry> "
-#| "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> for more information on configuring Kerberos."
 msgid ""
 "See the <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> manual page for more "
 "information on the locator plugin."
 msgstr ""
-"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu "
-"<citerefentry><refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configurar Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1620
@@ -6710,10 +6680,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:209
-#, fuzzy
-#| msgid "Default: Use the IP address of the IPA LDAP connection"
 msgid "Default: Use the IP address of the AD LDAP connection"
-msgstr "Per defecte: Utilitzar l'adreça IP de la connexió LDAP d'IPA"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:260 sssd-krb5.5.xml:483
@@ -9321,10 +9289,3 @@ msgstr ""
 #: include/override_homedir.xml:50
 msgid "Default: Not set (SSSD will use the value retrieved from LDAP)"
 msgstr ""
-
-#~ msgid ""
-#~ "Optional. This option tells SSSD to automatically update the DNS server "
-#~ "built into FreeIPA v2 with the IP address of this client."
-#~ msgstr ""
-#~ "Opcional. Aquesta opció li diu a SSSD per actualitzar automàticament el "
-#~ "servidor DNS integrat dins FreeIPA v2 amb l'adreça d'IP d'aquest client."

@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-11 17:02+0300\n"
-"PO-Revision-Date: 2013-06-07 09:15+0000\n"
+"POT-Creation-Date: 2013-06-27 21:10+0300\n"
+"PO-Revision-Date: 2013-06-11 16:40+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French <trans-fr@lists.fedoraproject.org>\n"
 "Language: fr\n"
@@ -354,67 +354,64 @@ msgstr "full_name_format (chaîne)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:1579
-#, fuzzy
-#| msgid ""
-#| "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
-#| "manvolnum> </citerefentry>-compatible format that describes how to "
-#| "translate a (name, domain) tuple for this domain into a fully qualified "
-#| "name."
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
 "fully qualified name from user name and domain name components."
 msgstr ""
-"Un format compatible avec <citerefentry> <refentrytitle>printf</"
-"refentrytitle> <manvolnum>3</manvolnum> </citerefentry> décrivant la "
-"traduction (nom, domaine) d'un tuple en un domaine pleinement qualifé."
+"Un format compatible avec<citerefentry> <refentrytitle>printf</"
+"refentrytitle> <manvolnum>3</manvolnum> </citerefentry> décrivant comment "
+"composer un domaine pleinement qualifé à partir des noms d'utilisateur et de "
+"domaine."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:157 sssd.conf.5.xml:1590
 msgid "%1$s"
-msgstr ""
+msgstr "%1$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:158 sssd.conf.5.xml:1591
-#, fuzzy
-#| msgid "username"
 msgid "user name"
-msgstr "username"
+msgstr "nom d'utilisateur"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:161 sssd.conf.5.xml:1594
 msgid "%2$s"
-msgstr ""
+msgstr "%2$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:164 sssd.conf.5.xml:1597
 msgid "domain name as specified in the SSSD config file."
 msgstr ""
+"nom de domaine tel qu'indiqué dans le fichier de configuration de SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:170 sssd.conf.5.xml:1603
 msgid "%3$s"
-msgstr ""
+msgstr "%3$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:173 sssd.conf.5.xml:1606
+#, fuzzy
+#| msgid ""
+#| "domain flat name. Mostly usable for Active Directory domains, both "
+#| "directly configured or disovered via IPA trusts."
 msgid ""
 "domain flat name. Mostly usable for Active Directory domains, both directly "
-"configured or disovered via IPA trusts."
+"configured or discovered via IPA trusts."
 msgstr ""
+"nom de domaine à plat. Utilisable principalement pour les domaines Active "
+"Directory, configurés directement ou découverts via les relations "
+"d'approbation IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:154 sssd.conf.5.xml:1587
-#, fuzzy
-#| msgid ""
-#| "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
-#| "\"0\"/>"
 msgid ""
 "The following expansions are supported: <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
 msgstr ""
-"Options valides pour les domaines proxy. <placeholder type=\"variablelist\" "
-"id=\"0\"/>"
+"Les expansions suivantes sont prises en charge : <placeholder type="
+"\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:183
@@ -1400,14 +1397,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:850
-#, fuzzy
-#| msgid ""
-#| "If the remote user does not exist in the cache, it is created. The uid is "
-#| "calculated based on the SID, trusted domains will have UPGs and the gid "
-#| "will have the same value as the uid. The home directory is set based on "
-#| "the subdomain_homedir parameter. The shell will be empty by default, i.e. "
-#| "the system defaults are used, but can be overwritten with the "
-#| "default_shell parameter."
 msgid ""
 "If the remote user does not exist in the cache, it is created. The uid is "
 "determined with the help of the SID, trusted domains will have UPGs and the "
@@ -1419,22 +1408,19 @@ msgstr ""
 "Si l'utilisateur distant n'existe pas dans le cache, il est créé. L'uid est "
 "calculé en fonction du SID, les domaines de confiance auront des groupes "
 "d'utilisateurs privés, et le gid aura la même valeur que l'uid. Le "
-"répertoire est défini en fonction du paramètre subdomain_homedir. Le shell "
-"sera vide par défaut, permettant l'utilisation de la valeur par défaut du "
-"système, mais peut être remplacé par le paramètre default_shell."
+"répertoire utilisateur est défini en fonction du paramètre "
+"subdomain_homedir. Le shell sera vide par défaut, permettant l'utilisation "
+"de la valeur par défaut du système, mais peut être remplacé par le paramètre "
+"default_shell."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:858
-#, fuzzy
-#| msgid ""
-#| "If there are SIDs of groups from the domain the sssd client belongs to, "
-#| "the user will be added to those groups."
 msgid ""
 "If there are SIDs of groups from domains sssd knows about, the user will be "
 "added to those groups."
 msgstr ""
-"S'il y a des SID de groupes du domaine auquel le client sssd appartient, "
-"l'utilisateur sera ajouté à ces groupes."
+"S'il y a des SID de groupes des domaines connus de sssd, l'utilisateur sera "
+"ajouté à ces groupes."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:864
@@ -1711,28 +1697,24 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1081
-#, fuzzy
-#| msgid "dyndns_refresh_interval (integer)"
 msgid "refresh_expired_interval (integer)"
-msgstr "dyndns_refresh_interval (entier)"
+msgstr "refresh_expired_interval (entier)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1084
-#, fuzzy
-#| msgid ""
-#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
-#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing expired "
 "records. Currently only refreshing expired netgroups is supported."
 msgstr ""
 "Spécifie la durée en secondes pendant laquelle SSSD doit attendre avant "
-"d'actualiser son cache d\"énumération d'enregistrements."
+"d'actualiser les enregistrements expirés. Seuls les netgroup expirés sont "
+"actuellement pris en charge."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1089
 msgid "You can consider setting this value to 3/4 * entry_cache_timeout."
 msgstr ""
+"Il est envisageable de configurer cette valeur à 3/4 * entry_cache_timeout."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1093 sssd-ipa.5.xml:221
@@ -2282,6 +2264,12 @@ msgid ""
 "trust subdomains and Active Directory domains, the flat (NetBIOS) name of "
 "the domain."
 msgstr ""
+"L'expression rationnelle pour ce domaine qui décrit comment analyser la "
+"chaîne contenant le nom d'utilisateur et domaine et en extraire ces "
+"composants. Le « domaine » peut correspondre à soit au nom de domaine de la "
+"configuration SSSD, ou, dans le cas de relations d'approbations avec des "
+"sous-domaines IPA ou des domaines Active Directory, le nom plat (NetBIOS) du "
+"domaine."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1537
@@ -2539,16 +2527,16 @@ msgstr "Par défaut : <filename>/home/%d/%u</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1743
-#, fuzzy
-#| msgid "krb5_realm (string)"
 msgid "realmd_tags (string)"
-msgstr "krb5_realm (chaîne)"
+msgstr "realmd_tags (chaîne)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1746
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Étiquettes diverses stockées par le service de configuration de realmd pour "
+"ce domaine."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:897
@@ -3801,6 +3789,9 @@ msgid ""
 "emphasis> include <quote>authorized_service</quote> in order for the "
 "ldap_user_authorized_service option to work."
 msgstr ""
+"Noter que l'option de configuration ldap_access_order <emphasis>doit</"
+"emphasis> inclure <quote>authorized_service</quote> de façon à permettre à "
+"l'option ldap_user_authorized_service de fonctionner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:727
@@ -3839,6 +3830,9 @@ msgid ""
 "emphasis> include <quote>host</quote> in order for the "
 "ldap_user_authorized_host option to work."
 msgstr ""
+"Noter que l'option de configuration ldap_access_order <emphasis>doit</"
+"emphasis> inclure <quote>host</quote> de façon à permettre à l'option "
+"ldap_user_authorized_host de fonctionner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:754
@@ -4358,15 +4352,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1218
-#, fuzzy
-#| msgid "ldap_disable_paging (boolean)"
 msgid "ldap_disable_range_retrieval (boolean)"
-msgstr "ldap_disable_paging (boolean)"
+msgstr "ldap_disable_range_retrieval (booléen)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1221
 msgid "Disable Active Directory range retrieval."
-msgstr ""
+msgstr "Désactiver la récupération de plage Active Directory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1224
@@ -4377,6 +4369,12 @@ msgid ""
 "extension. This option disables parsing of the range extension, therefore "
 "large groups will appear as having no members."
 msgstr ""
+"Active Directory limite le nombre de membres à récupérer par recherche à "
+"l'aide de la stratégie MaxValRange (qui prend la valeur par défaut de 1500 "
+"membres). Si un groupe contient plus de membres, la réponse inclura une "
+"extension de plage spécifique à Active Directory. Cette option désactive "
+"l'analyse de cette extension de plage, les groupes de grande taille "
+"apparaissant ainsi sans aucun membre."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1239
@@ -4841,37 +4839,42 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1592 sssd-krb5.5.xml:455
-#, fuzzy
-#| msgid "krb5_canonicalize (boolean)"
 msgid "krb5_use_kdcinfo (boolean)"
-msgstr "krb5_canonicalize (booléen)"
+msgstr "krb5_use_kdcinfo (booléen)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1595 sssd-krb5.5.xml:458
+#, fuzzy
+#| msgid ""
+#| "Specifies if the SSSD should be instructing the Kerberos libraries what "
+#| "realm and which KDCs to use. This option is on by default, if you disable "
+#| "it, you need to configure the Kerberos library using the <citerefentry> "
+#| "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#| "citerefentry> configuration file."
 msgid ""
-"Specifies if the SSSD should be instructing the Kerberos libraries what "
-"realm and which KDCs to use. This option is on by default, if you disable "
-"it, you need to configure the Kerberos library using the <citerefentry> "
+"Specifies if the SSSD should instruct the Kerberos libraries what realm and "
+"which KDCs to use. This option is on by default, if you disable it, you need "
+"to configure the Kerberos library using the <citerefentry> "
 "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> configuration file."
 msgstr ""
+"Indique si SSSD doit demander aux bibliothèques Kerberos quels domaine et "
+"KDC utiliser. Cette option est activée par défaut, si elle est désactivée, "
+"la bibliothèque Kerberos doit être configurée à l'aide du fichier de "
+"configuration <citerefentry> <refentrytitle>krb5.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1606 sssd-krb5.5.xml:469
-#, fuzzy
-#| msgid ""
-#| "<quote>ldap</quote>: LDAP provider. See <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> for more information on configuring LDAP."
 msgid ""
 "See the <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> manual page for more "
 "information on the locator plugin."
 msgstr ""
-"<quote>ldap</quote> : fournisseur LDAP. Cf. "
-"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> pour plus d'informations sur la configuration de "
-"LDAP."
+"Consulter la page de manuel de <citerefentry> "
+"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry> pour plus d'informations sur le greffon de "
+"localisation."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1620
@@ -5160,6 +5163,9 @@ msgid ""
 "emphasis> include <quote>expire</quote> in order for the "
 "ldap_account_expire_policy option to work."
 msgstr ""
+"Noter que l'option de configuration ldap_access_order <emphasis>doit</"
+"emphasis> inclure <quote>expire</quote> de façon à permettre à l'option "
+"ldap_account_expire_policy de fonctionner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1817
@@ -6529,6 +6535,11 @@ msgid ""
 "for the updates, if it is not otherwise specified by using the "
 "<quote>dyndns_iface</quote> option."
 msgstr ""
+"Facultatif. Cette option indique à SSSD de mettre à jour automatiquement le "
+"serveur DNS intégré à IPA v2 avec l'adresse IP de ce client. La mise à jour "
+"est sécurisée avec GSS-TSIG. L'adresse IP de la connexion LDAP IPA est "
+"utilisée pour les mises à jour, à moins qu'elle ne soit spécifiée par "
+"l'utilisation de l'option <quote>dyndns_iface</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:128 sssd-ad.5.xml:176
@@ -6680,10 +6691,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:235
-#, fuzzy
-#| msgid ""
-#| "This options should be False in most IPA deployments as the IPA server "
-#| "generates the PTR records automatically when forward records are changed."
 msgid ""
 "This option should be False in most IPA deployments as the IPA server "
 "generates the PTR records automatically when forward records are changed."
@@ -7452,6 +7459,8 @@ msgid ""
 "The short domain name (also known as the NetBIOS or the flat name) is "
 "autodetected by the SSSD."
 msgstr ""
+"Le nom de domaine court (aussi connu comme le nom NetBIOS ou nom plat) est "
+"autodétecté par SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:106
@@ -7508,13 +7517,6 @@ msgstr "ad_enable_dns_sites (booléen)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:146
-#, fuzzy
-#| msgid ""
-#| "If true and service discovery (see Service Discovery paragraph at the "
-#| "bottom of the man page)  is enabled, the SSSD will first attempt to "
-#| "discover the Active Directory server to connect to using the Active "
-#| "Directory Site Discovery and fall back to the DNS SRV records if no AD "
-#| "site is found."
 msgid ""
 "If true and service discovery (see Service Discovery paragraph at the bottom "
 "of the man page)  is enabled, the SSSD will first attempt to discover the "
@@ -7527,7 +7529,9 @@ msgstr ""
 "Découverte de service au bas de la page de manuel) est activée, SSSD tentera "
 "d'abord de découvrir le serveur Active Directory auquel se connecter en "
 "utilisant Active Directory Site Discovery, puis se repliera sur "
-"l'utilisation des enregistrements DNS SRV si aucun site AD n'est trouvé."
+"l'utilisation des enregistrements DNS SRV si aucun site AD n'est trouvé. La "
+"configuration SRV du DNS, incluant la découverte de domaine, est aussi "
+"utilisée pendant la découverte de site."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:165
@@ -7539,6 +7543,13 @@ msgid ""
 "AD LDAP connection is used for the updates, if it is not otherwise specified "
 "by using the <quote>dyndns_iface</quote> option."
 msgstr ""
+"Facultatif. Cette option indique à SSSD de mettre à jour automatiquement le "
+"serveur DNS intégré à IPA v2 avec l'adresse IP de ce client. La mise à jour "
+"est sécurisée avec GSS-TSIG. Ainsi, l'administrateur Active Directory a "
+"uniquement besoin d'activer les mises à jour sécurisées pour la zone DNS. "
+"L'adresse IP de la connexion LDAP AD est utilisée pour les mises à jour, à "
+"moins qu'elle ne soit spécifiée par l'utilisation de l'option "
+"<quote>dyndns_iface</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:195
@@ -7547,10 +7558,8 @@ msgstr "Par défaut : 3600 (secondes)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:209
-#, fuzzy
-#| msgid "Default: Use the IP address of the IPA LDAP connection"
 msgid "Default: Use the IP address of the AD LDAP connection"
-msgstr "Par défaut : utilise l'adresse IP de la connexion IPA LDAP"
+msgstr "Par défaut : utilise l'adresse IP de la connexion LDAP AD"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:260 sssd-krb5.5.xml:483
@@ -10793,33 +10802,3 @@ msgstr ""
 #: include/override_homedir.xml:50
 msgid "Default: Not set (SSSD will use the value retrieved from LDAP)"
 msgstr "Par défaut : Indéfini (SSSD utilisera la valeur récupérée de LDAP)"
-
-#~ msgid ""
-#~ "The default <citerefentry> <refentrytitle>printf</refentrytitle> "
-#~ "<manvolnum>3</manvolnum> </citerefentry>-compatible format that describes "
-#~ "how to translate a (name, domain) tuple into a fully qualified name."
-#~ msgstr ""
-#~ "Le format par défaut compatible <citerefentry> <refentrytitle>printf</"
-#~ "refentrytitle> <manvolnum>3</manvolnum> </citerefentry> décrivant la "
-#~ "traduction (nom, domaine) d'un tuple en un domaine pleinement qualifé."
-
-#~ msgid ""
-#~ "Regular expression for this domain that describes how to parse the string "
-#~ "containing user name and domain into these components."
-#~ msgstr ""
-#~ "Expressions rationnelles qui décrivent la manière d'analyser les chaînes "
-#~ "contenant les informations utilisateur et domaine dans ces composants."
-
-#~ msgid ""
-#~ "Optional. This option tells SSSD to automatically update the DNS server "
-#~ "built into FreeIPA v2 with the IP address of this client."
-#~ msgstr ""
-#~ "Facultatif. Cette option indique à SSSD de mettre à jour automatiquement "
-#~ "le serveur DNS de FreeIPA avec l'adresse IP du client."
-
-#~ msgid ""
-#~ "Optional. This option tells SSSD to automatically update the Active "
-#~ "Directory DNS server with the IP address of this client."
-#~ msgstr ""
-#~ "Facultatif. Cette option indique à SSSD de mettre à jour automatiquement "
-#~ "le serveur DNS de Active Directory avec l'adresse IP du client."
