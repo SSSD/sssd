@@ -23,6 +23,7 @@
 */
 
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_common.h"
 #include <ctype.h>
@@ -232,6 +233,7 @@ done:
 }
 
 static errno_t ipa_subdom_store(struct sss_domain_info *domain,
+                                struct sdap_idmap_ctx *sdap_idmap_ctx,
                                 struct sysdb_attrs *attrs)
 {
     TALLOC_CTX *tmp_ctx;
@@ -240,6 +242,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
     const char *flat;
     const char *id;
     int ret;
+    bool mpg;
 
     tmp_ctx = talloc_new(domain);
     if (tmp_ctx == NULL) {
@@ -270,7 +273,9 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, id);
+    mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, id);
+
+    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, id, mpg);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;
@@ -323,7 +328,8 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             }
         } else {
             /* ok let's try to update it */
-            ret = ipa_subdom_store(domain, reply[c]);
+            ret = ipa_subdom_store(domain, ctx->sdap_id_ctx->opts->idmap_ctx,
+                                   reply[c]);
             if (ret) {
                 /* Nothing we can do about the errorr. Let's at least try
                  * to reuse the existing domain
@@ -352,7 +358,8 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
         /* Nothing we can do about the errorr. Let's at least try
          * to reuse the existing domain.
          */
-        ret = ipa_subdom_store(domain, reply[c]);
+        ret = ipa_subdom_store(domain, ctx->sdap_id_ctx->opts->idmap_ctx,
+                               reply[c]);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
                   "will try to use cached subdomain\n"));
