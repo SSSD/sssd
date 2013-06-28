@@ -427,7 +427,7 @@ static void ipa_subdomains_retrieve(struct ipa_subdomains_ctx *ctx, struct be_re
     req_ctx->be_req = be_req;
     req_ctx->sd_ctx = ctx;
     req_ctx->search_base_iter = 0;
-    req_ctx->search_bases = ctx->search_bases;
+    req_ctx->search_bases = ctx->ranges_search_bases;
     req_ctx->current_filter = NULL;
     req_ctx->reply_count = 0;
     req_ctx->reply = NULL;
@@ -485,7 +485,7 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_SLAVE);
+    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_RANGES);
     if (ret != EOK && ret != EAGAIN) {
         goto fail;
     }
@@ -601,18 +601,26 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         }
     }
 
-
-    ctx->search_base_iter = 0;
-    ctx->search_bases = ctx->sd_ctx->ranges_search_bases;
-    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_RANGES);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
+    ret = sysdb_master_domain_update(domain);
+    if (ret != EOK) {
         goto done;
     }
 
-    DEBUG(SSSDBG_OP_FAILURE, ("No search base for ranges available.\n"));
-    ret = EINVAL;
+    if (domain->flat_name == NULL ||
+        domain->domain_id == NULL ||
+        domain->realm == NULL) {
+
+        ctx->search_base_iter = 0;
+        ctx->search_bases = ctx->sd_ctx->master_search_bases;
+        ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            goto done;
+        }
+    } else {
+        ret = EOK;
+    }
 
 done:
     be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
@@ -655,27 +663,17 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
         goto done;
     }
 
-
-    ret = sysdb_master_domain_update(domain);
-    if (ret != EOK) {
+    ctx->search_base_iter = 0;
+    ctx->search_bases = ctx->sd_ctx->search_bases;
+    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_SLAVE);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
         goto done;
     }
 
-    if (domain->flat_name == NULL ||
-        domain->domain_id == NULL ||
-        domain->realm == NULL) {
-
-        ctx->search_base_iter = 0;
-        ctx->search_bases = ctx->sd_ctx->master_search_bases;
-        ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
-        if (ret == EAGAIN) {
-            return;
-        } else if (ret != EOK) {
-            goto done;
-        }
-    } else {
-        ret = EOK;
-    }
+    DEBUG(SSSDBG_OP_FAILURE, ("No search base for ranges available.\n"));
+    ret = EINVAL;
 
 done:
     if (ret == EOK) {
