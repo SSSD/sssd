@@ -1046,12 +1046,16 @@ cc_dir_check_existing(const char *location, uid_t uid,
         goto done;
     }
 
-    dir = dirname(tmp);
-    if (!dir) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot base get directory of %s\n", location));
-        ret = EINVAL;
-        goto done;
+    if (0 == strncmp(location, "DIR::", 5)) {
+        dir = dirname(tmp);
+        if (!dir) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot get base directory of %s.\n", tmp));
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        dir = tmp;
     }
 
     ret = cc_residual_is_used(uid, dir, SSS_KRB5_TYPE_DIR, &active);
