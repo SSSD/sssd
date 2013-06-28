@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-27 21:10+0200\n"
+"POT-Creation-Date: 2013-06-28 22:54+0200\n"
 "PO-Revision-Date: 2013-06-11 15:30+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -969,37 +969,45 @@ msgstr ""
 "Використовувати LDAP_MATCHING_RULE_IN_CHAIN щодо пошуків початкових груп "
 "(initgroup)"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:312
+msgid "Set lower boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:313
+msgid "Set upper boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid "Policy to evaluate the password expiration"
 msgstr "Правила оцінки завершення строку дії пароля"
 
-#: src/config/SSSDConfig/__init__.py.in:317
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid "LDAP filter to determine access privileges"
 msgstr "Фільтр LDAP для визначення прав доступу"
 
-#: src/config/SSSDConfig/__init__.py.in:318
+#: src/config/SSSDConfig/__init__.py.in:320
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 "Атрибути які слід використовувати для визначення чинності облікового запису"
 
-#: src/config/SSSDConfig/__init__.py.in:319
+#: src/config/SSSDConfig/__init__.py.in:321
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 "Правила, які має бути використано для визначення достатності прав доступу"
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:324
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "Адреса на сервері LDAP, для якої можливі зміни паролів"
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:325
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "Адреса резервного сервера LDAP, для якої можливі зміни паролів"
 
-#: src/config/SSSDConfig/__init__.py.in:324
+#: src/config/SSSDConfig/__init__.py.in:326
 msgid "DNS service name for LDAP password change server"
 msgstr "Назва у службі DNS сервера зміни паролів LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:325
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
@@ -1007,25 +1015,25 @@ msgstr ""
 "Визначає, чи слід оновлювати атрибут ldap_user_shadow_last_change після "
 "зміни пароля"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:330
 msgid "Base DN for sudo rules lookups"
 msgstr "Базова назва домену для пошуків правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:329
+#: src/config/SSSDConfig/__init__.py.in:331
 msgid "Automatic full refresh period"
 msgstr "Період автоматичного повного оновлення даних"
 
-#: src/config/SSSDConfig/__init__.py.in:330
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Automatic smart refresh period"
 msgstr "Період автоматичного кмітливого оновлення даних"
 
-#: src/config/SSSDConfig/__init__.py.in:331
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "Визначає, чи слід фільтрувати правила за назвами вузлів, IP-адресами та "
 "мережами"
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1033,121 +1041,121 @@ msgstr ""
 "Назви вузлів і/або повні назви у домені для цього комп’ютера для "
 "фільтрування списку правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "Адреси IPv4 або IPv6 чи мережа цього комп’ютера для фільтрування списку "
 "правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Визначає, чи слід включати правила, що містять мережеву групу у атрибуті "
 "вузла"
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:337
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Визначає, чи слід включати правила, що містять формальний вираз у атрибуті "
 "вузла"
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "Object class for sudo rules"
 msgstr "Клас об’єктів для правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "Sudo rule name"
 msgstr "Назва правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "Sudo rule command attribute"
 msgstr "Атрибут команди правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Sudo rule host attribute"
 msgstr "Атрибут вузла правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Sudo rule user attribute"
 msgstr "Атрибут користувача правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "Sudo rule option attribute"
 msgstr "Атрибут параметрів правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "Sudo rule runasuser attribute"
 msgstr ""
 "Атрибут користувача, від імені якого виконуватиметься запуск, правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Sudo rule runasgroup attribute"
 msgstr "Атрибут групи, від імені якої виконуватиметься запуск, правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "Sudo rule notbefore attribute"
 msgstr "Атрибут граничного часу початку дії правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Sudo rule notafter attribute"
 msgstr "Атрибут граничного часу завершення дії правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "Sudo rule order attribute"
 msgstr "Атрибут порядку правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "Object class for automounter maps"
 msgstr "Клас об’єктів для карт автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:352
 msgid "Automounter map name attribute"
 msgstr "Атрибут назви карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:351
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "Object class for automounter map entries"
 msgstr "Клас об’єктів для записів карт автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:352
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "Automounter map entry key attribute"
 msgstr "Атрибут ключа запису карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "Automounter map entry value attribute"
 msgstr "Атрибут значення запису карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Base DN for automounter map lookups"
 msgstr "Базовий сервер назв домену для пошуків карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:359
 msgid "Comma separated list of allowed users"
 msgstr "Відокремлений комами список дозволених користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:360
 msgid "Comma separated list of prohibited users"
 msgstr "Відокремлений комами список заборонених користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "Default shell, /bin/bash"
 msgstr "Типова оболонка, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:364
 msgid "Base for home directories"
 msgstr "Базова адреса домашніх каталогів"
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:367
 msgid "The name of the NSS library to use"
 msgstr "Назва бібліотеки NSS, яку слід використовувати"
 
-#: src/config/SSSDConfig/__init__.py.in:366
+#: src/config/SSSDConfig/__init__.py.in:368
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 "Визначає, чи слід виконувати пошук канонічної назви групи у кеші, якщо це "
 "можливо"
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:371
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 

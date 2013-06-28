@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-27 21:10+0200\n"
+"POT-Creation-Date: 2013-06-28 22:54+0200\n"
 "PO-Revision-Date: 2013-06-14 11:45+0000\n"
 "Last-Translator: Geert Warrink <geert.warrink@onsnet.nu>\n"
 "Language-Team: Dutch (http://www.transifex.com/projects/p/fedora/language/"
@@ -961,39 +961,47 @@ msgstr "Gebruik LDAP_MATCHING_RULE_IN_CHAIN voor groep opzoeken"
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "Gebruik LDAP_MATCHING_RULE_IN_CHAIN voor initgroep opzoeken"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:312
+msgid "Set lower boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:313
+msgid "Set upper boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy om wacthwoordverloop mee te evalueren"
 
-#: src/config/SSSDConfig/__init__.py.in:317
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid "LDAP filter to determine access privileges"
 msgstr "LDAP-filter om toegangsprivileges mee te bepalen"
 
-#: src/config/SSSDConfig/__init__.py.in:318
+#: src/config/SSSDConfig/__init__.py.in:320
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 "Welke attributen worden gebruikt voor evaluatie als het account verlopen is"
 
-#: src/config/SSSDConfig/__init__.py.in:319
+#: src/config/SSSDConfig/__init__.py.in:321
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 "Welke regels moeten gebruikt worden voor de evaluatie van toegangscontrole"
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:324
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 "URI van een LDAP server waarop wachtwoord veranderingen toegestaan zijn"
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:325
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr ""
 "URI van een back-up LDAP server waar wachtwoord veranderingen toegestaan zijn"
 
-#: src/config/SSSDConfig/__init__.py.in:324
+#: src/config/SSSDConfig/__init__.py.in:326
 msgid "DNS service name for LDAP password change server"
 msgstr "DNS service naam voor LDAP wachtwoord verander server"
 
-#: src/config/SSSDConfig/__init__.py.in:325
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
@@ -1001,23 +1009,23 @@ msgstr ""
 "Moet het ldap_user_shadow_last_change attribuut vernieuwd worden na een "
 "wachtwoordwijziging"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:330
 msgid "Base DN for sudo rules lookups"
 msgstr "Basis DN voor sudo regels lookups"
 
-#: src/config/SSSDConfig/__init__.py.in:329
+#: src/config/SSSDConfig/__init__.py.in:331
 msgid "Automatic full refresh period"
 msgstr "Automatische volledige ververs periode"
 
-#: src/config/SSSDConfig/__init__.py.in:330
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Automatic smart refresh period"
 msgstr "Automatische slimme ververs periode"
 
-#: src/config/SSSDConfig/__init__.py.in:331
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr "Moeten regels gefilterd worden volgens hostnaam, IP adres en netwerk"
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1025,117 +1033,117 @@ msgstr ""
 "Hostnamen en/of volledig gekwalificeerde domeinnamen van deze machine voor "
 "het filteren van sudo regels"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "IPv4 of IPv6 adressen of netwerk van deze machine voor het filteren van sudo "
 "regels"
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Moeten regels toegevoegd worden die netgroep bevatten in host attribuut "
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:337
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Moeten regels toegevoegd worden die regulaire expressie bevatten in host "
 "attribuut "
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "Object class for sudo rules"
 msgstr "Objectklasse voor sudo regels"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "Sudo rule name"
 msgstr "Sudo regelnaam"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "Sudo rule command attribute"
 msgstr "Sudo regel opdracht attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Sudo rule host attribute"
 msgstr "Sudo regel host attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Sudo rule user attribute"
 msgstr "Sudo regel gebruiker attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "Sudo rule option attribute"
 msgstr "Sudo regel optie attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "Sudo rule runasuser attribute"
 msgstr "Sudo regel runasuser attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Sudo rule runasgroup attribute"
 msgstr "Sudo regel runasgroup attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "Sudo rule notbefore attribute"
 msgstr "Sudo regel notbefore attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Sudo rule notafter attribute"
 msgstr "Sudo regel notafter attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "Sudo rule order attribute"
 msgstr "Sudo regel volgorde attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "Object class for automounter maps"
 msgstr "Object class voor automounter maps"
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:352
 msgid "Automounter map name attribute"
 msgstr "Automounter map naam attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:351
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "Object class for automounter map entries"
 msgstr "Objectklasse voor automounter map ingaven"
 
-#: src/config/SSSDConfig/__init__.py.in:352
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "Automounter map entry key attribute"
 msgstr "Automounter map sleutel ingave attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "Automounter map entry value attribute"
 msgstr "Automounter map ingavewaarde attribuut"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Base DN for automounter map lookups"
 msgstr "Basis DN voor automounter kaart opzoeken"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:359
 msgid "Comma separated list of allowed users"
 msgstr "Kommagescheiden lijst van toegestane gebruikers"
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:360
 msgid "Comma separated list of prohibited users"
 msgstr "Kommagescheiden lijst van geweigerde gebruikers"
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "Default shell, /bin/bash"
 msgstr "Standaard shell, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:364
 msgid "Base for home directories"
 msgstr "Basis voor gebruikersmappen"
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:367
 msgid "The name of the NSS library to use"
 msgstr "De naam van de NSS-bibliotheek die gebruikt wordt"
 
-#: src/config/SSSDConfig/__init__.py.in:366
+#: src/config/SSSDConfig/__init__.py.in:368
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "Moet indien mogelijk canonieke groepsnaam in cache opgezocht worden "
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:371
 msgid "PAM stack to use"
 msgstr "PAM-stack die gebruikt wordt"
 

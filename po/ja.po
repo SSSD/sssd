@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-27 21:10+0200\n"
+"POT-Creation-Date: 2013-06-28 22:54+0200\n"
 "PO-Revision-Date: 2013-06-14 11:45+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
@@ -913,59 +913,67 @@ msgstr "グループ検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用し�
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "初期グループの検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用します"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:312
+msgid "Set lower boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:313
+msgid "Set upper boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid "Policy to evaluate the password expiration"
 msgstr "パスワード失効の評価のポリシー"
 
-#: src/config/SSSDConfig/__init__.py.in:317
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid "LDAP filter to determine access privileges"
 msgstr "アクセス権限を決めるための LDAP フィルター"
 
-#: src/config/SSSDConfig/__init__.py.in:318
+#: src/config/SSSDConfig/__init__.py.in:320
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr "どの属性がアカウントが失効しているかを評価するために使用されるか"
 
-#: src/config/SSSDConfig/__init__.py.in:319
+#: src/config/SSSDConfig/__init__.py.in:321
 msgid "Which rules should be used to evaluate access control"
 msgstr "どのルールがアクセス制御を評価するために使用されるか"
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:324
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "パスワードの変更が許可される LDAP サーバーの URI"
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:325
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "パスワードの変更が許可されるバックアップ LDAP サーバーの URI"
 
-#: src/config/SSSDConfig/__init__.py.in:324
+#: src/config/SSSDConfig/__init__.py.in:326
 msgid "DNS service name for LDAP password change server"
 msgstr "LDAP パスワードの変更サーバーの DNS サービス名"
 
-#: src/config/SSSDConfig/__init__.py.in:325
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr "パスワード変更後 ldap_user_shadow_last_change 属性を更新するかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:330
 msgid "Base DN for sudo rules lookups"
 msgstr "sudo ルール検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:329
+#: src/config/SSSDConfig/__init__.py.in:331
 msgid "Automatic full refresh period"
 msgstr "自動的な完全更新間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:330
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Automatic smart refresh period"
 msgstr "自動的なスマート更新間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:331
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するかどう"
 "か"
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -973,114 +981,114 @@ msgstr ""
 "sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイン"
 "名"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネット"
 "ワーク"
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr "ホスト属性にネットワークグループを含むルールを含めるかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:337
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr "ホスト属性に正規表現を含むルールを含めるかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "Object class for sudo rules"
 msgstr "sudo ルールのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "Sudo rule name"
 msgstr "sudo ルール名"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "Sudo rule command attribute"
 msgstr "sudo ルールのコマンドの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Sudo rule host attribute"
 msgstr "sudo ルールのホストの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Sudo rule user attribute"
 msgstr "sudo ルールのユーザーの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "Sudo rule option attribute"
 msgstr "sudo ルールのオプションの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "Sudo rule runasuser attribute"
 msgstr "sudo ルールの runasuser の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Sudo rule runasgroup attribute"
 msgstr "sudo ルールの runasgroup の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "Sudo rule notbefore attribute"
 msgstr "sudo ルールの notbefore の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Sudo rule notafter attribute"
 msgstr "sudo ルールの notafter の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "Sudo rule order attribute"
 msgstr "sudo ルールの order の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "Object class for automounter maps"
 msgstr "automounter マップのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:352
 msgid "Automounter map name attribute"
 msgstr "オートマウントのマップ名の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:351
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "Object class for automounter map entries"
 msgstr "automounter マップエントリーのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:352
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "Automounter map entry key attribute"
 msgstr "automounter マップエントリーのキー属性"
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "Automounter map entry value attribute"
 msgstr "automounter マップエントリーの値属性"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Base DN for automounter map lookups"
 msgstr "automonter のマップ検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:359
 msgid "Comma separated list of allowed users"
 msgstr "許可ユーザーのカンマ区切り一覧"
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:360
 msgid "Comma separated list of prohibited users"
 msgstr "禁止ユーザーのカンマ区切り一覧"
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "Default shell, /bin/bash"
 msgstr "デフォルトのシェル, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:364
 msgid "Base for home directories"
 msgstr "ホームディレクトリーのベース"
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:367
 msgid "The name of the NSS library to use"
 msgstr "使用する NSS ライブラリーの名前"
 
-#: src/config/SSSDConfig/__init__.py.in:366
+#: src/config/SSSDConfig/__init__.py.in:368
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "可能ならばキャッシュから正規化されたグループ名を検索するかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:371
 msgid "PAM stack to use"
 msgstr "使用する PAM スタック"
 
