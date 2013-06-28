@@ -33,9 +33,15 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
+                           SYSDB_SUBDOMAIN_MPG,
                            NULL};
     struct sss_domain_info *dom;
     struct ldb_dn *basedn;
+    const char *name;
+    const char *realm;
+    const char *flat;
+    const char *id;
+    bool mpg;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -68,10 +74,6 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
     }
 
     for (i = 0; i < res->count; i++) {
-        const char *name;
-        const char *realm;
-        const char *flat;
-        const char *id;
 
         name = ldb_msg_find_attr_as_string(res->msgs[i], "cn", NULL);
         if (name == NULL) {
@@ -90,6 +92,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 
         id = ldb_msg_find_attr_as_string(res->msgs[i],
                                          SYSDB_SUBDOMAIN_ID, NULL);
+
+        mpg = ldb_msg_find_attr_as_bool(res->msgs[i],
+                                        SYSDB_SUBDOMAIN_MPG, false);
 
         /* explicitly use dom->next as we need to check 'disabled' domains */
         for (dom = domain->subdomains; dom; dom = dom->next) {
@@ -129,12 +134,21 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                         goto done;
                     }
                 }
+
+                if (dom->mpg != mpg) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("MPG state change from [%s] to [%s]!\n",
+                           dom->mpg ? "true" : "false",
+                           mpg ? "true" : "false"));
+                    dom->mpg = mpg;
+                }
+
                 break;
             }
         }
         /* If not found in loop it is a new subdomain */
         if (dom == NULL) {
-            dom = new_subdomain(domain, domain, name, realm, flat, id);
+            dom = new_subdomain(domain, domain, name, realm, flat, id, mpg);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;

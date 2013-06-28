@@ -4540,7 +4540,8 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_if(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3]);
+                              testdom[0], testdom[1], testdom[2], testdom[3],
+                              false);
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
@@ -4598,7 +4599,8 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_if(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3]);
+                              testdom[0], testdom[1], testdom[2], testdom[3],
+                              false);
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
@@ -4652,7 +4654,8 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_if(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3]);
+                              testdom[0], testdom[1], testdom[2], testdom[3],
+                              false);
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
