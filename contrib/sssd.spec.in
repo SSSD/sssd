@@ -718,20 +718,20 @@ rm -rf $RPM_BUILD_ROOT
 
 %if (0%{?use_systemd} == 1)
 # systemd
-%post
+%post common
 if [ $1 -eq 1 ] ; then
     # Initial installation
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
-%preun
+%preun common
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
     /bin/systemctl --no-reload disable sssd.service > /dev/null 2>&1 || :
     /bin/systemctl stop sssd.service > /dev/null 2>&1 || :
 fi
 
-%postun
+%postun common
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
     # Package upgrade, not uninstall
@@ -752,14 +752,14 @@ fi
 /bin/systemctl try-restart sssd.service >/dev/null 2>&1 || :
 %else
 # sysv
-%post
+%post common
 /sbin/chkconfig --add %{servicename}
 
 if [ $1 -ge 1 ] ; then
     /sbin/service %{servicename} condrestart 2>&1 > /dev/null
 fi
 
-%preun
+%preun common
 if [ $1 = 0 ]; then
     /sbin/service %{servicename} stop 2>&1 > /dev/null
     /sbin/chkconfig --del %{servicename}
