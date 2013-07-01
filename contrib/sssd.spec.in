@@ -738,18 +738,6 @@ if [ $1 -ge 1 ] ; then
     /bin/systemctl try-restart sssd.service >/dev/null 2>&1 || :
 fi
 
-%triggerun -- sssd < 1.9.90-1
-# Save the current service runlevel info
-# User must manually run systemd-sysv-convert --apply sssd
-# to migrate them to systemd targets
-/usr/bin/systemd-sysv-convert --save sssd >/dev/null 2>&1 ||:
-
-# If the package is allowed to autostart:
-/bin/systemctl --no-reload enable sssd.service >/dev/null 2>&1 ||:
-
-# Run these because the SysV package being removed won't do them
-/sbin/chkconfig --del sssd >/dev/null 2>&1 || :
-/bin/systemctl try-restart sssd.service >/dev/null 2>&1 || :
 %else
 # sysv
 %post common
