@@ -277,7 +277,7 @@ AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
-AM_CONDITIONAL([HAVE_CMOCKA], [test x$have_cmocka = xyes])
+AM_CHECK_CMOCKA
 
 AM_CONDITIONAL([HAVE_DEVSHM], [test -d /dev/shm])
 

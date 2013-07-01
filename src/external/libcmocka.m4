@@ -1,19 +1,18 @@
-dnl this file will be simplified when cmocka carries a .pc file
-AC_SUBST(CMOCKA_LIBS)
-AC_SUBST(CMOCKA_CFLAGS)
-
-AC_CHECK_HEADERS(
-    [setjmp.h cmocka.h],
-    [AC_CHECK_LIB([cmocka], [_will_return],
-                  [ CMOCKA_LIBS="-lcmocka"
-                    have_cmocka="yes" ],
-                  [AC_MSG_WARN([No libcmocka library found])
-                    have_cmocka="no" ])],
-    [AC_MSG_WARN([libcmocka header files not installed])],
-    [[ #include <stdarg.h>
-     # include <stddef.h>
-     #ifdef HAVE_SETJMP_H
-     # include <setjmp.h>
-     #endif
-    ]]
-)
+dnl A macro to check presence of cmocka on the system
+AC_DEFUN([AM_CHECK_CMOCKA],
+[
+    PKG_CHECK_EXISTS(cmocka,
+        [AC_CHECK_HEADERS([stdarg.h stddef.h setjmp.h],
+            [], dnl We are only intrested in action-if-not-found
+            [AC_MSG_WARN([Header files stdarg.h stddef.h setjmp.h are required by cmocka])
+             cmocka_required_headers="no"
+            ]
+        )
+        AS_IF([test x"$cmocka_required_headers" != x"no"],
+              [PKG_CHECK_MODULES([CMOCKA], [cmocka], [have_cmocka="yes"])]
+        )],
+        dnl PKG_CHECK_EXISTS ACTION-IF-NOT-FOUND
+        [AC_MSG_WARN([No libcmocka library found, cmocka tests will not be built])]
+    )
+    AM_CONDITIONAL([HAVE_CMOCKA], [test x$have_cmocka = xyes])
+])
