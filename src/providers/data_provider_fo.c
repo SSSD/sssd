@@ -774,8 +774,8 @@ void be_fo_set_port_status(struct be_ctx *ctx,
 /* Resolver back end interface */
 static struct dp_option dp_res_default_opts[] = {
     { "lookup_family_order", DP_OPT_STRING, { "ipv4_first" }, NULL_STRING },
-    { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
-    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
+    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
