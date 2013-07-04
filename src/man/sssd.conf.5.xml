@@ -1656,7 +1656,7 @@ override_homedir = /home/%u
                             offline mode.
                         </para>
                         <para>
-                            Default: 5
+                            Default: 6
                         </para>
                     </listitem>
                 </varlistentry>
