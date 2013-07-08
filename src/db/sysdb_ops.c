@@ -248,6 +248,8 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs = NULL;
     struct ldb_dn *basedn;
     size_t msgs_count = 0;
+    char *sanitized_name;
+    char *filter;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -255,13 +257,26 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = sysdb_user_dn(sysdb, tmp_ctx, domain, name);
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            SYSDB_TMPL_USER_BASE, domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_BASE, NULL,
+    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, SYSDB_PWNAM_FILTER, sanitized_name,
+                             sanitized_name);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_SUBTREE, filter,
                              attrs?attrs:def_attrs, &msgs_count, &msgs);
     if (ret) {
         goto done;
