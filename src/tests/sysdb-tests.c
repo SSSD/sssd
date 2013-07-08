@@ -4535,6 +4535,9 @@ START_TEST(test_sysdb_subdomain_store_user)
     struct ldb_result *results = NULL;
     struct ldb_dn *base_dn = NULL;
     struct ldb_dn *check_dn = NULL;
+    const char *attrs[] = { SYSDB_NAME, SYSDB_NAME_ALIAS, NULL };
+    struct sysdb_attrs *user_attrs;
+    struct ldb_message *msg;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -4552,27 +4555,39 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_store_user(subdomain->sysdb, subdomain, "subdomuser",
+    user_attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(user_attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS, "subdomuser");
+    fail_unless(ret == EOK, "sysdb_store_user failed.");
+
+    ret = sysdb_store_user(subdomain->sysdb, subdomain, "SubDomUser",
                            NULL, 12345, 0, "Sub Domain User",
                            "/home/subdomuser", "/bin/bash",
-                           NULL, NULL, NULL, -1, 0);
+                           NULL, user_attrs, NULL, -1, 0);
     fail_unless(ret == EOK, "sysdb_store_user failed.");
 
     base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");
     fail_unless(base_dn != NULL);
 
     check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
-                          "name=subdomuser,cn=users,cn=test.sub,cn=sysdb");
+                          "name=SubDomUser,cn=users,cn=test.sub,cn=sysdb");
     fail_unless(check_dn != NULL);
 
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
-                     LDB_SCOPE_SUBTREE, NULL, "name=subdomuser");
+                     LDB_SCOPE_SUBTREE, NULL, "name=SubDomUser");
     fail_unless(ret == EOK, "ldb_search failed.");
     fail_unless(results->count == 1, "Unexpected number of results, "
                                      "expected [%d], got [%d]",
                                      1, results->count);
     fail_unless(ldb_dn_compare(results->msgs[0]->dn, check_dn) == 0,
                 "Unexpedted DN returned");
+
+    /* Subdomains are case-insensitive. Test that the lowercased name
+     * can be found, too */
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->sysdb, subdomain,
+                                    "subdomuser", attrs, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_name failed.");
 
     ret = sysdb_delete_user(subdomain->sysdb, subdomain, "subdomuser", 0);
     fail_unless(ret == EOK, "sysdb_delete_user failed [%d][%s].",
