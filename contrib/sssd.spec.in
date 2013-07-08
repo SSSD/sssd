@@ -152,6 +152,7 @@ License: GPLv3+
 Requires: libldb >= 0.9.3
 Requires: libtdb >= 1.1.3
 Requires: sssd-client%{?_isa} = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 Conflicts: sssd < %{version}-%{release}
 %if (0%{?use_systemd} == 1)
 Requires(post): systemd-units systemd-sysv
@@ -217,7 +218,6 @@ Group: Applications/System
 License: GPLv3+
 Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
-Requires: libsss_idmap = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 
 %description ldap
@@ -256,7 +256,6 @@ Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac = %{version}-%{release}
-Requires: libsss_idmap = %{version}-%{release}
 Requires: bind-utils
 
 %description ipa
@@ -270,7 +269,6 @@ License: GPLv3+
 Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
-Requires: libsss_idmap = %{version}-%{release}
 Requires: bind-utils
 
 %description ad
