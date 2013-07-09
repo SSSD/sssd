@@ -351,66 +351,6 @@ copy_symlink(int src_dir_fd,
     return EOK;
 }
 
-/* Create a special file named file_name under a directory with file
- * descriptor dst_dir_fd. full_path is used for both setting SELinux
- * context and logging. The node is owned by uid/gid and its mode
- * and device number is read from statp.
- */
-static int copy_special(int dst_dir_fd,
-                        const char *file_name,
-                        const char *full_path,
-                        const struct stat *statp,
-                        uid_t uid, gid_t gid)
-{
-    int ret;
-
-    ret = selinux_file_context(full_path);
-    if (ret != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to set SELinux context for [%s]\n", full_path));
-        /* Not fatal */
-    }
-
-    ret = mknodat(dst_dir_fd, file_name, statp->st_mode & ~07777,
-                  statp->st_rdev);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot mknod special file '%s': [%d][%s].\n",
-              full_path, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = fchownat(dst_dir_fd, file_name, uid, gid, 0);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("fchownat failed for '%s': [%d][%s]\n",
-              full_path, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = fchmodat(dst_dir_fd, file_name, statp->st_mode & 07777, 0);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("fchmodat failed for '%s': [%d][%s]\n",
-              full_path, ret, strerror(ret)));
-        return ret;
-    }
-
-    ret = sss_timeat_set(dst_dir_fd, file_name, statp, 0);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("utimensat failed for '%s': [%d][%s]\n",
-              full_path, ret, strerror(ret)));
-        /* Do not fail, this shouldn't be fatal */
-    }
-
-    return EOK;
-}
-
 /* Copy bytes from input file descriptor ifd into file named
  * dst_named under directory with dest_dir_fd. Own the new file
  * by uid/gid
@@ -602,14 +542,9 @@ copy_entry(struct copy_ctx *cctx,
             goto done;
         }
     } else {
-        /* Copy a special file */
-        ret = copy_special(dest_dir_fd, ent_name, dest_ent_path,
-                           &st, cctx->uid, cctx->gid);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot copy '%s' to '%s'\n",
-                  src_ent_path, dest_ent_path));
-            goto done;
-        }
+        /* Is a special file */
+        DEBUG(SSSDBG_FUNC_DATA, ("'%s' is a special file, skipping.\n",
+                  src_ent_path));
     }
 
     ret = EOK;
