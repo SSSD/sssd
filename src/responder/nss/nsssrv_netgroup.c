@@ -428,14 +428,12 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
     /* Check each domain for this netgroup name */
     while (dom) {
-        /* if it is a domainless search, skip domains that require fully
-         * qualified names instead */
-        while (dom && step_ctx->check_next && dom->fqnames) {
-            dom = get_next_domain(dom, false);
-        }
-
-        /* No domains left to search */
-        if (!dom) break;
+        /* Netgroups are a special case. We have to ignore the
+         * fully-qualified name requirement because memberNisNetgroup
+         * entries do not have fully-qualified components and we need
+         * to be able to always check them. So unlike the other
+         * maps, here we avoid skipping over fully-qualified domains.
+         */
 
         if (dom != step_ctx->dctx->domain) {
             /* make sure we reset the check_provider flag when we check

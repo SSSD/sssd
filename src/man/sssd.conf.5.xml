@@ -1209,6 +1209,13 @@ override_homedir = /home/%u
                             passwd test@LOCAL</command> would.
                         </para>
                         <para>
+                            NOTE: This option has no effect on netgroup
+                            lookups due to their tendency to include nested
+                            netgroups without qualified names. For netgroups,
+                            all domains will be searched when an unqualified
+                            name is requested.
+                        </para>
+                        <para>
                             Default: FALSE
                         </para>
                     </listitem>
