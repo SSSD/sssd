@@ -1452,17 +1452,17 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
     state->filter_type = filter_type;
     state->attrs_type = attrs_type;
 
-    subreq = users_get_send(req, state->ev, state->id_ctx,
-                            state->sdom, state->conn,
-                            state->filter_val, state->filter_type,
-                            state->attrs_type, NULL);
+    subreq = groups_get_send(req, state->ev, state->id_ctx,
+                             state->sdom, state->conn,
+                             state->filter_val, state->filter_type,
+                             state->attrs_type, state->noexist_delete);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("users_get_send failed.\n"));
         ret = ENOMEM;
         goto fail;
     }
 
-    tevent_req_set_callback(subreq, get_user_and_group_users_done, req);
+    tevent_req_set_callback(subreq, get_user_and_group_groups_done, req);
 
     return req;
 
@@ -1470,46 +1470,6 @@ fail:
     tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
-}
-
-static void get_user_and_group_users_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct get_user_and_group_state *state = tevent_req_data(req,
-                                               struct get_user_and_group_state);
-    int ret;
-
-    ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
-    talloc_zfree(subreq);
-
-    if (ret != EOK) {           /* Fatal error while looking up user */
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->sdap_ret == EOK) {   /* Matching user found */
-        tevent_req_done(req);
-        return;
-    } else if (state->sdap_ret != ENOENT) {
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    /* Now the search finished fine but did not find an entry.
-     * Retry with groups. */
-
-    subreq = groups_get_send(req, state->ev, state->id_ctx,
-                             state->sdom, state->conn,
-                             state->filter_val, state->filter_type,
-                             state->attrs_type, state->noexist_delete);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("groups_get_send failed.\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    tevent_req_set_callback(subreq, get_user_and_group_groups_done, req);
 }
 
 static void get_user_and_group_groups_done(struct tevent_req *subreq)
@@ -1523,7 +1483,46 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     ret = groups_get_recv(subreq, &state->dp_error, &state->sdap_ret);
     talloc_zfree(subreq);
 
-    if (ret == EOK) { /* Matching group found */
+    if (ret != EOK) {           /* Fatal error while looking up group */
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->sdap_ret == EOK) {   /* Matching group found */
+        tevent_req_done(req);
+        return;
+    } else if (state->sdap_ret != ENOENT) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    /* Now the search finished fine but did not find an entry.
+     * Retry with users. */
+    subreq = users_get_send(req, state->ev, state->id_ctx,
+                            state->sdom, state->conn,
+                            state->filter_val, state->filter_type,
+                            state->attrs_type, state->noexist_delete);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("groups_get_send failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, get_user_and_group_users_done, req);
+}
+
+static void get_user_and_group_users_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct get_user_and_group_state *state = tevent_req_data(req,
+                                               struct get_user_and_group_state);
+    int ret;
+
+    ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+    talloc_zfree(subreq);
+
+    if (ret == EOK) { /* Matching user found */
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
