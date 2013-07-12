@@ -319,6 +319,11 @@ ldap_access_order = expire
 ldap_account_expire_policy = ad
 </programlisting>
         </para>
+        <para>
+            However, unless the <quote>ad</quote> access control provider
+            is explicitly configured, the default access provider is
+            <quote>permit</quote>.
+        </para>
     </refsect1>
 
 	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
