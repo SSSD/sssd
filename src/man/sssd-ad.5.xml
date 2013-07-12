@@ -106,7 +106,7 @@ ldap_id_mapping = False
                     <term>ad_server, ad_backup_server (string)</term>
                     <listitem>
                         <para>
-                            The comma-separated list of IP addresses or
+                            The comma-separated list of
                             hostnames of the AD servers to which SSSD should
                             connect in order of preference. For more
                             information on failover and server redundancy, see
