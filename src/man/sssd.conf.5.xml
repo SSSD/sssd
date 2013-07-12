@@ -936,6 +936,10 @@ override_homedir = /home/%u
                             range will be reported as expected.
                         </para>
                         <para>
+                            These ID limits affect even saving entries to
+                            cache, not only returning them by name or ID.
+                        </para>
+                        <para>
                             Default: 1 for min_id, 0 (no limit) for max_id
                         </para>
                     </listitem>
