@@ -1118,6 +1118,23 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
         return EOK;
     }
 
+    /* The IPA code relies on the default FQDN format to unparse user
+     * names. Warn loudly if the full_name_format was customized on the
+     * IPA server
+     */
+    if ((strcmp(be_ctx->domain->names->fq_fmt,
+               CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0)
+            && (strcmp(be_ctx->domain->names->fq_fmt,
+                       CONFDB_DEFAULT_FULL_NAME_FORMAT_OLD) != 0)) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("%s is set to a non-default value [%s] " \
+              "lookups of subdomain users will likely fail!\n",
+              CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt));
+        sss_log(SSS_LOG_ERR, "%s is set to a non-default value [%s] " \
+                "lookups of subdomain users will likely fail!\n",
+                CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
+        /* Attempt to continue */
+    }
+
     realm = dp_opt_get_string(id_ctx->ipa_options->basic, IPA_KRB5_REALM);
     if (realm == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("No Kerberos realm for IPA?\n"));

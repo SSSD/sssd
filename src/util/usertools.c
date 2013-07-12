@@ -306,7 +306,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     }
 
     if (!fq_fmt) {
-        fq_fmt = talloc_strdup(tmpctx, "%1$s@%2$s");
+        fq_fmt = talloc_strdup(tmpctx, CONFDB_DEFAULT_FULL_NAME_FORMAT);
         if (!fq_fmt) {
             ret = ENOMEM;
             goto done;
