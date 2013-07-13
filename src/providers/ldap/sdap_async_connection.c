@@ -294,7 +294,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
                                    &ber_sasl_minssf);
             if (lret != LDAP_OPT_SUCCESS) {
                 DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set LDAP MIN SSF option "
-                                            "to %lu\n", sasl_minssf));
+                                            "to %d\n", sasl_minssf));
                 goto fail;
             }
         }

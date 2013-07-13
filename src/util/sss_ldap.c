@@ -420,8 +420,9 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 
     lret = ldap_init_fd(state->sd, LDAP_PROTO_TCP, state->uri, &state->ldap);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_init_fd failed: %s. [%ld][%s]\n",
-                  sss_ldap_err2string(lret), state->sd, state->uri));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("ldap_init_fd failed: %s. [%d][%s]\n",
+               sss_ldap_err2string(lret), state->sd, state->uri));
         ret = lret == LDAP_SERVER_DOWN ? ETIMEDOUT : EIO;
         goto fail;
     }
