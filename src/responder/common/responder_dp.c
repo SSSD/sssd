@@ -116,7 +116,7 @@ static int sss_dp_req_destructor(void *ptr)
     if (hret != HASH_SUCCESS) {
         /* This should never happen */
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("BUG: Could not clear [%d:%d:%s] from request queue: [%s]\n",
+              ("BUG: Could not clear [%d:%lu:%s] from request queue: [%s]\n",
                sdp_req->key->type, sdp_req->key->ul, sdp_req->key->str,
                hash_error_string(hret)));
         return -1;

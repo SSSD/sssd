@@ -167,7 +167,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 
     value.type = HASH_VALUE_PTR;
     value.ptr = req;
-    DEBUG(8, ("Queueing request [%d]\n", key.ul));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Queueing request [%lu]\n", key.ul));
     hret = hash_enter(auth_ctx->request_table,
                       &key, &value);
     if (hret != HASH_SUCCESS) {
