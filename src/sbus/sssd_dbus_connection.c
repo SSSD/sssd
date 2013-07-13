@@ -54,7 +54,7 @@ static void sbus_dispatch(struct tevent_context *ev,
     conn = talloc_get_type(data, struct sbus_connection);
 
     dbus_conn = conn->dbus.conn;
-    DEBUG(9, ("dbus conn: %lX\n", dbus_conn));
+    DEBUG(SSSDBG_TRACE_ALL, ("dbus conn: %p\n", dbus_conn));
 
     if (conn->retries > 0) {
         DEBUG(6, ("SBUS is reconnecting. Deferring.\n"));
@@ -162,7 +162,7 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     struct sbus_connection *conn;
     int ret;
 
-    DEBUG(5,("Adding connection %lX\n", dbus_conn));
+    DEBUG(SSSDBG_TRACE_FUNC,("Adding connection %p\n", dbus_conn));
     conn = talloc_zero(ctx, struct sbus_connection);
 
     conn->ev = ev;
@@ -296,7 +296,7 @@ int sbus_default_connection_destructor(void *ctx)
     struct sbus_connection *conn;
     conn = talloc_get_type(ctx, struct sbus_connection);
 
-    DEBUG(5, ("Invoking default destructor on connection %lX\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("Invoking default destructor on connection %p\n",
               conn->dbus.conn));
     if (conn->connection_type == SBUS_CONN_TYPE_PRIVATE) {
         /* Private connections must be closed explicitly */
@@ -334,7 +334,7 @@ void sbus_disconnect (struct sbus_connection *conn)
         return;
     }
 
-    DEBUG(5,("Disconnecting %lX\n", conn->dbus.conn));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Disconnecting %p\n", conn->dbus.conn));
 
     /*******************************
      *  Referencing conn->dbus.conn */
@@ -374,7 +374,7 @@ void sbus_disconnect (struct sbus_connection *conn)
     /* Unreferenced conn->dbus_conn *
      ******************************/
 
-    DEBUG(5,("Disconnected %lX\n", conn->dbus.conn));
+    DEBUG(SSSDBG_TRACE_FUNC ,("Disconnected %p\n", conn->dbus.conn));
 }
 
 static int sbus_reply_internal_error(DBusMessage *message,
