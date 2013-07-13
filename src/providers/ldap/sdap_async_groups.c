@@ -1056,7 +1056,7 @@ done:
 static int
 sdap_process_missing_member_2307bis(struct tevent_req *req,
                                     char *user_dn,
-                                    int num_users)
+                                    unsigned num_users)
 {
     struct sdap_process_group_state *grp_state =
         tevent_req_data(req, struct sdap_process_group_state);
