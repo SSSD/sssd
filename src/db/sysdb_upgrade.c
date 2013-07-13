@@ -1387,7 +1387,8 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
             ret = ldb_delete(sysdb->ldb, res->msgs[j]->dn);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to delete %s\n", res->msgs[j]->dn));
+                      ("Failed to delete %s\n",
+                       ldb_dn_get_linearized(res->msgs[j]->dn)));
                 continue;
             }
         }
@@ -1478,7 +1479,8 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
             ret = ldb_delete(sysdb->ldb, res->msgs[i]->dn);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to delete %s\n", res->msgs[i]->dn));
+                      ("Failed to delete %s\n",
+                       ldb_dn_get_linearized(res->msgs[i]->dn)));
                 ret = EIO;
                 goto done;
             }
@@ -1502,7 +1504,8 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
             ret = ldb_delete(sysdb->ldb, res->msgs[i]->dn);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to delete %s\n", res->msgs[i]->dn));
+                      ("Failed to delete %s\n",
+                       ldb_dn_get_linearized(res->msgs[i]->dn)));
                 ret = EIO;
                 goto done;
             }
