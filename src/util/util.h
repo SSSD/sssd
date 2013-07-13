@@ -128,7 +128,7 @@ errno_t set_debug_file_from_fd(const int fd);
             memcpy(__debug_macro_datetime, ctime(&__debug_macro_tv.tv_sec), 19); \
             __debug_macro_datetime[19] = '\0'; \
             if (debug_microseconds) { \
-                debug_fn("(%s:%.6d %d) [%s] [%s] (%#.4x): ", \
+                debug_fn("(%s:%.6ld %d) [%s] [%s] (%#.4x): ", \
                          __debug_macro_datetime, __debug_macro_tv.tv_usec, \
                          __debug_macro_year, debug_prg_name, \
                          __FUNCTION__, __debug_macro_newlevel); \
@@ -169,7 +169,7 @@ errno_t set_debug_file_from_fd(const int fd);
             memcpy(__debug_macro_datetime, ctime(&__debug_macro_tv.tv_sec), 19); \
             __debug_macro_datetime[19] = '\0'; \
             if (debug_microseconds) { \
-                debug_fn("(%s:%.6d %d) [%s] [%s] (%#.4x): %s\n", \
+                debug_fn("(%s:%.6ld %d) [%s] [%s] (%#.4x): %s\n", \
                          __debug_macro_datetime, __debug_macro_tv.tv_usec, \
                          __debug_macro_year, debug_prg_name, \
                          function, __debug_macro_newlevel, message); \

@@ -653,7 +653,7 @@ static errno_t _krb5_servers_init(struct be_ctx *ctx,
                 }
 
                 if (port < 1 || port > 65535) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Illegal port number [%d].\n", port));
+                    DEBUG(SSSDBG_CRIT_FAILURE, ("Illegal port number [%ld].\n", port));
                     ret = EINVAL;
                     goto done;
                 }

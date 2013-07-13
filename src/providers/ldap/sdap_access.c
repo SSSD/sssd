@@ -433,9 +433,10 @@ static bool nds_check_expired(const char *exp_time_str)
     tzset();
     expire_time -= timezone;
     now = time(NULL);
-    DEBUG(9, ("Time info: tzname[0] [%s] tzname[1] [%s] timezone [%d] "
-              "daylight [%d] now [%d] expire_time [%d].\n", tzname[0],
-              tzname[1], timezone, daylight, now, expire_time));
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
+           "daylight [%d] now [%d] expire_time [%d].\n", tzname[0],
+           tzname[1], timezone, daylight, now, expire_time));
 
     if (difftime(now, expire_time) > 0.0) {
         DEBUG(4, ("NDS account expired.\n"));

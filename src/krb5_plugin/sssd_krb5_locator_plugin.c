@@ -171,7 +171,7 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
             }
 
             if (port < 0 || port > 65535) {
-                PLUGIN_DEBUG(("Illegal port number [%d], assuming default.\n",
+                PLUGIN_DEBUG(("Illegal port number [%ld], assuming default.\n",
                             port));
                 port = 0;
             }
