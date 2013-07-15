@@ -1400,7 +1400,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
             }
         }
 
-        if (result_string.length > 0) {
+        if (result_string.length > 0 && result_string.data[0] != '\0') {
             DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
                       result_string.length, result_string.data));
             talloc_free(user_error_message);
@@ -1408,6 +1408,12 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                                 result_string.length);
             if (user_error_message == NULL) {
                 DEBUG(1, ("talloc_strndup failed.\n"));
+            }
+        } else if (result_code == KRB5_KPASSWD_SOFTERROR) {
+            user_error_message = talloc_strdup(kr->pd, "Please make sure the "
+                                 "password meets the complexity constraints.");
+            if (user_error_message == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strndup failed.\n"));
             }
         }
 
