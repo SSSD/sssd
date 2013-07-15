@@ -641,7 +641,21 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
             sss_ldap_err2string(state->result), state->result, errmsg));
 
-    if (state->result != LDAP_SUCCESS) {
+    switch (state->result) {
+    case LDAP_SUCCESS:
+        ret = EOK;
+        break;
+    case LDAP_CONSTRAINT_VIOLATION:
+        state->user_error_message = talloc_strdup(state,
+            "Please make sure the password meets the complexity constraints.");
+        if (state->user_error_message == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = EIO;
+        goto done;
+    default:
         if (errmsg) {
             state->user_error_message = talloc_strdup(state, errmsg);
             if (state->user_error_message == NULL) {
