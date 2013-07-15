@@ -917,7 +917,7 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
     }
 
     if (!ret_dom) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown domain [%s], checking for"
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown domain [%s], checking for "
                                   "possible subdomains!\n", name));
     }
 
@@ -961,7 +961,7 @@ errno_t responder_get_domain_by_id(struct resp_ctx *rctx, const char *id,
     }
 
     if (ret_dom == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown domain id [%s], checking for"
+        DEBUG(SSSDBG_OP_FAILURE, ("Unknown domain id [%s], checking for "
                                   "possible subdomains!\n", id));
         ret = ENOENT;
     } else {
