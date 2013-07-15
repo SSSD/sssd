@@ -1135,6 +1135,13 @@ static int mbof_add_muop(struct mbof_add_ctx *add_ctx)
         return ret;
     }
 
+    ret = ldb_request_add_control(mod_req, LDB_CONTROL_PERMISSIVE_MODIFY_OID,
+                                  false, NULL);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(mod_req);
+        return ret;
+    }
+
     return ldb_next_request(ctx->module, mod_req);
 }
 
