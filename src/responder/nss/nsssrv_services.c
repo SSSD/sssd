@@ -991,10 +991,6 @@ nss_cmd_getserv_done(struct tevent_req *req)
     struct nss_dom_ctx *dctx =
             tevent_req_callback_data(req, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-
-    struct nss_ctx *nctx =
-            talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     reqret = getserv_recv(dctx, req, &dctx->res);
     talloc_zfree(req);
