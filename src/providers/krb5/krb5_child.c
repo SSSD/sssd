@@ -1602,7 +1602,7 @@ static errno_t create_empty_ccache(struct krb5_req *kr)
     return map_krb5_error(kerr);
 }
 
-static errno_t unpack_authtok(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
+static errno_t unpack_authtok(struct sss_auth_token *tok,
                               uint8_t *buf, size_t size, size_t *p)
 {
     uint32_t auth_token_type;
@@ -1695,7 +1695,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         if (kr->keytab == NULL) return ENOMEM;
         p += len;
 
-        ret = unpack_authtok(pd, pd->authtok, buf, size, &p);
+        ret = unpack_authtok(pd->authtok, buf, size, &p);
         if (ret) {
             return ret;
         }
@@ -1709,7 +1709,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     }
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        ret = unpack_authtok(pd, pd->newauthtok, buf, size, &p);
+        ret = unpack_authtok(pd->newauthtok, buf, size, &p);
         if (ret) {
             return ret;
         }
