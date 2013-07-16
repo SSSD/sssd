@@ -590,7 +590,6 @@ getserv_recv(TALLOC_CTX *mem_ctx,
 static errno_t
 fill_service(struct sss_packet *packet,
              struct sss_domain_info *dom,
-             struct nss_ctx *nctx,
              const char *protocol,
              struct ldb_message **msgs,
              unsigned int *count)
@@ -1018,7 +1017,6 @@ nss_cmd_getserv_done(struct tevent_req *req)
             i = dctx->res->count;
             ret = fill_service(cmdctx->cctx->creq->out,
                                dctx->domain,
-                               nctx,
                                dctx->protocol,
                                dctx->res->msgs,
                                &i);
@@ -1793,7 +1791,7 @@ retservent(struct cli_ctx *cctx, int num)
 
         ret = fill_service(cctx->creq->out,
                            pdom->domain,
-                           nctx, NULL, msgs,
+                           NULL, msgs,
                            &n);
 
         cctx->svcent_cur += n;
