@@ -1055,6 +1055,7 @@ auth_tests_LDADD = \
     libsss_test_common.la
 
 ipa_ldap_opt_tests_SOURCES = \
+    src/providers/data_provider_opts.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \

@@ -161,6 +161,71 @@ START_TEST(test_compare_2307_with_2307bis)
 }
 END_TEST
 
+START_TEST(test_copy_opts)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    struct dp_option *opts;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    ret = dp_copy_options(tmp_ctx, ad_def_ldap_opts, SDAP_OPTS_BASIC, &opts);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    for (int i=0; i < SDAP_OPTS_BASIC; i++) {
+        char *s1, *s2;
+        bool b1, b2;
+        int i1, i2;
+        struct dp_opt_blob  bl1, bl2;
+
+        switch (opts[i].type) {
+        case DP_OPT_STRING:
+            s1 = dp_opt_get_string(opts, i);
+            s2 = opts[i].def_val.string;
+
+            if (s1 != NULL || s2 != NULL) {
+                fail_unless(strcmp(s1, s2) == 0,
+                            "Option %s does not have default value after copy\n",
+                            opts[i].opt_name);
+            }
+            break;
+
+        case DP_OPT_NUMBER:
+            i1 = dp_opt_get_int(opts, i);
+            i2 = opts[i].def_val.number;
+
+            fail_unless(i1 == i2,
+                        "Option %s does not have default value after copy\n",
+                        opts[i].opt_name);
+            break;
+
+        case DP_OPT_BOOL:
+            b1 = dp_opt_get_bool(opts, i);
+            b2 = opts[i].def_val.boolean;
+
+            fail_unless(b1 == b2,
+                        "Option %s does not have default value after copy\n",
+                        opts[i].opt_name);
+            break;
+
+        case DP_OPT_BLOB:
+            bl1 = dp_opt_get_blob(opts, i);
+            bl2 = opts[i].def_val.blob;
+
+            fail_unless(bl1.length == bl2.length,
+                        "Blobs differ in size for option %s\n",
+                        opts[i].opt_name);
+            fail_unless(memcmp(bl1.data, bl2.data, bl1.length) == 0,
+                        "Blobs differ in value for option %s\n",
+                        opts[i].opt_name);
+        }
+    }
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 Suite *ipa_ldap_opt_suite (void)
 {
     Suite *s = suite_create ("ipa_ldap_opt");
@@ -175,6 +240,10 @@ Suite *ipa_ldap_opt_suite (void)
     TCase *tc_ipa_utils = tcase_create ("ipa_utils");
     tcase_add_test (tc_ipa_utils, test_domain_to_basedn);
     suite_add_tcase (s, tc_ipa_utils);
+
+    TCase *tc_dp_opts = tcase_create ("dp_opts");
+    tcase_add_test (tc_dp_opts, test_copy_opts);
+    suite_add_tcase (s, tc_dp_opts);
 
     return s;
 }
