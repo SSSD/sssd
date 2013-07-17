@@ -1424,7 +1424,7 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
             tevent_req_error(req, EIO);
             return;
         }
-        DEBUG(7, ("Total count [%lu]\n", total_count));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("Total count [%d]\n", total_count));
 
         if (cookie.bv_val != NULL && cookie.bv_len > 0) {
             /* Cookie contains data, which means there are more requests

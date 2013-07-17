@@ -1987,8 +1987,9 @@ static int synchronous_tls_setup(LDAP *ldap)
 
     lret = ldap_result(ldap, msgid, 1, NULL, &result);
     if (lret != LDAP_RES_EXTENDED) {
-        DEBUG(2, ("Unexpected ldap_result, expected [%d] got [%d].\n",
-                  LDAP_RES_EXTENDED, lret));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Unexpected ldap_result, expected [%lu] got [%d].\n",
+               LDAP_RES_EXTENDED, lret));
         lret = LDAP_PARAM_ERROR;
         goto done;
     }
