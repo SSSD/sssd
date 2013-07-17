@@ -222,7 +222,7 @@ int test_helper_debug_check_message(int level, int msgmode)
     }
 
     if (msgmode == 0) {
-        DEBUG(level, (body));
+        DEBUG(level, ("%s", body));
     } else {
         DEBUG_MSG(level, __FUNCTION__, "some error");
     }
