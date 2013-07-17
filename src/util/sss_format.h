@@ -29,4 +29,7 @@
 
 #include <inttypes.h>
 
+/* key_serial_t is defined in keyutils.h as typedef int32_t */
+#define SPRIkey_ser PRId32
+
 #endif /* __SSS_FORMAT_H__ */

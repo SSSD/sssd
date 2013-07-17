@@ -279,7 +279,8 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
         talloc_free(new_pd);
         return ret;
     }
-    DEBUG(9, ("Saved authtok of user [%s] with serial [%ld].\n",
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("Saved authtok of user [%s] with serial [%"SPRIkey_ser"].\n",
               new_pd->user, new_pd->key_serial));
     sss_authtok_set_empty(new_pd->authtok);
 #endif
