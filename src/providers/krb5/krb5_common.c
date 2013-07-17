@@ -923,8 +923,9 @@ errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
      */
     ret = sss_parse_name(tmp_ctx, dom->names, username, &domname, &name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse %s into name and " \
-                                  "domain components, login might fail\n"));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not parse [%s] into name and "
+               "domain components, login might fail\n", username));
         name = discard_const(username);
     }
 

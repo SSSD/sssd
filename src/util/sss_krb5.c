@@ -640,7 +640,7 @@ errno_t check_fast(const char *str, bool *use_fast)
         *use_fast = true;
     } else {
         sss_log(SSS_LOG_ALERT, "Unsupported value [%s] for option krb5_use_fast,"
-                               "please use never, try, or demand.\n");
+                               "please use never, try, or demand.\n", str);
         return EINVAL;
     }
 
