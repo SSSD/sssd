@@ -118,7 +118,6 @@ struct be_ctx {
     const char *conf_path;
     struct be_failover_ctx *be_fo;
     struct be_resolv_ctx *be_res;
-    struct sss_sigchild_ctx *sigchld_ctx;
 
     /* Functions to be invoked when the
      * backend goes online or offline

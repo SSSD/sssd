@@ -2822,14 +2822,6 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_sigchld_init(ctx, ctx->ev, &ctx->sigchld_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not initialize sigchld context: [%s]\n",
-               strerror(ret)));
-        goto fail;
-    }
-
     return EOK;
 
 fail:
