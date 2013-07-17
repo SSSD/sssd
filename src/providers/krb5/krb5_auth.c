@@ -495,6 +495,17 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK:
             if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+                /* handle empty password gracefully */
+                if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          ("Illegal zero-length authtok for user [%s]\n",
+                           pd->user));
+                    state->pam_status = PAM_AUTH_ERR;
+                    state->dp_err = DP_ERR_OK;
+                    ret = EOK;
+                    goto done;
+                }
+
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Wrong authtok type for user [%s]. " \
                        "Expected [%d], got [%d]\n", pd->user,
