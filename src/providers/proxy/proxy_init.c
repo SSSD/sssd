@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
 
 static int client_registration(DBusMessage *message,
@@ -415,7 +416,7 @@ static int client_registration(DBusMessage *message,
         return EIO;
     }
 
-    DEBUG(4, ("Proxy client [%ld] connected\n", cli_id));
+    DEBUG(SSSDBG_FUNC_DATA, ("Proxy client [%"PRIu32"] connected\n", cli_id));
 
     /* Check the hash table */
     key.type = HASH_KEY_ULONG;

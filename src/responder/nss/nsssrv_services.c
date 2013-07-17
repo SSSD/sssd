@@ -225,7 +225,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
              /* If negatively cached, return we didn't find it */
              if (ret == EEXIST) {
                  DEBUG(SSSDBG_TRACE_FUNC,
-                       ("Service [%lu:%s] does not exist in [%s]! "
+                       ("Service [%"PRIu16":%s] does not exist in [%s]! "
                         "(negative cache)\n",
                         port,
                         SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
@@ -248,7 +248,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
              /* Check the cache */
              DEBUG(SSSDBG_TRACE_FUNC,
-                   ("Checking cache for [%lu:%s@%s]\n",
+                   ("Checking cache for [%"PRIu16":%s@%s]\n",
                     port,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                     dom->name));
@@ -291,7 +291,8 @@ getserv_send(TALLOC_CTX *mem_ctx,
                           * We'll log an error and continue.
                           */
                          DEBUG(SSSDBG_MINOR_FAILURE,
-                               ("Could not set negative cache for [%lu][%s]\n",
+                               ("Could not set negative cache for "
+                                "[%"PRIu16"][%s]\n",
                                 state->port, SVC_PROTO_CASED));
                      }
                  }
@@ -502,7 +503,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                                   &state->res);
     } else {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Re-checking cache for [%lu:%s@%s]\n",
+              ("Re-checking cache for [%"PRIu16":%s@%s]\n",
                state->port,
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
@@ -540,7 +541,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                  * We'll log an error and continue.
                  */
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not set negative cache for [%lu][%s]\n",
+                      ("Could not set negative cache for [%"PRIu16"][%s]\n",
                        state->port, SVC_PROTO_CASED));
             }
         }
@@ -1146,7 +1147,7 @@ int nss_cmd_getservbyport(struct cli_ctx *cctx)
     dctx->protocol = service_protocol;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting info for service on port [%lu/%s]\n",
+          ("Requesting info for service on port [%"PRIu16"/%s]\n",
            port, service_protocol ? service_protocol : "<ANY>"));
 
     /* All port lookups are multidomain searches */

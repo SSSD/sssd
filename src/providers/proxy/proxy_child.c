@@ -430,8 +430,8 @@ int proxy_child_send_id(struct sbus_connection *conn,
         return ENOMEM;
     }
 
-    DEBUG(4, ("Sending ID to Proxy Backend: (%d,%ld)\n",
-              version, id));
+    DEBUG(SSSDBG_FUNC_DATA, ("Sending ID to Proxy Backend: (%d,%"PRIu32")\n",
+                             version, id));
 
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_UINT16, &version,

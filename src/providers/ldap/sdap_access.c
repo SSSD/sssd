@@ -338,8 +338,9 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
 
     expiration_time = ldb_msg_find_attr_as_uint64(user_entry,
                                                   SYSDB_AD_ACCOUNT_EXPIRES, 0);
-    DEBUG(9, ("Expiration time for user [%s] is [%lld].\n",
-              pd->user, expiration_time));
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("Expiration time for user [%s] is [%"PRIu64"].\n",
+           pd->user, expiration_time));
 
     if (uac & UAC_ACCOUNTDISABLE) {
 
