@@ -999,7 +999,7 @@ void responder_set_fd_limit(rlim_t fd_limit)
     limret = setrlimit(RLIMIT_NOFILE, &new_limit);
     if (limret == 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Maximum file descriptors set to [%d]\n",
+              ("Maximum file descriptors set to [%"SPRIrlim"]\n",
                new_limit.rlim_cur));
         return;
     }
@@ -1012,7 +1012,7 @@ void responder_set_fd_limit(rlim_t fd_limit)
     limret = getrlimit(RLIMIT_NOFILE, &current_limit);
     if (limret == 0) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Current fd limit: [%d]\n",
+              ("Current fd limit: [%"SPRIrlim"]\n",
                current_limit.rlim_cur));
         /* Choose the lesser of the requested and the hard limit */
         if (current_limit.rlim_max < fd_limit) {
@@ -1025,12 +1025,12 @@ void responder_set_fd_limit(rlim_t fd_limit)
         limret = setrlimit(RLIMIT_NOFILE, &new_limit);
         if (limret == 0) {
             DEBUG(SSSDBG_CONF_SETTINGS,
-                  ("Maximum file descriptors set to [%d]\n",
+                  ("Maximum file descriptors set to [%"SPRIrlim"]\n",
                    new_limit.rlim_cur));
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not set new fd limits. Proceeding with [%d]\n",
-                   current_limit.rlim_cur));
+                  ("Could not set new fd limits. Proceeding with "
+                   "[%"SPRIrlim"]\n", current_limit.rlim_cur));
         }
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,

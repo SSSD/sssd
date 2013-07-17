@@ -32,4 +32,11 @@
 /* key_serial_t is defined in keyutils.h as typedef int32_t */
 #define SPRIkey_ser PRId32
 
+/* rlim_t is defined with conditional build as unsigned type.
+ * It seems that sizeof(rlim_t) is 8. It may be platform dependent, therefore
+ * the same format will be used like with uint64_t.
+ */
+
+#define SPRIrlim PRIu64
+
 #endif /* __SSS_FORMAT_H__ */
