@@ -170,7 +170,7 @@ static void sdap_sudo_timer_timeout(struct tevent_context *ev,
     state = tevent_req_data(req, struct sdap_sudo_timer_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, ("Request timed out. Is timeout too small?"
-                                " (%ds)!\n", state->timeout));
+                                " (%lds)!\n", state->timeout));
 
     talloc_zfree(state->subreq);
 

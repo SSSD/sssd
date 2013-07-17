@@ -154,8 +154,9 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     ctx->opts->family_order  = opts->family_order;
     ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Created new fail over context, retry timeout is %d\n",
-                              ctx->opts->retry_timeout));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Created new fail over context, retry timeout is %ld\n",
+           ctx->opts->retry_timeout));
     return ctx;
 }
 

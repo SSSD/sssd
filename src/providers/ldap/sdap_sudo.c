@@ -227,7 +227,7 @@ static int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx)
         smart_default = id_ctx->opts->basic[SDAP_SUDO_SMART_REFRESH_INTERVAL].def_val.number;
 
         DEBUG(SSSDBG_MINOR_FAILURE, ("At least one periodical update has to be "
-              "enabled. Setting smart refresh interval to default value (%d).\n",
+              "enabled. Setting smart refresh interval to default value (%ld).\n",
               smart_default));
 
         ret = dp_opt_set_int(id_ctx->opts->basic,
@@ -1072,7 +1072,7 @@ schedule:
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, ("Data provider is offline. "
-              "Scheduling another full refresh in %lld minutes.\n", delay));
+              "Scheduling another full refresh in %ld minutes.\n", delay));
 
         ret = sdap_sudo_schedule_refresh(sudo_ctx, sudo_ctx,
                                          SDAP_SUDO_REFRESH_FULL,

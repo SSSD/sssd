@@ -1773,7 +1773,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
             || (state->sh->expire_time > (now + expire_timeout))) {
         state->sh->expire_time = now + expire_timeout;
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("the connection will expire at %d\n", state->sh->expire_time));
+              ("the connection will expire at %ld\n", state->sh->expire_time));
     }
 
     if (!state->do_auth ||

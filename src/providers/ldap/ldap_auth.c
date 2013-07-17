@@ -117,7 +117,7 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
     expire_time -= timezone;
     DEBUG(SSSDBG_TRACE_ALL,
           ("Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
-           "daylight [%d] now [%d] expire_time [%d].\n", tzname[0],
+           "daylight [%d] now [%ld] expire_time [%ld].\n", tzname[0],
            tzname[1], timezone, daylight, now, expire_time));
 
     if (difftime(now, expire_time) > 0.0) {
