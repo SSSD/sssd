@@ -464,8 +464,9 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
     }
 
     if (time_map->length != 42) {
-        DEBUG(4, ("Allowed time map has the wrong size, "
-                  "got [%d], expected 42.\n", time_map->length));
+        DEBUG(SSSDBG_FUNC_DATA,
+              ("Allowed time map has the wrong size, "
+               "got [%zu], expected 42.\n", time_map->length));
         return true;
     }
 
@@ -477,7 +478,7 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
 
     if (map_index > 335) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unexpected index value [%d] for time map.\n", map_index));
+              ("Unexpected index value [%zu] for time map.\n", map_index));
         return true;
     }
 
@@ -485,7 +486,7 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
 
     if (q.quot > 41 || q.quot < 0 || q.rem > 7 || q.rem < 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unexpected result of div(), [%d][%d][%d].\n",
+              ("Unexpected result of div(), [%zu][%d][%d].\n",
                map_index, q.quot, q.rem));
         return true;
     }

@@ -477,7 +477,7 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Received %d rules\n", rules_count));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Received %zu rules\n", rules_count));
 
     /* start transaction */
     ret = sysdb_transaction_start(state->sysdb);

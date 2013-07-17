@@ -315,7 +315,8 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(6, ("Search for netgroups, returned %d results.\n", netgroups_count));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Search for netgroups, returned %zu results.\n",
+                              netgroups_count));
 
     if (netgroups_count == 0) {
         /* No netgroups found in this search */
@@ -575,7 +576,8 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Found %u members in current search base\n", count));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Found %zu members in current search base\n",
+                                  count));
 
     next_call = NULL;
     /* While processing a batch of entities from one search base,

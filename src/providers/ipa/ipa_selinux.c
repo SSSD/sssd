@@ -1163,7 +1163,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-         ("Found %d SELinux user maps\n", state->nmaps));
+         ("Found %zu SELinux user maps\n", state->nmaps));
 
     check_hbac = false;
     for (i = 0; i < state->nmaps; i++) {
@@ -1222,7 +1222,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     ret = ipa_hbac_rule_info_recv(subreq, state, &state->hbac_rule_count,
                                   &state->hbac_rules);
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Received %d HBAC rules\n", state->hbac_rule_count));
+          ("Received %zu HBAC rules\n", state->hbac_rule_count));
     talloc_free(subreq);
 
     if (ret != EOK) {

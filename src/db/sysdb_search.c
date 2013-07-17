@@ -972,7 +972,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     }
     direct_parents[pi] = NULL;
 
-    DEBUG(7, ("%s is a member of %d sysdb groups\n",
+    DEBUG(SSSDBG_TRACE_LIBS, ("%s is a member of %zu sysdb groups\n",
               name, direct_sysdb_count));
     *_direct_parents = talloc_steal(mem_ctx, direct_parents);
     ret = EOK;

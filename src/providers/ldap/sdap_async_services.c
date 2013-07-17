@@ -177,7 +177,7 @@ sdap_get_services_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for services, returned %d results.\n",
+          ("Search for services, returned %zu results.\n",
            count));
 
     if (state->enumeration || count == 0) {
@@ -240,7 +240,7 @@ sdap_get_services_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Saving %d services - Done\n", state->count));
+          ("Saving %zu services - Done\n", state->count));
 
     tevent_req_done(req);
 }
@@ -292,10 +292,10 @@ sdap_save_services(TALLOC_CTX *mem_ctx,
          * Just report the failure to save and go on */
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Failed to store service %d. Ignoring.\n", i));
+                  ("Failed to store service %zu. Ignoring.\n", i));
         } else {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("Service [%lu/%lu] processed!\n", i, num_services));
+                  ("Service [%zu/%zu] processed!\n", i, num_services));
         }
 
         if (usn_value) {

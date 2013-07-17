@@ -697,7 +697,8 @@ static void sdap_get_users_process(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(6, ("Search for users, returned %d results.\n", count));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Search for users, returned %zu results.\n", count));
 
     if (state->enumeration || count == 0) {
         /* No users found in this search or enumerating */
@@ -758,7 +759,7 @@ static void sdap_get_users_process(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(9, ("Saving %d Users - Done\n", state->count));
+    DEBUG(SSSDBG_TRACE_ALL, ("Saving %zu Users - Done\n", state->count));
 
     tevent_req_done(req);
 }

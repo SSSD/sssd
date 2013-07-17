@@ -184,7 +184,7 @@ static void ad_get_dc_servers_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found %lu domain controllers in domain %s\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("Found %zu domain controllers in domain %s\n",
                               state->num_servers, domain));
 
 done:
@@ -830,7 +830,7 @@ static void ad_srv_plugin_servers_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got %lu primary and %lu backup servers\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("Got %zu primary and %zu backup servers\n",
           state->num_primary_servers, state->num_backup_servers));
 
     ret = ad_sort_servers_by_dns(state, state->discovery_domain,

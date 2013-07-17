@@ -583,7 +583,7 @@ static errno_t pack_response_packet(TALLOC_CTX *mem_ctx, errno_t error,
         safealign_memcpy(&buf[p], pdr->data, pdr->len, &p);
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("response packet size: [%d]\n", p));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("response packet size: [%zu]\n", p));
 
     *_buf = buf;
     *_len = p;
@@ -637,7 +637,7 @@ static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
 
     if (written != len) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Write error, wrote [%d] bytes, expected [%d]\n",
+              ("Write error, wrote [%zu] bytes, expected [%zu]\n",
                written, len));
         return EOK;
     }
@@ -1405,7 +1405,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     struct pam_data *pd;
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: [%d]\n", size));
+    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: [%zu]\n", size));
 
     if (!offline || !kr) return EINVAL;
 

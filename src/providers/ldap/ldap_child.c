@@ -57,7 +57,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     size_t p = 0;
     uint32_t len;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: %d\n", size));
+    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: %zu\n", size));
 
     /* realm_str size and length */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
@@ -112,7 +112,7 @@ static int pack_buffer(struct response *r, int result, krb5_error_code krberr,
     r->size = 2 * sizeof(uint32_t) + sizeof(krb5_error_code) +
               len + sizeof(time_t);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("response size: %d\n",r->size));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("response size: %zu\n",r->size));
 
     r->buf = talloc_array(r, uint8_t, r->size);
     if(!r->buf) {
@@ -540,7 +540,7 @@ int main(int argc, const char *argv[])
     }
 
     if (written != resp->size) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Expected to write %d bytes, wrote %d\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Expected to write %zu bytes, wrote %zu\n",
               resp->size, written));
         goto fail;
     }

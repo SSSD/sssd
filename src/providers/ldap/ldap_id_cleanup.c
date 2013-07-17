@@ -226,7 +226,7 @@ static int cleanup_users(struct sdap_options *opts,
         goto done;
     }
 
-    DEBUG(4, ("Found %d expired user entries!\n", count));
+    DEBUG(SSSDBG_FUNC_DATA, ("Found %zu expired user entries!\n", count));
 
     if (count == 0) {
         ret = EOK;
@@ -348,7 +348,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    DEBUG(4, ("Found %d expired group entries!\n", count));
+    DEBUG(SSSDBG_FUNC_DATA, ("Found %zu expired group entries!\n", count));
 
     if (count == 0) {
         ret = EOK;

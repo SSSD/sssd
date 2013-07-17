@@ -194,7 +194,7 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Initializing [%d] domains for ID-mapping\n", range_count));
+          ("Initializing [%zu] domains for ID-mapping\n", range_count));
 
     for (c = 0; c < range_count; c++) {
 

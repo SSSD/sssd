@@ -394,7 +394,7 @@ automntmaps_process_members_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_INTERNAL, ("No more search bases to try\n"));
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for autofs entries, returned %d results.\n",
+          ("Search for autofs entries, returned %zu results.\n",
           state->entries_count));
 
     tevent_req_done(req);
@@ -549,7 +549,7 @@ sdap_get_automntmap_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for autofs maps, returned %d results.\n", state->count));
+          ("Search for autofs maps, returned %zu results.\n", state->count));
 
     if (state->count == 0) {
         /* No maps found in this search */
@@ -801,7 +801,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     if (!tmp_ctx) return ENOMEM;
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Got %d map entries from LDAP\n", state->entries_count));
+          ("Got %zu map entries from LDAP\n", state->entries_count));
     if (state->entries_count == 0) {
         /* No entries for this map in LDAP.
          * We need to ensure that there are no entries
@@ -866,7 +866,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Got %d map entries from sysdb\n", count));
+    DEBUG(SSSDBG_TRACE_LIBS, ("Got %zu map entries from sysdb\n", count));
     if (count == 0) {
         /* No map members for this map in sysdb currently */
         sysdb_entrylist = NULL;

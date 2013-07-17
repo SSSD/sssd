@@ -492,8 +492,9 @@ static void netgr_translate_members_ldap_done(struct tevent_req *subreq)
             }
             break;
         default:
-            DEBUG(1, ("Unexpected number of results [%d] for base search.\n",
-                      count));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Unexpected number of results [%zu] for base search.\n",
+                   count));
     }
 
     if (state->dn_item->cn == NULL) {
@@ -661,7 +662,8 @@ static void sdap_get_netgroups_process(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(6, ("Search for netgroups, returned %d results.\n", state->count));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Search for netgroups, returned %zu results.\n", state->count));
 
     if (state->count == 0) {
         /* No netgroups found in this search */
@@ -725,7 +727,7 @@ static void netgr_translate_members_done(struct tevent_req *subreq)
         }
     }
 
-    DEBUG(9, ("Saving %d Netgroups - Done\n", state->count));
+    DEBUG(SSSDBG_TRACE_ALL, ("Saving %zu Netgroups - Done\n", state->count));
 
     tevent_req_done(req);
 }

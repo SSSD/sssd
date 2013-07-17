@@ -954,8 +954,9 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
                                                         groups[0]);
         state->groups_cur++;
     } else {
-        DEBUG(2, ("Search for group %s, returned %d results. Skipping\n",
-                  state->group_dns[state->cur], count));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Search for group %s, returned %zu results. Skipping\n",
+               state->group_dns[state->cur], count));
     }
 
     state->cur++;
@@ -1619,7 +1620,7 @@ static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq)
         return;
     }
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Found %d parent groups for user [%s]\n", count, state->name));
+          ("Found %zu parent groups for user [%s]\n", count, state->name));
 
     /* Add this batch of groups to the list */
     if (count > 0) {
@@ -2128,7 +2129,8 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     struct sdap_rfc2307bis_nested_ctx *state;
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("About to process %d groups in nesting level %d\n", num_groups, nesting));
+          ("About to process %zu groups in nesting level %zu\n",
+           num_groups, nesting));
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_rfc2307bis_nested_ctx);
@@ -2376,7 +2378,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Found %d parent groups of [%s]\n", count, state->orig_dn));
+          ("Found %zu parent groups of [%s]\n", count, state->orig_dn));
     ngr = state->processed_groups[state->group_iter];
 
     /* Add this batch of groups to the list */
@@ -2405,7 +2407,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
 
         ngr->ldap_parents[ngr->parents_count] = NULL;
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Total of %d direct parents after this iteration\n",
+              ("Total of %zu direct parents after this iteration\n",
                ngr->parents_count));
     }
 
@@ -2727,7 +2729,8 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
     } else if (count != 1) {
-        DEBUG(2, ("Expected one user entry and got %d\n", count));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Expected one user entry and got %zu\n", count));
         tevent_req_error(req, EINVAL);
         return;
     }

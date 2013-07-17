@@ -212,7 +212,7 @@ sdap_get_ad_match_rule_initgroups_step(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Search for users returned %d results\n", count));
+          ("Search for users returned %zu results\n", count));
 
     /* Add this batch of groups to the list */
     if (count > 0) {

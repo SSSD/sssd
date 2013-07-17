@@ -610,7 +610,7 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
     sss_packet_get_body(cctx->creq->out, &body, &blen);
-    DEBUG(4, ("blen: %d\n", blen));
+    DEBUG(SSSDBG_FUNC_DATA, ("blen: %zu\n", blen));
     p = 0;
 
     memcpy(&body[p], &pd->pam_status, sizeof(int32_t));

@@ -412,7 +412,8 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
         ret = EOK;
         goto done;
     }
-    DEBUG(9, ("Found [%d] entries with ccache file in cache.\n", msgs_count));
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("Found [%zu] entries with ccache file in cache.\n", msgs_count));
 
     for (c = 0; c < msgs_count; c++) {
         user_name = ldb_msg_find_attr_as_string(msgs[c], SYSDB_NAME, NULL);

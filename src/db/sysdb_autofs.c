@@ -407,7 +407,7 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
     *_count = count;
     *_entries = talloc_steal(mem_ctx, msgs);
     ret = EOK;
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("found %d entries for map %s\n",
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("found %zu entries for map %s\n",
                                    count, mapname));
 done:
     talloc_free(tmp_ctx);

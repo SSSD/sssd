@@ -175,7 +175,7 @@ int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    DEBUG(9, ("Found [%d] items to delete.\n", msgs_count));
+    DEBUG(SSSDBG_TRACE_ALL, ("Found [%zu] items to delete.\n", msgs_count));
 
     qsort(msgs, msgs_count,
           sizeof(struct ldb_message *), compare_ldb_dn_comp_num);

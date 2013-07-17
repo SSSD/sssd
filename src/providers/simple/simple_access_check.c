@@ -389,7 +389,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("User %s is a member of %d supplemental groups\n",
+          ("User %s is a member of %zu supplemental groups\n",
            username, group_count));
 
     /* One extra space for terminator, one extra space for private group */
@@ -435,7 +435,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Need to resolve %d groups\n", state->num_gids));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Need to resolve %zu groups\n", state->num_gids));
     state->giter = 0;
     subreq = simple_resolve_group_send(req, state->ev, state->ctx,
                                        state->lookup_gids[state->giter]);

@@ -173,7 +173,7 @@ static void ipa_srv_plugin_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got %lu primary and %lu backup servers\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("Got %zu primary and %zu backup servers\n",
           state->num_primary_servers, state->num_backup_servers));
 
     tevent_req_done(req);

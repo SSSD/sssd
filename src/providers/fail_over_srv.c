@@ -110,7 +110,7 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
         state->num_servers++;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got %lu servers\n", state->num_servers));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Got %zu servers\n", state->num_servers));
 
     state->servers = talloc_array(state, struct fo_server_info,
                                   state->num_servers);

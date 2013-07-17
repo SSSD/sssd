@@ -125,7 +125,7 @@ static void ipa_get_config_done(struct tevent_req *subreq)
 
     if (reply_count != 1) {
         DEBUG(SSSDBG_OP_FAILURE, ("Unexpected number of results, expected 1, "
-                                  "got %d.\n", reply_count));
+                                  "got %zu.\n", reply_count));
         ret = EINVAL;
         goto done;
     }

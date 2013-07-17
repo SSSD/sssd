@@ -160,7 +160,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
         buf->size += strlen(keytab_name);
     }
 
-    DEBUG(7, ("buffer size: %d\n", buf->size));
+    DEBUG(SSSDBG_TRACE_FUNC, ("buffer size: %zu\n", buf->size));
 
     buf->data = talloc_size(buf, buf->size);
     if (buf->data == NULL) {

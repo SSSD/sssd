@@ -2036,7 +2036,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Received %d dereference results, "
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Received %zu dereference results, "
           "about to process them\n", num_entries));
 
     /*

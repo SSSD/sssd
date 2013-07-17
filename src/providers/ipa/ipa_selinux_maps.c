@@ -165,8 +165,8 @@ static void ipa_selinux_get_maps_done(struct tevent_req *subreq)
     }
 
     if (count > 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Found %d user maps in current search base\n",
-                                  count));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Found %zu user maps in current search base\n", count));
 
         total_count = count + state->map_count;
         state->maps = talloc_realloc(state, state->maps, struct sysdb_attrs *, total_count);

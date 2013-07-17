@@ -1211,7 +1211,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                              MAP_SHARED, mc_ctx->fd, 0);
     if (mc_ctx->mmap_base == MAP_FAILED) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to mmap file %s(%ld): %d(%s)\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to mmap file %s(%zu): %d(%s)\n",
                                     mc_ctx->file, mc_ctx->mmap_size,
                                     ret, strerror(ret)));
         goto done;

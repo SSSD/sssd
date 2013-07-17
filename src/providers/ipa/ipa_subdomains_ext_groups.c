@@ -594,7 +594,7 @@ static void ipa_get_ext_groups_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("[%d] external groups found.\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("[%zu] external groups found.\n",
                               state->reply_count));
 
     ret = process_ext_groups(state->server_mode->ext_groups,
