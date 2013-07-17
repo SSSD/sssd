@@ -261,7 +261,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     }
     if (!kr->ccname) goto fail;
 
-    DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
+    DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%u] gid [%u]\n",
             kr->ccname, kr->uid, kr->gid));
 
     ret = sss_krb5_precreate_ccache(kr->ccname,

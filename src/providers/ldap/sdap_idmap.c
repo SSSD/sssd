@@ -159,7 +159,8 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
             || (idmap_upper-idmap_lower) < rangesize)
     {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid settings for range selection: [%d][%d][%d]\n",
+              ("Invalid settings for range selection: "
+               "[%"SPRIid"][%"SPRIid"][%"SPRIid"]\n",
                idmap_lower, idmap_upper, rangesize));
         ret = EINVAL;
         goto done;
@@ -254,7 +255,8 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
                                         sid_str, slice_num);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Could not add domain [%s][%s][%u] to ID map: [%s]\n",
+                      ("Could not add domain [%s][%s][%"SPRIid"] "
+                       "to ID map: [%s]\n",
                        dom_name, sid_str, slice_num, strerror(ret)));
                 goto done;
             }
@@ -333,13 +335,13 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         goto done;
     }
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Adding domain [%s] as slice [%llu]\n", dom_sid, slice));
+          ("Adding domain [%s] as slice [%"SPRIid"]\n", dom_sid, slice));
 
     if (range.max > idmap_upper) {
         /* This should never happen */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("BUG: Range maximum exceeds the global maximum: %d > %d\n",
-               range.max, idmap_upper));
+              ("BUG: Range maximum exceeds the global maximum: "
+               "%d > %"SPRIid"\n", range.max, idmap_upper));
         ret = EINVAL;
         goto done;
     }

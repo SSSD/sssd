@@ -36,7 +36,31 @@
  * It seems that sizeof(rlim_t) is 8. It may be platform dependent, therefore
  * the same format will be used like with uint64_t.
  */
-
 #define SPRIrlim PRIu64
+
+#if SIZEOF_ID_T == 8
+# define SPRIid PRIu64
+#elif SIZEOF_ID_T == 4
+# define SPRIid PRIu32
+#else
+# error Unexpected sizeof id_t
+#endif /* SIZEOF_ID_T */
+
+#if SIZEOF_UID_T == 8
+# define SPRIuid PRIu64
+#elif SIZEOF_UID_T == 4
+# define SPRIuid PRIu32
+#else
+# error Unexpected sizeof uid_t
+#endif /* SIZEOF_UID_T */
+
+#if SIZEOF_GID_T == 8
+# define SPRIgid PRIu64
+#elif SIZEOF_GID_T == 4
+# define SPRIgid PRIu32
+#else
+# error Unexpected sizeof gid_t
+#endif /* SIZEOF_GID_T */
+
 
 #endif /* __SSS_FORMAT_H__ */

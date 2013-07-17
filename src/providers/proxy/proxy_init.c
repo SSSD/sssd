@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
 

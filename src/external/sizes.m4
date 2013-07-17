@@ -6,6 +6,9 @@ AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
+AC_CHECK_SIZEOF(uid_t)
+AC_CHECK_SIZEOF(gid_t)
+AC_CHECK_SIZEOF(id_t)
 
 if test $ac_cv_sizeof_long_long -lt 8 ; then
 AC_MSG_ERROR([SSSD requires long long of 64-bits])
