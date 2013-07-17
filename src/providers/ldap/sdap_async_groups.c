@@ -1382,7 +1382,9 @@ static void sdap_process_group_members(struct tevent_req *subreq)
 
 next:
     if (ret) {
-        DEBUG(7, ("Error reading group member. Skipping\n", ret));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Error reading group member[%d]: %s. Skipping\n",
+               ret, strerror(ret)));
         state->count--;
     }
     /* Are there more searches for uncached users to submit ? */
@@ -2064,7 +2066,8 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
         ret = sss_filter_sanitize(tmp_ctx, original_dn,
                                   &clean_orig_dn);
         if (ret != EOK) {
-            DEBUG(1, ("Cannot sanitize originalDN\n", i));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot sanitize originalDN [%s]\n", original_dn));
             goto done;
         }
 
