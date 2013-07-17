@@ -410,7 +410,7 @@ errno_t write_krb5info_file(const char *realm, const char *server,
     char *krb5info_name = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     const char *name_tmpl = NULL;
-    int server_len;
+    size_t server_len;
     ssize_t written;
     mode_t old_umask;
 
@@ -471,7 +471,7 @@ errno_t write_krb5info_file(const char *realm, const char *server,
 
     if (written != server_len) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Write error, wrote [%d] bytes, expected [%d]\n",
+              ("Write error, wrote [%zd] bytes, expected [%zu]\n",
                written, server_len));
         ret = EIO;
         goto done;

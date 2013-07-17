@@ -484,7 +484,8 @@ static void read_pipe_handler(struct tevent_context *ev,
         return;
 
     } else {
-        DEBUG(1, ("unexpected return value of read [%d].\n", size));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("unexpected return value of read [%zd].\n", size));
         tevent_req_error(req, EINVAL);
         return;
     }

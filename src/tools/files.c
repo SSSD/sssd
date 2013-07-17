@@ -408,7 +408,7 @@ copy_file(int ifd,
 
         if (written != cnt) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Wrote %d bytes, expected %d\n", written, cnt));
+                  ("Wrote %zd bytes, expected %zd\n", written, cnt));
             goto done;
         }
     }

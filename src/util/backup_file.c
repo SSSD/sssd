@@ -103,7 +103,7 @@ int backup_file(const char *src_file, int dbglvl)
         }
 
         if (written != numread) {
-            DEBUG(dbglvl, ("Wrote %d bytes expected %d bytes\n",
+            DEBUG(dbglvl, ("Wrote %zd bytes expected %zd bytes\n",
                   written, numread));
             ret = EIO;
             goto done;

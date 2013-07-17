@@ -147,7 +147,7 @@ int pidfile(const char *path, const char *name)
     int fd;
     int ret, err;
     ssize_t len;
-    ssize_t size;
+    size_t size;
     ssize_t written;
     ssize_t pidlen = sizeof(pid_str) - 1;
 
@@ -227,7 +227,7 @@ int pidfile(const char *path, const char *name)
 
     if (written != size) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Wrote %d bytes expected %d\n", written, size));
+              ("Wrote %zd bytes expected %zu\n", written, size));
         close(fd);
         return EIO;
     }

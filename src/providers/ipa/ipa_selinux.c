@@ -672,7 +672,7 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     char *path = NULL;
     char *tmp_path = NULL;
     ssize_t written;
-    int len;
+    size_t len;
     int fd = -1;
     mode_t oldmask;
     TALLOC_CTX *tmp_ctx;
@@ -743,7 +743,7 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     }
 
     if (written != len) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Expected to write %d bytes, wrote %d",
+        DEBUG(SSSDBG_OP_FAILURE, ("Expected to write %zd bytes, wrote %zu",
                                   written, len));
         ret = EIO;
         goto done;
