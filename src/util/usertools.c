@@ -394,7 +394,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                const char *default_domain,
                                const char *orig, char **domain, char **name)
 {
-    struct sss_domain_info *dom, *match;
+    struct sss_domain_info *dom, *match = NULL;
     char *rdomain, *rname;
     char *dmatch, *nmatch;
     char *candidate_name = NULL;

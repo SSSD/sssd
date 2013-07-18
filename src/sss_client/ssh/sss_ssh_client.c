@@ -106,7 +106,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
     errno_t ret;
     uint32_t flags;
     uint32_t name_len;
-    uint32_t alias_len;
+    uint32_t alias_len = 0;
     uint32_t domain_len;
     size_t req_len;
     uint8_t *req = NULL;

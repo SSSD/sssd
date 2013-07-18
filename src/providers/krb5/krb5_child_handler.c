@@ -486,7 +486,7 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     errno_t ret;
     bool skip;
     char *ccname = NULL;
-    size_t ccname_len;
+    size_t ccname_len = 0;
     int32_t msg_status;
     int32_t msg_type;
     int32_t msg_len;
@@ -496,7 +496,7 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     uint32_t *msg_subtype;
     struct krb5_child_response *res;
     const char *upn = NULL;
-    size_t upn_len;
+    size_t upn_len = 0;
     bool otp = false;
 
     if ((size_t) len < sizeof(int32_t)) {

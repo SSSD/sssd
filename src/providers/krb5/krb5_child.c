@@ -1820,8 +1820,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(1, ("talloc_new failed.\n"));
-        kerr = ENOMEM;
-        goto done;
+        return ENOMEM;
     }
 
     ccname = talloc_asprintf(tmp_ctx, "FILE:%s/fast_ccache_%s", DB_PATH, realm);
