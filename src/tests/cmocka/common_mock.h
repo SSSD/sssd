@@ -46,6 +46,8 @@
 #define sss_mock_type(type) ((type) mock())
 #define sss_mock_ptr_type(type) ((type) (uintptr_t) mock())
 
+#define sss_will_return_always(fn, value) will_return_count(fn, (value), -1)
+
 enum sss_test_wrapper_call {
     WRAP_CALL_WRAPPER,
     WRAP_CALL_REAL
