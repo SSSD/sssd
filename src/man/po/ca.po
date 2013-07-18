@@ -5,13 +5,14 @@
 # Translators:
 # jordimash <jmas@softcatala.org>, 2012
 # muzzol mussol <muzzol@gmail.com>, 2012
+# Robert Antoni Buj i Gelonch <robert.buj@gmail.com>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-27 21:10+0300\n"
-"PO-Revision-Date: 2013-06-11 15:21+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2013-07-18 16:23+0300\n"
+"PO-Revision-Date: 2013-07-15 15:30+0000\n"
+"Last-Translator: Robert Antoni Buj i Gelonch <robert.buj@gmail.com>\n"
 "Language-Team: Catalan <fedora@llistes.softcatala.org>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
@@ -2535,10 +2536,10 @@ msgid ""
 "manvolnum> </citerefentry> manual page for detailed syntax information."
 msgstr ""
 "Aquesta pàgina del manual descriu la configuració de dominis LDAP per a "
-"<citerefentry><refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum></"
-"citerefentry>.  Consulteu la secció de <quote>FORMAT DE FITXER</quote> de la "
-"pàgina del manual <citerefentry>de <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry> per obtenir informació detallada de "
+"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
+"</citerefentry>. Consulteu la secció <quote>FORMAT DE FITXER</quote> de la "
+"pàgina del manual <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> per obtenir informació detallada de "
 "la sintaxi."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -5559,12 +5560,12 @@ msgid ""
 "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> manual page."
 msgstr ""
-"Aquesta pàgina del manual descriu la configuració del proveïdor simple de "
-"control d'accés per <citerefentry><refentrytitle>sssd</refentrytitle> "
+"Aquesta pàgina del manual descriu la configuració del proveïdor senzill de "
+"control d'accés per <citerefentry> <refentrytitle>sssd</refentrytitle> "
 "<manvolnum>8</manvolnum></citerefentry>.  Per una referència detallada de la "
 "sintaxi, aneu a la secció de <quote>FORMAT DE FITXER</quote> de la pàgina "
-"del manual <citerefentry>de <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>."
+"del manual <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:38
@@ -5669,9 +5670,9 @@ msgid ""
 "domain.  <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "Consulteu la secció <quote>SECCIONS DE DOMINI</quote> de la pàgina del "
-"manual <citerefentry>d' <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry> per a més informació sobre la "
-"configuració d'un domini SSSD.  <placeholder type=\"variablelist\" id=\"0\"/>"
+"manual <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> per a més informació sobre la configuració d'un "
+"domini SSSD.  <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:120

@@ -3,12 +3,12 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# Kristaps <krkadikis@inbox.lv>, 2012
+# Kristaps, 2012
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-27 21:10+0300\n"
+"POT-Creation-Date: 2013-07-18 16:23+0300\n"
 "PO-Revision-Date: 2013-06-11 15:21+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Latvian (http://www.transifex.com/projects/p/fedora/language/"

@@ -3,7 +3,7 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Adolfo Jayme <fitoschido@gmail.com>, 2012
+# Adolfo Jayme Barrientos <fitoschido@ubuntu.com>, 2012
 # Daniel Cabrera <logan@fedoraproject.org>, 2011
 # vareli <ehespinosa@ya.com>, 2013
 # Daniel Cabrera <logan@fedoraproject.org>, 2011
@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-27 21:10+0200\n"
+"POT-Creation-Date: 2013-07-18 16:24+0200\n"
 "PO-Revision-Date: 2013-06-11 15:20+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -1136,22 +1136,22 @@ msgstr "Indicar un archivo de configuración diferente al predeterminado"
 msgid "Print version number and exit"
 msgstr "Muestra el número de versión y finaliza"
 
-#: src/providers/krb5/krb5_child.c:2201 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2213 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:93
 msgid "Debug level"
 msgstr "Nive de depuración"
 
-#: src/providers/krb5/krb5_child.c:2203 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2215 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:97
 msgid "Add debug timestamps"
 msgstr "Agregar marcas de tiempo de depuración"
 
-#: src/providers/krb5/krb5_child.c:2205 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2217 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:99
 msgid "Show timestamps with microseconds"
 msgstr "Mostrar marcas de tiempo con microsegundos"
 
-#: src/providers/krb5/krb5_child.c:2207 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2219 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 

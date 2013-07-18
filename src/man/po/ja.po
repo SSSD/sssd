@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-27 21:10+0300\n"
-"PO-Revision-Date: 2013-06-11 15:21+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2013-07-18 16:23+0300\n"
+"PO-Revision-Date: 2013-07-09 00:20+0000\n"
+"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -600,7 +600,7 @@ msgstr "初期値: 10"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:334
 msgid "fd_limit"
-msgstr ""
+msgstr "fd_limit"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:337
@@ -1306,7 +1306,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:868
 msgid "allowed_uids (string)"
-msgstr ""
+msgstr "allowed_uids (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:871
@@ -2004,6 +2004,9 @@ msgid ""
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring LDAP."
 msgstr ""
+"<quote>ldap</quote> は LDAP に保存されているマップを読み込みます。LDAP の設定"
+"に関する詳細は <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1482
@@ -2012,6 +2015,9 @@ msgid ""
 "<refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring IPA."
 msgstr ""
+"<quote>ipa</quote> は IPA サーバーに保存されているマップを読み込みます。IPA "
+"の設定に関する詳細は <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> を参照してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1490
@@ -5427,6 +5433,13 @@ msgid ""
 "    ldap_tls_reqcert = demand\n"
 "    cache_credentials = true\n"
 msgstr ""
+"    [domain/LDAP]\n"
+"    id_provider = ldap\n"
+"    auth_provider = ldap\n"
+"    ldap_uri = ldap://ldap.mydomain.org\n"
+"    ldap_search_base = dc=mydomain,dc=org\n"
+"    ldap_tls_reqcert = demand\n"
+"    cache_credentials = true\n"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: sssd-ldap.5.xml:2385 sssd-simple.5.xml:139 sssd-ipa.5.xml:748
@@ -5952,7 +5965,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:89
 msgid "ipa_server, ipa_backup_server (string)"
-msgstr ""
+msgstr "ipa_server, ipa_backup_server (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:92
@@ -6774,6 +6787,8 @@ msgid ""
 "ldap_id_mapping = False\n"
 "            "
 msgstr ""
+"ldap_id_mapping = False\n"
+"            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:63

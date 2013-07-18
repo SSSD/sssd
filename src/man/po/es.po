@@ -3,8 +3,9 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# Adolfo Jayme <fitoschido@gmail.com>, 2012
+# Adolfo Jayme Barrientos <fitoschido@ubuntu.com>, 2012
 # Gumbo72 <carlosantolin@hotmail.es>, 2012
+# Domingo Becker <domingobecker@gmail.com>, 2013
 # Eduardo Villagrán M <gotencool@gmail.com>, 2011
 # Eduardo Villagrán M <gotencool@gmail.com>, 2011
 # vareli <ehespinosa@ya.com>, 2013
@@ -14,9 +15,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-06-27 21:10+0300\n"
-"PO-Revision-Date: 2013-06-11 15:21+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2013-07-18 16:23+0300\n"
+"PO-Revision-Date: 2013-07-17 11:40+0000\n"
+"Last-Translator: Domingo Becker <domingobecker@gmail.com>\n"
 "Language-Team: Spanish <trans-es@lists.fedoraproject.org>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -2184,7 +2185,7 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
-"quote>ipa</quote> para cargar la identidad del host almacenada en un "
+"<quote>ipa</quote> para cargar la identidad del equipo almacenada en un "
 "servidor IPA. Vea <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> para más información sobre la "
 "configuración de IPA."
@@ -5814,9 +5815,9 @@ msgid ""
 "distribution."
 msgstr ""
 "Las descripciones de algunas de las opciones de configuración en esta página "
-"de manual están basadas en la página de manual <refentrytitle>ldap.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> de la distribución "
-"OpenLDAP 2.4."
+"de manual están basadas en la página de manual <citerefentry> "
+"<refentrytitle>ldap.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> de la distribución OpenLDAP 2.4."
 
 #. type: Content of: <refentryinfo>
 #: pam_sss.8.xml:8 include/upstream.xml:2
@@ -7422,7 +7423,7 @@ msgstr "sssd-sudo"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-sudo.5.xml:17
 msgid "Configuring sudo with the SSSD back end"
-msgstr ""
+msgstr "Configuración de sudo con el motor de SSSD"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:23
@@ -7630,7 +7631,7 @@ msgstr "keyword ALL"
 #. type: Content of: <reference><refentry><refsect1><itemizedlist><listitem><para>
 #: sssd-sudo.5.xml:144
 msgid "wildcard"
-msgstr ""
+msgstr "comodines"
 
 #. type: Content of: <reference><refentry><refsect1><itemizedlist><listitem><para>
 #: sssd-sudo.5.xml:149
@@ -7666,7 +7667,7 @@ msgstr ""
 "Hay muchas opciones de configuración que pueden ser usadas para ajustar el "
 "comportamiento. Por favor vea \"ldap_sudo_*\" en <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> y \"sudo_*\" en citerefentry> <refentrytitle>sssd.conf</"
+"citerefentry> y \"sudo_*\" en <citerefentry> <refentrytitle>sssd.conf</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -8210,6 +8211,12 @@ msgid ""
 "the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> manual page."
 msgstr ""
+"Esta página de manual describe la configuración del motor de autenticación "
+"de Kerberos 5 para  <citerefentry> <refentrytitle>sssd</refentrytitle> "
+"<manvolnum>8</manvolnum> </citerefentry>. Para una referencia detallada de "
+"la sintaxis, por favor vea la sección <quote>FORMATO DE ARCHIVO</quote> de "
+"la página de manual de <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:36
@@ -8223,6 +8230,14 @@ msgid ""
 "page for the applicable identity provider for details on how to configure "
 "this."
 msgstr ""
+"El motor de autenticaciónd e Kerberos 5 contiene proveedores auth y chpass. "
+"Debe ir junto con un proveedor de identidad para que funcione adecuadamente "
+"(por ejemplo, id_provider = ldap). Algo de información requerida por el "
+"motor de autenticación de Kerberos 5 debe ser provista por el proveedor de "
+"identidad, tal como el Nombre Principal del usuario de Kerberos (NPU). La "
+"configuración del proveedor de identidad debe tener una entrada específica "
+"para el NPU. Por favor, vea la página del manual para el proveedor de "
+"identidad aplicable, para más detalles sobre cómo configurar esto."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:47
@@ -8234,6 +8249,12 @@ msgid ""
 "To activate this feature, use 'access_provider = krb5' in your SSSD "
 "configuration."
 msgstr ""
+"Este motor también provee control de acceso basado en el archivo .k5login en "
+"el directorio de inicio del usuario. Vea <citerefentry> <refentrytitle>."
+"k5login</refentrytitle><manvolnum>5</manvolnum> </citerefentry> para más "
+"detalles. Por favor, observe que un archivo .k5login vacío negará todo el "
+"acceso a este usaurio. Para activar esta característica, use "
+"'access_provider = krb5' en su configuración de SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
@@ -8242,6 +8263,9 @@ msgid ""
 "<command>sssd</command> will construct a UPN using the format "
 "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 msgstr ""
+"En el caso de que el NPU no esté disponible en el motor de identidad, "
+"<command>sssd</command> construirá un NPU usando el formato "
+"<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:77
@@ -8254,6 +8278,13 @@ msgid ""
 "discovery is enabled; for more information, refer to the <quote>SERVICE "
 "DISCOVERY</quote> section."
 msgstr ""
+"Especifica una lista separada por comas de direcciones IP o nombres de host "
+"de los servidores Kerberos a los cuales se conectaría SSSD en orden de "
+"preferencia. Para más información sobre failover y redundancia de servidor, "
+"vea la sección <quote>FAILOVER</quote>. Un número de puerto opcional "
+"(precedido de dos puntos) puede ser añadido a las direcciones o nombres de "
+"host. Si está vacío, el servicio descubridor está habilitado; para más "
+"información, vea la sección <quote>SERVICE DISCOVERY</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:106
@@ -8276,6 +8307,10 @@ msgid ""
 "servers can be defined here. An optional port number (preceded by a colon) "
 "may be appended to the addresses or hostnames."
 msgstr ""
+"Si el servicio de cambio de contraseña no está corriendo en el KDC, se "
+"pueden definir aquí servidores alternativos. Un número de puerto opcional "
+"(precedido de dos puntos) debe ser añadido a las direcciones o nombres de "
+"host."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:122
