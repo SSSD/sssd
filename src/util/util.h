@@ -47,6 +47,7 @@
 #include "util/atomic_io.h"
 #include "util/util_errors.h"
 #include "util/util_safealign.h"
+#include "util/sss_format.h"
 
 #define _(STRING) gettext (STRING)
 

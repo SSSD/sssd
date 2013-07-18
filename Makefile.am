@@ -397,6 +397,7 @@ dist_noinst_HEADERS = \
     src/util/sss_utf8.h \
     src/util/sss_ssh.h \
     src/util/sss_ini.h \
+    src/util/sss_format.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
