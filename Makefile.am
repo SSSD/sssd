@@ -1759,6 +1759,7 @@ pysss_la_CFLAGS = \
     $(AM_CFLAGS)  \
     $(PYTHON_CFLAGS)
 pysss_la_LIBADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(PYTHON_BINDINGS_LIBS) \
     $(PYTHON_LIBS)
 pysss_la_LDFLAGS = \
