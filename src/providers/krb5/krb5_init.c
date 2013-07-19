@@ -98,6 +98,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
 
     ctx->action = INIT_PW;
     ctx->opts = krb5_options->opts;
+    ctx->config_type = K5C_GENERIC;
 
     krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
     krb5_backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);

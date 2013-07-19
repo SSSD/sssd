@@ -91,6 +91,12 @@ struct deferred_auth_ctx;
 struct renew_tgt_ctx;
 struct sss_krb5_cc_be;
 
+enum krb5_config_type {
+    K5C_GENERIC,
+    K5C_IPA_CLIENT,
+    K5C_IPA_SERVER
+};
+
 struct krb5_ctx {
     /* opts taken from kinit */
     /* in seconds */
@@ -130,7 +136,7 @@ struct krb5_ctx {
 
     hash_table_t *wait_queue_hash;
 
-    bool is_ipa;
+    enum krb5_config_type config_type;
 };
 
 struct remove_info_files_ctx {

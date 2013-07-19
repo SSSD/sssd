@@ -142,11 +142,17 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     validate = dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ? 1 : 0;
 
-    /* Always send PAC except for local IPA users */
-    if (kr->krb5_ctx->is_ipa) {
-        send_pac = kr->upn_from_different_realm ? 1 : 0;
-    } else {
-        send_pac = 1;
+    /* Always send PAC except for local IPA users and IPA server mode */
+    switch (kr->krb5_ctx->config_type) {
+        case K5C_IPA_CLIENT:
+            send_pac = kr->upn_from_different_realm ? 1 : 0;
+            break;
+        case K5C_IPA_SERVER:
+            send_pac = 0;
+            break;
+        default:
+            send_pac = 1;
+            break;
     }
 
     if (kr->pd->cmd == SSS_CMD_RENEW) {

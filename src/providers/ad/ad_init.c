@@ -254,6 +254,7 @@ sssm_ad_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
+    krb5_auth_ctx->config_type = K5C_GENERIC;
     krb5_auth_ctx->service = ad_options->service->krb5_service;
 
     ret = ad_get_auth_options(krb5_auth_ctx, ad_options, bectx,
