@@ -1125,7 +1125,7 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
     if ((strcmp(be_ctx->domain->names->fq_fmt,
                CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0)
             && (strcmp(be_ctx->domain->names->fq_fmt,
-                       CONFDB_DEFAULT_FULL_NAME_FORMAT_OLD) != 0)) {
+                       CONFDB_DEFAULT_FULL_NAME_FORMAT_INTERNAL) != 0)) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("%s is set to a non-default value [%s] " \
               "lookups of subdomain users will likely fail!\n",
               CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt));
