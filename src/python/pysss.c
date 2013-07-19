@@ -746,6 +746,64 @@ fail:
     return NULL;
 }
 
+/*
+ * Get list of groups user belongs to
+ */
+PyDoc_STRVAR(py_sss_getgrouplist__doc__,
+    "Get list of groups user belongs to.\n\n"
+    "NOTE: The interface uses the system NSS calls and is not limited to "
+    "users served by the SSSD!\n"
+    ":param username: name of user to get list for\n");
+
+static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
+{
+    char *username = NULL;
+    gid_t *groups = NULL;
+    struct passwd *pw;
+    struct group *gr;
+    int ngroups;
+    int ret;
+    Py_ssize_t i;
+    PyObject *groups_tuple;
+
+    if(!PyArg_ParseTuple(args, discard_const_p(char, "s"), &username)) {
+        goto fail;
+    }
+
+    pw = getpwnam(username);
+    if (pw == NULL) {
+        goto fail;
+    }
+
+    ngroups = 32;
+    groups = malloc(sizeof(gid_t) * ngroups);
+    if (groups == NULL) {
+        goto fail;
+    }
+
+    do {
+        ret = getgrouplist(username, pw->pw_gid, groups, &ngroups);
+        if (ret < ngroups) {
+            groups = realloc(groups, ngroups * sizeof(gid_t));
+        }
+    } while (ret != ngroups);
+
+    groups_tuple = PyTuple_New((Py_ssize_t) ngroups);
+    if (groups_tuple == NULL) {
+        goto fail;
+    }
+
+    for (i = 0; i < ngroups; i++) {
+        gr = getgrgid(groups[i]);
+        PyTuple_SetItem(groups_tuple, i, PyString_FromString(gr->gr_name));
+    }
+
+    return groups_tuple;
+
+fail:
+    free(groups);
+    return NULL;
+}
 
 /*** python plumbing begins here ***/
 
@@ -1038,6 +1096,7 @@ static PyTypeObject pysss_password_type = {
  * Module methods
  */
 static PyMethodDef module_methods[] = {
+        {"getgrouplist", py_sss_getgrouplist, METH_VARARGS, py_sss_getgrouplist__doc__},
         {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
