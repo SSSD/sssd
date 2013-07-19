@@ -238,9 +238,14 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
     const char *known_services[] = {
         CONFDB_MONITOR_CONF_ENTRY,
         CONFDB_NSS_CONF_ENTRY,
-        CONFDB_PAM_CONF_ENTRY
+        CONFDB_PAM_CONF_ENTRY,
+        CONFDB_PAC_CONF_ENTRY,
+        CONFDB_SSH_CONF_ENTRY,
+        CONFDB_SUDO_CONF_ENTRY,
+        CONFDB_AUTOFS_CONF_ENTRY
     };
-    static const int known_services_count = 3;
+    static const int known_services_count = sizeof(known_services)
+                                            / sizeof(*known_services);
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
 
     if (tmp_ctx == NULL) {
