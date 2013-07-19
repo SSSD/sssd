@@ -235,4 +235,12 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
                       char *default_realm,
                       const char *keytab_path);
 
+struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
+                                               struct tevent_context *ev,
+                                               struct be_ctx *be_ctx,
+                                               char **names,
+                                               void *pvt);
+
+errno_t sdap_refresh_netgroups_recv(struct tevent_req *req);
+
 #endif /* _LDAP_COMMON_H_ */

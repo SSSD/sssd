@@ -30,6 +30,7 @@
 
 static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
+                                     time_t period,
                                      const char *objectclass,
                                      struct ldb_dn *base_dn,
                                      const char *attr,
@@ -51,7 +52,7 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
     }
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s<=%lld))",
-                             SYSDB_CACHE_EXPIRE, (long long) now);
+                             SYSDB_CACHE_EXPIRE, (long long) now + period);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -89,6 +90,7 @@ done:
 
 static errno_t be_refresh_get_netgroups(TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domain,
+                                        time_t period,
                                         char ***_values)
 {
     struct ldb_dn *base_dn = NULL;
@@ -99,7 +101,7 @@ static errno_t be_refresh_get_netgroups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = be_refresh_get_values(mem_ctx, domain, SYSDB_NETGROUP_CLASS,
+    ret = be_refresh_get_values(mem_ctx, domain, period, SYSDB_NETGROUP_CLASS,
                                 base_dn, SYSDB_NAME, _values);
 
     talloc_free(base_dn);
@@ -109,6 +111,7 @@ static errno_t be_refresh_get_netgroups(TALLOC_CTX *mem_ctx,
 typedef errno_t
 (*be_refresh_get_values_t)(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
+                           time_t period,
                            char ***_values);
 
 
@@ -168,6 +171,7 @@ struct be_refresh_state {
     struct be_refresh_ctx *ctx;
     struct be_refresh_cb *cb;
     enum be_refresh_type index;
+    time_t period;
 };
 
 static errno_t be_refresh_step(struct tevent_req *req);
@@ -192,6 +196,7 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->be_ctx = be_ctx;
+    state->period = be_ptask_get_period(be_ptask);
     state->ctx = talloc_get_type(pvt, struct be_refresh_ctx);
     if (state->ctx == NULL) {
         ret = EINVAL;
@@ -246,7 +251,8 @@ static errno_t be_refresh_step(struct tevent_req *req)
         goto done;
     }
 
-    ret = state->cb->get_values(state, state->be_ctx->domain, &values);
+    ret = state->cb->get_values(state, state->be_ctx->domain, state->period,
+                                &values);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to obtain DN list [%d]: %s\n",
                                     ret, strerror(ret)));
