@@ -44,7 +44,7 @@ enum pam_verbosity {
 
 static void pam_reply(struct pam_auth_req *preq);
 
-static int extract_authtok_v2(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
+static int extract_authtok_v2(struct sss_auth_token *tok,
                               size_t data_size, uint8_t *body, size_t blen,
                               size_t *c)
 {
@@ -200,12 +200,12 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_AUTHTOK:
-                    ret = extract_authtok_v2(pd, pd->authtok,
+                    ret = extract_authtok_v2(pd->authtok,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_NEWAUTHTOK:
-                    ret = extract_authtok_v2(pd, pd->newauthtok,
+                    ret = extract_authtok_v2(pd->newauthtok,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
@@ -246,7 +246,7 @@ static int pam_parse_in_data_v3(struct sss_domain_info *domains,
     return EOK;
 }
 
-static int extract_authtok_v1(TALLOC_CTX *mem_ctx, struct sss_auth_token *tok,
+static int extract_authtok_v1(struct sss_auth_token *tok,
                               uint8_t *body, size_t blen, size_t *c)
 {
     uint32_t auth_token_type;
@@ -312,12 +312,12 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
     if (body[end++] != '\0') return EINVAL;
     pd->rhost = (char *) &body[start];
 
-    ret = extract_authtok_v1(pd, pd->authtok, body, blen, &end);
+    ret = extract_authtok_v1(pd->authtok, body, blen, &end);
     if (ret) {
         DEBUG(1, ("Invalid auth token\n"));
         return ret;
     }
-    ret = extract_authtok_v1(pd, pd->newauthtok, body, blen, &end);
+    ret = extract_authtok_v1(pd->newauthtok, body, blen, &end);
     if (ret) {
         DEBUG(1, ("Invalid new auth token\n"));
         return ret;
