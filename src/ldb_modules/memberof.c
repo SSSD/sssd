@@ -2839,7 +2839,7 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
                                    const struct ldb_message_element *membel,
                                    struct mbof_dn_array **_added,
                                    struct mbof_dn_array **_removed);
-static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
+static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx,
                                  struct ldb_message *entry,
                                  const struct ldb_message_element *ghel,
                                  const struct ldb_message_element *inherited,
@@ -2853,12 +2853,10 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
                               const struct ldb_message_element *el,
                               struct mbof_dn_array **dn_array);
 static int mbof_fill_vals_array(TALLOC_CTX *memctx,
-                                struct ldb_context *ldb,
                                 unsigned int num_values,
                                 struct ldb_val *values,
                                 struct mbof_val_array **val_array);
 static int mbof_fill_vals_array_el(TALLOC_CTX *memctx,
-                                   struct ldb_context *ldb,
                                    const struct ldb_message_element *el,
                                    struct mbof_val_array **val_array);
 
@@ -3382,7 +3380,7 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
         return ret;
     }
 
-    ret = mbof_mod_process_ghel(mod_ctx, ldb, mod_ctx->entry, mod_ctx->ghel,
+    ret = mbof_mod_process_ghel(mod_ctx, mod_ctx->entry, mod_ctx->ghel,
                                 mod_ctx->igh ? mod_ctx->igh->el : NULL,
                                 &mod_ctx->gh_add, &mod_ctx->gh_remove);
     if (ret != LDB_SUCCESS) {
@@ -3508,7 +3506,7 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx,
     return LDB_SUCCESS;
 }
 
-static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
+static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx,
                                  struct ldb_message *entry,
                                  const struct ldb_message_element *ghel,
                                  const struct ldb_message_element *inherited,
@@ -3533,7 +3531,7 @@ static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
 
     switch (ghel->flags) {
     case LDB_FLAG_MOD_ADD:
-        ret = mbof_fill_vals_array_el(mem_ctx, ldb, ghel, &added);
+        ret = mbof_fill_vals_array_el(mem_ctx, ghel, &added);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
@@ -3551,7 +3549,7 @@ static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
             break;
         }
 
-        ret = mbof_fill_vals_array_el(mem_ctx, ldb, ghel, &removed);
+        ret = mbof_fill_vals_array_el(mem_ctx, ghel, &removed);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
@@ -3560,7 +3558,7 @@ static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
     case LDB_FLAG_MOD_REPLACE:
         el = ldb_msg_find_element(entry, DB_GHOST);
         if (el) {
-            ret = mbof_fill_vals_array_el(mem_ctx, ldb, el, &removed);
+            ret = mbof_fill_vals_array_el(mem_ctx, el, &removed);
             if (ret != LDB_SUCCESS) {
                 return ret;
             }
@@ -3568,7 +3566,7 @@ static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
 
         el = ghel;
         if (el) {
-            ret = mbof_fill_vals_array_el(mem_ctx, ldb, el, &added);
+            ret = mbof_fill_vals_array_el(mem_ctx, el, &added);
             if (ret != LDB_SUCCESS) {
                 talloc_free(removed);
                 return ret;
@@ -3576,7 +3574,7 @@ static int mbof_mod_process_ghel(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
         }
 
         if (inherited) {
-            ret = mbof_fill_vals_array_el(mem_ctx, ldb, inherited, &added);
+            ret = mbof_fill_vals_array_el(mem_ctx, inherited, &added);
             if (ret != LDB_SUCCESS) {
                 talloc_free(added);
                 talloc_free(removed);
@@ -3781,7 +3779,6 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
 }
 
 static int mbof_fill_vals_array(TALLOC_CTX *memctx,
-                                struct ldb_context *ldb,
                                 unsigned int num_values,
                                 struct ldb_val *values,
                                 struct mbof_val_array **val_array)
@@ -3825,7 +3822,6 @@ static int mbof_fill_vals_array(TALLOC_CTX *memctx,
 }
 
 static int mbof_fill_vals_array_el(TALLOC_CTX *memctx,
-                                   struct ldb_context *ldb,
                                    const struct ldb_message_element *el,
                                    struct mbof_val_array **val_array)
 {
@@ -3833,7 +3829,7 @@ static int mbof_fill_vals_array_el(TALLOC_CTX *memctx,
         return LDB_SUCCESS;
     }
 
-    return mbof_fill_vals_array(memctx, ldb, el->num_values, el->values,
+    return mbof_fill_vals_array(memctx, el->num_values, el->values,
                                 val_array);
 }
 
