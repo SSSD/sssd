@@ -42,8 +42,6 @@
 #define RESOLV_DEFAULT_TTL 7200
 #endif  /* RESOLV_DEFAULT_TTL */
 
-#define RESOLV_DEFAULT_TIMEOUT  5
-
 #include "util/util.h"
 
 /*
