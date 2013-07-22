@@ -763,7 +763,7 @@ static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
     struct group *gr;
     int ngroups;
     int ret;
-    Py_ssize_t i;
+    Py_ssize_t i, idx;
     PyObject *groups_tuple;
 
     if(!PyArg_ParseTuple(args, discard_const_p(char, "s"), &username)) {
@@ -793,9 +793,20 @@ static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
         goto fail;
     }
 
+    /* Populate a tuple with names of groups
+     * In unlikely case of group not being able to resolve, skip it
+     * We also need to resize resulting tuple to avoid empty elements there */
+    idx = 0;
     for (i = 0; i < ngroups; i++) {
         gr = getgrgid(groups[i]);
-        PyTuple_SetItem(groups_tuple, i, PyString_FromString(gr->gr_name));
+        if (gr) {
+            PyTuple_SetItem(groups_tuple, idx, PyString_FromString(gr->gr_name));
+            idx++;
+        }
+    }
+
+    if (i != idx) {
+        _PyTuple_Resize(&groups_tuple, idx);
     }
 
     return groups_tuple;
