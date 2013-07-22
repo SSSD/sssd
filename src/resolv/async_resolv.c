@@ -64,7 +64,7 @@
 #define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
 #define DNS_HEADER_ANCOUNT(h)           DNS__16BIT((h) + 6)
 
-#define RESOLV_TIMEOUTMS  5000
+#define RESOLV_TIMEOUTMS  2000
 
 enum host_database default_host_dbs[] = { DB_FILES, DB_DNS, DB_SENTINEL };
 
