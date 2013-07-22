@@ -60,7 +60,7 @@ static int sudosrv_response_append_uint32(TALLOC_CTX *mem_ctx,
     uint8_t *response_body = *_response_body;
 
     response_body = talloc_realloc(mem_ctx, response_body, uint8_t,
-                                   response_len + sizeof(int));
+                                   response_len + sizeof(uint32_t));
     if (response_body == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_realloc() failed\n"));
         return ENOMEM;
