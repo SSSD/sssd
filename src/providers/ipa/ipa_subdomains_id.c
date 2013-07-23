@@ -335,7 +335,7 @@ ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
         if (iter->dom == dom) break;
     }
 
-    return iter->ad_id_ctx;
+    return (iter) ? iter->ad_id_ctx : NULL;
 }
 
 static void
