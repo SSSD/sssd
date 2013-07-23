@@ -39,7 +39,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     int i, mi, ai;
-    const char *name;
+    const char *groupname;
     const char *original_dn;
     char **missing;
     gid_t gid;
@@ -103,20 +103,20 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     for (i=0; missing[i]; i++) {
         /* The group is not in sysdb, need to add a fake entry */
         for (ai=0; ai < ldap_groups_count; ai++) {
-            ret = sysdb_attrs_primary_name(sysdb, ldap_groups[ai],
-                                           opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                           &name);
+            ret = sdap_get_group_primary_name(tmp_ctx, opts, ldap_groups[ai],
+                                              domain, &groupname);
             if (ret != EOK) {
-                DEBUG(1, ("The group has no name attribute\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("The group has no name attribute\n"));
                 goto done;
             }
 
-            if (strcmp(name, missing[i]) == 0) {
+            if (strcmp(groupname, missing[i]) == 0) {
                 posix = true;
 
                 if (use_id_mapping) {
                     DEBUG(SSSDBG_TRACE_LIBS,
-                          ("Mapping group [%s] objectSID to unix ID\n", name));
+                          ("Mapping group [%s] objectSID to unix ID\n", groupname));
 
                     ret = sdap_attrs_get_sid_str(
                             tmp_ctx, opts->idmap_ctx, ldap_groups[ai],
@@ -126,7 +126,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
                     DEBUG(SSSDBG_TRACE_INTERNAL,
                           ("Group [%s] has objectSID [%s]\n",
-                           name, sid_str));
+                           groupname, sid_str));
 
                     /* Convert the SID into a UNIX group ID */
                     ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str,
@@ -134,7 +134,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                     if (ret == EOK) {
                         DEBUG(SSSDBG_TRACE_INTERNAL,
                               ("Group [%s] has mapped gid [%lu]\n",
-                               name, (unsigned long)gid));
+                               groupname, (unsigned long)gid));
                     } else {
                         posix = false;
                         gid = 0;
@@ -142,7 +142,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                         DEBUG(SSSDBG_TRACE_INTERNAL,
                               ("Group [%s] cannot be mapped. "
                                "Treating as a non-POSIX group\n",
-                               name));
+                               groupname));
                     }
 
                 } else {
@@ -150,9 +150,11 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                                    SYSDB_GIDNUM,
                                                    &gid);
                     if (ret == ENOENT || (ret == EOK && gid == 0)) {
-                        DEBUG(9, ("The group %s gid was %s\n",
-                                  name, ret == ENOENT ? "missing" : "zero"));
-                        DEBUG(8, ("Marking group %s as non-posix and setting GID=0!\n", name));
+                        DEBUG(SSSDBG_TRACE_LIBS, ("The group %s gid was %s\n",
+                              groupname, ret == ENOENT ? "missing" : "zero"));
+                        DEBUG(SSSDBG_TRACE_FUNC,
+                              ("Marking group %s as non-posix and setting GID=0!\n",
+                              groupname));
                         gid = 0;
                         posix = false;
                     } else if (ret) {
@@ -169,8 +171,9 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                     original_dn = NULL;
                 }
 
-                DEBUG(8, ("Adding fake group %s to sysdb\n", name));
-                ret = sysdb_add_incomplete_group(sysdb, domain, name, gid,
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      ("Adding fake group %s to sysdb\n", groupname));
+                ret = sysdb_add_incomplete_group(sysdb, domain, groupname, gid,
                                                  original_dn, posix, now);
                 if (ret != EOK) {
                     goto done;
@@ -717,11 +720,9 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     state->user = user;
     state->op = NULL;
 
-    ret = sysdb_attrs_primary_name(sysdb, user,
-                                   opts->user_map[SDAP_AT_USER_NAME].name,
-                                   &state->username);
+    ret = sdap_get_user_primary_name(memctx, opts, user, dom, &state->username);
     if (ret != EOK) {
-        DEBUG(1, ("User entry had no username\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("User entry had no username\n"));
         goto immediate;
     }
 
@@ -1278,9 +1279,7 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
     }
 
     /* Get direct sysdb parents */
-    ret = sysdb_attrs_primary_name(sysdb, group,
-                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                   &group_name);
+    ret = sdap_get_group_primary_name(tmp_ctx, opts, group, dom, &group_name);
     if (ret != EOK) {
         goto done;
     }
@@ -2183,11 +2182,9 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
-    ret = sysdb_attrs_primary_name(
-            state->sysdb,
-            state->groups[state->group_iter],
-            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-            &state->primary_name);
+    ret = sdap_get_group_primary_name(tmp_ctx, state->opts,
+                                      state->groups[state->group_iter],
+                                      state->dom, &state->primary_name);
     if (ret != EOK) {
         goto done;
     }
