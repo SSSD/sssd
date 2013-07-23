@@ -1209,3 +1209,54 @@ int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val)
 
     return EOK;
 }
+
+static errno_t
+sdap_get_primary_name(TALLOC_CTX *memctx,
+                      const char *attr_name,
+                      struct sysdb_attrs *attrs,
+                      struct sss_domain_info *dom,
+                      const char **_primary_name)
+{
+    errno_t ret;
+    const char *orig_name = NULL;
+    char *name;
+
+    ret = sysdb_attrs_primary_name(dom->sysdb, attrs, attr_name, &orig_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("The object has no name attribute\n"));
+        return EINVAL;
+    }
+
+    name = sss_get_domain_name(memctx, orig_name, dom);
+    if (name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to format original name [%s]\n", orig_name));
+        return ENOMEM;
+    }
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing object %s\n", name));
+
+    *_primary_name = name;
+    return EOK;
+}
+
+errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
+                                   struct sdap_options *opts,
+                                   struct sysdb_attrs *attrs,
+                                   struct sss_domain_info *dom,
+                                   const char **_user_name)
+{
+    return sdap_get_primary_name(memctx,
+                                 opts->group_map[SDAP_AT_USER_NAME].name,
+                                 attrs, dom, _user_name);
+}
+
+errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
+                                    struct sdap_options *opts,
+                                    struct sysdb_attrs *attrs,
+                                    struct sss_domain_info *dom,
+                                    const char **_group_name)
+{
+    return sdap_get_primary_name(memctx,
+                                 opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                 attrs, dom, _group_name);
+}

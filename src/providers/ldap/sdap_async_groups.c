@@ -428,8 +428,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
-    const char *name = NULL;
-    char *group_name;
+    const char *group_name;
     gid_t gid;
     errno_t ret;
     char *usn_value = NULL;
@@ -450,14 +449,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sysdb_attrs_primary_name(ctx, attrs,
-                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                   &name);
+    ret = sdap_get_group_primary_name(tmpctx, opts, attrs, dom, &group_name);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to save the group - entry has no name attribute\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get group name\n"));
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_FUNC, ("Processing group %s\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing group %s\n", group_name));
 
     /* Always store SID string if available */
     ret = sdap_attrs_get_sid_str(tmpctx, opts->idmap_ctx, attrs,
@@ -472,7 +469,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         }
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for group [%s].\n",
-                                 name));
+                                 group_name));
         sid_str = NULL;
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
@@ -487,14 +484,14 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
         if (sid_str == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("SID not available, cannot map a " \
-                                         "unix ID to group [%s].\n", name));
+                                         "unix ID to group [%s].\n", group_name));
             ret = ENOENT;
             goto done;
         }
 
         DEBUG(SSSDBG_TRACE_LIBS,
               ("Mapping group [%s] objectSID [%s] to unix ID\n",
-               name, sid_str));
+               group_name, sid_str));
 
         /* Convert the SID into a UNIX group ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &gid);
@@ -544,7 +541,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                        &gid);
         if (ret != EOK) {
             DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
-                      name, dom->name));
+                      group_name, dom->name));
             ret = EINVAL;
             goto done;
         }
@@ -553,8 +550,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     /* check that the gid is valid for this domain */
     if (posix_group) {
         if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
-            DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                      name));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Group [%s] filtered out! (id out of range)\n", group_name));
             ret = EINVAL;
             goto done;
         }
@@ -562,7 +559,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     ret = sdap_attrs_add_string(attrs, SYSDB_ORIG_DN, "original DN",
-                                name, group_attrs);
+                                group_name, group_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Error setting original DN: [%s]\n",
@@ -573,7 +570,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     ret = sdap_attrs_add_string(attrs,
                             opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name,
                             "original mod-Timestamp",
-                            name, group_attrs);
+                            group_name, group_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Error setting mod timestamp: [%s]\n",
@@ -590,8 +587,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto done;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("Original USN value is not available for [%s].\n",
-                  name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Original USN value is not available for [%s].\n", group_name));
     } else {
         ret = sysdb_attrs_add_string(group_attrs,
                           opts->group_map[SDAP_AT_GROUP_USN].sys_name,
@@ -617,20 +614,12 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sdap_save_all_names(name, attrs, dom, group_attrs);
+    ret = sdap_save_all_names(group_name, attrs, dom, group_attrs);
     if (ret != EOK) {
         DEBUG(1, ("Failed to save group names\n"));
         goto done;
     }
-
-    DEBUG(6, ("Storing info for group %s\n", name));
-
-    group_name = sss_get_domain_name(tmpctx, name, dom);
-    if (!group_name) {
-        DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
-        ret = ENOMEM;
-        goto done;
-    }
+    DEBUG(SSSDBG_TRACE_FUNC, ("Storing info for group %s\n", group_name));
 
     ret = sdap_store_group_with_gid(ctx, dom,
                                     group_name, gid, group_attrs,
@@ -654,7 +643,7 @@ done:
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Failed to save group [%s]: [%s]\n",
-               name ? name : "Unknown",
+               group_name ? group_name : "Unknown",
                strerror(ret)));
     }
     talloc_free(tmpctx);
@@ -677,17 +666,17 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs = NULL;
-    const char *name;
+    const char *group_name;
     char **userdns = NULL;
     size_t nuserdns = 0;
     int ret;
 
-    ret = sysdb_attrs_primary_name(ctx, attrs,
-                                   opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                   &name);
+    ret = sdap_get_group_primary_name(memctx, opts, attrs, dom, &group_name);
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get group name\n"));
         goto fail;
     }
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing group %s\n", group_name));
 
     /* With AD we also want to merge in parent groups of primary GID as they
      * are reported with tokenGroups, too
@@ -705,11 +694,13 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     if (ret != EOK) {
         goto fail;
     }
-    if (el->num_values == 0 && nuserdns == 0) {
-        DEBUG(7, ("No members for group [%s]\n", name));
 
+    if (el->num_values == 0 && nuserdns == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("No members for group [%s]\n", group_name));
     } else {
-        DEBUG(7, ("Adding member users to group [%s]\n", name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Adding member users to group [%s]\n", group_name));
 
         group_attrs = sysdb_new_attrs(memctx);
         if (!group_attrs) {
@@ -725,16 +716,15 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         }
     }
 
-    DEBUG(6, ("Storing members for group %s\n", name));
-
-    ret = sysdb_store_group(ctx, dom, name, 0, group_attrs,
+    ret = sysdb_store_group(ctx, dom, group_name, 0, group_attrs,
                             dom->group_timeout, now);
     if (ret) goto fail;
 
     return EOK;
 
 fail:
-    DEBUG(2, ("Failed to save user %s\n", name));
+    DEBUG(SSSDBG_OP_FAILURE,
+           ("Failed to save members of group %s\n", group_name));
     return ret;
 }
 
@@ -2049,11 +2039,11 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
     in_transaction = true;
 
     for (i = 0; i < num_users; i++) {
-        ret = sysdb_attrs_primary_name(sysdb, users[i],
-                                    opts->user_map[SDAP_AT_USER_NAME].name,
-                                    &username);
+        ret = sdap_get_user_primary_name(tmp_ctx, opts, users[i],
+                                         domain, &username);
         if (ret != EOK) {
-            DEBUG(1, ("User entry %d has no name attribute. Skipping\n", i));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("User entry %d has no name attribute. Skipping\n", i));
             continue;
         }
 

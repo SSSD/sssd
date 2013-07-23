@@ -492,6 +492,18 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
 
 int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val);
 
+errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
+                                    struct sdap_options *opts,
+                                    struct sysdb_attrs *attrs,
+                                    struct sss_domain_info *dom,
+                                    const char **_group_name);
+
+errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
+                                   struct sdap_options *opts,
+                                   struct sysdb_attrs *attrs,
+                                   struct sss_domain_info *dom,
+                                   const char **_user_name);
+
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                              struct sdap_options *opts,
                                              struct sdap_domain *sdom);

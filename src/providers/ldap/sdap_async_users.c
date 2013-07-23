@@ -105,7 +105,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
 {
     struct ldb_message_element *el;
     int ret;
-    const char *name = NULL;
     const char *user_name = NULL;
     const char *fullname = NULL;
     const char *pwd;
@@ -126,7 +125,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *sid_str;
     char *dom_sid_str = NULL;
 
-    DEBUG(9, ("Save user\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Save user\n"));
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -140,13 +139,12 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sysdb_attrs_primary_name(ctx, attrs,
-                                   opts->user_map[SDAP_AT_USER_NAME].name,
-                                   &name);
+    ret = sdap_get_user_primary_name(memctx, opts, attrs, dom, &user_name);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to save the user - entry has no name attribute\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get user name\n"));
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing user %s\n", user_name));
 
     if (opts->schema_type == SDAP_SCHEMA_AD) {
         ret = sysdb_attrs_get_string(attrs,
@@ -207,7 +205,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for group [%s].\n",
-                                 name));
+                                 user_name));
         sid_str = NULL;
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
@@ -224,13 +222,13 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
         if (sid_str == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("SID not available, cannot map a " \
-                                         "unix ID to user [%s].\n", name));
+                                         "unix ID to user [%s].\n", user_name));
             ret = ENOENT;
             goto done;
         }
 
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Mapping user [%s] objectSID [%s] to unix ID\n", name, sid_str));
+              ("Mapping user [%s] objectSID [%s] to unix ID\n", user_name, sid_str));
 
         /* Convert the SID into a UNIX user ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &uid);
@@ -255,8 +253,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                        opts->user_map[SDAP_AT_USER_UID].sys_name,
                                        &uid);
         if (ret != EOK) {
-            DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
-                      name, dom->name));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("no uid provided for [%s] in domain [%s].\n",
+                   user_name, dom->name));
             ret = EINVAL;
             goto done;
         }
@@ -264,7 +263,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("User [%s] filtered out! (uid out of range)\n",
-                      name));
+                      user_name));
         ret = EINVAL;
         goto done;
     }
@@ -275,8 +274,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                              &gid);
             if (ret) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                    ("Cannot get the GID for [%s] in domain [%s].\n",
-                    name, dom->name));
+                      ("Cannot get the GID for [%s] in domain [%s].\n",
+                       user_name, dom->name));
                 goto done;
             }
         } else {
@@ -296,8 +295,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                        opts->user_map[SDAP_AT_USER_GID].sys_name,
                                        &gid);
         if (ret != EOK) {
-            DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
-                      name, dom->name));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("no gid provided for [%s] in domain [%s].\n",
+                  user_name, dom->name));
             ret = EINVAL;
             goto done;
         }
@@ -307,7 +307,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (IS_SUBDOMAIN(dom) == false &&
             OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("User [%s] filtered out! (primary gid out of range)\n", name));
+              ("User [%s] filtered out! (primary gid out of range)\n",
+               user_name));
         ret = EINVAL;
         goto done;
     }
@@ -318,11 +319,11 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     if (!el || el->num_values == 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("originalDN is not available for [%s].\n", name));
+              ("originalDN is not available for [%s].\n", user_name));
     } else {
         orig_dn = (const char *) el->values[0].data;
         DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding originalDN [%s] to attributes "
-                "of [%s].\n", orig_dn, name));
+                "of [%s].\n", orig_dn, user_name));
 
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN, orig_dn);
         if (ret) {
@@ -335,11 +336,11 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("Original memberOf is not available for [%s].\n",
-                    name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Original memberOf is not available for [%s].\n", user_name));
     } else {
-        DEBUG(7, ("Adding original memberOf attributes to [%s].\n",
-                    name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Adding original memberOf attributes to [%s].\n", user_name));
         for (i = 0; i < el->num_values; i++) {
             ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
                     (const char *) el->values[i].data);
@@ -352,7 +353,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     ret = sdap_attrs_add_string(attrs,
                             opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name,
                             "original mod-Timestamp",
-                            name, user_attrs);
+                            user_name, user_attrs);
     if (ret != EOK) {
         goto done;
     }
@@ -363,8 +364,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("Original USN value is not available for [%s].\n",
-                  name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Original USN value is not available for [%s].\n", user_name));
     } else {
         ret = sysdb_attrs_add_string(user_attrs,
                           opts->user_map[SDAP_AT_USER_USN].sys_name,
@@ -385,7 +386,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("User principal is not available for [%s].\n", name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("User principal is not available for [%s].\n", user_name));
     } else {
         upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
         if (!upn) {
@@ -395,8 +397,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
         if (dp_opt_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
             make_realm_upper_case(upn);
         }
-        DEBUG(7, ("Adding user principal [%s] to attributes of [%s].\n",
-                  upn, name));
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Adding user principal [%s] to attributes of [%s].\n",
+               upn, user_name));
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {
             goto done;
@@ -405,7 +408,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     for (i = SDAP_FIRST_EXTRA_USER_AT; i < SDAP_OPTS_USER; i++) {
         ret = sdap_attrs_add_list(attrs, opts->user_map[i].sys_name,
-                                  NULL, name, user_attrs);
+                                  NULL, user_name, user_attrs);
         if (ret) {
             goto done;
         }
@@ -422,9 +425,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sdap_save_all_names(name, attrs, dom, user_attrs);
+    ret = sdap_save_all_names(user_name, attrs, dom, user_attrs);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to save user names\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to save user names\n"));
         goto done;
     }
 
@@ -437,14 +440,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
 
-    DEBUG(6, ("Storing info for user %s\n", name));
-
-    user_name = sss_get_domain_name(tmpctx, name, dom);
-    if (!user_name) {
-        DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
-        ret = ENOMEM;
-        goto done;
-    }
+    DEBUG(SSSDBG_TRACE_FUNC, ("Storing info for user %s\n", user_name));
 
     ret = sysdb_store_user(ctx, dom, user_name, pwd, uid, gid,
                            gecos, homedir, shell, orig_dn,
@@ -460,8 +456,9 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
 done:
     if (ret) {
-        DEBUG(2, ("Failed to save user [%s]\n",
-                  name ? name : "Unknown"));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to save user [%s]\n",
+               user_name ? user_name : "Unknown"));
     }
     talloc_free(tmpctx);
     return ret;
