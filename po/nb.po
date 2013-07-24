@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-06-28 22:54+0200\n"
+"POT-Creation-Date: 2013-07-24 14:24+0200\n"
 "PO-Revision-Date: 2013-06-11 15:20+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Norwegian Bokmål <i18n-nb@lister.ping.uio.no>\n"
@@ -1093,26 +1093,26 @@ msgstr ""
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2201 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2167 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:93
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2203 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2169 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:97
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2205 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2171 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:99
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2207 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2173 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/data_provider_be.c:2855
+#: src/providers/data_provider_be.c:2847
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -1207,7 +1207,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:652
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:519 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:528 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr ""
 
@@ -1220,7 +1220,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:663
 #: src/tools/sss_userdel.c:151 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:550
+#: src/tools/sss_cache.c:561
 msgid "Error setting the locale\n"
 msgstr ""
 
@@ -1631,76 +1631,80 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:162
+#: src/tools/sss_cache.c:171
 msgid "No cache object matched the specified search\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:391
+#: src/tools/sss_cache.c:400
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:398
+#: src/tools/sss_cache.c:407
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr ""
 
-#: src/tools/sss_cache.c:521
+#: src/tools/sss_cache.c:530
+msgid "Invalidate all cached entries except for sudo rulese"
+msgstr ""
+
+#: src/tools/sss_cache.c:532
 msgid "Invalidate particular user"
 msgstr ""
 
-#: src/tools/sss_cache.c:523
+#: src/tools/sss_cache.c:534
 msgid "Invalidate all users"
 msgstr ""
 
-#: src/tools/sss_cache.c:525
+#: src/tools/sss_cache.c:536
 msgid "Invalidate particular group"
 msgstr ""
 
-#: src/tools/sss_cache.c:527
+#: src/tools/sss_cache.c:538
 msgid "Invalidate all groups"
 msgstr ""
 
-#: src/tools/sss_cache.c:529
+#: src/tools/sss_cache.c:540
 msgid "Invalidate particular netgroup"
 msgstr ""
 
-#: src/tools/sss_cache.c:531
+#: src/tools/sss_cache.c:542
 msgid "Invalidate all netgroups"
 msgstr ""
 
-#: src/tools/sss_cache.c:533
+#: src/tools/sss_cache.c:544
 msgid "Invalidate particular service"
 msgstr ""
 
-#: src/tools/sss_cache.c:535
+#: src/tools/sss_cache.c:546
 msgid "Invalidate all services"
 msgstr ""
 
-#: src/tools/sss_cache.c:538
+#: src/tools/sss_cache.c:549
 msgid "Invalidate particular autofs map"
 msgstr ""
 
-#: src/tools/sss_cache.c:540
+#: src/tools/sss_cache.c:551
 msgid "Invalidate all autofs maps"
 msgstr ""
 
-#: src/tools/sss_cache.c:543
+#: src/tools/sss_cache.c:554
 msgid "Only invalidate entries from a particular domain"
 msgstr ""
 
-#: src/tools/sss_cache.c:585
+#: src/tools/sss_cache.c:599
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:655
+#: src/tools/sss_cache.c:669
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:659
+#: src/tools/sss_cache.c:673
 msgid "Could not open available domains\n"
 msgstr ""
 
