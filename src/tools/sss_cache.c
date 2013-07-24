@@ -527,7 +527,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &debug,
             0, _("The debug level to run with"), NULL },
         { "everything", 'E', POPT_ARG_NONE, NULL, 'e',
-            _("Invalidate all cached entries except for sudo rulese"), NULL },
+            _("Invalidate all cached entries except for sudo rules"), NULL },
         { "user", 'u', POPT_ARG_STRING, &user, 0,
             _("Invalidate particular user"), NULL },
         { "users", 'U', POPT_ARG_NONE, NULL, 'u',

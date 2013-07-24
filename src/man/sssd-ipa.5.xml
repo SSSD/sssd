@@ -480,7 +480,7 @@
                     <term>ipa_server_mode (boolean)</term>
                     <listitem>
                         <para>
-                            This options should only be set by the IPA
+                            This option should only be set by the IPA
                             installer.
                         </para>
                         <para>
