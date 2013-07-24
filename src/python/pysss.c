@@ -804,6 +804,8 @@ static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
             idx++;
         }
     }
+    free(groups);
+    groups = NULL;
 
     if (i != idx) {
         _PyTuple_Resize(&groups_tuple, idx);
