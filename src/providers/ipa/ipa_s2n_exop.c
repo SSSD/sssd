@@ -654,6 +654,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     char *realm;
     char *upn;
     struct berval *bv_req = NULL;
+    gid_t gid;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -815,8 +816,14 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 }
             }
 
+            gid = 0;
+            if (state->dom->mpg == false) {
+                gid = attrs->a.user.pw_gid;
+            }
+
             ret = sysdb_store_user(state->dom->sysdb, state->dom, name, NULL,
-                                   attrs->a.user.pw_uid, 0, NULL, /* gecos */
+                                   attrs->a.user.pw_uid,
+                                   gid, NULL, /* gecos */
                                    homedir, NULL, NULL, user_attrs, NULL,
                                    timeout, now);
             break;
