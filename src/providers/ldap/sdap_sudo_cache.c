@@ -135,7 +135,9 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
                                         domain, map, replies[i],
                                         cache_timeout, now, &usn_value);
         if (ret != EOK) {
-            goto fail;
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to save sudo rule, "
+                                        "will continue with next...\n"));
+            continue;
         }
 
         /* find highest usn */
