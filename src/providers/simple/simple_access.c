@@ -93,6 +93,72 @@ done:
     be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
 }
 
+static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
+                                         struct be_ctx *be_ctx,
+                                         char **list,
+                                         char ***_out)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char **out = NULL;
+    char *domain = NULL;
+    char *name = NULL;
+    size_t size;
+    size_t i;
+    errno_t ret;
+
+    if (list == NULL) {
+        *_out = NULL;
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (size = 0; list[size] != NULL; size++) {
+        /* count size */
+    }
+
+    out = talloc_zero_array(tmp_ctx, char*, size + 1);
+    if (out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero_array() failed\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Since this is access provider, we should fail on any error so we don't
+     * allow unauthorized access. */
+    for (i = 0; i < size; i++) {
+        ret = sss_parse_name(tmp_ctx, be_ctx->domain->names, list[i],
+                             &domain, &name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse name '%s' [%d]: %s\n",
+                                        list[i], ret, sss_strerror(ret)));
+            goto done;
+        }
+
+        if (domain == NULL || strcasecmp(domain, be_ctx->domain->name) == 0) {
+            /* main domain, remember the name without domain part */
+            out[i] = talloc_move(out, &name);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown domain in %s. "
+                  "Check you configuration.\n", list[i]));
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    *_out = talloc_steal(mem_ctx, out);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 struct bet_ops simple_access_ops = {
     .handler = simple_access_handler,
     .finalize = NULL
@@ -103,66 +169,49 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
 {
     int ret = EINVAL;
     struct simple_ctx *ctx;
+    int i;
+    struct {
+        const char *name;
+        const char *option;
+        char **orig_list;
+        char ***ctx_list;
+    } lists[] = {{"Allow users", CONFDB_SIMPLE_ALLOW_USERS, NULL, NULL},
+                 {"Deny users", CONFDB_SIMPLE_DENY_USERS, NULL, NULL},
+                 {"Allow groups", CONFDB_SIMPLE_ALLOW_GROUPS, NULL, NULL},
+                 {"Deny groups", CONFDB_SIMPLE_DENY_GROUPS, NULL, NULL},
+                 {NULL, NULL, NULL, NULL}};
 
     ctx = talloc_zero(bectx, struct simple_ctx);
     if (ctx == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
         return ENOMEM;
     }
 
     ctx->domain = bectx->domain;
     ctx->be_ctx = bectx;
 
-    /* Users */
-    ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
-                                    CONFDB_SIMPLE_ALLOW_USERS,
-                                    &ctx->allow_users);
-    if (ret != EOK) {
+    lists[0].ctx_list = &ctx->allow_users;
+    lists[1].ctx_list = &ctx->deny_users;
+    lists[2].ctx_list = &ctx->allow_groups;
+    lists[3].ctx_list = &ctx->deny_groups;
+
+    for (i = 0; lists[i].name != NULL; i++) {
+        ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
+                                        lists[i].option, &lists[i].orig_list);
         if (ret == ENOENT) {
-            DEBUG(9, ("Allow user list is empty.\n"));
-            ctx->allow_users = NULL;
-        } else {
-            DEBUG(1, ("confdb_get_string_as_list failed.\n"));
+            DEBUG(SSSDBG_FUNC_DATA, ("%s list is empty.\n", lists[i].name));
+            *lists[i].ctx_list = NULL;
+            continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("confdb_get_string_as_list failed.\n"));
             goto failed;
         }
-    }
 
-    ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
-                                    CONFDB_SIMPLE_DENY_USERS,
-                                    &ctx->deny_users);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            DEBUG(9, ("Deny user list is empty.\n"));
-            ctx->deny_users = NULL;
-        } else {
-            DEBUG(1, ("confdb_get_string_as_list failed.\n"));
-            goto failed;
-        }
-    }
-
-    /* Groups */
-    ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
-                                    CONFDB_SIMPLE_ALLOW_GROUPS,
-                                    &ctx->allow_groups);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            DEBUG(9, ("Allow group list is empty.\n"));
-            ctx->allow_groups = NULL;
-        } else {
-            DEBUG(1, ("confdb_get_string_as_list failed.\n"));
-            goto failed;
-        }
-    }
-
-    ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
-                                    CONFDB_SIMPLE_DENY_GROUPS,
-                                    &ctx->deny_groups);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            DEBUG(9, ("Deny user list is empty.\n"));
-            ctx->deny_groups = NULL;
-        } else {
-            DEBUG(1, ("confdb_get_string_as_list failed.\n"));
+        ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
+                                        lists[i].ctx_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse %s list [%d]: %s\n",
+                                        lists[i].name, ret, sss_strerror(ret)));
             goto failed;
         }
     }
