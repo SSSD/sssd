@@ -68,7 +68,11 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_string(attrs, map[SDAP_AT_SUDO_NAME].sys_name,
                                  &rule_name);
-    if (ret != EOK) {
+    if (ret == ERANGE) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Warning: found rule that contains none "
+              "or multiple CN values. It will be skipped.\n"));
+        return ret;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not get rule name [%d]: %s\n",
               ret, strerror(ret)));
         return ret;
