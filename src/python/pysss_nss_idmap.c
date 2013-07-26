@@ -311,7 +311,9 @@ PyDoc_STRVAR(getnamebysid_doc,
 \n\
 Returns a dictionary with a dictonary of results for each given SID.\n\
 The result dictonary contain the name and the type of the object which can be\n\
-accessed with the key constants NAME_KEY and TYPE_KEY, respectively."
+accessed with the key constants NAME_KEY and TYPE_KEY, respectively.\n\
+\n\
+NOTE: getnamebysid currently works only with id_provider set as \"ad\" or \"ipa\""
 );
 
 static PyObject * py_getnamebysid(PyObject *module, PyObject *args)
