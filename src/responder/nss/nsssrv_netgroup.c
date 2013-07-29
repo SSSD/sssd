@@ -216,7 +216,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Save the netgroup name for getnetgrent */
-        client->netgr_name = talloc_strdup(client, rawname);
+        client->netgr_name = talloc_strdup(client, state->netgr_shortname);
         if (!client->netgr_name) {
             ret = ENOMEM;
             goto error;
@@ -227,7 +227,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         cmdctx->check_next = true;
 
         /* Save the netgroup name for getnetgrent */
-        client->netgr_name = talloc_strdup(client, state->netgr_shortname);
+        client->netgr_name = talloc_strdup(client, rawname);
         if (!client->netgr_name) {
             ret = ENOMEM;
             goto error;
