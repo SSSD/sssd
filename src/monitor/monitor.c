@@ -1349,6 +1349,7 @@ static void monitor_hup(struct tevent_context *ev,
         service_signal_rotate(cur_svc);
         if (!strcmp(NSS_SBUS_SERVICE_NAME, cur_svc->name)) {
             service_signal_clear_memcache(cur_svc);
+            service_signal_clear_enum_cache(cur_svc);
         }
 
         if (!strcmp(SSS_AUTOFS_SBUS_SERVICE_NAME, cur_svc->name)) {

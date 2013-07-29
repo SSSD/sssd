@@ -1021,3 +1021,33 @@ netgroup_hash_delete_cb(hash_entry_t *item,
      * table */
     netgr->lookup_table = NULL;
 }
+
+errno_t nss_orphan_netgroups(struct nss_ctx *nctx)
+{
+    int hret;
+    unsigned long mcount;
+    unsigned long i;
+    hash_key_t *netgroups;
+
+    if (!nctx || !nctx->netgroups) {
+        return EINVAL;
+    }
+
+    hret = hash_keys(nctx->netgroups, &mcount, &netgroups);
+    if (hret != HASH_SUCCESS) {
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Removing netgroups from memory cache.\n"));
+
+    for (i = 0; i < mcount; i++) {
+        /* netgroup entry will be deleted by setnetgrent_result_timeout */
+        hret = hash_delete(nctx->netgroups, &netgroups[i]);
+        if (hret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not delete key from hash\n"));
+            continue;
+        }
+    }
+
+    return EOK;
+}
