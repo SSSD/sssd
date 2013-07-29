@@ -35,6 +35,7 @@
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
+#include "responder/nss/nsssrv_netgroup.h"
 #include "responder/common/negcache.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -477,7 +478,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Create the lookup table for netgroup results */
-    hret = sss_hash_create(nctx, 10, &nctx->netgroups);
+    hret = sss_hash_create_ex(nctx, 10, &nctx->netgroups, 0, 0, 0, 0,
+                              netgroup_hash_delete_cb, NULL);
     if (hret != HASH_SUCCESS) {
         DEBUG(0,("Unable to initialize netgroup hash table\n"));
         ret = EIO;

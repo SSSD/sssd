@@ -142,6 +142,12 @@ static int netgr_hash_remove (TALLOC_CTX *ctx)
     struct getent_ctx *netgr =
             talloc_get_type(ctx, struct getent_ctx);
 
+    if (netgr->lookup_table == NULL) {
+        DEBUG(SSSDBG_TRACE_LIBS, ("netgroup [%s] was already removed\n",
+                                  netgr->name));
+        return EOK;
+    }
+
     key.type = HASH_KEY_STRING;
     key.str = netgr->name;
 
@@ -1003,4 +1009,25 @@ int nss_cmd_endnetgrent(struct cli_ctx *client)
 
     sss_cmd_done(client, NULL);
     return EOK;
+}
+
+void
+netgroup_hash_delete_cb(hash_entry_t *item,
+                        hash_destroy_enum deltype, void *pvt)
+{
+    struct getent_ctx *netgr;
+
+    if (deltype != HASH_ENTRY_DESTROY) {
+        return;
+    }
+
+    netgr = talloc_get_type(item->value.ptr, struct getent_ctx);
+    if (!netgr) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Invalid netgroup\n"));
+        return;
+    }
+
+    /* So that the destructor wouldn't attempt to remove the netgroup from hash
+     * table */
+    netgr->lookup_table = NULL;
 }
