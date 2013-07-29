@@ -43,6 +43,7 @@ struct simple_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
     struct tevent_context *ev;
+    struct be_ctx *be_ctx;
     bool done;
     int error;
 
@@ -198,6 +199,30 @@ void teardown_simple_group(void)
     ret = sysdb_delete_group(test_ctx->sysdb, test_ctx->ctx->domain, "pvt", 0);
     fail_if(ret != EOK, "Could not delete pvt");
 
+    teardown_simple();
+}
+
+void setup_simple_init(void)
+{
+    errno_t ret;
+
+    setup_simple();
+
+    test_ctx->be_ctx = talloc_zero(test_ctx, struct be_ctx);
+    fail_if(test_ctx->be_ctx == NULL, "Unable to setup be_ctx");
+
+    test_ctx->be_ctx->cdb = test_ctx->confdb;
+    test_ctx->be_ctx->ev = test_ctx->ev;
+    test_ctx->be_ctx->conf_path = "config/domain/LOCAL";
+    test_ctx->be_ctx->domain = test_ctx->ctx->domain;
+
+    ret = sss_names_init(test_ctx->ctx->domain, test_ctx->confdb,
+                         "LOCAL", &test_ctx->be_ctx->domain->names);
+    fail_if(ret != EOK, "Unable to setup domain names (%d)", ret);
+}
+
+void teardown_simple_init(void)
+{
     teardown_simple();
 }
 
@@ -509,6 +534,74 @@ START_TEST(test_group_case)
 }
 END_TEST
 
+static void check_access_list(char **list, const char **values)
+{
+    int i;
+
+    if (list == NULL) {
+        fail_if(values != NULL, "List is empty, but it shouldn't be");
+    }
+
+    for (i = 0; list[i] != NULL; i++) {
+        fail_if(values[i] == NULL, "List contains too many entries");
+        fail_if(strcmp(list[i], values[i]) != 0, "%s != %s", list[i], values[i]);
+    }
+
+    fail_if(values[i] != NULL, "List contains fewer entries than expected");
+}
+
+int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
+                            void **pvt_data);
+
+START_TEST(test_provider_init)
+{
+    struct bet_ops *bet_ops = NULL;
+    struct simple_ctx *ctx = NULL;
+    errno_t ret;
+
+    const char *val[2] = {"user-1, user-2@LOCAL, user with space, "
+                          "another space@LOCAL", NULL};
+
+    const char *correct[] = {"user-1", "user-2", "user with space",
+                             "another space", NULL};
+
+    /* allow users */
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
+                           "simple_allow_users", val);
+    fail_if(ret != EOK, "Could setup allow users list");
+
+    /* deny users */
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
+                           "simple_deny_users", val);
+    fail_if(ret != EOK, "Could setup deny users list");
+
+    /* allow groups */
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
+                           "simple_allow_groups", val);
+    fail_if(ret != EOK, "Could setup allow groups list");
+
+    /* deny groups */
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
+                           "simple_deny_groups", val);
+    fail_if(ret != EOK, "Could setup deny groups list");
+
+    ret = sssm_simple_access_init(test_ctx->be_ctx, &bet_ops, (void**)&ctx);
+    fail_if(ret != EOK);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Checking allow users list\n"));
+    check_access_list(ctx->allow_users, correct);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Checking deny users list\n"));
+    check_access_list(ctx->deny_users, correct);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Checking allow groups list\n"));
+    check_access_list(ctx->allow_groups, correct);
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Checking deny groups list\n"));
+    check_access_list(ctx->deny_groups, correct);
+}
+END_TEST
+
 Suite *access_simple_suite (void)
 {
     Suite *s = suite_create("access_simple");
@@ -531,6 +624,11 @@ Suite *access_simple_suite (void)
     tcase_add_test(tc_grp_allow_deny, test_group_both_set);
     tcase_add_test(tc_grp_allow_deny, test_group_case);
     suite_add_tcase(s, tc_grp_allow_deny);
+
+    TCase *tc_init = tcase_create("provider init");
+    tcase_add_checked_fixture(tc_init, setup_simple_init, teardown_simple_init);
+    tcase_add_test(tc_init, test_provider_init);
+    suite_add_tcase(s, tc_init);
 
     return s;
 }
