@@ -1077,6 +1077,7 @@ ad_ldap_opt_tests_LDADD = \
 
 simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
+    src/providers/simple/simple_access.c \
     src/providers/simple/simple_access_check.c \
     src/providers/data_provider_be.c \
     src/providers/data_provider_fo.c \
