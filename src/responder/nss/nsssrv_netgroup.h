@@ -33,4 +33,7 @@ int nss_cmd_endnetgrent(struct cli_ctx *cctx);
 
 void netgroup_hash_delete_cb(hash_entry_t *item,
                              hash_destroy_enum deltype, void *pvt);
+
+errno_t nss_orphan_netgroups(struct nss_ctx *nctx);
+
 #endif /* NSSRV_NETGROUP_H_ */
