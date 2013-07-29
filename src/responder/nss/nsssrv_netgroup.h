@@ -31,4 +31,6 @@ int nss_cmd_setnetgrent(struct cli_ctx *cctx);
 int nss_cmd_getnetgrent(struct cli_ctx *cctx);
 int nss_cmd_endnetgrent(struct cli_ctx *cctx);
 
+void netgroup_hash_delete_cb(hash_entry_t *item,
+                             hash_destroy_enum deltype, void *pvt);
 #endif /* NSSRV_NETGROUP_H_ */
