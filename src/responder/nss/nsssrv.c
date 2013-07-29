@@ -56,12 +56,15 @@
 
 static int nss_clear_memcache(DBusMessage *message,
                               struct sbus_connection *conn);
+static int nss_clear_netgroup_hash_table(DBusMessage *message,
+                                         struct sbus_connection *conn);
 
 struct sbus_method monitor_nss_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { MON_CLI_METHOD_ROTATE, responder_logrotate },
     { MON_CLI_METHOD_CLEAR_MEMCACHE, nss_clear_memcache},
+    { MON_CLI_METHOD_CLEAR_ENUM_CACHE, nss_clear_netgroup_hash_table},
     { NULL, NULL }
 };
 
@@ -129,6 +132,24 @@ static int nss_clear_memcache(DBusMessage *message,
     }
 
 done:
+    return monitor_common_pong(message, conn);
+}
+
+static int nss_clear_netgroup_hash_table(DBusMessage *message,
+                                         struct sbus_connection *conn)
+{
+    errno_t ret;
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+                                            struct resp_ctx);
+    struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
+
+    ret = nss_orphan_netgroups(nctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not invalidate netgroups\n"));
+        return ret;
+    }
+
     return monitor_common_pong(message, conn);
 }
 
