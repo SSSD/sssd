@@ -54,6 +54,8 @@ struct err_string error_to_str[] = {
     { "Missing configuration file" }, /* ERR_MISSING_CONF */
     { "Malformed search filter" }, /* ERR_INVALID_FILTER, */
     { "No POSIX attributes detected" }, /* ERR_NO_POSIX */
+    { "Extra attribute is a duplicate" }, /* ERR_DUP_EXTRA_ATTR */
+    { "Malformed extra attribute" }, /* ERR_INVALID_EXTRA_ATTR */
 };
 
 

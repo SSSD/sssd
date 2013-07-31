@@ -72,7 +72,7 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
     state->search_bases = opts->sdom->user_search_bases;
 
     /* Request all of the user attributes that we know about. */
-    ret = build_attrs_from_map(state, opts->user_map, SDAP_OPTS_USER,
+    ret = build_attrs_from_map(state, opts->user_map, opts->user_map_cnt,
                                NULL, &state->attrs, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -157,7 +157,7 @@ sdap_get_ad_match_rule_members_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->basedn,
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
-            state->opts->user_map, SDAP_OPTS_USER,
+            state->opts->user_map, state->opts->user_map_cnt,
             state->timeout, true);
     if (!subreq) {
         return ENOMEM;

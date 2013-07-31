@@ -1586,7 +1586,8 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     /* search */
     subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
                                    member->dn, LDAP_SCOPE_BASE, filter, attrs,
-                                   group_ctx->opts->user_map, SDAP_OPTS_USER,
+                                   group_ctx->opts->user_map,
+                                   group_ctx->opts->user_map_cnt,
                                    dp_opt_get_int(group_ctx->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
@@ -2028,7 +2029,7 @@ sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
     }
 
     maps[0].map = opts->user_map;
-    maps[0].num_attrs = SDAP_OPTS_USER;
+    maps[0].num_attrs = opts->user_map_cnt;
     maps[1].map = opts->group_map;
     maps[1].num_attrs = SDAP_OPTS_GROUP;
 

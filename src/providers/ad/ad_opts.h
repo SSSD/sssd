@@ -54,6 +54,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_user_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_user_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_user_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_user_extra_attrs", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },

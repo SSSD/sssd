@@ -71,6 +71,122 @@ int sdap_copy_map(TALLOC_CTX *memctx,
     return EOK;
 }
 
+static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
+                                char *conf_attr,
+                                char **_sysdb_attr,
+                                char **_ldap_attr)
+{
+    char *ldap_attr;
+    char *sysdb_attr;
+    char *sep;
+
+    ldap_attr = conf_attr;
+
+    sep = strchr(conf_attr, ':');
+    if (sep == NULL) {
+        sysdb_attr = talloc_strdup(mem_ctx, conf_attr);
+        ldap_attr = talloc_strdup(mem_ctx, conf_attr);
+    } else {
+        if (sep == conf_attr || *(sep + 1) == '\0') {
+            return ERR_INVALID_EXTRA_ATTR;
+        }
+
+        sysdb_attr = talloc_strndup(mem_ctx, ldap_attr,
+                                    sep - ldap_attr);
+        ldap_attr = talloc_strdup(mem_ctx, sep+1);
+    }
+
+    if (sysdb_attr == NULL || ldap_attr == NULL) {
+        return ENOMEM;
+    }
+
+    *_sysdb_attr = sysdb_attr;
+    *_ldap_attr = ldap_attr;
+    return EOK;
+}
+
+static bool is_sysdb_duplicate(struct sdap_attr_map *map,
+                               int num_entries,
+                               const char *sysdb_attr)
+{
+    int i;
+
+    for (i = 0; i < num_entries; i++) {
+        if (strcmp(map[i].sys_name, sysdb_attr) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int sdap_extend_map(TALLOC_CTX *memctx,
+                    struct sdap_attr_map *src_map,
+                    size_t num_entries,
+                    char **extra_attrs,
+                    struct sdap_attr_map **_map,
+                    size_t *_new_size)
+{
+    struct sdap_attr_map *map;
+    size_t nextra = 0;
+    size_t i;
+    char *ldap_attr;
+    char *sysdb_attr;
+    errno_t ret;
+
+    if (extra_attrs == NULL) {
+        DEBUG(SSSDBG_FUNC_DATA, "No extra attributes\n");
+        *_map = src_map;
+        *_new_size = num_entries;
+        return EOK;
+    }
+
+    for (nextra = 0; extra_attrs[nextra]; nextra++) ;
+    DEBUG(SSSDBG_FUNC_DATA, "%zu extra attributes\n", nextra);
+
+    map = talloc_realloc(memctx, src_map, struct sdap_attr_map,
+                         num_entries + nextra + 1);
+    if (map == NULL) {
+        return ENOMEM;
+    }
+
+    for (i = 0; extra_attrs[i]; i++) {
+        ret = split_extra_attr(map, extra_attrs[i], &sysdb_attr, &ldap_attr);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot split %s\n", extra_attrs[i]);
+            continue;
+        }
+
+        if (is_sysdb_duplicate(map, num_entries, sysdb_attr)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Attribute %s (%s in LDAP) is already used by SSSD, please "
+                  "choose a different cache name\n", sysdb_attr, ldap_attr);
+            return ERR_DUP_EXTRA_ATTR;
+        }
+
+        map[num_entries+i].name = ldap_attr;
+        map[num_entries+i].sys_name = sysdb_attr;
+        map[num_entries+i].opt_name = talloc_strdup(map,
+                                                map[num_entries+i].name);
+        map[num_entries+i].def_name = talloc_strdup(map,
+                                                map[num_entries+i].name);
+        if (map[num_entries+i].opt_name == NULL ||
+            map[num_entries+i].sys_name == NULL ||
+            map[num_entries+i].name == NULL ||
+            map[num_entries+i].def_name == NULL) {
+            return ENOMEM;
+        }
+        DEBUG(SSSDBG_TRACE_FUNC, "Extending map with %s\n", extra_attrs[i]);
+    }
+
+    /* Sentinel */
+    memset(&map[num_entries+nextra], 0, sizeof(struct sdap_attr_map));
+
+    *_map = map;
+    *_new_size = num_entries + nextra;
+    return EOK;
+}
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,

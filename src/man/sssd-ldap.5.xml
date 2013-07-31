@@ -616,6 +616,54 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_user_extra_attrs (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of LDAP attributes that SSSD
+                            would fetch along with the usual set of user
+                            attributes.
+                        </para>
+                        <para>
+                            The list can either contain LDAP attribute names
+                            only, or colon-separated tuples of SSSD cache
+                            attribute name and LDAP attribute name. In
+                            case only LDAP attribute name is specified,
+                            the attribute is saved to the cache verbatim.
+                            Using a custom SSSD attribute name might be
+                            required by environments that configure several
+                            SSSD domains with different LDAP schemas.
+                        </para>
+                        <para>
+                            Please note that several attribute names are
+                            reserved by SSSD, notably the <quote>name</quote>
+                            attribute. SSSD would report an error if any of
+                            the reserved attribute names is used as an extra
+                            attribute name.
+                        </para>
+                        <para>
+                            Examples:
+                        </para>
+                        <para>
+                            ldap_user_extra_attrs = telephoneNumber
+                        </para>
+                        <para>
+                            Save the <quote>telephoneNumber</quote> attribute from LDAP
+                            as <quote>telephoneNumber</quote> to the cache.
+                        </para>
+                        <para>
+                            ldap_user_extra_attrs = phone:telephoneNumber
+                        </para>
+                        <para>
+                            Save the <quote>telephoneNumber</quote> attribute from LDAP
+                            as <quote>phone</quote> to the cache.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry condition="with_ssh">
                     <term>ldap_user_ssh_public_key (string)</term>
                     <listitem>

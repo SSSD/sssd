@@ -617,7 +617,8 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     }
 
     /* TODO: handle attrs_type */
-    ret = build_attrs_from_map(state, ctx->opts->user_map, SDAP_OPTS_USER,
+    ret = build_attrs_from_map(state, ctx->opts->user_map,
+                               ctx->opts->user_map_cnt,
                                NULL, &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
