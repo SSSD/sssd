@@ -765,11 +765,13 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
                   ("Invalid name received [%s]\n", name));
             return ENOENT;
         }
-    } else if (cmd_ctx->name == NULL && cmd_ctx->domname == NULL) {
-        cmd_ctx->name = talloc_strdup(cmd_ctx, name);
-        if (!cmd_ctx->name) return ENOMEM;
+    } else {
+        if (cmd_ctx->name == NULL) {
+            cmd_ctx->name = talloc_strdup(cmd_ctx, name);
+            if (!cmd_ctx->name) return ENOMEM;
+        }
 
-        if (domain != NULL) {
+        if (cmd_ctx->domname == NULL && domain != NULL) {
             cmd_ctx->domname = talloc_strdup(cmd_ctx, domain);
             if (!cmd_ctx->domname) return ENOMEM;
         }
