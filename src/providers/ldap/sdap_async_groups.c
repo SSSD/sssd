@@ -1038,7 +1038,7 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
                             struct sdap_process_group_state);
     if (!req) return NULL;
 
-    ret = build_attrs_from_map(grp_state, opts->user_map, SDAP_OPTS_USER,
+    ret = build_attrs_from_map(grp_state, opts->user_map, opts->user_map_cnt,
                                NULL, &attrs, NULL);
     if (ret) {
         goto done;
@@ -1188,7 +1188,7 @@ sdap_process_missing_member_2307bis(struct tevent_req *req,
                                        grp_state->filter,
                                        grp_state->attrs,
                                        grp_state->opts->user_map,
-                                       SDAP_OPTS_USER,
+                                       grp_state->opts->user_map_cnt,
                                        dp_opt_get_int(grp_state->opts->basic,
                                                       SDAP_SEARCH_TIMEOUT),
                                        false);
@@ -1495,7 +1495,7 @@ next:
                                        state->filter,
                                        state->attrs,
                                        state->opts->user_map,
-                                       SDAP_OPTS_USER,
+                                       state->opts->user_map_cnt,
                                        dp_opt_get_int(state->opts->basic,
                                                       SDAP_SEARCH_TIMEOUT),
                                        false);

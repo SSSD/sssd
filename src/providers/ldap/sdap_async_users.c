@@ -447,7 +447,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         }
     }
 
-    for (i = SDAP_FIRST_EXTRA_USER_AT; i < SDAP_OPTS_USER; i++) {
+    for (i = SDAP_FIRST_EXTRA_USER_AT; i < opts->user_map_cnt; i++) {
         ret = sdap_attrs_add_list(attrs, opts->user_map[i].sys_name,
                                   NULL, user_name, user_attrs);
         if (ret) {
@@ -475,7 +475,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     /* Make sure that any attributes we requested from LDAP that we
      * did not receive are also removed from the sysdb
      */
-    ret = list_missing_attrs(user_attrs, opts->user_map, SDAP_OPTS_USER,
+    ret = list_missing_attrs(user_attrs, opts->user_map, opts->user_map_cnt,
                              attrs, &missing);
     if (ret != EOK) {
         goto done;
@@ -694,7 +694,7 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->basedn,
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
-            state->opts->user_map, SDAP_OPTS_USER,
+            state->opts->user_map, state->opts->user_map_cnt,
             state->timeout,
             state->enumeration); /* If we're enumerating, we need paging */
     if (subreq == NULL) {

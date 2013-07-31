@@ -492,7 +492,8 @@ static int ipa_netgr_fetch_users(struct ipa_get_netgroups_state *state,
                                                      SDAP_USER_SEARCH_BASE),
                                    LDAP_SCOPE_SUBTREE,
                                    filter, attrs, state->opts->user_map,
-                                   SDAP_OPTS_USER, state->timeout, true);
+                                   state->opts->user_map_cnt,
+                                   state->timeout, true);
 
     state->current_entity = ENTITY_USER;
     if (subreq == NULL) {

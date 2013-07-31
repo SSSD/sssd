@@ -201,6 +201,15 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sdap_extend_map(id_opts,
+                          id_opts->user_map,
+                          SDAP_OPTS_USER, NULL,
+                          &id_opts->user_map,
+                          &id_opts->user_map_cnt);
+    if (ret != EOK) {
+        goto done;
+    }
+
     /* Group map */
     ret = sdap_get_map(id_opts,
                        cdb, conf_path,

@@ -277,6 +277,116 @@ START_TEST(test_copy_sdap_map)
 }
 END_TEST
 
+START_TEST(test_extra_opts)
+{
+    errno_t ret;
+    char *extra_attrs[] =  { discard_const("foo"),
+                             discard_const("baz:bar"),
+                             NULL };
+    struct sdap_attr_map *in_map;
+    struct sdap_attr_map *out_map;
+    size_t new_size;
+
+    ret = sdap_copy_map(global_talloc_context, rfc2307_user_map,
+                        SDAP_OPTS_USER, &in_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    ret = sdap_extend_map(global_talloc_context,
+                          in_map,
+                          SDAP_OPTS_USER,
+                          extra_attrs,
+                          &out_map, &new_size);
+    fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
+
+    /* Two extra and sentinel */
+    fail_unless(new_size != SDAP_OPTS_USER + 3);
+    /* Foo would be saved to sysdb verbatim */
+    ck_assert_str_eq(out_map[SDAP_OPTS_USER].name, "foo");
+    ck_assert_str_eq(out_map[SDAP_OPTS_USER].sys_name, "foo");
+    /* Bar would be saved to sysdb as baz */
+    ck_assert_str_eq(out_map[SDAP_OPTS_USER+1].name, "bar");
+    ck_assert_str_eq(out_map[SDAP_OPTS_USER+1].sys_name, "baz");
+    fail_unless(out_map[SDAP_OPTS_USER+2].name == NULL);
+
+    talloc_free(out_map);
+}
+END_TEST
+
+START_TEST(test_no_extra_opts)
+{
+    errno_t ret;
+    struct sdap_attr_map *in_map;
+    struct sdap_attr_map *out_map;
+    size_t new_size;
+
+    ret = sdap_copy_map(global_talloc_context, rfc2307_user_map,
+                        SDAP_OPTS_USER, &in_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    ret = sdap_extend_map(global_talloc_context,
+                          in_map,
+                          SDAP_OPTS_USER,
+                          NULL,
+                          &out_map, &new_size);
+    fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
+    /* Attributes and sentinel */
+    fail_unless(new_size != SDAP_OPTS_USER + 1);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+
+    talloc_free(out_map);
+}
+END_TEST
+
+START_TEST(test_extra_opts_neg)
+{
+    errno_t ret;
+    char *extra_attrs[] =  { discard_const(":foo"),
+                             discard_const("bar:"),
+                             NULL };
+    struct sdap_attr_map *in_map;
+    struct sdap_attr_map *out_map;
+    size_t new_size;
+
+    ret = sdap_copy_map(global_talloc_context, rfc2307_user_map,
+                        SDAP_OPTS_USER, &in_map);
+    fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
+
+    ret = sdap_extend_map(global_talloc_context,
+                          in_map,
+                          SDAP_OPTS_USER,
+                          extra_attrs,
+                          &out_map, &new_size);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    /* The faulty attributes would be just skipped */
+    fail_unless(new_size != SDAP_OPTS_USER + 1);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+
+    talloc_free(out_map);
+}
+END_TEST
+
+START_TEST(test_extra_opts_dup)
+{
+    errno_t ret;
+    char *extra_attrs[] =  { discard_const("name:foo"),
+                             NULL };
+    struct sdap_attr_map *in_map;
+    struct sdap_attr_map *out_map;
+    size_t new_size;
+
+    ret = sdap_copy_map(global_talloc_context, rfc2307_user_map,
+                        SDAP_OPTS_USER, &in_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    ret = sdap_extend_map(global_talloc_context,
+                          in_map,
+                          SDAP_OPTS_USER,
+                          extra_attrs,
+                          &out_map, &new_size);
+    fail_unless(ret == ERR_DUP_EXTRA_ATTR, "[%s]", sss_strerror(ret));
+}
+END_TEST
+
 Suite *ipa_ldap_opt_suite (void)
 {
     Suite *s = suite_create ("ipa_ldap_opt");
@@ -299,6 +409,13 @@ Suite *ipa_ldap_opt_suite (void)
     TCase *tc_sdap_opts = tcase_create ("sdap_opts");
     tcase_add_test (tc_sdap_opts, test_copy_sdap_map);
     suite_add_tcase (s, tc_sdap_opts);
+
+    TCase *tc_extra_opts = tcase_create ("extra_opts");
+    tcase_add_test (tc_extra_opts, test_extra_opts);
+    tcase_add_test (tc_extra_opts, test_no_extra_opts);
+    tcase_add_test (tc_extra_opts, test_extra_opts_neg);
+    tcase_add_test (tc_extra_opts, test_extra_opts_dup);
+    suite_add_tcase (s, tc_extra_opts);
 
     return s;
 }

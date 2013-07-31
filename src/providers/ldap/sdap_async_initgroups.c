@@ -2704,7 +2704,9 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    ret = build_attrs_from_map(state, state->opts->user_map, SDAP_OPTS_USER,
+    ret = build_attrs_from_map(state,
+                               state->opts->user_map,
+                               state->opts->user_map_cnt,
                                NULL, &state->user_attrs, NULL);
     if (ret) {
         talloc_zfree(req);
@@ -2752,7 +2754,7 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
             state->user_search_bases[state->user_base_iter]->basedn,
             state->user_search_bases[state->user_base_iter]->scope,
             state->filter, state->user_attrs,
-            state->opts->user_map, SDAP_OPTS_USER,
+            state->opts->user_map, state->opts->user_map_cnt,
             state->timeout,
             false);
     if (!subreq) {
