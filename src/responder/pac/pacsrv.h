@@ -81,6 +81,4 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
                          struct PAC_LOGON_INFO *logon_info,
                          struct passwd **_pwd,
                          struct sysdb_attrs **_attrs);
-
-bool new_and_cached_user_differs(struct passwd *pwd, struct ldb_message *msg);
 #endif /* __PACSRV_H__ */

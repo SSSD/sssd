@@ -549,7 +549,6 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
     struct passwd *pwd = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     struct sysdb_attrs *user_attrs = NULL;
-    const char *tmp_str;
 
     sysdb = pr_ctx->dom->sysdb;
     if (sysdb == NULL) {
@@ -575,53 +574,19 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
 
     ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, pr_ctx->dom,
                                    pwd->pw_uid, attrs, &msg);
-    if (ret == EOK) {
-        if (new_and_cached_user_differs(pwd, msg)) {
-            ret = sysdb_delete_user(sysdb, pr_ctx->dom, NULL, pwd->pw_uid);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_user failed.\n"));
-                goto done;
-            }
-
-            /* If the entry is delete we might loose the information about the
-             * original DN of e.g. an IPA user or a chache password. */
-            tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_ORIG_DN, NULL);
-            if (tmp_str != NULL) {
-                ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN,
-                                             tmp_str);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          ("sysdb_attrs_add_string failed.\n"));
-                    goto done;
-                }
-            }
-
-            tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_CACHEDPWD, NULL);
-            if (tmp_str != NULL) {
-                ret = sysdb_attrs_add_string(user_attrs, SYSDB_CACHEDPWD,
-                                             tmp_str);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          ("sysdb_attrs_add_string failed.\n"));
-                    goto done;
-                }
-            }
-        } else {
+    if (ret == ENOENT) {
+        ret = sysdb_store_user(sysdb, pr_ctx->dom, pwd->pw_name, NULL,
+                               pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
+                               pwd->pw_dir,
+                               pwd->pw_shell, NULL, user_attrs, NULL,
+                               pr_ctx->dom->user_timeout, 0);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_user failed [%d][%s].\n",
+                                      ret, strerror(ret)));
             goto done;
         }
     } else if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));
-        goto done;
-    }
-
-    ret = sysdb_store_user(sysdb, pr_ctx->dom, pwd->pw_name, NULL,
-                           pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
-                           pwd->pw_dir,
-                           pwd->pw_shell, NULL, user_attrs, NULL,
-                           pr_ctx->dom->user_timeout, 0);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_user failed [%d][%s].\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_id failed.\n"));
         goto done;
     }
 
