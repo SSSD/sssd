@@ -1351,7 +1351,7 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
     }
 
     req = sdap_handle_acct_req_send(breq, breq, ar, ctx,
-                                    ctx->opts->sdom, conn, NULL);
+                                    ctx->opts->sdom, conn, true);
     if (req == NULL) {
         return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
     }
