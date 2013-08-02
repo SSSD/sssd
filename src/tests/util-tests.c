@@ -808,6 +808,33 @@ START_TEST(test_split_on_separator)
 }
 END_TEST
 
+START_TEST(test_is_host_in_domain)
+{
+    struct {
+        const char *host;
+        const char *domain;
+        bool expected;
+    } data[] = {{"example.com", "example.com", true},
+                {"client.example.com", "example.com", true},
+                {"client.child.example.com", "example.com", true},
+                {"example.com", "child.example.com", false},
+                {"client.example.com", "child.example.com", false},
+                {"client.child.example.com", "child.example.com", true},
+                {"my.com", "example.com", false},
+                {"myexample.com", "example.com", false},
+                {NULL, NULL, false}};
+    bool ret;
+    int i;
+
+    for (i = 0; data[i].host != NULL; i++) {
+        ret = is_host_in_domain(data[i].host, data[i].domain);
+        fail_if(ret != data[i].expected, "Host: %s, Domain: %s, Expected: %d, "
+                "Got: %d\n", data[i].host, data[i].domain,
+                data[i].expected, ret);
+    }
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -824,6 +851,7 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_add_string_to_list);
     tcase_add_test (tc_util, test_string_in_list);
     tcase_add_test (tc_util, test_split_on_separator);
+    tcase_add_test (tc_util, test_is_host_in_domain);
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");

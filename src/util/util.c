@@ -724,3 +724,18 @@ int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
     *basedn = dn;
     return EOK;
 }
+
+bool is_host_in_domain(const char *host, const char *domain)
+{
+    int diff = strlen(host) - strlen(domain);
+
+    if (diff == 0 && strcmp(host, domain) == 0) {
+        return true;
+    }
+
+    if (diff > 0 && strcmp(host + diff, domain) == 0 && host[diff - 1] == '.') {
+        return true;
+    }
+
+    return false;
+}

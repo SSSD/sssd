@@ -506,6 +506,8 @@ void safezero(void *data, size_t size);
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
 
+bool is_host_in_domain(const char *host, const char *domain);
+
 /* from nscd.c */
 enum nscd_db {
     NSCD_DB_PASSWD,
