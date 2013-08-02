@@ -26,6 +26,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <sasl/sasl.h>
+
 #include "util/util.h"
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_access.h"
@@ -65,6 +67,43 @@ struct bet_ops ad_access_ops = {
     .finalize = NULL
 };
 
+#define AD_COMPAT_ON "1"
+static int ad_sasl_getopt(void *context, const char *plugin_name,
+                          const char *option,
+                          const char **result, unsigned *len)
+{
+    if (!plugin_name || !result) {
+        return SASL_FAIL;
+    }
+    if (strcmp(plugin_name, "GSSAPI") != 0) {
+        return SASL_FAIL;
+    }
+    if (strcmp(option, "ad_compat") != 0) {
+        return SASL_FAIL;
+    }
+    *result = AD_COMPAT_ON;
+    if (len) {
+        *len = 2;
+    }
+    return SASL_OK;
+}
+
+static const sasl_callback_t ad_sasl_callbacks[] = {
+    { SASL_CB_GETOPT, ad_sasl_getopt, NULL },
+    { SASL_CB_LIST_END, NULL, NULL }
+};
+/* This is quite a hack, we *try* to fool openldap libraries by initializing
+ * sasl first so we can pass in the SASL_CB_GETOPT callback we need to set some
+ * options. Should be removed as soon as openldap exposes a way to do that */
+static void ad_sasl_initialize(void)
+{
+    /* NOTE: this may fail if soe other library in the system happens to
+     * initialize and use openldap libraries or directly the cyrus-sasl
+     * library as this initialization function can be called only once per
+     * process */
+    (void)sasl_client_init(ad_sasl_callbacks);
+}
+
 static errno_t
 common_ad_init(struct be_ctx *bectx)
 {
@@ -72,6 +111,8 @@ common_ad_init(struct be_ctx *bectx)
     char *ad_servers = NULL;
     char *ad_backup_servers = NULL;
     char *ad_realm;
+
+    ad_sasl_initialize();
 
     /* Get AD-specific options */
     ret = ad_get_common_options(bectx, bectx->cdb,
