@@ -722,7 +722,7 @@ START_TEST(test_resolv_sort_srv_reply)
     }
 
     /* do the sort */
-    ret = resolv_sort_srv_reply(test_ctx, &replies);
+    ret = resolv_sort_srv_reply(&replies);
     fail_if(ret != EOK);
 
     /* check if the list is sorted */
@@ -757,7 +757,7 @@ START_TEST(test_resolv_sort_srv_reply)
     }
 
     /* do the sort */
-    ret = resolv_sort_srv_reply(test_ctx, &replies);
+    ret = resolv_sort_srv_reply(&replies);
     fail_if(ret != EOK);
 
     /* clean up */

@@ -148,7 +148,7 @@ int resolv_getsrv_recv(TALLOC_CTX *mem_ctx,
 
 /* This is an implementation of section "Usage rules" of RFC 2782 */
 int
-resolv_sort_srv_reply(TALLOC_CTX *mem_ctx, struct ares_srv_reply **reply);
+resolv_sort_srv_reply(struct ares_srv_reply **reply);
 
 /** Get TXT record **/
 struct tevent_req *resolv_gettxt_send(TALLOC_CTX *mem_ctx,

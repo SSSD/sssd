@@ -98,7 +98,7 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, ("Got answer. Processing...\n"));
 
     /* sort and store the answer */
-    ret = resolv_sort_srv_reply(state, &reply_list);
+    ret = resolv_sort_srv_reply(&reply_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Could not sort the answers from DNS "
                                     "[%d]: %s\n", ret, strerror(ret)));

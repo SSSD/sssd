@@ -2048,8 +2048,7 @@ static struct ares_srv_reply *reply_priority_sort(struct ares_srv_reply *list)
     return list;
 }
 
-static int reply_weight_rearrange(TALLOC_CTX *mem_ctx,
-                                  int len,
+static int reply_weight_rearrange(int len,
                                   struct ares_srv_reply **start,
                                   struct ares_srv_reply **end)
 {
@@ -2059,12 +2058,13 @@ static int reply_weight_rearrange(TALLOC_CTX *mem_ctx,
     struct ares_srv_reply *r, *prev, *tmp;
     struct ares_srv_reply *new_start = NULL;
     struct ares_srv_reply *new_end = NULL;
+    int ret;
 
     if (len <= 1) {
         return EOK;
     }
 
-    totals = talloc_array(mem_ctx, int, len);
+    totals = talloc_array(NULL, int, len);
     if (!totals) {
         return ENOMEM;
     }
@@ -2122,7 +2122,8 @@ static int reply_weight_rearrange(TALLOC_CTX *mem_ctx,
 
         if (r == NULL || totals[i] == -1) {
             DEBUG(1, ("Bug: did not select any server!\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         /* remove r from the old list */
@@ -2146,12 +2147,15 @@ static int reply_weight_rearrange(TALLOC_CTX *mem_ctx,
     /* return the rearranged list */
     *start = new_start;
     *end = new_end;
+    ret = EOK;
+
+done:
     talloc_free(totals);
-    return EOK;
+    return ret;
 }
 
 int
-resolv_sort_srv_reply(TALLOC_CTX *mem_ctx, struct ares_srv_reply **reply)
+resolv_sort_srv_reply(struct ares_srv_reply **reply)
 {
     int ret;
     struct ares_srv_reply *pri_start, *pri_end, *next, *prev_end;
@@ -2184,7 +2188,7 @@ resolv_sort_srv_reply(TALLOC_CTX *mem_ctx, struct ares_srv_reply **reply)
         /* rearrange each priority level according to the weight field */
         next = pri_end->next;
         pri_end->next = NULL;
-        ret = reply_weight_rearrange(mem_ctx, len, &pri_start, &pri_end);
+        ret = reply_weight_rearrange(len, &pri_start, &pri_end);
         if (ret) {
             DEBUG(1, ("Error rearranging priority level [%d]: %s\n",
                       ret, strerror(ret)));
