@@ -63,4 +63,6 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid);
 errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
                               time_t timeout, struct sss_mc_ctx **mc_ctx);
 
+void sss_mmap_cache_reset(struct sss_mc_ctx *mc_ctx);
+
 #endif /* _NSSSRV_MMAP_CACHE_H_ */

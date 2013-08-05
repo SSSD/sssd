@@ -373,8 +373,23 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     }
 
     while (slot != MC_INVALID_VAL) {
+        if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Corrupted fastcache. Slot number too big.\n"));
+            sss_mmap_cache_reset(mcc);
+            return NULL;
+        }
+
         rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
         name_ptr = *((rel_ptr_t *)rec->data);
+        /* FIXME: This check relies on fact that offset of member strs
+         * is the same in structures sss_mc_pwd_data and sss_mc_group_data. */
+        if (name_ptr != offsetof(struct sss_mc_pwd_data, strs)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Corrupted fastcache. name_ptr value is %u.\n", name_ptr));
+            sss_mmap_cache_reset(mcc);
+            return NULL;
+        }
 
         t_key = (char *)rec->data + name_ptr;
         if (strcmp(key->str, t_key) == 0) {
@@ -593,6 +608,13 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
     }
 
     while (slot != MC_INVALID_VAL) {
+        if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
+            sss_mmap_cache_reset(mcc);
+            ret = ENOENT;
+            goto done;
+        }
+
         rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
         data = (struct sss_mc_pwd_data *)(&rec->data);
 
@@ -729,6 +751,13 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
     }
 
     while (slot != MC_INVALID_VAL) {
+        if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
+            sss_mmap_cache_reset(mcc);
+            ret = ENOENT;
+            goto done;
+        }
+
         rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
         data = (struct sss_mc_grp_data *)(&rec->data);
 
@@ -876,8 +905,9 @@ static void sss_mc_header_update(struct sss_mc_ctx *mc_ctx, int status)
     /* update header using barriers */
     h = (struct sss_mc_header *)mc_ctx->mmap_base;
     MC_RAISE_BARRIER(h);
-    if (status != SSS_MC_HEADER_RECYCLED) {
-        /* no reason to update anything else if the file is recycled */
+    if (status == SSS_MC_HEADER_ALIVE) {
+        /* no reason to update anything else if the file is recycled or
+         * right before reset */
         h->hash_table = MC_PTR_DIFF(mc_ctx->hash_table, mc_ctx->mmap_base);
         h->free_table = MC_PTR_DIFF(mc_ctx->free_table, mc_ctx->mmap_base);
         h->data_table = MC_PTR_DIFF(mc_ctx->data_table, mc_ctx->mmap_base);
@@ -1099,4 +1129,24 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+/* Erase all contents of the mmap cache. This will bring the cache
+ * to the same state as if it was just initialized. */
+void sss_mmap_cache_reset(struct sss_mc_ctx *mc_ctx)
+{
+    if (mc_ctx == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Fastcache not initialized. Nothing to do.\n"));
+        return;
+    }
+
+    sss_mc_header_update(mc_ctx, SSS_MC_HEADER_UNINIT);
+
+    /* Reset the mmaped area */
+    memset(mc_ctx->data_table, 0xff, mc_ctx->dt_size);
+    memset(mc_ctx->free_table, 0x00, mc_ctx->ft_size);
+    memset(mc_ctx->hash_table, 0xff, mc_ctx->ht_size);
+
+    sss_mc_header_update(mc_ctx, SSS_MC_HEADER_ALIVE);
 }
