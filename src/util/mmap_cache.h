@@ -78,6 +78,7 @@ typedef uint32_t rel_ptr_t;
 #define SSS_MC_MAJOR_VNO    0
 #define SSS_MC_MINOR_VNO    4
 
+#define SSS_MC_HEADER_UNINIT    0   /* after ftruncate or before reset */
 #define SSS_MC_HEADER_ALIVE     1   /* current and in use */
 #define SSS_MC_HEADER_RECYCLED  2   /* file was recycled, reopen asap */
 
@@ -109,6 +110,8 @@ struct sss_mc_rec {
     char data[0];
 };
 
+/* FIXME: Function sss_mc_find_record currently relies on fact that
+ * offset of strs is the same in both sss_mc_pwd_data and sss_mc_grp_data. */
 struct sss_mc_pwd_data {
     rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
     uint32_t uid;
