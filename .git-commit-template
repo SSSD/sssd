@@ -1,0 +1,9 @@
+COMPONENT: Subject
+
+Explanation
+
+Resolves:
+https://fedorahosted.org/sssd/ticket/XXXX
+
+# Try to keep the subject line within 52 chars ----|
+# Also please try to not exceed 72 characters of length for the body --|
