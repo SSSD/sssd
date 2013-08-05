@@ -2063,6 +2063,9 @@ static int be_client_destructor(void *ctx)
         } else if (becli->bectx->ssh_cli == becli) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Removed SSH client\n"));
             becli->bectx->ssh_cli = NULL;
+        } else if (becli->bectx->pac_cli == becli) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Removed PAC client\n"));
+            becli->bectx->pac_cli = NULL;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown client removed ...\n"));
         }
@@ -2118,7 +2121,7 @@ static int client_registration(DBusMessage *message,
     } else if (strcasecmp(cli_name, "SSH") == 0) {
         becli->bectx->ssh_cli = becli;
     } else if (strcasecmp(cli_name, "PAC") == 0) {
-        /* no need to set becli */
+        becli->bectx->pac_cli = becli;
     } else {
         DEBUG(1, ("Unknown client! [%s]\n", cli_name));
     }

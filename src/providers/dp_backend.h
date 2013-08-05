@@ -137,6 +137,7 @@ struct be_ctx {
     struct be_client *sudo_cli;
     struct be_client *autofs_cli;
     struct be_client *ssh_cli;
+    struct be_client *pac_cli;
 
     struct loaded_be loaded_be[BET_MAX];
     struct bet_info bet_info[BET_MAX];
