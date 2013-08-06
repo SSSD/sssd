@@ -575,6 +575,20 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
     ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, pr_ctx->dom,
                                    pwd->pw_uid, attrs, &msg);
     if (ret == ENOENT) {
+        if (pwd->pw_gid == 0 && !pr_ctx->dom->mpg) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Primary group RID from the PAC " \
+                                        "cannot be translated into a GID for " \
+                                        "user [%s]. Typically this happens " \
+                                        "when UIDs and GIDs are read from AD " \
+                                        "and the primary AD group does not " \
+                                        "have a GID assigned. Make sure the " \
+                                        "user is created by the ID provider " \
+                                        "before GSSAPI based authentication " \
+                                        "is used in this case.", pwd->pw_name));
+            ret = EINVAL;
+            goto done;
+        }
+
         ret = sysdb_store_user(sysdb, pr_ctx->dom, pwd->pw_name, NULL,
                                pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
                                pwd->pw_dir,
