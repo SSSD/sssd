@@ -3224,14 +3224,20 @@ static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
                 return ret;
             } else if (ret == EOK) {
                 DEBUG(SSSDBG_TRACE_FUNC, ("All done.\n"));
+
+                /* Calling tevent req done might invoke callback which would
+                 * zero out state */
+                bool is_finished = state->send_finished;
+                struct tevent_context *ev = state->ev;
+
                 tevent_req_done(req);
 
                 /**
                  * FIXME: Rewrite nested group processing so we call
                  *        tevent_req_post() only in _send().
                  */
-                if (state->send_finished == false) {
-                    tevent_req_post(req, state->ev);
+                if (is_finished == false) {
+                    tevent_req_post(req, ev);
                 }
             }
             return EOK;
@@ -3288,14 +3294,20 @@ static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
             return ret;
         } else if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_FUNC, ("All done.\n"));
+
+            /* Calling tevent req done might invoke callback which would
+             * zero out state */
+            bool is_finished = state->send_finished;
+            struct tevent_context *ev = state->ev;
+
             tevent_req_done(req);
 
             /**
              * FIXME: Rewrite nested group processing so we call
              *        tevent_req_post() only in _send().
              */
-            if (state->send_finished == false) {
-                tevent_req_post(req, state->ev);
+            if (is_finished == false) {
+                tevent_req_post(req, ev);
             }
         }
         return EOK;
