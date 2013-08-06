@@ -192,7 +192,6 @@ static void sdap_sudo_get_hostinfo_done(struct tevent_req *req)
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve host information - "
               "(host filter will be disabled) [%d]: %s\n", ret, strerror(ret)));
         sudo_ctx->use_host_filter = false;
-        return;
     }
 
     talloc_zfree(sudo_ctx->hostnames);
