@@ -2105,11 +2105,13 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             if (ret != EOK) goto done;
         } else {
             key.type = HASH_KEY_STRING;
-            key.str = discard_const(original_dn);
+            key.str = talloc_steal(ghosts, discard_const(original_dn));
             value.type = HASH_VALUE_PTR;
-            value.ptr = discard_const(username);
+            value.ptr = talloc_steal(ghosts, discard_const(username));
             ret = hash_enter(ghosts, &key, &value);
             if (ret != HASH_SUCCESS) {
+                talloc_free(key.str);
+                talloc_free(value.ptr);
                 ret = ENOMEM;
                 goto done;
             }
