@@ -2182,7 +2182,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
-    ret = sdap_get_group_primary_name(tmp_ctx, state->opts,
+    ret = sdap_get_group_primary_name(state, state->opts,
                                       state->groups[state->group_iter],
                                       state->dom, &state->primary_name);
     if (ret != EOK) {
