@@ -975,6 +975,16 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         }
 
         if (preq->res->count == 0) {
+            if (preq->check_provider == false) {
+                /* set negative cache only if not result of cache check */
+                ret = sss_ncache_set_user(pctx->ncache, false, dom, name);
+                if (ret != EOK) {
+                    /* Should not be fatal, just slower next time */
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                           ("Cannot set ncache for %s\n", name, dom));
+                }
+            }
+
             /* if a multidomain search, try with next */
             if (!preq->pd->domain) {
                 dom = get_next_domain(dom, false);
