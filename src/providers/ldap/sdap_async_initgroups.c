@@ -1984,6 +1984,8 @@ errno_t save_rfc2307bis_user_memberships(
     char **add_groups;
     char **del_groups;
     bool in_transaction = false;
+    size_t c;
+    char *tmp_str;
 
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if(!tmp_ctx) {
@@ -2018,6 +2020,20 @@ errno_t save_rfc2307bis_user_memberships(
                 &ldap_grouplist);
         if (ret != EOK) {
             goto error;
+        }
+
+        if (IS_SUBDOMAIN(state->dom)) {
+            for (c = 0; ldap_grouplist[c] != NULL; c++) {
+                tmp_str = sss_tc_fqname(ldap_grouplist, state->dom->names,
+                                        state->dom, ldap_grouplist[c]);
+                if (tmp_str == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_fqname failed.\n"));
+                    ret = ENOMEM;
+                    goto error;
+                }
+                talloc_free(ldap_grouplist[c]);
+                ldap_grouplist[c] = tmp_str;
+            }
         }
     }
 
