@@ -806,6 +806,14 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             ret = ENOENT;
             goto done;
         }
+
+        ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
+                                      preq->domain, pd->user);
+        if (ncret == EEXIST) {
+            /* User found in the negative cache */
+            ret = ENOENT;
+            goto done;
+        }
     } else {
         for (dom = preq->cctx->rctx->domains;
              dom;
