@@ -88,8 +88,10 @@ static int ad_sasl_getopt(void *context, const char *plugin_name,
     return SASL_OK;
 }
 
+typedef int (*sss_sasl_gen_cb_fn)(void);
+
 static const sasl_callback_t ad_sasl_callbacks[] = {
-    { SASL_CB_GETOPT, ad_sasl_getopt, NULL },
+    { SASL_CB_GETOPT, (sss_sasl_gen_cb_fn)ad_sasl_getopt, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 /* This is quite a hack, we *try* to fool openldap libraries by initializing
