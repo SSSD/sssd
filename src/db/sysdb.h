@@ -614,7 +614,9 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
                                struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
-                               const char *original_dn, bool posix,
+                               const char *original_dn,
+                               const char *sid_str,
+                               bool posix,
                                time_t now);
 
 /* Add netgroup (only basic attrs and w/o checks) */

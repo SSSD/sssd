@@ -496,7 +496,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
             ret = sysdb_add_incomplete_group(state->sysdb,
                                              state->domain,
                                              group_name, gid,
-                                             NULL, false, now);
+                                             NULL, sid_str, false, now);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Could not create incomplete group: [%s]\n",

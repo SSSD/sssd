@@ -271,7 +271,7 @@ static int test_add_incomplete_group(struct test_data *data)
 
     ret = sysdb_add_incomplete_group(data->ctx->sysdb,
                                      data->ctx->domain, data->groupname,
-                                     data->gid, NULL, true, 0);
+                                     data->gid, NULL, NULL, true, 0);
     return ret;
 }
 
@@ -3918,7 +3918,7 @@ START_TEST(test_odd_characters)
 
     /* Add */
     ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
-                                     odd_groupname, 20000, NULL, true, 0);
+                                     odd_groupname, 20000, NULL, NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -4446,14 +4446,14 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
     ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
                                      "case_sensitive_group1", 29000,
                                      "cn=case_sensitive_group1,cn=example,cn=com",
-                                     true, 0);
+                                     NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
     ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
                                      "case_sensitive_group2", 29001,
                                      "cn=CASE_SENSITIVE_GROUP1,cn=EXAMPLE,cn=COM",
-                                     true, 0);
+                                     NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -4474,6 +4474,44 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
                                "case insensitive originalDN search");
 }
 END_TEST
+
+START_TEST(test_sysdb_group_sid_str)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *filter;
+    struct ldb_dn *base_dn;
+    const char *no_attrs[] = { NULL };
+    struct ldb_message **msgs;
+    size_t num_msgs;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_add_incomplete_group(test_ctx->sysdb, test_ctx->domain,
+                                     "group", 29000,
+                                     "cn=group,cn=example,cn=com",
+                                     "S-1-2-3-4", true, 0);
+    fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    filter = talloc_asprintf(test_ctx, "%s=%s", SYSDB_SID_STR, "S-1-2-3-4");
+    fail_if(filter == NULL, "Cannot construct filter\n");
+
+    base_dn = sysdb_domain_dn(test_ctx->sysdb, test_ctx, test_ctx->domain);
+    fail_if(base_dn == NULL, "Cannot construct basedn\n");
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
+                             base_dn, LDB_SCOPE_SUBTREE, filter, no_attrs,
+                             &num_msgs, &msgs);
+    fail_unless(ret == EOK, "cache search error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(num_msgs == 1, "Did not find the expected number of entries using "
+                               "SID string search");
+}
+END_TEST
+
 
 START_TEST(test_sysdb_subdomain_create)
 {
@@ -5062,6 +5100,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test originalDN searches */
     tcase_add_test(tc_sysdb, test_sysdb_original_dn_case_insensitive);
+
+    /* Test SID string group searches */
+    tcase_add_test(tc_sysdb, test_sysdb_group_sid_str);
 
     /* Test user and group renames */
     tcase_add_test(tc_sysdb, test_group_rename);

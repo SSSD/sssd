@@ -48,7 +48,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     bool in_transaction = false;
     bool posix;
     time_t now;
-    char *sid_str;
+    char *sid_str = NULL;
     bool use_id_mapping;
     char *tmp_name;
 
@@ -127,15 +127,23 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             if (strcmp(groupname, missing[i]) == 0) {
                 posix = true;
 
+                ret = sdap_attrs_get_sid_str(
+                        tmp_ctx, opts->idmap_ctx, ldap_groups[ai],
+                        opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
+                        &sid_str);
+                if (ret != EOK && ret != ENOENT) goto done;
+
                 if (use_id_mapping) {
+                    if (sid_str == NULL) {
+                        DEBUG(SSSDBG_MINOR_FAILURE, ("No SID for group [%s] " \
+                                                     "while id-mapping.\n",
+                                                     groupname));
+                        ret = EINVAL;
+                        goto done;
+                    }
+
                     DEBUG(SSSDBG_TRACE_LIBS,
                           ("Mapping group [%s] objectSID to unix ID\n", groupname));
-
-                    ret = sdap_attrs_get_sid_str(
-                            tmp_ctx, opts->idmap_ctx, ldap_groups[ai],
-                            opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
-                            &sid_str);
-                    if (ret != EOK) goto done;
 
                     DEBUG(SSSDBG_TRACE_INTERNAL,
                           ("Group [%s] has objectSID [%s]\n",
@@ -187,7 +195,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                 DEBUG(SSSDBG_TRACE_INTERNAL,
                       ("Adding fake group %s to sysdb\n", groupname));
                 ret = sysdb_add_incomplete_group(sysdb, domain, groupname, gid,
-                                                 original_dn, posix, now);
+                                                 original_dn, sid_str, posix,
+                                                 now);
                 if (ret != EOK) {
                     goto done;
                 }
