@@ -704,13 +704,6 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
         return ENOMEM;
     }
 
-    user_attrs = sysdb_new_attrs(tmp_ctx);
-    if (user_attrs == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
     ret = sysdb_transaction_start(pr_ctx->dom->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_start failed.\n"));
@@ -719,6 +712,8 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
     in_transaction = true;
 
     for (c = 0; c < pr_ctx->del_grp_count; c++) {
+        /* If there is a failure for one group we still try to remove the
+         * remaining groups. */
         ret = sysdb_mod_group_member(pr_ctx->dom->sysdb, state->user_dn,
                                      pr_ctx->del_grp_list[c].dn,
                                      LDB_FLAG_MOD_DELETE);
@@ -728,24 +723,31 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
                                       ldb_dn_get_linearized(state->user_dn),
                                       ldb_dn_get_linearized(
                                                   pr_ctx->del_grp_list[c].dn)));
-            goto done;
+            continue;
         }
 
         if (pr_ctx->del_grp_list[c].orig_dn != NULL) {
+            user_attrs = sysdb_new_attrs(tmp_ctx);
+            if (user_attrs == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+                continue;
+            }
+
             ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
                                          pr_ctx->del_grp_list[c].orig_dn);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
-                goto done;
+                continue;
             }
-        }
-    }
 
-    ret = sysdb_set_entry_attr(pr_ctx->dom->sysdb, state->user_dn, user_attrs,
-                               LDB_FLAG_MOD_DELETE);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
-        goto done;
+            ret = sysdb_set_entry_attr(pr_ctx->dom->sysdb, state->user_dn, user_attrs,
+                                       LDB_FLAG_MOD_DELETE);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
+                continue;
+            }
+            talloc_free(user_attrs);
+        }
     }
 
     ret = sysdb_transaction_commit(pr_ctx->dom->sysdb);
@@ -827,7 +829,10 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
 
             return EAGAIN;
         } else  {
-            goto done;
+            DEBUG(SSSDBG_OP_FAILURE, ("pac_store_membership failed, "
+                                      "trying next group.\n"));
+            state->sid_iter++;
+            continue;
         }
     }
 
@@ -884,7 +889,8 @@ static void pac_get_group_done(struct tevent_req *subreq)
 
     ret = pac_store_membership(state->pr_ctx, state->user_dn, gid, grp_dom);
     if (ret != EOK) {
-        goto error;
+        DEBUG(SSSDBG_OP_FAILURE, ("pac_store_membership failed, "
+                                  "trying next group.\n"));
     }
     state->sid_iter++;
 
@@ -927,6 +933,9 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_ALL, ("Adding user [%s] to group [%d][%s].\n",
+                             ldb_dn_get_linearized(user_dn), gid,
+                             ldb_dn_get_linearized(group->dn)));
     ret = sysdb_mod_group_member(grp_dom->sysdb, user_dn, group->dn,
                                  LDB_FLAG_MOD_ADD);
     if (ret != EOK) {
@@ -959,6 +968,10 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
             goto done;
         }
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Original DN not available for group " \
+                                     "[%d][%s].\n", gid,
+                                     ldb_dn_get_linearized(group->dn)));
     }
 
 done:
