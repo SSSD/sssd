@@ -91,7 +91,7 @@ static void pac_get_group_done(struct tevent_req *subreq);
 static errno_t pac_save_memberships_next(struct tevent_req *req);
 static errno_t pac_store_membership(struct pac_req_ctx *pr_ctx,
                                     struct ldb_dn *user_dn,
-                                    gid_t gid,
+                                    const char *grp_sid_str,
                                     struct sss_domain_info *grp_dom);
 struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx);
 static void pac_save_memberships_done(struct tevent_req *req);
@@ -774,16 +774,11 @@ done:
 static errno_t pac_save_memberships_next(struct tevent_req *req)
 {
     errno_t ret;
-    uint32_t gid;
     char *sid;
     struct sss_domain_info *grp_dom;
     struct tevent_req *subreq;
     struct pac_save_memberships_state *state;
     struct pac_req_ctx *pr_ctx;
-    hash_key_t key;
-    hash_value_t value;
-
-    key.type = HASH_KEY_STRING;
 
     state = tevent_req_data(req, struct pac_save_memberships_state);
     pr_ctx = state->pr_ctx;
@@ -804,23 +799,15 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
             DEBUG(SSSDBG_OP_FAILURE, ("responder_get_domain_by_id failed.\n"));
             return ret;
         }
-        key.str = sid;
-        ret = hash_lookup(pr_ctx->sid_table, &key, &value);
-        if (ret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, ("hash_lookup failed.\n"));
-            return EIO;
-        }
-        gid = value.ul;
 
-        ret = pac_store_membership(state->pr_ctx, state->user_dn, gid, grp_dom);
+        ret = pac_store_membership(state->pr_ctx, state->user_dn, sid, grp_dom);
         if (ret == EOK) {
             state->sid_iter++;
             continue;
         } else if (ret == ENOENT) {
             subreq = sss_dp_get_account_send(state, pr_ctx->cctx->rctx,
                                              grp_dom, true,
-                                             SSS_DP_GROUP, NULL,
-                                             gid, NULL);
+                                             SSS_DP_SECID, sid, 0, NULL);
             if (subreq == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -853,14 +840,9 @@ static void pac_get_group_done(struct tevent_req *subreq)
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
     char *err_msg;
-    gid_t gid;
     char *sid;
     struct sss_domain_info *grp_dom;
     struct pac_req_ctx *pr_ctx = state->pr_ctx;
-    hash_key_t key;
-    hash_value_t value;
-
-    key.type = HASH_KEY_STRING;
 
     ret = sss_dp_get_account_recv(req, subreq,
                                   &err_maj, &err_min,
@@ -878,16 +860,7 @@ static void pac_get_group_done(struct tevent_req *subreq)
         goto error;
     }
 
-    key.str = sid;
-    ret = hash_lookup(pr_ctx->sid_table, &key, &value);
-    if (ret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("hash_lookup failed.\n"));
-        ret = EIO;
-        goto error;
-    }
-    gid = value.ul;
-
-    ret = pac_store_membership(state->pr_ctx, state->user_dn, gid, grp_dom);
+    ret = pac_store_membership(state->pr_ctx, state->user_dn, sid, grp_dom);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("pac_store_membership failed, "
                                   "trying next group.\n"));
@@ -910,44 +883,64 @@ error:
 static errno_t
 pac_store_membership(struct pac_req_ctx *pr_ctx,
                      struct ldb_dn *user_dn,
-                     gid_t gid, struct sss_domain_info *grp_dom)
+                     const char *grp_sid_str,
+                     struct sss_domain_info *grp_dom)
 {
     TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs *user_attrs;
-    struct ldb_message *group;
+    struct ldb_result *group;
     errno_t ret;
     const char *orig_group_dn;
-    const char *group_attrs[] = { SYSDB_ORIG_DN, NULL };
+    const char *group_attrs[] = { SYSDB_ORIG_DN, SYSDB_OBJECTCLASS, NULL };
+    const char *oc;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    ret = sysdb_search_group_by_gid(tmp_ctx, grp_dom->sysdb, grp_dom,
-                                    gid, group_attrs, &group);
+    ret = sysdb_search_object_by_sid(tmp_ctx, grp_dom->sysdb, grp_dom,
+                                     grp_sid_str, group_attrs, &group);
     if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("sysdb_search_group_by_gid for gid [%d]" \
-                                      "failed [%d][%s].\n",
-                                      gid, ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_INTERNAL, ("sysdb_search_object_by_sid " \
+                                      "for SID [%s] failed [%d][%s].\n",
+                                      grp_sid_str, ret, strerror(ret)));
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Adding user [%s] to group [%d][%s].\n",
-                             ldb_dn_get_linearized(user_dn), gid,
-                             ldb_dn_get_linearized(group->dn)));
-    ret = sysdb_mod_group_member(grp_dom->sysdb, user_dn, group->dn,
+    if (group->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Unexpected number of groups returned.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    oc = ldb_msg_find_attr_as_string(group->msgs[0], SYSDB_OBJECTCLASS, NULL);
+    if (oc == NULL || strcmp(oc, SYSDB_GROUP_CLASS) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Return object does not have group " \
+                                  "objectclass.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, ("Adding user [%s] to group [%s][%s].\n",
+                             ldb_dn_get_linearized(user_dn), grp_sid_str,
+                             ldb_dn_get_linearized(group->msgs[0]->dn)));
+    ret = sysdb_mod_group_member(grp_dom->sysdb, user_dn, group->msgs[0]->dn,
                                  LDB_FLAG_MOD_ADD);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed user [%s] " \
                                   "group [%s].\n",
                                   ldb_dn_get_linearized(user_dn),
-                                  ldb_dn_get_linearized(group->dn)));
+                                  ldb_dn_get_linearized(group->msgs[0]->dn)));
         goto done;
     }
 
-    orig_group_dn = ldb_msg_find_attr_as_string(group, SYSDB_ORIG_DN, NULL);
+    orig_group_dn = ldb_msg_find_attr_as_string(group->msgs[0], SYSDB_ORIG_DN,
+                                                NULL);
     if (orig_group_dn != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Adding original group DN [%s] to user [%s].\n",
+                                 orig_group_dn,
+                                 ldb_dn_get_linearized(user_dn)));
         user_attrs = sysdb_new_attrs(tmp_ctx);
         if (user_attrs == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
@@ -963,15 +956,15 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         }
 
         ret = sysdb_set_entry_attr(pr_ctx->dom->sysdb, user_dn, user_attrs,
-                                  LDB_FLAG_MOD_ADD);
+                                   LDB_FLAG_MOD_ADD);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
             goto done;
         }
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Original DN not available for group " \
-                                     "[%d][%s].\n", gid,
-                                     ldb_dn_get_linearized(group->dn)));
+                                     "[%s][%s].\n", grp_sid_str,
+                                     ldb_dn_get_linearized(group->msgs[0]->dn)));
     }
 
 done:
