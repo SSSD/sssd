@@ -454,7 +454,10 @@ static errno_t pac_user_get_grp_info(TALLOC_CTX *mem_ctx,
             key.str = discard_const(cur_sid);
             ret = hash_lookup(pr_ctx->sid_table, &key, &value);
             if (ret == HASH_SUCCESS) {
-                /* user is already member of the group */
+                DEBUG(SSSDBG_TRACE_ALL, ("User [%s] already member of group " \
+                                         "with SID [%s].\n",
+                                         pr_ctx->user_name, cur_sid));
+
                 ret = hash_delete(pr_ctx->sid_table, &key);
                 if (ret != HASH_SUCCESS) {
                     DEBUG(SSSDBG_OP_FAILURE, ("Failed to remove hash entry.\n"));
@@ -462,15 +465,9 @@ static errno_t pac_user_get_grp_info(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
             } else if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-                /* group is not in the PAC anymore, membership must be removed */
-                del_grp_list[del_idx].gid =
-                                  ldb_msg_find_attr_as_uint64(res->msgs[c + 1],
-                                                              SYSDB_GIDNUM, 0);
-                if (del_grp_list[del_idx].gid == 0) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("Missing GID.\n"));
-                    ret = EINVAL;
-                    goto done;
-                }
+                DEBUG(SSSDBG_TRACE_INTERNAL, ("Group with SID [%s] is not in " \
+                                              "the PAC anymore, membership " \
+                                              "must be removed.\n", cur_sid));
 
                 tmp_str = ldb_msg_find_attr_as_string(res->msgs[c + 1],
                                                       SYSDB_ORIG_DN, NULL);
@@ -517,6 +514,8 @@ static errno_t pac_user_get_grp_info(TALLOC_CTX *mem_ctx,
                     ret = ENOMEM;
                     goto done;
                 }
+                DEBUG(SSSDBG_TRACE_ALL, ("SID [%s] added to add_sids " \
+                                         "list.\n", entry->key.str));
                 c++;
             }
         }

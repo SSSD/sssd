@@ -55,7 +55,6 @@ struct pac_ctx {
 };
 
 struct grp_info {
-    gid_t gid;
     char *orig_dn;
     struct ldb_dn *dn;
 };
