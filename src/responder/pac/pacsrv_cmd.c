@@ -627,6 +627,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
     struct tevent_req *req;
     errno_t ret;
     char *dom_name = NULL;
+    struct ldb_message *msg;
 
     req = tevent_req_create(pr_ctx, &state, struct pac_save_memberships_state);
     if (req == NULL) {
@@ -642,11 +643,15 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    state->user_dn = sysdb_user_dn(dom->sysdb, state, dom, dom_name);
-    if (state->user_dn == NULL) {
-        ret = ENOMEM;
+    ret = sysdb_search_user_by_name(state, dom->sysdb, dom, dom_name, NULL,
+                                    &msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed " \
+                                  "[%d][%s].\n", ret, strerror(ret)));
         goto done;
     }
+
+    state->user_dn = msg->dn;
     state->pr_ctx = pr_ctx;
 
     ret = pac_save_memberships_delete(state);
@@ -718,7 +723,11 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
                                      pr_ctx->del_grp_list[c].dn,
                                      LDB_FLAG_MOD_DELETE);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed for " \
+                                      "user [%s] and group[%s].\n",
+                                      ldb_dn_get_linearized(state->user_dn),
+                                      ldb_dn_get_linearized(
+                                                  pr_ctx->del_grp_list[c].dn)));
             goto done;
         }
 
@@ -921,7 +930,10 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
     ret = sysdb_mod_group_member(grp_dom->sysdb, user_dn, group->dn,
                                  LDB_FLAG_MOD_ADD);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed user [%s] " \
+                                  "group [%s].\n",
+                                  ldb_dn_get_linearized(user_dn),
+                                  ldb_dn_get_linearized(group->dn)));
         goto done;
     }
 
