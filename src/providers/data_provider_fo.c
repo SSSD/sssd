@@ -68,7 +68,7 @@ static int be_fo_get_options(struct be_ctx *ctx,
                              struct fo_options *opts)
 {
     opts->service_resolv_timeout = dp_opt_get_int(ctx->be_res->opts,
-                                                  DP_RES_OPT_RESOLVER_OP_TIMEOUT);
+                                                  DP_RES_OPT_RESOLVER_TIMEOUT);
     opts->retry_timeout = 30;
     opts->srv_retry_timeout = 14400;
     opts->family_order = ctx->be_res->family_order;
