@@ -33,7 +33,7 @@
 #define FO_PROTO_TCP "tcp"
 #define FO_PROTO_UDP "udp"
 
-#define FO_DEFAULT_SVC_TIMEOUT 10
+#define FO_DEFAULT_SVC_TIMEOUT 6
 
 /* Some forward declarations that don't have to do anything with fail over. */
 struct hostent;
