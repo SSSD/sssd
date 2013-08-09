@@ -1278,6 +1278,8 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     const char *realm_name;
     int realm_length;
     krb5_get_init_creds_opt *chagepw_options;
+    size_t msg_len;
+    uint8_t *msg;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Password change operation\n"));
 
@@ -1310,6 +1312,19 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                         chagepw_options);
     sss_krb5_get_init_creds_opt_free(kr->ctx, chagepw_options);
     if (kerr != 0) {
+        ret = pack_user_info_chpass_error(kr->pd, "Old password not accepted.",
+                                          &msg_len, &msg);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("pack_user_info_chpass_error failed.\n"));
+        } else {
+            ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, msg_len,
+                                   msg);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("pam_add_response failed.\n"));
+            }
+        }
         return kerr;
     }
 

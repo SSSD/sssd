@@ -768,6 +768,8 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     void *pw_expire_data;
     int dp_err = DP_ERR_FATAL;
     int ret;
+    size_t msg_len;
+    uint8_t *msg;
 
     ret = auth_recv(req, state, &state->sh, &state->dn,
                     &pw_expire_type, &pw_expire_data);
@@ -847,6 +849,19 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     case ERR_AUTH_DENIED:
     case ERR_AUTH_FAILED:
         state->pd->pam_status = PAM_AUTH_ERR;
+        ret = pack_user_info_chpass_error(state->pd, "Old password not accepted.",
+                                          &msg_len, &msg);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("pack_user_info_chpass_error failed.\n"));
+        } else {
+            ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len,
+                                    msg);
+            if (ret != EOK) {
+               DEBUG(SSSDBG_CRIT_FAILURE, ("pam_add_response failed.\n"));
+            }
+        }
+
         break;
     case ETIMEDOUT:
     case ERR_NETWORK_IO:
