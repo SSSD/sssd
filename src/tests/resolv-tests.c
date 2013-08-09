@@ -38,7 +38,7 @@
 /* Interface under test */
 #include "resolv/async_resolv.h"
 
-#define RESOLV_DEFAULT_TIMEOUT 5
+#define RESOLV_DEFAULT_TIMEOUT 6
 
 static int use_net_test;
 static char *txt_host;
@@ -700,7 +700,8 @@ START_TEST(test_resolv_free_req)
     gettimeofday(&free_tv, NULL);
     free_tv.tv_sec += 1;
     free_tv.tv_usec = 0;
-    terminate_tv.tv_sec  = free_tv.tv_sec + 1;
+    /* Give enought time for c-ares request to terminate */
+    terminate_tv.tv_sec  = free_tv.tv_sec + 6;
     terminate_tv.tv_usec = 0;
 
     free_timer = tevent_add_timer(test_ctx->ev, test_ctx, free_tv, resolv_free_req, req);
@@ -787,6 +788,7 @@ Suite *create_resolv_suite(void)
     Suite *s = suite_create("resolv");
 
     TCase *tc_resolv = tcase_create("RESOLV Tests");
+    tcase_set_timeout(tc_resolv, 8);
 
     tcase_add_checked_fixture(tc_resolv, leak_check_setup, leak_check_teardown);
     /* Do some testing */
