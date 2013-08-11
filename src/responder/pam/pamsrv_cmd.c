@@ -522,7 +522,9 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
         goto done;
     }
 
-    sysdb = preq->domain->sysdb;
+    /* Sysdb rules are always stored in the parent domain */
+    sysdb = preq->domain->parent ? preq->domain->parent->sysdb :
+                                   preq->domain->sysdb;
     if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("Fatal: Sysdb CTX not found for "
                                      "domain [%s]!\n", preq->domain->name));
@@ -598,7 +600,7 @@ static errno_t process_selinux_mappings(struct pam_auth_req *preq)
     }
 
     /* Fetch all maps applicable to the user who is currently logging in */
-    ret = sysdb_search_selinux_usermap_by_username(tmp_ctx, sysdb, pd->user,
+    ret = sysdb_search_selinux_usermap_by_username(tmp_ctx, preq->domain, pd->user,
                                                    &usermaps);
     if (ret != EOK && ret != ENOENT) {
         goto done;

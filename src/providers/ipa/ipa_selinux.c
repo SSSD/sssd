@@ -36,6 +36,7 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
+#include "providers/krb5/krb5_utils.h"
 
 static struct tevent_req *
 ipa_get_selinux_send(struct be_req *breq,
@@ -52,7 +53,7 @@ static errno_t ipa_get_selinux_recv(struct tevent_req *req,
                                     char **map_order);
 
 static struct ipa_selinux_op_ctx *
-ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                           struct be_req *be_req, const char *username,
                           const char *hostname);
 static void ipa_selinux_handler_done(struct tevent_req *subreq);
@@ -84,6 +85,8 @@ void ipa_selinux_handler(struct be_req *be_req)
     struct tevent_req *req;
     struct pam_data *pd;
     const char *hostname;
+    int ret;
+    struct sss_domain_info *dom;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
@@ -98,7 +101,13 @@ void ipa_selinux_handler(struct be_req *be_req)
         goto fail;
     }
 
-    op_ctx = ipa_selinux_create_op_ctx(be_req, be_req->sysdb, be_req,
+    ret = get_domain_or_subdomain(be_req, be_req->be_ctx, pd->domain, &dom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("get_domain_or_subdomain failed.\n"));
+        goto fail;
+    }
+
+    op_ctx = ipa_selinux_create_op_ctx(be_req, dom, be_req,
                                        pd->user, hostname);
     if (op_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot create op context\n"));
@@ -119,7 +128,7 @@ fail:
 }
 
 static struct ipa_selinux_op_ctx *
-ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                           struct be_req *be_req, const char *username,
                           const char *hostname)
 {
@@ -132,6 +141,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     struct ldb_message **msgs;
     struct sysdb_attrs **hosts;
     errno_t ret;
+    struct sss_domain_info *parent_dom;
 
     op_ctx = talloc_zero(mem_ctx, struct ipa_selinux_op_ctx);
     if (op_ctx == NULL) {
@@ -139,18 +149,20 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     }
     op_ctx->be_req = be_req;
 
-    ret = sss_selinux_extract_user(op_ctx, sysdb, username, &op_ctx->user);
+    parent_dom = dom->parent ? dom->parent : dom;
+
+    ret = sss_selinux_extract_user(op_ctx, dom->sysdb, username, &op_ctx->user);
     if (ret != EOK) {
         goto fail;
     }
 
-    host_dn = sysdb_custom_dn(sysdb, op_ctx, hostname, HBAC_HOSTS_SUBDIR);
+    host_dn = sysdb_custom_dn(parent_dom->sysdb, op_ctx, hostname, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         goto fail;
     }
 
     /* Look up the host to get its originalMemberOf entries */
-    ret = sysdb_search_entry(op_ctx, sysdb, host_dn,
+    ret = sysdb_search_entry(op_ctx, parent_dom->sysdb, host_dn,
                              LDB_SCOPE_BASE, NULL,
                              attrs, &count, &msgs);
     if (ret == ENOENT || count == 0) {

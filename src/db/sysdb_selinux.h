@@ -61,7 +61,7 @@ errno_t sysdb_search_selinux_usermap_by_mapname(TALLOC_CTX *mem_ctx,
                                                 struct ldb_message **_usermap);
 
 errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
-                                                 struct sysdb_ctx *sysdb,
+                                                 struct sss_domain_info *dom,
                                                  const char *username,
                                                  struct ldb_message ***_usermaps);
 

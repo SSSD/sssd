@@ -333,7 +333,7 @@ sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
 }
 
 errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
-                                                 struct sysdb_ctx *sysdb,
+                                                 struct sss_domain_info *dom,
                                                  const char *username,
                                                  struct ldb_message ***_usermaps)
 {
@@ -357,20 +357,23 @@ errno_t sysdb_search_selinux_usermap_by_username(TALLOC_CTX *mem_ctx,
     uint32_t top_priority = 0;
     errno_t ret;
     int i;
+    struct sss_domain_info *parent_dom;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
+    parent_dom = dom->parent ? dom->parent : dom;
+
     /* Now extract user attributes */
-    ret = sss_selinux_extract_user(tmp_ctx, sysdb, username, &user);
+    ret = sss_selinux_extract_user(tmp_ctx, dom->sysdb, username, &user);
     if (ret != EOK) {
         goto done;
     }
 
     /* Now extract all SELinux user maps */
-    ret = sysdb_get_selinux_usermaps(tmp_ctx, sysdb, attrs, &msgs_count, &msgs);
+    ret = sysdb_get_selinux_usermaps(tmp_ctx, parent_dom->sysdb, attrs, &msgs_count, &msgs);
     if (ret) {
         goto done;
     }
