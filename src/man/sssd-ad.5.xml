@@ -42,6 +42,11 @@
             or later. Earlier versions may work, but are unsupported.
         </para>
         <para>
+            The AD provider is able to provide identity information and
+            authentication for entities from trusted domains as well. Currently
+            only trusted domains in the same forest are recognized.
+        </para>
+        <para>
             The AD provider accepts the same options used by the
             <citerefentry>
                 <refentrytitle>sssd-ldap</refentrytitle>
