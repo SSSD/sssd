@@ -476,6 +476,14 @@ int sdap_extend_map(TALLOC_CTX *memctx,
                     struct sdap_attr_map **_map,
                     size_t *_new_size);
 
+int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
+                              struct sdap_options *opts,
+                              int extra_attr_index,
+                              struct sdap_attr_map *src_map,
+                              size_t num_entries,
+                              struct sdap_attr_map **_map,
+                              size_t *_new_size);
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,

@@ -215,44 +215,6 @@ sdap_domain_remove(struct sdap_options *opts,
     DLIST_REMOVE(*(sdom->head), sdom);
 }
 
-static int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
-                                     struct sdap_options *opts,
-                                     int extra_attr_index,
-                                     struct sdap_attr_map *src_map,
-                                     size_t num_entries,
-                                     struct sdap_attr_map **_map,
-                                     size_t *_new_size)
-{
-    const char *extra_attrs;
-    char **extra_attrs_list;
-    errno_t ret;
-
-    extra_attrs = dp_opt_get_string(opts->basic, extra_attr_index);
-    if (extra_attrs == NULL) {
-        *_map = src_map;
-        *_new_size = num_entries;
-        return EOK;
-    }
-
-    /* split server parm into a list */
-    ret = split_on_separator(mem_ctx, extra_attrs, ',', true, true,
-                             &extra_attrs_list, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse server list!\n");
-        return ret;
-    }
-
-    ret = sdap_extend_map(mem_ctx, src_map,
-                          num_entries, extra_attrs_list,
-                          _map, _new_size);
-    talloc_free(extra_attrs_list);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
 int ldap_get_options(TALLOC_CTX *memctx,
                      struct sss_domain_info *dom,
                      struct confdb_ctx *cdb,
