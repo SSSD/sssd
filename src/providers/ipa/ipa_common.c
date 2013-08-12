@@ -547,11 +547,12 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
-    ret = sdap_extend_map(ipa_opts->id,
-                          ipa_opts->id->user_map,
-                          SDAP_OPTS_USER, NULL,
-                          &ipa_opts->id->user_map,
-                          &ipa_opts->id->user_map_cnt);
+    ret = sdap_extend_map_with_list(ipa_opts->id, ipa_opts->id,
+                                    SDAP_USER_EXTRA_ATTRS,
+                                    ipa_opts->id->user_map,
+                                    SDAP_OPTS_USER,
+                                    &ipa_opts->id->user_map,
+                                    &ipa_opts->id->user_map_cnt);
     if (ret != EOK) {
         goto done;
     }

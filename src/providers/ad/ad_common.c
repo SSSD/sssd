@@ -201,11 +201,12 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sdap_extend_map(id_opts,
-                          id_opts->user_map,
-                          SDAP_OPTS_USER, NULL,
-                          &id_opts->user_map,
-                          &id_opts->user_map_cnt);
+    ret = sdap_extend_map_with_list(id_opts, id_opts,
+                                    SDAP_USER_EXTRA_ATTRS,
+                                    id_opts->user_map,
+                                    SDAP_OPTS_USER,
+                                    &id_opts->user_map,
+                                    &id_opts->user_map_cnt);
     if (ret != EOK) {
         goto done;
     }
