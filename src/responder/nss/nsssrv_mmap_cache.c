@@ -93,6 +93,68 @@ struct sss_mc_ctx {
     else used = false; \
 } while (0)
 
+/* This function will store corrupted memcache to disk for later
+ * analysis. */
+static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
+{
+    int err;
+    int fd = -1;
+    ssize_t written;
+    char *file = NULL;
+    TALLOC_CTX *tmp_ctx;
+
+    if (mc_ctx == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Cannot store uninitialized cache. Nothing to do.\n"));
+        return;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        return;
+    }
+
+    file = talloc_asprintf(tmp_ctx, "%s_%s",
+                           mc_ctx->file, "corrupted");
+    if (file == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        goto done;
+    }
+
+    /* We will always store only the last problematic cache state */
+    fd = creat(file, 0600);
+    if (fd == -1) {
+        err = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to open file '%s' [%d]: %s\n",
+               file, err, strerror(err)));
+        goto done;
+    }
+
+    written = write(fd, mc_ctx->mmap_base, mc_ctx->mmap_size);
+    if (written != mc_ctx->mmap_size) {
+        if (written == -1) {
+            err = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("write() failed [%d]: %s\n", err, strerror(err)));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("write() returned %zd (expected (%zd))\n",
+                   written, mc_ctx->mmap_size));
+        }
+        goto done;
+    }
+
+    sss_log(SSS_LOG_NOTICE,
+            "Stored copy of corrupted mmap cache in file '%s\n'", file);
+done:
+    if (fd != -1) {
+        close(fd);
+    }
+    talloc_free(tmp_ctx);
+}
+
 static uint32_t sss_mc_hash(struct sss_mc_ctx *mcc,
                             const char *key, size_t len)
 {
@@ -421,6 +483,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Corrupted fastcache. Slot number too big.\n"));
+            sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
         }
@@ -437,6 +500,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
             || (uint8_t *)rec->data + strs_offset + strs_len > max_addr) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Corrupted fastcache. name_ptr value is %u.\n", name_ptr));
+            sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
         }
@@ -675,6 +739,7 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
+            sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
             goto done;
@@ -813,6 +878,7 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
+            sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
             goto done;
