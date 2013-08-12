@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <sys/mman.h>
 #include <time.h>
 #include "nss_mc.h"
@@ -103,11 +104,16 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
     uint32_t hash;
     uint32_t slot;
     int ret;
+    size_t strs_offset;
+    uint8_t *max_addr;
 
     ret = sss_nss_mc_get_ctx("passwd", &pw_mc_ctx);
     if (ret) {
         return ret;
     }
+
+    /* Get max address of data table. */
+    max_addr = pw_mc_ctx.data_table + pw_mc_ctx.dt_size;
 
     /* hashes are calculated including the NULL terminator */
     hash = sss_nss_mc_hash(&pw_mc_ctx, name, name_len + 1);
@@ -134,7 +140,20 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
             continue;
         }
 
+        strs_offset = offsetof(struct sss_mc_pwd_data, strs);
+
         data = (struct sss_mc_pwd_data *)rec->data;
+        /* Integrity check
+         * - name_len cannot be longer than all strings
+         * - data->name cannot point outside strings
+         * - all strings must be within data_table */
+        if (name_len > data->strs_len
+            || (data->name + name_len) > (strs_offset + data->strs_len)
+            || (uint8_t *)data->strs + data->strs_len > max_addr) {
+            ret = ENOENT;
+            goto done;
+        }
+
         rec_name = (char *)data + data->name;
         if (strcmp(name, rec_name) == 0) {
             break;
