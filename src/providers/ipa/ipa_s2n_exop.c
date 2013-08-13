@@ -651,6 +651,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     struct sysdb_attrs *user_attrs = NULL;
     struct sysdb_attrs *group_attrs = NULL;
     char *name;
+    char *lc_name;
     char *realm;
     char *upn;
     struct berval *bv_req = NULL;
@@ -766,7 +767,14 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS, name);
+            lc_name = sss_tc_utf8_str_tolower(user_attrs, name);
+            if (lc_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
+                ret =  ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS, lc_name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
                 goto done;
@@ -844,8 +852,16 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
+            lc_name = sss_tc_utf8_str_tolower(group_attrs, name);
+            if (lc_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Cannot convert name to lowercase\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+
             ret = sysdb_attrs_add_string(group_attrs, SYSDB_NAME_ALIAS,
-                                         name);
+                                         lc_name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
                 goto done;
