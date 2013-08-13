@@ -875,6 +875,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
 done:
     talloc_free(user_attrs);
+    talloc_free(group_attrs);
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
