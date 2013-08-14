@@ -269,19 +269,30 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
 
     if (use_id_mapping) {
-        if (IS_SUBDOMAIN(dom) == false) {
-            ret = sdap_get_idmap_primary_gid(opts, attrs, sid_str, dom_sid_str,
-                                             &gid);
-            if (ret) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Cannot get the GID for [%s] in domain [%s].\n",
-                       user_name, dom->name));
+        ret = sdap_get_idmap_primary_gid(opts, attrs, sid_str, dom_sid_str,
+                                         &gid);
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Cannot get the GID for [%s] in domain [%s].\n",
+                   user_name, dom->name));
+            goto done;
+        }
+
+        if (IS_SUBDOMAIN(dom)) {
+            /* For subdomain users, only create the private group as
+             * the subdomain is an MPG domain.
+             * But we have to save the GID of the original primary group
+             * becasuse otherwise this information might be lost because
+             * typically (Unix and AD) the user is not listed in his primary
+             * group as a member.
+             */
+            ret = sysdb_attrs_add_uint32(user_attrs, SYSDB_PRIMARY_GROUP_GIDNUM,
+                                         (uint32_t) gid);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_uint32 failed.\n"));
                 goto done;
             }
-        } else {
-            /* For subdomain users, only create the private group as
-             * the subdomain is an MPG domain
-             */
+
             gid = 0;
         }
 
