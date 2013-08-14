@@ -195,7 +195,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         goto done;
     }
     servername = ctx->service->sdap->uri + 7;
-    if (!servername) {
+    if (servername[0] == '\0') {
         ret = EIO;
         goto done;
     }
