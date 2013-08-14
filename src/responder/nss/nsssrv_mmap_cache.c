@@ -368,12 +368,12 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     hash = sss_mc_hash(mcc, key->str, key->len);
 
     slot = mcc->hash_table[hash];
-    if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
         return NULL;
     }
 
     while (slot != MC_INVALID_VAL) {
-        if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+        if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Corrupted fastcache. Slot number too big.\n"));
             sss_mmap_cache_reset(mcc);
@@ -617,13 +617,13 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
     hash = sss_mc_hash(mcc, uidstr, strlen(uidstr) + 1);
 
     slot = mcc->hash_table[hash];
-    if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
         ret = ENOENT;
         goto done;
     }
 
     while (slot != MC_INVALID_VAL) {
-        if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+        if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
@@ -755,13 +755,13 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
     hash = sss_mc_hash(mcc, gidstr, strlen(gidstr) + 1);
 
     slot = mcc->hash_table[hash];
-    if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
         ret = ENOENT;
         goto done;
     }
 
     while (slot != MC_INVALID_VAL) {
-        if (slot > MC_SIZE_TO_SLOTS(mcc->dt_size)) {
+        if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
