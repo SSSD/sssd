@@ -201,6 +201,23 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
         conv.conv=proxy_internal_conv;
     }
     auth_data = talloc_zero(pd, struct authtok_conv);
+    if (auth_data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        return ENOMEM;
+    }
+    auth_data->authtok = sss_authtok_new(auth_data);
+    if (auth_data->authtok == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_authtok_new failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    auth_data->newauthtok = sss_authtok_new(auth_data);
+    if (auth_data->newauthtok == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_authtok_new failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
     conv.appdata_ptr=auth_data;
 
     ret = pam_start(pam_target, pd->user, &conv, &pamh);
@@ -279,6 +296,9 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
     pd->pam_status = pam_status;
 
     return EOK;
+fail:
+    talloc_free(auth_data);
+    return ret;
 }
 
 static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
