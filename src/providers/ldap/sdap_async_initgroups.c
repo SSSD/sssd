@@ -2931,7 +2931,8 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         }
 
         /* Convert the SID into a UNIX group ID */
-        ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &primary_gid);
+        ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, group_sid_str,
+                                     &primary_gid);
         if (ret != EOK) goto fail;
     } else {
         ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM,
