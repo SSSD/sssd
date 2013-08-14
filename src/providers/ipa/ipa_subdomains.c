@@ -102,6 +102,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     struct ad_options *ad_options;
     struct ad_id_ctx *ad_id_ctx;
     const char *gc_service_name;
+    struct ad_srv_plugin_ctx *srv_ctx;
+    char *ad_domain;
     errno_t ret;
 
     ad_options = ad_create_default_options(id_ctx, id_ctx->server_mode->realm,
@@ -112,7 +114,9 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, subdom->name);
+    ad_domain = subdom->name;
+
+    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
         talloc_free(ad_options);
@@ -152,6 +156,19 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     }
     ad_id_ctx->sdap_id_ctx->opts = ad_options->id;
     ad_options->id_ctx = ad_id_ctx;
+
+    /* use AD plugin */
+    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
+                                     default_host_dbs,
+                                     ad_id_ctx->ad_options->id,
+                                     id_ctx->server_mode->hostname,
+                                     ad_domain);
+    if (srv_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        return ENOMEM;
+    }
+    be_fo_set_srv_lookup_plugin(be_ctx, ad_srv_plugin_send,
+                                ad_srv_plugin_recv, srv_ctx, "AD");
 
     ret = sdap_domain_subdom_add(ad_id_ctx->sdap_id_ctx,
                                  ad_id_ctx->sdap_id_ctx->opts->sdom,

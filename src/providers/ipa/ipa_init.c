@@ -79,6 +79,39 @@ struct bet_ops ipa_hostid_ops = {
 };
 #endif
 
+static bool srv_in_server_list(const char *servers)
+{
+    TALLOC_CTX *tmp_ctx;
+    char **list = NULL;
+    int ret = 0;
+    bool has_srv = false;
+
+    if (servers == NULL) return true;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return false;
+    }
+
+    /* split server parm into a list */
+    ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    for (int i = 0; list[i]; i++) {
+        has_srv = be_fo_is_srv_identifier(list[i]);
+        if (has_srv == true) {
+            break;
+        }
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return has_srv;
+}
+
 int common_ipa_init(struct be_ctx *bectx)
 {
     const char *ipa_servers;
@@ -114,7 +147,9 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     struct sdap_id_ctx *sdap_ctx;
     const char *hostname;
     const char *ipa_domain;
+    const char *ipa_servers;
     struct ipa_srv_plugin_ctx *srv_ctx;
+    bool server_mode;
     int ret;
 
     if (!ipa_options) {
@@ -205,6 +240,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     /* setup SRV lookup plugin */
     hostname = dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME);
+    server_mode = dp_opt_get_bool(ipa_options->basic, IPA_SERVER_MODE);
+
     if (dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES)) {
         /* use IPA plugin */
         ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
@@ -218,8 +255,21 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
         be_fo_set_srv_lookup_plugin(bectx, ipa_srv_plugin_send,
                                     ipa_srv_plugin_recv, srv_ctx, "IPA");
+    } else if (server_mode == true) {
+        ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
+        if (srv_in_server_list(ipa_servers) == true) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("SRV resolution enabled on the IPA server. "
+                  "Site discovery of trusted AD servers might not work\n"));
+
+            ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
+                                            "[%d]: %s\n", ret, strerror(ret)));
+                goto done;
+            }
+        }
     } else {
-        /* fall back to standard plugin */
+        /* fall back to standard plugin on clients. */
         ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
