@@ -170,6 +170,7 @@
                         SYSDB_GIDNUM, SYSDB_GECOS, \
                         SYSDB_HOMEDIR, SYSDB_SHELL, \
                         SYSDB_DEFAULT_ATTRS, \
+                        SYSDB_PRIMARY_GROUP_GIDNUM, \
                         NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_MEMBERUID, \

@@ -3399,6 +3399,7 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     int ret, i, num, bindex;
     int skipped = 0;
     const char *posix;
+    gid_t orig_primary_gid;
 
     if (res->count == 0) {
         return ENOENT;
@@ -3412,6 +3413,20 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
         return ret;
     }
     sss_packet_get_body(packet, &body, &blen);
+
+    orig_primary_gid = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                   SYSDB_PRIMARY_GROUP_GIDNUM,
+                                                   0);
+
+    /* If the GID of the original primary group is available but equal to the
+    * current primary GID it must not be added. */
+    if (orig_primary_gid != 0) {
+        gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
+
+        if (orig_primary_gid == gid) {
+            orig_primary_gid = 0;
+        }
+    }
 
     /* skip first entry, it's the user entry */
     bindex = 0;
@@ -3429,6 +3444,18 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
         }
         ((uint32_t *)body)[2 + bindex] = gid;
         bindex++;
+
+        /* do not add the GID of the original primary group is the user is
+         * already and explicit member of the group. */
+        if (orig_primary_gid == gid) {
+            orig_primary_gid = 0;
+        }
+    }
+
+    if (orig_primary_gid != 0) {
+        ((uint32_t *)body)[2 + bindex] = orig_primary_gid;
+        bindex++;
+        num++;
     }
 
     ((uint32_t *)body)[0] = num-skipped; /* num results */
