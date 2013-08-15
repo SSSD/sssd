@@ -356,6 +356,39 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
     return EOK;
 }
 
+static errno_t sss_mc_get_strs_offset(struct sss_mc_ctx *mcc,
+                                      size_t *_offset)
+{
+    switch (mcc->type) {
+    case SSS_MC_PASSWD:
+        *_offset = offsetof(struct sss_mc_pwd_data, strs);
+        return EOK;
+    case SSS_MC_GROUP:
+        *_offset = offsetof(struct sss_mc_grp_data, strs);
+        return EOK;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Unknown memory cache type.\n"));
+        return EINVAL;
+    }
+}
+
+static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
+                                   struct sss_mc_rec *rec,
+                                   size_t *_len)
+{
+    switch (mcc->type) {
+    case SSS_MC_PASSWD:
+        *_len = ((struct sss_mc_pwd_data *)&rec->data)->strs_len;
+        return EOK;
+    case SSS_MC_GROUP:
+        *_len = ((struct sss_mc_grp_data *)&rec->data)->strs_len;
+        return EOK;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Unknown memory cache type.\n"));
+        return EINVAL;
+    }
+}
+
 static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
                                              struct sized_string *key)
 {
@@ -364,11 +397,23 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     uint32_t slot;
     rel_ptr_t name_ptr;
     char *t_key;
+    size_t strs_offset;
+    size_t strs_len;
+    uint8_t *max_addr;
+    errno_t ret;
 
     hash = sss_mc_hash(mcc, key->str, key->len);
 
     slot = mcc->hash_table[hash];
     if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+        return NULL;
+    }
+
+    /* Get max address of data table. */
+    max_addr = mcc->data_table + mcc->dt_size;
+
+    ret = sss_mc_get_strs_offset(mcc, &strs_offset);
+    if (ret != EOK) {
         return NULL;
     }
 
@@ -381,10 +426,15 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
         }
 
         rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
+        ret = sss_mc_get_strs_len(mcc, rec, &strs_len);
+        if (ret != EOK) {
+            return NULL;
+        }
+
         name_ptr = *((rel_ptr_t *)rec->data);
-        /* FIXME: This check relies on fact that offset of member strs
-         * is the same in structures sss_mc_pwd_data and sss_mc_group_data. */
-        if (name_ptr != offsetof(struct sss_mc_pwd_data, strs)) {
+        if (key->len > strs_len
+            || (name_ptr + key->len) > (strs_offset + strs_len)
+            || (uint8_t *)rec->data + strs_offset + strs_len > max_addr) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Corrupted fastcache. name_ptr value is %u.\n", name_ptr));
             sss_mmap_cache_reset(mcc);
