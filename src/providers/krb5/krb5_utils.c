@@ -704,6 +704,60 @@ done:
     return ret;
 }
 
+static errno_t
+check_cc_validity(const char *location,
+                  const char *realm,
+                  const char *princ,
+                  bool *_valid)
+{
+    errno_t ret;
+    bool valid = false;
+    krb5_ccache ccache = NULL;
+    krb5_context context = NULL;
+    krb5_error_code krberr;
+
+    krberr = krb5_init_context(&context);
+    if (krberr) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to init kerberos context\n"));
+        return EIO;
+    }
+
+    krberr = krb5_cc_resolve(context, location, &ccache);
+    if (krberr == KRB5_FCC_NOFILE || ccache == NULL) {
+        /* KRB5_FCC_NOFILE would be returned if the directory components
+         * of the DIR cache do not exist, which is the case in /run
+         * after a reboot
+         */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("ccache %s is missing or empty\n", location));
+        valid = false;
+        ret = EOK;
+        goto done;
+    } else if (krberr != 0) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    krberr = check_for_valid_tgt(context, ccache, realm, princ, &valid);
+    if (krberr != EOK) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not check if ccache contains a valid principal\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+    *_valid = valid;
+
+ done:
+     if (ccache) krb5_cc_close(context, ccache);
+     krb5_free_context(context);
+     return ret;
+}
+
 /*======== ccache back end utilities ========*/
 struct sss_krb5_cc_be *
 get_cc_be_ops(enum sss_krb5_cc_type type)
@@ -852,9 +906,6 @@ cc_file_check_existing(const char *location, uid_t uid,
     bool active;
     bool valid;
     const char *filename;
-    krb5_ccache ccache = NULL;
-    krb5_context context = NULL;
-    krb5_error_code kerr;
 
     filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
     if (!filename) {
@@ -878,28 +929,9 @@ cc_file_check_existing(const char *location, uid_t uid,
         return ret;
     }
 
-    kerr = krb5_init_context(&context);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to init kerberos context\n"));
-        return EIO;
-    }
-
-    kerr = krb5_cc_resolve(context, location, &ccache);
-    if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, kerr);
-        krb5_free_context(context);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
-        return EIO;
-    }
-
-    kerr = check_for_valid_tgt(context, ccache, realm, princ, &valid);
-    krb5_free_context(context);
-    krb5_cc_close(context, ccache);
-    if (kerr != EOK) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not check if ccache contains a valid principal\n"));
-        return EIO;
+    ret = check_cc_validity(location, realm, princ, &valid);
+    if (ret != EOK) {
+        return ret;
     }
 
     *_active = active;
@@ -977,9 +1009,6 @@ cc_dir_check_existing(const char *location, uid_t uid,
     bool active = false;
     bool active_primary = false;
     bool valid = false;
-    krb5_ccache ccache = NULL;
-    krb5_context context = NULL;
-    krb5_error_code krberr;
     enum sss_krb5_cc_type type;
     const char *filename;
     const char *dir;
@@ -1062,45 +1091,14 @@ cc_dir_check_existing(const char *location, uid_t uid,
         goto done;
     }
 
-    krberr = krb5_init_context(&context);
-    if (krberr) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to init kerberos context\n"));
-        ret = EIO;
-        goto done;
-    }
-
-    krberr = krb5_cc_resolve(context, location, &ccache);
-    if (krberr == KRB5_FCC_NOFILE || ccache == NULL) {
-        /* KRB5_FCC_NOFILE would be returned if the directory components
-         * of the DIR cache do not exist, which is the case in /run
-         * after a reboot
-         */
-        DEBUG(SSSDBG_TRACE_FUNC,
-              ("ccache %s is missing or empty\n", location));
-        valid = false;
-        ret = EOK;
-        goto done;
-    } else if (krberr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
-        ret = EIO;
-        goto done;
-    }
-
-    krberr = check_for_valid_tgt(context, ccache, realm, princ, &valid);
-    if (krberr != EOK) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not check if ccache contains a valid principal\n"));
-        ret = EIO;
+    ret = check_cc_validity(location, realm, princ, &valid);
+    if (ret != EOK) {
         goto done;
     }
 
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    if (ccache) krb5_cc_close(context, ccache);
-    krb5_free_context(context);
     *_active = active;
     *_valid = valid;
     return ret;
