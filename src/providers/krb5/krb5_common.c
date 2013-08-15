@@ -215,6 +215,11 @@ errno_t check_and_export_options(struct dp_option *opts,
         DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type DIR\n"));
         krb5_ctx->cc_be = &dir_cc;
         break;
+
+    case SSS_KRB5_TYPE_KEYRING:
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type KEYRING\n"));
+        krb5_ctx->cc_be = &keyring_cc;
+        break;
 #endif /* HAVE_KRB5_CC_COLLECTION */
 
     default:

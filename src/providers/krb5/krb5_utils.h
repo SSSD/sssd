@@ -87,11 +87,13 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
 #ifdef HAVE_KRB5_CC_COLLECTION
 
 extern struct sss_krb5_cc_be dir_cc;
+extern struct sss_krb5_cc_be keyring_cc;
 
 errno_t cc_dir_create(const char *location, pcre *illegal_re,
                       uid_t uid, gid_t gid, bool private_path);
 
 #endif /* HAVE_KRB5_CC_COLLECTION */
+
 
 errno_t get_domain_or_subdomain(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                                 char *domain_name,
