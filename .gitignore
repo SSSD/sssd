@@ -16,6 +16,9 @@ Makefile.in.in
 *.l[oa]
 *.py[oc]
 *.pydevproject
+*.project
+*.cproject
+*.settings
 .deps
 .libs
 *.html
