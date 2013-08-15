@@ -113,8 +113,6 @@ struct sss_mc_rec {
     char data[0];
 };
 
-/* FIXME: Function sss_mc_find_record currently relies on fact that
- * offset of strs is the same in both sss_mc_pwd_data and sss_mc_grp_data. */
 struct sss_mc_pwd_data {
     rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
     uint32_t uid;
