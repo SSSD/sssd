@@ -1006,9 +1006,9 @@ cc_dir_check_existing(const char *location, uid_t uid,
                       const char *realm, const char *princ,
                       const char *cc_template, bool *_active, bool *_valid)
 {
-    bool active = false;
+    bool active;
     bool active_primary = false;
-    bool valid = false;
+    bool valid;
     enum sss_krb5_cc_type type;
     const char *filename;
     const char *dir;
@@ -1068,7 +1068,6 @@ cc_dir_check_existing(const char *location, uid_t uid,
                   ("Could not check if ccache is active.\n"));
         }
         cc_check_template(cc_template);
-        active = false;
         goto done;
     }
 
@@ -1087,7 +1086,6 @@ cc_dir_check_existing(const char *location, uid_t uid,
         DEBUG(SSSDBG_OP_FAILURE,
               ("Could not check if file 'primary' [%s] in dir ccache"
                " is active.\n", primary_file));
-        active = false;
         goto done;
     }
 
@@ -1096,11 +1094,12 @@ cc_dir_check_existing(const char *location, uid_t uid,
         goto done;
     }
 
-    ret = EOK;
-done:
-    talloc_free(tmp_ctx);
     *_active = active;
     *_valid = valid;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
