@@ -39,7 +39,6 @@
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
-#include "proxy.h"
 #include "sss_client/nss_compat.h"
 #include <dhash.h>
 
