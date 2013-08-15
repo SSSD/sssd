@@ -928,6 +928,7 @@ sss_krb5_free_keytab_entry_contents(krb5_context context,
 
 #define SSS_KRB5_FILE   "FILE:"
 #define SSS_KRB5_DIR    "DIR:"
+#define SSS_KRB5_KEYRING "KEYRING:"
 
 enum sss_krb5_cc_type
 sss_krb5_get_type(const char *full_location)
@@ -945,7 +946,12 @@ sss_krb5_get_type(const char *full_location)
                sizeof(SSS_KRB5_DIR)-1) == 0) {
         return SSS_KRB5_TYPE_DIR;
     }
+    else if (strncmp(full_location, SSS_KRB5_KEYRING,
+               sizeof(SSS_KRB5_KEYRING)-1) == 0) {
+        return SSS_KRB5_TYPE_KEYRING;
+    }
 #endif /* HAVE_KRB5_CC_COLLECTION */
+
     else if (full_location[0] == '/') {
         return SSS_KRB5_TYPE_FILE;
     }
@@ -973,7 +979,12 @@ sss_krb5_residual_by_type(const char *full_location,
         case SSS_KRB5_TYPE_DIR:
             offset = sizeof(SSS_KRB5_DIR)-1;
             break;
+
+        case SSS_KRB5_TYPE_KEYRING:
+            offset = sizeof(SSS_KRB5_KEYRING)-1;
+            break;
 #endif /* HAVE_KRB5_CC_COLLECTION */
+
         default:
             return NULL;
     }
@@ -991,6 +1002,9 @@ sss_krb5_cc_file_path(const char *full_location)
     residual = sss_krb5_residual_by_type(full_location, cc_type);
 
     switch(cc_type) {
+#ifdef HAVE_KRB5_CC_COLLECTION
+        case SSS_KRB5_TYPE_KEYRING:
+#endif /* HAVE_KRB5_CC_COLLECTION */
         case SSS_KRB5_TYPE_FILE:
             return residual;
 #ifdef HAVE_KRB5_CC_COLLECTION

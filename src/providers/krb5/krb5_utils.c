@@ -760,6 +760,8 @@ done:
     return ret;
 }
 
+
+
 /*======== ccache back end utilities ========*/
 struct sss_krb5_cc_be *
 get_cc_be_ops(enum sss_krb5_cc_type type)
@@ -774,6 +776,10 @@ get_cc_be_ops(enum sss_krb5_cc_type type)
 #ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             be = &dir_cc;
+            break;
+
+        case SSS_KRB5_TYPE_KEYRING:
+            be = &keyring_cc;
             break;
 #endif /* HAVE_KRB5_CC_COLLECTION */
 
@@ -1187,6 +1193,156 @@ struct sss_krb5_cc_be dir_cc = {
     .check_existing     = cc_dir_check_existing,
     .ccache_for_princ   = cc_dir_cache_for_princ,
     .remove             = cc_dir_remove
+};
+
+
+/*======== Operations on the KEYRING: back end ========*/
+
+errno_t
+cc_keyring_create(const char *location, pcre *illegal_re,
+                  uid_t uid, gid_t gid, bool private_path)
+{
+    const char *residual;
+
+    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
+    if (residual == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Bad ccache type %s\n", location));
+        return EINVAL;
+    }
+
+    /* No special steps are needed to create a kernel keyring.
+     * Everything is handled in libkrb5.
+     */
+    return EOK;
+}
+
+errno_t
+cc_keyring_check_existing(const char *location, uid_t uid,
+                          const char *realm, const char *princ,
+                          const char *cc_template, bool *_active,
+                          bool *_valid)
+{
+    errno_t ret;
+    bool active;
+    bool valid;
+    const char *residual;
+
+    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
+    if (!residual) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("%s is not of type KEYRING:\n", location));
+        return EINVAL;
+    }
+
+    /* The keyring cache is always active */
+    active = true;
+
+    /* Check if any user is actively using this cache */
+    ret = check_cc_validity(location, realm, princ, &valid);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    *_active = active;
+    *_valid = valid;
+    return EOK;
+}
+
+const char *
+cc_keyring_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
+                           const char *princ)
+{
+    krb5_context context = NULL;
+    krb5_error_code krberr;
+    char *name = NULL;
+    const char *residual;
+    size_t i;
+    size_t count;
+    krb5_principal client_principal = NULL;
+
+    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
+    if (!residual) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get residual from %s\n",
+              location));
+        return NULL;
+    }
+
+    /* residual already points to a subsidiary cache if it of the
+     * form "KEYRING:<type>:<UID>:krb5_cc_XXXXXXX"
+     * For simplicity, we'll count the colons, up to three.
+     */
+    i = count = 0;
+    while (residual[i] && count < 3) {
+        if (residual[i] == ':') {
+            count ++;
+        }
+        i++;
+    }
+
+    if (count >= 3) {
+        return talloc_strdup(mem_ctx, location);
+    }
+
+    krberr = krb5_init_context(&context);
+    if (krberr) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to init kerberos context\n"));
+        return NULL;
+    }
+
+    krberr = krb5_parse_name(context, princ, &client_principal);
+    if (krberr != 0) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
+        goto done;
+    }
+
+    name = sss_get_ccache_name_for_principal(mem_ctx, context,
+                                             client_principal, location);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get full name of ccache\n"));
+        goto done;
+    }
+
+    talloc_zfree(name);
+
+    /* Always return the master name here.
+     * We do the above only to ensure that the
+     * principal-specific name exists and can
+     * be found.
+     */
+    name = talloc_strdup(mem_ctx, location);
+
+done:
+    krb5_free_principal(context, client_principal);
+    krb5_free_context(context);
+
+    return name;
+}
+
+errno_t
+cc_keyring_remove(const char *location)
+{
+    const char *residual;
+
+    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
+    if (!residual) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("%s is not of type KEYRING:\n", location));
+        return EINVAL;
+    }
+
+    /* No special steps are needed to create a kernel keyring.
+     * Everything is handled in libkrb5.
+     */
+    return EOK;
+}
+
+struct sss_krb5_cc_be keyring_cc = {
+    .type               = SSS_KRB5_TYPE_KEYRING,
+    .create             = cc_keyring_create,
+    .check_existing     = cc_keyring_check_existing,
+    .ccache_for_princ   = cc_keyring_cache_for_princ,
+    .remove             = cc_keyring_remove
 };
 
 #endif /* HAVE_KRB5_CC_COLLECTION */

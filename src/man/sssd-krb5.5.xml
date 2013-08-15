@@ -158,12 +158,15 @@
                     <term>krb5_ccname_template (string)</term>
                     <listitem>
                         <para>
-                            Location of the user's credential cache. Two credential
-                            cache types are currently supported: <quote>FILE</quote>
-                            and <quote>DIR</quote>. The cache can be specified either
-                            as <replaceable>TYPE:RESIDUAL</replaceable>, or as an absolute
-                            path, which implies the <quote>FILE</quote> type. In the
-                            template, the following sequences are substituted:
+                            Location of the user's credential cache. Three
+                            credential cache types are currently supported:
+                            <quote>FILE</quote>, <quote>DIR</quote> and
+                            <quote>KEYRING:persistent</quote>. The cache can
+                            be specified either as
+                            <replaceable>TYPE:RESIDUAL</replaceable>, or as an
+                            absolute path, which implies the
+                            <quote>FILE</quote> type. In the template, the
+                            following sequences are substituted:
                             <variablelist>
                                 <varlistentry>
                                     <term>%u</term>
@@ -207,6 +210,14 @@
                             </variablelist>
                             If the template ends with 'XXXXXX' mkstemp(3) is
                             used to create a unique filename in a safe way.
+                        </para>
+                        <para>
+                            When using KEYRING types, the only supported
+                            mechanism is <quote>KEYRING:persistent:%U</quote>,
+                            which uses the Linux kernel keyring to store
+                            credentials on a per-UID basis. This is also the
+                            recommended choice, as it is the most secure and
+                            predictable method.
                         </para>
                         <para>
                             Default: FILE:%d/krb5cc_%U_XXXXXX

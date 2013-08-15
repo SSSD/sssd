@@ -505,6 +505,19 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
 {
     krb5_error_code kerr;
     krb5_creds *l_cred;
+    char *ccname;
+
+    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
+        kerr = krb5_cc_get_full_name(ctx, cc, &ccname);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  ("Couldn't determine full name of ccache\n"));
+        } else {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  ("Storing credentials in [%s]\n", ccname));
+            krb5_free_string(ctx, ccname);
+        }
+    }
 
     kerr = krb5_cc_initialize(ctx, cc, princ);
     if (kerr != 0) {
@@ -775,6 +788,37 @@ done:
     return kerr;
 }
 
+static krb5_error_code
+create_ccache_keyring(krb5_context ctx,
+                      krb5_principal princ,
+                      char *ccname,
+                      krb5_creds *creds)
+{
+    krb5_error_code kerr;
+    krb5_ccache tmp_cc = NULL;
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Creating ccache at [%s]\n", ccname));
+
+    kerr = krb5_cc_resolve(ctx, ccname, &tmp_cc);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
+
+    kerr = store_creds_in_ccache(ctx, princ, tmp_cc, creds);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
+
+done:
+    if (kerr != 0 && tmp_cc != NULL) {
+        krb5_cc_destroy(ctx, tmp_cc);
+    }
+
+    return kerr;
+}
+
 #endif /* HAVE_KRB5_CC_COLLECTION */
 
 static krb5_error_code
@@ -787,10 +831,15 @@ create_ccache(uid_t uid, gid_t gid, krb5_context ctx,
     switch (cctype) {
         case SSS_KRB5_TYPE_FILE:
             return create_ccache_file(ctx, princ, ccname, creds);
+
 #ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             return create_ccache_in_dir(uid, gid, ctx, princ, ccname, creds);
+
+        case SSS_KRB5_TYPE_KEYRING:
+            return create_ccache_keyring(ctx, princ, ccname, creds);
 #endif /* HAVE_KRB5_CC_COLLECTION */
+
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown cache type\n"));
             return EINVAL;
