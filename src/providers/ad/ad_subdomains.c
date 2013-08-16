@@ -24,6 +24,7 @@
 
 #include "providers/ldap/sdap_async.h"
 #include "providers/ad/ad_subdomains.h"
+#include "providers/ad/ad_domain_info.h"
 #include "util/util_sss_idmap.h"
 #include <ctype.h>
 #include <ndr.h>
@@ -264,9 +265,7 @@ done:
 }
 
 static void ad_subdomains_get_conn_done(struct tevent_req *req);
-static errno_t ad_subdomains_get_master_sid(struct ad_subdomains_req_ctx *ctx);
-static void ad_subdomains_get_master_sid_done(struct tevent_req *req);
-static void ad_subdomains_get_netlogon_done(struct tevent_req *req);
+static void ad_subdomains_master_dom_done(struct tevent_req *req);
 static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx);
 
 static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
@@ -341,236 +340,46 @@ static void ad_subdomains_get_conn_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = ad_subdomains_get_master_sid(ctx);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
+    req = ad_master_domain_send(ctx, ctx->sd_ctx->be_ctx->ev,
+                                ctx->sd_ctx->ldap_ctx,
+                                ctx->sdap_op,
+                                ctx->sd_ctx->domain_name);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ad_master_domain_send failed.\n"));
+        ret = ENOMEM;
         goto fail;
     }
-
-    DEBUG(SSSDBG_OP_FAILURE, ("No search base available.\n"));
-    ret = EINVAL;
+    tevent_req_set_callback(req, ad_subdomains_master_dom_done, ctx);
+    return;
 
 fail:
     be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
-static errno_t ad_subdomains_get_master_sid(struct ad_subdomains_req_ctx *ctx)
+static void ad_subdomains_master_dom_done(struct tevent_req *req)
 {
-    struct tevent_req *req;
-    struct sdap_search_base *base;
-    const char *master_sid_attrs[] = {AD_AT_OBJECT_SID, NULL};
-
-
-    base = ctx->sd_ctx->sdom->search_bases[ctx->base_iter];
-    if (base == NULL) {
-        return EOK;
-    }
-
-    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                           ctx->sd_ctx->sdap_id_ctx->opts,
-                           sdap_id_op_handle(ctx->sdap_op),
-                           base->basedn, LDAP_SCOPE_BASE,
-                           MASTER_DOMAIN_SID_FILTER, master_sid_attrs,
-                           NULL, 0,
-                           dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
-                                          SDAP_SEARCH_TIMEOUT),
-                           false);
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send failed.\n"));
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ad_subdomains_get_master_sid_done, ctx);
-
-    return EAGAIN;
-}
-
-static void ad_subdomains_get_master_sid_done(struct tevent_req *req)
-{
-    int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
     struct ad_subdomains_req_ctx *ctx;
-    struct ldb_message_element *el;
-    char *sid_str;
-    enum idmap_error_code err;
-    static const char *attrs[] = {AD_AT_NETLOGON, NULL};
-    char *filter;
-    char *ntver;
+    errno_t ret;
 
     ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
 
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
+    ret = ad_master_domain_recv(req, ctx,
+                                &ctx->flat_name, &ctx->master_sid);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve master domain info\n"));
         goto done;
-    }
-
-    if (reply_count == 0) {
-        ctx->base_iter++;
-        ret = ad_subdomains_get_master_sid(ctx);
-        if (ret == EAGAIN) {
-            return;
-        } else if (ret != EOK) {
-            goto done;
-        }
-    } else if (reply_count == 1) {
-        ret = sysdb_attrs_get_el(reply[0], AD_AT_OBJECT_SID, &el);
-        if (ret != EOK || el->num_values != 1) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sdap_attrs_get_el failed.\n"));
-            goto done;
-        }
-
-        err = sss_idmap_bin_sid_to_sid(ctx->sd_ctx->idmap_ctx,
-                                       el->values[0].data,
-                                       el->values[0].length,
-                                       &sid_str);
-        if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert SID: [%s].\n", idmap_error_string(err)));
-            ret = EFAULT;
-            goto done;
-        }
-
-        ctx->master_sid = talloc_steal(ctx, sid_str);
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("More than one result for domain SID found.\n"));
-        ret = EINVAL;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found SID [%s].\n", ctx->master_sid));
-
-    ntver = sss_ldap_encode_ndr_uint32(ctx, NETLOGON_NT_VERSION_5EX |
-                                       NETLOGON_NT_VERSION_WITH_CLOSEST_SITE);
-    if (ntver == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_ldap_encode_ndr_uint32 failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
-    filter = talloc_asprintf(ctx, "(&(%s=%s)(%s=%s))",
-                             AD_AT_DNS_DOMAIN, ctx->sd_ctx->domain_name,
-                             AD_AT_NT_VERSION, ntver);
-    if (filter == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
-    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                           ctx->sd_ctx->sdap_id_ctx->opts,
-                           sdap_id_op_handle(ctx->sdap_op),
-                           "", LDAP_SCOPE_BASE, filter, attrs, NULL, 0,
-                           dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
-                                          SDAP_SEARCH_TIMEOUT),
-                           false);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(req, ad_subdomains_get_netlogon_done, ctx);
-    return;
-
-done:
-    be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
-}
-
-static void ad_subdomains_get_netlogon_done(struct tevent_req *req)
-{
-    int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
-    struct ad_subdomains_req_ctx *ctx;
-    struct ldb_message_element *el;
-    DATA_BLOB blob;
-    enum ndr_err_code ndr_err;
-    struct ndr_pull *ndr_pull = NULL;
-    struct netlogon_samlogon_response response;
-    int dp_error = DP_ERR_FATAL;
-
-    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
-
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
-        goto done;
-    }
-
-    if (reply_count == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No netlogon data available.\n"));
-        ret = ENOENT;
-        goto done;
-    } else if (reply_count > 1) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("More than one netlogon info returned.\n"));
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = sysdb_attrs_get_el(reply[0], AD_AT_NETLOGON, &el);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_el() failed\n"));
-        goto done;
-    }
-
-    if (el->num_values == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("netlogon has no value\n"));
-        ret = ENOENT;
-        goto done;
-    } else if (el->num_values > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("More than one netlogon value?\n"));
-        ret = EIO;
-        goto done;
-    }
-
-    blob.data =  el->values[0].data;
-    blob.length = el->values[0].length;
-
-    ndr_pull = ndr_pull_init_blob(&blob, ctx);
-    if (ndr_pull == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_init_blob() failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ndr_err = ndr_pull_netlogon_samlogon_response(ndr_pull, NDR_SCALARS,
-                                                  &response);
-    if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_netlogon_samlogon_response() "
-                                  "failed [%d]\n", ndr_err));
-        ret = EBADMSG;
-        goto done;
-    }
-
-    if (!(response.ntver & NETLOGON_NT_VERSION_5EX)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Wrong version returned [%x]\n",
-                                  response.ntver));
-        ret = EBADMSG;
-        goto done;
-    }
-
-    if (response.data.nt5_ex.domain_name != NULL &&
-        *response.data.nt5_ex.domain_name != '\0') {
-        ctx->flat_name = talloc_strdup(ctx, response.data.nt5_ex.domain_name);
-        if (ctx->flat_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", ctx->flat_name));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Found master SID [%s].\n", ctx->master_sid));
 
     ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
                                        ctx->flat_name, ctx->master_sid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot save master domain info\n"));
+        goto done;
+    }
 
     ret = ad_subdomains_get_slave(ctx);
     if (ret == EAGAIN) {
@@ -580,7 +389,7 @@ static void ad_subdomains_get_netlogon_done(struct tevent_req *req)
     }
 
 done:
-    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
+    be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
 }
 
 static void ad_subdomains_get_slave_domain_done(struct tevent_req *req);

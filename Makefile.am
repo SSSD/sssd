@@ -1627,6 +1627,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ad/ad_dyndns.c \
     src/providers/ad/ad_id.c \
     src/providers/ad/ad_srv.c \
+    src/providers/ad/ad_domain_info.c \
     src/util/user_info_msg.c \
     src/util/find_uid.c \
     src/util/sss_ldap.c \
@@ -1678,6 +1679,8 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_subdomains.c \
     src/providers/ad/ad_subdomains.h \
+    src/providers/ad/ad_domain_info.c \
+    src/providers/ad/ad_domain_info.h \
     src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
