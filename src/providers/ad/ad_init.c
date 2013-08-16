@@ -40,6 +40,7 @@
 #include "providers/ad/ad_srv.h"
 #include "providers/dp_dyndns.h"
 #include "providers/ad/ad_subdomains.h"
+#include "providers/ad/ad_domain_info.h"
 
 struct ad_options *ad_options = NULL;
 
@@ -213,7 +214,6 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ret = sdap_idmap_init(ad_ctx->sdap_id_ctx, ad_ctx->sdap_id_ctx,
                           &ad_ctx->sdap_id_ctx->opts->idmap_ctx);
     if (ret != EOK) goto done;
-
 
     ret = setup_tls_config(ad_ctx->sdap_id_ctx->opts->basic);
     if (ret != EOK) {
