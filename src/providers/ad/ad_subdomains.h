@@ -22,8 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _IPA_SUBDOMAINS_H_
-#define _IPA_SUBDOMAINS_H_
+#ifndef _AD_SUBDOMAINS_H_
+#define _AD_SUBDOMAINS_H_
 
 #include "providers/dp_backend.h"
 #include "providers/ad/ad_common.h"
@@ -34,4 +34,4 @@ int ad_subdom_init(struct be_ctx *be_ctx,
                    struct bet_ops **ops,
                    void **pvt_data);
 
-#endif /* _IPA_SUBDOMAINS_H_ */
+#endif /* _AD_SUBDOMAINS_H_ */
