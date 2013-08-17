@@ -264,11 +264,6 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
         return ENOMEM;
     }
 
-    ret = sysdb_master_domain_update(domain);
-    if (ret != EOK) {
-        goto done;
-    }
-
     msg = ldb_msg_new(tmp_ctx);
     if (msg == NULL) {
         ret = ENOMEM;
@@ -347,6 +342,11 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                                      "[%s]: [%d][%s]!\n", domain->name, ret,
                                      ldb_errstring(domain->sysdb->ldb)));
         ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = sysdb_master_domain_update(domain);
+    if (ret != EOK) {
         goto done;
     }
 
