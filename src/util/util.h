@@ -238,25 +238,6 @@ errno_t set_debug_file_from_fd(const int fd);
 #endif
 #endif
 
-/* TODO: remove later
- * These functions are available in the latest tevent and are the ones that
- * should be used as tevent_req is rightfully opaque there */
-#ifndef tevent_req_data
-#define tevent_req_data(req, type) ((type *)req->private_state)
-#define tevent_req_set_callback(req, func, data) \
-    do { req->async.fn = func; req->async.private_data = data; } while(0)
-#define tevent_req_callback_data(req, type) ((type *)req->async.private_data)
-#define tevent_req_notify_callback(req) \
-    do { \
-        if (req->async.fn != NULL) { \
-            req->async.fn(req); \
-        } \
-    } while(0)
-
-/* noop */
-#define tevent_loop_allow_nesting(x)
-#endif
-
 #define TEVENT_REQ_RETURN_ON_ERROR(req) do { \
     enum tevent_req_state TRROEstate; \
     uint64_t TRROEerr; \
