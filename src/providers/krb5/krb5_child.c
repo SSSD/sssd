@@ -1280,7 +1280,9 @@ done:
 
 static errno_t map_krb5_error(krb5_error_code kerr)
 {
-    KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+    }
 
     switch (kerr) {
     case 0:
