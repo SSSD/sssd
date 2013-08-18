@@ -447,7 +447,7 @@ static bool need_switch_to_principal(krb5_context ctx, krb5_principal princ)
     bool ret = false;
 
     kerr = krb5_cc_default(ctx, &default_cc);
-    if (kerr !=0) {
+    if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
         goto done;
     }
@@ -463,13 +463,13 @@ static bool need_switch_to_principal(krb5_context ctx, krb5_principal princ)
     }
 
     kerr = krb5_unparse_name(ctx, default_princ, &default_full_name);
-    if (kerr !=0) {
+    if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
         goto done;
     }
 
     kerr = krb5_unparse_name(ctx, princ, &full_name);
-    if (kerr !=0) {
+    if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
         goto done;
     }
@@ -2042,7 +2042,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     if (debug_level & SSSDBG_TRACE_ALL) {
         kerr = sss_child_set_krb5_tracing(kr->ctx);
-        if (kerr) {
+        if (kerr != 0) {
             KRB5_CHILD_DEBUG(SSSDBG_MINOR_FAILURE, kerr);
             return EIO;
         }
