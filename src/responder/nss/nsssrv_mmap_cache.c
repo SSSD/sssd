@@ -168,7 +168,7 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
     struct sss_mc_rec *cur;
     uint32_t slot;
 
-    if (hash > mcc->ht_size) {
+    if (hash > MC_HT_ELEMS(mcc->ht_size)) {
         /* Invalid hash. This should never happen, but better
          * return than trying to access out of bounds memory */
         return;
@@ -225,9 +225,11 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
     struct sss_mc_rec *cur = NULL;
     uint32_t slot;
 
-    if (hash > mcc->ht_size) {
-        /* Invalid hash. This should never happen, but better
-         * return than trying to access out of bounds memory */
+    if (hash > MC_HT_ELEMS(mcc->ht_size)) {
+        /* It can happen if rec->hash1 and rec->hash2 was the same.
+         * or it is invalid hash. It is better to return
+         * than trying to access out of bounds memory
+         */
         return;
     }
 
