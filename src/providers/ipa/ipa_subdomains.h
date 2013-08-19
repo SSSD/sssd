@@ -46,11 +46,16 @@ struct ipa_ad_server_ctx {
     struct ipa_ad_server_ctx *next, *prev;
 };
 
+/* struct for external group memberships, defined in
+ * ipa_subdomains_ext_groups.c */
+struct ipa_ext_groups;
+
 struct ipa_server_mode_ctx {
     const char *realm;
     const char *hostname;
 
     struct ipa_ad_server_ctx *trusts;
+    struct ipa_ext_groups *ext_groups;
 };
 
 int ipa_ad_subdom_init(struct be_ctx *be_ctx,
@@ -70,4 +75,14 @@ struct req_input {
         const char *secid;
     } inp;
 };
+
+struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct be_acct_req *ar,
+                                        struct ipa_server_mode_ctx *server_mode,
+                                        struct sss_domain_info *user_dom,
+                                        struct sdap_id_ctx *sdap_id_ctx,
+                                        const char *domain);
+
+errno_t ipa_get_ad_memberships_recv(struct tevent_req *req, int *dp_error_out);
 #endif /* _IPA_SUBDOMAINS_H_ */

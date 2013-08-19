@@ -250,8 +250,14 @@ int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out)
 /* IPA lookup for server mode. Directly to AD. */
 struct ipa_get_ad_acct_state {
     int dp_error;
+    struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
+    struct be_req *be_req;
+    struct be_acct_req *ar;
+    struct sss_domain_info *user_dom;
 };
 
+static void ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
 static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                                            struct sss_domain_info *dom);
@@ -267,7 +273,6 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct ipa_get_ad_acct_state *state;
-    struct sss_domain_info *dom;
     struct sdap_domain *sdom;
     struct sdap_id_conn_ctx **clist;
     struct sdap_id_ctx *sdap_id_ctx;;
@@ -276,16 +281,22 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state, struct ipa_get_ad_acct_state);
     if (req == NULL) return NULL;
 
+    state->dp_error = -1;
+    state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
+    state->be_req = be_req;
+    state->ar = ar;
+
     /* This can only be a subdomain request, verify subdomain */
-    dom = find_subdomain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
-                                 ar->domain, true);
-    if (dom == NULL) {
+    state->user_dom = find_subdomain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
+                                             ar->domain, true);
+    if (state->user_dom == NULL) {
         ret = EINVAL;
         goto fail;
     }
 
     /* Let's see if this subdomain has a ad_id_ctx */
-    ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, dom);
+    ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, state->user_dom);
     if (ad_id_ctx == NULL) {
         ret = EINVAL;
         goto fail;
@@ -304,7 +315,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     clist[1] = NULL;
 
     /* Now we already need ad_id_ctx in particular sdap_id_conn_ctx */
-    sdom = sdap_domain_get(sdap_id_ctx->opts, dom);
+    sdom = sdap_domain_get(sdap_id_ctx->opts, state->user_dom);
     if (sdom == NULL) {
         ret = EIO;
         goto fail;
@@ -316,10 +327,11 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(subreq, ipa_get_ad_acct_done, req);
+    tevent_req_set_callback(subreq, ipa_get_ad_acct_ad_part_done, req);
     return req;
 
 fail:
+    state->dp_error = DP_ERR_FATAL;
     tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
@@ -339,7 +351,7 @@ ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
 }
 
 static void
-ipa_get_ad_acct_done(struct tevent_req *subreq)
+ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                 struct tevent_req);
@@ -351,6 +363,51 @@ ipa_get_ad_acct_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("AD lookup failed: %d\n", ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if ((state->ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS) {
+        tevent_req_done(req);
+        return;
+    }
+
+    /* For initgroups request we have to check IPA group memberships of AD
+     * users. */
+    subreq = ipa_get_ad_memberships_send(state, state->ev, state->ar,
+                                         state->ipa_ctx->server_mode,
+                                         state->user_dom,
+                                         state->ipa_ctx->sdap_id_ctx,
+                                         state->ipa_ctx->server_mode->realm);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_get_ad_acct_done, req);
+
+    return;
+
+fail:
+    state->dp_error = DP_ERR_FATAL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, state->ev);
+    return;
+}
+
+static void
+ipa_get_ad_acct_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+    errno_t ret;
+
+    ret = ipa_get_ad_memberships_recv(subreq, &state->dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("IPA external groups lookup failed: %d\n",
+                                  ret));
         tevent_req_error(req, ret);
         return;
     }
