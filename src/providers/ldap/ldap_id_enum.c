@@ -176,8 +176,6 @@ int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
     return EOK;
 }
 
-#define MAX_ENUM_RESTARTS 3
-
 struct global_enum_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
