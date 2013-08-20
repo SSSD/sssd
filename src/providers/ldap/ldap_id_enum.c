@@ -192,6 +192,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct sdap_domain *sdom,
                                           struct sdap_id_op *op,
                                           bool purge);
+static errno_t enum_users_recv(struct tevent_req *req);
 static void ldap_id_enum_users_done(struct tevent_req *subreq);
 static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
@@ -199,6 +200,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct sdap_domain *sdom,
                                           struct sdap_id_op *op,
                                           bool purge);
+static errno_t enum_groups_recv(struct tevent_req *req);
 static void ldap_id_enum_groups_done(struct tevent_req *subreq);
 static void ldap_id_enum_services_done(struct tevent_req *subreq);
 static void ldap_id_enum_cleanup_done(struct tevent_req *subreq);
@@ -296,22 +298,12 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct global_enum_state *state = tevent_req_data(req,
                                                  struct global_enum_state);
-    enum tevent_req_state tstate;
     uint64_t err = 0;
     int ret, dp_error = DP_ERR_FATAL;
 
-    if (tevent_req_is_error(subreq, &tstate, &err)) {
-        if (tstate != TEVENT_REQ_USER_ERROR) {
-            err = EIO;
-        }
-
-        if (err == ENOENT) {
-            err = EOK;
-        }
-    }
+    err = enum_users_recv(subreq);
     talloc_zfree(subreq);
-
-    if (err != EOK) {
+    if (err != EOK && err != ENOENT) {
         /* We call sdap_id_op_done only on error
          * as the connection is reused by groups enumeration */
         ret = sdap_id_op_done(state->op, (int)err, &dp_error);
@@ -351,22 +343,12 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct global_enum_state *state = tevent_req_data(req,
                                                  struct global_enum_state);
-    enum tevent_req_state tstate;
     uint64_t err = 0;
     int ret, dp_error = DP_ERR_FATAL;
 
-    if (tevent_req_is_error(subreq, &tstate, &err)) {
-        if (tstate != TEVENT_REQ_USER_ERROR) {
-            err = EIO;
-        }
-
-        if (err == ENOENT) {
-            err = EOK;
-        }
-    }
+    err = enum_groups_recv(subreq);
     talloc_zfree(subreq);
-
-    if (err != EOK) {
+    if (err != EOK && err != ENOENT) {
         /* We call sdap_id_op_done only on error
          * as the connection is reused by services enumeration */
         ret = sdap_id_op_done(state->op, (int)err, &dp_error);
@@ -632,6 +614,13 @@ static void enum_users_op_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+static errno_t enum_users_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 /* =Group-Enumeration===================================================== */
 
 struct enum_groups_state {
@@ -794,3 +783,9 @@ static void enum_groups_op_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+static errno_t enum_groups_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
