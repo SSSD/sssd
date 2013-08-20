@@ -941,37 +941,11 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
     struct timeval tv;
     int ret = EOK;
     int delay;
-    bool has_enumerated;
 
     /* set up enumeration task */
     if (ctx->be->domain->enumerate) {
-        /* If this is the first startup, we need to kick off
-         * an enumeration immediately, to close a window where
-         * clients requesting get*ent information won't get an
-         * immediate reply with no entries
-         */
-        ret = sysdb_has_enumerated(ctx->be->domain->sysdb, ctx->be->domain,
-                                   &has_enumerated);
-        if (ret != EOK) {
-            return ret;
-        }
-        if (has_enumerated) {
-            /* At least one enumeration has previously run,
-             * so clients will get cached data. We will delay
-             * starting to enumerate by 10s so we don't slow
-             * down the startup process if this is happening
-             * during system boot.
-             */
-            tv = tevent_timeval_current_ofs(10, 0);
-        } else {
-            /* This is our first startup. Schedule the
-             * enumeration to start immediately once we
-             * enter the mainloop.
-             */
-            tv = tevent_timeval_current();
-        }
-
-        ret = ldap_id_enumerate_set_timer(ctx, tv);
+        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n", ctx->be->domain->name));
+        ret = ldap_setup_enumeration(ctx, ctx->conn, ctx->opts->sdom);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */
