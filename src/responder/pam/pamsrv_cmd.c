@@ -981,7 +981,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                 if (ret != EOK) {
                     /* Should not be fatal, just slower next time */
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                           ("Cannot set ncache for %s\n", name, dom));
+                           ("Cannot set ncache for [%s@%s]\n", name,
+                            dom->name));
                 }
             }
 
