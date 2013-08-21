@@ -179,6 +179,18 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return ret;
     }
 
+    sdom = sdap_domain_get(ad_id_ctx->sdap_id_ctx->opts, subdom);
+    if (sdom == NULL) {
+        return EFAULT;
+    }
+
+    ret = sdap_id_setup_tasks(ad_id_ctx->sdap_id_ctx,
+                              ad_id_ctx->ldap_ctx, sdom);
+    if (ret != EOK) {
+        talloc_free(ad_options);
+        return ret;
+    }
+
     /* Set up the ID mapping object */
     ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
         id_ctx->sdap_id_ctx->opts->idmap_ctx;
@@ -259,6 +271,7 @@ ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
                      struct sss_domain_info *subdom)
 {
     struct ipa_ad_server_ctx *iter;
+    struct sdap_domain *sdom;
 
     if (dp_opt_get_bool(ctx->id_ctx->ipa_options->basic,
                         IPA_SERVER_MODE) == false) {
@@ -277,6 +290,10 @@ ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
 
     sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
     DLIST_REMOVE(ctx->id_ctx->server_mode->trusts, iter);
+
+    sdom = sdap_domain_get(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
+    if (sdom == NULL) return;
+    be_ptask_destroy(&sdom->enum_task);
 }
 
 const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
@@ -419,9 +436,27 @@ done:
     return ret;
 }
 
-static errno_t ipa_subdom_store(struct sss_domain_info *domain,
+static errno_t ipa_subdom_enumerates(struct sss_domain_info *parent,
+                                     struct sysdb_attrs *attrs,
+                                     bool *_enumerates)
+{
+    errno_t ret;
+    const char *name;
+
+    ret = sysdb_attrs_get_string(attrs, IPA_CN, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        return ret;
+    }
+
+    *_enumerates = subdomain_enumerates(parent, name);
+    return EOK;
+}
+
+static errno_t ipa_subdom_store(struct sss_domain_info *parent,
                                 struct sdap_idmap_ctx *sdap_idmap_ctx,
-                                struct sysdb_attrs *attrs)
+                                struct sysdb_attrs *attrs,
+                                bool enumerate)
 {
     TALLOC_CTX *tmp_ctx;
     const char *name;
@@ -431,7 +466,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
     int ret;
     bool mpg;
 
-    tmp_ctx = talloc_new(domain);
+    tmp_ctx = talloc_new(parent);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
@@ -462,8 +497,8 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
 
     mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, id);
 
-    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat,
-                                id, mpg, false);
+    ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
+                                id, mpg, enumerate);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;
@@ -479,18 +514,19 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
                                       int count, struct sysdb_attrs **reply,
                                       bool *changes)
 {
-    struct sss_domain_info *domain, *dom;
+    struct sss_domain_info *parent, *dom;
     bool handled[count];
     const char *value;
     int c, h;
     int ret;
+    bool enumerate;
 
-    domain = ctx->be_ctx->domain;
+    parent = ctx->be_ctx->domain;
     memset(handled, 0, sizeof(bool) * count);
     h = 0;
 
     /* check existing subdomains */
-    for (dom = get_next_domain(domain, true);
+    for (dom = get_next_domain(parent, true);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
          dom = get_next_domain(dom, false)) {
         for (c = 0; c < count; c++) {
@@ -519,8 +555,13 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             ipa_ad_subdom_remove(ctx, dom);
         } else {
             /* ok let's try to update it */
-            ret = ipa_subdom_store(domain, ctx->sdap_id_ctx->opts->idmap_ctx,
-                                   reply[c]);
+            ret = ipa_subdom_enumerates(parent, reply[c], &enumerate);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
+                                   reply[c], enumerate);
             if (ret) {
                 /* Nothing we can do about the errorr. Let's at least try
                  * to reuse the existing domain
@@ -549,8 +590,13 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
         /* Nothing we can do about the errorr. Let's at least try
          * to reuse the existing domain.
          */
-        ret = ipa_subdom_store(domain, ctx->sdap_id_ctx->opts->idmap_ctx,
-                               reply[c]);
+        ret = ipa_subdom_enumerates(parent, reply[c], &enumerate);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
+                               reply[c], enumerate);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
                   "will try to use cached subdomain\n"));
