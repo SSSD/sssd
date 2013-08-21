@@ -342,7 +342,7 @@ done:
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
-                              bool mpg)
+                              bool mpg, bool enumerate)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -353,6 +353,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_MPG,
+                           SYSDB_SUBDOMAIN_ENUM,
                            NULL};
     const char *tmp_str;
     bool tmp_bool;
@@ -361,6 +362,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     int flat_flags = 0;
     int id_flags = 0;
     int mpg_flags = 0;
+    int enum_flags = 0;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -390,6 +392,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         if (flat_name) flat_flags = LDB_FLAG_MOD_ADD;
         if (domain_id) id_flags = LDB_FLAG_MOD_ADD;
         mpg_flags = LDB_FLAG_MOD_ADD;
+        enum_flags = LDB_FLAG_MOD_ADD;
     } else if (res->count != 1) {
         ret = EINVAL;
         goto done;
@@ -421,10 +424,15 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         if (tmp_bool != mpg) {
             mpg_flags = LDB_FLAG_MOD_REPLACE;
         }
+        tmp_bool = ldb_msg_find_attr_as_bool(res->msgs[0], SYSDB_SUBDOMAIN_ENUM,
+                                             !enumerate);
+        if (tmp_bool != enumerate) {
+            enum_flags = LDB_FLAG_MOD_REPLACE;
+        }
     }
 
     if (!store && realm_flags == 0 && flat_flags == 0 && id_flags == 0
-            && mpg_flags == 0) {
+            && mpg_flags == 0 && enum_flags == 0) {
         ret = EOK;
         goto done;
     }
@@ -501,6 +509,21 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
 
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_MPG,
                                  mpg ? "TRUE" : "FALSE");
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    if (enum_flags) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_ENUM, enum_flags, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_ENUM,
+                                 enumerate ? "TRUE" : "FALSE");
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;

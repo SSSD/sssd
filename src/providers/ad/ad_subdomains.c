@@ -156,9 +156,9 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
         goto done;
     }
 
-    /* AD subdomains are currently all mpg */
+    /* AD subdomains are currently all mpg and do not enumerate */
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
-                                true);
+                                true, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;

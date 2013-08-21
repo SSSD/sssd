@@ -462,7 +462,8 @@ static errno_t ipa_subdom_store(struct sss_domain_info *domain,
 
     mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, id);
 
-    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, id, mpg);
+    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat,
+                                id, mpg, false);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;

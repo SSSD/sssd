@@ -4524,7 +4524,8 @@ START_TEST(test_sysdb_subdomain_create)
     fail_if(ret != EOK, "Could not set up the test");
 
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3], false);
+                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                false, false);
     fail_if(ret != EOK, "Could not set up the test (dom1)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
@@ -4537,7 +4538,8 @@ START_TEST(test_sysdb_subdomain_create)
             dom1[0], test_ctx->domain->subdomains->name);
 
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3], false);
+                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                false, false);
     fail_if(ret != EOK, "Could not set up the test (dom2)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
@@ -4586,7 +4588,7 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
-                                false);
+                                false, false);
     fail_if(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
@@ -4657,7 +4659,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
-                                false);
+                                false, false);
     fail_if(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
@@ -4712,7 +4714,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_unless(subdomain != NULL, "Failed to create new subdomin.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
-                                false);
+                                false, false);
     fail_if(ret != EOK, "Could not set up the test (test subdom)");
 
     ret = sysdb_update_subdomains(test_ctx->domain);
