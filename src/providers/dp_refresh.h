@@ -24,7 +24,6 @@
 #include <tevent.h>
 #include <talloc.h>
 
-#include "providers/dp_backend.h"
 #include "providers/dp_ptask.h"
 
 /* solve circular dependency */
