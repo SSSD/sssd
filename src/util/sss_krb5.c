@@ -939,12 +939,12 @@ sss_krb5_get_type(const char *full_location)
                 sizeof(SSS_KRB5_FILE)-1) == 0) {
         return SSS_KRB5_TYPE_FILE;
     }
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
     else if (strncmp(full_location, SSS_KRB5_DIR,
                sizeof(SSS_KRB5_DIR)-1) == 0) {
         return SSS_KRB5_TYPE_DIR;
     }
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
     else if (full_location[0] == '/') {
         return SSS_KRB5_TYPE_FILE;
     }
@@ -968,11 +968,11 @@ sss_krb5_residual_by_type(const char *full_location,
                 offset = sizeof(SSS_KRB5_FILE)-1;
             }
             break;
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             offset = sizeof(SSS_KRB5_DIR)-1;
             break;
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
         default:
             return NULL;
     }
@@ -992,14 +992,14 @@ sss_krb5_cc_file_path(const char *full_location)
     switch(cc_type) {
         case SSS_KRB5_TYPE_FILE:
             return residual;
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             /* DIR::/run/user/tkt_foo */
             if (residual[0] == ':') {
                 ++residual;
             }
             return residual;
-#endif
+#endif /* HAVE_KRB5_CC_COLLECTION */
         case SSS_KRB5_TYPE_UNKNOWN:
             break;
     }
@@ -1185,7 +1185,7 @@ char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
                                          krb5_principal principal,
                                          const char *location)
 {
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
     krb5_error_code kerr;
     krb5_ccache tmp_cc = NULL;
     char *tmp_ccname = NULL;
@@ -1229,5 +1229,5 @@ done:
     return ret_ccname;
 #else
     return NULL;
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
 }

@@ -45,7 +45,7 @@
 #define KEYTAB_CLEAN_NAME keytab_name ? keytab_name : "default"
 
 #if defined HAVE_KRB5_CC_CACHE_MATCH && defined HAVE_KRB5_CC_GET_FULL_NAME
-#define HAVE_KRB5_DIRCACHE 1
+#define HAVE_KRB5_CC_COLLECTION 1
 #endif
 
 const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,
@@ -145,9 +145,9 @@ void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
 
 enum sss_krb5_cc_type {
     SSS_KRB5_TYPE_FILE,
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
     SSS_KRB5_TYPE_DIR,
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
     SSS_KRB5_TYPE_UNKNOWN
 };
 
